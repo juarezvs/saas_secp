@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: secp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: secp
+      POSTGRES_PASSWORD: secp_dev_password
+      POSTGRES_DB: secp_dev
+      TZ: America/Manaus
+    ports:
+      - "5432:5432"
+    volumes:
+      - secp_postgres_data:/var/lib/postgresql
+    networks:
+      - secp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U secp -d secp_dev -h localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  pgadmin:
+    image: dpage/pgadmin4:9.8
+    container_name: secp-pgadmin
+    restart: unless-stopped
+    environment:
+     PGADMIN_DEFAULT_EMAIL: admin@secp.com.br
+     PGADMIN_DEFAULT_PASSWORD: Admin@123456
+     PGADMIN_DISABLE_POSTFIX: "1"
+     TZ: America/Manaus
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - secp-network
+    volumes:
+      - secp_pgadmin_data:/var/lib/pgadmin
+
+volumes:
+  secp_postgres_data:
+  secp_pgadmin_data:
+
+networks:
+  secp-network:
+    driver: bridge

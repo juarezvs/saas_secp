@@ -1,0 +1,286 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TipoUsuario {
+  SERVIDOR
+  PESSOA_EXTERNA
+  SISTEMA
+}
+
+enum StatusRegistro {
+  ATIVO
+  INATIVO
+}
+
+enum TipoUnidadeOrganizacional {
+  ORGAO
+  SECAO_JUDICIARIA
+  SUBSECAO_JUDICIARIA
+  UNIDADE_AVANCADA_ATENDIMENTO
+  NUCLEO
+  SECAO
+  SECRETARIA
+  VARA
+  GABINETE
+  TURMA_RECURSAL
+  CENTRO_CONCILIACAO
+  DEPARTAMENTO
+  SUBDEPARTAMENTO
+  OUTRA
+}
+
+enum TipoVinculoServidor {
+  EFETIVO
+  CEDIDO
+  REQUISITADO
+  REDISTRIBUIDO
+  REMOVIDO
+  EXERCICIO_PROVISORIO
+}
+
+enum TipoLotacao {
+  TITULAR
+  PROVISORIA
+  SUBSTITUICAO
+}
+
+enum PapelGestao {
+  GESTOR_TITULAR
+  GESTOR_SUBSTITUTO
+  DELEGADO_CHEFIA
+}
+
+model Usuario {
+  id        String      @id @default(uuid()) @db.Uuid
+  matricula String      @unique @db.VarChar(50)
+  nome      String      @db.VarChar(200)
+  email     String?     @unique @db.VarChar(200)
+  senhaHash String?     @map("senha_hash") @db.VarChar(255)
+  tipo      TipoUsuario @default(SERVIDOR)
+  ativo     Boolean     @default(true)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  perfis     UsuarioPerfil[]
+  servidor   Servidor?
+  auditorias AuditoriaEvento[]
+
+  @@map("usuarios")
+}
+
+model Perfil {
+  id        String  @id @default(uuid()) @db.Uuid
+  codigo    String  @unique @db.VarChar(80)
+  nome      String  @db.VarChar(120)
+  descricao String? @db.Text
+  sistema   Boolean @default(false)
+  ativo     Boolean @default(true)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  usuarios   UsuarioPerfil[]
+  permissoes PerfilPermissao[]
+
+  @@map("perfis")
+}
+
+model Permissao {
+  id        String  @id @default(uuid()) @db.Uuid
+  codigo    String  @unique @db.VarChar(160)
+  recurso   String  @db.VarChar(80)
+  acao      String  @db.VarChar(80)
+  escopo    String  @db.VarChar(80)
+  descricao String? @db.Text
+
+  criadoEm DateTime @default(now()) @map("criado_em")
+
+  perfis PerfilPermissao[]
+
+  @@unique([recurso, acao, escopo])
+  @@map("permissoes")
+}
+
+model UsuarioPerfil {
+  id String @id @default(uuid()) @db.Uuid
+
+  usuarioId String @map("usuario_id") @db.Uuid
+  perfilId  String @map("perfil_id") @db.Uuid
+
+  ativo    Boolean  @default(true)
+  criadoEm DateTime @default(now()) @map("criado_em")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  perfil  Perfil  @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, perfilId])
+  @@index([usuarioId])
+  @@index([perfilId])
+  @@map("usuarios_perfis")
+}
+
+model PerfilPermissao {
+  id String @id @default(uuid()) @db.Uuid
+
+  perfilId    String @map("perfil_id") @db.Uuid
+  permissaoId String @map("permissao_id") @db.Uuid
+
+  criadoEm DateTime @default(now()) @map("criado_em")
+
+  perfil    Perfil    @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+  permissao Permissao @relation(fields: [permissaoId], references: [id], onDelete: Cascade)
+
+  @@unique([perfilId, permissaoId])
+  @@index([perfilId])
+  @@index([permissaoId])
+  @@map("perfis_permissoes")
+}
+
+model Orgao {
+  id    String  @id @default(uuid()) @db.Uuid
+  sigla String  @unique @db.VarChar(30)
+  nome  String  @db.VarChar(200)
+  ativo Boolean @default(true)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  unidades   UnidadeOrganizacional[]
+  servidores Servidor[]
+
+  @@map("orgaos")
+}
+
+model UnidadeOrganizacional {
+  id           String  @id @default(uuid()) @db.Uuid
+  orgaoId      String  @map("orgao_id") @db.Uuid
+  unidadePaiId String? @map("unidade_pai_id") @db.Uuid
+
+  codigo String                    @db.VarChar(80)
+  sigla  String                    @db.VarChar(50)
+  nome   String                    @db.VarChar(250)
+  tipo   TipoUnidadeOrganizacional
+  ativo  Boolean                   @default(true)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  orgao Orgao @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+
+  unidadePai     UnidadeOrganizacional?  @relation("HierarquiaUnidades", fields: [unidadePaiId], references: [id], onDelete: Restrict)
+  unidadesFilhas UnidadeOrganizacional[] @relation("HierarquiaUnidades")
+
+  lotacoes Lotacao[]
+  gestores GestorUnidade[]
+
+  @@unique([orgaoId, codigo])
+  @@index([orgaoId])
+  @@index([unidadePaiId])
+  @@map("unidades_organizacionais")
+}
+
+model Servidor {
+  id        String @id @default(uuid()) @db.Uuid
+  usuarioId String @unique @map("usuario_id") @db.Uuid
+  orgaoId   String @map("orgao_id") @db.Uuid
+
+  matricula     String              @unique @db.VarChar(50)
+  nomeFuncional String?             @map("nome_funcional") @db.VarChar(200)
+  vinculo       TipoVinculoServidor @default(EFETIVO)
+  ativo         Boolean             @default(true)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  orgao   Orgao   @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+
+  lotacoes Lotacao[]
+  gestoes  GestorUnidade[]
+
+  @@index([orgaoId])
+  @@map("servidores")
+}
+
+model Lotacao {
+  id String @id @default(uuid()) @db.Uuid
+
+  servidorId String @map("servidor_id") @db.Uuid
+  unidadeId  String @map("unidade_id") @db.Uuid
+
+  tipo       TipoLotacao    @default(TITULAR)
+  status     StatusRegistro @default(ATIVO)
+  dataInicio DateTime       @map("data_inicio") @db.Date
+  dataFim    DateTime?      @map("data_fim") @db.Date
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  servidor Servidor              @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  unidade  UnidadeOrganizacional @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
+
+  @@index([servidorId])
+  @@index([unidadeId])
+  @@index([status])
+  @@map("lotacoes")
+}
+
+model GestorUnidade {
+  id String @id @default(uuid()) @db.Uuid
+
+  unidadeId  String @map("unidade_id") @db.Uuid
+  servidorId String @map("servidor_id") @db.Uuid
+
+  papel      PapelGestao
+  ativo      Boolean     @default(true)
+  dataInicio DateTime    @map("data_inicio") @db.Date
+  dataFim    DateTime?   @map("data_fim") @db.Date
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  unidade  UnidadeOrganizacional @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
+  servidor Servidor              @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+
+  @@index([unidadeId])
+  @@index([servidorId])
+  @@index([papel])
+  @@map("gestores_unidades")
+}
+
+model AuditoriaEvento {
+  id String @id @default(uuid()) @db.Uuid
+
+  usuarioId  String? @map("usuario_id") @db.Uuid
+  entidade   String  @db.VarChar(120)
+  entidadeId String? @map("entidade_id") @db.VarChar(120)
+  acao       String  @db.VarChar(120)
+
+  dadosAntes  Json? @map("dados_antes")
+  dadosDepois Json? @map("dados_depois")
+  metadados   Json?
+
+  ip        String? @db.VarChar(80)
+  userAgent String? @map("user_agent") @db.Text
+
+  hashAnterior String? @map("hash_anterior") @db.VarChar(128)
+  hashAtual    String? @map("hash_atual") @db.VarChar(128)
+
+  criadoEm DateTime @default(now()) @map("criado_em")
+
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([usuarioId])
+  @@index([entidade])
+  @@index([entidadeId])
+  @@index([acao])
+  @@index([criadoEm])
+  @@map("auditoria_eventos")
+}
