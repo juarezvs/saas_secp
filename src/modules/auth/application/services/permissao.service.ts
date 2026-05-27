@@ -73,6 +73,39 @@ export async function exigirPermissaoOuRedirecionar(permissao: string) {
   }
 }
 
+export async function exigirUmaDasPermissoesOuRedirecionar(
+  permissoes: string[],
+) {
+  if (permissoes.length === 0) {
+    redirect(
+      `/acesso-negado?permissao=${encodeURIComponent(
+        "Nenhuma permissão informada",
+      )}`,
+    );
+  }
+
+  const permissoesNegadas: string[] = [];
+
+  for (const permissao of permissoes) {
+    try {
+      return await exigirPermissao(permissao);
+    } catch (error) {
+      if (error instanceof PermissaoNegadaError) {
+        permissoesNegadas.push(error.permissaoNecessaria ?? permissao);
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  redirect(
+    `/acesso-negado?permissao=${encodeURIComponent(
+      permissoesNegadas.join(" ou "),
+    )}`,
+  );
+}
+
 export function possuiPermissaoNaLista(
   permissoesUsuario: string[] | undefined,
   permissao: string,

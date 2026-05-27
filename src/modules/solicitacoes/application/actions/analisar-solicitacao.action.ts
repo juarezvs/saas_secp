@@ -9,18 +9,21 @@ import {
 } from "../schemas/solicitacao.schema";
 import { aplicarEfeitosSolicitacaoDeferida } from "../services/aplicar-efeitos-solicitacao.service";
 import { buscarSolicitacaoPorId } from "../../infrastructure/repositories/solicitacao.repository";
+import { recalcularPosSolicitacaoService } from "@/modules/recalculo/application/services/recalcular-pos-solicitacao.service";
 
 function extrairDados(formData: FormData) {
   return {
     resultado: String(formData.get("resultado") ?? ""),
-    justificativaAnalise: String(formData.get("justificativaAnalise") ?? "").trim(),
+    justificativaAnalise: String(
+      formData.get("justificativaAnalise") ?? "",
+    ).trim(),
   };
 }
 
 export async function analisarSolicitacaoAction(
   solicitacaoId: string,
   _estadoAnterior: AnalisarSolicitacaoFormState,
-  formData: FormData
+  formData: FormData,
 ): Promise<AnalisarSolicitacaoFormState> {
   const session = await auth();
 
@@ -154,6 +157,13 @@ export async function analisarSolicitacaoAction(
     });
   });
 
+  if (novoStatus === "DEFERIDA") {
+    await recalcularPosSolicitacaoService({
+      solicitacaoId,
+      usuarioIdAuditoria: session.user.id,
+    });
+  }
+
   revalidatePath("/solicitacoes");
   revalidatePath(`/solicitacoes/${solicitacaoId}`);
   revalidatePath("/marcacoes");
@@ -165,7 +175,7 @@ export async function analisarSolicitacaoAction(
     sucesso: true,
     mensagem:
       novoStatus === "DEFERIDA"
-        ? "Solicitação deferida com sucesso."
+        ? "Solicitação deferida e recálculo executado com sucesso."
         : "Solicitação indeferida com sucesso.",
   };
 }

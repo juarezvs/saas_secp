@@ -140,6 +140,98 @@ const permissoesIniciais = [
     escopo: "global",
     descricao: "Consultar todas as solicitações.",
   },
+  {
+    recurso: "homologacao",
+    acao: "gerenciar",
+    escopo: "chefia",
+    descricao: "Gerenciar homologação mensal dos servidores subordinados.",
+  },
+  {
+    recurso: "homologacao",
+    acao: "consultar",
+    escopo: "proprio",
+    descricao: "Consultar a própria homologação mensal.",
+  },
+  {
+    recurso: "homologacao",
+    acao: "consultar",
+    escopo: "global",
+    descricao: "Consultar homologações mensais de todas as unidades.",
+  },
+  {
+    recurso: "homologacao",
+    acao: "gerenciar",
+    escopo: "global",
+    descricao: "Gerenciar homologações mensais de todas as unidades.",
+  },
+  {
+    recurso: "boletim-frequencia",
+    acao: "gerar",
+    escopo: "chefia",
+    descricao: "Gerar Boletim de Frequência da unidade homologada.",
+  },
+  {
+    recurso: "boletim-frequencia",
+    acao: "encaminhar",
+    escopo: "chefia",
+    descricao: "Encaminhar Boletim de Frequência à SECAP/NUCGP.",
+  },
+  {
+    recurso: "boletim-frequencia",
+    acao: "receber",
+    escopo: "global",
+    descricao: "Registrar recebimento/conferência do Boletim pela SECAP/NUCGP.",
+  },
+  {
+    recurso: "boletim-frequencia",
+    acao: "consultar",
+    escopo: "global",
+    descricao: "Consultar Boletins de Frequência.",
+  },
+  {
+    recurso: "relatorios",
+    acao: "consultar",
+    escopo: "proprio",
+    descricao:
+      "Consultar relatórios próprios de frequência, espelho e banco de horas.",
+  },
+  {
+    recurso: "relatorios",
+    acao: "consultar",
+    escopo: "global",
+    descricao:
+      "Consultar relatórios globais de frequência, espelho, banco de horas e boletins.",
+  },
+  {
+    recurso: "relatorios",
+    acao: "exportar",
+    escopo: "proprio",
+    descricao: "Exportar relatórios próprios em PDF.",
+  },
+  {
+    recurso: "relatorios",
+    acao: "exportar",
+    escopo: "global",
+    descricao: "Exportar relatórios globais em PDF.",
+  },
+  {
+    recurso: "auditoria",
+    acao: "consultar",
+    escopo: "global",
+    descricao: "Consultar trilhas de auditoria do sistema.",
+  },
+  {
+    recurso: "auditoria",
+    acao: "detalhar",
+    escopo: "global",
+    descricao: "Detalhar eventos de auditoria do sistema.",
+  },
+  {
+    recurso: "auditoria",
+    acao: "exportar",
+    escopo: "global",
+    descricao: "Exportar trilhas de auditoria.",
+  },
 ];
 
 async function criarPermissoes() {

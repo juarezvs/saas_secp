@@ -13,6 +13,7 @@ import { buscarSolicitacaoPorId } from "@/modules/solicitacoes/infrastructure/re
 import { AnalisarSolicitacaoForm } from "@/modules/solicitacoes/presentation/components/analisar-solicitacao-form";
 import { SolicitacaoStepper } from "@/modules/solicitacoes/presentation/components/solicitacao-stepper";
 import { SolicitacaoTimeline } from "@/modules/solicitacoes/presentation/components/solicitacao-timeline";
+import { recalcularPosSolicitacaoAction } from "@/modules/recalculo/application/actions/recalcular-pos-solicitacao.action";
 
 type SolicitacaoDetalhePageProps = {
   params: Promise<{
@@ -59,7 +60,7 @@ export default async function SolicitacaoDetalhePage({
             {solicitacao.titulo}
           </h1>
 
-          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+          <p className="mt-2 text-sm text-(--muted-foreground)">
             Servidor: {solicitacao.servidor.usuario.nome} • Matrícula{" "}
             {solicitacao.servidor.matricula}
           </p>
@@ -67,7 +68,7 @@ export default async function SolicitacaoDetalhePage({
 
         <span
           className={`w-fit rounded-full px-3 py-1 text-sm font-semibold ${classeStatusSolicitacao(
-            solicitacao.status
+            solicitacao.status,
           )}`}
         >
           {rotuloStatusSolicitacao(solicitacao.status)}
@@ -82,7 +83,7 @@ export default async function SolicitacaoDetalhePage({
 
       <SolicitacaoStepper status={solicitacao.status} />
 
-      <section className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
+      <section className="rounded-xl border bg-(--card) p-5 text-(--card-foreground) shadow-sm">
         <h2 className="text-lg font-bold">Detalhes da solicitação</h2>
 
         <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -93,7 +94,7 @@ export default async function SolicitacaoDetalhePage({
             value={
               solicitacao.dataReferencia
                 ? new Intl.DateTimeFormat("pt-BR").format(
-                    solicitacao.dataReferencia
+                    solicitacao.dataReferencia,
                   )
                 : "-"
             }
@@ -107,17 +108,17 @@ export default async function SolicitacaoDetalhePage({
           />
         </div>
 
-        <div className="mt-5 rounded-lg border bg-[var(--muted)] p-4">
+        <div className="mt-5 rounded-lg border bg-(--muted) p-4">
           <p className="text-sm font-semibold">Descrição</p>
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--muted-foreground)]">
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-(--muted-foreground)">
             {solicitacao.descricao}
           </p>
         </div>
 
         {solicitacao.justificativaAnalise && (
-          <div className="mt-5 rounded-lg border bg-[var(--muted)] p-4">
+          <div className="mt-5 rounded-lg border bg-(--muted) p-4">
             <p className="text-sm font-semibold">Justificativa da análise</p>
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--muted-foreground)]">
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-(--muted-foreground)">
               {solicitacao.justificativaAnalise}
             </p>
           </div>
@@ -125,6 +126,27 @@ export default async function SolicitacaoDetalhePage({
       </section>
 
       {podeAnalisar && <AnalisarSolicitacaoForm action={action} />}
+      {solicitacao.status === "DEFERIDA" && (
+        <section className="rounded-xl border bg-(--card) p-5 text-(--card-foreground) shadow-sm">
+          <h2 className="text-lg font-bold">Recálculo</h2>
+
+          <p className="mt-1 text-sm leading-6 text-(--muted-foreground)">
+            Use esta ação para recalcular novamente a apuração e o banco de
+            horas impactados por esta solicitação.
+          </p>
+
+          <form action={recalcularPosSolicitacaoAction} className="mt-4">
+            <input type="hidden" name="solicitacaoId" value={solicitacao.id} />
+
+            <button
+              type="submit"
+              className="rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-(--muted)"
+            >
+              Recalcular efeitos da solicitação
+            </button>
+          </form>
+        </section>
+      )}
 
       <SolicitacaoTimeline eventos={solicitacao.eventos} />
     </div>
@@ -133,8 +155,8 @@ export default async function SolicitacaoDetalhePage({
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border bg-[var(--muted)] p-4">
-      <p className="text-xs font-semibold uppercase text-[var(--muted-foreground)]">
+    <div className="rounded-lg border bg-(--muted) p-4">
+      <p className="text-xs font-semibold uppercase text-(--muted-foreground)">
         {label}
       </p>
       <p className="mt-2 font-semibold">{value}</p>

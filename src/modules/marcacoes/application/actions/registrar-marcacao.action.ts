@@ -18,6 +18,11 @@ import {
   buscarServidorPorUsuarioId,
   listarMarcacoesDoServidorNoDia,
 } from "../../infrastructure/repositories/marcacao.repository";
+import { recalcularDiaServidorService } from "@/modules/recalculo/application/services/recalcular-dia-servidor.service";
+import {
+  verificarPeriodoHomologado,
+  PeriodoHomologadoError,
+} from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
 
 function extrairDados(formData: FormData) {
   return {
@@ -139,6 +144,23 @@ export async function registrarMarcacaoAction(
 
   const dataReferencia = obterDataReferencia(agora);
 
+  try {
+    await verificarPeriodoHomologado({
+      servidorId: servidor.id,
+      dataReferencia,
+    });
+  } catch (error) {
+    if (error instanceof PeriodoHomologadoError) {
+      return {
+        sucesso: false,
+        mensagem:
+          "Este período já foi homologado. Novas marcações dependem de reabertura formal ou ajuste administrativo autorizado.",
+      };
+    }
+
+    throw error;
+  }
+
   const marcacao = await prisma.$transaction(async (tx) => {
     const novaMarcacao = await tx.marcacao.create({
       data: {
@@ -196,8 +218,17 @@ export async function registrarMarcacaoAction(
     return novaMarcacao;
   });
 
+  await recalcularDiaServidorService({
+    servidorId: servidor.id,
+    dataReferencia,
+    usuarioIdAuditoria: session.user.id,
+    origem: "RECALCULO_APOS_MARCACAO_WEB",
+  });
+
   revalidatePath("/marcacoes");
   revalidatePath("/marcacoes/registrar");
+  revalidatePath("/apuracao");
+  revalidatePath("/espelho-ponto");
 
   return {
     sucesso: true,

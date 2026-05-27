@@ -10,6 +10,24 @@ import {
 } from "@/modules/banco-horas/infrastructure/repositories/banco-horas.repository";
 import { BancoHorasCard } from "@/modules/banco-horas/presentation/components/banco-horas-card";
 import { MovimentosBancoHorasTable } from "@/modules/banco-horas/presentation/components/movimentos-banco-horas-table";
+import { recalcularMesServidorAction } from "@/modules/recalculo/application/actions/recalcular-mes-servidor.action";
+
+type ServidorComLotacoes = {
+  lotacoes: Array<{
+    unidade: {
+      sigla: string;
+    };
+  }>;
+};
+
+function temLotacoes(servidor: unknown): servidor is ServidorComLotacoes {
+  return (
+    typeof servidor === "object" &&
+    servidor !== null &&
+    "lotacoes" in servidor &&
+    Array.isArray((servidor as { lotacoes?: unknown }).lotacoes)
+  );
+}
 
 export default async function BancoHorasPage({
   searchParams,
@@ -26,7 +44,7 @@ export default async function BancoHorasPage({
   const permissoes = session?.user.perfilAtivo?.permissoes ?? [];
   const podeGerenciar = permissoes.includes("banco-horas:gerenciar:global");
   const podeConsultarGlobal = permissoes.includes(
-    "banco-horas:consultar:global"
+    "banco-horas:consultar:global",
   );
 
   const hoje = new Date();
@@ -57,6 +75,11 @@ export default async function BancoHorasPage({
       })
     : [];
 
+  const lotacaoPrincipal =
+    servidorSelecionado && temLotacoes(servidorSelecionado)
+      ? servidorSelecionado.lotacoes[0]
+      : null;
+
   return (
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "Banco de Horas" }]} />
@@ -70,7 +93,7 @@ export default async function BancoHorasPage({
           Saldo e movimentos
         </h1>
 
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-(--muted-foreground)">
           Consulte créditos, débitos, pendências, horas acima do limite e saldo
           consolidado do banco de horas.
         </p>
@@ -83,16 +106,15 @@ export default async function BancoHorasPage({
       />
 
       {servidorSelecionado ? (
-        <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
+        <section className="rounded-xl border bg-(--card) p-5 shadow-sm">
           <h2 className="text-lg font-bold">
             {servidorSelecionado.usuario.nome}
           </h2>
 
-          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+          <p className="mt-1 text-sm text-(--muted-foreground)">
             Matrícula: {servidorSelecionado.matricula}
-            {"lotacoes" in servidorSelecionado &&
-            servidorSelecionado.lotacoes?.[0]
-              ? ` • Lotação: ${servidorSelecionado.lotacoes[0].unidade.sigla}`
+            {lotacaoPrincipal
+              ? ` • Lotação: ${lotacaoPrincipal.unidade.sigla}`
               : ""}
           </p>
         </section>
@@ -102,15 +124,24 @@ export default async function BancoHorasPage({
         </section>
       )}
 
+      {servidorSelecionadoId && (
+        <a
+          href={`/api/relatorios/banco-horas/${servidorSelecionadoId}/pdf?ano=${anoReferencia}&mes=${mesReferencia}`}
+          className="inline-flex items-center justify-center rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950"
+        >
+          Exportar banco de horas em PDF
+        </a>
+      )}
+
       {podeConsultarGlobal && servidores.length > 0 && (
-        <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
+        <section className="rounded-xl border bg-(--card) p-5 shadow-sm">
           <h2 className="text-lg font-bold">Selecionar servidor</h2>
 
           <form className="mt-4 grid gap-4 md:grid-cols-4">
             <select
               name="servidorId"
               defaultValue={servidorSelecionadoId ?? ""}
-              className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm md:col-span-2"
+              className="h-10 rounded-md border bg-(--card) px-3 text-sm md:col-span-2"
             >
               {servidores.map((servidor) => (
                 <option key={servidor.id} value={servidor.id}>
@@ -123,7 +154,7 @@ export default async function BancoHorasPage({
               type="number"
               name="ano"
               defaultValue={anoReferencia}
-              className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
+              className="h-10 rounded-md border bg-(--card) px-3 text-sm"
             />
 
             <input
@@ -132,12 +163,12 @@ export default async function BancoHorasPage({
               min={1}
               max={12}
               defaultValue={mesReferencia}
-              className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
+              className="h-10 rounded-md border bg-(--card) px-3 text-sm"
             />
 
             <button
               type="submit"
-              className="rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)]"
+              className="rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-(--muted)"
             >
               Filtrar
             </button>
@@ -148,12 +179,16 @@ export default async function BancoHorasPage({
       <BancoHorasCard saldo={servidorSelecionado?.bancoHorasSaldo ?? null} />
 
       {podeGerenciar && servidorSelecionadoId && (
-        <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
+        <section className="rounded-xl border bg-(--card) p-5 shadow-sm">
           <h2 className="text-lg font-bold">Ações administrativas</h2>
 
           <div className="mt-4 flex flex-wrap gap-3">
             <form action={gerarMovimentosBancoHorasAction}>
-              <input type="hidden" name="servidorId" value={servidorSelecionadoId} />
+              <input
+                type="hidden"
+                name="servidorId"
+                value={servidorSelecionadoId}
+              />
               <input type="hidden" name="anoReferencia" value={anoReferencia} />
               <input type="hidden" name="mesReferencia" value={mesReferencia} />
 
@@ -166,20 +201,41 @@ export default async function BancoHorasPage({
             </form>
 
             <form action={recalcularSaldoBancoHorasAction}>
-              <input type="hidden" name="servidorId" value={servidorSelecionadoId} />
+              <input
+                type="hidden"
+                name="servidorId"
+                value={servidorSelecionadoId}
+              />
 
               <button
                 type="submit"
-                className="rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)]"
+                className="rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-(--muted)"
               >
                 Recalcular saldo
               </button>
             </form>
+
+            <form action={recalcularMesServidorAction}>
+              <input
+                type="hidden"
+                name="servidorId"
+                value={servidorSelecionadoId}
+              />
+              <input type="hidden" name="anoReferencia" value={anoReferencia} />
+              <input type="hidden" name="mesReferencia" value={mesReferencia} />
+
+              <button
+                type="submit"
+                className="rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-(--muted)"
+              >
+                Recalcular mês completo
+              </button>
+            </form>
           </div>
 
-          <p className="mt-3 text-xs text-[var(--muted-foreground)]">
-            A geração considera apurações calculadas ainda sem movimento de banco
-            de horas no mês selecionado.
+          <p className="mt-3 text-xs text-(--muted-foreground)">
+            A geração considera apurações calculadas ainda sem movimento de
+            banco de horas no mês selecionado.
           </p>
         </section>
       )}

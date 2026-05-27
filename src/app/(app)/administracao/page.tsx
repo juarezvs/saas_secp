@@ -3,6 +3,7 @@ import {
   Building2,
   KeyRound,
   Settings,
+  ShieldAlert,
   ShieldCheck,
   UsersRound,
 } from "lucide-react";
@@ -45,6 +46,14 @@ export default async function AdministracaoPage() {
         "Configure integrações futuras com SARH, SEI, LDAP e biometria.",
       href: "/administracao/integracoes",
       icon: KeyRound,
+    },
+    {
+      titulo: "Auditoria",
+      descricao:
+        "Consulte trilhas de auditoria, alterações sensíveis, usuários responsáveis e dados antes/depois.",
+      href: "/auditoria",
+      icon: ShieldAlert,
+      permissao: "auditoria:consultar:global",
     },
   ];
 

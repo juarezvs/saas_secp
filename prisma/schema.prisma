@@ -198,6 +198,49 @@ enum ResultadoAnaliseSolicitacao {
   INDEFERIR
 }
 
+enum StatusFechamentoMensal {
+  ABERTO
+  EM_HOMOLOGACAO
+  HOMOLOGADO
+  HOMOLOGADO_PARCIAL
+  CANCELADO
+}
+
+enum StatusHomologacaoServidor {
+  PENDENTE
+  COM_PENDENCIAS
+  HOMOLOGADO
+  HOMOLOGADO_COM_RESSALVA
+  DEVOLVIDO
+}
+
+enum TipoPendenciaHomologacao {
+  APURACAO_INCONSISTENTE
+  MARCACAO_INCOMPLETA
+  SOLICITACAO_PENDENTE
+  BANCO_HORAS_PENDENTE
+  FALTA
+  DEBITO
+  SEM_APURACAO
+}
+
+enum StatusBoletimFrequencia {
+  GERADO
+  ENCAMINHADO_SECAP
+  RECEBIDO_SECAP
+  CONFERIDO
+  CANCELADO
+}
+
+enum TipoResumoBoletimServidor {
+  REGULAR
+  COM_RESSALVA
+  COM_FALTA
+  COM_DEBITO
+  COM_CREDITO
+  COM_PENDENCIA
+}
+
 model Usuario {
   id        String      @id @default(uuid()) @db.Uuid
   matricula String      @unique @db.VarChar(50)
@@ -213,11 +256,17 @@ model Usuario {
   perfis                          UsuarioPerfil[]
   servidor                        Servidor?
   auditorias                      AuditoriaEvento[]
-  marcacoesCriadas                Marcacao[]            @relation("MarcacoesCriadasPorUsuario")
-  movimentosBancoHorasAutorizados MovimentoBancoHoras[] @relation("MovimentosBancoHorasAutorizadosPor")
-  solicitacoesCriadas             Solicitacao[]         @relation("SolicitacoesCriadasPorUsuario")
-  solicitacoesAnalisadas          Solicitacao[]         @relation("SolicitacoesAnalisadasPorUsuario")
-  solicitacaoEventos              SolicitacaoEvento[]   @relation("SolicitacaoEventosPorUsuario")
+  marcacoesCriadas                Marcacao[]                @relation("MarcacoesCriadasPorUsuario")
+  movimentosBancoHorasAutorizados MovimentoBancoHoras[]     @relation("MovimentosBancoHorasAutorizadosPor")
+  solicitacoesCriadas             Solicitacao[]             @relation("SolicitacoesCriadasPorUsuario")
+  solicitacoesAnalisadas          Solicitacao[]             @relation("SolicitacoesAnalisadasPorUsuario")
+  solicitacaoEventos              SolicitacaoEvento[]       @relation("SolicitacaoEventosPorUsuario")
+  fechamentosAbertos              FechamentoMensalUnidade[] @relation("FechamentosAbertosPorUsuario")
+  fechamentosHomologados          FechamentoMensalUnidade[] @relation("FechamentosHomologadosPorUsuario")
+  homologacoesServidor            HomologacaoServidorMes[]  @relation("HomologacoesServidorPorUsuario")
+  boletinsGerados                 BoletimFrequencia[]       @relation("BoletinsGeradosPorUsuario")
+  boletinsEncaminhados            BoletimFrequencia[]       @relation("BoletinsEncaminhadosPorUsuario")
+  boletinsRecebidos               BoletimFrequencia[]       @relation("BoletinsRecebidosPorUsuario")
 
   @@map("usuarios")
 }
@@ -324,9 +373,11 @@ model UnidadeOrganizacional {
   unidadePai     UnidadeOrganizacional?  @relation("HierarquiaUnidades", fields: [unidadePaiId], references: [id], onDelete: Restrict)
   unidadesFilhas UnidadeOrganizacional[] @relation("HierarquiaUnidades")
 
-  lotacoes     Lotacao[]
-  gestores     GestorUnidade[]
-  solicitacoes Solicitacao[]   @relation("SolicitacoesPorUnidade")
+  lotacoes           Lotacao[]
+  gestores           GestorUnidade[]
+  solicitacoes       Solicitacao[]             @relation("SolicitacoesPorUnidade")
+  fechamentosMensais FechamentoMensalUnidade[]
+  boletimFrequencias BoletimFrequencia[]
 
   @@unique([orgaoId, codigo])
   @@index([orgaoId])
@@ -358,8 +409,10 @@ model Servidor {
   ocorrenciaFrequencias OcorrenciaFrequencia[]
   bancoHorasSaldo       BancoHorasSaldo?
   movimentoBancoHoras   MovimentoBancoHoras[]
-  solicitacoes          Solicitacao[]          @relation("SolicitacoesDoServidor")
-  solicitacaoEventos    SolicitacaoEvento[]    @relation("SolicitacaoEventosPorServidor")
+  solicitacoes          Solicitacao[]               @relation("SolicitacoesDoServidor")
+  solicitacaoEventos    SolicitacaoEvento[]         @relation("SolicitacaoEventosPorServidor")
+  homologacoesMensais   HomologacaoServidorMes[]
+  boletinsFrequencia    BoletimFrequenciaServidor[]
 
   @@index([orgaoId])
   @@map("servidores")
@@ -402,9 +455,10 @@ model GestorUnidade {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  unidade                 UnidadeOrganizacional @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
-  servidor                Servidor              @relation(fields: [servidorId], references: [id], onDelete: Restrict)
-  solicitacoesResponsavel Solicitacao[]         @relation("SolicitacoesPorChefiaResponsavel")
+  unidade                 UnidadeOrganizacional     @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
+  servidor                Servidor                  @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  solicitacoesResponsavel Solicitacao[]             @relation("SolicitacoesPorChefiaResponsavel")
+  fechamentosResponsavel  FechamentoMensalUnidade[]
 
   @@index([unidadeId])
   @@index([servidorId])
@@ -771,4 +825,170 @@ model SolicitacaoEvento {
   @@index([servidorId])
   @@index([tipo])
   @@map("solicitacoes_eventos")
+}
+
+model FechamentoMensalUnidade {
+  id                  String  @id @default(uuid()) @db.Uuid
+  unidadeId           String  @map("unidade_id") @db.Uuid
+  gestorResponsavelId String? @map("gestor_responsavel_id") @db.Uuid
+
+  anoReferencia Int @map("ano_referencia")
+  mesReferencia Int @map("mes_referencia")
+
+  status StatusFechamentoMensal @default(ABERTO)
+
+  abertoPorUsuarioId     String  @map("aberto_por_usuario_id") @db.Uuid
+  homologadoPorUsuarioId String? @map("homologado_por_usuario_id") @db.Uuid
+
+  abertoEm     DateTime  @default(now()) @map("aberto_em")
+  homologadoEm DateTime? @map("homologado_em")
+
+  observacao String? @db.Text
+  metadados  Json?
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  unidade           UnidadeOrganizacional @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
+  gestorResponsavel GestorUnidade?        @relation(fields: [gestorResponsavelId], references: [id], onDelete: SetNull)
+  abertoPor         Usuario               @relation("FechamentosAbertosPorUsuario", fields: [abertoPorUsuarioId], references: [id], onDelete: Restrict)
+  homologadoPor     Usuario?              @relation("FechamentosHomologadosPorUsuario", fields: [homologadoPorUsuarioId], references: [id], onDelete: SetNull)
+
+  servidores        HomologacaoServidorMes[]
+  boletimFrequencia BoletimFrequencia?
+
+  @@unique([unidadeId, anoReferencia, mesReferencia])
+  @@index([unidadeId])
+  @@index([gestorResponsavelId])
+  @@index([anoReferencia, mesReferencia])
+  @@index([status])
+  @@map("fechamentos_mensais_unidades")
+}
+
+model HomologacaoServidorMes {
+  id           String @id @default(uuid()) @db.Uuid
+  fechamentoId String @map("fechamento_id") @db.Uuid
+  servidorId   String @map("servidor_id") @db.Uuid
+
+  status StatusHomologacaoServidor @default(PENDENTE)
+
+  cargaPrevistaMinutos Int @default(0) @map("carga_prevista_minutos")
+  minutosTrabalhados   Int @default(0) @map("minutos_trabalhados")
+  minutosCredito       Int @default(0) @map("minutos_credito")
+  minutosDebito        Int @default(0) @map("minutos_debito")
+  faltas               Int @default(0)
+
+  saldoBancoAntesMinutos  Int  @default(0) @map("saldo_banco_antes_minutos")
+  saldoBancoDepoisMinutos Int? @map("saldo_banco_depois_minutos")
+
+  pendencias       Json?
+  observacaoChefia String? @map("observacao_chefia") @db.Text
+
+  homologadoPorUsuarioId String?   @map("homologado_por_usuario_id") @db.Uuid
+  homologadoEm           DateTime? @map("homologado_em")
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  fechamento    FechamentoMensalUnidade @relation(fields: [fechamentoId], references: [id], onDelete: Cascade)
+  servidor      Servidor                @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  homologadoPor Usuario?                @relation("HomologacoesServidorPorUsuario", fields: [homologadoPorUsuarioId], references: [id], onDelete: SetNull)
+
+  boletimFrequenciaServidors BoletimFrequenciaServidor[]
+
+  @@unique([fechamentoId, servidorId])
+  @@index([fechamentoId])
+  @@index([servidorId])
+  @@index([status])
+  @@map("homologacoes_servidores_meses")
+}
+
+model BoletimFrequencia {
+  id           String @id @default(uuid()) @db.Uuid
+  fechamentoId String @unique @map("fechamento_id") @db.Uuid
+  unidadeId    String @map("unidade_id") @db.Uuid
+
+  anoReferencia Int @map("ano_referencia")
+  mesReferencia Int @map("mes_referencia")
+
+  status StatusBoletimFrequencia @default(GERADO)
+
+  numeroSei   String? @map("numero_sei") @db.VarChar(80)
+  processoSei String? @map("processo_sei") @db.VarChar(80)
+
+  totalServidores  Int @default(0) @map("total_servidores")
+  totalHomologados Int @default(0) @map("total_homologados")
+  totalComRessalva Int @default(0) @map("total_com_ressalva")
+  totalFaltas      Int @default(0) @map("total_faltas")
+
+  totalCargaPrevistaMinutos Int @default(0) @map("total_carga_prevista_minutos")
+  totalTrabalhadoMinutos    Int @default(0) @map("total_trabalhado_minutos")
+  totalCreditoMinutos       Int @default(0) @map("total_credito_minutos")
+  totalDebitoMinutos        Int @default(0) @map("total_debito_minutos")
+
+  observacao String? @db.Text
+  metadados  Json?
+
+  geradoPorUsuarioId      String  @map("gerado_por_usuario_id") @db.Uuid
+  encaminhadoPorUsuarioId String? @map("encaminhado_por_usuario_id") @db.Uuid
+  recebidoPorUsuarioId    String? @map("recebido_por_usuario_id") @db.Uuid
+
+  geradoEm      DateTime  @default(now()) @map("gerado_em")
+  encaminhadoEm DateTime? @map("encaminhado_em")
+  recebidoEm    DateTime? @map("recebido_em")
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  fechamento FechamentoMensalUnidade @relation(fields: [fechamentoId], references: [id], onDelete: Restrict)
+  unidade    UnidadeOrganizacional   @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
+
+  geradoPor      Usuario  @relation("BoletinsGeradosPorUsuario", fields: [geradoPorUsuarioId], references: [id], onDelete: Restrict)
+  encaminhadoPor Usuario? @relation("BoletinsEncaminhadosPorUsuario", fields: [encaminhadoPorUsuarioId], references: [id], onDelete: SetNull)
+  recebidoPor    Usuario? @relation("BoletinsRecebidosPorUsuario", fields: [recebidoPorUsuarioId], references: [id], onDelete: SetNull)
+
+  servidores BoletimFrequenciaServidor[]
+
+  @@index([unidadeId])
+  @@index([anoReferencia, mesReferencia])
+  @@index([status])
+  @@index([geradoPorUsuarioId])
+  @@index([encaminhadoPorUsuarioId])
+  @@index([recebidoPorUsuarioId])
+  @@map("boletins_frequencia")
+}
+
+model BoletimFrequenciaServidor {
+  id                       String  @id @default(uuid()) @db.Uuid
+  boletimId                String  @map("boletim_id") @db.Uuid
+  servidorId               String  @map("servidor_id") @db.Uuid
+  homologacaoServidorMesId String? @map("homologacao_servidor_mes_id") @db.Uuid
+
+  tipoResumo TipoResumoBoletimServidor @default(REGULAR)
+
+  cargaPrevistaMinutos Int @default(0) @map("carga_prevista_minutos")
+  minutosTrabalhados   Int @default(0) @map("minutos_trabalhados")
+  minutosCredito       Int @default(0) @map("minutos_credito")
+  minutosDebito        Int @default(0) @map("minutos_debito")
+  faltas               Int @default(0)
+
+  saldoBancoAntesMinutos  Int  @default(0) @map("saldo_banco_antes_minutos")
+  saldoBancoDepoisMinutos Int? @map("saldo_banco_depois_minutos")
+
+  observacaoChefia String? @map("observacao_chefia") @db.Text
+  ressalvas        Json?
+  ocorrencias      Json?
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  boletim                BoletimFrequencia       @relation(fields: [boletimId], references: [id], onDelete: Cascade)
+  servidor               Servidor                @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  homologacaoServidorMes HomologacaoServidorMes? @relation(fields: [homologacaoServidorMesId], references: [id], onDelete: SetNull)
+
+  @@unique([boletimId, servidorId])
+  @@index([boletimId])
+  @@index([servidorId])
+  @@index([tipoResumo])
+  @@map("boletins_frequencia_servidores")
 }

@@ -69,6 +69,15 @@ export default async function EspelhoPontoPage({
         </section>
       )}
 
+      {servidor && (
+        <a
+          href={`/api/relatorios/espelho/${servidor.id}/pdf?ano=${ano}&mes=${mes}`}
+          className="inline-flex items-center justify-center rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950"
+        >
+          Exportar espelho em PDF
+        </a>
+      )}
+
       <EspelhoPontoMensal apuracoes={apuracoes} />
     </div>
   );
