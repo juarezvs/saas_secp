@@ -56,6 +56,145 @@ enum PapelGestao {
   DELEGADO_CHEFIA
 }
 
+enum TipoJornada {
+  SETE_HORAS
+  OITO_HORAS
+  ESPECIAL
+}
+
+enum TipoEscala {
+  SEMANAL
+  REVEZAMENTO
+  INDIVIDUAL
+}
+
+enum DiaSemana {
+  DOMINGO
+  SEGUNDA
+  TERCA
+  QUARTA
+  QUINTA
+  SEXTA
+  SABADO
+}
+
+enum TipoMarcacao {
+  ENTRADA
+  SAIDA_INTERVALO
+  RETORNO_INTERVALO
+  SAIDA
+  MANUAL
+  AJUSTE
+}
+
+enum FonteMarcacao {
+  WEB
+  BIOMETRIA_FACIAL
+  EQUIPAMENTO_BIOMETRICO
+  AFD
+  MANUAL_ADMINISTRATIVO
+  IMPORTACAO
+}
+
+enum StatusMarcacao {
+  VALIDA
+  PENDENTE
+  CANCELADA
+  AJUSTADA
+}
+
+enum StatusApuracaoDiaria {
+  PENDENTE
+  CALCULADA
+  INCONSISTENTE
+  FECHADA
+  HOMOLOGADA
+}
+
+enum ResultadoApuracaoDia {
+  REGULAR
+  CREDITO
+  DEBITO
+  FALTA
+  INCOMPLETA
+  SEM_JORNADA
+  SEM_EXPEDIENTE
+}
+
+enum TipoOcorrenciaFrequencia {
+  MARCACAO_INCOMPLETA
+  INTERVALO_INVALIDO
+  CREDITO
+  DEBITO
+  FALTA
+  SEM_JORNADA
+  MARCACAO_DUPLICADA
+  HORA_NAO_AUTORIZADA
+}
+
+enum TipoMovimentoBancoHoras {
+  CREDITO
+  DEBITO
+  COMPENSACAO_CREDITO
+  COMPENSACAO_DEBITO
+  HORAS_ACIMA_LIMITE
+  HORAS_NAO_AUTORIZADAS
+  AJUSTE_MANUAL
+  ESTORNO
+}
+
+enum OrigemMovimentoBancoHoras {
+  APURACAO_DIARIA
+  SOLICITACAO
+  HOMOLOGACAO
+  AJUSTE_ADMINISTRATIVO
+  IMPORTACAO
+}
+
+enum StatusMovimentoBancoHoras {
+  PENDENTE
+  VALIDADO
+  DESCONSIDERADO
+  EXPIRADO
+  ESTORNADO
+}
+
+enum TipoSolicitacao {
+  AJUSTE_PONTO
+  COMPENSACAO
+  ABONO_JUSTIFICATIVA
+  ATIVIDADE_EXTERNA
+  VIAGEM_SERVICO
+  CAPACITACAO
+  DISPENSA_PONTO
+  HORA_CREDITO_PREVIA
+}
+
+enum StatusSolicitacao {
+  RASCUNHO
+  ENVIADA
+  EM_ANALISE
+  DEFERIDA
+  INDEFERIDA
+  CANCELADA
+}
+
+enum TipoEventoSolicitacao {
+  CRIADA
+  ENVIADA
+  EM_ANALISE
+  DEFERIDA
+  INDEFERIDA
+  CANCELADA
+  COMENTARIO
+  EFEITO_APLICADO
+}
+
+enum ResultadoAnaliseSolicitacao {
+  DEFERIR
+  INDEFERIR
+}
+
 model Usuario {
   id        String      @id @default(uuid()) @db.Uuid
   matricula String      @unique @db.VarChar(50)
@@ -68,9 +207,16 @@ model Usuario {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  perfis     UsuarioPerfil[]
-  servidor   Servidor?
-  auditorias AuditoriaEvento[]
+  perfis                          UsuarioPerfil[]
+  servidor                        Servidor?
+  auditorias                      AuditoriaEvento[]
+  marcacoesCriadas                Marcacao[]            @relation("MarcacoesCriadasPorUsuario")
+  marcacaos                       Marcacao[]
+  movimentosBancoHorasAutorizados MovimentoBancoHoras[] @relation("MovimentosBancoHorasAutorizadosPor")
+  solicitacaos                    Solicitacao[]
+  solicitacaoEventos              SolicitacaoEvento[]
+  solicitacaos                    Solicitacao[]
+  solicitacaos                    Solicitacao[]
 
   @@map("usuarios")
 }
@@ -177,8 +323,9 @@ model UnidadeOrganizacional {
   unidadePai     UnidadeOrganizacional?  @relation("HierarquiaUnidades", fields: [unidadePaiId], references: [id], onDelete: Restrict)
   unidadesFilhas UnidadeOrganizacional[] @relation("HierarquiaUnidades")
 
-  lotacoes Lotacao[]
-  gestores GestorUnidade[]
+  lotacoes     Lotacao[]
+  gestores     GestorUnidade[]
+  solicitacaos Solicitacao[]
 
   @@unique([orgaoId, codigo])
   @@index([orgaoId])
@@ -202,8 +349,18 @@ model Servidor {
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   orgao   Orgao   @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
 
-  lotacoes Lotacao[]
-  gestoes  GestorUnidade[]
+  lotacoes               Lotacao[]
+  gestores               GestorUnidade[]
+  jornadas               JornadaServidor[]
+  marcacoes              Marcacao[]
+  apuracaoDiarias        ApuracaoDiaria[]
+  ocorrenciaFrequencias  OcorrenciaFrequencia[]
+  bancoHorasSaldo        BancoHorasSaldo?
+  movimentoBancoHoras    MovimentoBancoHoras[]
+  solicitacaos           Solicitacao[]
+  solicitacoesCriadas    Solicitacao[]          @relation("SolicitacoesCriadasPorUsuario")
+  solicitacoesAnalisadas Solicitacao[]          @relation("SolicitacoesAnalisadasPorUsuario")
+  solicitacaoEventos     SolicitacaoEvento[]
 
   @@index([orgaoId])
   @@map("servidores")
@@ -246,8 +403,10 @@ model GestorUnidade {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  unidade  UnidadeOrganizacional @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
-  servidor Servidor              @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  unidade                 UnidadeOrganizacional @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
+  servidor                Servidor              @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  solicitacaos            Solicitacao[]
+  solicitacoesResponsavel Solicitacao[]
 
   @@index([unidadeId])
   @@index([servidorId])
@@ -283,4 +442,336 @@ model AuditoriaEvento {
   @@index([acao])
   @@index([criadoEm])
   @@map("auditoria_eventos")
+}
+
+model Jornada {
+  id                           String      @id @default(uuid()) @db.Uuid
+  codigo                       String      @unique @db.VarChar(80)
+  nome                         String      @db.VarChar(150)
+  descricao                    String?     @db.Text
+  tipo                         TipoJornada
+  cargaDiariaMinutos           Int         @map("carga_diaria_minutos")
+  exigeIntervalo               Boolean     @default(false) @map("exige_intervalo")
+  intervaloMinimoMinutos       Int?        @map("intervalo_minimo_minutos")
+  intervaloMaximoMinutos       Int?        @map("intervalo_maximo_minutos")
+  horarioEntradaPadrao         String?     @map("horario_entrada_padrao") @db.VarChar(5)
+  horarioSaidaPadrao           String?     @map("horario_saida_padrao") @db.VarChar(5)
+  horarioDiferenciadoPermitido Boolean     @default(false) @map("horario_diferenciado_permitido")
+  entradaMinimaDiferenciada    String?     @map("entrada_minima_diferenciada") @db.VarChar(5)
+  saidaMaximaDiferenciada      String?     @map("saida_maxima_diferenciada") @db.VarChar(5)
+  ativo                        Boolean     @default(true)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  escalas    Escala[]
+  servidores JornadaServidor[]
+
+  @@map("jornadas")
+}
+
+model Escala {
+  id        String     @id @default(uuid()) @db.Uuid
+  jornadaId String     @map("jornada_id") @db.Uuid
+  codigo    String     @unique @db.VarChar(80)
+  nome      String     @db.VarChar(150)
+  descricao String?    @db.Text
+  tipo      TipoEscala @default(SEMANAL)
+  ativo     Boolean    @default(true)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  jornada    Jornada           @relation(fields: [jornadaId], references: [id], onDelete: Restrict)
+  dias       EscalaDia[]
+  servidores JornadaServidor[]
+
+  @@index([jornadaId])
+  @@map("escalas")
+}
+
+model EscalaDia {
+  id                   String    @id @default(uuid()) @db.Uuid
+  escalaId             String    @map("escala_id") @db.Uuid
+  diaSemana            DiaSemana @map("dia_semana")
+  trabalha             Boolean   @default(true)
+  horarioEntrada       String?   @map("horario_entrada") @db.VarChar(5)
+  horarioSaida         String?   @map("horario_saida") @db.VarChar(5)
+  intervaloInicio      String?   @map("intervalo_inicio") @db.VarChar(5)
+  intervaloFim         String?   @map("intervalo_fim") @db.VarChar(5)
+  cargaPrevistaMinutos Int       @default(0) @map("carga_prevista_minutos")
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  escala Escala @relation(fields: [escalaId], references: [id], onDelete: Cascade)
+
+  @@unique([escalaId, diaSemana])
+  @@index([escalaId])
+  @@map("escalas_dias")
+}
+
+model JornadaServidor {
+  id         String  @id @default(uuid()) @db.Uuid
+  servidorId String  @map("servidor_id") @db.Uuid
+  jornadaId  String  @map("jornada_id") @db.Uuid
+  escalaId   String? @map("escala_id") @db.Uuid
+
+  dataInicio DateTime  @map("data_inicio") @db.Date
+  dataFim    DateTime? @map("data_fim") @db.Date
+  ativo      Boolean   @default(true)
+
+  justificativa String? @db.Text
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  servidor        Servidor         @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  jornada         Jornada          @relation(fields: [jornadaId], references: [id], onDelete: Restrict)
+  escala          Escala?          @relation(fields: [escalaId], references: [id], onDelete: Restrict)
+  marcacoes       Marcacao[]
+  apuracaoDiarias ApuracaoDiaria[]
+
+  @@index([servidorId])
+  @@index([jornadaId])
+  @@index([escalaId])
+  @@index([ativo])
+  @@map("jornadas_servidores")
+}
+
+model Marcacao {
+  id                String  @id @default(uuid()) @db.Uuid
+  servidorId        String  @map("servidor_id") @db.Uuid
+  jornadaServidorId String? @map("jornada_servidor_id") @db.Uuid
+
+  dataHora       DateTime @map("data_hora")
+  dataReferencia DateTime @map("data_referencia") @db.Date
+
+  tipo   TipoMarcacao
+  fonte  FonteMarcacao  @default(WEB)
+  status StatusMarcacao @default(VALIDA)
+
+  latitude  Decimal? @db.Decimal(10, 7)
+  longitude Decimal? @db.Decimal(10, 7)
+  ip        String?  @db.VarChar(80)
+  userAgent String?  @map("user_agent") @db.Text
+
+  observacao String? @db.Text
+  metadados  Json?
+
+  criadaPorUsuarioId String? @map("criada_por_usuario_id") @db.Uuid
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  servidor        Servidor         @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  jornadaServidor JornadaServidor? @relation(fields: [jornadaServidorId], references: [id], onDelete: SetNull)
+  criadaPor       Usuario?         @relation("MarcacoesCriadasPorUsuario", fields: [criadaPorUsuarioId], references: [id], onDelete: SetNull)
+  usuario         Usuario?         @relation(fields: [usuarioId], references: [id])
+  usuarioId       String?          @db.Uuid
+
+  @@index([servidorId])
+  @@index([jornadaServidorId])
+  @@index([dataReferencia])
+  @@index([dataHora])
+  @@index([tipo])
+  @@index([fonte])
+  @@index([status])
+  @@map("marcacoes")
+}
+
+model ApuracaoDiaria {
+  id                String  @id @default(uuid()) @db.Uuid
+  servidorId        String  @map("servidor_id") @db.Uuid
+  jornadaServidorId String? @map("jornada_servidor_id") @db.Uuid
+
+  dataReferencia DateTime @map("data_referencia") @db.Date
+
+  cargaPrevistaMinutos Int @default(0) @map("carga_prevista_minutos")
+  minutosTrabalhados   Int @default(0) @map("minutos_trabalhados")
+  minutosIntervalo     Int @default(0) @map("minutos_intervalo")
+  minutosCredito       Int @default(0) @map("minutos_credito")
+  minutosDebito        Int @default(0) @map("minutos_debito")
+
+  resultado ResultadoApuracaoDia
+  status    StatusApuracaoDiaria @default(PENDENTE)
+
+  primeiraEntrada  DateTime? @map("primeira_entrada")
+  saidaIntervalo   DateTime? @map("saida_intervalo")
+  retornoIntervalo DateTime? @map("retorno_intervalo")
+  ultimaSaida      DateTime? @map("ultima_saida")
+
+  observacao String? @db.Text
+  metadados  Json?
+
+  calculadaEm  DateTime? @map("calculada_em")
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+
+  servidor            Servidor               @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  jornadaServidor     JornadaServidor?       @relation(fields: [jornadaServidorId], references: [id], onDelete: SetNull)
+  ocorrencias         OcorrenciaFrequencia[]
+  movimentoBancoHoras MovimentoBancoHoras[]
+
+  @@unique([servidorId, dataReferencia])
+  @@index([servidorId])
+  @@index([jornadaServidorId])
+  @@index([dataReferencia])
+  @@index([resultado])
+  @@index([status])
+  @@map("apuracoes_diarias")
+}
+
+model OcorrenciaFrequencia {
+  id               String @id @default(uuid()) @db.Uuid
+  apuracaoDiariaId String @map("apuracao_diaria_id") @db.Uuid
+  servidorId       String @map("servidor_id") @db.Uuid
+
+  tipo      TipoOcorrenciaFrequencia
+  descricao String                   @db.Text
+  minutos   Int                      @default(0)
+  resolvida Boolean                  @default(false)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  apuracaoDiaria ApuracaoDiaria @relation(fields: [apuracaoDiariaId], references: [id], onDelete: Cascade)
+  servidor       Servidor       @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+
+  @@index([apuracaoDiariaId])
+  @@index([servidorId])
+  @@index([tipo])
+  @@index([resolvida])
+  @@map("ocorrencias_frequencia")
+}
+
+model BancoHorasSaldo {
+  id         String @id @default(uuid()) @db.Uuid
+  servidorId String @unique @map("servidor_id") @db.Uuid
+
+  saldoMinutos               Int @default(0) @map("saldo_minutos")
+  creditosValidadosMinutos   Int @default(0) @map("creditos_validados_minutos")
+  debitosValidadosMinutos    Int @default(0) @map("debitos_validados_minutos")
+  creditosPendentesMinutos   Int @default(0) @map("creditos_pendentes_minutos")
+  debitosPendentesMinutos    Int @default(0) @map("debitos_pendentes_minutos")
+  horasAcimaLimiteMinutos    Int @default(0) @map("horas_acima_limite_minutos")
+  horasNaoAutorizadasMinutos Int @default(0) @map("horas_nao_autorizadas_minutos")
+
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+  criadoEm     DateTime @default(now()) @map("criado_em")
+
+  servidor Servidor @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+
+  @@map("banco_horas_saldos")
+}
+
+model MovimentoBancoHoras {
+  id               String  @id @default(uuid()) @db.Uuid
+  servidorId       String  @map("servidor_id") @db.Uuid
+  apuracaoDiariaId String? @map("apuracao_diaria_id") @db.Uuid
+
+  tipo   TipoMovimentoBancoHoras
+  origem OrigemMovimentoBancoHoras @default(APURACAO_DIARIA)
+  status StatusMovimentoBancoHoras @default(PENDENTE)
+
+  dataReferencia DateTime @map("data_referencia") @db.Date
+  mesReferencia  Int      @map("mes_referencia")
+  anoReferencia  Int      @map("ano_referencia")
+
+  minutos            Int
+  saldoAposMovimento Int? @map("saldo_apos_movimento")
+
+  descricao  String? @db.Text
+  observacao String? @db.Text
+
+  autorizadoPorUsuarioId String?   @map("autorizado_por_usuario_id") @db.Uuid
+  autorizadoEm           DateTime? @map("autorizado_em")
+
+  expiraEm  DateTime? @map("expira_em") @db.Date
+  metadados Json?
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  servidor       Servidor        @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  apuracaoDiaria ApuracaoDiaria? @relation(fields: [apuracaoDiariaId], references: [id], onDelete: SetNull)
+  autorizadoPor  Usuario?        @relation("MovimentosBancoHorasAutorizadosPor", fields: [autorizadoPorUsuarioId], references: [id], onDelete: SetNull)
+
+  @@index([servidorId])
+  @@index([apuracaoDiariaId])
+  @@index([dataReferencia])
+  @@index([mesReferencia, anoReferencia])
+  @@index([tipo])
+  @@index([status])
+  @@map("banco_horas_movimentos")
+}
+
+model Solicitacao {
+  id String @id @default(uuid()) @db.Uuid
+
+  servidorId            String  @map("servidor_id") @db.Uuid
+  usuarioSolicitanteId  String  @map("usuario_solicitante_id") @db.Uuid
+  unidadeId             String? @map("unidade_id") @db.Uuid
+  chefiaResponsavelId   String? @map("chefia_responsavel_id") @db.Uuid
+  analisadaPorUsuarioId String? @map("analisada_por_usuario_id") @db.Uuid
+
+  tipo   TipoSolicitacao
+  status StatusSolicitacao @default(ENVIADA)
+
+  titulo    String @db.VarChar(180)
+  descricao String @db.Text
+
+  dataReferencia DateTime? @map("data_referencia") @db.Date
+  dataInicio     DateTime? @map("data_inicio")
+  dataFim        DateTime? @map("data_fim")
+
+  dadosSolicitados Json? @map("dados_solicitados")
+  dadosResultado   Json? @map("dados_resultado")
+
+  justificativaAnalise String?   @map("justificativa_analise") @db.Text
+  analisadaEm          DateTime? @map("analisada_em")
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  servidor           Servidor               @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  usuarioSolicitante Usuario                @relation("SolicitacoesCriadasPorUsuario", fields: [usuarioSolicitanteId], references: [id], onDelete: Restrict)
+  unidade            UnidadeOrganizacional? @relation(fields: [unidadeId], references: [id], onDelete: SetNull)
+  chefiaResponsavel  GestorUnidade?         @relation(fields: [chefiaResponsavelId], references: [id], onDelete: SetNull)
+  analisadaPor       Usuario?               @relation("SolicitacoesAnalisadasPorUsuario", fields: [analisadaPorUsuarioId], references: [id], onDelete: SetNull)
+
+  eventos   SolicitacaoEvento[]
+  usuario   Usuario?            @relation(fields: [usuarioId], references: [id])
+  usuarioId String?             @db.Uuid
+
+  @@index([servidorId])
+  @@index([usuarioSolicitanteId])
+  @@index([unidadeId])
+  @@index([chefiaResponsavelId])
+  @@index([tipo])
+  @@index([status])
+  @@index([dataReferencia])
+  @@map("solicitacoes")
+}
+
+model SolicitacaoEvento {
+  id            String  @id @default(uuid()) @db.Uuid
+  solicitacaoId String  @map("solicitacao_id") @db.Uuid
+  usuarioId     String? @map("usuario_id") @db.Uuid
+
+  tipo      TipoEventoSolicitacao
+  descricao String                @db.Text
+  metadados Json?
+
+  criadoEm DateTime @default(now()) @map("criado_em")
+
+  solicitacao Solicitacao @relation(fields: [solicitacaoId], references: [id], onDelete: Cascade)
+  usuario     Usuario?    @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  servidor    Servidor?   @relation(fields: [servidorId], references: [id])
+  servidorId  String?     @db.Uuid
+
+  @@index([solicitacaoId])
+  @@index([usuarioId])
+  @@index([tipo])
+  @@map("solicitacoes_eventos")
 }

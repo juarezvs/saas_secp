@@ -1,10 +1,14 @@
-import Link from "next/link";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { criarPerfilAction } from "@/modules/perfis/application/actions/criar-perfil.action";
+import { listarPermissoesOrdenadas } from "@/modules/perfis/infrastructure/repositories/perfil.repository";
+import { PerfilForm } from "@/modules/perfis/presentation/components/perfil-form";
 
 export default async function NovoPerfilPage() {
   await exigirPermissaoOuRedirecionar("perfis:gerenciar:global");
+
+  const permissoes = await listarPermissoesOrdenadas();
 
   return (
     <div className="space-y-6">
@@ -24,37 +28,26 @@ export default async function NovoPerfilPage() {
         <h1 className="mt-2 text-3xl font-bold tracking-tight">Novo perfil</h1>
 
         <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
-          Nesta tela será criado o formulário completo para cadastro de perfis e
-          vinculação de permissões.
+          Crie um perfil institucional e associe permissões de acordo com as
+          responsabilidades do usuário no SECP.
         </p>
       </section>
 
       <RegraPortariaCard
         artigo="Modelo RBAC do SECP"
         titulo="Perfis customizados"
-        descricao="O SECP permitirá criar perfis personalizados, associando permissões específicas para cada papel institucional ou operacional."
+        descricao="O SECP permite criar perfis personalizados para refletir responsabilidades institucionais, administrativas, técnicas, gerenciais e de consulta."
       />
 
-      <section className="rounded-xl border bg-[var(--card)] p-6 text-[var(--card-foreground)] shadow-sm">
-        <h2 className="text-lg font-bold">
-          Formulário será implementado na próxima etapa
-        </h2>
-
-        <p className="mt-2 text-sm leading-6 text-(--muted-foreground)">
-          Antes de criar o formulário, precisamos criar o componente genérico de
-          formulário, o componente de seleção de permissões e a server action de
-          criação de perfil.
-        </p>
-
-        <div className="mt-6">
-          <Link
-            href="/perfis"
-            className="inline-flex rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-(--muted)"
-          >
-            Voltar para perfis
-          </Link>
-        </div>
-      </section>
+      <PerfilForm
+        action={criarPerfilAction}
+        permissoes={permissoes}
+        modo="criar"
+        valoresIniciais={{
+          ativo: true,
+          permissoes: [],
+        }}
+      />
     </div>
   );
 }

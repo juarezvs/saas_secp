@@ -5,8 +5,10 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Building2,
+  Calculator,
   CalendarClock,
   ClipboardCheck,
+  ClipboardList,
   Clock3,
   FileText,
   Fingerprint,
@@ -14,6 +16,7 @@ import {
   LogOut,
   Settings,
   ShieldCheck,
+  UserCheck,
   UsersRound,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -50,19 +53,40 @@ const menuItems: MenuItem[] = [
     permissao: "servidores:gerenciar:global",
   },
   {
+    label: "Chefias",
+    href: "/chefias",
+    icon: UserCheck,
+    permissao: "chefias:gerenciar:global",
+  },
+  {
     label: "Jornadas",
     href: "/jornadas",
     icon: CalendarClock,
+    permissao: "jornadas:gerenciar:global",
   },
   {
     label: "Marcações",
     href: "/marcacoes",
     icon: Clock3,
+    permissao: "marcacoes:consultar:proprio",
   },
   {
     label: "Banco de Horas",
     href: "/banco-horas",
     icon: BarChart3,
+    permissao: "banco-horas:consultar:proprio",
+  },
+  {
+    label: "Apuração",
+    href: "/apuracao",
+    icon: Calculator,
+    permissao: "apuracao:consultar:proprio",
+  },
+  {
+    label: "Espelho de Ponto",
+    href: "/espelho-ponto",
+    icon: ClipboardList,
+    permissao: "apuracao:consultar:proprio",
   },
   {
     label: "Solicitações",

@@ -38,6 +38,12 @@ const permissoesIniciais = [
     descricao: "Gerenciar servidores e vínculos.",
   },
   {
+    recurso: "chefias",
+    acao: "gerenciar",
+    escopo: "global",
+    descricao: "Gerenciar chefias, gestores, substitutos e delegações.",
+  },
+  {
     recurso: "auditoria",
     acao: "consultar",
     escopo: "global",
@@ -48,6 +54,67 @@ const permissoesIniciais = [
     acao: "gerenciar",
     escopo: "global",
     descricao: "Gerenciar parâmetros gerais do SECP.",
+  },
+  {
+    recurso: "jornadas",
+    acao: "gerenciar",
+    escopo: "global",
+    descricao:
+      "Gerenciar jornadas, escalas e atribuições de jornada aos servidores.",
+  },
+  {
+    recurso: "marcacoes",
+    acao: "registrar",
+    escopo: "proprio",
+    descricao: "Registrar a própria marcação de ponto.",
+  },
+  {
+    recurso: "marcacoes",
+    acao: "consultar",
+    escopo: "proprio",
+    descricao: "Consultar as próprias marcações de ponto.",
+  },
+  {
+    recurso: "marcacoes",
+    acao: "consultar",
+    escopo: "global",
+    descricao: "Consultar marcações de todos os servidores.",
+  },
+  {
+    recurso: "apuracao",
+    acao: "consultar",
+    escopo: "proprio",
+    descricao: "Consultar a própria apuração diária e espelho de ponto.",
+  },
+  {
+    recurso: "apuracao",
+    acao: "recalcular",
+    escopo: "global",
+    descricao: "Recalcular apurações de frequência.",
+  },
+  {
+    recurso: "apuracao",
+    acao: "consultar",
+    escopo: "global",
+    descricao: "Consultar apurações de todos os servidores.",
+  },
+  {
+    recurso: "banco-horas",
+    acao: "consultar",
+    escopo: "proprio",
+    descricao: "Consultar o próprio banco de horas.",
+  },
+  {
+    recurso: "banco-horas",
+    acao: "consultar",
+    escopo: "global",
+    descricao: "Consultar banco de horas de todos os servidores.",
+  },
+  {
+    recurso: "banco-horas",
+    acao: "gerenciar",
+    escopo: "global",
+    descricao: "Gerenciar e recalcular banco de horas.",
   },
 ];
 
@@ -82,14 +149,16 @@ async function criarPerfilAdministrador() {
     where: { codigo: "ADMIN" },
     update: {
       nome: "Administrador do Sistema",
-      descricao: "Perfil com acesso integral às configurações iniciais do SECP.",
+      descricao:
+        "Perfil com acesso integral às configurações iniciais do SECP.",
       sistema: true,
       ativo: true,
     },
     create: {
       codigo: "ADMIN",
       nome: "Administrador do Sistema",
-      descricao: "Perfil com acesso integral às configurações iniciais do SECP.",
+      descricao:
+        "Perfil com acesso integral às configurações iniciais do SECP.",
       sistema: true,
       ativo: true,
     },
@@ -98,7 +167,7 @@ async function criarPerfilAdministrador() {
 
 async function vincularPermissoesAoPerfil(
   perfilId: string,
-  permissoes: Array<{ id: string }>
+  permissoes: Array<{ id: string }>,
 ) {
   for (const permissao of permissoes) {
     await prisma.perfilPermissao.upsert({
@@ -279,6 +348,80 @@ async function criarEstruturaInicial() {
   return orgao;
 }
 
+async function criarJornadasPadrao() {
+  const jornada7h = await prisma.jornada.upsert({
+    where: { codigo: "JORNADA_7H" },
+    update: {
+      nome: "Jornada ordinária de 7 horas",
+      descricao:
+        "Jornada de 7 horas ininterruptas, conforme Portaria SJAM-DIREF 135/2025.",
+      tipo: "SETE_HORAS",
+      cargaDiariaMinutos: 420,
+      exigeIntervalo: false,
+      intervaloMinimoMinutos: null,
+      intervaloMaximoMinutos: null,
+      horarioEntradaPadrao: "08:00",
+      horarioSaidaPadrao: "15:00",
+      horarioDiferenciadoPermitido: true,
+      entradaMinimaDiferenciada: "06:00",
+      saidaMaximaDiferenciada: "19:00",
+      ativo: true,
+    },
+    create: {
+      codigo: "JORNADA_7H",
+      nome: "Jornada ordinária de 7 horas",
+      descricao:
+        "Jornada de 7 horas ininterruptas, conforme Portaria SJAM-DIREF 135/2025.",
+      tipo: "SETE_HORAS",
+      cargaDiariaMinutos: 420,
+      exigeIntervalo: false,
+      horarioEntradaPadrao: "08:00",
+      horarioSaidaPadrao: "15:00",
+      horarioDiferenciadoPermitido: true,
+      entradaMinimaDiferenciada: "06:00",
+      saidaMaximaDiferenciada: "19:00",
+      ativo: true,
+    },
+  });
+
+  const jornada8h = await prisma.jornada.upsert({
+    where: { codigo: "JORNADA_8H" },
+    update: {
+      nome: "Jornada ordinária de 8 horas",
+      descricao: "Jornada de 8 horas em dois turnos, com intervalo de 1h a 3h.",
+      tipo: "OITO_HORAS",
+      cargaDiariaMinutos: 480,
+      exigeIntervalo: true,
+      intervaloMinimoMinutos: 60,
+      intervaloMaximoMinutos: 180,
+      horarioEntradaPadrao: "08:00",
+      horarioSaidaPadrao: "17:00",
+      horarioDiferenciadoPermitido: true,
+      entradaMinimaDiferenciada: "06:00",
+      saidaMaximaDiferenciada: "19:00",
+      ativo: true,
+    },
+    create: {
+      codigo: "JORNADA_8H",
+      nome: "Jornada ordinária de 8 horas",
+      descricao: "Jornada de 8 horas em dois turnos, com intervalo de 1h a 3h.",
+      tipo: "OITO_HORAS",
+      cargaDiariaMinutos: 480,
+      exigeIntervalo: true,
+      intervaloMinimoMinutos: 60,
+      intervaloMaximoMinutos: 180,
+      horarioEntradaPadrao: "08:00",
+      horarioSaidaPadrao: "17:00",
+      horarioDiferenciadoPermitido: true,
+      entradaMinimaDiferenciada: "06:00",
+      saidaMaximaDiferenciada: "19:00",
+      ativo: true,
+    },
+  });
+
+  return [jornada7h, jornada8h];
+}
+
 async function main() {
   console.log("Iniciando seed do SECP...");
 
@@ -289,6 +432,7 @@ async function main() {
 
   const usuarioInicial = await criarUsuarioInicial(perfilAdmin.id);
   await criarEstruturaInicial();
+  await criarJornadasPadrao();
 
   await prisma.auditoriaEvento.create({
     data: {
