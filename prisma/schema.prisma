@@ -9,8 +9,11 @@ datasource db {
 
 enum TipoUsuario {
   SERVIDOR
-  PESSOA_EXTERNA
   SISTEMA
+  PESSOA_EXTERNA
+  PRESTADOR
+  ESTAGIARIO
+  VOLUNTARIO
 }
 
 enum StatusRegistro {
@@ -211,12 +214,10 @@ model Usuario {
   servidor                        Servidor?
   auditorias                      AuditoriaEvento[]
   marcacoesCriadas                Marcacao[]            @relation("MarcacoesCriadasPorUsuario")
-  marcacaos                       Marcacao[]
   movimentosBancoHorasAutorizados MovimentoBancoHoras[] @relation("MovimentosBancoHorasAutorizadosPor")
-  solicitacaos                    Solicitacao[]
-  solicitacaoEventos              SolicitacaoEvento[]
-  solicitacaos                    Solicitacao[]
-  solicitacaos                    Solicitacao[]
+  solicitacoesCriadas             Solicitacao[]         @relation("SolicitacoesCriadasPorUsuario")
+  solicitacoesAnalisadas          Solicitacao[]         @relation("SolicitacoesAnalisadasPorUsuario")
+  solicitacaoEventos              SolicitacaoEvento[]   @relation("SolicitacaoEventosPorUsuario")
 
   @@map("usuarios")
 }
@@ -325,7 +326,7 @@ model UnidadeOrganizacional {
 
   lotacoes     Lotacao[]
   gestores     GestorUnidade[]
-  solicitacaos Solicitacao[]
+  solicitacoes Solicitacao[]   @relation("SolicitacoesPorUnidade")
 
   @@unique([orgaoId, codigo])
   @@index([orgaoId])
@@ -349,18 +350,16 @@ model Servidor {
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   orgao   Orgao   @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
 
-  lotacoes               Lotacao[]
-  gestores               GestorUnidade[]
-  jornadas               JornadaServidor[]
-  marcacoes              Marcacao[]
-  apuracaoDiarias        ApuracaoDiaria[]
-  ocorrenciaFrequencias  OcorrenciaFrequencia[]
-  bancoHorasSaldo        BancoHorasSaldo?
-  movimentoBancoHoras    MovimentoBancoHoras[]
-  solicitacaos           Solicitacao[]
-  solicitacoesCriadas    Solicitacao[]          @relation("SolicitacoesCriadasPorUsuario")
-  solicitacoesAnalisadas Solicitacao[]          @relation("SolicitacoesAnalisadasPorUsuario")
-  solicitacaoEventos     SolicitacaoEvento[]
+  lotacoes              Lotacao[]
+  gestores              GestorUnidade[]
+  jornadas              JornadaServidor[]
+  marcacoes             Marcacao[]
+  apuracaoDiarias       ApuracaoDiaria[]
+  ocorrenciaFrequencias OcorrenciaFrequencia[]
+  bancoHorasSaldo       BancoHorasSaldo?
+  movimentoBancoHoras   MovimentoBancoHoras[]
+  solicitacoes          Solicitacao[]          @relation("SolicitacoesDoServidor")
+  solicitacaoEventos    SolicitacaoEvento[]    @relation("SolicitacaoEventosPorServidor")
 
   @@index([orgaoId])
   @@map("servidores")
@@ -405,8 +404,7 @@ model GestorUnidade {
 
   unidade                 UnidadeOrganizacional @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
   servidor                Servidor              @relation(fields: [servidorId], references: [id], onDelete: Restrict)
-  solicitacaos            Solicitacao[]
-  solicitacoesResponsavel Solicitacao[]
+  solicitacoesResponsavel Solicitacao[]         @relation("SolicitacoesPorChefiaResponsavel")
 
   @@index([unidadeId])
   @@index([servidorId])
@@ -567,11 +565,10 @@ model Marcacao {
   servidor        Servidor         @relation(fields: [servidorId], references: [id], onDelete: Restrict)
   jornadaServidor JornadaServidor? @relation(fields: [jornadaServidorId], references: [id], onDelete: SetNull)
   criadaPor       Usuario?         @relation("MarcacoesCriadasPorUsuario", fields: [criadaPorUsuarioId], references: [id], onDelete: SetNull)
-  usuario         Usuario?         @relation(fields: [usuarioId], references: [id])
-  usuarioId       String?          @db.Uuid
 
   @@index([servidorId])
   @@index([jornadaServidorId])
+  @@index([criadaPorUsuarioId])
   @@index([dataReferencia])
   @@index([dataHora])
   @@index([tipo])
@@ -734,20 +731,19 @@ model Solicitacao {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  servidor           Servidor               @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  servidor           Servidor               @relation("SolicitacoesDoServidor", fields: [servidorId], references: [id], onDelete: Restrict)
   usuarioSolicitante Usuario                @relation("SolicitacoesCriadasPorUsuario", fields: [usuarioSolicitanteId], references: [id], onDelete: Restrict)
-  unidade            UnidadeOrganizacional? @relation(fields: [unidadeId], references: [id], onDelete: SetNull)
-  chefiaResponsavel  GestorUnidade?         @relation(fields: [chefiaResponsavelId], references: [id], onDelete: SetNull)
+  unidade            UnidadeOrganizacional? @relation("SolicitacoesPorUnidade", fields: [unidadeId], references: [id], onDelete: SetNull)
+  chefiaResponsavel  GestorUnidade?         @relation("SolicitacoesPorChefiaResponsavel", fields: [chefiaResponsavelId], references: [id], onDelete: SetNull)
   analisadaPor       Usuario?               @relation("SolicitacoesAnalisadasPorUsuario", fields: [analisadaPorUsuarioId], references: [id], onDelete: SetNull)
 
-  eventos   SolicitacaoEvento[]
-  usuario   Usuario?            @relation(fields: [usuarioId], references: [id])
-  usuarioId String?             @db.Uuid
+  eventos SolicitacaoEvento[]
 
   @@index([servidorId])
   @@index([usuarioSolicitanteId])
   @@index([unidadeId])
   @@index([chefiaResponsavelId])
+  @@index([analisadaPorUsuarioId])
   @@index([tipo])
   @@index([status])
   @@index([dataReferencia])
@@ -758,6 +754,7 @@ model SolicitacaoEvento {
   id            String  @id @default(uuid()) @db.Uuid
   solicitacaoId String  @map("solicitacao_id") @db.Uuid
   usuarioId     String? @map("usuario_id") @db.Uuid
+  servidorId    String? @map("servidor_id") @db.Uuid
 
   tipo      TipoEventoSolicitacao
   descricao String                @db.Text
@@ -766,12 +763,12 @@ model SolicitacaoEvento {
   criadoEm DateTime @default(now()) @map("criado_em")
 
   solicitacao Solicitacao @relation(fields: [solicitacaoId], references: [id], onDelete: Cascade)
-  usuario     Usuario?    @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
-  servidor    Servidor?   @relation(fields: [servidorId], references: [id])
-  servidorId  String?     @db.Uuid
+  usuario     Usuario?    @relation("SolicitacaoEventosPorUsuario", fields: [usuarioId], references: [id], onDelete: SetNull)
+  servidor    Servidor?   @relation("SolicitacaoEventosPorServidor", fields: [servidorId], references: [id], onDelete: SetNull)
 
   @@index([solicitacaoId])
   @@index([usuarioId])
+  @@index([servidorId])
   @@index([tipo])
   @@map("solicitacoes_eventos")
 }

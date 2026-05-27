@@ -53,6 +53,18 @@ const menuItems: MenuItem[] = [
     permissao: "servidores:gerenciar:global",
   },
   {
+    label: "Usuários",
+    href: "/usuarios",
+    icon: UsersRound,
+    permissao: "usuarios:gerenciar:global",
+  },
+  {
+    label: "Perfis",
+    href: "/perfis",
+    icon: ShieldCheck,
+    permissao: "perfis:gerenciar:global",
+  },
+  {
     label: "Chefias",
     href: "/chefias",
     icon: UserCheck,
@@ -92,6 +104,7 @@ const menuItems: MenuItem[] = [
     label: "Solicitações",
     href: "/solicitacoes",
     icon: ClipboardCheck,
+    permissao: "solicitacoes:consultar:proprio",
   },
   {
     label: "Homologação",
@@ -108,12 +121,7 @@ const menuItems: MenuItem[] = [
     href: "/biometria",
     icon: Fingerprint,
   },
-  {
-    label: "Perfis",
-    href: "/perfis",
-    icon: ShieldCheck,
-    permissao: "perfis:gerenciar:global",
-  },
+
   {
     label: "Administração",
     href: "/administracao",

@@ -116,6 +116,30 @@ const permissoesIniciais = [
     escopo: "global",
     descricao: "Gerenciar e recalcular banco de horas.",
   },
+  {
+    recurso: "solicitacoes",
+    acao: "criar",
+    escopo: "proprio",
+    descricao: "Criar solicitações próprias de frequência.",
+  },
+  {
+    recurso: "solicitacoes",
+    acao: "consultar",
+    escopo: "proprio",
+    descricao: "Consultar as próprias solicitações.",
+  },
+  {
+    recurso: "solicitacoes",
+    acao: "analisar",
+    escopo: "chefia",
+    descricao: "Analisar solicitações dos subordinados.",
+  },
+  {
+    recurso: "solicitacoes",
+    acao: "consultar",
+    escopo: "global",
+    descricao: "Consultar todas as solicitações.",
+  },
 ];
 
 async function criarPermissoes() {
