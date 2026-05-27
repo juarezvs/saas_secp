@@ -10,10 +10,10 @@ declare module "react" {
 
 declare global {
   interface Window {
+    __secpVLibrasWidget?: unknown;
     VLibras?: {
       Widget: new (url: string) => unknown;
     };
-    __secpVlibrasInicializado?: boolean;
   }
 }
 

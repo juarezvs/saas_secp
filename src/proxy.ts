@@ -1,15 +1,13 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
-const rotasPublicas = ["/login"];
+const rotasPublicas = ["/login", "/"];
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   const usuarioAutenticado = Boolean(req.auth?.user);
 
-  const rotaPublica = rotasPublicas.some((rota) =>
-    pathname.startsWith(rota)
-  );
+  const rotaPublica = rotasPublicas.some((rota) => pathname.startsWith(rota));
 
   if (!usuarioAutenticado && !rotaPublica) {
     const url = new URL("/login", req.nextUrl.origin);

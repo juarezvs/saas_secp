@@ -85,6 +85,12 @@ const menuItems: MenuItem[] = [
     icon: Fingerprint,
   },
   {
+    label: "Perfis",
+    href: "/perfis",
+    icon: ShieldCheck,
+    permissao: "perfis:gerenciar:global",
+  },
+  {
     label: "Administração",
     href: "/administracao",
     icon: Settings,

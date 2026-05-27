@@ -113,6 +113,7 @@ body[data-dyslexia-font="true"] {
   line-height: 1.7;
 }
 
-.vw-access-button {
-  z-index: 9999 !important;
+/* VLibras */
+[vw-access-button] {
+  z-index: 999999 !important;
 }

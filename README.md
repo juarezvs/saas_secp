@@ -35,7 +35,16 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
-### meu env
+## PASSOS PARA IMPLANTAÇÃO
+
+a) git clone https://github.com/juarezvs/saas_secp.git
+b) cd saas_secp
+c) npm install
+d) docker compose up -d
+
+e) criar arquivo .env no raiz do projeto e colar o conteúdo abaixo:
+
+### inicio do conteúdo do arquivo .env
 
 # Banco de dados local
 
@@ -67,4 +76,12 @@ LDAP_BIND_PASSWORD=""
 NODE_ENV="development"
 APP_TIMEZONE="America/Manaus"
 
-## fim env
+### fim do conteúdo do arquivo .env
+
+f) npx prisma migrate dev
+g) npx prisma generate
+h) npx prisma db seed
+e) rodar a aplicação -> npm run dev
+f) acessar a aplicação -> http://localhost:3000
+Para o primeiro acesso usar: Matricula -> secp
+Senha da rede -> secp
