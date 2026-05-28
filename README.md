@@ -76,6 +76,21 @@ LDAP_BIND_PASSWORD=""
 NODE_ENV="development"
 APP_TIMEZONE="America/Manaus"
 
+# Integração com SARH
+
+SARH_API_BASE_URL=
+SARH_API_TOKEN=
+
+# para teste local, manter SARH_MOCK = true
+
+# para produção, SARH_MOCK = false, SARH_API_BASE_URL = https://endereco-real-do-sarh
+
+SARH_MOCK=true
+
+# Integração com Equipamento externo
+
+SECP_EQUIPAMENTO_WEBHOOK_TOKEN=troque-este-token-em-producao
+
 ### fim do conteúdo do arquivo .env
 
 f) npx prisma migrate dev
