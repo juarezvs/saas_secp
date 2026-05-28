@@ -23,6 +23,10 @@ import {
   verificarPeriodoHomologado,
   PeriodoHomologadoError,
 } from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
+import {
+  consumirAutorizacaoBiometricaMarcacao,
+  validarAutorizacaoBiometricaMarcacao,
+} from "@/modules/biometria/application/services/autorizacao-biometrica-marcacao.service";
 
 function extrairDados(formData: FormData) {
   return {
@@ -90,6 +94,14 @@ export async function registrarMarcacaoAction(
     };
   }
 
+  const autorizacaoBiometricaId = String(
+    formData.get("autorizacaoBiometricaId") ?? "",
+  );
+
+  const autorizacaoBiometricaToken = String(
+    formData.get("autorizacaoBiometricaToken") ?? "",
+  );
+
   const agora = new Date();
   const jornadaVigente = await resolverJornadaVigenteDoServidor(
     servidor.id,
@@ -101,6 +113,27 @@ export async function registrarMarcacaoAction(
       sucesso: false,
       mensagem:
         "Não há jornada vigente cadastrada para este servidor. Procure o NUTEC ou a área responsável.",
+    };
+  }
+
+  if (!autorizacaoBiometricaId || !autorizacaoBiometricaToken) {
+    return {
+      sucesso: false,
+      mensagem:
+        "Validação facial obrigatória. Capture e valide sua face antes de registrar a marcação.",
+    };
+  }
+
+  const validacaoAutorizacao = await validarAutorizacaoBiometricaMarcacao({
+    servidorId: servidor.id,
+    autorizacaoId: autorizacaoBiometricaId,
+    token: autorizacaoBiometricaToken,
+  });
+
+  if (!validacaoAutorizacao.valida) {
+    return {
+      sucesso: false,
+      mensagem: validacaoAutorizacao.mensagem,
     };
   }
 
@@ -189,6 +222,12 @@ export async function registrarMarcacaoAction(
           },
         },
       },
+    });
+
+    await consumirAutorizacaoBiometricaMarcacao({
+      tx,
+      autorizacaoId: autorizacaoBiometricaId,
+      marcacaoId: novaMarcacao.id,
     });
 
     await tx.auditoriaEvento.create({

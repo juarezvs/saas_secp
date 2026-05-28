@@ -241,6 +241,62 @@ enum TipoResumoBoletimServidor {
   COM_PENDENCIA
 }
 
+enum TipoIntegracao {
+  SARH
+  SEI
+  EQUIPAMENTO_BIOMETRICO
+  LDAP
+  WEBHOOK
+  OUTRO
+}
+
+enum StatusIntegracao {
+  ATIVA
+  INATIVA
+  ERRO
+  NAO_CONFIGURADA
+}
+
+enum DirecaoIntegracao {
+  ENTRADA
+  SAIDA
+  BIDIRECIONAL
+}
+
+enum StatusLogIntegracao {
+  SUCESSO
+  ERRO
+  PENDENTE
+  IGNORADO
+}
+
+enum TipoEventoEquipamento {
+  MARCACAO
+  HEARTBEAT
+  SINCRONIZACAO
+  ERRO
+}
+
+enum StatusCadastroFacial {
+  PENDENTE
+  ATIVO
+  BLOQUEADO
+  REVOGADO
+}
+
+enum TipoAmostraFacial {
+  CADASTRO
+  VALIDACAO
+  LIVENESS
+}
+
+enum StatusAutorizacaoBiometrica {
+  PENDENTE
+  UTILIZADA
+  EXPIRADA
+  CANCELADA
+}
+
 model Usuario {
   id        String      @id @default(uuid()) @db.Uuid
   matricula String      @unique @db.VarChar(50)
@@ -373,11 +429,12 @@ model UnidadeOrganizacional {
   unidadePai     UnidadeOrganizacional?  @relation("HierarquiaUnidades", fields: [unidadePaiId], references: [id], onDelete: Restrict)
   unidadesFilhas UnidadeOrganizacional[] @relation("HierarquiaUnidades")
 
-  lotacoes           Lotacao[]
-  gestores           GestorUnidade[]
-  solicitacoes       Solicitacao[]             @relation("SolicitacoesPorUnidade")
-  fechamentosMensais FechamentoMensalUnidade[]
-  boletimFrequencias BoletimFrequencia[]
+  lotacoes                Lotacao[]
+  gestores                GestorUnidade[]
+  solicitacoes            Solicitacao[]             @relation("SolicitacoesPorUnidade")
+  fechamentosMensais      FechamentoMensalUnidade[]
+  boletimFrequencias      BoletimFrequencia[]
+  equipamentosBiometricos EquipamentoBiometrico[]
 
   @@unique([orgaoId, codigo])
   @@index([orgaoId])
@@ -401,18 +458,21 @@ model Servidor {
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   orgao   Orgao   @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
 
-  lotacoes              Lotacao[]
-  gestores              GestorUnidade[]
-  jornadas              JornadaServidor[]
-  marcacoes             Marcacao[]
-  apuracaoDiarias       ApuracaoDiaria[]
-  ocorrenciaFrequencias OcorrenciaFrequencia[]
-  bancoHorasSaldo       BancoHorasSaldo?
-  movimentoBancoHoras   MovimentoBancoHoras[]
-  solicitacoes          Solicitacao[]               @relation("SolicitacoesDoServidor")
-  solicitacaoEventos    SolicitacaoEvento[]         @relation("SolicitacaoEventosPorServidor")
-  homologacoesMensais   HomologacaoServidorMes[]
-  boletinsFrequencia    BoletimFrequenciaServidor[]
+  lotacoes                          Lotacao[]
+  gestores                          GestorUnidade[]
+  jornadas                          JornadaServidor[]
+  marcacoes                         Marcacao[]
+  apuracaoDiarias                   ApuracaoDiaria[]
+  ocorrenciaFrequencias             OcorrenciaFrequencia[]
+  bancoHorasSaldo                   BancoHorasSaldo?
+  movimentoBancoHoras               MovimentoBancoHoras[]
+  solicitacoes                      Solicitacao[]                   @relation("SolicitacoesDoServidor")
+  solicitacaoEventos                SolicitacaoEvento[]             @relation("SolicitacaoEventosPorServidor")
+  homologacoesMensais               HomologacaoServidorMes[]
+  boletinsFrequencia                BoletimFrequenciaServidor[]
+  biometriaFacialServidor           BiometriaFacialServidor?
+  amostraBiometricaFacial           AmostraBiometricaFacial[]
+  autorizacaoesBiometricasMarcacaos AutorizacaoBiometricaMarcacao[]
 
   @@index([orgaoId])
   @@map("servidores")
@@ -616,9 +676,10 @@ model Marcacao {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  servidor        Servidor         @relation(fields: [servidorId], references: [id], onDelete: Restrict)
-  jornadaServidor JornadaServidor? @relation(fields: [jornadaServidorId], references: [id], onDelete: SetNull)
-  criadaPor       Usuario?         @relation("MarcacoesCriadasPorUsuario", fields: [criadaPorUsuarioId], references: [id], onDelete: SetNull)
+  servidor                     Servidor                      @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  jornadaServidor              JornadaServidor?              @relation(fields: [jornadaServidorId], references: [id], onDelete: SetNull)
+  criadaPor                    Usuario?                      @relation("MarcacoesCriadasPorUsuario", fields: [criadaPorUsuarioId], references: [id], onDelete: SetNull)
+  eventosEquipamentoBiometrico EventoEquipamentoBiometrico[]
 
   @@index([servidorId])
   @@index([jornadaServidorId])
@@ -991,4 +1052,218 @@ model BoletimFrequenciaServidor {
   @@index([servidorId])
   @@index([tipoResumo])
   @@map("boletins_frequencia_servidores")
+}
+
+model IntegracaoSistema {
+  id String @id @default(uuid()) @db.Uuid
+
+  nome    String            @db.VarChar(160)
+  tipo    TipoIntegracao
+  status  StatusIntegracao  @default(NAO_CONFIGURADA)
+  direcao DirecaoIntegracao @default(BIDIRECIONAL)
+
+  baseUrl   String? @map("base_url") @db.Text
+  descricao String? @db.Text
+  ativo     Boolean @default(true)
+
+  configuracao    Json?
+  ultimoSucessoEm DateTime? @map("ultimo_sucesso_em")
+  ultimoErroEm    DateTime? @map("ultimo_erro_em")
+  ultimoErro      String?   @map("ultimo_erro") @db.Text
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  logs         LogIntegracao[]
+  equipamentos EquipamentoBiometrico[]
+
+  @@index([tipo])
+  @@index([status])
+  @@index([ativo])
+  @@map("integracoes_sistemas")
+}
+
+model LogIntegracao {
+  id           String  @id @default(uuid()) @db.Uuid
+  integracaoId String? @map("integracao_id") @db.Uuid
+
+  tipo    TipoIntegracao
+  direcao DirecaoIntegracao
+  status  StatusLogIntegracao
+
+  entidade   String? @db.VarChar(120)
+  entidadeId String? @map("entidade_id") @db.VarChar(120)
+
+  mensagem String? @db.Text
+  erro     String? @db.Text
+
+  payloadEntrada Json? @map("payload_entrada")
+  payloadSaida   Json? @map("payload_saida")
+  metadados      Json?
+
+  iniciadoEm   DateTime  @default(now()) @map("iniciado_em")
+  finalizadoEm DateTime? @map("finalizado_em")
+  duracaoMs    Int?      @map("duracao_ms")
+
+  integracao IntegracaoSistema? @relation(fields: [integracaoId], references: [id], onDelete: SetNull)
+
+  @@index([integracaoId])
+  @@index([tipo])
+  @@index([status])
+  @@index([entidade])
+  @@index([entidadeId])
+  @@index([iniciadoEm])
+  @@map("integracoes_logs")
+}
+
+model EquipamentoBiometrico {
+  id           String  @id @default(uuid()) @db.Uuid
+  integracaoId String? @map("integracao_id") @db.Uuid
+  unidadeId    String? @map("unidade_id") @db.Uuid
+
+  codigo      String  @unique @db.VarChar(80)
+  nome        String  @db.VarChar(160)
+  fabricante  String? @db.VarChar(120)
+  modelo      String? @db.VarChar(120)
+  numeroSerie String? @map("numero_serie") @db.VarChar(120)
+
+  localizacao String? @db.VarChar(200)
+  ip          String? @db.VarChar(80)
+  porta       Int?
+
+  ativo                 Boolean   @default(true)
+  ultimoHeartbeatEm     DateTime? @map("ultimo_heartbeat_em")
+  ultimaSincronizacaoEm DateTime? @map("ultima_sincronizacao_em")
+
+  configuracao Json?
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  integracao IntegracaoSistema?            @relation(fields: [integracaoId], references: [id], onDelete: SetNull)
+  unidade    UnidadeOrganizacional?        @relation(fields: [unidadeId], references: [id], onDelete: SetNull)
+  eventos    EventoEquipamentoBiometrico[]
+
+  @@index([integracaoId])
+  @@index([unidadeId])
+  @@index([ativo])
+  @@map("equipamentos_biometricos")
+}
+
+model EventoEquipamentoBiometrico {
+  id            String  @id @default(uuid()) @db.Uuid
+  equipamentoId String  @map("equipamento_id") @db.Uuid
+  marcacaoId    String? @map("marcacao_id") @db.Uuid
+
+  tipoEvento          TipoEventoEquipamento @default(MARCACAO) @map("tipo_evento")
+  codigoEventoExterno String?               @map("codigo_evento_externo") @db.VarChar(120)
+  nsr                 String?               @db.VarChar(120)
+
+  matricula  String?   @db.VarChar(80)
+  dataHora   DateTime? @map("data_hora")
+  recebidoEm DateTime  @default(now()) @map("recebido_em")
+
+  processado   Boolean   @default(false)
+  processadoEm DateTime? @map("processado_em")
+  erro         String?   @db.Text
+
+  payload Json?
+
+  equipamento EquipamentoBiometrico @relation(fields: [equipamentoId], references: [id], onDelete: Cascade)
+  marcacao    Marcacao?             @relation(fields: [marcacaoId], references: [id], onDelete: SetNull)
+
+  @@unique([equipamentoId, codigoEventoExterno])
+  @@unique([equipamentoId, nsr])
+  @@index([equipamentoId])
+  @@index([marcacaoId])
+  @@index([matricula])
+  @@index([dataHora])
+  @@index([processado])
+  @@map("equipamentos_biometricos_eventos")
+}
+
+model BiometriaFacialServidor {
+  id         String @id @default(uuid()) @db.Uuid
+  servidorId String @unique @map("servidor_id") @db.Uuid
+
+  status StatusCadastroFacial @default(PENDENTE)
+
+  algoritmo       String  @default("human-face-description") @db.VarChar(120)
+  versaoAlgoritmo String? @map("versao_algoritmo") @db.VarChar(80)
+
+  template           Json
+  templateDimensao   Int    @map("template_dimensao")
+  qualidadeMedia     Float? @map("qualidade_media")
+  amostrasQuantidade Int    @default(0) @map("amostras_quantidade")
+
+  limiarDistancia Float @default(0.55) @map("limiar_distancia")
+
+  termoAceiteEm          DateTime? @map("termo_aceite_em")
+  cadastradoPorUsuarioId String?   @map("cadastrado_por_usuario_id") @db.Uuid
+  atualizadoPorUsuarioId String?   @map("atualizado_por_usuario_id") @db.Uuid
+  revogadoPorUsuarioId   String?   @map("revogado_por_usuario_id") @db.Uuid
+
+  revogadoEm   DateTime? @map("revogado_em")
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+
+  servidor Servidor                  @relation(fields: [servidorId], references: [id], onDelete: Cascade)
+  amostras AmostraBiometricaFacial[]
+
+  @@index([status])
+  @@map("biometrias_faciais_servidores")
+}
+
+model AmostraBiometricaFacial {
+  id          String  @id @default(uuid()) @db.Uuid
+  biometriaId String? @map("biometria_id") @db.Uuid
+  servidorId  String  @map("servidor_id") @db.Uuid
+
+  tipo         TipoAmostraFacial
+  template     Json?
+  qualidade    Float?
+  distancia    Float?
+  similaridade Float?
+  validada     Boolean           @default(false)
+
+  metadados          Json?
+  criadoPorUsuarioId String?  @map("criado_por_usuario_id") @db.Uuid
+  criadoEm           DateTime @default(now()) @map("criado_em")
+
+  biometria            BiometriaFacialServidor?        @relation(fields: [biometriaId], references: [id], onDelete: SetNull)
+  servidor             Servidor                        @relation(fields: [servidorId], references: [id], onDelete: Cascade)
+  autorizacoesMarcacao AutorizacaoBiometricaMarcacao[]
+
+  @@index([biometriaId])
+  @@index([servidorId])
+  @@index([tipo])
+  @@index([validada])
+  @@index([criadoEm])
+  @@map("biometrias_faciais_amostras")
+}
+
+model AutorizacaoBiometricaMarcacao {
+  id         String  @id @default(uuid()) @db.Uuid
+  servidorId String  @map("servidor_id") @db.Uuid
+  amostraId  String? @map("amostra_id") @db.Uuid
+
+  tokenHash String                      @map("token_hash") @db.VarChar(128)
+  status    StatusAutorizacaoBiometrica @default(PENDENTE)
+
+  expiraEm    DateTime  @map("expira_em")
+  utilizadaEm DateTime? @map("utilizada_em")
+  marcacaoId  String?   @map("marcacao_id") @db.Uuid
+
+  origem    String? @db.VarChar(120)
+  metadados Json?
+
+  criadoEm DateTime @default(now()) @map("criado_em")
+
+  servidor Servidor                 @relation(fields: [servidorId], references: [id], onDelete: Cascade)
+  amostra  AmostraBiometricaFacial? @relation(fields: [amostraId], references: [id], onDelete: SetNull)
+
+  @@index([servidorId])
+  @@index([amostraId])
+  @@index([status])
+  @@index([expiraEm])
+  @@map("biometrias_autorizacoes_marcacao")
 }

@@ -12,13 +12,16 @@ import {
   matriculaServidorExiste,
   usuarioMatriculaExiste,
 } from "../../infrastructure/repositories/servidor.repository";
+import { connect } from "http2";
 
 function extrairDadosServidor(formData: FormData) {
   return {
     orgaoId: String(formData.get("orgaoId") ?? ""),
     matricula: String(formData.get("matricula") ?? "").trim(),
     nome: String(formData.get("nome") ?? "").trim(),
-    email: String(formData.get("email") ?? "").trim().toLowerCase(),
+    email: String(formData.get("email") ?? "")
+      .trim()
+      .toLowerCase(),
     nomeFuncional: String(formData.get("nomeFuncional") ?? "").trim(),
     vinculo: String(formData.get("vinculo") ?? ""),
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
@@ -27,10 +30,10 @@ function extrairDadosServidor(formData: FormData) {
 
 export async function criarServidorAction(
   _estadoAnterior: ServidorFormState,
-  formData: FormData
+  formData: FormData,
 ): Promise<ServidorFormState> {
   const permissao = await exigirPermissaoOuRedirecionar(
-    "servidores:gerenciar:global"
+    "servidores:gerenciar:global",
   );
 
   const dados = extrairDadosServidor(formData);
@@ -83,8 +86,16 @@ export async function criarServidorAction(
 
     const novoServidor = await tx.servidor.create({
       data: {
-        usuarioId: usuario.id,
-        orgaoId: parsed.data.orgaoId,
+        usuario: {
+          connect: {
+            id: usuario.id,
+          },
+        },
+        orgao: {
+          connect: {
+            id: parsed.data.orgaoId,
+          },
+        },
         matricula,
         nomeFuncional: parsed.data.nomeFuncional || null,
         vinculo: parsed.data.vinculo,

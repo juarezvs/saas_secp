@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Building2,
+  Cable,
   Calculator,
   CalendarCheck,
   CalendarClock,
@@ -16,6 +17,7 @@ import {
   Fingerprint,
   Gauge,
   LogOut,
+  ScanFace,
   Settings,
   ShieldAlert,
   ShieldCheck,
@@ -86,6 +88,12 @@ const menuItems: MenuItem[] = [
     permissao: "marcacoes:consultar:proprio",
   },
   {
+    label: "Biometria Facial",
+    href: "/biometria",
+    icon: ScanFace,
+    permissao: "biometria:consultar:proprio",
+  },
+  {
     label: "Solicitações",
     href: "/solicitacoes",
     icon: ClipboardCheck,
@@ -114,6 +122,12 @@ const menuItems: MenuItem[] = [
     href: "/auditoria",
     icon: ShieldAlert,
     permissao: "auditoria:consultar:global",
+  },
+  {
+    label: "Integrações",
+    href: "/integracoes",
+    icon: Cable,
+    permissao: "integracoes:consultar:global",
   },
   {
     label: "Banco de Horas",

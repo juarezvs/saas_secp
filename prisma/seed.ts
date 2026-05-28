@@ -232,6 +232,54 @@ const permissoesIniciais = [
     escopo: "global",
     descricao: "Exportar trilhas de auditoria.",
   },
+  {
+    recurso: "integracoes",
+    acao: "consultar",
+    escopo: "global",
+    descricao: "Consultar status, logs e equipamentos de integração.",
+  },
+  {
+    recurso: "integracoes",
+    acao: "gerenciar",
+    escopo: "global",
+    descricao: "Gerenciar integrações externas e equipamentos biométricos.",
+  },
+  {
+    recurso: "integracoes",
+    acao: "sincronizar",
+    escopo: "global",
+    descricao: "Executar sincronizações manuais com sistemas externos.",
+  },
+  {
+    recurso: "integracoes",
+    acao: "receber-webhook",
+    escopo: "sistema",
+    descricao: "Receber eventos externos por webhook.",
+  },
+  {
+    recurso: "biometria",
+    acao: "consultar",
+    escopo: "proprio",
+    descricao: "Consultar o próprio cadastro biométrico facial.",
+  },
+  {
+    recurso: "biometria",
+    acao: "cadastrar",
+    escopo: "proprio",
+    descricao: "Cadastrar a própria biometria facial.",
+  },
+  {
+    recurso: "biometria",
+    acao: "validar",
+    escopo: "proprio",
+    descricao: "Validar marcação com biometria facial própria.",
+  },
+  {
+    recurso: "biometria",
+    acao: "gerenciar",
+    escopo: "global",
+    descricao: "Gerenciar cadastros biométricos faciais.",
+  },
 ];
 
 async function criarPermissoes() {
