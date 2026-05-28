@@ -5,6 +5,7 @@ import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/servic
 import { buscarFechamentoPorId } from "@/modules/homologacao/infrastructure/repositories/homologacao.repository";
 import { FechamentoUnidadeCard } from "@/modules/homologacao/presentation/components/fechamento-unidade-card";
 import { ServidoresHomologacaoTable } from "@/modules/homologacao/presentation/components/servidores-homologacao-table";
+import { gerarBoletimFrequenciaAction } from "@/modules/boletim-frequencia/application/actions/gerar-boletim-frequencia.action";
 
 type HomologacaoDetalhePageProps = {
   params: Promise<{

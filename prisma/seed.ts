@@ -13,11 +13,18 @@ const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
 const permissoesIniciais = [
+  // Usuários / perfis / estrutura
   {
     recurso: "usuarios",
     acao: "gerenciar",
     escopo: "global",
     descricao: "Gerenciar usuários do sistema.",
+  },
+  {
+    recurso: "usuarios",
+    acao: "consultar",
+    escopo: "global",
+    descricao: "Consultar usuários do sistema.",
   },
   {
     recurso: "perfis",
@@ -38,16 +45,16 @@ const permissoesIniciais = [
     descricao: "Gerenciar servidores e vínculos.",
   },
   {
+    recurso: "servidores",
+    acao: "consultar",
+    escopo: "global",
+    descricao: "Consultar servidores.",
+  },
+  {
     recurso: "chefias",
     acao: "gerenciar",
     escopo: "global",
     descricao: "Gerenciar chefias, gestores, substitutos e delegações.",
-  },
-  {
-    recurso: "auditoria",
-    acao: "consultar",
-    escopo: "global",
-    descricao: "Consultar trilhas de auditoria.",
   },
   {
     recurso: "configuracoes",
@@ -55,6 +62,16 @@ const permissoesIniciais = [
     escopo: "global",
     descricao: "Gerenciar parâmetros gerais do SECP.",
   },
+
+  // Dashboard
+  {
+    recurso: "dashboard",
+    acao: "visualizar",
+    escopo: "proprio",
+    descricao: "Visualizar dashboard próprio.",
+  },
+
+  // Jornadas
   {
     recurso: "jornadas",
     acao: "gerenciar",
@@ -63,10 +80,36 @@ const permissoesIniciais = [
       "Gerenciar jornadas, escalas e atribuições de jornada aos servidores.",
   },
   {
+    recurso: "jornadas",
+    acao: "gerenciar-politicas",
+    escopo: "global",
+    descricao: "Gerenciar políticas de jornada.",
+  },
+  {
+    recurso: "jornada",
+    acao: "visualizar",
+    escopo: "proprio",
+    descricao: "Visualizar própria jornada.",
+  },
+
+  // Marcações
+  {
     recurso: "marcacoes",
     acao: "registrar",
     escopo: "proprio",
     descricao: "Registrar a própria marcação de ponto.",
+  },
+  {
+    recurso: "marcacoes",
+    acao: "registrar-web",
+    escopo: "proprio",
+    descricao: "Registrar marcação via sistema web.",
+  },
+  {
+    recurso: "marcacoes",
+    acao: "registrar-facial",
+    escopo: "proprio",
+    descricao: "Registrar marcação por reconhecimento facial.",
   },
   {
     recurso: "marcacoes",
@@ -76,10 +119,24 @@ const permissoesIniciais = [
   },
   {
     recurso: "marcacoes",
+    acao: "visualizar",
+    escopo: "proprio",
+    descricao: "Visualizar próprias marcações.",
+  },
+  {
+    recurso: "marcacoes",
     acao: "consultar",
     escopo: "global",
     descricao: "Consultar marcações de todos os servidores.",
   },
+  {
+    recurso: "marcacoes",
+    acao: "gerenciar",
+    escopo: "global",
+    descricao: "Gerenciar marcações.",
+  },
+
+  // Apuração / espelho
   {
     recurso: "apuracao",
     acao: "consultar",
@@ -88,21 +145,35 @@ const permissoesIniciais = [
   },
   {
     recurso: "apuracao",
-    acao: "recalcular",
-    escopo: "global",
-    descricao: "Recalcular apurações de frequência.",
-  },
-  {
-    recurso: "apuracao",
     acao: "consultar",
     escopo: "global",
     descricao: "Consultar apurações de todos os servidores.",
   },
   {
+    recurso: "apuracao",
+    acao: "recalcular",
+    escopo: "global",
+    descricao: "Recalcular apurações de frequência.",
+  },
+  {
+    recurso: "espelho-ponto",
+    acao: "visualizar",
+    escopo: "proprio",
+    descricao: "Visualizar próprio espelho de ponto.",
+  },
+
+  // Banco de horas
+  {
     recurso: "banco-horas",
     acao: "consultar",
     escopo: "proprio",
     descricao: "Consultar o próprio banco de horas.",
+  },
+  {
+    recurso: "banco-horas",
+    acao: "visualizar",
+    escopo: "proprio",
+    descricao: "Visualizar próprio banco de horas.",
   },
   {
     recurso: "banco-horas",
@@ -116,6 +187,8 @@ const permissoesIniciais = [
     escopo: "global",
     descricao: "Gerenciar e recalcular banco de horas.",
   },
+
+  // Solicitações
   {
     recurso: "solicitacoes",
     acao: "criar",
@@ -130,6 +203,12 @@ const permissoesIniciais = [
   },
   {
     recurso: "solicitacoes",
+    acao: "visualizar",
+    escopo: "proprio",
+    descricao: "Visualizar próprias solicitações.",
+  },
+  {
+    recurso: "solicitacoes",
     acao: "analisar",
     escopo: "chefia",
     descricao: "Analisar solicitações dos subordinados.",
@@ -140,6 +219,8 @@ const permissoesIniciais = [
     escopo: "global",
     descricao: "Consultar todas as solicitações.",
   },
+
+  // Homologação
   {
     recurso: "homologacao",
     acao: "gerenciar",
@@ -163,6 +244,14 @@ const permissoesIniciais = [
     acao: "gerenciar",
     escopo: "global",
     descricao: "Gerenciar homologações mensais de todas as unidades.",
+  },
+
+  // Boletim de frequência
+  {
+    recurso: "boletim-frequencia",
+    acao: "visualizar",
+    escopo: "proprio",
+    descricao: "Visualizar próprio boletim de frequência.",
   },
   {
     recurso: "boletim-frequencia",
@@ -188,6 +277,8 @@ const permissoesIniciais = [
     escopo: "global",
     descricao: "Consultar Boletins de Frequência.",
   },
+
+  // Relatórios
   {
     recurso: "relatorios",
     acao: "consultar",
@@ -214,6 +305,8 @@ const permissoesIniciais = [
     escopo: "global",
     descricao: "Exportar relatórios globais em PDF.",
   },
+
+  // Auditoria
   {
     recurso: "auditoria",
     acao: "consultar",
@@ -232,6 +325,8 @@ const permissoesIniciais = [
     escopo: "global",
     descricao: "Exportar trilhas de auditoria.",
   },
+
+  // Integrações
   {
     recurso: "integracoes",
     acao: "consultar",
@@ -256,6 +351,8 @@ const permissoesIniciais = [
     escopo: "sistema",
     descricao: "Receber eventos externos por webhook.",
   },
+
+  // Biometria
   {
     recurso: "biometria",
     acao: "consultar",
@@ -280,17 +377,67 @@ const permissoesIniciais = [
     escopo: "global",
     descricao: "Gerenciar cadastros biométricos faciais.",
   },
+
+  // AFD
+  {
+    recurso: "afd",
+    acao: "importar",
+    escopo: "global",
+    descricao: "Importar arquivos AFD de equipamentos biométricos.",
+  },
 ];
+
+const codigosPermissoesServidor = [
+  "dashboard:visualizar:proprio",
+  "marcacoes:registrar:proprio",
+  "marcacoes:registrar-web:proprio",
+  "marcacoes:registrar-facial:proprio",
+  "marcacoes:consultar:proprio",
+  "marcacoes:visualizar:proprio",
+  "apuracao:consultar:proprio",
+  "espelho-ponto:visualizar:proprio",
+  "banco-horas:consultar:proprio",
+  "banco-horas:visualizar:proprio",
+  "solicitacoes:criar:proprio",
+  "solicitacoes:consultar:proprio",
+  "solicitacoes:visualizar:proprio",
+  "homologacao:consultar:proprio",
+  "boletim-frequencia:visualizar:proprio",
+  "relatorios:consultar:proprio",
+  "relatorios:exportar:proprio",
+  "jornada:visualizar:proprio",
+  "biometria:consultar:proprio",
+  "biometria:cadastrar:proprio",
+  "biometria:validar:proprio",
+];
+
+function codigoPermissao(item: {
+  recurso: string;
+  acao: string;
+  escopo: string;
+}) {
+  return `${item.recurso}:${item.acao}:${item.escopo}`;
+}
 
 async function criarPermissoes() {
   const permissoes = [];
+  const codigosCriados = new Set<string>();
 
   for (const item of permissoesIniciais) {
-    const codigo = `${item.recurso}:${item.acao}:${item.escopo}`;
+    const codigo = codigoPermissao(item);
+
+    if (codigosCriados.has(codigo)) {
+      continue;
+    }
+
+    codigosCriados.add(codigo);
 
     const permissao = await prisma.permissao.upsert({
       where: { codigo },
       update: {
+        recurso: item.recurso,
+        acao: item.acao,
+        escopo: item.escopo,
         descricao: item.descricao,
       },
       create: {
@@ -329,11 +476,60 @@ async function criarPerfilAdministrador() {
   });
 }
 
+async function criarPerfilServidor() {
+  return prisma.perfil.upsert({
+    where: { codigo: "SERVIDOR" },
+    update: {
+      nome: "Servidor",
+      descricao: "Perfil básico para servidores utilizarem o SECP.",
+      sistema: true,
+      ativo: true,
+    },
+    create: {
+      codigo: "SERVIDOR",
+      nome: "Servidor",
+      descricao: "Perfil básico para servidores utilizarem o SECP.",
+      sistema: true,
+      ativo: true,
+    },
+  });
+}
+
 async function vincularPermissoesAoPerfil(
   perfilId: string,
   permissoes: Array<{ id: string }>,
 ) {
   for (const permissao of permissoes) {
+    await prisma.perfilPermissao.upsert({
+      where: {
+        perfilId_permissaoId: {
+          perfilId,
+          permissaoId: permissao.id,
+        },
+      },
+      update: {},
+      create: {
+        perfilId,
+        permissaoId: permissao.id,
+      },
+    });
+  }
+}
+
+async function vincularPermissoesPorCodigoAoPerfil(
+  perfilId: string,
+  codigos: string[],
+) {
+  for (const codigo of codigos) {
+    const permissao = await prisma.permissao.findUnique({
+      where: { codigo },
+    });
+
+    if (!permissao) {
+      console.warn(`Permissão não encontrada no seed: ${codigo}`);
+      continue;
+    }
+
     await prisma.perfilPermissao.upsert({
       where: {
         perfilId_permissaoId: {
@@ -362,6 +558,7 @@ async function criarUsuarioInicial(perfilId: string) {
     where: { matricula },
     update: {
       nome,
+      
       email,
       senhaHash,
       ativo: true,
@@ -590,11 +787,18 @@ async function main() {
   console.log("Iniciando seed do SECP...");
 
   const permissoes = await criarPermissoes();
+
   const perfilAdmin = await criarPerfilAdministrador();
+  const perfilServidor = await criarPerfilServidor();
 
   await vincularPermissoesAoPerfil(perfilAdmin.id, permissoes);
+  await vincularPermissoesPorCodigoAoPerfil(
+    perfilServidor.id,
+    codigosPermissoesServidor,
+  );
 
   const usuarioInicial = await criarUsuarioInicial(perfilAdmin.id);
+
   await criarEstruturaInicial();
   await criarJornadasPadrao();
 
@@ -606,15 +810,18 @@ async function main() {
       acao: "SEED_INICIAL_EXECUTADO",
       dadosDepois: {
         usuarioInicial: usuarioInicial.matricula,
-        perfil: "ADMIN",
+        perfis: ["ADMIN", "SERVIDOR"],
         estrutura: ["JFAM", "SJAM", "NUTEC", "NUCGP", "SECAD"],
+        jornadas: ["JORNADA_7H", "JORNADA_8H"],
       },
     },
   });
 
   console.log("Seed concluído com sucesso.");
   console.log(`Usuário inicial: ${usuarioInicial.matricula}`);
-  console.log("Senha inicial: valor definido em SECP_ADMIN_SENHA.");
+  console.log(
+    "Senha inicial: valor definido em SECP_ADMIN_SENHA ou padrão secp.",
+  );
 }
 
 main()

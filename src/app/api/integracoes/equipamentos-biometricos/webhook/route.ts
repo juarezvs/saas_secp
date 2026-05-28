@@ -1,11 +1,6 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
-import { obterDataReferencia } from "@/modules/marcacoes/application/services/data-marcacao.service";
-import { classificarProximaMarcacao } from "@/modules/marcacoes/application/services/classificar-marcacao.service";
-import { recalcularDiaServidorService } from "@/modules/recalculo/application/services/recalcular-dia-servidor.service";
-import {
-  PeriodoHomologadoError,
-  verificarPeriodoHomologado,
-} from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
+import { criarMarcacaoBrutaService } from "@/modules/marcacoes-brutas/application/services/criar-marcacao-bruta.service";
+import { processarMarcacaoBrutaService } from "@/modules/marcacoes-brutas/application/services/processar-marcacao-bruta.service";
 
 export const runtime = "nodejs";
 
@@ -14,6 +9,7 @@ type PayloadWebhookEquipamento = {
   tipoEvento?: "MARCACAO" | "HEARTBEAT" | "SINCRONIZACAO" | "ERRO";
   codigoEventoExterno?: string;
   nsr?: string;
+  cpf?: string;
   matricula?: string;
   dataHora?: string;
   payload?: unknown;
@@ -96,11 +92,25 @@ export async function POST(request: Request) {
         data: {
           equipamentoId: equipamento.id,
           tipoEvento: "HEARTBEAT",
-          codigoEventoExterno: body.codigoEventoExterno ?? null,
-          nsr: body.nsr ?? null,
+          codigoEventoExterno: body.codigoEventoExterno || null,
+          nsr: body.nsr || null,
           processado: true,
           processadoEm: new Date(),
           payload: body as never,
+        },
+      });
+
+      await tx.logIntegracao.create({
+        data: {
+          integracaoId: equipamento.integracaoId,
+          tipo: "EQUIPAMENTO_BIOMETRICO",
+          direcao: "ENTRADA",
+          status: "SUCESSO",
+          entidade: "EquipamentoBiometrico",
+          entidadeId: equipamento.id,
+          mensagem: "Heartbeat recebido do equipamento biométrico.",
+          payloadEntrada: body as never,
+          finalizadoEm: new Date(),
         },
       });
     });
@@ -111,24 +121,23 @@ export async function POST(request: Request) {
     });
   }
 
-  if (!body.matricula || !body.dataHora) {
-    const evento = await prisma.eventoEquipamentoBiometrico.create({
-      data: {
-        equipamentoId: equipamento.id,
-        tipoEvento: body.tipoEvento ?? "ERRO",
-        codigoEventoExterno: body.codigoEventoExterno ?? null,
-        nsr: body.nsr ?? null,
-        matricula: body.matricula ?? null,
-        payload: body as never,
-        erro: "Matrícula ou dataHora não informada.",
-      },
-    });
-
+  if (!body.cpf && !body.matricula) {
     return Response.json(
       {
         sucesso: false,
-        mensagem: "Matrícula ou dataHora não informada.",
-        eventoId: evento.id,
+        mensagem: "Informe CPF ou matrícula para registrar a marcação bruta.",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  if (!body.dataHora) {
+    return Response.json(
+      {
+        sucesso: false,
+        mensagem: "Data/hora da marcação não informada.",
       },
       {
         status: 400,
@@ -142,7 +151,7 @@ export async function POST(request: Request) {
     return Response.json(
       {
         sucesso: false,
-        mensagem: "dataHora inválida.",
+        mensagem: "Data/hora da marcação inválida.",
       },
       {
         status: 400,
@@ -150,212 +159,47 @@ export async function POST(request: Request) {
     );
   }
 
-  const servidor = await prisma.servidor.findFirst({
-    where: {
-      matricula: body.matricula,
-      ativo: true,
-      usuario: {
-        ativo: true,
-      },
-    },
-    include: {
-      usuario: true,
-    },
-  });
-
-  const evento = await prisma.eventoEquipamentoBiometrico.create({
+  const eventoEquipamento = await prisma.eventoEquipamentoBiometrico.create({
     data: {
       equipamentoId: equipamento.id,
       tipoEvento: "MARCACAO",
-      codigoEventoExterno: body.codigoEventoExterno ?? null,
-      nsr: body.nsr ?? null,
-      matricula: body.matricula,
+      codigoEventoExterno: body.codigoEventoExterno || null,
+      nsr: body.nsr || null,
+      matricula: body.matricula || null,
       dataHora,
       payload: body as never,
     },
   });
 
-  if (!servidor) {
-    await prisma.eventoEquipamentoBiometrico.update({
-      where: {
-        id: evento.id,
-      },
-      data: {
-        erro: "Servidor não encontrado para a matrícula informada.",
-      },
-    });
-
-    return Response.json(
-      {
-        sucesso: false,
-        mensagem: "Servidor não encontrado para a matrícula informada.",
-        eventoId: evento.id,
-      },
-      {
-        status: 404,
-      },
-    );
-  }
-
-  const dataReferencia = obterDataReferencia(dataHora);
-
-  try {
-    await verificarPeriodoHomologado({
-      servidorId: servidor.id,
-      dataReferencia,
-    });
-  } catch (error) {
-    if (error instanceof PeriodoHomologadoError) {
-      await prisma.eventoEquipamentoBiometrico.update({
-        where: {
-          id: evento.id,
-        },
-        data: {
-          erro: error.message,
-        },
-      });
-
-      return Response.json(
-        {
-          sucesso: false,
-          mensagem:
-            "Período já homologado. Evento biométrico registrado, mas não convertido em marcação.",
-          eventoId: evento.id,
-        },
-        {
-          status: 409,
-        },
-      );
-    }
-
-    throw error;
-  }
-
-  const jornadaServidor = await prisma.jornadaServidor.findFirst({
-    where: {
-      servidorId: servidor.id,
-      ativo: true,
-      dataInicio: {
-        lte: dataReferencia,
-      },
-      OR: [
-        {
-          dataFim: null,
-        },
-        {
-          dataFim: {
-            gte: dataReferencia,
-          },
-        },
-      ],
-    },
-    include: {
-      jornada: true,
-    },
-    orderBy: {
-      dataInicio: "desc",
+  const resultadoBruta = await criarMarcacaoBrutaService({
+    cpf: body.cpf || null,
+    matricula: body.matricula || null,
+    dataHora,
+    equipamentoCodigo: equipamento.codigo,
+    equipamentoId: equipamento.id,
+    origem: "EQUIPAMENTO_BIOMETRICO",
+    nsr: body.nsr || null,
+    codigoExterno: body.codigoEventoExterno || null,
+    payloadOriginal: {
+      ...body,
+      eventoEquipamentoId: eventoEquipamento.id,
     },
   });
 
-  if (!jornadaServidor) {
-    await prisma.eventoEquipamentoBiometrico.update({
-      where: {
-        id: evento.id,
-      },
-      data: {
-        erro: "Servidor sem jornada vigente para a data.",
-      },
-    });
-
-    return Response.json(
-      {
-        sucesso: false,
-        mensagem: "Servidor sem jornada vigente para a data.",
-        eventoId: evento.id,
-      },
-      {
-        status: 422,
-      },
-    );
-  }
-
-  const marcacoesDoDia = await prisma.marcacao.findMany({
-    where: {
-      servidorId: servidor.id,
-      dataReferencia,
-      status: {
-        in: ["VALIDA", "PENDENTE", "AJUSTADA"],
-      },
-    },
-    orderBy: {
-      dataHora: "asc",
-    },
+  const processamento = await processarMarcacaoBrutaService({
+    marcacaoBrutaId: resultadoBruta.marcacaoBruta.id,
   });
 
-  let classificacao;
-
-  try {
-    classificacao = classificarProximaMarcacao({
-      marcacoesDoDia,
-      exigeIntervalo: jornadaServidor.jornada.exigeIntervalo,
-    });
-  } catch (error) {
-    const mensagem =
-      error instanceof Error
-        ? error.message
-        : "Não foi possível classificar a marcação.";
-
-    await prisma.eventoEquipamentoBiometrico.update({
-      where: {
-        id: evento.id,
-      },
-      data: {
-        erro: mensagem,
-      },
-    });
-
-    return Response.json(
-      {
-        sucesso: false,
-        mensagem,
-        eventoId: evento.id,
-      },
-      {
-        status: 422,
-      },
-    );
-  }
-
-  const marcacao = await prisma.$transaction(async (tx) => {
-    const novaMarcacao = await tx.marcacao.create({
-      data: {
-        servidorId: servidor.id,
-        jornadaServidorId: jornadaServidor.id,
-        dataHora,
-        dataReferencia,
-        tipo: classificacao.tipo,
-        fonte: "EQUIPAMENTO_BIOMETRICO",
-        status: "VALIDA",
-        observacao: `Marcação recebida do equipamento biométrico ${equipamento.codigo}.`,
-        metadados: {
-          equipamentoId: equipamento.id,
-          equipamentoCodigo: equipamento.codigo,
-          eventoId: evento.id,
-          codigoEventoExterno: body.codigoEventoExterno ?? null,
-          nsr: body.nsr ?? null,
-          classificacao,
-        },
-      },
-    });
-
+  await prisma.$transaction(async (tx) => {
     await tx.eventoEquipamentoBiometrico.update({
       where: {
-        id: evento.id,
+        id: eventoEquipamento.id,
       },
       data: {
-        marcacaoId: novaMarcacao.id,
-        processado: true,
-        processadoEm: new Date(),
+        processado: processamento.sucesso,
+        processadoEm: processamento.sucesso ? new Date() : null,
+        marcacaoId: processamento.marcacaoId ?? null,
+        erro: processamento.sucesso ? null : processamento.mensagem,
       },
     });
 
@@ -364,34 +208,31 @@ export async function POST(request: Request) {
         integracaoId: equipamento.integracaoId,
         tipo: "EQUIPAMENTO_BIOMETRICO",
         direcao: "ENTRADA",
-        status: "SUCESSO",
-        entidade: "Marcacao",
-        entidadeId: novaMarcacao.id,
-        mensagem: "Evento biométrico convertido em marcação.",
+        status: processamento.sucesso ? "SUCESSO" : "PENDENTE",
+        entidade: "MarcacaoBruta",
+        entidadeId: resultadoBruta.marcacaoBruta.id,
+        mensagem: processamento.mensagem,
         payloadEntrada: body as never,
         payloadSaida: {
-          marcacaoId: novaMarcacao.id,
-          tipo: novaMarcacao.tipo,
-          servidorId: servidor.id,
+          criada: resultadoBruta.criada,
+          marcacaoBrutaId: resultadoBruta.marcacaoBruta.id,
+          marcacaoId: processamento.marcacaoId ?? null,
+          processada: processamento.sucesso,
         },
         finalizadoEm: new Date(),
       },
     });
-
-    return novaMarcacao;
-  });
-
-  await recalcularDiaServidorService({
-    servidorId: servidor.id,
-    dataReferencia,
-    origem: "RECALCULO_APOS_WEBHOOK_BIOMETRICO",
   });
 
   return Response.json({
     sucesso: true,
-    mensagem: "Marcação biométrica registrada com sucesso.",
-    eventoId: evento.id,
-    marcacaoId: marcacao.id,
-    tipo: marcacao.tipo,
+    mensagem: resultadoBruta.criada
+      ? "Marcação bruta recebida."
+      : "Marcação bruta já existente. Duplicidade ignorada.",
+    criada: resultadoBruta.criada,
+    processada: processamento.sucesso,
+    detalheProcessamento: processamento.mensagem,
+    marcacaoBrutaId: resultadoBruta.marcacaoBruta.id,
+    marcacaoId: processamento.marcacaoId ?? null,
   });
 }

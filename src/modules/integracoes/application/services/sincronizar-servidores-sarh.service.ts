@@ -80,6 +80,8 @@ export async function sincronizarServidoresSarhService(params: {
             },
             data: {
               ativo: item.ativo,
+              cpf: item.cpf || null,
+              nomeFuncional: item.nome,
               usuario: {
                 connect: {
                   id: usuario.id,
@@ -94,6 +96,8 @@ export async function sincronizarServidoresSarhService(params: {
         await tx.servidor.create({
           data: {
             matricula: item.matricula,
+            nomeFuncional: item.nome || "",
+            cpf: item.cpf || null,
             ativo: item.ativo,
             usuario: {
               connect: {

@@ -1,4 +1,5 @@
-import { renderToBuffer } from "@react-pdf/renderer";
+import React, { type ReactElement } from "react";
+import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import { auth } from "@/auth";
 import { buscarDadosBancoHorasPdf } from "@/modules/relatorios/infrastructure/repositories/relatorios.repository";
 import { BancoHorasPdfDocument } from "@/modules/relatorios/presentation/pdf/banco-horas-pdf.document";
@@ -23,7 +24,9 @@ export async function GET(request: Request, context: RouteContext) {
   const permissoes = session.user.perfilAtivo?.permissoes ?? [];
 
   const podeExportarGlobal = permissoes.includes("relatorios:exportar:global");
-  const podeExportarProprio = permissoes.includes("relatorios:exportar:proprio");
+  const podeExportarProprio = permissoes.includes(
+    "relatorios:exportar:proprio",
+  );
 
   if (!podeExportarGlobal && !podeExportarProprio) {
     return new Response("Acesso negado.", {
@@ -39,6 +42,18 @@ export async function GET(request: Request, context: RouteContext) {
 
   const ano = anoParam ? Number(anoParam) : undefined;
   const mes = mesParam ? Number(mesParam) : undefined;
+
+  if (anoParam && (!ano || Number.isNaN(ano))) {
+    return new Response("Ano inválido.", {
+      status: 400,
+    });
+  }
+
+  if (mesParam && (!mes || Number.isNaN(mes) || mes < 1 || mes > 12)) {
+    return new Response("Mês inválido.", {
+      status: 400,
+    });
+  }
 
   const dados = await buscarDadosBancoHorasPdf({
     servidorId,
@@ -58,14 +73,18 @@ export async function GET(request: Request, context: RouteContext) {
     });
   }
 
-  const buffer = await renderToBuffer(<BancoHorasPdfDocument dados={dados} />);
+  const documento = React.createElement(BancoHorasPdfDocument, {
+    dados,
+  }) as ReactElement<DocumentProps>;
+
+  const buffer = await renderToBuffer(documento);
 
   const referencia =
     ano && mes ? `${String(mes).padStart(2, "0")}-${ano}` : "historico";
 
   const nomeArquivo = `banco-horas-${dados.servidor.matricula}-${referencia}.pdf`;
 
-  return new Response(buffer, {
+  return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${nomeArquivo}"`,

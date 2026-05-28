@@ -1,5 +1,23 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
+
+export async function cpfServidorExiste(cpf: string) {
+  if (!cpf) {
+    return false;
+  }
+
+  const servidor = await prisma.servidor.findUnique({
+    where: {
+      cpf,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return Boolean(servidor);
+}
+
 export async function listarServidores() {
   return prisma.servidor.findMany({
     orderBy: {

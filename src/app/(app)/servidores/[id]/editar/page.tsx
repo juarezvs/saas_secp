@@ -53,7 +53,7 @@ export default async function EditarServidorPage({
           Editar servidor
         </h1>
 
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-(--muted-foreground)">
           Atualize os dados cadastrais e funcionais do servidor.
         </p>
       </section>
@@ -71,6 +71,7 @@ export default async function EditarServidorPage({
         valoresIniciais={{
           orgaoId: servidor.orgaoId,
           matricula: servidor.matricula,
+          cpf: servidor.cpf || "",
           nome: servidor.usuario.nome,
           email: servidor.usuario.email,
           nomeFuncional: servidor.nomeFuncional,

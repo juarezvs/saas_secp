@@ -1,3 +1,4 @@
+import React from "react";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { auth } from "@/auth";
 import { buscarDadosEspelhoPontoPdf } from "@/modules/relatorios/infrastructure/repositories/relatorios.repository";
@@ -23,7 +24,10 @@ export async function GET(request: Request, context: RouteContext) {
   const permissoes = session.user.perfilAtivo?.permissoes ?? [];
 
   const podeExportarGlobal = permissoes.includes("relatorios:exportar:global");
-  const podeExportarProprio = permissoes.includes("relatorios:exportar:proprio");
+
+  const podeExportarProprio = permissoes.includes(
+    "relatorios:exportar:proprio",
+  );
 
   if (!podeExportarGlobal && !podeExportarProprio) {
     return new Response("Acesso negado.", {
@@ -34,9 +38,11 @@ export async function GET(request: Request, context: RouteContext) {
   const { servidorId } = await context.params;
 
   const url = new URL(request.url);
+
   const hoje = new Date();
 
   const ano = Number(url.searchParams.get("ano") ?? hoje.getFullYear());
+
   const mes = Number(url.searchParams.get("mes") ?? hoje.getMonth() + 1);
 
   const dados = await buscarDadosEspelhoPontoPdf({
@@ -57,7 +63,11 @@ export async function GET(request: Request, context: RouteContext) {
     });
   }
 
-  const buffer = await renderToBuffer(<EspelhoPontoPdfDocument dados={dados} />);
+  const document = React.createElement(EspelhoPontoPdfDocument, {
+    dados,
+  });
+
+  const buffer = await renderToBuffer(document);
 
   const nomeArquivo = `espelho-ponto-${dados.servidor.matricula}-${String(
     mes,

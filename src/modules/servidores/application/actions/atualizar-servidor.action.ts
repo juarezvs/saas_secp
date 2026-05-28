@@ -13,11 +13,13 @@ import {
   matriculaServidorExiste,
   usuarioMatriculaExiste,
 } from "../../infrastructure/repositories/servidor.repository";
+import { vincularMarcacoesBrutasServidorService } from "@/modules/marcacoes-brutas/application/services/vincular-marcacoes-brutas-servidor.service";
 
 function extrairDadosServidor(formData: FormData) {
   return {
     orgaoId: String(formData.get("orgaoId") ?? ""),
     matricula: String(formData.get("matricula") ?? "").trim(),
+    cpf: String(formData.get("cpf") ?? "").replace(/\D/g, ""),
     nome: String(formData.get("nome") ?? "").trim(),
     email: String(formData.get("email") ?? "")
       .trim()
@@ -102,10 +104,18 @@ export async function atualizarServidorAction(
       data: {
         orgaoId: parsed.data.orgaoId,
         matricula,
+        cpf: parsed.data.cpf,
         nomeFuncional: parsed.data.nomeFuncional || null,
         vinculo: parsed.data.vinculo,
         ativo: parsed.data.ativo,
       },
+    });
+
+    await vincularMarcacoesBrutasServidorService({
+      servidorId: servidorId,
+      cpf: parsed.data.cpf || null,
+      matricula: parsed.data.matricula,
+      usuarioIdAuditoria: permissao.usuarioId,
     });
 
     await tx.auditoriaEvento.create({
@@ -118,6 +128,7 @@ export async function atualizarServidorAction(
           servidor: {
             id: servidorAtual.id,
             matricula: servidorAtual.matricula,
+            cpf: servidorAtual.cpf,
             orgaoId: servidorAtual.orgaoId,
             vinculo: servidorAtual.vinculo,
             nomeFuncional: servidorAtual.nomeFuncional,
@@ -135,6 +146,7 @@ export async function atualizarServidorAction(
           servidor: {
             id: servidorId,
             matricula,
+            cpf: parsed.data.cpf,
             orgaoId: parsed.data.orgaoId,
             vinculo: parsed.data.vinculo,
             nomeFuncional: parsed.data.nomeFuncional || null,

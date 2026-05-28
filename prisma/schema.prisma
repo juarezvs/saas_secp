@@ -297,6 +297,29 @@ enum StatusAutorizacaoBiometrica {
   CANCELADA
 }
 
+enum OrigemMarcacaoBruta {
+  EQUIPAMENTO_BIOMETRICO
+  IMPORTACAO_AFD
+  WEB_AUTORIZADO
+  FACIAL_AUTORIZADO
+}
+
+enum StatusImportacaoAfd {
+  RECEBIDA
+  EM_PROCESSAMENTO
+  PROCESSADA
+  PROCESSADA_COM_ERROS
+  ERRO
+}
+
+enum StatusArquivoAfd {
+  RECEBIDO
+  PROCESSANDO
+  PROCESSADO
+  PROCESSADO_COM_ERROS
+  ERRO
+}
+
 model Usuario {
   id        String      @id @default(uuid()) @db.Uuid
   matricula String      @unique @db.VarChar(50)
@@ -448,6 +471,7 @@ model Servidor {
   orgaoId   String @map("orgao_id") @db.Uuid
 
   matricula     String              @unique @db.VarChar(50)
+  cpf           String?             @unique @db.VarChar(11)
   nomeFuncional String?             @map("nome_funcional") @db.VarChar(200)
   vinculo       TipoVinculoServidor @default(EFETIVO)
   ativo         Boolean             @default(true)
@@ -473,6 +497,7 @@ model Servidor {
   biometriaFacialServidor           BiometriaFacialServidor?
   amostraBiometricaFacial           AmostraBiometricaFacial[]
   autorizacaoesBiometricasMarcacaos AutorizacaoBiometricaMarcacao[]
+  marcacoesBrutas                   MarcacaoBruta[]
 
   @@index([orgaoId])
   @@map("servidores")
@@ -680,6 +705,7 @@ model Marcacao {
   jornadaServidor              JornadaServidor?              @relation(fields: [jornadaServidorId], references: [id], onDelete: SetNull)
   criadaPor                    Usuario?                      @relation("MarcacoesCriadasPorUsuario", fields: [criadaPorUsuarioId], references: [id], onDelete: SetNull)
   eventosEquipamentoBiometrico EventoEquipamentoBiometrico[]
+  marcacoesBrutas              MarcacaoBruta[]
 
   @@index([servidorId])
   @@index([jornadaServidorId])
@@ -1266,4 +1292,106 @@ model AutorizacaoBiometricaMarcacao {
   @@index([status])
   @@index([expiraEm])
   @@map("biometrias_autorizacoes_marcacao")
+}
+
+model MarcacaoBruta {
+  id String @id @default(uuid()) @db.Uuid
+
+  cpf       String?  @db.VarChar(14)
+  matricula String?  @db.VarChar(50)
+  dataHora  DateTime @map("data_hora")
+
+  equipamentoCodigo String? @map("equipamento_codigo") @db.VarChar(80)
+  equipamentoId     String? @map("equipamento_id") @db.Uuid
+
+  origem        OrigemMarcacaoBruta
+  nsr           String?             @db.VarChar(120)
+  codigoExterno String?             @map("codigo_externo") @db.VarChar(160)
+
+  hashRegistro String @unique @map("hash_registro") @db.VarChar(128)
+
+  processada   Boolean   @default(false)
+  processadaEm DateTime? @map("processada_em")
+
+  servidorId String? @map("servidor_id") @db.Uuid
+  marcacaoId String? @map("marcacao_id") @db.Uuid
+
+  payloadOriginal Json? @map("payload_original")
+
+  criadoEm DateTime @default(now()) @map("criado_em")
+
+  servidor Servidor? @relation(fields: [servidorId], references: [id], onDelete: SetNull)
+  marcacao Marcacao? @relation(fields: [marcacaoId], references: [id], onDelete: SetNull)
+
+  arquivoAfdId String?     @map("arquivo_afd_id") @db.Uuid
+  arquivoAfd   ArquivoAfd? @relation(fields: [arquivoAfdId], references: [id], onDelete: SetNull)
+
+  @@index([cpf])
+  @@index([matricula])
+  @@index([dataHora])
+  @@index([equipamentoCodigo])
+  @@index([servidorId])
+  @@index([processada])
+  @@map("marcacoes_brutas")
+}
+
+model ImportacaoAfd {
+  id     String              @id @default(uuid()) @db.Uuid
+  status StatusImportacaoAfd @default(RECEBIDA)
+
+  quantidadeArquivos   Int @default(0) @map("quantidade_arquivos")
+  totalLinhas          Int @default(0) @map("total_linhas")
+  totalMarcacoesBrutas Int @default(0) @map("total_marcacoes_brutas")
+  totalDuplicadas      Int @default(0) @map("total_duplicadas")
+  totalProcessadas     Int @default(0) @map("total_processadas")
+  totalPendentes       Int @default(0) @map("total_pendentes")
+  totalErros           Int @default(0) @map("total_erros")
+
+  criadoPorUsuarioId String?   @map("criado_por_usuario_id") @db.Uuid
+  criadoEm           DateTime  @default(now()) @map("criado_em")
+  iniciadoEm         DateTime? @map("iniciado_em")
+  finalizadoEm       DateTime? @map("finalizado_em")
+
+  observacao String? @db.Text
+  metadados  Json?
+
+  arquivos ArquivoAfd[]
+
+  @@index([status])
+  @@index([criadoEm])
+  @@map("afd_importacoes")
+}
+
+model ArquivoAfd {
+  id           String @id @default(uuid()) @db.Uuid
+  importacaoId String @map("importacao_id") @db.Uuid
+
+  status StatusArquivoAfd @default(RECEBIDO)
+
+  nomeOriginal   String @map("nome_original") @db.VarChar(255)
+  caminhoArquivo String @map("caminho_arquivo") @db.Text
+  tamanhoBytes   Int    @default(0) @map("tamanho_bytes")
+  hashArquivo    String @map("hash_arquivo") @db.VarChar(128)
+
+  equipamentoCodigo String? @map("equipamento_codigo") @db.VarChar(80)
+
+  totalLinhas          Int @default(0) @map("total_linhas")
+  totalMarcacoesBrutas Int @default(0) @map("total_marcacoes_brutas")
+  totalDuplicadas      Int @default(0) @map("total_duplicadas")
+  totalProcessadas     Int @default(0) @map("total_processadas")
+  totalPendentes       Int @default(0) @map("total_pendentes")
+  totalErros           Int @default(0) @map("total_erros")
+
+  erro         String?   @db.Text
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  iniciadoEm   DateTime? @map("iniciado_em")
+  finalizadoEm DateTime? @map("finalizado_em")
+
+  importacao      ImportacaoAfd   @relation(fields: [importacaoId], references: [id], onDelete: Cascade)
+  marcacoesBrutas MarcacaoBruta[]
+
+  @@unique([hashArquivo])
+  @@index([importacaoId])
+  @@index([status])
+  @@map("afd_arquivos")
 }

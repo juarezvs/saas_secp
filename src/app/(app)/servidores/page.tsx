@@ -27,7 +27,7 @@ export default async function ServidoresPage() {
 
           <h1 className="mt-2 text-3xl font-bold tracking-tight">Servidores</h1>
 
-          <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
+          <p className="mt-2 max-w-4xl text-sm leading-6 text-(--muted-foreground)">
             Gerencie servidores, vínculos funcionais, usuários relacionados e
             lotações em unidades organizacionais.
           </p>
@@ -48,17 +48,18 @@ export default async function ServidoresPage() {
         descricao="O cadastro do servidor e sua lotação são base para jornada, apuração mensal, banco de horas, subordinação e homologação pela chefia."
       />
 
-      <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
+      <section className="rounded-xl border bg-(--card) text-(--card-foreground) shadow-sm">
         <div className="flex items-center gap-2 border-b p-5">
           <UsersRound className="size-5 text-blue-900 dark:text-blue-300" />
           <h2 className="text-lg font-bold">Servidores cadastrados</h2>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] text-left text-sm">
-            <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
+          <table className="w-full min-w-245 text-left text-sm">
+            <thead className="border-b bg-(--muted) text-xs uppercase tracking-wide text-(--muted-foreground)">
               <tr>
                 <th className="px-5 py-3">Matrícula</th>
+                <th className="px-5 py-3">Cpf</th>
                 <th className="px-5 py-3">Nome</th>
                 <th className="px-5 py-3">Órgão</th>
                 <th className="px-5 py-3">Vínculo</th>
@@ -79,7 +80,9 @@ export default async function ServidoresPage() {
                     <td className="px-5 py-4 font-mono text-xs font-semibold">
                       {servidor.matricula}
                     </td>
-
+                    <td className="px-5 py-4 font-mono text-xs font-semibold">
+                      {servidor.cpf ?? "-"}
+                    </td>
                     <td className="px-5 py-4">
                       <div className="font-semibold">
                         {servidor.usuario.nome}
@@ -103,7 +106,7 @@ export default async function ServidoresPage() {
 
                     <td className="px-5 py-4">{servidor._count.lotacoes}</td>
 
-                    <td className="px-5 py-4">{servidor._count.gestoes}</td>
+                    <td className="px-5 py-4">{servidor._count.gestores}</td>
 
                     <td className="px-5 py-4">
                       <span

@@ -5,7 +5,7 @@ import { Loader2, ScanFace } from "lucide-react";
 import { validarFaceMarcacaoAction } from "../../application/actions/validar-face-marcacao.action";
 import type { BiometriaFormState } from "../../application/schemas/biometria.schema";
 import { CameraCapture } from "./camera-capture";
-import { registrarMarcacaoAction } from "@/modules/marcacoes/application/actions/registrar-marcacao.action";
+import { registrarMarcacaoFacialAutorizadaAction } from "@/modules/marcacoes-brutas/application/actions/registrar-marcacao-facial.action";
 
 const estadoInicial: BiometriaFormState = {
   sucesso: false,
@@ -48,7 +48,7 @@ export function ValidacaoFacialCard() {
             Clique abaixo para registrar sua marcação.
           </p>
 
-          <form action={registrarMarcacaoAction} className="mt-4">
+          <form action={registrarMarcacaoFacialAutorizadaAction} className="mt-4">
             <input
               type="hidden"
               name="autorizacaoBiometricaId"

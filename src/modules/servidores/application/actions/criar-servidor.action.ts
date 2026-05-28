@@ -11,13 +11,15 @@ import {
 import {
   matriculaServidorExiste,
   usuarioMatriculaExiste,
+  cpfServidorExiste,
 } from "../../infrastructure/repositories/servidor.repository";
-import { connect } from "http2";
+import { vincularMarcacoesBrutasServidorService } from "@/modules/marcacoes-brutas/application/services/vincular-marcacoes-brutas-servidor.service";
 
 function extrairDadosServidor(formData: FormData) {
   return {
     orgaoId: String(formData.get("orgaoId") ?? ""),
     matricula: String(formData.get("matricula") ?? "").trim(),
+    cpf: String(formData.get("cpf") ?? "").replace(/\D/g, ""),
     nome: String(formData.get("nome") ?? "").trim(),
     email: String(formData.get("email") ?? "")
       .trim()
@@ -61,6 +63,17 @@ export async function criarServidorAction(
     };
   }
 
+  if (parsed.data.cpf && (await cpfServidorExiste(parsed.data.cpf))) {
+    return {
+      sucesso: false,
+      mensagem: "Já existe um servidor com este CPF.",
+      erros: {
+        cpf: ["Já existe um servidor com este CPF."],
+      },
+      campos: dados,
+    };
+  }
+
   if (await usuarioMatriculaExiste(matricula)) {
     return {
       sucesso: false,
@@ -77,6 +90,7 @@ export async function criarServidorAction(
     const usuario = await tx.usuario.create({
       data: {
         matricula,
+        cpf: parsed.data.cpf || null,
         nome: parsed.data.nome,
         email: parsed.data.email || null,
         tipo: "SERVIDOR",
@@ -97,6 +111,7 @@ export async function criarServidorAction(
           },
         },
         matricula,
+        cpf: parsed.data.cpf || null,
         nomeFuncional: parsed.data.nomeFuncional || null,
         vinculo: parsed.data.vinculo,
         ativo: parsed.data.ativo,
@@ -132,6 +147,12 @@ export async function criarServidorAction(
     return novoServidor;
   });
 
+  await vincularMarcacoesBrutasServidorService({
+    servidorId: servidor.id,
+    cpf: parsed.data.cpf ?? null,
+    matricula,
+    usuarioIdAuditoria: permissao.usuarioId,
+  });
   revalidatePath("/servidores");
   revalidatePath(`/servidores/${servidor.id}`);
 

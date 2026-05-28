@@ -10,40 +10,6 @@ const STORAGE_TEMA = "secp-tema";
 const STORAGE_TAMANHO_FONTE = "secp-tamanho-fonte";
 const STORAGE_FONTE_DISLEXIA = "secp-fonte-dislexia";
 
-function obterTemaInicial(): Tema {
-  if (typeof window === "undefined") return "light";
-
-  const temaSalvo = localStorage.getItem(STORAGE_TEMA);
-
-  if (temaSalvo === "dark" || temaSalvo === "light") {
-    return temaSalvo;
-  }
-
-  return "light";
-}
-
-function obterTamanhoFonteInicial(): TamanhoFonte {
-  if (typeof window === "undefined") return "normal";
-
-  const tamanhoSalvo = localStorage.getItem(STORAGE_TAMANHO_FONTE);
-
-  if (
-    tamanhoSalvo === "normal" ||
-    tamanhoSalvo === "large" ||
-    tamanhoSalvo === "xlarge"
-  ) {
-    return tamanhoSalvo;
-  }
-
-  return "normal";
-}
-
-function obterFonteDislexiaInicial(): boolean {
-  if (typeof window === "undefined") return false;
-
-  return localStorage.getItem(STORAGE_FONTE_DISLEXIA) === "true";
-}
-
 function aplicarTema(tema: Tema) {
   const root = document.documentElement;
 
@@ -53,58 +19,93 @@ function aplicarTema(tema: Tema) {
     root.classList.remove("dark");
   }
 
-  localStorage.setItem(STORAGE_TEMA, tema);
+  window.localStorage.setItem(STORAGE_TEMA, tema);
 }
 
 function aplicarTamanhoFonte(tamanho: TamanhoFonte) {
   document.body.dataset.fontSize = tamanho;
-  localStorage.setItem(STORAGE_TAMANHO_FONTE, tamanho);
+  window.localStorage.setItem(STORAGE_TAMANHO_FONTE, tamanho);
 }
 
 function aplicarFonteDislexia(ativo: boolean) {
   document.body.dataset.dyslexiaFont = String(ativo);
-  localStorage.setItem(STORAGE_FONTE_DISLEXIA, String(ativo));
+  window.localStorage.setItem(STORAGE_FONTE_DISLEXIA, String(ativo));
+}
+
+function normalizarTema(valor: string | null): Tema {
+  return valor === "dark" || valor === "light" ? valor : "light";
+}
+
+function normalizarTamanhoFonte(valor: string | null): TamanhoFonte {
+  if (valor === "normal" || valor === "large" || valor === "xlarge") {
+    return valor;
+  }
+
+  return "normal";
 }
 
 export function AccessibilityToolbar() {
-  const [tema, setTema] = useState<Tema>(() => obterTemaInicial());
-
-  const [tamanhoFonte, setTamanhoFonte] = useState<TamanhoFonte>(() =>
-    obterTamanhoFonteInicial(),
-  );
-
-  const [fonteDislexia, setFonteDislexia] = useState<boolean>(() =>
-    obterFonteDislexiaInicial(),
-  );
+  const [montado, setMontado] = useState(false);
+  const [tema, setTema] = useState<Tema>("light");
+  const [tamanhoFonte, setTamanhoFonte] = useState<TamanhoFonte>("normal");
+  const [fonteDislexia, setFonteDislexia] = useState(false);
 
   useEffect(() => {
-    aplicarTema(tema);
-  }, [tema]);
+    const temaInicial = normalizarTema(
+      window.localStorage.getItem(STORAGE_TEMA),
+    );
 
-  useEffect(() => {
-    aplicarTamanhoFonte(tamanhoFonte);
-  }, [tamanhoFonte]);
+    const tamanhoFonteInicial = normalizarTamanhoFonte(
+      window.localStorage.getItem(STORAGE_TAMANHO_FONTE),
+    );
 
-  useEffect(() => {
-    aplicarFonteDislexia(fonteDislexia);
-  }, [fonteDislexia]);
+    const fonteDislexiaInicial =
+      window.localStorage.getItem(STORAGE_FONTE_DISLEXIA) === "true";
+
+    setTema(temaInicial);
+    setTamanhoFonte(tamanhoFonteInicial);
+    setFonteDislexia(fonteDislexiaInicial);
+
+    aplicarTema(temaInicial);
+    aplicarTamanhoFonte(tamanhoFonteInicial);
+    aplicarFonteDislexia(fonteDislexiaInicial);
+
+    setMontado(true);
+  }, []);
 
   function alternarTema() {
-    setTema((temaAtual) => (temaAtual === "dark" ? "light" : "dark"));
+    setTema((temaAtual) => {
+      const novoTema = temaAtual === "dark" ? "light" : "dark";
+      aplicarTema(novoTema);
+      return novoTema;
+    });
   }
 
   function alternarTamanhoFonte() {
     setTamanhoFonte((tamanhoAtual) => {
-      if (tamanhoAtual === "normal") return "large";
-      if (tamanhoAtual === "large") return "xlarge";
+      const novoTamanho =
+        tamanhoAtual === "normal"
+          ? "large"
+          : tamanhoAtual === "large"
+            ? "xlarge"
+            : "normal";
 
-      return "normal";
+      aplicarTamanhoFonte(novoTamanho);
+      return novoTamanho;
     });
   }
 
   function alternarFonteDislexia() {
-    setFonteDislexia((ativoAtual) => !ativoAtual);
+    setFonteDislexia((ativoAtual) => {
+      const novoValor = !ativoAtual;
+      aplicarFonteDislexia(novoValor);
+      return novoValor;
+    });
   }
+
+  const temaRender = montado ? tema : "light";
+  const tamanhoFonteRender = montado ? tamanhoFonte : "normal";
+  const fonteDislexiaRender = montado ? fonteDislexia : false;
 
   return (
     <div
@@ -114,14 +115,19 @@ export function AccessibilityToolbar() {
       <button
         type="button"
         onClick={alternarTema}
-        className="inline-flex size-10 items-center justify-center rounded-lg border bg-(--card) text-(--foreground) transition hover:bg-(--muted)"
+        className={`inline-flex size-10 items-center justify-center rounded-lg border transition ${
+          fonteDislexiaRender
+            ? "border-blue-700 bg-blue-900 text-white"
+            : "bg-(--card) text-(--foreground) hover:bg-(--muted)"
+        }`}
         aria-label={
-          tema === "dark" ? "Ativar tema claro" : "Ativar tema escuro"
+          temaRender === "dark" ? "Ativar tema claro" : "Ativar tema escuro"
         }
-        title={tema === "dark" ? "Tema claro" : "Tema escuro"}
-        aria-pressed={tema === "dark"}
+        title={temaRender === "dark" ? "Tema claro" : "Tema escuro"}
+        aria-pressed={temaRender === "dark"}
+        suppressHydrationWarning
       >
-        {tema === "dark" ? (
+        {temaRender === "dark" ? (
           <Sun className="size-5" aria-hidden="true" />
         ) : (
           <Moon className="size-5" aria-hidden="true" />
@@ -131,10 +137,15 @@ export function AccessibilityToolbar() {
       <button
         type="button"
         onClick={alternarTamanhoFonte}
-        className="inline-flex size-10 items-center justify-center rounded-lg border bg-(--card) text-(--foreground) transition hover:bg-(--muted)"
-        aria-label={`Alternar tamanho da fonte. Tamanho atual: ${tamanhoFonte}`}
-        title={`Tamanho da fonte: ${tamanhoFonte}`}
-        aria-pressed={tamanhoFonte !== "normal"}
+        className={`inline-flex size-10 items-center justify-center rounded-lg border transition ${
+          fonteDislexiaRender
+            ? "border-blue-700 bg-blue-900 text-white"
+            : "bg-(--card) text-(--foreground) hover:bg-(--muted)"
+        }`}
+        aria-label={`Alternar tamanho da fonte. Tamanho atual: ${tamanhoFonteRender}`}
+        title={`Tamanho da fonte: ${tamanhoFonteRender}`}
+        aria-pressed={tamanhoFonteRender !== "normal"}
+        suppressHydrationWarning
       >
         <ALargeSmall className="size-5" aria-hidden="true" />
       </button>
@@ -142,14 +153,19 @@ export function AccessibilityToolbar() {
       <button
         type="button"
         onClick={alternarFonteDislexia}
-        className="inline-flex size-10 items-center justify-center rounded-lg border bg-(--card) text-(--foreground) transition hover:bg-(--muted)"
+        className={`inline-flex size-10 items-center justify-center rounded-lg border transition ${
+          fonteDislexiaRender
+            ? "border-blue-700 bg-blue-900 text-white"
+            : "bg-(--card) text-(--foreground) hover:bg-(--muted)"
+        }`}
         aria-label={
-          fonteDislexia
+          fonteDislexiaRender
             ? "Desativar ajustes para dislexia"
             : "Ativar ajustes para dislexia"
         }
         title="Fonte para dislexia"
-        aria-pressed={fonteDislexia}
+        aria-pressed={fonteDislexiaRender}
+        suppressHydrationWarning
       >
         <BookOpenText className="size-5" aria-hidden="true" />
       </button>

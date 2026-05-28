@@ -2,6 +2,34 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@font-face {
+  font-family: "OpenDyslexic";
+  src: url("/fonts/opendyslexic/OpenDyslexic-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "OpenDyslexic";
+  src: url("/fonts/opendyslexic/OpenDyslexic-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "OpenDyslexic";
+  src: url("/fonts/opendyslexic/OpenDyslexic-Italic.otf") format("opentype");
+  font-weight: 400;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "OpenDyslexic";
+  src: url("/fonts/opendyslexic/OpenDyslexic-BoldItalic.otf") format("opentype");
+  font-weight: 700;
+  font-style: italic;
+}
+
 :root {
   --jf-azul: #003f87;
   --jf-verde: #007a3d;
@@ -73,6 +101,40 @@ body {
   min-height: 100%;
   background: var(--background);
   color: var(--foreground);
+}
+
+body[data-dyslexia-font="true"] {
+  font-family: "OpenDyslexic", Arial, sans-serif !important;
+
+  letter-spacing: 0.03em;
+  line-height: 1.7;
+  word-spacing: 0.08em;
+}
+
+body[data-dyslexia-font="true"] p,
+body[data-dyslexia-font="true"] span,
+body[data-dyslexia-font="true"] label,
+body[data-dyslexia-font="true"] td,
+body[data-dyslexia-font="true"] th,
+body[data-dyslexia-font="true"] li,
+body[data-dyslexia-font="true"] button,
+body[data-dyslexia-font="true"] input,
+body[data-dyslexia-font="true"] textarea,
+body[data-dyslexia-font="true"] select {
+  font-family: "OpenDyslexic", Arial, sans-serif !important;
+
+  line-height: 1.7;
+}
+
+body[data-dyslexia-font="true"] h1,
+body[data-dyslexia-font="true"] h2,
+body[data-dyslexia-font="true"] h3,
+body[data-dyslexia-font="true"] h4,
+body[data-dyslexia-font="true"] h5,
+body[data-dyslexia-font="true"] h6 {
+  font-family: "OpenDyslexic", Arial, sans-serif !important;
+
+  letter-spacing: 0.02em;
 }
 
 button,

@@ -46,6 +46,7 @@ export default async function NovoServidorPage() {
         orgaos={orgaos}
         modo="criar"
         valoresIniciais={{
+          cpf: "",
           ativo: true,
           vinculo: "EFETIVO",
         }}

@@ -1,6 +1,8 @@
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
-import { CadastroFacialWizardClientOnly } from "@/modules/biometria/presentation/components/biometria-client-only";
+import {
+  CadastroFacialAutoWizardClientOnly,
+} from "@/modules/biometria/presentation/components/biometria-client-only";
 
 type CadastroBiometriaPageProps = {
   searchParams?: Promise<{
@@ -51,7 +53,7 @@ export default async function CadastroBiometriaPage({
         }
       />
 
-      <CadastroFacialWizardClientOnly />
+      <CadastroFacialAutoWizardClientOnly />
     </div>
   );
 }

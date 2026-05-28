@@ -1,58 +1,33 @@
 import crypto from "node:crypto";
-import type { PrismaClient } from "@/generated/prisma/client";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
-type Tx = Parameters<Parameters<PrismaClient["$transaction"]>[0]>[0];
-
-function gerarTokenBiometrico() {
-  return crypto.randomBytes(32).toString("hex");
-}
-
-function hashToken(token: string) {
-  return crypto.createHash("sha256").update(token).digest("hex");
-}
+type TransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 export async function criarAutorizacaoBiometricaMarcacao(params: {
   servidorId: string;
-  amostraId?: string | null;
-  origem?: string;
-  metadados?: unknown;
-  validadeMinutos?: number;
-  tx?: Tx;
+  similaridade: number;
+  distancia: number;
 }) {
-  const client = params.tx ?? prisma;
+  const token = crypto.randomUUID();
+  const tokenHash = gerarHashToken(token);
 
-  const token = gerarTokenBiometrico();
-  const tokenHash = hashToken(token);
+  const expiraEm = new Date(Date.now() + 2 * 60 * 1000);
 
-  const expiraEm = new Date();
-  expiraEm.setMinutes(expiraEm.getMinutes() + (params.validadeMinutos ?? 5));
-
-  const autorizacao = await client.autorizacaoBiometricaMarcacao.create({
+  const autorizacao = await prisma.autorizacaoBiometricaMarcacao.create({
     data: {
-      servidor: {
-        connect: {
-          id: params.servidorId,
-        },
-      },
-      amostra: params.amostraId
-        ? {
-            connect: {
-              id: params.amostraId,
-            },
-          }
-        : undefined,
+      servidorId: params.servidorId,
       tokenHash,
-      status: "PENDENTE",
+      similaridade: params.similaridade,
+      distancia: params.distancia,
       expiraEm,
-      origem: params.origem ?? "VALIDACAO_FACIAL_WEB",
-      metadados: params.metadados ?? undefined,
+      consumida: false,
     },
   });
 
   return {
-    autorizacao,
+    id: autorizacao.id,
     token,
+    expiraEm,
   };
 }
 
@@ -60,83 +35,54 @@ export async function validarAutorizacaoBiometricaMarcacao(params: {
   servidorId: string;
   autorizacaoId: string;
   token: string;
-  tx?: Tx;
 }) {
-  const client = params.tx ?? prisma;
+  if (!params.autorizacaoId || !params.token) {
+    return {
+      valida: false,
+    };
+  }
 
-  const autorizacao = await client.autorizacaoBiometricaMarcacao.findUnique({
+  const autorizacao = await prisma.autorizacaoBiometricaMarcacao.findFirst({
     where: {
       id: params.autorizacaoId,
+      servidorId: params.servidorId,
+      consumida: false,
+      expiraEm: {
+        gt: new Date(),
+      },
     },
   });
 
   if (!autorizacao) {
     return {
       valida: false,
-      mensagem: "Autorização biométrica não encontrada.",
     };
   }
 
-  if (autorizacao.servidorId !== params.servidorId) {
-    return {
-      valida: false,
-      mensagem: "Autorização biométrica não pertence ao servidor autenticado.",
-    };
-  }
-
-  if (autorizacao.status !== "PENDENTE") {
-    return {
-      valida: false,
-      mensagem: "Autorização biométrica já foi utilizada ou cancelada.",
-    };
-  }
-
-  if (autorizacao.expiraEm < new Date()) {
-    await client.autorizacaoBiometricaMarcacao.update({
-      where: {
-        id: autorizacao.id,
-      },
-      data: {
-        status: "EXPIRADA",
-      },
-    });
-
-    return {
-      valida: false,
-      mensagem: "Autorização biométrica expirada. Valide a face novamente.",
-    };
-  }
-
-  const tokenHash = hashToken(params.token);
-
-  if (tokenHash !== autorizacao.tokenHash) {
-    return {
-      valida: false,
-      mensagem: "Token de autorização biométrica inválido.",
-    };
-  }
+  const tokenHash = gerarHashToken(params.token);
 
   return {
-    valida: true,
-    autorizacao,
+    valida: tokenHash === autorizacao.tokenHash,
   };
 }
 
 export async function consumirAutorizacaoBiometricaMarcacao(params: {
+  tx: TransactionClient;
   autorizacaoId: string;
   marcacaoId: string;
-  tx?: Tx;
 }) {
-  const client = params.tx ?? prisma;
-
-  return client.autorizacaoBiometricaMarcacao.update({
+  await params.tx.autorizacaoBiometricaMarcacao.update({
     where: {
       id: params.autorizacaoId,
     },
     data: {
-      status: "UTILIZADA",
-      utilizadaEm: new Date(),
+      consumida: true,
+      consumidaEm: new Date(),
       marcacaoId: params.marcacaoId,
     },
   });
+}
+
+function gerarHashToken(token: string) {
+  return crypto.createHash("sha256").update(token).digest("hex");
 }

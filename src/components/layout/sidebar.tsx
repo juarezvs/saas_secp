@@ -12,8 +12,10 @@ import {
   ClipboardCheck,
   ClipboardList,
   Clock3,
+  DatabaseZap,
   FileCheck2,
   FileText,
+  FileUp,
   Fingerprint,
   Gauge,
   LogOut,
@@ -88,6 +90,18 @@ const menuItems: MenuItem[] = [
     permissao: "marcacoes:consultar:proprio",
   },
   {
+    label: "Marcações Brutas",
+    href: "/marcacoes-brutas",
+    icon: DatabaseZap,
+    permissao: "afd:importar:global",
+  },
+  {
+    label: "Importação AFD",
+    href: "/afd",
+    icon: FileUp,
+    permissao: "afd:importar:global",
+  },
+  {
     label: "Biometria Facial",
     href: "/biometria",
     icon: ScanFace,
@@ -146,12 +160,6 @@ const menuItems: MenuItem[] = [
     href: "/espelho-ponto",
     icon: ClipboardList,
     permissao: "apuracao:consultar:proprio",
-  },
-
-  {
-    label: "Biometria",
-    href: "/biometria",
-    icon: Fingerprint,
   },
 
   {

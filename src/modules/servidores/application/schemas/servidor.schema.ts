@@ -9,6 +9,18 @@ export const tiposVinculoServidor = [
   "EXERCICIO_PROVISORIO",
 ] as const;
 
+const cpfSchema = z
+  .preprocess((valor) => {
+    if (valor === undefined || valor === null) {
+      return "";
+    }
+
+    return String(valor).replace(/\D/g, "");
+  }, z.string())
+  .refine((valor) => !valor || valor.length === 11, {
+    message: "CPF deve conter 11 dígitos.",
+  });
+
 export const servidorSchema = z.object({
   orgaoId: z.string().uuid("Informe o órgão."),
   matricula: z
@@ -16,6 +28,7 @@ export const servidorSchema = z.object({
     .trim()
     .min(2, "Informe uma matrícula com pelo menos 2 caracteres.")
     .max(50, "A matrícula deve ter no máximo 50 caracteres."),
+  cpf: cpfSchema,
   nome: z
     .string()
     .trim()

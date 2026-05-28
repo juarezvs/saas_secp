@@ -22,6 +22,7 @@ type ServidorFormProps = {
   valoresIniciais?: {
     orgaoId?: string;
     matricula?: string;
+    cpf: string;
     nome?: string;
     email?: string | null;
     nomeFuncional?: string | null;
@@ -58,6 +59,7 @@ export function ServidorForm({
   const [estado, formAction, pendente] = useActionState(action, estadoInicial);
 
   const campos = estado.campos ?? valoresIniciais;
+  
 
   return (
     <form action={formAction} className="space-y-6">
@@ -70,7 +72,7 @@ export function ServidorForm({
         </div>
       )}
 
-      <section className="rounded-xl border bg-[var(--card)] p-6 text-[var(--card-foreground)] shadow-sm">
+      <section className="rounded-xl border bg-(--card) p-6 text-(--card-foreground) shadow-sm">
         <h2 className="text-lg font-bold">Dados funcionais</h2>
 
         <div className="mt-5 grid gap-5 md:grid-cols-2">
@@ -83,7 +85,7 @@ export function ServidorForm({
               id="orgaoId"
               name="orgaoId"
               defaultValue={campos?.orgaoId ?? ""}
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              className="h-11 w-full rounded-md border bg-(--card) px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
               required
             >
               <option value="">Selecione</option>
@@ -112,13 +114,35 @@ export function ServidorForm({
               type="text"
               defaultValue={campos?.matricula ?? ""}
               placeholder="Ex.: AM12345"
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              className="h-11 w-full rounded-md border bg-(--card) px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
               required
             />
 
             {obterErro(estado.erros, "matricula") && (
               <p className="text-sm text-red-600">
                 {obterErro(estado.erros, "matricula")}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="cpf" className="text-sm font-semibold">
+              CPF
+            </label>
+
+            <input
+              id="cpf"
+              name="cpf"
+              defaultValue={campos?.cpf ?? ""}
+              inputMode="numeric"
+              maxLength={14}
+              placeholder="000.000.000-00"
+              className="h-10 w-full rounded-md border bg-(--card) px-3 text-sm"
+            />
+
+            {obterErro(estado.erros, "cpf") && (
+              <p className="text-sm text-red-600">
+                {obterErro(estado.erros, "cpf")}
               </p>
             )}
           </div>
@@ -134,7 +158,7 @@ export function ServidorForm({
               type="text"
               defaultValue={campos?.nome ?? ""}
               placeholder="Nome completo"
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              className="h-11 w-full rounded-md border bg-(--card) px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
               required
             />
 
@@ -156,7 +180,7 @@ export function ServidorForm({
               type="email"
               defaultValue={campos?.email ?? ""}
               placeholder="nome@trf1.jus.br"
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              className="h-11 w-full rounded-md border bg-(--card) px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
             />
 
             {obterErro(estado.erros, "email") && (
@@ -177,7 +201,7 @@ export function ServidorForm({
               type="text"
               defaultValue={campos?.nomeFuncional ?? ""}
               placeholder="Opcional"
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              className="h-11 w-full rounded-md border bg-(--card) px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
             />
 
             {obterErro(estado.erros, "nomeFuncional") && (
@@ -196,7 +220,7 @@ export function ServidorForm({
               id="vinculo"
               name="vinculo"
               defaultValue={campos?.vinculo ?? "EFETIVO"}
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              className="h-11 w-full rounded-md border bg-(--card) px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
               required
             >
               {tiposVinculoServidor.map((tipo) => (
