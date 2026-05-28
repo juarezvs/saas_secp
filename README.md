@@ -91,6 +91,10 @@ SARH_MOCK=true
 
 SECP_EQUIPAMENTO_WEBHOOK_TOKEN=troque-este-token-em-producao
 
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+AFD_UPLOAD_DIR=import/\_upload/afd
+
 ### fim do conteúdo do arquivo .env
 
 f) npx prisma migrate dev
