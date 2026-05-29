@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/header";
-import { Sidebar } from "@/components/layout/sidebar";
-import { obterDashboardHrefPorPerfil } from "@/modules/auth/application/services/resolver-perfil-ativo";
+import {
+  perfilPodeAcessarPath,
+  Sidebar,
+} from "@/components/layout/sidebar";
 import type { PerfilSessao } from "@/modules/auth/domain/entities/usuario-autenticado";
 
 type AppShellClientProps = {
@@ -17,12 +19,9 @@ type AppShellClientProps = {
   };
 };
 
-type TrocarPerfilAtivoResponse = {
-  perfilAtivo: PerfilSessao;
-};
-
 export function AppShellClient({ children, usuario }: AppShellClientProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [sidebarAberta, setSidebarAberta] = useState(true);
   const [perfilAtivo, setPerfilAtivo] = useState<PerfilSessao | null>(
     usuario.perfilAtivo,
@@ -48,14 +47,15 @@ export function AppShellClient({ children, usuario }: AppShellClientProps) {
         throw new Error("Não foi possível alterar o perfil ativo.");
       }
 
-      const data = (await response.json()) as TrocarPerfilAtivoResponse;
-      const perfilConfirmado = data.perfilAtivo;
+      const podeContinuarNaRotaAtual = perfilPodeAcessarPath(
+        pathname,
+        novoPerfil,
+      );
 
-      setPerfilAtivo(perfilConfirmado);
+      if (!podeContinuarNaRotaAtual) {
+        router.push("/dashboard");
+      }
 
-      // Ao trocar o perfil, o comportamento esperado é sair da tela atual
-      // e carregar a dashboard correspondente ao novo perfil ativo.
-      router.replace(obterDashboardHrefPorPerfil(perfilConfirmado));
       router.refresh();
     } catch (error) {
       console.error(error);

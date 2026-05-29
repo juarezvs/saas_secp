@@ -1,51 +1,115 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
-export async function listarOrgaosAtivos() {
-  return prisma.orgao.findMany({
-    where: {
-      ativo: true,
-    },
-    orderBy: {
-      sigla: "asc",
-    },
-  });
+export type ListarUnidadesParams = {
+  pagina?: number;
+  itensPorPagina?: number;
+  busca?: string;
+  sigla?: string;
+  nome?: string;
+  tipo?: string;
+  orgaoId?: string;
+  superior?: string;
+  status?: string;
+};
+
+export function montarWhereUnidades(params: ListarUnidadesParams) {
+  const busca = params.busca?.trim();
+
+  return {
+    ...(params.status === "ativa"
+      ? { ativo: true }
+      : params.status === "inativa"
+        ? { ativo: false }
+        : {}),
+
+    ...(params.sigla
+      ? { sigla: { contains: params.sigla, mode: "insensitive" as const } }
+      : {}),
+
+    ...(params.nome
+      ? { nome: { contains: params.nome, mode: "insensitive" as const } }
+      : {}),
+
+    ...(params.tipo ? { tipo: params.tipo as never } : {}),
+
+    ...(params.orgaoId ? { orgaoId: params.orgaoId } : {}),
+
+    ...(params.superior
+      ? {
+          unidadePai: {
+            sigla: { contains: params.superior, mode: "insensitive" as const },
+          },
+        }
+      : {}),
+
+    ...(busca
+      ? {
+          OR: [
+            { sigla: { contains: busca, mode: "insensitive" as const } },
+            { nome: { contains: busca, mode: "insensitive" as const } },
+            { codigo: { contains: busca, mode: "insensitive" as const } },
+            {
+              orgao: {
+                sigla: { contains: busca, mode: "insensitive" as const },
+              },
+            },
+            {
+              unidadePai: {
+                sigla: { contains: busca, mode: "insensitive" as const },
+              },
+            },
+          ],
+        }
+      : {}),
+  };
 }
 
-export async function listarUnidadesParaSelecao() {
-  return prisma.unidadeOrganizacional.findMany({
-    where: {
-      ativo: true,
-    },
-    orderBy: [
-      {
-        sigla: "asc",
+export async function listarUnidadesOrganizacionaisPaginado(
+  params: ListarUnidadesParams,
+) {
+  const pagina = Math.max(Number(params.pagina ?? 1), 1);
+  const itensPorPagina = Math.min(
+    Math.max(Number(params.itensPorPagina ?? 10), 5),
+    100,
+  );
+
+  const where = montarWhereUnidades(params);
+
+  const [total, unidades] = await Promise.all([
+    prisma.unidadeOrganizacional.count({ where }),
+
+    prisma.unidadeOrganizacional.findMany({
+      where,
+      include: {
+        orgao: true,
+        unidadePai: true,
+        _count: {
+          select: {
+            unidadesFilhas: true,
+            lotacoes: true,
+          },
+        },
       },
-      {
-        nome: "asc",
-      },
-    ],
-    select: {
-      id: true,
-      orgaoId: true,
-      codigo: true,
-      sigla: true,
-      nome: true,
-      tipo: true,
-      unidadePaiId: true,
-    },
-  });
+      orderBy: [{ sigla: "asc" }, { nome: "asc" }],
+      skip: (pagina - 1) * itensPorPagina,
+      take: itensPorPagina,
+    }),
+  ]);
+
+  return {
+    unidades,
+    total,
+    pagina,
+    itensPorPagina,
+    totalPaginas: Math.max(Math.ceil(total / itensPorPagina), 1),
+  };
 }
 
-export async function listarUnidadesOrganizacionais() {
+export async function listarUnidadesOrganizacionaisParaExportacao(
+  params: ListarUnidadesParams,
+) {
   return prisma.unidadeOrganizacional.findMany({
-    orderBy: [
-      {
-        sigla: "asc",
-      },
-      {
-        nome: "asc",
-      },
-    ],
+    where: montarWhereUnidades(params),
     include: {
       orgao: true,
       unidadePai: true,
@@ -53,13 +117,12 @@ export async function listarUnidadesOrganizacionais() {
         select: {
           unidadesFilhas: true,
           lotacoes: true,
-          gestores: true,
         },
       },
     },
+    orderBy: [{ sigla: "asc" }, { nome: "asc" }],
   });
 }
-
 export async function buscarUnidadePorId(id: string) {
   return prisma.unidadeOrganizacional.findUnique({
     where: {
@@ -105,50 +168,4 @@ export async function buscarUnidadePorId(id: string) {
       },
     },
   });
-}
-
-export async function codigoUnidadeExiste(
-  orgaoId: string,
-  codigo: string,
-  ignorarId?: string
-) {
-  const unidade = await prisma.unidadeOrganizacional.findUnique({
-    where: {
-      orgaoId_codigo: {
-        orgaoId,
-        codigo,
-      },
-    },
-  });
-
-  if (!unidade) {
-    return false;
-  }
-
-  if (ignorarId && unidade.id === ignorarId) {
-    return false;
-  }
-
-  return true;
-}
-
-export async function listarIdsDescendentesDaUnidade(
-  unidadeId: string
-): Promise<string[]> {
-  const filhas = await prisma.unidadeOrganizacional.findMany({
-    where: {
-      unidadePaiId: unidadeId,
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  const idsDiretos = filhas.map((filha) => filha.id);
-
-  const idsIndiretos = await Promise.all(
-    idsDiretos.map((id) => listarIdsDescendentesDaUnidade(id))
-  );
-
-  return [...idsDiretos, ...idsIndiretos.flat()];
 }

@@ -1,14 +1,71 @@
 import Link from "next/link";
 import { Building2, Plus } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
-import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { PageHeader } from "@/components/layout/page-header";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import { listarUnidadesOrganizacionais } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
+import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
+import { listarUnidadesOrganizacionaisPaginado } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
+import { UnidadesListagemControles } from "@/modules/unidades/presentation/components/unidades-listagem-controles";
+import { UnidadesItensPorPagina } from "@/modules/unidades/presentation/components/unidades-itens-por-pagina";
 
-export default async function UnidadesPage() {
+type UnidadesPageProps = {
+  searchParams?: Promise<{
+    busca?: string;
+    sigla?: string;
+    nome?: string;
+    tipo?: string;
+    orgaoId?: string;
+    superior?: string;
+    status?: string;
+    pagina?: string;
+    itensPorPagina?: string;
+  }>;
+};
+
+export default async function UnidadesPage({
+  searchParams,
+}: UnidadesPageProps) {
   await exigirPermissaoOuRedirecionar("unidades:gerenciar:global");
 
-  const unidades = await listarUnidadesOrganizacionais();
+  const params = searchParams ? await searchParams : {};
+
+  const [orgaos, resultado] = await Promise.all([
+    listarOrgaosAtivos(),
+    listarUnidadesOrganizacionaisPaginado({
+      busca: params.busca ?? "",
+      sigla: params.sigla ?? "",
+      nome: params.nome ?? "",
+      tipo: params.tipo ?? "",
+      orgaoId: params.orgaoId ?? "",
+      superior: params.superior ?? "",
+      status: params.status ?? "",
+      pagina: Number(params.pagina ?? 1),
+      itensPorPagina: Number(params.itensPorPagina ?? 10),
+    }),
+  ]);
+
+  const exportParams = new URLSearchParams();
+
+  for (const chave of [
+    "busca",
+    "sigla",
+    "nome",
+    "tipo",
+    "orgaoId",
+    "superior",
+    "status",
+  ] as const) {
+    if (params[chave]) exportParams.set(chave, params[chave]!);
+  }
+
+  const baseParams = new URLSearchParams(exportParams);
+  baseParams.set("itensPorPagina", String(resultado.itensPorPagina));
+
+  function montarHrefPagina(novaPagina: number) {
+    const query = new URLSearchParams(baseParams);
+    query.set("pagina", String(novaPagina));
+    return `/unidades?${query.toString()}`;
+  }
 
   return (
     <div className="space-y-6">
@@ -19,41 +76,37 @@ export default async function UnidadesPage() {
         ]}
       />
 
-      <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-            Estrutura institucional
-          </p>
-
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">
-            Unidades organizacionais
-          </h1>
-
-          <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
-            Cadastre e mantenha a estrutura organizacional usada para lotação,
-            chefia, homologação, relatórios e controle de frequência.
-          </p>
-        </div>
-
-        <Link
-          href="/unidades/nova"
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950"
-        >
-          <Plus className="size-4" aria-hidden="true" />
-          Nova unidade
-        </Link>
-      </section>
-
-      <RegraPortariaCard
+      <PageHeader
+        icon={Building2}
+        titulo="Unidades organizacionais"
+        descricao="Cadastre e mantenha a estrutura organizacional usada para lotação, chefia, homologação, relatórios e controle de frequência."
         artigo="Arts. 1º, 3º, 16 e 20"
-        titulo="Abrangência institucional e gestão da frequência"
-        descricao="A estrutura de unidades permite controlar frequência, homologações, boletins e responsabilidades gerenciais dentro da Seção Judiciária do Amazonas, subseções e unidades vinculadas."
+        regraTitulo="Abrangência institucional e gestão da frequência"
+        regraDescricao="A estrutura de unidades permite controlar frequência, homologações, boletins e responsabilidades gerenciais dentro da Seção Judiciária do Amazonas, subseções e unidades vinculadas."
+        actions={
+          <Link
+            href="/unidades/nova"
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950"
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            Nova unidade
+          </Link>
+        }
       />
 
       <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
-        <div className="flex items-center gap-2 border-b p-5">
-          <Building2 className="size-5 text-blue-900 dark:text-blue-300" />
-          <h2 className="text-lg font-bold">Unidades cadastradas</h2>
+        <UnidadesListagemControles
+          orgaos={orgaos}
+          exportCsvHref={`/api/unidades/export?${exportParams.toString()}`}
+          exportPdfHref={`/api/unidades/export/pdf?${exportParams.toString()}`}
+        />
+
+        <div className="flex flex-col justify-between gap-3 border-b p-5 md:flex-row md:items-center">
+          <p className="text-sm text-[var(--muted-foreground)]">
+            {resultado.total} registro(s) encontrado(s)
+          </p>
+
+          <UnidadesItensPorPagina itensPorPagina={resultado.itensPorPagina} />
         </div>
 
         <div className="overflow-x-auto">
@@ -73,7 +126,7 @@ export default async function UnidadesPage() {
             </thead>
 
             <tbody>
-              {unidades.map((unidade) => (
+              {resultado.unidades.map((unidade) => (
                 <tr key={unidade.id} className="border-b last:border-b-0">
                   <td className="px-5 py-4 font-mono text-xs font-semibold">
                     {unidade.sigla}
@@ -96,9 +149,7 @@ export default async function UnidadesPage() {
                     {unidade.unidadePai ? unidade.unidadePai.sigla : "-"}
                   </td>
 
-                  <td className="px-5 py-4">
-                    {unidade._count.unidadesFilhas}
-                  </td>
+                  <td className="px-5 py-4">{unidade._count.unidadesFilhas}</td>
 
                   <td className="px-5 py-4">{unidade._count.lotacoes}</td>
 
@@ -125,18 +176,50 @@ export default async function UnidadesPage() {
                 </tr>
               ))}
 
-              {unidades.length === 0 && (
+              {resultado.unidades.length === 0 && (
                 <tr>
                   <td
                     colSpan={9}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
-                    Nenhuma unidade cadastrada.
+                    Nenhuma unidade encontrada para os filtros informados.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="flex flex-col justify-between gap-3 border-t p-5 md:flex-row md:items-center">
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Página {resultado.pagina} de {resultado.totalPaginas}
+          </p>
+
+          <div className="flex gap-2">
+            <Link
+              href={montarHrefPagina(Math.max(resultado.pagina - 1, 1))}
+              className={`rounded-md border px-3 py-2 text-sm font-semibold transition ${
+                resultado.pagina <= 1
+                  ? "pointer-events-none opacity-50"
+                  : "hover:bg-[var(--muted)]"
+              }`}
+            >
+              Anterior
+            </Link>
+
+            <Link
+              href={montarHrefPagina(
+                Math.min(resultado.pagina + 1, resultado.totalPaginas),
+              )}
+              className={`rounded-md border px-3 py-2 text-sm font-semibold transition ${
+                resultado.pagina >= resultado.totalPaginas
+                  ? "pointer-events-none opacity-50"
+                  : "hover:bg-[var(--muted)]"
+              }`}
+            >
+              Próxima
+            </Link>
+          </div>
         </div>
       </section>
     </div>

@@ -4,6 +4,7 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarUsuarios } from "@/modules/usuarios/infrastructure/repositories/usuario.repository";
+import { PageHeader } from "@/components/layout/page-header";
 
 export default async function UsuariosPage() {
   await exigirPermissaoOuRedirecionar("usuarios:gerenciar:global");
@@ -25,14 +26,23 @@ export default async function UsuariosPage() {
             Administração de acessos
           </p>
 
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">
-            Usuários
-          </h1>
-
-          <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
-            Gerencie contas, perfis de acesso, status e vínculos funcionais dos
-            usuários do SECP.
-          </p>
+          <PageHeader
+            icon={UsersRound}
+            titulo="Usuários"
+            descricao=" Gerencie contas, perfis de acesso, status e vínculos funcionais dos
+          usuários do SECP."
+            artigo="Art. 20, inciso I"
+            regraTitulo="Gerenciamento de usuários"
+            regraDescricao="O gerenciamento técnico dos usuários do sistema é atribuição administrativa essencial para garantir segurança, rastreabilidade e controle de acesso."
+            // actions={
+            //   <Link
+            //     href="/servidores/novo"
+            //     className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-950"
+            //   >
+            //     Novo servidor
+            //   </Link>
+            // }
+          />
         </div>
 
         <Link
@@ -43,12 +53,6 @@ export default async function UsuariosPage() {
           Novo usuário
         </Link>
       </section>
-
-      <RegraPortariaCard
-        artigo="Art. 20, inciso I"
-        titulo="Gerenciamento de usuários"
-        descricao="O gerenciamento técnico dos usuários do sistema é atribuição administrativa essencial para garantir segurança, rastreabilidade e controle de acesso."
-      />
 
       <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
         <div className="flex items-center gap-2 border-b p-5">
