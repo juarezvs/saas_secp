@@ -40,7 +40,8 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 a) git clone https://github.com/juarezvs/saas_secp.git
 b) cd saas_secp
 c) npm install
-d) docker compose up -d
+d) docker compose down -v
+docker compose up -d
 
 e) criar arquivo .env no raiz do projeto e colar o conteúdo abaixo:
 
@@ -100,7 +101,9 @@ AFD_UPLOAD_DIR=import/\_upload/afd
 f) npx prisma migrate dev
 g) npx prisma generate
 h) npx prisma db seed
-e) rodar a aplicação -> npm run dev
+e) rodar a aplicação ->
+npm run dev
+npm run worker:afd
 f) acessar a aplicação -> http://localhost:3000
 Para o primeiro acesso usar: Matricula -> secp
 Senha da rede -> secp

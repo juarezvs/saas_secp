@@ -105,7 +105,7 @@ const menuItems: MenuItem[] = [
     label: "Biometria Facial",
     href: "/biometria",
     icon: ScanFace,
-    permissao: "biometria:consultar:proprio",
+    permissao: "biometria:cadastrar:proprio",
   },
   {
     label: "Solicitações",

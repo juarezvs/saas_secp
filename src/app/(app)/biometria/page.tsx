@@ -15,6 +15,11 @@ export default async function BiometriaPage() {
 
   const biometria = servidor?.biometriaFacialServidor;
 
+  const permissoes = session?.user.perfilAtivo?.permissoes ?? [];
+  const podeCadastrarBiometria = permissoes.includes(
+    "biometria:cadastrar:proprio",
+  );
+
   return (
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "Biometria Facial" }]} />
@@ -70,26 +75,28 @@ export default async function BiometriaPage() {
       </section>
 
       {!biometria || biometria.status !== "ATIVO" ? (
-        <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
-          <h2 className="text-lg font-bold">Cadastro facial necessário</h2>
+        podeCadastrarBiometria && (
+          <section className="rounded-xl border bg-(--card) p-5 shadow-sm">
+            <h2 className="text-lg font-bold">Cadastro facial necessário</h2>
 
-          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-            Você ainda não possui biometria facial ativa.
-          </p>
+            <p className="mt-2 text-sm text-(--muted-foreground)">
+              Você ainda não possui biometria facial ativa.
+            </p>
 
-          <Link
-            href="/biometria/cadastro"
-            className="mt-4 inline-flex rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-950"
-          >
-            Cadastrar biometria facial
-          </Link>
-        </section>
+            <Link
+              href="/biometria/cadastro"
+              className="mt-4 inline-flex rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-950"
+            >
+              Cadastrar biometria facial
+            </Link>
+          </section>
+        )
       ) : (
         <>
-          <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
+          <section className="rounded-xl border bg-(--card) p-5 shadow-sm">
             <h2 className="text-lg font-bold">Cadastro facial ativo</h2>
 
-            <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+            <p className="mt-2 text-sm leading-6 text-(--muted-foreground)">
               Sua biometria facial está ativa. Caso tenha dificuldade na
               validação, alteração significativa de aparência ou necessidade
               administrativa, você pode recadastrar sua biometria facial.
@@ -97,7 +104,7 @@ export default async function BiometriaPage() {
 
             <Link
               href="/biometria/cadastro?modo=recadastro"
-              className="mt-4 inline-flex rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)]"
+              className="mt-4 inline-flex rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-(--muted)"
             >
               Recadastrar biometria facial
             </Link>

@@ -15,9 +15,7 @@ export default async function MarcacoesPage() {
   const session = await auth();
 
   const permissoes = session?.user.perfilAtivo?.permissoes ?? [];
-  const podeConsultarGlobal = permissoes.includes(
-    "marcacoes:consultar:global"
-  );
+  const podeConsultarGlobal = permissoes.includes("marcacoes:consultar:global");
 
   const { marcacoes } = session?.user
     ? await listarMarcacoesDoUsuarioNoDia(session.user.id)
@@ -41,7 +39,7 @@ export default async function MarcacoesPage() {
             Marcações de ponto
           </h1>
 
-          <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
+          <p className="mt-2 max-w-4xl text-sm leading-6 text-(--muted-foreground)">
             Consulte suas marcações do dia e registre novo horário.
           </p>
         </div>
@@ -64,15 +62,15 @@ export default async function MarcacoesPage() {
       <MarcacoesDiaCard marcacoes={marcacoes} />
 
       {podeConsultarGlobal && (
-        <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
+        <section className="rounded-xl border bg-(--card) text-(--card-foreground) shadow-sm">
           <div className="flex items-center gap-2 border-b p-5">
             <Clock3 className="size-5 text-blue-900 dark:text-blue-300" />
             <h2 className="text-lg font-bold">Últimas marcações registradas</h2>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[960px] text-left text-sm">
-              <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
+            <table className="w-full min-w-240 text-left text-sm">
+              <thead className="border-b bg-(--muted) text-xs uppercase tracking-wide text-(--muted-foreground)">
                 <tr>
                   <th className="px-5 py-3">Data/hora</th>
                   <th className="px-5 py-3">Servidor</th>

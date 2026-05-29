@@ -29,7 +29,7 @@ export default async function NovoServidorPage() {
           Novo servidor
         </h1>
 
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-(--muted-foreground)">
           Cadastre o servidor e crie o usuário associado que será usado para
           autenticação e autorização no SECP.
         </p>

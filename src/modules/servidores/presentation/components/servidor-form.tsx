@@ -59,7 +59,6 @@ export function ServidorForm({
   const [estado, formAction, pendente] = useActionState(action, estadoInicial);
 
   const campos = estado.campos ?? valoresIniciais;
-  
 
   return (
     <form action={formAction} className="space-y-6">
@@ -138,6 +137,7 @@ export function ServidorForm({
               maxLength={14}
               placeholder="000.000.000-00"
               className="h-10 w-full rounded-md border bg-(--card) px-3 text-sm"
+              required
             />
 
             {obterErro(estado.erros, "cpf") && (
@@ -181,6 +181,7 @@ export function ServidorForm({
               defaultValue={campos?.email ?? ""}
               placeholder="nome@trf1.jus.br"
               className="h-11 w-full rounded-md border bg-(--card) px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              required
             />
 
             {obterErro(estado.erros, "email") && (

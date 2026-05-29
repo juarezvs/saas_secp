@@ -128,6 +128,7 @@ export async function criarServidorAction(
           servidor: {
             id: novoServidor.id,
             matricula: novoServidor.matricula,
+            cpf: novoServidor.cpf,
             orgaoId: novoServidor.orgaoId,
             vinculo: novoServidor.vinculo,
             ativo: novoServidor.ativo,
@@ -135,6 +136,7 @@ export async function criarServidorAction(
           usuario: {
             id: usuario.id,
             matricula: usuario.matricula,
+            cpf: usuario.cpf,
             nome: usuario.nome,
             email: usuario.email,
             tipo: usuario.tipo,

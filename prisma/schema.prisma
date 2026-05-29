@@ -323,6 +323,7 @@ enum StatusArquivoAfd {
 model Usuario {
   id        String      @id @default(uuid()) @db.Uuid
   matricula String      @unique @db.VarChar(50)
+  cpf       String?     @unique @db.VarChar(11)
   nome      String      @db.VarChar(200)
   email     String?     @unique @db.VarChar(200)
   senhaHash String?     @map("senha_hash") @db.VarChar(255)
