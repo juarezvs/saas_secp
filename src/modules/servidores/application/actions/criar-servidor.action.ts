@@ -2,20 +2,36 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { vincularMarcacoesBrutasServidorService } from "@/modules/marcacoes-brutas/application/services/vincular-marcacoes-brutas-servidor.service";
+import { prisma } from "@/shared/infrastructure/database/prisma";
+
 import {
-  servidorSchema,
-  type ServidorFormState,
-} from "../schemas/servidor.schema";
-import {
+  cpfServidorExiste,
   matriculaServidorExiste,
   usuarioMatriculaExiste,
-  cpfServidorExiste,
 } from "../../infrastructure/repositories/servidor.repository";
-import { vincularMarcacoesBrutasServidorService } from "@/modules/marcacoes-brutas/application/services/vincular-marcacoes-brutas-servidor.service";
+import {
+  servidorSchema,
+  tiposVinculoServidor,
+  type ServidorFormState,
+  type ServidorInput,
+} from "../schemas/servidor.schema";
 
-function extrairDadosServidor(formData: FormData) {
+type TipoVinculoServidor = ServidorInput["vinculo"];
+
+function normalizarVinculoServidor(
+  valor: FormDataEntryValue | null,
+): TipoVinculoServidor | undefined {
+  const vinculo = String(valor ?? "");
+
+  return tiposVinculoServidor.includes(vinculo as TipoVinculoServidor)
+    ? (vinculo as TipoVinculoServidor)
+    : undefined;
+}
+
+function extrairDadosServidor(formData: FormData): Partial<ServidorInput> {
   return {
     orgaoId: String(formData.get("orgaoId") ?? ""),
     matricula: String(formData.get("matricula") ?? "").trim(),
@@ -25,7 +41,7 @@ function extrairDadosServidor(formData: FormData) {
       .trim()
       .toLowerCase(),
     nomeFuncional: String(formData.get("nomeFuncional") ?? "").trim(),
-    vinculo: String(formData.get("vinculo") ?? ""),
+    vinculo: normalizarVinculoServidor(formData.get("vinculo")),
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
   };
 }
@@ -155,6 +171,7 @@ export async function criarServidorAction(
     matricula,
     usuarioIdAuditoria: permissao.usuarioId,
   });
+
   revalidatePath("/servidores");
   revalidatePath(`/servidores/${servidor.id}`);
 

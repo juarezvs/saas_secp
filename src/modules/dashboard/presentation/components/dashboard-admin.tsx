@@ -7,7 +7,9 @@ import {
   Users,
   UserCog,
 } from "lucide-react";
+
 import { prisma } from "@/shared/infrastructure/database/prisma";
+
 import { DashboardCard } from "./dashboard-card";
 
 export async function DashboardAdmin({ usuarioId }: { usuarioId: string }) {
@@ -17,6 +19,7 @@ export async function DashboardAdmin({ usuarioId }: { usuarioId: string }) {
     marcacoesBrutasPendentes,
     importacoesAfdPendentes,
     eventosAuditoria,
+    eventosAuditoriaUsuario,
     servidoresSemCpf,
   ] = await Promise.all([
     prisma.usuario.count(),
@@ -42,6 +45,12 @@ export async function DashboardAdmin({ usuarioId }: { usuarioId: string }) {
     }),
 
     prisma.auditoriaEvento.count(),
+
+    prisma.auditoriaEvento.count({
+      where: {
+        usuarioId,
+      },
+    }),
 
     prisma.servidor.count({
       where: {
@@ -101,6 +110,13 @@ export async function DashboardAdmin({ usuarioId }: { usuarioId: string }) {
           titulo="Eventos de auditoria"
           valor={eventosAuditoria}
           descricao="Eventos registrados na trilha de auditoria."
+          icon={Activity}
+        />
+
+        <DashboardCard
+          titulo="Minhas ações auditadas"
+          valor={eventosAuditoriaUsuario}
+          descricao="Eventos de auditoria vinculados ao administrador logado."
           icon={Activity}
         />
 

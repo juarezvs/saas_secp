@@ -1,8 +1,9 @@
 import React, { type ReactElement } from "react";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
+
 import { auth } from "@/auth";
-import { prisma } from "@/shared/infrastructure/database/prisma";
 import { BoletimFrequenciaPdfDocument } from "@/modules/relatorios/presentation/pdf/boletim-frequencia-pdf.document";
+import { prisma } from "@/shared/infrastructure/database/prisma";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,10 @@ type RouteContext = {
     id: string;
   }>;
 };
+
+type BoletimPdf = React.ComponentProps<
+  typeof BoletimFrequenciaPdfDocument
+>["boletim"];
 
 export async function GET(_request: Request, context: RouteContext) {
   const session = await auth();
@@ -45,7 +50,6 @@ export async function GET(_request: Request, context: RouteContext) {
     },
     include: {
       unidade: true,
-      geradoPor: true,
     },
   });
 
@@ -55,62 +59,54 @@ export async function GET(_request: Request, context: RouteContext) {
     });
   }
 
-  const homologacoes = await prisma.homologacaoServidorMes.findMany({
+  const itensBoletim = await prisma.boletimFrequenciaServidor.findMany({
     where: {
-      fechamentoId: boletim.fechamentoId,
-    },
-    orderBy: {
-      criadoEm: "asc",
-    },
-  });
-
-  const servidorIds = homologacoes.map((item) => item.servidorId);
-
-  const servidores = await prisma.servidor.findMany({
-    where: {
-      id: {
-        in: servidorIds,
-      },
+      boletimId: boletim.id,
     },
     include: {
-      usuario: true,
+      servidor: {
+        include: {
+          usuario: true,
+          lotacoes: {
+            include: {
+              unidade: {
+                select: {
+                  sigla: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
 
-  const servidoresPorId = new Map(
-    servidores.map((servidor) => [servidor.id, servidor]),
-  );
-
-  const servidoresBoletim = homologacoes
-    .map((homologacao) => {
-      const servidor = servidoresPorId.get(homologacao.servidorId);
-
-      if (!servidor) {
-        return null;
-      }
-
-      return {
-        tipoResumo: homologacao.tipoResumo,
-        cargaPrevistaMinutos: homologacao.cargaPrevistaMinutos,
-        minutosTrabalhados: homologacao.minutosTrabalhados,
-        minutosCredito: homologacao.minutosCredito,
-        minutosDebito: homologacao.minutosDebito,
-        faltas: homologacao.faltas,
-        saldoBancoAntesMinutos: homologacao.saldoBancoAntesMinutos,
-        saldoBancoDepoisMinutos: homologacao.saldoBancoDepoisMinutos,
-        observacaoChefia: homologacao.observacaoChefia,
-        servidor: {
-          matricula: servidor.matricula,
-          usuario: {
-            nome: servidor.usuario.nome,
-          },
+  const servidoresBoletim = itensBoletim
+    .map((item) => ({
+      tipoResumo: item.tipoResumo,
+      cargaPrevistaMinutos: item.cargaPrevistaMinutos,
+      minutosTrabalhados: item.minutosTrabalhados,
+      minutosCredito: item.minutosCredito,
+      minutosDebito: item.minutosDebito,
+      faltas: item.faltas,
+      saldoBancoAntesMinutos: item.saldoBancoAntesMinutos,
+      saldoBancoDepoisMinutos: item.saldoBancoDepoisMinutos,
+      observacaoChefia: item.observacaoChefia,
+      servidor: {
+        matricula: item.servidor.matricula,
+        usuario: {
+          nome: item.servidor.usuario.nome,
         },
-      };
-    })
-    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+        lotacoes: item.servidor.lotacoes.map((lotacao) => ({
+          unidade: {
+            sigla: lotacao.unidade.sigla,
+          },
+        })),
+      },
+    }))
     .sort((a, b) => a.servidor.matricula.localeCompare(b.servidor.matricula));
 
-  const boletimPdf = {
+  const boletimPdf: BoletimPdf = {
     unidade: {
       sigla: boletim.unidade.sigla,
       nome: boletim.unidade.nome,
@@ -122,16 +118,14 @@ export async function GET(_request: Request, context: RouteContext) {
     numeroSei: boletim.numeroSei,
     totalServidores: boletim.totalServidores,
     totalHomologados: boletim.totalHomologados,
-    totalPendentes: boletim.totalPendentes,
     totalComRessalva: boletim.totalComRessalva,
+    totalFaltas: boletim.totalFaltas,
+    totalCargaPrevistaMinutos: boletim.totalCargaPrevistaMinutos,
+    totalTrabalhadoMinutos: boletim.totalTrabalhadoMinutos,
     totalCreditoMinutos: boletim.totalCreditoMinutos,
     totalDebitoMinutos: boletim.totalDebitoMinutos,
-    saldoBancoHorasMinutos: boletim. .saldoBancoHorasMinutos,
     geradoEm: boletim.geradoEm,
-    geradoPor: {
-      nome: boletim.geradoPor.nome,
-      matricula: boletim.geradoPor.matricula,
-    },
+    encaminhadoEm: boletim.encaminhadoEm,
     servidores: servidoresBoletim,
   };
 

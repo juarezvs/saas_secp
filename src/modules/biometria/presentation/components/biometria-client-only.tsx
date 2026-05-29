@@ -1,6 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type { ComponentType } from "react";
+
+type ValidacaoFacialCardProps = {
+  servidorId: string;
+};
 
 export const CadastroFacialAutoWizardClientOnly = dynamic(
   () =>
@@ -17,9 +22,12 @@ export const CadastroFacialAutoWizardClientOnly = dynamic(
   },
 );
 
-export const ValidacaoFacialCardClientOnly = dynamic(
+export const ValidacaoFacialCardClientOnly = dynamic<ValidacaoFacialCardProps>(
   () =>
-    import("./validacao-facial-card").then((mod) => mod.ValidacaoFacialCard),
+    import("./validacao-facial-card").then(
+      (mod) =>
+        mod.ValidacaoFacialCard as ComponentType<ValidacaoFacialCardProps>,
+    ),
   {
     ssr: false,
     loading: () => (

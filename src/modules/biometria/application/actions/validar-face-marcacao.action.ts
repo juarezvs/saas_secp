@@ -2,20 +2,21 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+
+import {
+  buscarBiometriaAtivaPorServidorId,
+  buscarServidorBiometriaPorUsuarioId,
+} from "../../infrastructure/repositories/biometria.repository";
 import {
   templateFacialSchema,
   type BiometriaFormState,
 } from "../schemas/biometria.schema";
+import { criarAutorizacaoBiometricaMarcacao } from "../services/autorizacao-biometrica-marcacao.service";
 import {
   calcularDistanciaCosseno,
   calcularSimilaridadeCosseno,
   normalizarVetor,
 } from "../services/comparar-template-facial.service";
-import {
-  buscarBiometriaAtivaPorServidorId,
-  buscarServidorBiometriaPorUsuarioId,
-} from "../../infrastructure/repositories/biometria.repository";
-import { criarAutorizacaoBiometricaMarcacao } from "../services/autorizacao-biometrica-marcacao.service";
 
 export async function validarFaceMarcacaoAction(
   _estadoAnterior: BiometriaFormState,
@@ -101,7 +102,7 @@ export async function validarFaceMarcacaoAction(
 
   /*
    * Regra:
-   * - distancia menor é melhor.
+   * - distância menor é melhor.
    * - similaridade maior é melhor.
    *
    * Para distância cosseno, um limiar inicial razoável para teste local
@@ -110,12 +111,8 @@ export async function validarFaceMarcacaoAction(
   const limiarDistancia = biometria.limiarDistancia ?? 0.4;
   const validada = distancia <= limiarDistancia;
 
-  let autorizacaoId: string | undefined;
-  let autorizacaoToken: string | undefined;
-  let expiraEm: string | undefined;
-
   await prisma.$transaction(async (tx) => {
-    const amostra = await tx.amostraBiometricaFacial.create({
+    await tx.amostraBiometricaFacial.create({
       data: {
         biometriaId: biometria.id,
         servidorId: servidor.id,
@@ -134,25 +131,6 @@ export async function validarFaceMarcacaoAction(
       },
     });
 
-    if (validada) {
-      const autorizacao = await criarAutorizacaoBiometricaMarcacao({
-        tx,
-        servidorId: servidor.id,
-        amostraId: amostra.id,
-        origem: "VALIDACAO_FACIAL_WEB",
-        validadeMinutos: 5,
-        metadados: {
-          distancia,
-          similaridade,
-          limiarDistancia,
-        },
-      });
-
-      autorizacaoId = autorizacao.autorizacao.id;
-      autorizacaoToken = autorizacao.token;
-      expiraEm = autorizacao.autorizacao.expiraEm.toISOString();
-    }
-
     await tx.auditoriaEvento.create({
       data: {
         usuarioId: session.user.id,
@@ -168,11 +146,27 @@ export async function validarFaceMarcacaoAction(
           validada,
           limiarDistancia,
           metrica: "COSINE_DISTANCE",
-          autorizacaoGerada: Boolean(autorizacaoId),
+          autorizacaoGerada: validada,
         },
       },
     });
   });
+
+  let autorizacaoId: string | undefined;
+  let autorizacaoToken: string | undefined;
+  let expiraEm: string | undefined;
+
+  if (validada) {
+    const autorizacao = await criarAutorizacaoBiometricaMarcacao({
+      servidorId: servidor.id,
+      similaridade,
+      distancia,
+    });
+
+    autorizacaoId = autorizacao.id;
+    autorizacaoToken = autorizacao.token;
+    expiraEm = autorizacao.expiraEm.toISOString();
+  }
 
   return {
     sucesso: validada,

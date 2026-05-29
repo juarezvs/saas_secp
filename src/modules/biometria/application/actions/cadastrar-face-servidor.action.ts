@@ -1,14 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+
 import { auth } from "@/auth";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+
+import { buscarServidorBiometriaPorUsuarioId } from "../../infrastructure/repositories/biometria.repository";
 import {
   templateFacialSchema,
   type BiometriaFormState,
 } from "../schemas/biometria.schema";
 import { calcularTemplateMedio } from "../services/comparar-template-facial.service";
-import { buscarServidorBiometriaPorUsuarioId } from "../../infrastructure/repositories/biometria.repository";
 
 export async function cadastrarFaceServidorAction(
   _estadoAnterior: BiometriaFormState,
@@ -92,6 +94,7 @@ export async function cadastrarFaceServidorAction(
         servidorId: servidor.id,
       },
     });
+
     const biometria = await tx.biometriaFacialServidor.upsert({
       where: {
         servidorId: servidor.id,
@@ -140,6 +143,18 @@ export async function cadastrarFaceServidorAction(
       })),
     });
 
+    const dadosAntes = biometriaAnterior
+      ? {
+          id: biometriaAnterior.id,
+          servidorId: biometriaAnterior.servidorId,
+          status: biometriaAnterior.status,
+          templateDimensao: biometriaAnterior.templateDimensao,
+          qualidadeMedia: biometriaAnterior.qualidadeMedia,
+          amostrasQuantidade: biometriaAnterior.amostrasQuantidade,
+          atualizadoEm: biometriaAnterior.atualizadoEm,
+        }
+      : undefined;
+
     await tx.auditoriaEvento.create({
       data: {
         usuarioId: session.user.id,
@@ -148,17 +163,7 @@ export async function cadastrarFaceServidorAction(
         acao: biometriaAnterior
           ? "BIOMETRIA_FACIAL_RECADASTRADA"
           : "BIOMETRIA_FACIAL_CADASTRADA",
-        dadosAntes: biometriaAnterior
-          ? {
-              id: biometriaAnterior.id,
-              servidorId: biometriaAnterior.servidorId,
-              status: biometriaAnterior.status,
-              templateDimensao: biometriaAnterior.templateDimensao,
-              qualidadeMedia: biometriaAnterior.qualidadeMedia,
-              amostrasQuantidade: biometriaAnterior.amostrasQuantidade,
-              atualizadoEm: biometriaAnterior.atualizadoEm,
-            }
-          : null,
+        ...(dadosAntes ? { dadosAntes } : {}),
         dadosDepois: {
           servidorId: servidor.id,
           status: "ATIVO",

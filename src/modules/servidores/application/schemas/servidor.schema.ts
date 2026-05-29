@@ -58,13 +58,5 @@ export type ServidorFormState = {
   sucesso: boolean;
   mensagem: string | null;
   erros?: Record<string, string[]>;
-  campos?: {
-    orgaoId?: string;
-    matricula?: string;
-    nome?: string;
-    email?: string;
-    nomeFuncional?: string;
-    vinculo?: string;
-    ativo?: boolean;
-  };
+  campos?: Partial<ServidorInput>;
 };

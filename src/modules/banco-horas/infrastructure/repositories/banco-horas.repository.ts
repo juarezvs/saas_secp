@@ -91,7 +91,7 @@ export async function listarApuracoesCalculadasSemMovimento(params: {
           },
         },
       ],
-      movimentosBancoHoras: {
+      movimentoBancoHoras: {
         none: {},
       },
     },

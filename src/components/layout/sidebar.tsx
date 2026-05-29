@@ -16,7 +16,6 @@ import {
   FileCheck2,
   FileText,
   FileUp,
-  Fingerprint,
   Gauge,
   LogOut,
   ScanFace,
@@ -25,6 +24,7 @@ import {
   ShieldCheck,
   UserCheck,
   UsersRound,
+  type LucideIcon,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import type { PerfilSessao } from "@/modules/auth/domain/entities/usuario-autenticado";
@@ -34,14 +34,14 @@ type SidebarProps = {
   perfilAtivo: PerfilSessao | null;
 };
 
-type MenuItem = {
+export type MenuItem = {
   label: string;
   href: string;
-  icon: typeof Gauge;
+  icon: LucideIcon;
   permissao?: string;
 };
 
-const menuItems: MenuItem[] = [
+export const MENU_ITEMS: MenuItem[] = [
   {
     label: "Dashboard",
     href: "/dashboard",
@@ -161,7 +161,6 @@ const menuItems: MenuItem[] = [
     icon: ClipboardList,
     permissao: "apuracao:consultar:proprio",
   },
-
   {
     label: "Administração",
     href: "/administracao",
@@ -170,7 +169,7 @@ const menuItems: MenuItem[] = [
   },
 ];
 
-function podeExibirItem(item: MenuItem, perfilAtivo: PerfilSessao | null) {
+export function podeExibirItem(item: MenuItem, perfilAtivo: PerfilSessao | null) {
   if (!item.permissao) {
     return true;
   }
@@ -178,10 +177,26 @@ function podeExibirItem(item: MenuItem, perfilAtivo: PerfilSessao | null) {
   return perfilAtivo?.permissoes.includes(item.permissao) ?? false;
 }
 
+export function perfilPodeAcessarPath(
+  pathname: string,
+  perfilAtivo: PerfilSessao | null,
+) {
+  const itemDaRota = MENU_ITEMS.find(
+    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+  );
+
+  if (!itemDaRota) {
+    // Rotas internas não listadas no menu devem ser protegidas no servidor/middleware.
+    return true;
+  }
+
+  return podeExibirItem(itemDaRota, perfilAtivo);
+}
+
 export function Sidebar({ aberta, perfilAtivo }: SidebarProps) {
   const pathname = usePathname();
 
-  const itensVisiveis = menuItems.filter((item) =>
+  const itensVisiveis = MENU_ITEMS.filter((item) =>
     podeExibirItem(item, perfilAtivo),
   );
 
@@ -224,6 +239,7 @@ export function Sidebar({ aberta, perfilAtivo }: SidebarProps) {
                         ? "bg-blue-700 text-white"
                         : "text-slate-300 hover:bg-white/10 hover:text-white"
                     }`}
+                    aria-current={ativo ? "page" : undefined}
                     title={!aberta ? item.label : undefined}
                   >
                     <Icon className="size-5 shrink-0" aria-hidden="true" />

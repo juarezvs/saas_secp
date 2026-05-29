@@ -2,20 +2,36 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import {
-  servidorSchema,
-  type ServidorFormState,
-} from "../schemas/servidor.schema";
+import { vincularMarcacoesBrutasServidorService } from "@/modules/marcacoes-brutas/application/services/vincular-marcacoes-brutas-servidor.service";
+import { prisma } from "@/shared/infrastructure/database/prisma";
+
 import {
   buscarServidorPorId,
   matriculaServidorExiste,
   usuarioMatriculaExiste,
 } from "../../infrastructure/repositories/servidor.repository";
-import { vincularMarcacoesBrutasServidorService } from "@/modules/marcacoes-brutas/application/services/vincular-marcacoes-brutas-servidor.service";
+import {
+  servidorSchema,
+  tiposVinculoServidor,
+  type ServidorFormState,
+  type ServidorInput,
+} from "../schemas/servidor.schema";
 
-function extrairDadosServidor(formData: FormData) {
+type TipoVinculoServidor = ServidorInput["vinculo"];
+
+function normalizarVinculoServidor(
+  valor: FormDataEntryValue | null,
+): TipoVinculoServidor | undefined {
+  const vinculo = String(valor ?? "");
+
+  return tiposVinculoServidor.includes(vinculo as TipoVinculoServidor)
+    ? (vinculo as TipoVinculoServidor)
+    : undefined;
+}
+
+function extrairDadosServidor(formData: FormData): Partial<ServidorInput> {
   return {
     orgaoId: String(formData.get("orgaoId") ?? ""),
     matricula: String(formData.get("matricula") ?? "").trim(),
@@ -25,7 +41,7 @@ function extrairDadosServidor(formData: FormData) {
       .trim()
       .toLowerCase(),
     nomeFuncional: String(formData.get("nomeFuncional") ?? "").trim(),
-    vinculo: String(formData.get("vinculo") ?? ""),
+    vinculo: normalizarVinculoServidor(formData.get("vinculo")),
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
   };
 }
@@ -91,6 +107,7 @@ export async function atualizarServidorAction(
       },
       data: {
         matricula,
+        cpf: parsed.data.cpf || null,
         nome: parsed.data.nome,
         email: parsed.data.email || null,
         ativo: parsed.data.ativo,
@@ -104,18 +121,11 @@ export async function atualizarServidorAction(
       data: {
         orgaoId: parsed.data.orgaoId,
         matricula,
-        cpf: parsed.data.cpf,
+        cpf: parsed.data.cpf || null,
         nomeFuncional: parsed.data.nomeFuncional || null,
         vinculo: parsed.data.vinculo,
         ativo: parsed.data.ativo,
       },
-    });
-
-    await vincularMarcacoesBrutasServidorService({
-      servidorId: servidorId,
-      cpf: parsed.data.cpf || null,
-      matricula: parsed.data.matricula,
-      usuarioIdAuditoria: permissao.usuarioId,
     });
 
     await tx.auditoriaEvento.create({
@@ -137,6 +147,7 @@ export async function atualizarServidorAction(
           usuario: {
             id: servidorAtual.usuario.id,
             matricula: servidorAtual.usuario.matricula,
+            cpf: servidorAtual.usuario.cpf,
             nome: servidorAtual.usuario.nome,
             email: servidorAtual.usuario.email,
             ativo: servidorAtual.usuario.ativo,
@@ -146,7 +157,7 @@ export async function atualizarServidorAction(
           servidor: {
             id: servidorId,
             matricula,
-            cpf: parsed.data.cpf,
+            cpf: parsed.data.cpf || null,
             orgaoId: parsed.data.orgaoId,
             vinculo: parsed.data.vinculo,
             nomeFuncional: parsed.data.nomeFuncional || null,
@@ -155,6 +166,7 @@ export async function atualizarServidorAction(
           usuario: {
             id: servidorAtual.usuarioId,
             matricula,
+            cpf: parsed.data.cpf || null,
             nome: parsed.data.nome,
             email: parsed.data.email || null,
             ativo: parsed.data.ativo,
@@ -162,6 +174,13 @@ export async function atualizarServidorAction(
         },
       },
     });
+  });
+
+  await vincularMarcacoesBrutasServidorService({
+    servidorId,
+    cpf: parsed.data.cpf || null,
+    matricula: parsed.data.matricula,
+    usuarioIdAuditoria: permissao.usuarioId,
   });
 
   revalidatePath("/servidores");

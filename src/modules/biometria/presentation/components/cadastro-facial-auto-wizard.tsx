@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import {
   Camera,
   CheckCircle2,
@@ -73,6 +73,153 @@ export function CadastroFacialAutoWizard() {
     salvandoRef.current = salvando;
   }, [salvando]);
 
+  const salvarCadastro = useCallback(
+    (capturasParaSalvar: TemplateCapturado[]) => {
+      startSaving(async () => {
+        try {
+          const templates = capturasParaSalvar.map((item) => item.template);
+
+          const qualidadeMedia = limitar01(
+            capturasParaSalvar.reduce((acc, item) => acc + item.qualidade, 0) /
+              capturasParaSalvar.length,
+          );
+
+          const formData = new FormData();
+
+          formData.set("template", JSON.stringify(templates[0]));
+          formData.set("templates", JSON.stringify(templates));
+          formData.set("qualidade", String(qualidadeMedia));
+          formData.set(
+            "metadados",
+            JSON.stringify({
+              origem: "CADASTRO_FACIAL_AUTO_WIZARD",
+              etapas: capturasParaSalvar.map((item) => item.etapa),
+              quantidadeAmostras: capturasParaSalvar.length,
+              qualidadeMedia,
+              versaoAlgoritmo: "human-webgl-face-embedding",
+            }),
+          );
+
+          const resultado = await cadastrarFaceServidorAction(
+            {
+              sucesso: false,
+              mensagem: null,
+            },
+            formData,
+          );
+
+          if (!resultado.sucesso) {
+            setErro(
+              resultado.mensagem ??
+                "Não foi possível salvar a biometria facial.",
+            );
+            return;
+          }
+
+          setMensagem(
+            resultado.mensagem ?? "Biometria facial cadastrada com sucesso.",
+          );
+        } catch (error) {
+          setErro(
+            error instanceof Error
+              ? error.message
+              : "Erro ao salvar cadastro facial.",
+          );
+        }
+      });
+    },
+    [startSaving],
+  );
+
+  const detectarECapturar = useCallback(
+    async (video: HTMLVideoElement) => {
+      const human = humanRef.current;
+      const etapaAtual = etapaRef.current;
+
+      if (!human || etapaAtual === "CONCLUIDO" || salvandoRef.current) {
+        return;
+      }
+
+      const agora = Date.now();
+
+      if (agora - ultimaCapturaEmRef.current < 1200) {
+        return;
+      }
+
+      const resultado = await human.detect(video);
+      const face = resultado.face?.[0];
+
+      if (!face) {
+        setMensagem("Nenhum rosto detectado. Posicione o rosto no contorno.");
+        return;
+      }
+
+      const embedding = face.embedding ?? face.descriptor;
+
+      if (!embedding || !face.box) {
+        setMensagem(
+          "Rosto detectado, mas o template facial ainda não foi gerado. Mantenha o rosto enquadrado.",
+        );
+        return;
+      }
+
+      const score = limitar01(face.score ?? face.boxScore ?? 0.9);
+
+      const avaliacao = avaliarFace({
+        video,
+        box: face.box,
+        etapa: etapaAtual,
+        score,
+        centroFrontalX: centroFrontalXRef.current,
+        centroDireitaX: centroDireitaXRef.current,
+      });
+
+      setMensagem(avaliacao.mensagem);
+
+      if (!avaliacao.aprovado) {
+        return;
+      }
+
+      ultimaCapturaEmRef.current = agora;
+
+      const centroFaceX = face.box[0] + face.box[2] / 2;
+
+      if (etapaAtual === "FRONTAL") {
+        centroFrontalXRef.current = centroFaceX;
+      }
+
+      if (etapaAtual === "DIREITA") {
+        centroDireitaXRef.current = centroFaceX;
+      }
+
+      const captura: TemplateCapturado = {
+        etapa: etapaAtual as Exclude<EtapaCadastro, "CONCLUIDO">,
+        template: normalizarVetor(Array.from(embedding)),
+        qualidade: score,
+      };
+
+      const novasCapturas = [...capturasRef.current, captura];
+
+      capturasRef.current = novasCapturas;
+      setCapturas(novasCapturas);
+
+      const proxima = obterProximaEtapa(etapaAtual);
+
+      if (proxima === "CONCLUIDO") {
+        etapaRef.current = "CONCLUIDO";
+        setEtapa("CONCLUIDO");
+        setMensagem("Capturas concluídas. Salvando cadastro facial...");
+        salvarCadastro(novasCapturas);
+        return;
+      }
+
+      etapaRef.current = proxima;
+      setEtapa(proxima);
+      setMensagem(ETAPA_LABEL[proxima]);
+    },
+    [salvarCadastro],
+  );
+
   useEffect(() => {
     let ativo = true;
     let stream: MediaStream | null = null;
@@ -80,9 +227,6 @@ export function CadastroFacialAutoWizard() {
 
     async function iniciar() {
       try {
-        setCarregando(true);
-        setErro(null);
-
         const Human = (await import("@vladmandic/human")).default;
 
         const human = new Human({
@@ -125,7 +269,9 @@ export function CadastroFacialAutoWizard() {
           audio: false,
         });
 
-        if (!ativo || !videoRef.current) return;
+        if (!ativo || !videoRef.current) {
+          return;
+        }
 
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
@@ -135,7 +281,9 @@ export function CadastroFacialAutoWizard() {
         setMensagem(ETAPA_LABEL.FRONTAL);
 
         const detectar = async () => {
-          if (!ativo || !videoRef.current || !humanRef.current) return;
+          if (!ativo || !videoRef.current || !humanRef.current) {
+            return;
+          }
 
           await detectarECapturar(videoRef.current);
 
@@ -160,141 +308,7 @@ export function CadastroFacialAutoWizard() {
       cancelAnimationFrame(animationFrame);
       stream?.getTracks().forEach((track) => track.stop());
     };
-  }, []);
-
-  async function detectarECapturar(video: HTMLVideoElement) {
-    const human = humanRef.current;
-    const etapaAtual = etapaRef.current;
-
-    if (!human || etapaAtual === "CONCLUIDO" || salvandoRef.current) return;
-
-    const agora = Date.now();
-
-    if (agora - ultimaCapturaEmRef.current < 1200) return;
-
-    const resultado = await human.detect(video);
-    const face = resultado.face?.[0];
-
-    if (!face) {
-      setMensagem("Nenhum rosto detectado. Posicione o rosto no contorno.");
-      return;
-    }
-
-    const embedding = face.embedding ?? face.descriptor;
-
-    if (!embedding || !face.box) {
-      setMensagem(
-        "Rosto detectado, mas o template facial ainda não foi gerado. Mantenha o rosto enquadrado.",
-      );
-      return;
-    }
-
-    const score = limitar01(face.score ?? face.boxScore ?? 0.9);
-
-    const avaliacao = avaliarFace({
-      video,
-      box: face.box,
-      etapa: etapaAtual,
-      score,
-      centroFrontalX: centroFrontalXRef.current,
-      centroDireitaX: centroDireitaXRef.current,
-    });
-
-    setMensagem(avaliacao.mensagem);
-
-    if (!avaliacao.aprovado) return;
-
-    ultimaCapturaEmRef.current = agora;
-
-    const centroFaceX = face.box[0] + face.box[2] / 2;
-
-    if (etapaAtual === "FRONTAL") {
-      centroFrontalXRef.current = centroFaceX;
-    }
-
-    if (etapaAtual === "DIREITA") {
-      centroDireitaXRef.current = centroFaceX;
-    }
-
-    const captura: TemplateCapturado = {
-      etapa: etapaAtual as Exclude<EtapaCadastro, "CONCLUIDO">,
-      template: normalizarVetor(Array.from(embedding)),
-      qualidade: score,
-    };
-
-    const novasCapturas = [...capturasRef.current, captura];
-
-    capturasRef.current = novasCapturas;
-    setCapturas(novasCapturas);
-
-    const proxima = obterProximaEtapa(etapaAtual);
-
-    if (proxima === "CONCLUIDO") {
-      etapaRef.current = "CONCLUIDO";
-      setEtapa("CONCLUIDO");
-      setMensagem("Capturas concluídas. Salvando cadastro facial...");
-      salvarCadastro(novasCapturas);
-      return;
-    }
-
-    etapaRef.current = proxima;
-    setEtapa(proxima);
-    setMensagem(ETAPA_LABEL[proxima]);
-  }
-
-  function salvarCadastro(capturasParaSalvar: TemplateCapturado[]) {
-    startSaving(async () => {
-      try {
-        const templates = capturasParaSalvar.map((item) => item.template);
-
-        const qualidadeMedia = limitar01(
-          capturasParaSalvar.reduce((acc, item) => acc + item.qualidade, 0) /
-            capturasParaSalvar.length,
-        );
-
-        const formData = new FormData();
-
-        formData.set("template", JSON.stringify(templates[0]));
-        formData.set("templates", JSON.stringify(templates));
-        formData.set("qualidade", String(qualidadeMedia));
-        formData.set(
-          "metadados",
-          JSON.stringify({
-            origem: "CADASTRO_FACIAL_AUTO_WIZARD",
-            etapas: capturasParaSalvar.map((item) => item.etapa),
-            quantidadeAmostras: capturasParaSalvar.length,
-            qualidadeMedia,
-            versaoAlgoritmo: "human-webgl-face-embedding",
-          }),
-        );
-
-        const resultado = await cadastrarFaceServidorAction(
-          {
-            sucesso: false,
-            mensagem: null,
-          },
-          formData,
-        );
-
-        if (!resultado.sucesso) {
-          setErro(
-            resultado.mensagem ?? "Não foi possível salvar a biometria facial.",
-          );
-          return;
-        }
-
-        setMensagem(
-          resultado.mensagem ?? "Biometria facial cadastrada com sucesso.",
-        );
-      } catch (error) {
-        setErro(
-          error instanceof Error
-            ? error.message
-            : "Erro ao salvar cadastro facial.",
-        );
-      }
-    });
-  }
+  }, [detectarECapturar]);
 
   function reiniciar() {
     capturasRef.current = [];
@@ -333,7 +347,6 @@ export function CadastroFacialAutoWizard() {
             muted
             playsInline
             className="aspect-[4/3] w-full scale-x-[-1] object-cover"
-            
           />
 
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -423,8 +436,14 @@ export function CadastroFacialAutoWizard() {
 }
 
 function obterProximaEtapa(etapa: EtapaCadastro): EtapaCadastro {
-  if (etapa === "FRONTAL") return "DIREITA";
-  if (etapa === "DIREITA") return "ESQUERDA";
+  if (etapa === "FRONTAL") {
+    return "DIREITA";
+  }
+
+  if (etapa === "DIREITA") {
+    return "ESQUERDA";
+  }
+
   return "CONCLUIDO";
 }
 
@@ -518,7 +537,10 @@ function avaliarFace(params: {
 }
 
 function limitar01(valor: number) {
-  if (Number.isNaN(valor)) return 0;
+  if (Number.isNaN(valor)) {
+    return 0;
+  }
+
   return Math.min(1, Math.max(0, valor));
 }
 

@@ -1,5 +1,6 @@
-import React from "react";
-import { renderToBuffer } from "@react-pdf/renderer";
+import React, { type ReactElement } from "react";
+import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
+
 import { auth } from "@/auth";
 import { buscarDadosEspelhoPontoPdf } from "@/modules/relatorios/infrastructure/repositories/relatorios.repository";
 import { EspelhoPontoPdfDocument } from "@/modules/relatorios/presentation/pdf/espelho-ponto-pdf.document";
@@ -63,17 +64,17 @@ export async function GET(request: Request, context: RouteContext) {
     });
   }
 
-  const document = React.createElement(EspelhoPontoPdfDocument, {
+  const documento = React.createElement(EspelhoPontoPdfDocument, {
     dados,
-  });
+  }) as ReactElement<DocumentProps>;
 
-  const buffer = await renderToBuffer(document);
+  const buffer = await renderToBuffer(documento);
 
   const nomeArquivo = `espelho-ponto-${dados.servidor.matricula}-${String(
     mes,
   ).padStart(2, "0")}-${ano}.pdf`;
 
-  return new Response(buffer, {
+  return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${nomeArquivo}"`,

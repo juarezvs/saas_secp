@@ -1,18 +1,21 @@
 import "dotenv/config";
+
 import { Worker } from "bullmq";
+
 import {
   AFD_QUEUE_NAME,
-  afdConnection,
   type ProcessarArquivoAfdJob,
 } from "../src/modules/afd/application/queues/afd-queue";
 import { processarArquivoAfdService } from "../src/modules/afd/application/services/processar-arquivo-afd.service";
 
+const redisConnection = {
+  host: process.env.REDIS_HOST ?? "127.0.0.1",
+  port: Number(process.env.REDIS_PORT ?? "6379"),
+  maxRetriesPerRequest: null,
+};
+
 console.log("[AFD] Worker iniciado.");
-console.log(
-  "[AFD] Redis:",
-  process.env.REDIS_HOST ?? "127.0.0.1",
-  process.env.REDIS_PORT ?? "6379",
-);
+console.log("[AFD] Redis:", redisConnection.host, redisConnection.port);
 
 const worker = new Worker<ProcessarArquivoAfdJob>(
   AFD_QUEUE_NAME,
@@ -27,7 +30,7 @@ const worker = new Worker<ProcessarArquivoAfdJob>(
     console.log("[AFD] Job finalizado:", job.id);
   },
   {
-    connection: afdConnection,
+    connection: redisConnection,
     concurrency: 3,
   },
 );
@@ -54,7 +57,8 @@ worker.on("error", (error) => {
 
 process.on("SIGINT", async () => {
   console.log("[AFD] Encerrando worker...");
+
   await worker.close();
-  await afdConnection.quit();
+
   process.exit(0);
 });

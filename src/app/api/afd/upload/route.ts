@@ -1,12 +1,10 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+
 import { auth } from "@/auth";
+import { enfileirarProcessamentoArquivoAfd } from "@/modules/afd/application/queues/afd-queue";
 import { prisma } from "@/shared/infrastructure/database/prisma";
-import {
-  afdQueue,
-  AFD_JOB_PROCESSAR_ARQUIVO,
-} from "@/modules/afd/application/queues/afd-queue";
 
 export const runtime = "nodejs";
 
@@ -19,6 +17,7 @@ async function salvarArquivo(file: File, uploadDir: string) {
   });
 
   const nomeSeguro = file.name.replace(/[^\w.\-]+/g, "_");
+
   const caminhoArquivo = path.join(
     uploadDir,
     `${Date.now()}-${hashArquivo}-${nomeSeguro}`,
@@ -64,9 +63,11 @@ export async function POST(request: Request) {
   }
 
   const formData = await request.formData();
+
   const files = formData
     .getAll("files")
     .filter((item): item is File => item instanceof File);
+
   const equipamentoCodigo = String(
     formData.get("equipamentoCodigo") ?? "",
   ).trim();
@@ -125,7 +126,7 @@ export async function POST(request: Request) {
 
     arquivosCriados.push(arquivo);
 
-    await afdQueue.add(AFD_JOB_PROCESSAR_ARQUIVO, {
+    await enfileirarProcessamentoArquivoAfd({
       arquivoAfdId: arquivo.id,
       usuarioId: session.user.id,
     });

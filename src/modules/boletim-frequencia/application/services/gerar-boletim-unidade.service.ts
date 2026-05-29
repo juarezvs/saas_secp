@@ -1,6 +1,7 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
-import { consolidarBoletimServidor } from "./consolidar-boletim-servidor.service";
+
 import { buscarFechamentoParaBoletim } from "../../infrastructure/repositories/boletim-frequencia.repository";
+import { consolidarBoletimServidor } from "./consolidar-boletim-servidor.service";
 
 export async function gerarBoletimUnidadeService(params: {
   fechamentoId: string;
@@ -45,6 +46,7 @@ export async function gerarBoletimUnidadeService(params: {
       acc.totalTrabalhadoMinutos += item.minutosTrabalhados;
       acc.totalCreditoMinutos += item.minutosCredito;
       acc.totalDebitoMinutos += item.minutosDebito;
+
       return acc;
     },
     {
@@ -101,7 +103,7 @@ export async function gerarBoletimUnidadeService(params: {
         saldoBancoAntesMinutos: item.saldoBancoAntesMinutos,
         saldoBancoDepoisMinutos: item.saldoBancoDepoisMinutos,
         observacaoChefia: item.observacaoChefia,
-        ressalvas: item.ressalvas,
+        ...(item.ressalvas ? { ressalvas: item.ressalvas } : {}),
         ocorrencias: item.ocorrencias,
       })),
     });

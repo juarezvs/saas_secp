@@ -2,28 +2,46 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+
 import { auth } from "@/auth";
-import { prisma } from "@/shared/infrastructure/database/prisma";
 import { resolverChefiaResponsavelDaUnidade } from "@/modules/chefias/application/services/resolver-chefia.service";
+import { prisma } from "@/shared/infrastructure/database/prisma";
+
+import { buscarServidorSolicitantePorUsuarioId } from "../../infrastructure/repositories/solicitacao.repository";
 import {
   criarSolicitacaoSchema,
+  tiposSolicitacao,
   type CriarSolicitacaoFormState,
+  type CriarSolicitacaoInput,
 } from "../schemas/solicitacao.schema";
-import { buscarServidorSolicitantePorUsuarioId } from "../../infrastructure/repositories/solicitacao.repository";
+
+type TipoSolicitacao = CriarSolicitacaoInput["tipo"];
 
 function valorOpcionalData(valor: string | undefined) {
   if (!valor) return null;
+
   return new Date(`${valor}T00:00:00`);
 }
 
 function valorOpcionalDateTime(valor: string | undefined) {
   if (!valor) return null;
+
   return new Date(valor);
 }
 
-function extrairDados(formData: FormData) {
+function normalizarTipoSolicitacao(
+  valor: FormDataEntryValue | null,
+): TipoSolicitacao | undefined {
+  const tipo = String(valor ?? "");
+
+  return tiposSolicitacao.includes(tipo as TipoSolicitacao)
+    ? (tipo as TipoSolicitacao)
+    : undefined;
+}
+
+function extrairDados(formData: FormData): Partial<CriarSolicitacaoInput> {
   return {
-    tipo: String(formData.get("tipo") ?? ""),
+    tipo: normalizarTipoSolicitacao(formData.get("tipo")),
     titulo: String(formData.get("titulo") ?? "").trim(),
     descricao: String(formData.get("descricao") ?? "").trim(),
     dataReferencia: String(formData.get("dataReferencia") ?? ""),
@@ -115,7 +133,7 @@ export async function criarSolicitacaoAction(
             unidadeId: lotacaoAtual.unidadeId,
             unidadeSigla: lotacaoAtual.unidade.sigla,
           },
-          chefiaResolvida,
+          chefiaResolvida: chefiaResolvida ?? null,
         },
       },
     });

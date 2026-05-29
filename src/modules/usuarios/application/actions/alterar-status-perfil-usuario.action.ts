@@ -1,17 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { prisma } from "@/shared/infrastructure/database/prisma";
 
 export async function alterarStatusPerfilUsuarioAction(
   usuarioPerfilId: string,
   usuarioId: string,
   ativo: boolean,
-  _formData: FormData
 ) {
   const permissao = await exigirPermissaoOuRedirecionar(
-    "usuarios:gerenciar:global"
+    "usuarios:gerenciar:global",
   );
 
   const vinculoAtual = await prisma.usuarioPerfil.findUnique({

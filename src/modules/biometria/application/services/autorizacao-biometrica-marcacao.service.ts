@@ -1,7 +1,10 @@
 import crypto from "node:crypto";
+
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
-type TransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+type TransactionClient = Parameters<
+  Parameters<typeof prisma.$transaction>[0]
+>[0];
 
 export async function criarAutorizacaoBiometricaMarcacao(params: {
   servidorId: string;
@@ -17,10 +20,12 @@ export async function criarAutorizacaoBiometricaMarcacao(params: {
     data: {
       servidorId: params.servidorId,
       tokenHash,
-      similaridade: params.similaridade,
-      distancia: params.distancia,
       expiraEm,
-      consumida: false,
+      metadados: {
+        similaridade: params.similaridade,
+        distancia: params.distancia,
+        origem: "VALIDACAO_FACIAL_MARCACAO",
+      },
     },
   });
 
@@ -46,7 +51,7 @@ export async function validarAutorizacaoBiometricaMarcacao(params: {
     where: {
       id: params.autorizacaoId,
       servidorId: params.servidorId,
-      consumida: false,
+      marcacaoId: null,
       expiraEm: {
         gt: new Date(),
       },
@@ -76,8 +81,6 @@ export async function consumirAutorizacaoBiometricaMarcacao(params: {
       id: params.autorizacaoId,
     },
     data: {
-      consumida: true,
-      consumidaEm: new Date(),
       marcacaoId: params.marcacaoId,
     },
   });

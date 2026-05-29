@@ -1,5 +1,12 @@
-import { auth } from "@/auth";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { auth } from "@/auth";
+import { PERFIL_ATIVO_COOKIE } from "@/modules/auth/domain/constants/perfil-ativo-cookie";
+import {
+  obterTipoDashboardPorPerfil,
+  resolverPerfilAtivoDaSessao,
+  type UsuarioSessaoComPerfis,
+} from "@/modules/auth/application/services/resolver-perfil-ativo";
 import { DashboardAdmin } from "@/modules/dashboard/presentation/components/dashboard-admin";
 import { DashboardServidor } from "@/modules/dashboard/presentation/components/dashboard-servidor";
 
@@ -10,30 +17,26 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const perfilCodigo =
-    session.user.perfilAtivo?.codigo?.toUpperCase() ??
-    session.user.perfilAtivo?.nome?.toUpperCase() ??
-    "";
+  const usuarioSessao = session.user as UsuarioSessaoComPerfis;
+  const cookieStore = await cookies();
+  const perfilAtivoCodigo = cookieStore.get(PERFIL_ATIVO_COOKIE)?.value;
+  const perfilAtivo = resolverPerfilAtivoDaSessao(
+    usuarioSessao,
+    perfilAtivoCodigo,
+  );
+  const tipoDashboard = obterTipoDashboardPorPerfil(perfilAtivo);
+  const usuarioId = session.user.id;
 
-  const permissoes = session.user.perfilAtivo?.permissoes ?? [];
-
-  const isAdmin =
-    perfilCodigo === "ADMIN" ||
-    perfilCodigo === "MASTER" ||
-    permissoes.includes("usuarios:gerenciar:global") ||
-    permissoes.includes("servidores:gerenciar:global");
-
-  const isServidor =
-    perfilCodigo === "SERVIDOR" ||
-    permissoes.includes("marcacoes:registrar:proprio");
-
-  if (isAdmin) {
-    return <DashboardAdmin usuarioId={session.user.id} />;
+  if (tipoDashboard === "ADMIN") {
+    return <DashboardAdmin usuarioId={usuarioId} />;
   }
 
-  if (isServidor) {
-    return <DashboardServidor usuarioId={session.user.id} />;
+  if (tipoDashboard === "GESTOR") {
+    // Enquanto não existir um DashboardGestor próprio, a chefia pode usar
+    // temporariamente o dashboard administrativo ou um componente específico
+    // de gestão quando for criado.
+    return <DashboardAdmin usuarioId={usuarioId} />;
   }
 
-  return <DashboardServidor usuarioId={session.user.id} />;
+  return <DashboardServidor usuarioId={usuarioId} />;
 }

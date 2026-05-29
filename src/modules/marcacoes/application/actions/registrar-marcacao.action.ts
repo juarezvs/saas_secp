@@ -2,23 +2,8 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+
 import { auth } from "@/auth";
-import { prisma } from "@/shared/infrastructure/database/prisma";
-import { resolverJornadaVigenteDoServidor } from "@/modules/jornadas/application/services/resolver-jornada.service";
-import {
-  registrarMarcacaoSchema,
-  type RegistrarMarcacaoFormState,
-} from "../schemas/marcacao.schema";
-import {
-  formatarDataHoraPtBr,
-  obterDataReferencia,
-} from "../services/data-marcacao.service";
-import { classificarProximaMarcacao } from "../services/classificar-marcacao.service";
-import {
-  buscarServidorPorUsuarioId,
-  listarMarcacoesDoServidorNoDia,
-} from "../../infrastructure/repositories/marcacao.repository";
-import { recalcularDiaServidorService } from "@/modules/recalculo/application/services/recalcular-dia-servidor.service";
 import {
   verificarPeriodoHomologado,
   PeriodoHomologadoError,
@@ -27,6 +12,23 @@ import {
   consumirAutorizacaoBiometricaMarcacao,
   validarAutorizacaoBiometricaMarcacao,
 } from "@/modules/biometria/application/services/autorizacao-biometrica-marcacao.service";
+import { resolverJornadaVigenteDoServidor } from "@/modules/jornadas/application/services/resolver-jornada.service";
+import { recalcularDiaServidorService } from "@/modules/recalculo/application/services/recalcular-dia-servidor.service";
+import { prisma } from "@/shared/infrastructure/database/prisma";
+
+import {
+  buscarServidorPorUsuarioId,
+  listarMarcacoesDoServidorNoDia,
+} from "../../infrastructure/repositories/marcacao.repository";
+import {
+  registrarMarcacaoSchema,
+  type RegistrarMarcacaoFormState,
+} from "../schemas/marcacao.schema";
+import { classificarProximaMarcacao } from "../services/classificar-marcacao.service";
+import {
+  formatarDataHoraPtBr,
+  obterDataReferencia,
+} from "../services/data-marcacao.service";
 
 function extrairDados(formData: FormData) {
   return {
@@ -133,7 +135,8 @@ export async function registrarMarcacaoAction(
   if (!validacaoAutorizacao.valida) {
     return {
       sucesso: false,
-      mensagem: validacaoAutorizacao.mensagem,
+      mensagem:
+        "Autorização biométrica inválida, expirada ou já utilizada. Faça uma nova validação facial antes de registrar a marcação.",
     };
   }
 
@@ -159,20 +162,16 @@ export async function registrarMarcacaoAction(
     };
   }
 
-  /*
-   * Regra preparada para biometria:
-   * - Primeira marcação do dia exige reconhecimento facial.
-   * - Nesta etapa ainda registraremos WEB, mas metadados sinalizam a exigência.
-   * - Na etapa de biometria, bloquearemos o registro se não houver token/validação facial.
-   */
   const exigeReconhecimentoFacial =
     classificacao.exigeReconhecimentoFacial && marcacoesDoDia.length === 0;
 
   const requestHeaders = await headers();
+
   const ip =
     requestHeaders.get("x-forwarded-for") ??
     requestHeaders.get("x-real-ip") ??
     null;
+
   const userAgent = requestHeaders.get("user-agent");
 
   const dataReferencia = obterDataReferencia(agora);
@@ -214,7 +213,7 @@ export async function registrarMarcacaoAction(
           ordem: classificacao.ordem,
           descricao: classificacao.descricao,
           exigeReconhecimentoFacial,
-          biometriaValidadaNestaEtapa: false,
+          biometriaValidadaNestaEtapa: true,
           jornada: {
             id: jornadaVigente.jornadaId,
             codigo: jornadaVigente.codigo,

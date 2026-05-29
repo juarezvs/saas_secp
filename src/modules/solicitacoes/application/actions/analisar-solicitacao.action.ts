@@ -1,19 +1,57 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+
 import { auth } from "@/auth";
+import { recalcularPosSolicitacaoService } from "@/modules/recalculo/application/services/recalcular-pos-solicitacao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+
+import { buscarSolicitacaoPorId } from "../../infrastructure/repositories/solicitacao.repository";
 import {
   analisarSolicitacaoSchema,
   type AnalisarSolicitacaoFormState,
+  type AnalisarSolicitacaoInput,
 } from "../schemas/solicitacao.schema";
 import { aplicarEfeitosSolicitacaoDeferida } from "../services/aplicar-efeitos-solicitacao.service";
-import { buscarSolicitacaoPorId } from "../../infrastructure/repositories/solicitacao.repository";
-import { recalcularPosSolicitacaoService } from "@/modules/recalculo/application/services/recalcular-pos-solicitacao.service";
 
-function extrairDados(formData: FormData) {
+type ResultadoAnalise = AnalisarSolicitacaoInput["resultado"];
+
+type JsonInputValue =
+  | string
+  | number
+  | boolean
+  | JsonInputObject
+  | JsonInputArray;
+
+type JsonInputObject = {
+  [key: string]: JsonInputValue | null;
+};
+
+type JsonInputArray = Array<JsonInputValue | null>;
+
+function normalizarResultadoAnalise(
+  valor: FormDataEntryValue | null,
+): ResultadoAnalise | undefined {
+  const resultado = String(valor ?? "");
+
+  if (resultado === "DEFERIR" || resultado === "INDEFERIR") {
+    return resultado;
+  }
+
+  return undefined;
+}
+
+function converterParaJsonInput(valor: unknown): JsonInputValue | undefined {
+  if (valor === null || valor === undefined) {
+    return undefined;
+  }
+
+  return JSON.parse(JSON.stringify(valor)) as JsonInputValue;
+}
+
+function extrairDados(formData: FormData): Partial<AnalisarSolicitacaoInput> {
   return {
-    resultado: String(formData.get("resultado") ?? ""),
+    resultado: normalizarResultadoAnalise(formData.get("resultado")),
     justificativaAnalise: String(
       formData.get("justificativaAnalise") ?? "",
     ).trim(),
@@ -79,7 +117,7 @@ export async function analisarSolicitacaoAction(
     parsed.data.resultado === "DEFERIR" ? "DEFERIDA" : "INDEFERIDA";
 
   await prisma.$transaction(async (tx) => {
-    let dadosResultado: unknown = null;
+    let dadosResultado: JsonInputValue | undefined;
 
     if (novoStatus === "DEFERIDA") {
       const efeito = await aplicarEfeitosSolicitacaoDeferida({
@@ -95,7 +133,7 @@ export async function analisarSolicitacaoAction(
         },
       });
 
-      dadosResultado = efeito;
+      dadosResultado = converterParaJsonInput(efeito);
 
       await tx.solicitacaoEvento.create({
         data: {
@@ -103,7 +141,7 @@ export async function analisarSolicitacaoAction(
           usuarioId: session.user.id,
           tipo: "EFEITO_APLICADO",
           descricao: efeito.mensagem,
-          metadados: efeito,
+          metadados: dadosResultado ?? {},
         },
       });
     }
@@ -151,7 +189,7 @@ export async function analisarSolicitacaoAction(
         dadosDepois: {
           status: novoStatus,
           justificativaAnalise: parsed.data.justificativaAnalise,
-          dadosResultado,
+          dadosResultado: dadosResultado ?? null,
         },
       },
     });

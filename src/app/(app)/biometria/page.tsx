@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ScanFace, ShieldCheck } from "lucide-react";
+
 import { auth } from "@/auth";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
@@ -48,9 +49,11 @@ export default async function BiometriaPage() {
       <section className="grid gap-4 md:grid-cols-3">
         <article className="rounded-xl border bg-(--card) p-5 shadow-sm">
           <ShieldCheck className="size-5 text-blue-900 dark:text-blue-300" />
+
           <p className="mt-3 text-sm text-(--muted-foreground)">
             Status do cadastro
           </p>
+
           <h2 className="mt-1 text-xl font-bold">
             {biometria?.status ?? "Não cadastrado"}
           </h2>
@@ -58,7 +61,9 @@ export default async function BiometriaPage() {
 
         <article className="rounded-xl border bg-(--card) p-5 shadow-sm">
           <ScanFace className="size-5 text-blue-900 dark:text-blue-300" />
+
           <p className="mt-3 text-sm text-(--muted-foreground)">Amostras</p>
+
           <h2 className="mt-1 text-xl font-bold">
             {biometria?.amostrasQuantidade ?? 0}
           </h2>
@@ -66,6 +71,7 @@ export default async function BiometriaPage() {
 
         <article className="rounded-xl border bg-(--card) p-5 shadow-sm">
           <p className="text-sm text-(--muted-foreground)">Qualidade média</p>
+
           <h2 className="mt-1 text-xl font-bold">
             {typeof biometria?.qualidadeMedia === "number"
               ? biometria.qualidadeMedia.toFixed(2)
@@ -110,7 +116,7 @@ export default async function BiometriaPage() {
             </Link>
           </section>
 
-          <ValidacaoFacialCardClientOnly />
+          <ValidacaoFacialCardClientOnly servidorId={servidor.id} />
         </>
       )}
     </div>

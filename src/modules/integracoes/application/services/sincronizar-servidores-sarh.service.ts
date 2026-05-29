@@ -1,15 +1,40 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+
+import { buscarOuCriarIntegracaoSarh } from "../../infrastructure/repositories/integracoes.repository";
 import { buscarServidoresSarh } from "./sarh-client.service";
 import { normalizarServidorSarh } from "./normalizar-servidor-sarh.service";
-import { buscarOuCriarIntegracaoSarh } from "../../infrastructure/repositories/integracoes.repository";
-import { connect } from "http2";
-import { id } from "zod/v4/locales";
+
+async function obterOuCriarOrgaoPadrao() {
+  const codigoExternoSarh = Number(process.env.SARH_ORGAO_CODIGO_EXTERNO ?? 4);
+  const sigla = process.env.SARH_ORGAO_SIGLA ?? "SJAM";
+
+  const orgaoExistente = await prisma.orgao.findFirst({
+    where: {
+      OR: [{ codigoExternoSarh }, { sigla }],
+    },
+  });
+
+  if (orgaoExistente) {
+    return orgaoExistente;
+  }
+
+  return prisma.orgao.create({
+    data: {
+      sigla,
+      nome: "SEÇÃO JUDICIÁRIA DO AMAZONAS",
+      ativo: true,
+      codigoExternoSarh,
+      ultimaSincronizacaoSarh: new Date(),
+    },
+  });
+}
 
 export async function sincronizarServidoresSarhService(params: {
   usuarioId: string;
 }) {
   const inicio = Date.now();
   const integracao = await buscarOuCriarIntegracaoSarh();
+  const orgaoPadrao = await obterOuCriarOrgaoPadrao();
 
   const log = await prisma.logIntegracao.create({
     data: {
@@ -31,15 +56,6 @@ export async function sincronizarServidoresSarhService(params: {
     let atualizados = 0;
     let ignorados = 0;
 
-    /*
-     * Atenção:
-     * Este serviço usa campos comuns esperados no schema gerado nas etapas anteriores:
-     * Usuario.matricula, Usuario.nome, Usuario.email, Usuario.tipo, Usuario.ativo
-     * Servidor.matricula, Servidor.usuarioId, Servidor.ativo
-     *
-     * Se o seu model Servidor exigir orgaoId/cargoId obrigatórios,
-     * ajuste o bloco de create para incluir esses campos.
-     */
     for (const item of normalizados) {
       const resultado = await prisma.$transaction(async (tx) => {
         const usuarioExistente = await tx.usuario.findUnique({
@@ -53,6 +69,7 @@ export async function sincronizarServidoresSarhService(params: {
             matricula: item.matricula,
           },
           update: {
+            cpf: item.cpf || null,
             nome: item.nome,
             email: item.email,
             tipo: "SERVIDOR",
@@ -60,6 +77,7 @@ export async function sincronizarServidoresSarhService(params: {
           },
           create: {
             matricula: item.matricula,
+            cpf: item.cpf || null,
             nome: item.nome,
             email: item.email,
             tipo: "SERVIDOR",
@@ -79,6 +97,11 @@ export async function sincronizarServidoresSarhService(params: {
               id: servidorExistente.id,
             },
             data: {
+              orgao: {
+                connect: {
+                  id: servidorExistente.orgaoId ?? orgaoPadrao.id,
+                },
+              },
               ativo: item.ativo,
               cpf: item.cpf || null,
               nomeFuncional: item.nome,
@@ -102,6 +125,11 @@ export async function sincronizarServidoresSarhService(params: {
             usuario: {
               connect: {
                 id: usuario.id,
+              },
+            },
+            orgao: {
+              connect: {
+                id: orgaoPadrao.id,
               },
             },
           },
@@ -219,21 +247,3 @@ export async function sincronizarServidoresSarhService(params: {
     };
   }
 }
-
-// Se o seu Servidor exige orgaoId, substitua o trecho de criação por algo assim:
-
-// const orgao = await tx.orgao.findFirst({
-//   where: { ativo: true },
-//   orderBy: { criadoEm: "asc" },
-// });
-
-// await tx.servidor.create({
-//   data: {
-//     matricula: item.matricula,
-//     usuarioId: usuario.id,
-//     orgaoId: orgao?.id,
-//     ativo: item.ativo,
-//   },
-// });
-
-// Ajuste conforme o nome real do seu model de órgão.

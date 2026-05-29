@@ -83,8 +83,8 @@ export function calcularApuracaoDiaria(params: {
   const ordenadas = marcacoes
     .filter((m) =>
       ["ENTRADA", "SAIDA_INTERVALO", "RETORNO_INTERVALO", "SAIDA"].includes(
-        m.tipo
-      )
+        m.tipo,
+      ),
     )
     .sort((a, b) => a.dataHora.getTime() - b.dataHora.getTime());
 
@@ -142,7 +142,7 @@ export function calcularApuracaoDiaria(params: {
     };
   }
 
-  let minutosBrutos = diferencaEmMinutos(entrada, saida);
+  const minutosBrutos = diferencaEmMinutos(entrada, saida);
   let minutosIntervalo = 0;
 
   if (jornada.exigeIntervalo) {
@@ -222,7 +222,7 @@ export function calcularApuracaoDiaria(params: {
   }
 
   const status = ocorrencias.some((o) =>
-    ["MARCACAO_INCOMPLETA", "INTERVALO_INVALIDO"].includes(o.tipo)
+    ["MARCACAO_INCOMPLETA", "INTERVALO_INVALIDO"].includes(o.tipo),
   )
     ? "INCONSISTENTE"
     : "CALCULADA";

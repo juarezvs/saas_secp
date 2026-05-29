@@ -1,17 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { prisma } from "@/shared/infrastructure/database/prisma";
+
 import { buscarGestorUnidadePorId } from "../../infrastructure/repositories/chefia.repository";
 
 export async function encerrarGestorUnidadeAction(
   gestorUnidadeId: string,
   unidadeId: string,
-  _formData: FormData
 ) {
   const permissao = await exigirPermissaoOuRedirecionar(
-    "chefias:gerenciar:global"
+    "chefias:gerenciar:global",
   );
 
   const gestorAtual = await buscarGestorUnidadePorId(gestorUnidadeId);

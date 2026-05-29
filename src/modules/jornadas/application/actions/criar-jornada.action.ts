@@ -2,52 +2,70 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { prisma } from "@/shared/infrastructure/database/prisma";
+
+import { codigoJornadaExiste } from "../../infrastructure/repositories/jornada.repository";
 import {
   jornadaSchema,
+  tiposJornada,
   type JornadaFormState,
+  type JornadaInput,
 } from "../schemas/jornada.schema";
-import { codigoJornadaExiste } from "../../infrastructure/repositories/jornada.repository";
+
+type TipoJornada = JornadaInput["tipo"];
 
 function valorOpcionalString(valor: FormDataEntryValue | null) {
-  const texto = String(valor ?? "").trim();
-  return texto.length > 0 ? texto : null;
+  return String(valor ?? "").trim();
 }
 
 function valorOpcionalNumero(valor: FormDataEntryValue | null) {
   const texto = String(valor ?? "").trim();
+
   return texto.length > 0 ? Number(texto) : null;
 }
 
-function extrairDadosJornada(formData: FormData) {
+function normalizarTipoJornada(
+  valor: FormDataEntryValue | null,
+): TipoJornada | undefined {
+  const tipo = String(valor ?? "");
+
+  return tiposJornada.includes(tipo as TipoJornada)
+    ? (tipo as TipoJornada)
+    : undefined;
+}
+
+function extrairDadosJornada(formData: FormData): Partial<JornadaInput> {
   return {
     codigo: String(formData.get("codigo") ?? "").trim().toUpperCase(),
     nome: String(formData.get("nome") ?? "").trim(),
-    descricao: String(formData.get("descricao") ?? "").trim(),
-    tipo: String(formData.get("tipo") ?? ""),
+    descricao: valorOpcionalString(formData.get("descricao")),
+    tipo: normalizarTipoJornada(formData.get("tipo")),
     cargaDiariaMinutos: Number(formData.get("cargaDiariaMinutos") ?? 0),
     exigeIntervalo:
       formData.get("exigeIntervalo") === "on" ||
       formData.get("exigeIntervalo") === "true",
     intervaloMinimoMinutos: valorOpcionalNumero(
-      formData.get("intervaloMinimoMinutos")
+      formData.get("intervaloMinimoMinutos"),
     ),
     intervaloMaximoMinutos: valorOpcionalNumero(
-      formData.get("intervaloMaximoMinutos")
+      formData.get("intervaloMaximoMinutos"),
     ),
     horarioEntradaPadrao: valorOpcionalString(
-      formData.get("horarioEntradaPadrao")
+      formData.get("horarioEntradaPadrao"),
     ),
-    horarioSaidaPadrao: valorOpcionalString(formData.get("horarioSaidaPadrao")),
+    horarioSaidaPadrao: valorOpcionalString(
+      formData.get("horarioSaidaPadrao"),
+    ),
     horarioDiferenciadoPermitido:
       formData.get("horarioDiferenciadoPermitido") === "on" ||
       formData.get("horarioDiferenciadoPermitido") === "true",
     entradaMinimaDiferenciada: valorOpcionalString(
-      formData.get("entradaMinimaDiferenciada")
+      formData.get("entradaMinimaDiferenciada"),
     ),
     saidaMaximaDiferenciada: valorOpcionalString(
-      formData.get("saidaMaximaDiferenciada")
+      formData.get("saidaMaximaDiferenciada"),
     ),
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
   };
@@ -55,10 +73,10 @@ function extrairDadosJornada(formData: FormData) {
 
 export async function criarJornadaAction(
   _estadoAnterior: JornadaFormState,
-  formData: FormData
+  formData: FormData,
 ): Promise<JornadaFormState> {
   const permissao = await exigirPermissaoOuRedirecionar(
-    "jornadas:gerenciar:global"
+    "jornadas:gerenciar:global",
   );
 
   const dados = extrairDadosJornada(formData);

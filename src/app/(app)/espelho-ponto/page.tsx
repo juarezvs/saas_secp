@@ -1,13 +1,15 @@
+import { redirect } from "next/navigation";
+
 import { auth } from "@/auth";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
-import { EspelhoPontoMensal } from "@/modules/apuracao/presentation/components/espelho-ponto-mensal";
 import {
   buscarServidorComUsuarioPorUsuarioId,
   listarApuracoesDoServidorNoMes,
   listarCompetenciasApuracaoDoServidor,
   listarMarcacoesDoServidorNoMes,
 } from "@/modules/apuracao/infrastructure/repositories/apuracao.repository";
+import { EspelhoPontoMensal } from "@/modules/apuracao/presentation/components/espelho-ponto-mensal";
 
 export default async function EspelhoPontoPage({
   searchParams,
@@ -33,6 +35,7 @@ export default async function EspelhoPontoPage({
   const ano = Number(
     params.ano ?? competenciaInicial?.ano ?? new Date().getFullYear(),
   );
+
   const mes = Number(
     params.mes ?? competenciaInicial?.mes ?? new Date().getMonth() + 1,
   );
@@ -52,6 +55,27 @@ export default async function EspelhoPontoPage({
       ])
     : [[], []];
 
+  async function selecionarCompetencia(formData: FormData) {
+    "use server";
+
+    const competencia = String(formData.get("competencia") ?? "");
+    const [anoSelecionado, mesSelecionado] = competencia.split("-");
+
+    const anoParam = Number(anoSelecionado);
+    const mesParam = Number(mesSelecionado);
+
+    if (
+      !anoSelecionado ||
+      !mesSelecionado ||
+      Number.isNaN(anoParam) ||
+      Number.isNaN(mesParam)
+    ) {
+      redirect("/espelho-ponto");
+    }
+
+    redirect(`/espelho-ponto?ano=${anoParam}&mes=${mesParam}`);
+  }
+
   return (
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "Espelho de ponto" }]} />
@@ -65,7 +89,7 @@ export default async function EspelhoPontoPage({
           Espelho mensal
         </h1>
 
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
+        <p className="mt-2 max-w-4xl text-sm leading-6 text-(--muted-foreground)">
           Consulte a consolidação mensal das apurações diárias, marcações,
           créditos e débitos.
         </p>
@@ -80,6 +104,7 @@ export default async function EspelhoPontoPage({
       {servidor && (
         <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
           <h2 className="text-lg font-bold">{servidor.usuario.nome}</h2>
+
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
             Matrícula: {servidor.matricula} • Referência:{" "}
             {String(mes).padStart(2, "0")}/{ano}
@@ -91,7 +116,10 @@ export default async function EspelhoPontoPage({
         <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
           <h2 className="text-lg font-bold">Selecionar competência</h2>
 
-          <form className="mt-4 flex flex-col gap-3 md:flex-row md:items-end">
+          <form
+            action={selecionarCompetencia}
+            className="mt-4 flex flex-col gap-3 md:flex-row md:items-end"
+          >
             <div className="flex-1">
               <label className="text-sm font-semibold" htmlFor="competencia">
                 Mês/Ano
@@ -102,12 +130,13 @@ export default async function EspelhoPontoPage({
                 name="competencia"
                 defaultValue={`${ano}-${String(mes).padStart(2, "0")}`}
                 className="mt-2 h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-                onChange={undefined}
               >
                 {competencias.map((competencia) => (
                   <option
                     key={`${competencia.ano}-${competencia.mes}`}
-                    value={`${competencia.ano}-${String(competencia.mes).padStart(2, "0")}`}
+                    value={`${competencia.ano}-${String(
+                      competencia.mes,
+                    ).padStart(2, "0")}`}
                   >
                     {competencia.label}
                   </option>
@@ -117,11 +146,10 @@ export default async function EspelhoPontoPage({
 
             <button
               type="submit"
-              formAction={async (formData) => {
-                "use server";
-              }}
-              className="hidden"
-            />
+              className="inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)]"
+            >
+              Consultar
+            </button>
 
             <a
               href={`/api/relatorios/espelho/${servidor.id}/pdf?ano=${ano}&mes=${mes}`}
