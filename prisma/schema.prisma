@@ -270,6 +270,63 @@ enum StatusLogIntegracao {
   IGNORADO
 }
 
+enum TipoExecucaoIntegracaoSarh {
+  CARGA_INICIAL
+  SINCRONIZACAO_COMPLETA
+  SINCRONIZACAO_INCREMENTAL
+  REPROCESSAMENTO
+  SIMULACAO
+}
+
+enum StatusExecucaoIntegracaoSarh {
+  AGENDADA
+  EM_EXECUCAO
+  CONCLUIDA
+  CONCLUIDA_COM_ERROS
+  FALHOU
+  CANCELADA
+}
+
+enum TipoEndpointSarh {
+  EMPRESAS
+  LOTACOES
+  CARGOS
+  SERVIDORES
+  LOTACOES_SERVIDORES
+}
+
+enum TipoRegistroSarh {
+  EMPRESA
+  LOTACAO
+  CARGO
+  SERVIDOR
+  LOTACAO_SERVIDOR
+}
+
+enum OperacaoRegistroSarh {
+  CRIAR
+  ATUALIZAR
+  INATIVAR
+  IGNORAR
+  CONFLITO
+  ERRO
+}
+
+enum StatusRegistroIntegracaoSarh {
+  PENDENTE
+  PROCESSADO
+  IGNORADO
+  ERRO
+  CONFLITO
+}
+
+enum StatusConflitoSarh {
+  PENDENTE
+  RESOLVIDO_APLICAR_SARH
+  RESOLVIDO_MANTER_SECP
+  IGNORADO
+}
+
 enum TipoEventoEquipamento {
   MARCACAO
   HEARTBEAT
@@ -347,6 +404,8 @@ model Usuario {
   boletinsGerados                 BoletimFrequencia[]       @relation("BoletinsGeradosPorUsuario")
   boletinsEncaminhados            BoletimFrequencia[]       @relation("BoletinsEncaminhadosPorUsuario")
   boletinsRecebidos               BoletimFrequencia[]       @relation("BoletinsRecebidosPorUsuario")
+  integracoesSarhExecutadas       IntegracaoSarhExecucao[]  @relation("IntegracoesSarhExecutadasPorUsuario")
+  conflitosSarhResolvidos         IntegracaoSarhConflito[]  @relation("ConflitosSarhResolvidosPorUsuario")
 
   @@map("usuarios")
 }
@@ -425,6 +484,12 @@ model Orgao {
   nome  String  @db.VarChar(200)
   ativo Boolean @default(true)
 
+  codigoExternoSarh       Int?      @unique @map("codigo_externo_sarh")
+  dataInicioSarh          DateTime? @map("data_inicio_sarh") @db.Date
+  dataFimSarh             DateTime? @map("data_fim_sarh") @db.Date
+  ultimaSincronizacaoSarh DateTime? @map("ultima_sincronizacao_sarh")
+  payloadSarh             Json?     @map("payload_sarh")
+
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
@@ -445,6 +510,18 @@ model UnidadeOrganizacional {
   tipo   TipoUnidadeOrganizacional
   ativo  Boolean                   @default(true)
 
+  codigoExternoSarh       Int?      @map("codigo_externo_sarh")
+  codigoExternoPaiSarh    Int?      @map("codigo_externo_pai_sarh")
+  categoriaSarh           String?   @map("categoria_sarh") @db.VarChar(120)
+  emailSarh               String?   @map("email_sarh") @db.VarChar(200)
+  tipoSarhId              Int?      @map("tipo_sarh_id")
+  tipoSarhNome            String?   @map("tipo_sarh_nome") @db.VarChar(120)
+  dataInicioSarh          DateTime? @map("data_inicio_sarh") @db.Date
+  dataFimSarh             DateTime? @map("data_fim_sarh") @db.Date
+  origemSarh              Boolean   @default(false) @map("origem_sarh")
+  ultimaSincronizacaoSarh DateTime? @map("ultima_sincronizacao_sarh")
+  payloadSarh             Json?     @map("payload_sarh")
+
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
@@ -461,9 +538,35 @@ model UnidadeOrganizacional {
   equipamentosBiometricos EquipamentoBiometrico[]
 
   @@unique([orgaoId, codigo])
+  @@unique([orgaoId, codigoExternoSarh])
   @@index([orgaoId])
   @@index([unidadePaiId])
+  @@index([codigoExternoSarh])
+  @@index([codigoExternoPaiSarh])
+  @@index([origemSarh])
   @@map("unidades_organizacionais")
+}
+
+model Cargo {
+  id String @id @default(uuid()) @db.Uuid
+
+  codigoExternoSarh Int     @unique @map("codigo_externo_sarh")
+  descricao         String  @db.VarChar(250)
+  ativo             Boolean @default(true)
+  origemSarh        Boolean @default(true) @map("origem_sarh")
+
+  payloadSarh             Json?     @map("payload_sarh")
+  ultimaSincronizacaoSarh DateTime? @map("ultima_sincronizacao_sarh")
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  servidores Servidor[]
+  lotacoes   Lotacao[]
+
+  @@index([ativo])
+  @@index([origemSarh])
+  @@map("cargos")
 }
 
 model Servidor {
@@ -477,11 +580,22 @@ model Servidor {
   vinculo       TipoVinculoServidor @default(EFETIVO)
   ativo         Boolean             @default(true)
 
+  cargoId                 String?   @map("cargo_id") @db.Uuid
+  dataNascimento          DateTime? @map("data_nascimento") @db.Date
+  nomeCompletoSarh        String?   @map("nome_completo_sarh") @db.VarChar(200)
+  nomeSocialSarh          String?   @map("nome_social_sarh") @db.VarChar(200)
+  codigoLotacaoSarh       Int?      @map("codigo_lotacao_sarh")
+  codigoLotacaoPaiSarh    Int?      @map("codigo_lotacao_pai_sarh")
+  origemSarh              Boolean   @default(false) @map("origem_sarh")
+  ultimaSincronizacaoSarh DateTime? @map("ultima_sincronizacao_sarh")
+  payloadSarh             Json?     @map("payload_sarh")
+
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   orgao   Orgao   @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+  cargo   Cargo?  @relation(fields: [cargoId], references: [id], onDelete: SetNull)
 
   lotacoes                          Lotacao[]
   gestores                          GestorUnidade[]
@@ -501,14 +615,24 @@ model Servidor {
   marcacoesBrutas                   MarcacaoBruta[]
 
   @@index([orgaoId])
+  @@index([cargoId])
+  @@index([codigoLotacaoSarh])
+  @@index([origemSarh])
   @@map("servidores")
 }
 
 model Lotacao {
   id String @id @default(uuid()) @db.Uuid
 
-  servidorId String @map("servidor_id") @db.Uuid
-  unidadeId  String @map("unidade_id") @db.Uuid
+  servidorId String  @map("servidor_id") @db.Uuid
+  unidadeId  String  @map("unidade_id") @db.Uuid
+  cargoId    String? @map("cargo_id") @db.Uuid
+
+  codigoLotacaoSarh  Int?      @map("codigo_lotacao_sarh")
+  codigoCargoSarh    Int?      @map("codigo_cargo_sarh")
+  origemSarh         Boolean   @default(false) @map("origem_sarh")
+  payloadSarh        Json?     @map("payload_sarh")
+  sincronizadoSarhEm DateTime? @map("sincronizado_sarh_em")
 
   tipo       TipoLotacao    @default(TITULAR)
   status     StatusRegistro @default(ATIVO)
@@ -520,9 +644,13 @@ model Lotacao {
 
   servidor Servidor              @relation(fields: [servidorId], references: [id], onDelete: Restrict)
   unidade  UnidadeOrganizacional @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
+  cargo    Cargo?                @relation(fields: [cargoId], references: [id], onDelete: SetNull)
 
   @@index([servidorId])
   @@index([unidadeId])
+  @@index([cargoId])
+  @@index([codigoLotacaoSarh])
+  @@index([origemSarh])
   @@index([status])
   @@map("lotacoes")
 }
@@ -1101,8 +1229,10 @@ model IntegracaoSistema {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  logs         LogIntegracao[]
-  equipamentos EquipamentoBiometrico[]
+  logs                LogIntegracao[]
+  equipamentos        EquipamentoBiometrico[]
+  execucoesSarh       IntegracaoSarhExecucao[]
+  mapeamentosExternos MapeamentoExterno[]
 
   @@index([tipo])
   @@index([status])
@@ -1141,6 +1271,170 @@ model LogIntegracao {
   @@index([entidadeId])
   @@index([iniciadoEm])
   @@map("integracoes_logs")
+}
+
+model MapeamentoExterno {
+  id String @id @default(uuid()) @db.Uuid
+
+  integracaoId String?          @map("integracao_id") @db.Uuid
+  sistema      TipoIntegracao
+  tipoRegistro TipoRegistroSarh @map("tipo_registro")
+
+  codigoExterno     String @map("codigo_externo") @db.VarChar(120)
+  entidadeInterna   String @map("entidade_interna") @db.VarChar(120)
+  entidadeInternaId String @map("entidade_interna_id") @db.VarChar(120)
+
+  hashAtual String? @map("hash_atual") @db.VarChar(128)
+  ativo     Boolean @default(true)
+  metadados Json?
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  integracao IntegracaoSistema? @relation(fields: [integracaoId], references: [id], onDelete: SetNull)
+
+  @@unique([sistema, tipoRegistro, codigoExterno])
+  @@index([integracaoId])
+  @@index([entidadeInterna, entidadeInternaId])
+  @@index([ativo])
+  @@map("mapeamentos_externos")
+}
+
+model IntegracaoSarhExecucao {
+  id String @id @default(uuid()) @db.Uuid
+
+  integracaoId         String  @map("integracao_id") @db.Uuid
+  iniciadoPorUsuarioId String? @map("iniciado_por_usuario_id") @db.Uuid
+
+  tipo          TipoExecucaoIntegracaoSarh
+  status        StatusExecucaoIntegracaoSarh @default(AGENDADA)
+  modoSimulacao Boolean                      @default(false) @map("modo_simulacao")
+
+  totalRecebidos   Int @default(0) @map("total_recebidos")
+  totalCriados     Int @default(0) @map("total_criados")
+  totalAtualizados Int @default(0) @map("total_atualizados")
+  totalInativados  Int @default(0) @map("total_inativados")
+  totalIgnorados   Int @default(0) @map("total_ignorados")
+  totalErros       Int @default(0) @map("total_erros")
+  totalConflitos   Int @default(0) @map("total_conflitos")
+
+  mensagemErro String? @map("mensagem_erro") @db.Text
+  metadados    Json?
+
+  iniciadoEm   DateTime  @default(now()) @map("iniciado_em")
+  finalizadoEm DateTime? @map("finalizado_em")
+  duracaoMs    Int?      @map("duracao_ms")
+
+  integracao         IntegracaoSistema @relation(fields: [integracaoId], references: [id], onDelete: Restrict)
+  iniciadoPorUsuario Usuario?          @relation("IntegracoesSarhExecutadasPorUsuario", fields: [iniciadoPorUsuarioId], references: [id], onDelete: SetNull)
+
+  registrosBrutos RegistroBrutoSarh[]
+  itens           IntegracaoSarhItem[]
+  conflitos       IntegracaoSarhConflito[]
+
+  @@index([integracaoId])
+  @@index([iniciadoPorUsuarioId])
+  @@index([tipo])
+  @@index([status])
+  @@index([iniciadoEm])
+  @@map("integracoes_sarh_execucoes")
+}
+
+model RegistroBrutoSarh {
+  id String @id @default(uuid()) @db.Uuid
+
+  execucaoId String @map("execucao_id") @db.Uuid
+
+  endpoint     TipoEndpointSarh
+  tipoRegistro TipoRegistroSarh @map("tipo_registro")
+  chaveExterna String           @map("chave_externa") @db.VarChar(120)
+  hashRegistro String           @map("hash_registro") @db.VarChar(128)
+
+  payload    Json
+  processado Boolean @default(false)
+
+  criadoEm DateTime @default(now()) @map("criado_em")
+
+  execucao IntegracaoSarhExecucao @relation(fields: [execucaoId], references: [id], onDelete: Cascade)
+  itens    IntegracaoSarhItem[]
+
+  @@unique([tipoRegistro, chaveExterna, hashRegistro])
+  @@index([execucaoId])
+  @@index([endpoint])
+  @@index([tipoRegistro, chaveExterna])
+  @@index([hashRegistro])
+  @@map("registros_brutos_sarh")
+}
+
+model IntegracaoSarhItem {
+  id String @id @default(uuid()) @db.Uuid
+
+  execucaoId      String  @map("execucao_id") @db.Uuid
+  registroBrutoId String? @map("registro_bruto_id") @db.Uuid
+
+  endpoint     TipoEndpointSarh
+  tipoRegistro TipoRegistroSarh @map("tipo_registro")
+  chaveExterna String           @map("chave_externa") @db.VarChar(120)
+
+  operacao OperacaoRegistroSarh
+  status   StatusRegistroIntegracaoSarh @default(PENDENTE)
+
+  entidadeInterna   String? @map("entidade_interna") @db.VarChar(120)
+  entidadeInternaId String? @map("entidade_interna_id") @db.VarChar(120)
+
+  mensagem String? @db.Text
+  erro     String? @db.Text
+
+  dadosAntes  Json? @map("dados_antes")
+  dadosDepois Json? @map("dados_depois")
+  metadados   Json?
+
+  criadoEm DateTime @default(now()) @map("criado_em")
+
+  execucao      IntegracaoSarhExecucao @relation(fields: [execucaoId], references: [id], onDelete: Cascade)
+  registroBruto RegistroBrutoSarh?     @relation(fields: [registroBrutoId], references: [id], onDelete: SetNull)
+
+  @@index([execucaoId])
+  @@index([registroBrutoId])
+  @@index([endpoint])
+  @@index([tipoRegistro, chaveExterna])
+  @@index([operacao])
+  @@index([status])
+  @@map("integracoes_sarh_itens")
+}
+
+model IntegracaoSarhConflito {
+  id String @id @default(uuid()) @db.Uuid
+
+  execucaoId String @map("execucao_id") @db.Uuid
+
+  tipoRegistro TipoRegistroSarh @map("tipo_registro")
+  chaveExterna String           @map("chave_externa") @db.VarChar(120)
+
+  entidadeInterna   String? @map("entidade_interna") @db.VarChar(120)
+  entidadeInternaId String? @map("entidade_interna_id") @db.VarChar(120)
+
+  campo     String @db.VarChar(120)
+  valorSarh Json?  @map("valor_sarh")
+  valorSecp Json?  @map("valor_secp")
+
+  status StatusConflitoSarh @default(PENDENTE)
+
+  resolvidoPorUsuarioId  String?   @map("resolvido_por_usuario_id") @db.Uuid
+  resolvidoEm            DateTime? @map("resolvido_em")
+  justificativaResolucao String?   @map("justificativa_resolucao") @db.Text
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  execucao            IntegracaoSarhExecucao @relation(fields: [execucaoId], references: [id], onDelete: Cascade)
+  resolvidoPorUsuario Usuario?               @relation("ConflitosSarhResolvidosPorUsuario", fields: [resolvidoPorUsuarioId], references: [id], onDelete: SetNull)
+
+  @@index([execucaoId])
+  @@index([tipoRegistro, chaveExterna])
+  @@index([entidadeInterna, entidadeInternaId])
+  @@index([status])
+  @@map("integracoes_sarh_conflitos")
 }
 
 model EquipamentoBiometrico {

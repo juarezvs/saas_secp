@@ -352,6 +352,55 @@ const permissoesIniciais = [
     descricao: "Receber eventos externos por webhook.",
   },
 
+  // Integração SARH
+  {
+    recurso: "integracoes-sarh",
+    acao: "consultar",
+    escopo: "global",
+    descricao:
+      "Consultar painel, execuções, itens, erros e conflitos da integração SARH.",
+  },
+  {
+    recurso: "integracoes-sarh",
+    acao: "configurar",
+    escopo: "global",
+    descricao:
+      "Configurar URL base, endpoints, timeouts e parâmetros da integração SARH.",
+  },
+  {
+    recurso: "integracoes-sarh",
+    acao: "executar",
+    escopo: "global",
+    descricao: "Executar carga inicial ou sincronização manual com o SARH.",
+  },
+  {
+    recurso: "integracoes-sarh",
+    acao: "simular",
+    escopo: "global",
+    descricao:
+      "Executar simulação/dry-run da sincronização SARH sem gravar alterações de domínio.",
+  },
+  {
+    recurso: "integracoes-sarh",
+    acao: "reprocessar",
+    escopo: "global",
+    descricao:
+      "Reprocessar item, matrícula, unidade, cargo ou execução SARH com falha.",
+  },
+  {
+    recurso: "integracoes-sarh",
+    acao: "resolver-conflito",
+    escopo: "global",
+    descricao:
+      "Resolver conflitos entre dados do SARH e dados protegidos do SECP.",
+  },
+  {
+    recurso: "integracoes-sarh",
+    acao: "visualizar-payload",
+    escopo: "global",
+    descricao: "Visualizar payload bruto do SARH, com cuidados de LGPD.",
+  },
+
   // Biometria
   {
     recurso: "biometria",
@@ -783,6 +832,63 @@ async function criarJornadasPadrao() {
   return [jornada7h, jornada8h];
 }
 
+
+async function criarIntegracaoSarh() {
+  const baseUrl =
+    process.env.SARH_BASE_URL ?? "http://sarh.integracao.am.trf1.gov.br";
+
+  const existente = await prisma.integracaoSistema.findFirst({
+    where: {
+      tipo: "SARH",
+      nome: "SARH - Sistema de Gestão de Recursos Humanos",
+    },
+  });
+
+  const data = {
+    nome: "SARH - Sistema de Gestão de Recursos Humanos",
+    tipo: "SARH" as const,
+    status: "ATIVA" as const,
+    direcao: "ENTRADA" as const,
+    baseUrl,
+    descricao:
+      "Integração para carga e sincronização de empresas, lotações, cargos, servidores e lotações dos servidores a partir do SARH.",
+    ativo: true,
+    configuracao: {
+      endpoints: {
+        empresas: "/empresas",
+        lotacoes: "/lotacao",
+        cargos: "/cargos",
+        servidores: "/servidores/",
+        lotacoesServidores: "/lotacao-servidor/",
+      },
+      timeoutMs: Number(process.env.SARH_TIMEOUT_MS ?? 30000),
+      modoPadrao: "SINCRONIZACAO_COMPLETA",
+      permiteDryRun: true,
+      cpfComoString: true,
+      fonteOficial: ["servidores", "lotacoes", "cargos"],
+      camposProtegidosSecp: [
+        "jornada",
+        "escala",
+        "perfil",
+        "permissoes",
+        "biometria",
+        "bancoHoras",
+        "marcacoes",
+        "homologacoes",
+      ],
+    },
+  };
+
+  if (existente) {
+    return prisma.integracaoSistema.update({
+      where: { id: existente.id },
+      data,
+    });
+  }
+
+  return prisma.integracaoSistema.create({ data });
+}
+
 async function main() {
   console.log("Iniciando seed do SECP...");
 
@@ -801,6 +907,7 @@ async function main() {
 
   await criarEstruturaInicial();
   await criarJornadasPadrao();
+  const integracaoSarh = await criarIntegracaoSarh();
 
   await prisma.auditoriaEvento.create({
     data: {
@@ -813,6 +920,7 @@ async function main() {
         perfis: ["ADMIN", "SERVIDOR"],
         estrutura: ["JFAM", "SJAM", "NUTEC", "NUCGP", "SECAD"],
         jornadas: ["JORNADA_7H", "JORNADA_8H"],
+        integracoes: [integracaoSarh.nome],
       },
     },
   });

@@ -45,6 +45,7 @@ docker compose up -d
 
 e) criar arquivo .env no raiz do projeto e colar o conteúdo abaixo:
 
+
 ### inicio do conteúdo do arquivo .env
 
 # Banco de dados local
@@ -95,6 +96,10 @@ SECP_EQUIPAMENTO_WEBHOOK_TOKEN=troque-este-token-em-producao
 REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
 AFD_UPLOAD_DIR=import/\_upload/afd
+
+# Integração com SARH
+SARH_BASE_URL="http://sarh.integracao.am.trf1.gov.br"
+SARH_TIMEOUT_MS="30000"
 
 ### fim do conteúdo do arquivo .env
 
