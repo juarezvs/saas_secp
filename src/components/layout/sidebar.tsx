@@ -4,265 +4,174 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
-  Building2,
-  Cable,
-  Calculator,
-  CalendarCheck,
-  CalendarClock,
-  ClipboardCheck,
+  CalendarDays,
+  CalendarRange,
   ClipboardList,
-  Clock3,
-  DatabaseZap,
+  Clock,
   FileCheck2,
-  FileText,
-  FileUp,
-  Gauge,
-  LogOut,
-  ScanFace,
-  Settings,
-  ShieldAlert,
-  ShieldCheck,
-  UserCheck,
-  UsersRound,
+  HelpCircle,
+  Home,
+  Hourglass,
+  X,
   type LucideIcon,
 } from "lucide-react";
-import { signOut } from "next-auth/react";
-import type { PerfilSessao } from "@/modules/auth/domain/entities/usuario-autenticado";
 
-type SidebarProps = {
-  aberta: boolean;
-  perfilAtivo: PerfilSessao | null;
+export type PerfilNavegacao = {
+  codigo: string;
+  nome: string;
+  descricao?: string;
 };
 
 export type MenuItem = {
   label: string;
   href: string;
   icon: LucideIcon;
-  permissao?: string;
 };
 
 export const MENU_ITEMS: MenuItem[] = [
-  {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: Gauge,
-  },
-  {
-    label: "Unidades",
-    href: "/unidades",
-    icon: Building2,
-    permissao: "unidades:gerenciar:global",
-  },
-  {
-    label: "Servidores",
-    href: "/servidores",
-    icon: UsersRound,
-    permissao: "servidores:gerenciar:global",
-  },
-  {
-    label: "Usuários",
-    href: "/usuarios",
-    icon: UsersRound,
-    permissao: "usuarios:gerenciar:global",
-  },
-  {
-    label: "Perfis",
-    href: "/perfis",
-    icon: ShieldCheck,
-    permissao: "perfis:gerenciar:global",
-  },
-  {
-    label: "Chefias",
-    href: "/chefias",
-    icon: UserCheck,
-    permissao: "chefias:gerenciar:global",
-  },
-  {
-    label: "Jornadas",
-    href: "/jornadas",
-    icon: CalendarClock,
-    permissao: "jornadas:gerenciar:global",
-  },
-  {
-    label: "Marcações",
-    href: "/marcacoes",
-    icon: Clock3,
-    permissao: "marcacoes:consultar:proprio",
-  },
-  {
-    label: "Marcações Brutas",
-    href: "/marcacoes-brutas",
-    icon: DatabaseZap,
-    permissao: "afd:importar:global",
-  },
-  {
-    label: "Importação AFD",
-    href: "/afd",
-    icon: FileUp,
-    permissao: "afd:importar:global",
-  },
-  {
-    label: "Biometria Facial",
-    href: "/biometria",
-    icon: ScanFace,
-    permissao: "biometria:cadastrar:proprio",
-  },
-  {
-    label: "Solicitações",
-    href: "/solicitacoes",
-    icon: ClipboardCheck,
-    permissao: "solicitacoes:consultar:proprio",
-  },
-  {
-    label: "Homologação",
-    href: "/homologacao",
-    icon: CalendarCheck,
-    permissao: "homologacao:gerenciar:chefia",
-  },
-  {
-    label: "Boletim de Frequência",
-    href: "/boletim-frequencia",
-    icon: FileCheck2,
-    permissao: "boletim-frequencia:gerar:chefia",
-  },
-  {
-    label: "Relatórios",
-    href: "/relatorios",
-    icon: FileText,
-    permissao: "relatorios:consultar:proprio",
-  },
-  {
-    label: "Auditoria",
-    href: "/auditoria",
-    icon: ShieldAlert,
-    permissao: "auditoria:consultar:global",
-  },
-  {
-    label: "Integrações",
-    href: "/integracoes",
-    icon: Cable,
-    permissao: "integracoes:consultar:global",
-  },
-  {
-    label: "Banco de Horas",
-    href: "/banco-horas",
-    icon: BarChart3,
-    permissao: "banco-horas:consultar:proprio",
-  },
-  {
-    label: "Apuração",
-    href: "/apuracao",
-    icon: Calculator,
-    permissao: "apuracao:consultar:proprio",
-  },
-  {
-    label: "Espelho de Ponto",
-    href: "/espelho-ponto",
-    icon: ClipboardList,
-    permissao: "apuracao:consultar:proprio",
-  },
-  {
-    label: "Administração",
-    href: "/administracao",
-    icon: Settings,
-    permissao: "configuracoes:gerenciar:global",
-  },
+  { label: "Inicio", href: "/dashboard", icon: Home },
+  { label: "Registrar ponto", href: "/marcacoes/registrar", icon: Clock },
+  { label: "Minha frequencia", href: "/espelho-ponto", icon: CalendarDays },
+  { label: "Meu banco de horas", href: "/banco-horas", icon: Hourglass },
+  { label: "Solicitacoes", href: "/solicitacoes", icon: ClipboardList },
+  { label: "Recesso forense", href: "/recesso-forense", icon: CalendarRange },
+  { label: "Comprovantes", href: "/relatorios", icon: FileCheck2 },
+  { label: "Relatorios", href: "/relatorios", icon: BarChart3 },
+  { label: "Ajuda e regras", href: "/ajuda", icon: HelpCircle },
 ];
 
-export function podeExibirItem(item: MenuItem, perfilAtivo: PerfilSessao | null) {
-  if (!item.permissao) {
-    return true;
-  }
+type SidebarProps = {
+  recolhida: boolean;
+  drawerAberto: boolean;
+  perfilAtivo: PerfilNavegacao;
+  onFecharDrawer: () => void;
+};
 
-  return perfilAtivo?.permissoes.includes(item.permissao) ?? false;
+export function podeExibirItem() {
+  return true;
 }
 
-export function perfilPodeAcessarPath(
-  pathname: string,
-  perfilAtivo: PerfilSessao | null,
-) {
-  const itemDaRota = MENU_ITEMS.find(
-    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
-  );
-
-  if (!itemDaRota) {
-    // Rotas internas não listadas no menu devem ser protegidas no servidor/middleware.
-    return true;
-  }
-
-  return podeExibirItem(itemDaRota, perfilAtivo);
+export function perfilPodeAcessarPath() {
+  return true;
 }
 
-export function Sidebar({ aberta, perfilAtivo }: SidebarProps) {
+function MenuPrincipal({
+  recolhida,
+  onNavigate,
+}: {
+  recolhida: boolean;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
 
-  const itensVisiveis = MENU_ITEMS.filter((item) =>
-    podeExibirItem(item, perfilAtivo),
-  );
-
   return (
-    <aside
-      className={`fixed inset-y-0 left-0 z-50 flex bg-[var(--sidebar)] text-[var(--sidebar-foreground)] transition-all duration-300 lg:sticky lg:top-0 lg:h-screen ${
-        aberta ? "w-72" : "w-20"
-      }`}
-      aria-label="Menu principal"
-    >
-      <div className="flex w-full flex-col">
-        <div className="flex h-16 items-center border-b border-white/10 px-4">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-700 text-sm font-black text-white">
-            SE
-          </div>
+    <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Menu do perfil Servidor">
+      <ul className="space-y-1">
+        {MENU_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const ativo =
+            pathname === item.href || pathname.startsWith(`${item.href}/`);
 
-          {aberta && (
-            <div className="ml-3 min-w-0">
-              <p className="truncate text-sm font-bold">SECP</p>
-              <p className="truncate text-xs text-slate-400">
-                Controle de Ponto
-              </p>
-            </div>
-          )}
-        </div>
-
-        <nav className="flex-1 overflow-y-auto p-3">
-          <ul className="space-y-1">
-            {itensVisiveis.map((item) => {
-              const Icon = item.icon;
-              const ativo =
-                pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                      ativo
-                        ? "bg-blue-700 text-white"
-                        : "text-slate-300 hover:bg-white/10 hover:text-white"
-                    }`}
-                    aria-current={ativo ? "page" : undefined}
-                    title={!aberta ? item.label : undefined}
-                  >
-                    <Icon className="size-5 shrink-0" aria-hidden="true" />
-                    {aberta && <span>{item.label}</span>}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-
-        <div className="border-t border-white/10 p-3">
-          <button
-            type="button"
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
-            title={!aberta ? "Sair" : undefined}
-          >
-            <LogOut className="size-5 shrink-0" aria-hidden="true" />
-            {aberta && <span>Sair</span>}
-          </button>
-        </div>
-      </div>
-    </aside>
+          return (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                onClick={onNavigate}
+                aria-current={ativo ? "page" : undefined}
+                title={recolhida ? item.label : undefined}
+                className={[
+                  "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold transition",
+                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                  ativo
+                    ? "bg-secp-blue-900 text-white shadow-sm"
+                    : "text-slate-700 hover:bg-secp-blue-900/10 hover:text-secp-blue-900 dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white",
+                  recolhida ? "justify-center" : "",
+                ].join(" ")}
+              >
+                <Icon className="size-5 shrink-0" aria-hidden="true" />
+                {!recolhida && <span className="truncate">{item.label}</span>}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }
+
+export function Sidebar({
+  recolhida,
+  drawerAberto,
+  perfilAtivo,
+  onFecharDrawer,
+}: SidebarProps) {
+  return (
+    <>
+      <aside
+        className={[
+          "sticky top-0 hidden h-screen shrink-0 border-r border-border bg-card text-card-foreground shadow-card transition-[width] duration-300 lg:flex",
+          recolhida ? "w-20" : "w-72",
+        ].join(" ")}
+        aria-label="Menu principal"
+      >
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex h-16 items-center gap-3 border-b border-border px-4">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-secp-blue-900 text-sm font-black text-white">
+              SE
+            </div>
+            {!recolhida && (
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold text-foreground">SECP</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  Perfil {perfilAtivo.nome}
+                </p>
+              </div>
+            )}
+          </div>
+          <MenuPrincipal recolhida={recolhida} />
+        </div>
+      </aside>
+
+      {drawerAberto && (
+        <div
+          className="fixed inset-0 z-50 lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu principal"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-950/55"
+            aria-label="Fechar menu principal"
+            onClick={onFecharDrawer}
+          />
+          <aside className="relative flex h-full w-[min(20rem,88vw)] flex-col bg-card text-card-foreground shadow-floating">
+            <div className="flex h-16 items-center justify-between border-b border-border px-4">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-md bg-secp-blue-900 text-sm font-black text-white">
+                  SE
+                </div>
+                <div>
+                  <p className="text-sm font-bold">SECP</p>
+                  <p className="text-xs text-muted-foreground">
+                    Perfil {perfilAtivo.nome}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onFecharDrawer}
+                className="inline-flex size-10 items-center justify-center rounded-md border border-border hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                aria-label="Fechar menu principal"
+              >
+                <X className="size-5" aria-hidden="true" />
+              </button>
+            </div>
+            <MenuPrincipal recolhida={false} onNavigate={onFecharDrawer} />
+          </aside>
+        </div>
+      )}
+    </>
+  );
+}
+
