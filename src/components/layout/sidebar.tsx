@@ -9,36 +9,68 @@ import {
   CalendarRange,
   ClipboardList,
   Clock,
+  DatabaseZap,
   FileCheck2,
-  HelpCircle,
+  FileSpreadsheet,
+  Fingerprint,
   Home,
   Hourglass,
+  Landmark,
+  LayoutDashboard,
+  Network,
+  Settings,
+  ShieldAlert,
+  ShieldCheck,
+  Upload,
+  UserCog,
+  Users,
   X,
   type LucideIcon,
 } from "lucide-react";
+
+import {
+  usuarioPossuiAlgumaPermissaoNoPerfil,
+} from "@/modules/auth/application/services/permissao-utils";
 
 export type PerfilNavegacao = {
   codigo: string;
   nome: string;
   descricao?: string;
+  permissoes?: string[];
 };
 
 export type MenuItem = {
   label: string;
   href: string;
   icon: LucideIcon;
+  permissoes?: string[];
 };
 
 export const MENU_ITEMS: MenuItem[] = [
-  { label: "Inicio", href: "/dashboard", icon: Home },
-  { label: "Registrar ponto", href: "/marcacoes/registrar", icon: Clock },
-  { label: "Minha frequencia", href: "/espelho-ponto", icon: CalendarDays },
-  { label: "Meu banco de horas", href: "/banco-horas", icon: Hourglass },
-  { label: "Solicitacoes", href: "/solicitacoes", icon: ClipboardList },
-  { label: "Recesso forense", href: "/recesso-forense", icon: CalendarRange },
-  { label: "Comprovantes", href: "/relatorios", icon: FileCheck2 },
-  { label: "Relatorios", href: "/relatorios", icon: BarChart3 },
-  { label: "Ajuda e regras", href: "/ajuda", icon: HelpCircle },
+  { label: "Inicio", href: "/dashboard", icon: Home, permissoes: ["dashboard:visualizar:proprio"] },
+  { label: "Registrar ponto", href: "/marcacoes/registrar", icon: Clock, permissoes: ["marcacoes:registrar:proprio"] },
+  { label: "Marcacoes", href: "/marcacoes", icon: Clock, permissoes: ["marcacoes:consultar:global"] },
+  { label: "Marcacoes brutas", href: "/marcacoes-brutas", icon: DatabaseZap, permissoes: ["marcacoes:gerenciar:global", "afd:importar:global"] },
+  { label: "Espelho de ponto", href: "/espelho-ponto", icon: CalendarDays, permissoes: ["espelho-ponto:visualizar:proprio", "apuracao:consultar:proprio", "apuracao:consultar:global"] },
+  { label: "Banco de horas", href: "/banco-horas", icon: Hourglass, permissoes: ["banco-horas:visualizar:proprio", "banco-horas:consultar:proprio", "banco-horas:consultar:global"] },
+  { label: "Solicitacoes", href: "/solicitacoes", icon: ClipboardList, permissoes: ["solicitacoes:criar:proprio", "solicitacoes:consultar:proprio", "solicitacoes:analisar:chefia", "solicitacoes:consultar:global"] },
+  { label: "Homologacao", href: "/homologacao", icon: ShieldCheck, permissoes: ["homologacao:gerenciar:chefia", "homologacao:consultar:global", "homologacao:gerenciar:global"] },
+  { label: "Boletim de frequencia", href: "/boletim-frequencia", icon: FileSpreadsheet, permissoes: ["boletim-frequencia:gerar:chefia", "boletim-frequencia:encaminhar:chefia", "boletim-frequencia:receber:global", "boletim-frequencia:consultar:global"] },
+  { label: "Recesso forense", href: "/recesso-forense", icon: CalendarRange, permissoes: ["recesso:consultar:proprio", "recesso:consultar:global", "recesso:gerenciar:global", "recesso:homologar:chefia", "recesso:aceitar:secad"] },
+  { label: "Relatorios", href: "/relatorios", icon: BarChart3, permissoes: ["relatorios:consultar:proprio", "relatorios:consultar:global"] },
+  { label: "Biometria", href: "/biometria", icon: Fingerprint, permissoes: ["biometria:consultar:proprio", "biometria:cadastrar:proprio", "biometria:gerenciar:global"] },
+  { label: "Apuracao", href: "/apuracao", icon: FileCheck2, permissoes: ["apuracao:consultar:global", "apuracao:recalcular:global"] },
+  { label: "AFD", href: "/afd", icon: Upload, permissoes: ["afd:importar:global"] },
+  { label: "Servidores", href: "/servidores", icon: Users, permissoes: ["servidores:gerenciar:global", "servidores:consultar:global"] },
+  { label: "Usuarios", href: "/usuarios", icon: UserCog, permissoes: ["usuarios:gerenciar:global", "usuarios:consultar:global"] },
+  { label: "Perfis", href: "/perfis", icon: ShieldAlert, permissoes: ["perfis:gerenciar:global"] },
+  { label: "Unidades", href: "/unidades", icon: Landmark, permissoes: ["unidades:gerenciar:global"] },
+  { label: "Orgaos", href: "/orgaos", icon: Landmark, permissoes: ["unidades:gerenciar:global"] },
+  { label: "Jornadas", href: "/jornadas", icon: CalendarDays, permissoes: ["jornadas:gerenciar:global"] },
+  { label: "Chefias", href: "/chefias", icon: Network, permissoes: ["chefias:gerenciar:global"] },
+  { label: "Integracoes", href: "/integracoes", icon: Network, permissoes: ["integracoes:consultar:global", "integracoes:gerenciar:global"] },
+  { label: "Administracao", href: "/administracao", icon: Settings, permissoes: ["configuracoes:gerenciar:global"] },
+  { label: "Auditoria", href: "/auditoria", icon: LayoutDashboard, permissoes: ["auditoria:consultar:global", "auditoria:detalhar:global"] },
 ];
 
 type SidebarProps = {
@@ -56,19 +88,39 @@ export function perfilPodeAcessarPath() {
   return true;
 }
 
+function itemPodeSerExibido(item: MenuItem, perfilAtivo: PerfilNavegacao) {
+  if (!item.permissoes || item.permissoes.length === 0) {
+    return true;
+  }
+
+  return usuarioPossuiAlgumaPermissaoNoPerfil(
+    perfilAtivo.codigo,
+    perfilAtivo.permissoes,
+    item.permissoes,
+  );
+}
+
 function MenuPrincipal({
   recolhida,
+  perfilAtivo,
   onNavigate,
 }: {
   recolhida: boolean;
+  perfilAtivo: PerfilNavegacao;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const itensVisiveis = MENU_ITEMS.filter((item) =>
+    itemPodeSerExibido(item, perfilAtivo),
+  );
 
   return (
-    <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Menu do perfil Servidor">
+    <nav
+      className="flex-1 overflow-y-auto px-3 py-4"
+      aria-label={`Menu do perfil ${perfilAtivo.nome}`}
+    >
       <ul className="space-y-1">
-        {MENU_ITEMS.map((item) => {
+        {itensVisiveis.map((item) => {
           const Icon = item.icon;
           const ativo =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -96,6 +148,11 @@ function MenuPrincipal({
             </li>
           );
         })}
+        {itensVisiveis.length === 0 && (
+          <li className="rounded-md border border-dashed border-border px-3 py-4 text-xs text-muted-foreground">
+            Nenhum item disponivel para o perfil ativo.
+          </li>
+        )}
       </ul>
     </nav>
   );
@@ -151,7 +208,7 @@ export function Sidebar({
               </div>
             )}
           </div>
-          <MenuPrincipal recolhida={recolhida} />
+          <MenuPrincipal recolhida={recolhida} perfilAtivo={perfilAtivo} />
         </div>
       </aside>
 
@@ -193,7 +250,11 @@ export function Sidebar({
                 <X className="size-5" aria-hidden="true" />
               </button>
             </div>
-            <MenuPrincipal recolhida={false} onNavigate={onFecharDrawer} />
+            <MenuPrincipal
+              recolhida={false}
+              perfilAtivo={perfilAtivo}
+              onNavigate={onFecharDrawer}
+            />
           </aside>
         </div>
       )}

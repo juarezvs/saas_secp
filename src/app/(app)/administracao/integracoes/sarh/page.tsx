@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { SarhStatusCard } from "@/modules/integracoes/sarh/presentation/components/sarh-status-card";
 import { SarhSyncProgressForm } from "@/modules/integracoes/sarh/presentation/components/sarh-sync-progress-form";
 
@@ -11,6 +12,13 @@ function formatarData(data: Date | string | null | undefined) {
 }
 
 export default async function IntegracaoSarhPage() {
+  await exigirUmaDasPermissoesOuRedirecionar([
+    "integracoes-sarh:consultar:global",
+    "integracoes-sarh:executar:global",
+    "integracoes-sarh:configurar:global",
+    "integracoes:gerenciar:global",
+  ]);
+
   const integracao = await prisma.integracaoSistema.findFirst({
     where: { tipo: "SARH" },
     orderBy: { criadoEm: "desc" },

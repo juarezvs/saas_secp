@@ -1,11 +1,14 @@
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { AfdUploadDropzone } from "@/modules/afd/presentation/components/afd-upload-dropzone";
 import { AfdImportacoesTable } from "@/modules/afd/presentation/components/afd-importacoes-table";
 import { listarImportacoesAfd } from "@/modules/afd/infrastructure/repositories/afd.repository";
 import { reprocessarMarcacoesBrutasPendentesAction } from "@/modules/marcacoes-brutas/application/actions/reprocessar-marcacoes-brutas-pendentes.action";
 
 export default async function AfdPage() {
+  await exigirPermissaoOuRedirecionar("afd:importar:global");
+
   const importacoes = await listarImportacoesAfd();
 
   return (

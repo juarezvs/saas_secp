@@ -1,33 +1,57 @@
+import { redirect } from "next/navigation";
+
+import { auth } from "@/auth";
+import { logoutAction } from "@/modules/auth/application/actions/logout.action";
+import { buscarServidorPorUsuarioId } from "@/modules/marcacoes/infrastructure/repositories/marcacao.repository";
 import { AppShellClient } from "./app-shell-client";
 
 type AppShellProps = {
   children: React.ReactNode;
 };
 
-const usuarioMock = {
-  nome: "Maria Oliveira",
-  matricula: "AM12345",
-  unidade: "3a Vara Federal do Amazonas",
-  perfilAtivo: {
-    codigo: "SERVIDOR",
-    nome: "Servidor",
-    descricao: "Acesso operacional ao controle de ponto",
-  },
-  perfis: [
-    {
-      codigo: "SERVIDOR",
-      nome: "Servidor",
-      descricao: "Acesso operacional ao controle de ponto",
-    },
-    {
-      codigo: "GESTOR",
-      nome: "Gestor",
-      descricao: "Visualizacao mockada para chefia",
-    },
-  ],
-};
+export async function AppShell({ children }: AppShellProps) {
+  const session = await auth();
 
-export function AppShell({ children }: AppShellProps) {
-  return <AppShellClient usuario={usuarioMock}>{children}</AppShellClient>;
+  if (!session?.user) {
+    redirect("/login");
+  }
+
+  const servidor = await buscarServidorPorUsuarioId(session.user.id);
+  const lotacaoAtual = servidor?.lotacoes[0];
+  const perfilAtivo = session.user.perfilAtivo ?? session.user.perfis[0];
+
+  if (!perfilAtivo) {
+    redirect("/acesso-negado?motivo=sem-perfil");
+  }
+
+  const usuario = {
+    nome: session.user.nome || session.user.name || "Usuario SECP",
+    matricula: session.user.matricula,
+    unidade:
+      lotacaoAtual?.unidade.nome ??
+      lotacaoAtual?.unidade.sigla ??
+      "Administracao do SECP",
+    perfilAtivo: {
+      codigo: perfilAtivo.codigo,
+      nome: perfilAtivo.nome,
+      descricao: `${perfilAtivo.permissoes.length} permissao(oes) vinculada(s)`,
+      permissoes: perfilAtivo.permissoes,
+    },
+    perfis: session.user.perfis.map((perfil) => ({
+      codigo: perfil.codigo,
+      nome: perfil.nome,
+      descricao: `${perfil.permissoes.length} permissao(oes) vinculada(s)`,
+      permissoes: perfil.permissoes,
+    })),
+  };
+
+  return (
+    <AppShellClient
+      key={`${session.user.id}-${perfilAtivo.codigo}`}
+      usuario={usuario}
+      onLogout={logoutAction}
+    >
+      {children}
+    </AppShellClient>
+  );
 }
-

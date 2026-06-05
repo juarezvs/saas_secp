@@ -434,6 +434,61 @@ const permissoesIniciais = [
     escopo: "global",
     descricao: "Importar arquivos AFD de equipamentos biométricos.",
   },
+  // Recesso forense
+  {
+    recurso: "recesso",
+    acao: "gerenciar",
+    escopo: "global",
+    descricao: "Gerenciar recesso forense anual.",
+  },
+  {
+    recurso: "recesso",
+    acao: "consultar",
+    escopo: "global",
+    descricao: "Consultar recessos forenses de todas as unidades.",
+  },
+  {
+    recurso: "recesso",
+    acao: "consultar",
+    escopo: "proprio",
+    descricao: "Consultar o proprio recesso forense.",
+  },
+  {
+    recurso: "recesso",
+    acao: "convocacao",
+    escopo: "gerenciar",
+    descricao: "Gerenciar convocacoes do recesso forense.",
+  },
+  {
+    recurso: "recesso",
+    acao: "fechar",
+    escopo: "proprio",
+    descricao: "Fechar o proprio espelho de recesso.",
+  },
+  {
+    recurso: "recesso",
+    acao: "homologar",
+    escopo: "chefia",
+    descricao: "Homologar recesso dos servidores convocados.",
+  },
+  {
+    recurso: "recesso",
+    acao: "aceitar",
+    escopo: "secad",
+    descricao: "Aceitar homologacao do recesso pela SECAD.",
+  },
+  {
+    recurso: "recesso",
+    acao: "relatorio",
+    escopo: "sepag",
+    descricao: "Gerar relatorio de pecunia do recesso para SEPAG.",
+  },
+  {
+    recurso: "recesso",
+    acao: "relatorio",
+    escopo: "secap",
+    descricao: "Gerar relatorio de folgas do recesso para SECAP.",
+  },
 ];
 
 const codigosPermissoesServidor = [
@@ -458,6 +513,8 @@ const codigosPermissoesServidor = [
   "biometria:consultar:proprio",
   "biometria:cadastrar:proprio",
   "biometria:validar:proprio",
+  "recesso:consultar:proprio",
+  "recesso:fechar:proprio",
 ];
 
 function codigoPermissao(item: {

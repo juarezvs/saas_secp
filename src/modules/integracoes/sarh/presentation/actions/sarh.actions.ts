@@ -1,6 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  obterPermissoesDaSessao,
+  usuarioPossuiAlgumaPermissaoNoPerfil,
+} from "@/modules/auth/application/services/permissao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { SincronizarSarhUseCase } from "../../application/use-cases/sincronizar-sarh.use-case";
 import type { SarhEndpointKey } from "../../domain/sarh.types";
@@ -12,7 +16,37 @@ export type SincronizarSarhActionState = {
   detalhes?: Record<string, unknown>;
 };
 
+const PERMISSOES_SINCRONIZAR_SARH = [
+  "integracoes-sarh:executar:global",
+  "integracoes-sarh:simular:global",
+  "integracoes-sarh:configurar:global",
+  "integracoes:sincronizar:global",
+  "integracoes:gerenciar:global",
+];
+
 export async function sincronizarSarhAction(formData: FormData): Promise<SincronizarSarhActionState> {
+  const permissao = await obterPermissoesDaSessao();
+
+  if (!permissao.permitido) {
+    return {
+      ok: false,
+      mensagem: "Sessao expirada. Faca login novamente.",
+    };
+  }
+
+  const podeSincronizar = usuarioPossuiAlgumaPermissaoNoPerfil(
+    permissao.perfilAtivoCodigo,
+    permissao.permissoes,
+    PERMISSOES_SINCRONIZAR_SARH,
+  );
+
+  if (!podeSincronizar) {
+    return {
+      ok: false,
+      mensagem: "Voce nao possui permissao para sincronizar o SARH.",
+    };
+  }
+
   const modo = String(formData.get("modo") ?? "simulacao");
   const matricula = String(formData.get("matricula") ?? "").trim() || undefined;
   const endpoints = formData.getAll("endpoints").map(String) as SarhEndpointKey[];
@@ -25,7 +59,7 @@ export async function sincronizarSarhAction(formData: FormData): Promise<Sincron
       modoSimulacao: modo !== "aplicar",
       endpoints: endpoints.length ? endpoints : undefined,
       matricula,
-      iniciadoPorUsuarioId: null,
+      iniciadoPorUsuarioId: permissao.usuarioId ?? null,
     });
 
     revalidatePath("/administracao/integracoes/sarh");

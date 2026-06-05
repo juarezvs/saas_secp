@@ -377,6 +377,54 @@ enum StatusArquivoAfd {
   ERRO
 }
 
+enum StatusRecessoForense {
+  PLANEJADO
+  ABERTO
+  EM_CONVOCACAO
+  EM_EXECUCAO
+  FECHADO
+  CANCELADO
+}
+
+enum StatusConvocacaoRecesso {
+  RASCUNHO
+  PUBLICADA
+  CANCELADA
+}
+
+enum EscolhaCompensacaoRecesso {
+  PENDENTE
+  PECUNIA
+  FOLGA
+}
+
+enum StatusConvocadoRecesso {
+  CONVOCADO
+  FECHADO
+  HOMOLOGADO
+  DEVOLVIDO
+  ACEITO_SECAD
+  CANCELADO
+}
+
+enum StatusEspelhoRecesso {
+  RECESSO_FORENSE
+  CONVOCADO
+  PENDENTE
+  SEM_MARCACAO
+  FECHADO
+  HOMOLOGADO
+  ACEITO_SECAD
+}
+
+enum StatusHomologacaoRecesso {
+  PENDENTE
+  HOMOLOGADO
+  DEVOLVIDO
+  ACEITO_SECAD
+  CANCELADO
+}
+
 model Usuario {
   id        String      @id @default(uuid()) @db.Uuid
   matricula String      @unique @db.VarChar(50)
@@ -406,6 +454,12 @@ model Usuario {
   boletinsRecebidos               BoletimFrequencia[]       @relation("BoletinsRecebidosPorUsuario")
   integracoesSarhExecutadas       IntegracaoSarhExecucao[]  @relation("IntegracoesSarhExecutadasPorUsuario")
   conflitosSarhResolvidos         IntegracaoSarhConflito[]  @relation("ConflitosSarhResolvidosPorUsuario")
+  recessosCriados                 RecessoForense[]          @relation("RecessosCriadosPorUsuario")
+  recessosFechados                RecessoForense[]          @relation("RecessosFechadosPorUsuario")
+  convocacoesRecessoCriadas       ConvocacaoRecesso[]       @relation("ConvocacoesRecessoCriadasPorUsuario")
+  convocadosRecessoFechados       ConvocadoRecesso[]        @relation("ConvocadosRecessoFechadosPorUsuario")
+  homologacoesRecesso             HomologacaoRecesso[]      @relation("HomologacoesRecessoPorUsuario")
+  aceitesRecessoSecad             HomologacaoRecesso[]      @relation("AceitesRecessoSecadPorUsuario")
 
   @@map("usuarios")
 }
@@ -536,6 +590,7 @@ model UnidadeOrganizacional {
   fechamentosMensais      FechamentoMensalUnidade[]
   boletimFrequencias      BoletimFrequencia[]
   equipamentosBiometricos EquipamentoBiometrico[]
+  convocacoesRecesso      ConvocacaoRecesso[]
 
   @@unique([orgaoId, codigo])
   @@unique([orgaoId, codigoExternoSarh])
@@ -613,6 +668,10 @@ model Servidor {
   amostraBiometricaFacial           AmostraBiometricaFacial[]
   autorizacaoesBiometricasMarcacaos AutorizacaoBiometricaMarcacao[]
   marcacoesBrutas                   MarcacaoBruta[]
+  convocacoesRecessoChefia          ConvocacaoRecesso[]             @relation("ConvocacoesRecessoPorChefia")
+  convocadosRecesso                 ConvocadoRecesso[]
+  espelhosRecesso                   EspelhoRecesso[]
+  homologacoesRecesso               HomologacaoRecesso[]
 
   @@index([orgaoId])
   @@index([cargoId])
@@ -1689,4 +1748,165 @@ model ArquivoAfd {
   @@index([importacaoId])
   @@index([status])
   @@map("afd_arquivos")
+}
+
+model RecessoForense {
+  id  String @id @default(uuid()) @db.Uuid
+  ano Int    @unique
+
+  dataInicio DateTime @map("data_inicio") @db.Date
+  dataFim    DateTime @map("data_fim") @db.Date
+
+  status     StatusRecessoForense @default(PLANEJADO)
+  observacao String?              @db.Text
+
+  criadoPorUsuarioId  String?   @map("criado_por_usuario_id") @db.Uuid
+  fechadoPorUsuarioId String?   @map("fechado_por_usuario_id") @db.Uuid
+  fechadoEm           DateTime? @map("fechado_em")
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  criadoPor  Usuario? @relation("RecessosCriadosPorUsuario", fields: [criadoPorUsuarioId], references: [id], onDelete: SetNull)
+  fechadoPor Usuario? @relation("RecessosFechadosPorUsuario", fields: [fechadoPorUsuarioId], references: [id], onDelete: SetNull)
+
+  convocacoes  ConvocacaoRecesso[]
+  convocados   ConvocadoRecesso[]
+  espelhos     EspelhoRecesso[]
+  homologacoes HomologacaoRecesso[]
+
+  @@index([status])
+  @@index([dataInicio, dataFim])
+  @@map("recessos_forenses")
+}
+
+model ConvocacaoRecesso {
+  id        String @id @default(uuid()) @db.Uuid
+  recessoId String @map("recesso_id") @db.Uuid
+
+  unidadeId             String? @map("unidade_id") @db.Uuid
+  chefiaResponsavelId   String? @map("chefia_responsavel_id") @db.Uuid
+  criadoPorUsuarioId    String? @map("criado_por_usuario_id") @db.Uuid
+  numeroPortaria        String  @map("numero_portaria") @db.VarChar(120)
+  dataPortaria          DateTime? @map("data_portaria") @db.Date
+  descricao             String? @db.Text
+  status                StatusConvocacaoRecesso @default(RASCUNHO)
+  publicadoEm           DateTime? @map("publicado_em")
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  recesso             RecessoForense             @relation(fields: [recessoId], references: [id], onDelete: Cascade)
+  unidade             UnidadeOrganizacional?     @relation(fields: [unidadeId], references: [id], onDelete: SetNull)
+  chefiaResponsavel   Servidor?                  @relation("ConvocacoesRecessoPorChefia", fields: [chefiaResponsavelId], references: [id], onDelete: SetNull)
+  criadoPor           Usuario?                   @relation("ConvocacoesRecessoCriadasPorUsuario", fields: [criadoPorUsuarioId], references: [id], onDelete: SetNull)
+  convocados          ConvocadoRecesso[]
+
+  @@index([recessoId])
+  @@index([unidadeId])
+  @@index([chefiaResponsavelId])
+  @@index([status])
+  @@map("recessos_convocacoes")
+}
+
+model ConvocadoRecesso {
+  id           String @id @default(uuid()) @db.Uuid
+  recessoId    String @map("recesso_id") @db.Uuid
+  convocacaoId String @map("convocacao_id") @db.Uuid
+  servidorId   String @map("servidor_id") @db.Uuid
+
+  dataConvocacao DateTime @map("data_convocacao") @db.Date
+  escolha        EscolhaCompensacaoRecesso @default(PENDENTE)
+  status         StatusConvocadoRecesso    @default(CONVOCADO)
+
+  minutosPrevistos   Int @default(0) @map("minutos_previstos")
+  minutosTrabalhados Int @default(0) @map("minutos_trabalhados")
+
+  observacao          String?   @db.Text
+  fechadoPorUsuarioId String?   @map("fechado_por_usuario_id") @db.Uuid
+  fechadoEm           DateTime? @map("fechado_em")
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  recesso    RecessoForense     @relation(fields: [recessoId], references: [id], onDelete: Cascade)
+  convocacao ConvocacaoRecesso  @relation(fields: [convocacaoId], references: [id], onDelete: Cascade)
+  servidor   Servidor           @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  fechadoPor Usuario?           @relation("ConvocadosRecessoFechadosPorUsuario", fields: [fechadoPorUsuarioId], references: [id], onDelete: SetNull)
+  espelhos   EspelhoRecesso[]
+
+  @@unique([convocacaoId, servidorId, dataConvocacao])
+  @@index([recessoId])
+  @@index([servidorId])
+  @@index([dataConvocacao])
+  @@index([status])
+  @@index([escolha])
+  @@map("recessos_convocados")
+}
+
+model EspelhoRecesso {
+  id         String @id @default(uuid()) @db.Uuid
+  recessoId  String @map("recesso_id") @db.Uuid
+  servidorId String @map("servidor_id") @db.Uuid
+
+  convocadoId    String? @map("convocado_id") @db.Uuid
+  dataReferencia DateTime @map("data_referencia") @db.Date
+
+  status   StatusEspelhoRecesso       @default(RECESSO_FORENSE)
+  escolha  EscolhaCompensacaoRecesso  @default(PENDENTE)
+  marcacoes Json?
+
+  minutosTrabalhados Int @default(0) @map("minutos_trabalhados")
+  observacao          String? @db.Text
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  recesso   RecessoForense    @relation(fields: [recessoId], references: [id], onDelete: Cascade)
+  servidor  Servidor          @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  convocado ConvocadoRecesso? @relation(fields: [convocadoId], references: [id], onDelete: SetNull)
+
+  @@unique([recessoId, servidorId, dataReferencia])
+  @@index([servidorId])
+  @@index([convocadoId])
+  @@index([dataReferencia])
+  @@index([status])
+  @@map("recessos_espelhos")
+}
+
+model HomologacaoRecesso {
+  id         String @id @default(uuid()) @db.Uuid
+  recessoId  String @map("recesso_id") @db.Uuid
+  servidorId String @map("servidor_id") @db.Uuid
+
+  mesReferencia Int @map("mes_referencia")
+  status        StatusHomologacaoRecesso @default(PENDENTE)
+
+  totalDiasConvocados Int @default(0) @map("total_dias_convocados")
+  diasPecunia         Int @default(0) @map("dias_pecunia")
+  diasFolga           Int @default(0) @map("dias_folga")
+  minutosTrabalhados  Int @default(0) @map("minutos_trabalhados")
+
+  observacaoServidor String? @map("observacao_servidor") @db.Text
+  observacaoChefia   String? @map("observacao_chefia") @db.Text
+  observacaoSecad    String? @map("observacao_secad") @db.Text
+
+  homologadoPorUsuarioId String? @map("homologado_por_usuario_id") @db.Uuid
+  homologadoEm           DateTime? @map("homologado_em")
+  aceitoSecadPorUsuarioId String? @map("aceito_secad_por_usuario_id") @db.Uuid
+  aceitoSecadEm           DateTime? @map("aceito_secad_em")
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  recesso              RecessoForense @relation(fields: [recessoId], references: [id], onDelete: Cascade)
+  servidor             Servidor       @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  homologadoPor        Usuario?       @relation("HomologacoesRecessoPorUsuario", fields: [homologadoPorUsuarioId], references: [id], onDelete: SetNull)
+  aceitoSecadPor       Usuario?       @relation("AceitesRecessoSecadPorUsuario", fields: [aceitoSecadPorUsuarioId], references: [id], onDelete: SetNull)
+
+  @@unique([recessoId, servidorId, mesReferencia])
+  @@index([servidorId])
+  @@index([status])
+  @@index([mesReferencia])
+  @@map("recessos_homologacoes")
 }

@@ -1,17 +1,24 @@
+import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
-import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { PageHeader } from "@/components/layout/page-header";
+import { DataTableShell } from "@/components/listagens";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   listarEntidadesAuditoria,
   listarEventosAuditoria,
   listarUsuariosParaFiltroAuditoria,
 } from "@/modules/auditoria/infrastructure/repositories/auditoria.repository";
-import { AuditoriaFiltrosCard } from "@/modules/auditoria/presentation/components/auditoria-filtros-card";
-import { AuditoriaTable } from "@/modules/auditoria/presentation/components/auditoria-table";
+import { AuditoriaListagemControles } from "@/modules/auditoria/presentation/components/auditoria-listagem-controles";
+import {
+  formatarDataHoraAuditoria,
+  rotuloEntidadeAuditoria,
+} from "@/modules/auditoria/application/services/formatar-auditoria.service";
 
 type AuditoriaPageProps = {
   searchParams?: Promise<{
     pagina?: string;
+    itensPorPagina?: string;
     limite?: string;
     busca?: string;
     entidade?: string;
@@ -31,14 +38,13 @@ export default async function AuditoriaPage({
   ]);
 
   const params = searchParams ? await searchParams : {};
-
   const pagina = Number(params.pagina ?? 1);
-  const limite = Number(params.limite ?? 20);
+  const itensPorPagina = Number(params.itensPorPagina ?? params.limite ?? 20);
 
   const [resultado, usuarios, entidades] = await Promise.all([
     listarEventosAuditoria({
       pagina,
-      limite,
+      itensPorPagina,
       busca: params.busca,
       entidade: params.entidade,
       acao: params.acao,
@@ -50,12 +56,29 @@ export default async function AuditoriaPage({
     listarEntidadesAuditoria(),
   ]);
 
-  const queryStringBase = new URLSearchParams(
-    Object.entries(params).filter(([, value]) => Boolean(value)) as [
-      string,
-      string,
-    ][],
-  ).toString();
+  const exportParams = new URLSearchParams();
+
+  for (const chave of [
+    "busca",
+    "entidade",
+    "acao",
+    "usuarioId",
+    "dataInicio",
+    "dataFim",
+  ] as const) {
+    if (params[chave]) {
+      exportParams.set(chave, params[chave]!);
+    }
+  }
+
+  const baseParams = new URLSearchParams(exportParams);
+  baseParams.set("itensPorPagina", String(resultado.paginacao.itensPorPagina));
+
+  function montarHrefPagina(novaPagina: number) {
+    const query = new URLSearchParams(baseParams);
+    query.set("pagina", String(novaPagina));
+    return `/auditoria?${query.toString()}`;
+  }
 
   return (
     <div className="space-y-6">
@@ -66,42 +89,113 @@ export default async function AuditoriaPage({
           Auditoria e trilhas de controle
         </p>
 
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">
-          Eventos de auditoria
-        </h1>
-
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
-          Consulte ações sensíveis realizadas no SECP, incluindo marcações,
-          solicitações, apurações, banco de horas, homologações, boletins,
-          usuários e perfis.
-        </p>
+        <PageHeader
+          icon={ShieldCheck}
+          titulo="Eventos de auditoria"
+          descricao="Consulte acoes sensiveis realizadas no SECP, incluindo marcacoes, solicitacoes, apuracoes, banco de horas, homologacoes, boletins, usuarios e perfis."
+          artigo="Governanca, controle eletronico e responsabilidade"
+          regraTitulo="Rastreabilidade das acoes"
+          regraDescricao="A auditoria registra quem realizou cada acao, quando ocorreu, qual entidade foi afetada e quais dados foram alterados, apoiando a responsabilizacao administrativa e a integridade do controle de frequencia."
+        />
       </section>
 
-      <RegraPortariaCard
-        artigo="Governança, controle eletrônico e responsabilidade"
-        titulo="Rastreabilidade das ações"
-        descricao="A auditoria registra quem realizou cada ação, quando ocorreu, qual entidade foi afetada e quais dados foram alterados, apoiando a responsabilização administrativa e a integridade do controle de frequência."
-      />
+      <DataTableShell
+        title="Eventos de auditoria"
+        description="Use os filtros para localizar eventos por entidade, acao, usuario ou periodo."
+        total={resultado.paginacao.total}
+        pagina={resultado.paginacao.pagina}
+        totalPaginas={resultado.paginacao.totalPaginas}
+        itensPorPagina={resultado.paginacao.itensPorPagina}
+        montarHrefPagina={montarHrefPagina}
+        toolbar={
+          <AuditoriaListagemControles
+            usuarios={usuarios}
+            entidades={entidades}
+            exportCsvHref={`/api/auditoria/export?${exportParams.toString()}`}
+            exportPdfHref={`/api/auditoria/export/pdf?${exportParams.toString()}`}
+          />
+        }
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1100px] text-left text-sm">
+            <caption className="sr-only">
+              Listagem de eventos de auditoria com data, usuario, entidade, ID,
+              acao, IP e acoes.
+            </caption>
+            <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
+              <tr>
+                <th className="px-5 py-3">Data/hora</th>
+                <th className="px-5 py-3">Usuario</th>
+                <th className="px-5 py-3">Entidade</th>
+                <th className="px-5 py-3">ID entidade</th>
+                <th className="px-5 py-3">Acao</th>
+                <th className="px-5 py-3">IP</th>
+                <th className="px-5 py-3 text-right">Acoes</th>
+              </tr>
+            </thead>
 
-      <AuditoriaFiltrosCard
-        usuarios={usuarios}
-        entidades={entidades}
-        valores={{
-          busca: params.busca,
-          entidade: params.entidade,
-          acao: params.acao,
-          usuarioId: params.usuarioId,
-          dataInicio: params.dataInicio,
-          dataFim: params.dataFim,
-          limite: params.limite,
-        }}
-      />
+            <tbody>
+              {resultado.eventos.map((evento) => (
+                <tr key={evento.id} className="border-b last:border-b-0">
+                  <td className="px-5 py-4">
+                    {formatarDataHoraAuditoria(evento.criadoEm)}
+                  </td>
+                  <td className="px-5 py-4">
+                    {evento.usuario ? (
+                      <>
+                        <div className="font-semibold">
+                          {evento.usuario.nome}
+                        </div>
+                        <div className="mt-1 font-mono text-xs text-[var(--muted-foreground)]">
+                          {evento.usuario.matricula}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-[var(--muted-foreground)]">
+                        Sistema/sem usuario
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-5 py-4">
+                    {rotuloEntidadeAuditoria(evento.entidade)}
+                  </td>
+                  <td className="px-5 py-4 font-mono text-xs">
+                    {evento.entidadeId ?? "-"}
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-900 dark:bg-blue-950 dark:text-blue-300">
+                      {evento.acao}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4 font-mono text-xs">
+                    {evento.ip ?? "-"}
+                  </td>
+                  <td className="px-5 py-4 text-right">
+                    <Link
+                      href={`/auditoria/${evento.id}`}
+                      className="text-sm font-semibold text-blue-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:text-blue-300"
+                    >
+                      Detalhar
+                    </Link>
+                  </td>
+                </tr>
+              ))}
 
-      <AuditoriaTable
-        eventos={resultado.eventos}
-        paginacao={resultado.paginacao}
-        queryStringBase={queryStringBase}
-      />
+              {resultado.eventos.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={7}
+                    className="px-5 py-10 text-center text-[var(--muted-foreground)]"
+                  >
+                    Nenhum evento de auditoria encontrado para os filtros
+                    informados.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </DataTableShell>
     </div>
   );
 }

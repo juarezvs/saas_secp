@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { calcularSaldoBancoHoras } from "@/modules/banco-horas/application/services/calcular-banco-horas.service";
+import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 
 export async function validarMovimentosBancoHorasHomologacaoAction(
   formData: FormData,
@@ -14,11 +15,11 @@ export async function validarMovimentosBancoHorasHomologacaoAction(
     return;
   }
 
-  const permissoes = session.user.perfilAtivo?.permissoes ?? [];
-
-  const podeValidar =
-    permissoes.includes("homologacao:gerenciar:chefia") ||
-    permissoes.includes("homologacao:gerenciar:global");
+  const podeValidar = usuarioPossuiAlgumaPermissaoNoPerfil(
+    session.user.perfilAtivo?.codigo,
+    session.user.perfilAtivo?.permissoes,
+    ["homologacao:gerenciar:chefia", "homologacao:gerenciar:global"],
+  );
 
   if (!podeValidar) {
     return;

@@ -4,10 +4,18 @@ import { ScanFace, ShieldCheck } from "lucide-react";
 import { auth } from "@/auth";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { buscarServidorBiometriaPorUsuarioId } from "@/modules/biometria/infrastructure/repositories/biometria.repository";
 import { ValidacaoFacialCardClientOnly } from "@/modules/biometria/presentation/components/biometria-client-only";
 
 export default async function BiometriaPage() {
+  await exigirUmaDasPermissoesOuRedirecionar([
+    "biometria:consultar:proprio",
+    "biometria:cadastrar:proprio",
+    "biometria:validar:proprio",
+    "biometria:gerenciar:global",
+  ]);
+
   const session = await auth();
 
   const servidor = session?.user

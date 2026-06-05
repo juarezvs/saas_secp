@@ -1,5 +1,84 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
+export type ListarBoletinsFrequenciaParams = {
+  pagina?: number;
+  itensPorPagina?: number;
+  busca?: string;
+  anoReferencia?: string;
+  mesReferencia?: string;
+  unidade?: string;
+  status?: string;
+};
+
+function ehStatusBoletim(valor?: string | null) {
+  return [
+    "GERADO",
+    "ENCAMINHADO_SECAP",
+    "RECEBIDO_SECAP",
+    "CONFERIDO",
+    "CANCELADO",
+  ].includes(valor ?? "");
+}
+
+export function montarWhereBoletinsFrequencia(
+  params: ListarBoletinsFrequenciaParams = {},
+) {
+  const busca = params.busca?.trim();
+  const anoReferencia = Number(params.anoReferencia);
+  const mesReferencia = Number(params.mesReferencia);
+
+  return {
+    ...(Number.isInteger(anoReferencia) && anoReferencia > 0
+      ? { anoReferencia }
+      : {}),
+    ...(Number.isInteger(mesReferencia) && mesReferencia >= 1 && mesReferencia <= 12
+      ? { mesReferencia }
+      : {}),
+    ...(params.status && ehStatusBoletim(params.status)
+      ? { status: params.status as never }
+      : {}),
+    ...(params.unidade
+      ? {
+          unidade: {
+            OR: [
+              { sigla: { contains: params.unidade, mode: "insensitive" as const } },
+              { nome: { contains: params.unidade, mode: "insensitive" as const } },
+            ],
+          },
+        }
+      : {}),
+    ...(busca
+      ? {
+          OR: [
+            { processoSei: { contains: busca, mode: "insensitive" as const } },
+            {
+              unidade: {
+                OR: [
+                  { sigla: { contains: busca, mode: "insensitive" as const } },
+                  { nome: { contains: busca, mode: "insensitive" as const } },
+                ],
+              },
+            },
+            { geradoPor: { nome: { contains: busca, mode: "insensitive" as const } } },
+          ],
+        }
+      : {}),
+  };
+}
+
+const includeBoletimListagem = {
+  unidade: true,
+  fechamento: true,
+  geradoPor: true,
+  encaminhadoPor: true,
+  recebidoPor: true,
+  _count: {
+    select: {
+      servidores: true,
+    },
+  },
+};
+
 export async function listarBoletinsFrequencia() {
   return prisma.boletimFrequencia.findMany({
     orderBy: [
@@ -13,19 +92,56 @@ export async function listarBoletinsFrequencia() {
         geradoEm: "desc",
       },
     ],
-    include: {
-      unidade: true,
-      fechamento: true,
-      geradoPor: true,
-      encaminhadoPor: true,
-      recebidoPor: true,
-      _count: {
-        select: {
-          servidores: true,
-        },
-      },
-    },
+    include: includeBoletimListagem,
     take: 100,
+  });
+}
+
+export async function listarBoletinsFrequenciaPaginado(
+  params: ListarBoletinsFrequenciaParams,
+) {
+  const pagina = Math.max(Number(params.pagina ?? 1), 1);
+  const itensPorPagina = Math.min(
+    Math.max(Number(params.itensPorPagina ?? 10), 5),
+    100,
+  );
+  const where = montarWhereBoletinsFrequencia(params);
+
+  const [total, boletins] = await Promise.all([
+    prisma.boletimFrequencia.count({ where }),
+    prisma.boletimFrequencia.findMany({
+      where,
+      orderBy: [
+        { anoReferencia: "desc" },
+        { mesReferencia: "desc" },
+        { geradoEm: "desc" },
+      ],
+      include: includeBoletimListagem,
+      skip: (pagina - 1) * itensPorPagina,
+      take: itensPorPagina,
+    }),
+  ]);
+
+  return {
+    boletins,
+    total,
+    pagina,
+    itensPorPagina,
+    totalPaginas: Math.max(Math.ceil(total / itensPorPagina), 1),
+  };
+}
+
+export async function listarBoletinsFrequenciaParaExportacao(
+  params: ListarBoletinsFrequenciaParams,
+) {
+  return prisma.boletimFrequencia.findMany({
+    where: montarWhereBoletinsFrequencia(params),
+    orderBy: [
+      { anoReferencia: "desc" },
+      { mesReferencia: "desc" },
+      { geradoEm: "desc" },
+    ],
+    include: includeBoletimListagem,
   });
 }
 

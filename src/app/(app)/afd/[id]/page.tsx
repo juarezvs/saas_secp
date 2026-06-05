@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   buscarImportacaoAfdPorId,
   listarMarcacoesBrutasPorImportacaoAfd,
@@ -14,6 +15,8 @@ type AfdDetalhePageProps = {
 };
 
 export default async function AfdDetalhePage({ params }: AfdDetalhePageProps) {
+  await exigirPermissaoOuRedirecionar("afd:importar:global");
+
   const { id } = await params;
 
   const [importacao, marcacoesBrutas] = await Promise.all([

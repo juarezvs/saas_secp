@@ -15,9 +15,14 @@ type UsuarioNavegacao = {
 type AppShellClientProps = {
   children: React.ReactNode;
   usuario: UsuarioNavegacao;
+  onLogout: () => Promise<void>;
 };
 
-export function AppShellClient({ children, usuario }: AppShellClientProps) {
+export function AppShellClient({
+  children,
+  usuario,
+  onLogout,
+}: AppShellClientProps) {
   const [sidebarRecolhida, setSidebarRecolhida] = useState(false);
   const [drawerAberto, setDrawerAberto] = useState(false);
   const [perfilAtivo, setPerfilAtivo] = useState(usuario.perfilAtivo);
@@ -46,6 +51,7 @@ export function AppShellClient({ children, usuario }: AppShellClientProps) {
             perfis={usuario.perfis}
             perfilAtivo={perfilAtivo}
             onPerfilAtivoChange={setPerfilAtivo}
+            onLogout={onLogout}
             onToggleSidebar={() => setSidebarRecolhida((valor) => !valor)}
             onOpenMobileMenu={() => setDrawerAberto(true)}
             sidebarRecolhida={sidebarRecolhida}

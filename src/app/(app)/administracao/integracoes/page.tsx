@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   UsersRound,
 } from "lucide-react";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 type StatusVisual = "disponivel" | "planejado" | "atencao" | "inativo";
@@ -141,6 +142,11 @@ function IntegracaoCard({
 }
 
 export default async function IntegracoesPage() {
+  await exigirUmaDasPermissoesOuRedirecionar([
+    "integracoes:consultar:global",
+    "integracoes:gerenciar:global",
+  ]);
+
   const [integracoes, ultimaExecucaoSarh, conflitosPendentesSarh, itensComErroSarh] = await Promise.all([
     prisma.integracaoSistema.findMany({
       orderBy: [{ tipo: "asc" }, { nome: "asc" }],

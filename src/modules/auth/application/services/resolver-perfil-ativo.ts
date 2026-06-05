@@ -1,4 +1,8 @@
 import type { PerfilSessao } from "@/modules/auth/domain/entities/usuario-autenticado";
+import {
+  resolverDashboardPerfil,
+  type DashboardPerfil,
+} from "@/modules/dashboard/application/resolver-dashboard-perfil";
 
 export type UsuarioSessaoComPerfis = {
   id?: string;
@@ -28,35 +32,8 @@ export function resolverPerfilAtivoDaSessao(
 
 export function obterTipoDashboardPorPerfil(
   perfilAtivo: PerfilSessao | null,
-): "ADMIN" | "GESTOR" | "SERVIDOR" {
-  const perfilComNome = perfilAtivo as (PerfilSessao & { nome?: string }) | null;
-  const codigo =
-    perfilAtivo?.codigo?.toUpperCase() ?? perfilComNome?.nome?.toUpperCase() ?? "";
-  const permissoes = perfilAtivo?.permissoes ?? [];
-
-  const isAdmin =
-    codigo === "ADMIN" ||
-    codigo === "MASTER" ||
-    permissoes.includes("usuarios:gerenciar:global") ||
-    permissoes.includes("servidores:gerenciar:global") ||
-    permissoes.includes("configuracoes:gerenciar:global");
-
-  if (isAdmin) {
-    return "ADMIN";
-  }
-
-  const isGestor =
-    codigo === "GESTOR" ||
-    codigo === "CHEFIA" ||
-    codigo === "DELEGADO_CHEFIA" ||
-    permissoes.includes("homologacao:gerenciar:chefia") ||
-    permissoes.includes("boletim-frequencia:gerar:chefia");
-
-  if (isGestor) {
-    return "GESTOR";
-  }
-
-  return "SERVIDOR";
+): DashboardPerfil {
+  return resolverDashboardPerfil(perfilAtivo);
 }
 
 export function obterDashboardHrefPorPerfil(
@@ -67,10 +44,14 @@ export function obterDashboardHrefPorPerfil(
   // rotas físicas separadas, altere apenas este mapa.
   const tipoDashboard = obterTipoDashboardPorPerfil(perfilAtivo);
 
-  const dashboardPorPerfil: Record<typeof tipoDashboard, string> = {
+  const dashboardPorPerfil: Record<DashboardPerfil, string> = {
     ADMIN: "/dashboard",
+    MASTER: "/dashboard",
     GESTOR: "/dashboard",
     SERVIDOR: "/dashboard",
+    SECAP: "/dashboard",
+    AUDITOR: "/dashboard",
+    DIREF: "/dashboard",
   };
 
   return dashboardPorPerfil[tipoDashboard];

@@ -1,5 +1,83 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
+export type ListarFechamentosMensaisParams = {
+  pagina?: number;
+  itensPorPagina?: number;
+  busca?: string;
+  anoReferencia?: string;
+  mesReferencia?: string;
+  unidade?: string;
+  status?: string;
+};
+
+function ehStatusFechamento(valor?: string | null) {
+  return [
+    "ABERTO",
+    "EM_HOMOLOGACAO",
+    "HOMOLOGADO",
+    "HOMOLOGADO_PARCIAL",
+    "CANCELADO",
+  ].includes(valor ?? "");
+}
+
+export function montarWhereFechamentosMensais(
+  params: ListarFechamentosMensaisParams = {},
+) {
+  const busca = params.busca?.trim();
+  const anoReferencia = Number(params.anoReferencia);
+  const mesReferencia = Number(params.mesReferencia);
+
+  return {
+    ...(Number.isInteger(anoReferencia) && anoReferencia > 0
+      ? { anoReferencia }
+      : {}),
+    ...(Number.isInteger(mesReferencia) && mesReferencia >= 1 && mesReferencia <= 12
+      ? { mesReferencia }
+      : {}),
+    ...(params.status && ehStatusFechamento(params.status)
+      ? { status: params.status as never }
+      : {}),
+    ...(params.unidade
+      ? {
+          unidade: {
+            OR: [
+              { sigla: { contains: params.unidade, mode: "insensitive" as const } },
+              { nome: { contains: params.unidade, mode: "insensitive" as const } },
+            ],
+          },
+        }
+      : {}),
+    ...(busca
+      ? {
+          OR: [
+            {
+              unidade: {
+                OR: [
+                  { sigla: { contains: busca, mode: "insensitive" as const } },
+                  { nome: { contains: busca, mode: "insensitive" as const } },
+                ],
+              },
+            },
+            { abertoPor: { nome: { contains: busca, mode: "insensitive" as const } } },
+            { homologadoPor: { nome: { contains: busca, mode: "insensitive" as const } } },
+          ],
+        }
+      : {}),
+  };
+}
+
+const includeFechamentoListagem = {
+  unidade: true,
+  abertoPor: true,
+  homologadoPor: true,
+  servidores: {
+    select: {
+      id: true,
+      status: true,
+    },
+  },
+};
+
 export async function listarUnidadesParaHomologacao() {
   return prisma.unidadeOrganizacional.findMany({
     where: {
@@ -22,18 +100,56 @@ export async function listarFechamentosMensais() {
       { mesReferencia: "desc" },
       { criadoEm: "desc" },
     ],
-    include: {
-      unidade: true,
-      abertoPor: true,
-      homologadoPor: true,
-      servidores: {
-        select: {
-          id: true,
-          status: true,
-        },
-      },
-    },
+    include: includeFechamentoListagem,
     take: 100,
+  });
+}
+
+export async function listarFechamentosMensaisPaginado(
+  params: ListarFechamentosMensaisParams,
+) {
+  const pagina = Math.max(Number(params.pagina ?? 1), 1);
+  const itensPorPagina = Math.min(
+    Math.max(Number(params.itensPorPagina ?? 10), 5),
+    100,
+  );
+  const where = montarWhereFechamentosMensais(params);
+
+  const [total, fechamentos] = await Promise.all([
+    prisma.fechamentoMensalUnidade.count({ where }),
+    prisma.fechamentoMensalUnidade.findMany({
+      where,
+      orderBy: [
+        { anoReferencia: "desc" },
+        { mesReferencia: "desc" },
+        { criadoEm: "desc" },
+      ],
+      include: includeFechamentoListagem,
+      skip: (pagina - 1) * itensPorPagina,
+      take: itensPorPagina,
+    }),
+  ]);
+
+  return {
+    fechamentos,
+    total,
+    pagina,
+    itensPorPagina,
+    totalPaginas: Math.max(Math.ceil(total / itensPorPagina), 1),
+  };
+}
+
+export async function listarFechamentosMensaisParaExportacao(
+  params: ListarFechamentosMensaisParams,
+) {
+  return prisma.fechamentoMensalUnidade.findMany({
+    where: montarWhereFechamentosMensais(params),
+    orderBy: [
+      { anoReferencia: "desc" },
+      { mesReferencia: "desc" },
+      { criadoEm: "desc" },
+    ],
+    include: includeFechamentoListagem,
   });
 }
 

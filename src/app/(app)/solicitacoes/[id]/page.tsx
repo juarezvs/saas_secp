@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/auth";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { analisarSolicitacaoAction } from "@/modules/solicitacoes/application/actions/analisar-solicitacao.action";
 import {
   classeStatusSolicitacao,
@@ -24,6 +25,13 @@ type SolicitacaoDetalhePageProps = {
 export default async function SolicitacaoDetalhePage({
   params,
 }: SolicitacaoDetalhePageProps) {
+  await exigirUmaDasPermissoesOuRedirecionar([
+    "solicitacoes:consultar:proprio",
+    "solicitacoes:visualizar:proprio",
+    "solicitacoes:analisar:chefia",
+    "solicitacoes:consultar:global",
+  ]);
+
   const session = await auth();
 
   const { id } = await params;

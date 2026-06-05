@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { perfilEhAdministradorSistema } from "../../domain/constants/perfis-sistema";
 import type {
   PerfilSessao,
   UsuarioAutenticado,
@@ -40,7 +41,7 @@ export async function buscarUsuarioParaLoginPorMatricula(
     return null;
   }
 
-  const perfis: PerfilSessao[] = usuario.perfis
+  const perfisBase: PerfilSessao[] = usuario.perfis
     .filter((usuarioPerfil) => usuarioPerfil.perfil.ativo)
     .map((usuarioPerfil) => ({
       id: usuarioPerfil.perfil.id,
@@ -50,6 +51,33 @@ export async function buscarUsuarioParaLoginPorMatricula(
         (perfilPermissao) => perfilPermissao.permissao.codigo
       ),
     }));
+
+  const deveExpandirPermissoes =
+    perfisBase.some((perfil) => perfilEhAdministradorSistema(perfil));
+
+  const todasPermissoes = deveExpandirPermissoes
+    ? await prisma.permissao.findMany({
+        select: {
+          codigo: true,
+        },
+        orderBy: {
+          codigo: "asc",
+        },
+      })
+    : [];
+
+  const codigosTodasPermissoes = todasPermissoes.map(
+    (permissao) => permissao.codigo,
+  );
+
+  const perfis: PerfilSessao[] = perfisBase.map((perfil) =>
+    perfilEhAdministradorSistema(perfil)
+      ? {
+          ...perfil,
+          permissoes: codigosTodasPermissoes,
+        }
+      : perfil,
+  );
 
   const perfilAtivo = perfis[0] ?? null;
 

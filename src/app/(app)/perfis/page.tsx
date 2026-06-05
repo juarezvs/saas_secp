@@ -1,37 +1,70 @@
 import Link from "next/link";
 import { Plus, ShieldCheck } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
-import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { PageHeader } from "@/components/layout/page-header";
+import { DataTableShell } from "@/components/listagens";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { listarPerfisPaginado } from "@/modules/perfis/infrastructure/repositories/perfil.repository";
+import { PerfisListagemControles } from "@/modules/perfis/presentation/components/perfis-listagem-controles";
 
-export default async function PerfisPage() {
+type PerfisPageProps = {
+  searchParams?: Promise<{
+    busca?: string;
+    codigo?: string;
+    nome?: string;
+    permissao?: string;
+    status?: string;
+    pagina?: string;
+    itensPorPagina?: string;
+  }>;
+};
+
+export default async function PerfisPage({ searchParams }: PerfisPageProps) {
   await exigirPermissaoOuRedirecionar("perfis:gerenciar:global");
 
-  const perfis = await prisma.perfil.findMany({
-    orderBy: {
-      nome: "asc",
-    },
-    include: {
-      permissoes: {
-        include: {
-          permissao: true,
-        },
-      },
-      _count: {
-        select: {
-          usuarios: true,
-        },
-      },
-    },
+  const params = searchParams ? await searchParams : {};
+  const pagina = Number(params.pagina ?? 1);
+  const itensPorPagina = Number(params.itensPorPagina ?? 10);
+
+  const resultado = await listarPerfisPaginado({
+    busca: params.busca ?? "",
+    codigo: params.codigo ?? "",
+    nome: params.nome ?? "",
+    permissao: params.permissao ?? "",
+    status: params.status ?? "",
+    pagina,
+    itensPorPagina,
   });
+
+  const exportParams = new URLSearchParams();
+
+  for (const chave of [
+    "busca",
+    "codigo",
+    "nome",
+    "permissao",
+    "status",
+  ] as const) {
+    if (params[chave]) {
+      exportParams.set(chave, params[chave]!);
+    }
+  }
+
+  const baseParams = new URLSearchParams(exportParams);
+  baseParams.set("itensPorPagina", String(resultado.itensPorPagina));
+
+  function montarHrefPagina(novaPagina: number) {
+    const query = new URLSearchParams(baseParams);
+    query.set("pagina", String(novaPagina));
+    return `/perfis?${query.toString()}`;
+  }
 
   return (
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administração", href: "/administracao" },
-          { label: "Perfis e permissões" },
+          { label: "Administracao", href: "/administracao" },
+          { label: "Perfis e permissoes" },
         ]}
       />
 
@@ -41,54 +74,59 @@ export default async function PerfisPage() {
             Controle de acesso
           </p>
 
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">
-            Perfis e permissões
-          </h1>
-
-          <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
-            Gerencie os perfis de acesso, permissões e escopos de atuação dos
-            usuários do SECP.
-          </p>
+          <PageHeader
+            icon={ShieldCheck}
+            titulo="Perfis e permissoes"
+            descricao="Gerencie perfis de acesso, permissoes e escopos de atuacao dos usuarios do SECP."
+            artigo="Art. 2, inciso XII; Arts. 16 e 20"
+            regraTitulo="Acoes gerenciais e responsabilidades"
+            regraDescricao="O controle de acesso por perfis garante que chefias, delegados, administradores, SECAP, SECAD, DIREF e NUTEC executem apenas acoes compativeis com suas responsabilidades institucionais."
+          />
         </div>
 
         <Link
           href="/perfis/novo"
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950"
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <Plus className="size-4" aria-hidden="true" />
           Novo perfil
         </Link>
       </section>
 
-      <RegraPortariaCard
-        artigo="Art. 2º, inciso XII; Art. 16; Art. 20"
-        titulo="Ações gerenciais e responsabilidades"
-        descricao="O controle de acesso por perfis garante que chefias, delegados, administradores, SECAP, SECAD, DIREF e NUTEC executem apenas as ações compatíveis com suas responsabilidades institucionais."
-      />
-
-      <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
-        <div className="border-b p-5">
-          <h2 className="flex items-center gap-2 text-lg font-bold">
-            <ShieldCheck className="size-5 text-blue-900 dark:text-blue-300" />
-            Perfis cadastrados
-          </h2>
-        </div>
-
+      <DataTableShell
+        title="Perfis cadastrados"
+        description="Use a pesquisa geral ou filtre por codigo, nome, permissao e status."
+        total={resultado.total}
+        pagina={resultado.pagina}
+        totalPaginas={resultado.totalPaginas}
+        itensPorPagina={resultado.itensPorPagina}
+        montarHrefPagina={montarHrefPagina}
+        toolbar={
+          <PerfisListagemControles
+            exportCsvHref={`/api/perfis/export?${exportParams.toString()}`}
+            exportPdfHref={`/api/perfis/export/pdf?${exportParams.toString()}`}
+          />
+        }
+      >
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
+            <caption className="sr-only">
+              Listagem de perfis com codigo, nome, usuarios, permissoes, status
+              e acoes.
+            </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
-                <th className="px-5 py-3">Código</th>
+                <th className="px-5 py-3">Codigo</th>
                 <th className="px-5 py-3">Nome</th>
-                <th className="px-5 py-3">Usuários</th>
-                <th className="px-5 py-3">Permissões</th>
+                <th className="px-5 py-3">Usuarios</th>
+                <th className="px-5 py-3">Permissoes</th>
                 <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Ações</th>
+                <th className="px-5 py-3 text-right">Acoes</th>
               </tr>
             </thead>
 
             <tbody>
-              {perfis.map((perfil) => (
+              {resultado.perfis.map((perfil) => (
                 <tr key={perfil.id} className="border-b last:border-b-0">
                   <td className="px-5 py-4 font-mono text-xs font-semibold">
                     {perfil.codigo}
@@ -104,7 +142,6 @@ export default async function PerfisPage() {
                   </td>
 
                   <td className="px-5 py-4">{perfil._count.usuarios}</td>
-
                   <td className="px-5 py-4">{perfil.permissoes.length}</td>
 
                   <td className="px-5 py-4">
@@ -122,7 +159,7 @@ export default async function PerfisPage() {
                   <td className="px-5 py-4 text-right">
                     <Link
                       href={`/perfis/${perfil.id}`}
-                      className="text-sm font-semibold text-blue-900 hover:underline dark:text-blue-300"
+                      className="text-sm font-semibold text-blue-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:text-blue-300"
                     >
                       Detalhar
                     </Link>
@@ -130,20 +167,20 @@ export default async function PerfisPage() {
                 </tr>
               ))}
 
-              {perfis.length === 0 && (
+              {resultado.perfis.length === 0 && (
                 <tr>
                   <td
                     colSpan={6}
-                    className="px-5 py-10 text-center text-(--muted-foreground)"
+                    className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
-                    Nenhum perfil cadastrado.
+                    Nenhum perfil encontrado para os filtros informados.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-      </section>
+      </DataTableShell>
     </div>
   );
 }

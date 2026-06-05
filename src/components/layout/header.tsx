@@ -1,8 +1,11 @@
 "use client";
 
+import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   Bell,
   Building2,
+  LogOut,
   Menu,
   PanelLeftClose,
   ShieldCheck,
@@ -20,6 +23,7 @@ type HeaderProps = {
   onToggleSidebar: () => void;
   onOpenMobileMenu: () => void;
   onPerfilAtivoChange: (perfil: PerfilNavegacao) => void;
+  onLogout: () => Promise<void>;
   sidebarRecolhida: boolean;
   drawerAberto: boolean;
 };
@@ -33,14 +37,33 @@ export function Header({
   onToggleSidebar,
   onOpenMobileMenu,
   onPerfilAtivoChange,
+  onLogout,
   sidebarRecolhida,
   drawerAberto,
 }: HeaderProps) {
+  const router = useRouter();
+  const [perfilPendente, startTransition] = useTransition();
+
   function selecionarPerfil(codigo: string) {
     const novoPerfil = perfis.find((perfil) => perfil.codigo === codigo);
 
     if (novoPerfil) {
-      onPerfilAtivoChange(novoPerfil);
+      startTransition(async () => {
+        const response = await fetch("/api/sessao/perfil-ativo", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            perfilCodigo: novoPerfil.codigo,
+          }),
+        });
+
+        if (response.ok) {
+          onPerfilAtivoChange(novoPerfil);
+          router.refresh();
+        }
+      });
     }
   }
 
@@ -94,6 +117,7 @@ export function Header({
             <select
               value={perfilAtivo.codigo}
               onChange={(event) => selecionarPerfil(event.target.value)}
+              disabled={perfilPendente}
               className="w-full bg-transparent text-xs font-semibold text-white outline-none [&>option]:text-slate-950"
               aria-label="Selecionar perfil ativo"
             >
@@ -126,6 +150,17 @@ export function Header({
               <p className="truncate text-xs text-white/75">{matricula}</p>
             </div>
           </div>
+
+          <form action={onLogout}>
+            <button
+              type="submit"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-white/20 bg-white/10 px-3 text-sm font-semibold transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              aria-label="Sair do sistema"
+            >
+              <LogOut className="size-4" aria-hidden="true" />
+              <span className="hidden sm:inline">Sair</span>
+            </button>
+          </form>
         </div>
       </div>
     </header>

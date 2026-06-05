@@ -1,6 +1,16 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { PermissaoNegadaError } from "@/shared/domain/errors/permissao-negada.error";
+import { usuarioPossuiPermissaoNoPerfil } from "./permissao-utils";
+
+export {
+  possuiAlgumaPermissaoNaLista,
+  possuiPermissaoNaLista,
+  possuiTodasPermissoesNaLista,
+  usuarioPossuiAlgumaPermissaoNoPerfil,
+  usuarioPossuiPermissaoNoPerfil,
+  usuarioPossuiTodasPermissoesNoPerfil,
+} from "./permissao-utils";
 
 export type ResultadoPermissao = {
   permitido: boolean;
@@ -40,7 +50,11 @@ export async function usuarioPossuiPermissao(
     return false;
   }
 
-  return resultado.permissoes.includes(permissao);
+  return usuarioPossuiPermissaoNoPerfil(
+    resultado.perfilAtivoCodigo,
+    resultado.permissoes,
+    permissao,
+  );
 }
 
 export async function exigirPermissao(permissao: string) {
@@ -50,7 +64,13 @@ export async function exigirPermissao(permissao: string) {
     redirect("/login");
   }
 
-  if (!resultado.permissoes.includes(permissao)) {
+  if (
+    !usuarioPossuiPermissaoNoPerfil(
+      resultado.perfilAtivoCodigo,
+      resultado.permissoes,
+      permissao,
+    )
+  ) {
     throw new PermissaoNegadaError(permissao);
   }
 
@@ -104,33 +124,4 @@ export async function exigirUmaDasPermissoesOuRedirecionar(
       permissoesNegadas.join(" ou "),
     )}`,
   );
-}
-
-export function possuiPermissaoNaLista(
-  permissoesUsuario: string[] | undefined,
-  permissao: string,
-) {
-  return permissoesUsuario?.includes(permissao) ?? false;
-}
-
-export function possuiAlgumaPermissaoNaLista(
-  permissoesUsuario: string[] | undefined,
-  permissoes: string[],
-) {
-  if (!permissoesUsuario || permissoesUsuario.length === 0) {
-    return false;
-  }
-
-  return permissoes.some((permissao) => permissoesUsuario.includes(permissao));
-}
-
-export function possuiTodasPermissoesNaLista(
-  permissoesUsuario: string[] | undefined,
-  permissoes: string[],
-) {
-  if (!permissoesUsuario || permissoesUsuario.length === 0) {
-    return false;
-  }
-
-  return permissoes.every((permissao) => permissoesUsuario.includes(permissao));
 }

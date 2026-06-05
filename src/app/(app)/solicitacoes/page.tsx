@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { auth } from "@/auth";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   listarSolicitacoesDoUsuario,
   listarSolicitacoesGlobais,
@@ -11,6 +12,13 @@ import {
 import { SolicitacoesTable } from "@/modules/solicitacoes/presentation/components/solicitacoes-table";
 
 export default async function SolicitacoesPage() {
+  await exigirUmaDasPermissoesOuRedirecionar([
+    "solicitacoes:consultar:proprio",
+    "solicitacoes:visualizar:proprio",
+    "solicitacoes:analisar:chefia",
+    "solicitacoes:consultar:global",
+  ]);
+
   const session = await auth();
 
   const permissoes = session?.user.perfilAtivo?.permissoes ?? [];

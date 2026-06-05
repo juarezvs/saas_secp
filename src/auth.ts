@@ -1,6 +1,8 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import { cookies } from "next/headers";
 
+import { PERFIL_ATIVO_COOKIE } from "@/modules/auth/domain/constants/perfil-ativo-cookie";
 import { loginSchema } from "@/modules/auth/application/schemas/login.schema";
 import { autenticarUsuarioPorCredenciais } from "@/modules/auth/application/services/autenticar-usuario.service";
 import type { UsuarioAutenticado } from "@/modules/auth/domain/entities/usuario-autenticado";
@@ -40,6 +42,15 @@ function normalizarPerfisSessao(valor: unknown): PerfilSessao[] {
 
 function normalizarPerfilAtivoSessao(valor: unknown): PerfilSessao | null {
   return isPerfilSessao(valor) ? valor : null;
+}
+
+async function obterCodigoPerfilAtivoCookie() {
+  try {
+    const cookieStore = await cookies();
+    return cookieStore.get(PERFIL_ATIVO_COOKIE)?.value ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -112,12 +123,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
 
     async session({ session, token }) {
+      const perfis = normalizarPerfisSessao(token.perfis);
+      const perfilAtivoToken = normalizarPerfilAtivoSessao(token.perfilAtivo);
+      const perfilAtivoCookie = await obterCodigoPerfilAtivoCookie();
+      const perfilAtivo =
+        perfis.find((perfil) => perfil.codigo === perfilAtivoCookie) ??
+        perfilAtivoToken ??
+        perfis[0] ??
+        null;
+
       session.user.id = String(token.id);
       session.user.matricula = String(token.matricula);
       session.user.nome = String(token.nome);
       session.user.tipo = String(token.tipo);
-      session.user.perfis = normalizarPerfisSessao(token.perfis);
-      session.user.perfilAtivo = normalizarPerfilAtivoSessao(token.perfilAtivo);
+      session.user.perfis = perfis;
+      session.user.perfilAtivo = perfilAtivo;
 
       return session;
     },

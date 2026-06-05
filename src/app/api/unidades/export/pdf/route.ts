@@ -1,21 +1,73 @@
-import React, { type ReactElement } from "react";
-import {
-  Document,
-  Page,
-  Text,
-  View,
-  StyleSheet,
-  renderToBuffer,
-  type DocumentProps,
-} from "@react-pdf/renderer";
 import { auth } from "@/auth";
 import { listarUnidadesOrganizacionaisParaExportacao } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
+import {
+  PdfListagemDocument,
+  type PdfListagemDocumentProps,
+} from "@/shared/reporting/pdf-builder";
+import { type PdfTableColumn } from "@/shared/reporting/pdf-table";
+import {
+  criarElementoPdf,
+  criarPdfResponse,
+} from "@/shared/reporting/pdf-response";
 
 export const runtime = "nodejs";
 
 type UnidadeExportacao = Awaited<
   ReturnType<typeof listarUnidadesOrganizacionaisParaExportacao>
 >[number];
+
+const columns: PdfTableColumn<UnidadeExportacao>[] = [
+  {
+    key: "sigla",
+    header: "Sigla",
+    width: "9%",
+    render: (unidade) => unidade.sigla,
+  },
+  {
+    key: "nome",
+    header: "Nome",
+    width: "34%",
+    render: (unidade) => unidade.nome,
+  },
+  {
+    key: "tipo",
+    header: "Tipo",
+    width: "16%",
+    render: (unidade) => unidade.tipo,
+  },
+  {
+    key: "orgao",
+    header: "Orgao",
+    width: "8%",
+    render: (unidade) => unidade.orgao.sigla,
+  },
+  {
+    key: "superior",
+    header: "Superior",
+    width: "10%",
+    render: (unidade) => unidade.unidadePai?.sigla,
+  },
+  {
+    key: "subunidades",
+    header: "Sub.",
+    width: "6%",
+    align: "center",
+    render: (unidade) => unidade._count.unidadesFilhas,
+  },
+  {
+    key: "lotacoes",
+    header: "Lot.",
+    width: "6%",
+    align: "center",
+    render: (unidade) => unidade._count.lotacoes,
+  },
+  {
+    key: "status",
+    header: "Status",
+    width: "11%",
+    render: (unidade) => (unidade.ativo ? "Ativa" : "Inativa"),
+  },
+];
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -40,162 +92,15 @@ export async function GET(request: Request) {
     status: url.searchParams.get("status") ?? "",
   });
 
-  const documento = React.createElement(UnidadesPdfDocument, {
-    unidades,
-  }) as ReactElement<DocumentProps>;
+  const documento = criarElementoPdf(PdfListagemDocument<UnidadeExportacao>, {
+    title: "SECP - Unidades Organizacionais",
+    data: unidades,
+    columns,
+    getRowKey: (unidade) => unidade.id,
+  } satisfies PdfListagemDocumentProps<UnidadeExportacao>);
 
-  const buffer = await renderToBuffer(documento);
-
-  return new Response(new Uint8Array(buffer), {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="unidades-organizacionais.pdf"`,
-      "Cache-Control": "no-store",
-    },
+  return criarPdfResponse({
+    document: documento,
+    filename: "unidades-organizacionais.pdf",
   });
 }
-
-function UnidadesPdfDocument({ unidades }: { unidades: UnidadeExportacao[] }) {
-  return React.createElement(
-    Document,
-    null,
-    React.createElement(
-      Page,
-      {
-        size: "A4",
-        orientation: "landscape",
-        style: styles.page,
-      },
-
-      React.createElement(
-        Text,
-        { style: styles.title },
-        "SECP - Unidades Organizacionais",
-      ),
-      React.createElement(
-        Text,
-        { style: styles.subtitle },
-        `Total de registros: ${unidades.length}`,
-      ),
-      React.createElement(
-        View,
-        { style: styles.table },
-        React.createElement(
-          View,
-          { style: [styles.row, styles.header] },
-          React.createElement(Text, { style: styles.cellSigla }, "Sigla"),
-          React.createElement(Text, { style: styles.cellNome }, "Nome"),
-          React.createElement(Text, { style: styles.cellTipo }, "Tipo"),
-          React.createElement(Text, { style: styles.cellOrgao }, "Órgão"),
-          React.createElement(Text, { style: styles.cellSuperior }, "Superior"),
-          React.createElement(Text, { style: styles.cellSmall }, "Sub."),
-          React.createElement(Text, { style: styles.cellSmall }, "Lot."),
-          React.createElement(Text, { style: styles.cellStatus }, "Status"),
-        ),
-        ...unidades.map((unidade) =>
-          React.createElement(
-            View,
-            {
-              key: unidade.id,
-              style: styles.row,
-            },
-            React.createElement(
-              Text,
-              { style: styles.cellSigla },
-              unidade.sigla,
-            ),
-            React.createElement(Text, { style: styles.cellNome }, unidade.nome),
-            React.createElement(Text, { style: styles.cellTipo }, unidade.tipo),
-            React.createElement(
-              Text,
-              { style: styles.cellOrgao },
-              unidade.orgao.sigla,
-            ),
-            React.createElement(
-              Text,
-              { style: styles.cellSuperior },
-              unidade.unidadePai?.sigla ?? "-",
-            ),
-            React.createElement(
-              Text,
-              { style: styles.cellSmall },
-              String(unidade._count.unidadesFilhas),
-            ),
-            React.createElement(
-              Text,
-              { style: styles.cellSmall },
-              String(unidade._count.lotacoes),
-            ),
-            React.createElement(
-              Text,
-              { style: styles.cellStatus },
-              unidade.ativo ? "Ativa" : "Inativa",
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-const styles = StyleSheet.create({
-  page: {
-    padding: 24,
-    fontSize: 8,
-    fontFamily: "Helvetica",
-    color: "#111827",
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 700,
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 10,
-    color: "#4b5563",
-    marginBottom: 14,
-  },
-  table: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-  },
-  row: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: "#d1d5db",
-    minHeight: 22,
-  },
-  header: {
-    backgroundColor: "#f3f4f6",
-    fontWeight: 700,
-  },
-  cellSigla: {
-    width: "9%",
-    padding: 5,
-  },
-  cellNome: {
-    width: "34%",
-    padding: 5,
-  },
-  cellTipo: {
-    width: "16%",
-    padding: 5,
-  },
-  cellOrgao: {
-    width: "8%",
-    padding: 5,
-  },
-  cellSuperior: {
-    width: "10%",
-    padding: 5,
-  },
-  cellSmall: {
-    width: "6%",
-    padding: 5,
-    textAlign: "center",
-  },
-  cellStatus: {
-    width: "11%",
-    padding: 5,
-  },
-});

@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Plus, Users } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { PageHeader } from "@/components/layout/page-header";
+import { DataTableShell } from "@/components/listagens";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
 import { listarServidoresPaginado } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
 import { ServidoresListagemControles } from "@/modules/servidores/presentation/components/servidores-listagem-controles";
-import { ServidoresItensPorPagina } from "@/modules/servidores/presentation/components/servidores-itens-por-pagina";
-import { PageHeader } from "@/components/layout/page-header";
 
 type ServidoresPageProps = {
   searchParams?: Promise<{
@@ -29,7 +29,6 @@ export default async function ServidoresPage({
   await exigirPermissaoOuRedirecionar("servidores:gerenciar:global");
 
   const params = searchParams ? await searchParams : {};
-
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
 
@@ -79,7 +78,7 @@ export default async function ServidoresPage({
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administração", href: "/administracao" },
+          { label: "Administracao", href: "/administracao" },
           { label: "Servidores" },
         ]}
       />
@@ -93,58 +92,56 @@ export default async function ServidoresPage({
           <PageHeader
             icon={Users}
             titulo="Servidores"
-            descricao="Gerencie servidores, vínculos funcionais, usuários relacionados e lotações em unidades organizacionais."
-            artigo="Arts. 4º, 8º, 16 e 19"
-            regraTitulo="Servidor, jornada, frequência e consulta"
-            regraDescricao="O cadastro funcional sustenta a jornada, a apuração mensal, o banco de horas, a homologação pela chefia e a consulta da própria frequência pelo servidor."
-            // actions={
-            //   <Link
-            //     href="/servidores/novo"
-            //     className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-950"
-            //   >
-            //     Novo servidor
-            //   </Link>
-            // }
+            descricao="Gerencie servidores, vinculos funcionais, usuarios relacionados e lotacoes em unidades organizacionais."
+            artigo="Arts. 4, 8, 16 e 19"
+            regraTitulo="Servidor, jornada, frequencia e consulta"
+            regraDescricao="O cadastro funcional sustenta a jornada, a apuracao mensal, o banco de horas, a homologacao pela chefia e a consulta da propria frequencia pelo servidor."
           />
         </div>
+
         <Link
           href="/servidores/novo"
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950"
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <Plus className="size-4" aria-hidden="true" />
           Novo servidor
         </Link>
       </section>
 
-      <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
-        <ServidoresListagemControles
-          orgaos={orgaos}
-          exportCsvHref={`/api/servidores/export?${exportParams.toString()}`}
-          exportPdfHref={`/api/servidores/export/pdf?${exportParams.toString()}`}
-        />
-
-        <div className="flex flex-col justify-between gap-3 border-b p-5 md:flex-row md:items-center">
-          <p className="text-sm text-[var(--muted-foreground)]">
-            {resultado.total} registro(s) encontrado(s)
-          </p>
-
-          <ServidoresItensPorPagina itensPorPagina={resultado.itensPorPagina} />
-        </div>
-
+      <DataTableShell
+        title="Servidores cadastrados"
+        description="Use a pesquisa geral ou filtre diretamente pelas colunas da tabela."
+        total={resultado.total}
+        pagina={resultado.pagina}
+        totalPaginas={resultado.totalPaginas}
+        itensPorPagina={resultado.itensPorPagina}
+        montarHrefPagina={montarHrefPagina}
+        toolbar={
+          <ServidoresListagemControles
+            orgaos={orgaos}
+            exportCsvHref={`/api/servidores/export?${exportParams.toString()}`}
+            exportPdfHref={`/api/servidores/export/pdf?${exportParams.toString()}`}
+          />
+        }
+      >
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1120px] text-left text-sm">
+            <caption className="sr-only">
+              Listagem de servidores com matricula, CPF, nome, orgao, vinculo,
+              lotacao atual, contadores, status e acoes.
+            </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
-                <th className="px-5 py-3">Matrícula</th>
+                <th className="px-5 py-3">Matricula</th>
                 <th className="px-5 py-3">CPF</th>
                 <th className="px-5 py-3">Nome</th>
-                <th className="px-5 py-3">Órgão</th>
-                <th className="px-5 py-3">Vínculo</th>
-                <th className="px-5 py-3">Lotação atual</th>
-                <th className="px-5 py-3">Lotações</th>
-                <th className="px-5 py-3">Gestões</th>
+                <th className="px-5 py-3">Orgao</th>
+                <th className="px-5 py-3">Vinculo</th>
+                <th className="px-5 py-3">Lotacao atual</th>
+                <th className="px-5 py-3">Lotacoes</th>
+                <th className="px-5 py-3">Gestoes</th>
                 <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Ações</th>
+                <th className="px-5 py-3 text-right">Acoes</th>
               </tr>
             </thead>
 
@@ -157,37 +154,28 @@ export default async function ServidoresPage({
                     <td className="px-5 py-4 font-mono text-xs font-semibold">
                       {servidor.matricula}
                     </td>
-
                     <td className="px-5 py-4 font-mono text-xs">
                       {servidor.cpf ?? servidor.usuario.cpf ?? "-"}
                     </td>
-
                     <td className="px-5 py-4">
                       <div className="font-semibold">
                         {servidor.usuario.nome}
                       </div>
-
                       {servidor.usuario.email && (
                         <div className="mt-1 text-xs text-[var(--muted-foreground)]">
                           {servidor.usuario.email}
                         </div>
                       )}
                     </td>
-
                     <td className="px-5 py-4">{servidor.orgao.sigla}</td>
-
                     <td className="px-5 py-4 text-xs font-semibold uppercase text-[var(--muted-foreground)]">
                       {servidor.vinculo}
                     </td>
-
                     <td className="px-5 py-4">
                       {lotacaoAtual ? lotacaoAtual.unidade.sigla : "-"}
                     </td>
-
                     <td className="px-5 py-4">{servidor._count.lotacoes}</td>
-
                     <td className="px-5 py-4">{servidor._count.gestores}</td>
-
                     <td className="px-5 py-4">
                       <span
                         className={`rounded-full px-2 py-1 text-xs font-semibold ${
@@ -199,11 +187,10 @@ export default async function ServidoresPage({
                         {servidor.ativo ? "Ativo" : "Inativo"}
                       </span>
                     </td>
-
                     <td className="px-5 py-4 text-right">
                       <Link
                         href={`/servidores/${servidor.id}`}
-                        className="text-sm font-semibold text-blue-900 hover:underline dark:text-blue-300"
+                        className="text-sm font-semibold text-blue-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:text-blue-300"
                       >
                         Detalhar
                       </Link>
@@ -225,39 +212,7 @@ export default async function ServidoresPage({
             </tbody>
           </table>
         </div>
-
-        <div className="flex flex-col justify-between gap-3 border-t p-5 md:flex-row md:items-center">
-          <p className="text-sm text-[var(--muted-foreground)]">
-            Página {resultado.pagina} de {resultado.totalPaginas}
-          </p>
-
-          <div className="flex gap-2">
-            <Link
-              href={montarHrefPagina(Math.max(resultado.pagina - 1, 1))}
-              className={`rounded-md border px-3 py-2 text-sm font-semibold transition ${
-                resultado.pagina <= 1
-                  ? "pointer-events-none opacity-50"
-                  : "hover:bg-[var(--muted)]"
-              }`}
-            >
-              Anterior
-            </Link>
-
-            <Link
-              href={montarHrefPagina(
-                Math.min(resultado.pagina + 1, resultado.totalPaginas),
-              )}
-              className={`rounded-md border px-3 py-2 text-sm font-semibold transition ${
-                resultado.pagina >= resultado.totalPaginas
-                  ? "pointer-events-none opacity-50"
-                  : "hover:bg-(--muted)"
-              }`}
-            >
-              Próxima
-            </Link>
-          </div>
-        </div>
-      </section>
+      </DataTableShell>
     </div>
   );
 }

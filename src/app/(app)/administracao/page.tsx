@@ -29,6 +29,12 @@ export default async function AdministracaoPage() {
       icon: UsersRound,
     },
     {
+      titulo: "Orgaos",
+      descricao: "Consulte orgaos institucionais usados por unidades e SARH.",
+      href: "/orgaos",
+      icon: Building2,
+    },
+    {
       titulo: "Unidades",
       descricao: "Gerencie a estrutura organizacional da JFAM.",
       href: "/unidades",

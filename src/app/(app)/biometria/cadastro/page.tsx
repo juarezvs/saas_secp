@@ -1,5 +1,6 @@
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   CadastroFacialAutoWizardClientOnly,
 } from "@/modules/biometria/presentation/components/biometria-client-only";
@@ -13,6 +14,11 @@ type CadastroBiometriaPageProps = {
 export default async function CadastroBiometriaPage({
   searchParams,
 }: CadastroBiometriaPageProps) {
+  await exigirUmaDasPermissoesOuRedirecionar([
+    "biometria:cadastrar:proprio",
+    "biometria:gerenciar:global",
+  ]);
+
   const params = searchParams ? await searchParams : {};
   const recadastro = params.modo === "recadastro";
 

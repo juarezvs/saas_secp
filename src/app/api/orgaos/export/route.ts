@@ -1,0 +1,70 @@
+import { auth } from "@/auth";
+import { listarOrgaosParaExportacao } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
+
+export const runtime = "nodejs";
+
+function formatarData(data: Date | string | null | undefined) {
+  if (!data) return "";
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(data));
+}
+
+export async function GET(request: Request) {
+  const session = await auth();
+
+  if (
+    !session?.user?.perfilAtivo?.permissoes?.includes(
+      "unidades:gerenciar:global",
+    )
+  ) {
+    return new Response("Acesso negado.", { status: 403 });
+  }
+
+  const url = new URL(request.url);
+  const orgaos = await listarOrgaosParaExportacao({
+    busca: url.searchParams.get("busca") ?? "",
+    sigla: url.searchParams.get("sigla") ?? "",
+    nome: url.searchParams.get("nome") ?? "",
+    codigoExternoSarh: url.searchParams.get("codigoExternoSarh") ?? "",
+    status: url.searchParams.get("status") ?? "",
+  });
+
+  const linhas = [
+    [
+      "Sigla",
+      "Nome",
+      "Codigo SARH",
+      "Unidades",
+      "Servidores",
+      "Ultima sincronizacao SARH",
+      "Status",
+    ],
+    ...orgaos.map((orgao) => [
+      orgao.sigla,
+      orgao.nome,
+      orgao.codigoExternoSarh ?? "",
+      orgao._count.unidades,
+      orgao._count.servidores,
+      formatarData(orgao.ultimaSincronizacaoSarh),
+      orgao.ativo ? "Ativo" : "Inativo",
+    ]),
+  ];
+
+  const csv = linhas
+    .map((linha) =>
+      linha
+        .map((valor) => `"${String(valor).replaceAll('"', '""')}"`)
+        .join(";"),
+    )
+    .join("\n");
+
+  return new Response(`\uFEFF${csv}`, {
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="orgaos.csv"`,
+      "Cache-Control": "no-store",
+    },
+  });
+}

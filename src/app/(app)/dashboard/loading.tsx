@@ -3,4 +3,3 @@ import { DashboardServidorSkeleton } from "@/modules/dashboard/presentation/comp
 export default function DashboardLoading() {
   return <DashboardServidorSkeleton />;
 }
-

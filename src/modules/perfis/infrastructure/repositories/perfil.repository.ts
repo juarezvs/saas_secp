@@ -1,5 +1,157 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
+export type ListarPerfisParams = {
+  pagina?: number;
+  itensPorPagina?: number;
+  busca?: string;
+  codigo?: string;
+  nome?: string;
+  permissao?: string;
+  status?: string;
+};
+
+export function montarWherePerfis(params: ListarPerfisParams) {
+  const busca = params.busca?.trim();
+
+  return {
+    ...(params.status === "ativo"
+      ? { ativo: true }
+      : params.status === "inativo"
+        ? { ativo: false }
+        : {}),
+
+    ...(params.codigo
+      ? {
+          codigo: {
+            contains: params.codigo,
+            mode: "insensitive" as const,
+          },
+        }
+      : {}),
+
+    ...(params.nome
+      ? {
+          nome: {
+            contains: params.nome,
+            mode: "insensitive" as const,
+          },
+        }
+      : {}),
+
+    ...(params.permissao
+      ? {
+          permissoes: {
+            some: {
+              permissao: {
+                OR: [
+                  {
+                    codigo: {
+                      contains: params.permissao,
+                      mode: "insensitive" as const,
+                    },
+                  },
+                  {
+                    descricao: {
+                      contains: params.permissao,
+                      mode: "insensitive" as const,
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        }
+      : {}),
+
+    ...(busca
+      ? {
+          OR: [
+            { codigo: { contains: busca, mode: "insensitive" as const } },
+            { nome: { contains: busca, mode: "insensitive" as const } },
+            { descricao: { contains: busca, mode: "insensitive" as const } },
+            {
+              permissoes: {
+                some: {
+                  permissao: {
+                    OR: [
+                      {
+                        codigo: {
+                          contains: busca,
+                          mode: "insensitive" as const,
+                        },
+                      },
+                      {
+                        recurso: {
+                          contains: busca,
+                          mode: "insensitive" as const,
+                        },
+                      },
+                      {
+                        acao: {
+                          contains: busca,
+                          mode: "insensitive" as const,
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+        }
+      : {}),
+  };
+}
+
+const includePerfilListagem = {
+  permissoes: {
+    include: {
+      permissao: true,
+    },
+  },
+  _count: {
+    select: {
+      usuarios: true,
+    },
+  },
+};
+
+export async function listarPerfisPaginado(params: ListarPerfisParams) {
+  const pagina = Math.max(Number(params.pagina ?? 1), 1);
+  const itensPorPagina = Math.min(
+    Math.max(Number(params.itensPorPagina ?? 10), 5),
+    100,
+  );
+  const where = montarWherePerfis(params);
+
+  const [total, perfis] = await Promise.all([
+    prisma.perfil.count({ where }),
+    prisma.perfil.findMany({
+      where,
+      orderBy: [{ nome: "asc" }, { codigo: "asc" }],
+      include: includePerfilListagem,
+      skip: (pagina - 1) * itensPorPagina,
+      take: itensPorPagina,
+    }),
+  ]);
+
+  return {
+    perfis,
+    total,
+    pagina,
+    itensPorPagina,
+    totalPaginas: Math.max(Math.ceil(total / itensPorPagina), 1),
+  };
+}
+
+export async function listarPerfisParaExportacao(params: ListarPerfisParams) {
+  return prisma.perfil.findMany({
+    where: montarWherePerfis(params),
+    orderBy: [{ nome: "asc" }, { codigo: "asc" }],
+    include: includePerfilListagem,
+  });
+}
+
 export async function listarPermissoesOrdenadas() {
   return prisma.permissao.findMany({
     orderBy: [

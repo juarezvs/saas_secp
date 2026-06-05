@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { usuarioPossuiPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 import { calcularSaldoBancoHoras } from "../services/calcular-banco-horas.service";
 
 export async function recalcularSaldoBancoHorasAction(formData: FormData) {
@@ -12,9 +13,13 @@ export async function recalcularSaldoBancoHorasAction(formData: FormData) {
     return;
   }
 
-  const permissoes = session.user.perfilAtivo?.permissoes ?? [];
-
-  if (!permissoes.includes("banco-horas:gerenciar:global")) {
+  if (
+    !usuarioPossuiPermissaoNoPerfil(
+      session.user.perfilAtivo?.codigo,
+      session.user.perfilAtivo?.permissoes,
+      "banco-horas:gerenciar:global",
+    )
+  ) {
     return;
   }
 

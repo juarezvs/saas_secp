@@ -3,6 +3,7 @@ import { Clock3, Plus } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { auth } from "@/auth";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   listarMarcacoesDoUsuarioNoDia,
   listarUltimasMarcacoes,
@@ -12,6 +13,12 @@ import { obterRotuloTipoMarcacao } from "@/modules/marcacoes/application/service
 import { formatarDataHoraPtBr } from "@/modules/marcacoes/application/services/data-marcacao.service";
 
 export default async function MarcacoesPage() {
+  await exigirUmaDasPermissoesOuRedirecionar([
+    "marcacoes:consultar:proprio",
+    "marcacoes:visualizar:proprio",
+    "marcacoes:consultar:global",
+  ]);
+
   const session = await auth();
 
   const permissoes = session?.user.perfilAtivo?.permissoes ?? [];

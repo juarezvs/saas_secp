@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { recalcularApuracaoDiaAction } from "@/modules/apuracao/application/actions/recalcular-apuracao-dia.action";
 import { normalizarDataReferencia } from "@/modules/apuracao/application/services/calcular-tempo.service";
 import { ApuracaoDiaCard } from "@/modules/apuracao/presentation/components/apuracao-dia-card";
@@ -10,6 +11,12 @@ import {
 } from "@/modules/apuracao/infrastructure/repositories/apuracao.repository";
 
 export default async function ApuracaoPage() {
+  await exigirUmaDasPermissoesOuRedirecionar([
+    "apuracao:consultar:proprio",
+    "apuracao:consultar:global",
+    "apuracao:recalcular:global",
+  ]);
+
   const session = await auth();
 
   const servidor = session?.user

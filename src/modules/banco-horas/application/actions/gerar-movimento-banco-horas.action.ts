@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { regerarBancoHorasMesService } from "@/modules/recalculo/application/services/regerar-banco-horas-mes.service";
+import { usuarioPossuiPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 
 export async function gerarMovimentosBancoHorasAction(formData: FormData) {
   const session = await auth();
@@ -11,9 +12,13 @@ export async function gerarMovimentosBancoHorasAction(formData: FormData) {
     return;
   }
 
-  const permissoes = session.user.perfilAtivo?.permissoes ?? [];
-
-  if (!permissoes.includes("banco-horas:gerenciar:global")) {
+  if (
+    !usuarioPossuiPermissaoNoPerfil(
+      session.user.perfilAtivo?.codigo,
+      session.user.perfilAtivo?.permissoes,
+      "banco-horas:gerenciar:global",
+    )
+  ) {
     return;
   }
 

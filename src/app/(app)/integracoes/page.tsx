@@ -11,12 +11,29 @@ import {
   KeyRound,
   Network,
   RefreshCw,
-  ShieldCheck,
   UsersRound,
 } from "lucide-react";
+import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { PageHeader } from "@/components/layout/page-header";
+import { DataTableShell } from "@/components/listagens";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { listarIntegracoesSistemaPaginado } from "@/modules/integracoes/infrastructure/repositories/integracoes.repository";
+import { IntegracoesListagemControles } from "@/modules/integracoes/presentation/components/integracoes-listagem-controles";
 
 type StatusVisual = "disponivel" | "planejado" | "atencao" | "inativo";
+
+type IntegracoesPageProps = {
+  searchParams?: Promise<{
+    busca?: string;
+    tipo?: string;
+    status?: string;
+    direcao?: string;
+    ativo?: string;
+    pagina?: string;
+    itensPorPagina?: string;
+  }>;
+};
 
 function formatarData(data: Date | string | null | undefined) {
   if (!data) return "-";
@@ -40,14 +57,16 @@ function obterBadgeStatus(status: StatusVisual) {
   };
 
   const labels: Record<StatusVisual, string> = {
-    disponivel: "Disponível",
+    disponivel: "Disponivel",
     planejado: "Planejado",
-    atencao: "Atenção",
+    atencao: "Atencao",
     inativo: "Inativo",
   };
 
   return (
-    <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${classes[status]}`}>
+    <span
+      className={`rounded-full border px-2.5 py-1 text-xs font-medium ${classes[status]}`}
+    >
       {labels[status]}
     </span>
   );
@@ -68,14 +87,20 @@ function StatusResumoCard({
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{titulo}</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-950 dark:text-slate-50">{valor}</p>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+            {titulo}
+          </p>
+          <p className="mt-2 text-2xl font-semibold text-slate-950 dark:text-slate-50">
+            {valor}
+          </p>
         </div>
         <div className="rounded-lg bg-blue-50 p-2 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
           <Icon className="h-5 w-5" aria-hidden="true" />
         </div>
       </div>
-      <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">{descricao}</p>
+      <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+        {descricao}
+      </p>
     </div>
   );
 }
@@ -105,13 +130,20 @@ function IntegracaoCard({
       </div>
 
       <div className="mt-4 flex-1">
-        <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-50">{titulo}</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{descricao}</p>
+        <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-50">
+          {titulo}
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+          {descricao}
+        </p>
 
         <ul className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-300">
           {detalhes.map((detalhe) => (
             <li key={detalhe} className="flex gap-2">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
+              <CheckCircle2
+                className="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400"
+                aria-hidden="true"
+              />
               <span>{detalhe}</span>
             </li>
           ))}
@@ -119,11 +151,20 @@ function IntegracaoCard({
       </div>
 
       <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-sm dark:border-slate-900">
-        <span className={href ? "font-medium text-blue-700 dark:text-blue-300" : "text-slate-400"}>
-          {href ? "Acessar integração" : "Aguardando implementação"}
+        <span
+          className={
+            href
+              ? "font-medium text-blue-700 dark:text-blue-300"
+              : "text-slate-400"
+          }
+        >
+          {href ? "Acessar integracao" : "Aguardando implementacao"}
         </span>
         {href ? (
-          <ArrowRight className="h-4 w-4 text-blue-700 transition group-hover:translate-x-0.5 dark:text-blue-300" aria-hidden="true" />
+          <ArrowRight
+            className="h-4 w-4 text-blue-700 transition group-hover:translate-x-0.5 dark:text-blue-300"
+            aria-hidden="true"
+          />
         ) : (
           <Clock3 className="h-4 w-4 text-slate-400" aria-hidden="true" />
         )}
@@ -140,8 +181,34 @@ function IntegracaoCard({
   );
 }
 
-export default async function IntegracoesPage() {
-  const [integracoes, ultimaExecucaoSarh, conflitosPendentesSarh, itensComErroSarh] = await Promise.all([
+export default async function IntegracoesPage({
+  searchParams,
+}: IntegracoesPageProps) {
+  await exigirUmaDasPermissoesOuRedirecionar([
+    "integracoes:consultar:global",
+    "integracoes:gerenciar:global",
+  ]);
+
+  const params = searchParams ? await searchParams : {};
+  const pagina = Number(params.pagina ?? 1);
+  const itensPorPagina = Number(params.itensPorPagina ?? 10);
+
+  const [
+    resultado,
+    integracoesResumo,
+    ultimaExecucaoSarh,
+    conflitosPendentesSarh,
+    itensComErroSarh,
+  ] = await Promise.all([
+    listarIntegracoesSistemaPaginado({
+      busca: params.busca ?? "",
+      tipo: params.tipo ?? "",
+      status: params.status ?? "",
+      direcao: params.direcao ?? "",
+      ativo: params.ativo ?? "",
+      pagina,
+      itensPorPagina,
+    }),
     prisma.integracaoSistema.findMany({
       orderBy: [{ tipo: "asc" }, { nome: "asc" }],
     }),
@@ -156,9 +223,13 @@ export default async function IntegracoesPage() {
     }),
   ]);
 
-  const sarh = integracoes.find((integracao) => integracao.tipo === "SARH");
-  const integracoesAtivas = integracoes.filter((integracao) => integracao.ativo).length;
-  const integracoesComErro = integracoes.filter((integracao) => integracao.status === "ERRO").length;
+  const sarh = integracoesResumo.find((integracao) => integracao.tipo === "SARH");
+  const integracoesAtivas = integracoesResumo.filter(
+    (integracao) => integracao.ativo,
+  ).length;
+  const integracoesComErro = integracoesResumo.filter(
+    (integracao) => integracao.status === "ERRO",
+  ).length;
 
   const statusSarh: StatusVisual = !sarh
     ? "atencao"
@@ -168,53 +239,66 @@ export default async function IntegracoesPage() {
         ? "atencao"
         : "inativo";
 
+  const exportParams = new URLSearchParams();
+
+  for (const chave of ["busca", "tipo", "status", "direcao", "ativo"] as const) {
+    if (params[chave]) {
+      exportParams.set(chave, params[chave]!);
+    }
+  }
+
+  const baseParams = new URLSearchParams(exportParams);
+  baseParams.set("itensPorPagina", String(resultado.itensPorPagina));
+
+  function montarHrefPagina(novaPagina: number) {
+    const query = new URLSearchParams(baseParams);
+    query.set("pagina", String(novaPagina));
+    return `/integracoes?${query.toString()}`;
+  }
+
   return (
-    <main className="space-y-6 p-6">
-      <section className="flex flex-col gap-2">
-        <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Administração</p>
-        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
-              Integrações do SECP
-            </h1>
-            <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-              Painel central para integrações institucionais do SECP. Use esta área para acompanhar fontes externas,
-              sincronizações, disponibilidade, conflitos, erros operacionais e evolução dos conectores do sistema.
-            </p>
-          </div>
+    <div className="space-y-6">
+      <Breadcrumb
+        items={[
+          { label: "Administracao", href: "/administracao" },
+          { label: "Integracoes" },
+        ]}
+      />
 
-          <Link
-            href="/administracao/integracoes/sarh"
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-700/30"
-          >
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            Sincronizar SARH
-          </Link>
-        </div>
-      </section>
+      <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
+            Administracao
+          </p>
 
-      <section className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-100">
-        <div className="flex gap-3">
-          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
-          <div>
-            <h2 className="font-semibold">Finalidade administrativa</h2>
-            <p className="mt-1">
-              Esta página concentra integrações que apoiam o controle eletrônico de frequência, a conferência de dados
-              cadastrais, a rastreabilidade das sincronizações e a governança operacional do SECP.
-            </p>
-          </div>
+          <PageHeader
+            icon={Network}
+            titulo="Integracoes do SECP"
+            descricao="Acompanhe fontes externas, sincronizacoes, disponibilidade, conflitos, erros operacionais e evolucao dos conectores do sistema."
+            artigo="Governanca operacional"
+            regraTitulo="Integracoes institucionais"
+            regraDescricao="As integracoes apoiam o controle eletronico de frequencia, a conferencia cadastral, a rastreabilidade das sincronizacoes e a governanca operacional do SECP."
+          />
         </div>
+
+        <Link
+          href="/administracao/integracoes/sarh"
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          <RefreshCw className="h-4 w-4" aria-hidden="true" />
+          Sincronizar SARH
+        </Link>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatusResumoCard
-          titulo="Integrações cadastradas"
-          valor={integracoes.length}
-          descricao="Total de integrações registradas em Administração."
+          titulo="Integracoes cadastradas"
+          valor={integracoesResumo.length}
+          descricao="Total de integracoes registradas em Administracao."
           icon={Network}
         />
         <StatusResumoCard
-          titulo="Integrações ativas"
+          titulo="Integracoes ativas"
           valor={integracoesAtivas}
           descricao="Conectores habilitados para uso operacional."
           icon={Activity}
@@ -222,13 +306,13 @@ export default async function IntegracoesPage() {
         <StatusResumoCard
           titulo="Conflitos SARH"
           valor={conflitosPendentesSarh}
-          descricao="Pendências que exigem decisão administrativa."
+          descricao="Pendencias que exigem decisao administrativa."
           icon={AlertTriangle}
         />
         <StatusResumoCard
           titulo="Itens SARH com erro"
           valor={itensComErroSarh}
-          descricao="Registros que precisam de análise ou reprocessamento."
+          descricao="Registros que precisam de analise ou reprocessamento."
           icon={DatabaseZap}
         />
       </section>
@@ -236,117 +320,143 @@ export default async function IntegracoesPage() {
       <section className="grid gap-5 lg:grid-cols-2 2xl:grid-cols-4">
         <IntegracaoCard
           titulo="SARH"
-          descricao="Integração com o Sistema de Gestão de Recursos Humanos para carga e sincronização de órgãos, lotações, cargos, servidores e vínculos servidor-lotação."
+          descricao="Integracao com o Sistema de Gestao de Recursos Humanos para carga e sincronizacao de orgaos, lotacoes, cargos, servidores e vinculos."
           href="/administracao/integracoes/sarh"
           status={statusSarh}
           icon={UsersRound}
           detalhes={[
-            `Status: ${sarh?.status ?? "não configurada"}`,
-            `Última execução: ${formatarData(ultimaExecucaoSarh?.iniciadoEm)}`,
+            `Status: ${sarh?.status ?? "nao configurada"}`,
+            `Ultima execucao: ${formatarData(ultimaExecucaoSarh?.iniciadoEm)}`,
             `Base URL: ${sarh?.baseUrl ?? "SARH_BASE_URL pendente"}`,
           ]}
         />
 
         <IntegracaoCard
           titulo="SEI"
-          descricao="Conector previsto para consulta, referência e futura automação de documentos, boletins de frequência e processos administrativos relacionados ao ponto."
+          descricao="Conector previsto para documentos, boletins de frequencia e processos administrativos relacionados ao ponto."
           status="planejado"
           icon={FileText}
           detalhes={[
-            "Futura vinculação de boletins de frequência",
+            "Futura vinculacao de boletins",
             "Consulta de processos administrativos",
-            "Registro de referências documentais",
+            "Registro de referencias documentais",
           ]}
         />
 
         <IntegracaoCard
-          titulo="Equipamentos biométricos"
-          descricao="Integração com relógios, totens e dispositivos de identificação biométrica para ingestão de marcações e eventos operacionais."
+          titulo="Equipamentos biometricos"
+          descricao="Integracao com relogios, totens e dispositivos biometricos para ingestao de marcacoes e eventos operacionais."
           status="planejado"
           icon={Fingerprint}
           detalhes={[
-            "Recebimento de marcações",
-            "Heartbeat e monitoramento dos equipamentos",
-            "Tratamento de falhas de comunicação",
+            "Recebimento de marcacoes",
+            "Heartbeat e monitoramento",
+            "Tratamento de falhas de comunicacao",
           ]}
         />
 
         <IntegracaoCard
           titulo="LDAP / Active Directory"
-          descricao="Integração com a rede Windows institucional para autenticação, identificação por matrícula e eventual leitura de grupos administrativos."
+          descricao="Integracao com a rede Windows institucional para autenticacao, identificacao por matricula e grupos administrativos."
           status="planejado"
           icon={KeyRound}
           detalhes={[
-            "Login com matrícula e senha de rede",
+            "Login com matricula e senha de rede",
             "Mapeamento de grupos para perfis",
-            "Suporte futuro a múltiplos provedores",
+            "Suporte futuro a multiplos provedores",
           ]}
         />
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-        <div className="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-50">Integrações registradas</h2>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-              Visão técnica dos conectores cadastrados na tabela de integrações do SECP.
-            </p>
-          </div>
-        </div>
-
+      <DataTableShell
+        title="Integracoes registradas"
+        description="Visao tecnica dos conectores cadastrados na tabela de integracoes do SECP."
+        total={resultado.total}
+        pagina={resultado.pagina}
+        totalPaginas={resultado.totalPaginas}
+        itensPorPagina={resultado.itensPorPagina}
+        montarHrefPagina={montarHrefPagina}
+        toolbar={
+          <IntegracoesListagemControles
+            exportCsvHref={`/api/integracoes/export?${exportParams.toString()}`}
+            exportPdfHref={`/api/integracoes/export/pdf?${exportParams.toString()}`}
+          />
+        }
+      >
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-left text-slate-500 dark:border-slate-800 dark:text-slate-400">
-                <th className="py-2 pr-3">Nome</th>
-                <th className="py-2 pr-3">Tipo</th>
-                <th className="py-2 pr-3">Status</th>
-                <th className="py-2 pr-3">Direção</th>
-                <th className="py-2 pr-3">Ativa</th>
-                <th className="py-2 pr-3">Último sucesso</th>
-                <th className="py-2 pr-3">Último erro</th>
+          <table className="w-full min-w-[980px] text-left text-sm">
+            <caption className="sr-only">
+              Listagem de integracoes com nome, tipo, status, direcao, ativo,
+              ultimo sucesso, ultimo erro e contadores.
+            </caption>
+            <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
+              <tr>
+                <th className="px-5 py-3">Nome</th>
+                <th className="px-5 py-3">Tipo</th>
+                <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3">Direcao</th>
+                <th className="px-5 py-3">Ativa</th>
+                <th className="px-5 py-3">Logs</th>
+                <th className="px-5 py-3">Equip.</th>
+                <th className="px-5 py-3">Ultimo sucesso</th>
+                <th className="px-5 py-3">Ultimo erro</th>
               </tr>
             </thead>
             <tbody>
-              {integracoes.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-500 dark:text-slate-400">
-                    Nenhuma integração cadastrada. Execute o seed da Fase 1 para registrar a integração SARH.
+              {resultado.integracoes.map((integracao) => (
+                <tr key={integracao.id} className="border-b last:border-b-0">
+                  <td className="px-5 py-4 font-semibold">
+                    {integracao.nome}
+                  </td>
+                  <td className="px-5 py-4">{integracao.tipo}</td>
+                  <td className="px-5 py-4">{integracao.status}</td>
+                  <td className="px-5 py-4">{integracao.direcao}</td>
+                  <td className="px-5 py-4">
+                    {integracao.ativo ? "Sim" : "Nao"}
+                  </td>
+                  <td className="px-5 py-4">{integracao._count.logs}</td>
+                  <td className="px-5 py-4">
+                    {integracao._count.equipamentos}
+                  </td>
+                  <td className="px-5 py-4">
+                    {formatarData(integracao.ultimoSucessoEm)}
+                  </td>
+                  <td className="px-5 py-4">
+                    {integracao.ultimoErro ? (
+                      <span
+                        className="line-clamp-1 max-w-[260px]"
+                        title={integracao.ultimoErro}
+                      >
+                        {integracao.ultimoErro}
+                      </span>
+                    ) : (
+                      "-"
+                    )}
                   </td>
                 </tr>
-              ) : (
-                integracoes.map((integracao) => (
-                  <tr key={integracao.id} className="border-b border-slate-100 dark:border-slate-900">
-                    <td className="py-3 pr-3 font-medium text-slate-900 dark:text-slate-100">{integracao.nome}</td>
-                    <td className="py-3 pr-3 text-slate-600 dark:text-slate-300">{integracao.tipo}</td>
-                    <td className="py-3 pr-3 text-slate-600 dark:text-slate-300">{integracao.status}</td>
-                    <td className="py-3 pr-3 text-slate-600 dark:text-slate-300">{integracao.direcao}</td>
-                    <td className="py-3 pr-3 text-slate-600 dark:text-slate-300">{integracao.ativo ? "Sim" : "Não"}</td>
-                    <td className="py-3 pr-3 text-slate-600 dark:text-slate-300">
-                      {formatarData(integracao.ultimoSucessoEm)}
-                    </td>
-                    <td className="py-3 pr-3 text-slate-600 dark:text-slate-300">
-                      {integracao.ultimoErro ? (
-                        <span className="line-clamp-1 max-w-[260px]" title={integracao.ultimoErro}>
-                          {integracao.ultimoErro}
-                        </span>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                  </tr>
-                ))
+              ))}
+
+              {resultado.integracoes.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={9}
+                    className="px-5 py-10 text-center text-[var(--muted-foreground)]"
+                  >
+                    Nenhuma integracao encontrada para os filtros informados.
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
         </div>
+      </DataTableShell>
 
-        {integracoesComErro > 0 ? (
-          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
-            Existem {integracoesComErro} integração(ões) com status de erro. Verifique os logs antes de executar novas sincronizações.
-          </div>
-        ) : null}
-      </section>
-    </main>
+      {integracoesComErro > 0 ? (
+        <section className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+          Existem {integracoesComErro} integracao(oes) com status de erro.
+          Verifique os logs antes de executar novas sincronizacoes.
+        </section>
+      ) : null}
+    </div>
   );
 }

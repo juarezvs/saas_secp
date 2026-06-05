@@ -2,10 +2,10 @@
 
 import { useSession } from "next-auth/react";
 import {
-  possuiAlgumaPermissaoNaLista,
-  possuiPermissaoNaLista,
-  possuiTodasPermissoesNaLista,
-} from "../../application/services/permissao.service";
+  usuarioPossuiAlgumaPermissaoNoPerfil,
+  usuarioPossuiPermissaoNoPerfil,
+  usuarioPossuiTodasPermissoesNoPerfil,
+} from "../../application/services/permissao-utils";
 
 type GuardPermissaoProps = {
   permissao?: string;
@@ -28,22 +28,38 @@ export function GuardPermissao({
     return null;
   }
 
-  const permissoesUsuario = session?.user.perfilAtivo?.permissoes ?? [];
+  const perfilAtivo = session?.user.perfilAtivo;
+  const permissoesUsuario = perfilAtivo?.permissoes ?? [];
 
-  if (permissao && !possuiPermissaoNaLista(permissoesUsuario, permissao)) {
+  if (
+    permissao &&
+    !usuarioPossuiPermissaoNoPerfil(
+      perfilAtivo?.codigo,
+      permissoesUsuario,
+      permissao,
+    )
+  ) {
     return <>{fallback}</>;
   }
 
   if (
     algumaPermissao &&
-    !possuiAlgumaPermissaoNaLista(permissoesUsuario, algumaPermissao)
+    !usuarioPossuiAlgumaPermissaoNoPerfil(
+      perfilAtivo?.codigo,
+      permissoesUsuario,
+      algumaPermissao,
+    )
   ) {
     return <>{fallback}</>;
   }
 
   if (
     todasPermissoes &&
-    !possuiTodasPermissoesNaLista(permissoesUsuario, todasPermissoes)
+    !usuarioPossuiTodasPermissoesNoPerfil(
+      perfilAtivo?.codigo,
+      permissoesUsuario,
+      todasPermissoes,
+    )
   ) {
     return <>{fallback}</>;
   }
