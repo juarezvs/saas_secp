@@ -1,114 +1,102 @@
 import Link from "next/link";
-import { Clock3, ShieldCheck, BarChart3, Accessibility } from "lucide-react";
+import {
+  Accessibility,
+  BarChart3,
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  Hourglass,
+  ShieldCheck,
+} from "lucide-react";
+
+const funcionalidades = [
+  { titulo: "Registro", descricao: "Registro eletrônico de frequência com orientação da próxima ação.", icon: Clock },
+  { titulo: "Banco de horas", descricao: "Acompanhamento de créditos, débitos, limites e prazos.", icon: Hourglass },
+  { titulo: "Solicitações", descricao: "Fluxos guiados para ajuste, compensação e justificativas.", icon: ClipboardList },
+  { titulo: "Homologação", descricao: "Fila de decisão para chefias com pendências priorizadas.", icon: CheckCircle2 },
+  { titulo: "Auditoria", descricao: "Rastreabilidade visual das operações e decisões institucionais.", icon: ShieldCheck },
+  { titulo: "Relatórios", descricao: "Espelhos, extratos e relatórios preparados para exportação.", icon: BarChart3 },
+];
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-slate-100 text-slate-950">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-wide text-blue-900">
-              Justiça Federal do Amazonas
-            </p>
-            <h1 className="text-xl font-black">SECP</h1>
+    <main className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border bg-card">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-5">
+          <div className="flex items-center gap-3">
+            <div className="flex size-11 items-center justify-center rounded-md bg-secp-blue-900 text-sm font-black text-white">
+              SE
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase text-secp-blue-700">Justiça Federal do Amazonas</p>
+              <p className="text-xl font-black">SECP</p>
+            </div>
           </div>
-
           <Link
             href="/login"
-            className="rounded-md bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-950"
+            className="rounded-md bg-secp-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-secp-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
-            Acessar sistema
+            Entrar
           </Link>
         </div>
       </header>
 
-      <section className="mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+      <section className="mx-auto grid max-w-7xl gap-10 px-6 py-14 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
         <div>
-          <p className="text-sm font-bold uppercase tracking-wide text-blue-900">
-            Controle eletrônico de frequência
+          <p className="text-sm font-bold uppercase text-secp-blue-700">Sistema Eletrônico de Controle de Ponto</p>
+          <h1 className="mt-4 max-w-4xl text-4xl font-black tracking-normal md:text-5xl">
+            SECP
+          </h1>
+          <p className="mt-5 max-w-3xl text-lg leading-8 text-muted-foreground">
+            Plataforma institucional da Justiça Federal para registro, acompanhamento,
+            solicitações, banco de horas, homologação e auditoria da frequência funcional.
           </p>
-
-          <h2 className="mt-4 max-w-4xl text-4xl font-black tracking-tight text-slate-950 md:text-5xl">
-            Sistema Eletrônico de Controle de Ponto da JFAM
-          </h2>
-
-          <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-700">
-            Plataforma institucional para registro eletrônico de frequência,
-            banco de horas, solicitações, homologações, relatórios e auditoria,
-            alinhada à Portaria SJAM-DIREF 135/2025.
-          </p>
-
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href="/login"
-              className="rounded-md bg-blue-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-950"
+              className="rounded-md bg-secp-blue-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-secp-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
-              Entrar com matrícula
+              Entrar com matrícula da rede
             </Link>
-
             <a
               href="#funcionalidades"
-              className="rounded-md border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+              className="rounded-md border border-border bg-card px-6 py-3 text-sm font-semibold transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               Conhecer funcionalidades
             </a>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="grid gap-4">
-            <FeatureCard
-              icon={Clock3}
-              titulo="Registro de ponto"
-              descricao="Entrada, saída, intervalo e retorno com classificação automática."
-            />
-
-            <FeatureCard
-              icon={BarChart3}
-              titulo="Banco de horas"
-              descricao="Controle de créditos, débitos, compensações, limites e prazos."
-            />
-
-            <FeatureCard
-              icon={ShieldCheck}
-              titulo="Homologação"
-              descricao="Validação mensal pela chefia e emissão de boletins."
-            />
-
-            <FeatureCard
-              icon={Accessibility}
-              titulo="Acessibilidade"
-              descricao="VLibras, tema claro/escuro, ajuste de fonte e suporte à leitura assistiva."
-            />
+        <div className="rounded-lg border border-border bg-card p-6 shadow-card">
+          <div className="rounded-lg secp-institutional-gradient p-6 text-white">
+            <Accessibility className="size-8" aria-hidden="true" />
+            <h2 className="mt-5 text-2xl font-bold">Governança digital da frequência</h2>
+            <p className="mt-3 text-sm leading-6 text-white/80">
+              Interface auto-instrucional, acessível e preparada para conformidade com a Portaria SJAM-DIREF 135/2025.
+            </p>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {["Acessibilidade", "Segurança", "Rastreabilidade", "Conformidade"].map((item) => (
+              <div key={item} className="rounded-md bg-muted p-3 text-sm font-semibold">{item}</div>
+            ))}
           </div>
         </div>
       </section>
 
-      <section
-        id="funcionalidades"
-        className="border-t border-slate-200 bg-white px-6 py-14"
-      >
+      <section id="funcionalidades" className="border-t border-border bg-card px-6 py-14">
         <div className="mx-auto max-w-7xl">
-          <h2 className="text-2xl font-black text-slate-950">
-            Funcionalidades principais
-          </h2>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {[
-              "Cadastro de servidores e unidades",
-              "Jornadas e escalas",
-              "Registro eletrônico de frequência",
-              "Solicitações e aprovações",
-              "Homologação mensal",
-              "Relatórios e auditoria",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm font-semibold text-slate-800"
-              >
-                {item}
-              </div>
-            ))}
+          <h2 className="text-2xl font-bold">Funcionalidades principais</h2>
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {funcionalidades.map((item) => {
+              const Icon = item.icon;
+              return (
+                <article key={item.titulo} className="rounded-lg border border-border bg-background p-5">
+                  <Icon className="size-6 text-secp-blue-700" aria-hidden="true" />
+                  <h3 className="mt-4 font-bold">{item.titulo}</h3>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.descricao}</p>
+                </article>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -116,25 +104,3 @@ export default function HomePage() {
   );
 }
 
-type FeatureCardProps = {
-  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
-  titulo: string;
-  descricao: string;
-};
-
-function FeatureCard({ icon: Icon, titulo, descricao }: FeatureCardProps) {
-  return (
-    <article className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-      <div className="flex gap-4">
-        <div className="rounded-lg bg-blue-900 p-3 text-white">
-          <Icon className="size-5" aria-hidden />
-        </div>
-
-        <div>
-          <h3 className="font-bold text-slate-950">{titulo}</h3>
-          <p className="mt-1 text-sm leading-6 text-slate-600">{descricao}</p>
-        </div>
-      </div>
-    </article>
-  );
-}

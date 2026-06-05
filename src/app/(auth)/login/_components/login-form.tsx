@@ -1,90 +1,83 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState } from "react";
 import { Loader2, LockKeyhole, UserRound } from "lucide-react";
-import {
-  loginAction,
-  type LoginActionState,
-} from "@/modules/auth/application/actions/login.action";
 
-const estadoInicial: LoginActionState = {
-  sucesso: false,
-  mensagem: null,
-};
+import { Button, Input, Label } from "@/components/ui";
 
 export function LoginForm() {
-  const [estado, formAction, pendente] = useActionState(
-    loginAction,
-    estadoInicial,
-  );
+  const [matricula, setMatricula] = useState("");
+  const [senha, setSenha] = useState("");
+  const [mensagem, setMensagem] = useState<string | null>(null);
+  const [pendente, setPendente] = useState(false);
+
+  function simularLogin(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMensagem(null);
+
+    if (!matricula.trim() || !senha.trim()) {
+      setMensagem("Informe matrícula e senha da rede Windows.");
+      return;
+    }
+
+    setPendente(true);
+    window.setTimeout(() => {
+      setPendente(false);
+      setMensagem("Login mockado. A integração com Auth.js e LDAP será conectada em etapa posterior.");
+    }, 600);
+  }
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form onSubmit={simularLogin} className="space-y-5">
       <div className="space-y-2">
-        <label
-          htmlFor="matricula"
-          className="text-sm font-medium text-slate-700"
-        >
-          Matrícula
-        </label>
-
+        <Label htmlFor="matricula">Matrícula</Label>
         <div className="relative">
-          <UserRound
-            className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-400"
-            aria-hidden="true"
-          />
-          <input
+          <UserRound className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Input
             id="matricula"
             name="matricula"
             type="text"
-            defaultValue={estado.campos?.matricula}
+            value={matricula}
+            onChange={(event) => setMatricula(event.target.value)}
             autoComplete="username"
-            className="h-11 w-full rounded-md border border-slate-300 bg-white pl-10 pr-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            className="pl-10"
             placeholder="Digite sua matrícula"
-            required
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="senha" className="text-sm font-medium text-slate-700">
-          Senha da rede
-        </label>
-
+        <Label htmlFor="senha">Senha da rede Windows</Label>
         <div className="relative">
-          <LockKeyhole
-            className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-400"
-            aria-hidden="true"
-          />
-          <input
+          <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Input
             id="senha"
             name="senha"
             type="password"
+            value={senha}
+            onChange={(event) => setSenha(event.target.value)}
             autoComplete="current-password"
-            className="h-11 w-full rounded-md border border-slate-300 bg-white pl-10 pr-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            className="pl-10"
             placeholder="Digite sua senha"
-            required
           />
         </div>
       </div>
 
-      {estado.mensagem && (
-        <div
-          role="alert"
-          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-        >
-          {estado.mensagem}
+      {mensagem && (
+        <div role="alert" className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+          {mensagem}
         </div>
       )}
 
-      <button
-        type="submit"
-        disabled={pendente}
-        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-blue-900 px-4 text-sm font-semibold text-white transition hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-70"
-      >
-        {pendente && <Loader2 className="size-4 animate-spin" />}
-        Entrar no SECP
-      </button>
+      <Button type="submit" className="w-full" disabled={pendente}>
+        {pendente && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
+        Entrar
+      </Button>
+
+      <a href="mailto:nutec@sjam.jus.br" className="block text-center text-sm font-semibold text-secp-blue-700 hover:underline">
+        Suporte NUTEC
+      </a>
     </form>
   );
 }
+
