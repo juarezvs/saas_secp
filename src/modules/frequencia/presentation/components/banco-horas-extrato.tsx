@@ -10,6 +10,10 @@ export function BancoHorasExtrato() {
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[820px] text-left text-sm">
+          <caption className="sr-only">
+            Extrato do banco de horas com data, tipo, horas, status,
+            vencimento e descricao.
+          </caption>
           <thead className="bg-muted text-xs uppercase text-muted-foreground">
             <tr>
               <th className="px-5 py-3">Data</th>
@@ -37,4 +41,3 @@ export function BancoHorasExtrato() {
     </Card>
   );
 }
-

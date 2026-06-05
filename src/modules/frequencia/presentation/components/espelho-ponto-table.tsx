@@ -16,11 +16,20 @@ export function EspelhoPontoTable({ dias }: EspelhoPontoTableProps) {
           <h2 className="text-lg font-semibold">Espelho de ponto mensal</h2>
           <p className="mt-1 text-sm text-muted-foreground">Consulta visual com dados mockados.</p>
         </div>
-        <Button leftIcon={<FileText className="size-4" aria-hidden="true" />}>Exportar PDF</Button>
+        <Button
+          leftIcon={<FileText className="size-4" aria-hidden="true" />}
+          aria-label="Exportar espelho de ponto em PDF"
+        >
+          Exportar PDF
+        </Button>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[980px] text-left text-sm">
+          <caption className="sr-only">
+            Espelho de ponto mensal com data, jornada prevista, marcacoes,
+            resultado, creditos, debitos, situacao e acoes.
+          </caption>
           <thead className="bg-muted text-xs uppercase text-muted-foreground">
             <tr>
               <th className="px-5 py-3">Data</th>
@@ -60,4 +69,3 @@ export function EspelhoPontoTable({ dias }: EspelhoPontoTableProps) {
     </Card>
   );
 }
-

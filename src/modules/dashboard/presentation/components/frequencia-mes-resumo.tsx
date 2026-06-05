@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FileCheck2 } from "lucide-react";
 
 import { Card } from "@/components/ui";
@@ -22,7 +23,12 @@ export function FrequenciaMesResumo({ resumo }: FrequenciaMesResumoProps) {
     <Card className="p-5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Frequência do mês</h2>
-        <a href="/espelho-ponto" className="text-sm font-semibold text-secp-blue-700 hover:underline">Ver espelho</a>
+        <Link
+          href="/espelho-ponto"
+          className="rounded-sm text-sm font-semibold text-secp-blue-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          Ver espelho
+        </Link>
       </div>
 
       <div className="mt-5 grid gap-5 sm:grid-cols-[10rem_1fr] sm:items-center">
@@ -63,4 +69,3 @@ function Linha({ label, valor, cor }: { label: string; valor: number; cor: strin
     </div>
   );
 }
-

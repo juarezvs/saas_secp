@@ -15,6 +15,10 @@ export function ConvocadosTable({ convocados }: ConvocadosTableProps) {
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[820px] text-left text-sm">
+          <caption className="sr-only">
+            Servidores convocados no recesso forense, dias convocados, chefia,
+            escolha e status.
+          </caption>
           <thead className="bg-muted text-xs uppercase text-muted-foreground">
             <tr>
               <th className="px-5 py-3">Servidor</th>
@@ -43,4 +47,3 @@ export function ConvocadosTable({ convocados }: ConvocadosTableProps) {
     </Card>
   );
 }
-

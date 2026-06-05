@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ArrowRight, Info } from "lucide-react";
 
 import { Card, Badge } from "@/components/ui";
@@ -12,7 +13,12 @@ export function MarcacoesDoDiaTimeline({ marcacoes }: MarcacoesDoDiaTimelineProp
     <Card className="p-5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Marcações de hoje</h2>
-        <a href="/marcacoes" className="text-sm font-semibold text-secp-blue-700 hover:underline">Ver todas</a>
+        <Link
+          href="/marcacoes"
+          className="rounded-sm text-sm font-semibold text-secp-blue-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          Ver todas
+        </Link>
       </div>
 
       <ol className="mt-5 space-y-4">
@@ -42,4 +48,3 @@ export function MarcacoesDoDiaTimeline({ marcacoes }: MarcacoesDoDiaTimelineProp
     </Card>
   );
 }
-

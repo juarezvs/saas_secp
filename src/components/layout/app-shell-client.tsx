@@ -24,6 +24,12 @@ export function AppShellClient({ children, usuario }: AppShellClientProps) {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <a
+        href="#conteudo-principal"
+        className="sr-only z-[100] rounded-md bg-card px-4 py-2 font-semibold text-foreground shadow-floating focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:outline-2 focus:outline-offset-2 focus:outline-ring"
+      >
+        Ir para o conteudo principal
+      </a>
       <div className="flex min-h-screen">
         <Sidebar
           recolhida={sidebarRecolhida}
@@ -42,9 +48,15 @@ export function AppShellClient({ children, usuario }: AppShellClientProps) {
             onPerfilAtivoChange={setPerfilAtivo}
             onToggleSidebar={() => setSidebarRecolhida((valor) => !valor)}
             onOpenMobileMenu={() => setDrawerAberto(true)}
+            sidebarRecolhida={sidebarRecolhida}
+            drawerAberto={drawerAberto}
           />
 
-          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          <main
+            id="conteudo-principal"
+            tabIndex={-1}
+            className="flex-1 scroll-mt-20 px-4 py-6 focus:outline-none sm:px-6 lg:px-8"
+          >
             <div className="mx-auto w-full max-w-7xl">{children}</div>
           </main>
         </div>
@@ -52,4 +64,3 @@ export function AppShellClient({ children, usuario }: AppShellClientProps) {
     </div>
   );
 }
-

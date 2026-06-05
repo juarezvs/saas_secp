@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 import {
   BarChart3,
   CalendarDays,
@@ -78,6 +79,7 @@ function MenuPrincipal({
                 href={item.href}
                 onClick={onNavigate}
                 aria-current={ativo ? "page" : undefined}
+                aria-label={recolhida ? item.label : undefined}
                 title={recolhida ? item.label : undefined}
                 className={[
                   "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold transition",
@@ -105,9 +107,30 @@ export function Sidebar({
   perfilAtivo,
   onFecharDrawer,
 }: SidebarProps) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!drawerAberto) {
+      return;
+    }
+
+    closeButtonRef.current?.focus();
+
+    function fecharComEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onFecharDrawer();
+      }
+    }
+
+    window.addEventListener("keydown", fecharComEscape);
+
+    return () => window.removeEventListener("keydown", fecharComEscape);
+  }, [drawerAberto, onFecharDrawer]);
+
   return (
     <>
       <aside
+        id="secp-sidebar-desktop"
         className={[
           "sticky top-0 hidden h-screen shrink-0 border-r border-border bg-card text-card-foreground shadow-card transition-[width] duration-300 lg:flex",
           recolhida ? "w-20" : "w-72",
@@ -134,6 +157,7 @@ export function Sidebar({
 
       {drawerAberto && (
         <div
+          id="secp-sidebar-mobile"
           className="fixed inset-0 z-50 lg:hidden"
           role="dialog"
           aria-modal="true"
@@ -143,6 +167,7 @@ export function Sidebar({
             type="button"
             className="absolute inset-0 bg-slate-950/55"
             aria-label="Fechar menu principal"
+            tabIndex={-1}
             onClick={onFecharDrawer}
           />
           <aside className="relative flex h-full w-[min(20rem,88vw)] flex-col bg-card text-card-foreground shadow-floating">
@@ -159,6 +184,7 @@ export function Sidebar({
                 </div>
               </div>
               <button
+                ref={closeButtonRef}
                 type="button"
                 onClick={onFecharDrawer}
                 className="inline-flex size-10 items-center justify-center rounded-md border border-border hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -174,4 +200,3 @@ export function Sidebar({
     </>
   );
 }
-

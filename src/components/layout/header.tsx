@@ -20,6 +20,8 @@ type HeaderProps = {
   onToggleSidebar: () => void;
   onOpenMobileMenu: () => void;
   onPerfilAtivoChange: (perfil: PerfilNavegacao) => void;
+  sidebarRecolhida: boolean;
+  drawerAberto: boolean;
 };
 
 export function Header({
@@ -31,6 +33,8 @@ export function Header({
   onToggleSidebar,
   onOpenMobileMenu,
   onPerfilAtivoChange,
+  sidebarRecolhida,
+  drawerAberto,
 }: HeaderProps) {
   function selecionarPerfil(codigo: string) {
     const novoPerfil = perfis.find((perfil) => perfil.codigo === codigo);
@@ -49,6 +53,8 @@ export function Header({
             onClick={onOpenMobileMenu}
             className="inline-flex size-10 items-center justify-center rounded-md border border-white/20 bg-white/10 transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:hidden"
             aria-label="Abrir menu principal"
+            aria-controls="secp-sidebar-mobile"
+            aria-expanded={drawerAberto}
           >
             <Menu className="size-5" aria-hidden="true" />
           </button>
@@ -58,6 +64,8 @@ export function Header({
             onClick={onToggleSidebar}
             className="hidden size-10 items-center justify-center rounded-md border border-white/20 bg-white/10 transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:inline-flex"
             aria-label="Recolher ou expandir menu lateral"
+            aria-controls="secp-sidebar-desktop"
+            aria-expanded={!sidebarRecolhida}
           >
             <PanelLeftClose className="size-5" aria-hidden="true" />
           </button>
@@ -74,7 +82,7 @@ export function Header({
           </div>
         </div>
 
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2 overflow-x-auto py-2">
           <div className="hidden min-w-0 items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-sm xl:flex">
             <Building2 className="size-4 shrink-0" aria-hidden="true" />
             <span className="max-w-56 truncate">{unidadeAtual}</span>
@@ -123,4 +131,3 @@ export function Header({
     </header>
   );
 }
-

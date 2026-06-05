@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ALargeSmall, BookOpenText, Moon, Sun } from "lucide-react";
+import { BookOpenText, Contrast, Moon, Sun } from "lucide-react";
 
 type Tema = "light" | "dark";
 type TamanhoFonte = "normal" | "large" | "xlarge";
@@ -9,6 +9,7 @@ type TamanhoFonte = "normal" | "large" | "xlarge";
 const STORAGE_TEMA = "secp-tema";
 const STORAGE_TAMANHO_FONTE = "secp-tamanho-fonte";
 const STORAGE_FONTE_DISLEXIA = "secp-fonte-dislexia";
+const STORAGE_ALTO_CONTRASTE = "secp-alto-contraste";
 
 function normalizarTema(valor: string | null): Tema {
   return valor === "dark" || valor === "light" ? valor : "light";
@@ -48,6 +49,14 @@ function lerFonteDislexiaInicial(): boolean {
   return window.localStorage.getItem(STORAGE_FONTE_DISLEXIA) === "true";
 }
 
+function lerAltoContrasteInicial(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return window.localStorage.getItem(STORAGE_ALTO_CONTRASTE) === "true";
+}
+
 function aplicarTema(tema: Tema) {
   const root = document.documentElement;
 
@@ -70,11 +79,16 @@ function aplicarFonteDislexia(ativo: boolean) {
   window.localStorage.setItem(STORAGE_FONTE_DISLEXIA, String(ativo));
 }
 
+function aplicarAltoContraste(ativo: boolean) {
+  document.documentElement.classList.toggle("contrast-more", ativo);
+  window.localStorage.setItem(STORAGE_ALTO_CONTRASTE, String(ativo));
+}
+
 function obterClasseBotao(ativo: boolean) {
-  return `inline-flex size-10 items-center justify-center rounded-lg border transition ${
+  return `inline-flex size-10 shrink-0 items-center justify-center rounded-lg border text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
     ativo
       ? "border-blue-700 bg-blue-900 text-white"
-      : "bg-(--card) text-(--foreground) hover:bg-(--muted)"
+      : "bg-card text-foreground hover:bg-muted"
   }`;
 }
 
@@ -85,6 +99,9 @@ export function AccessibilityToolbar() {
   );
   const [fonteDislexia, setFonteDislexia] = useState<boolean>(
     lerFonteDislexiaInicial,
+  );
+  const [altoContraste, setAltoContraste] = useState<boolean>(
+    lerAltoContrasteInicial,
   );
 
   useEffect(() => {
@@ -99,11 +116,15 @@ export function AccessibilityToolbar() {
     aplicarFonteDislexia(fonteDislexia);
   }, [fonteDislexia]);
 
+  useEffect(() => {
+    aplicarAltoContraste(altoContraste);
+  }, [altoContraste]);
+
   function alternarTema() {
     setTema((temaAtual) => (temaAtual === "dark" ? "light" : "dark"));
   }
 
-  function alternarTamanhoFonte() {
+  function aumentarFonte() {
     setTamanhoFonte((tamanhoAtual) => {
       if (tamanhoAtual === "normal") {
         return "large";
@@ -111,6 +132,20 @@ export function AccessibilityToolbar() {
 
       if (tamanhoAtual === "large") {
         return "xlarge";
+      }
+
+      return "xlarge";
+    });
+  }
+
+  function diminuirFonte() {
+    setTamanhoFonte((tamanhoAtual) => {
+      if (tamanhoAtual === "xlarge") {
+        return "large";
+      }
+
+      if (tamanhoAtual === "large") {
+        return "normal";
       }
 
       return "normal";
@@ -124,6 +159,7 @@ export function AccessibilityToolbar() {
   return (
     <div
       className="flex items-center gap-2"
+      role="toolbar"
       aria-label="Ferramentas de acessibilidade"
     >
       <button
@@ -146,14 +182,25 @@ export function AccessibilityToolbar() {
 
       <button
         type="button"
-        onClick={alternarTamanhoFonte}
+        onClick={aumentarFonte}
         className={obterClasseBotao(tamanhoFonte !== "normal")}
-        aria-label={`Alternar tamanho da fonte. Tamanho atual: ${tamanhoFonte}`}
-        title={`Tamanho da fonte: ${tamanhoFonte}`}
+        aria-label={`Aumentar fonte. Tamanho atual: ${tamanhoFonte}`}
+        title="Aumentar fonte"
         aria-pressed={tamanhoFonte !== "normal"}
         suppressHydrationWarning
       >
-        <ALargeSmall className="size-5" aria-hidden="true" />
+        <span aria-hidden="true" className="font-bold">A+</span>
+      </button>
+
+      <button
+        type="button"
+        onClick={diminuirFonte}
+        className={obterClasseBotao(false)}
+        aria-label={`Diminuir fonte. Tamanho atual: ${tamanhoFonte}`}
+        title="Diminuir fonte"
+        suppressHydrationWarning
+      >
+        <span aria-hidden="true" className="font-bold">A-</span>
       </button>
 
       <button
@@ -170,6 +217,20 @@ export function AccessibilityToolbar() {
         suppressHydrationWarning
       >
         <BookOpenText className="size-5" aria-hidden="true" />
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setAltoContraste((ativoAtual) => !ativoAtual)}
+        className={obterClasseBotao(altoContraste)}
+        aria-label={
+          altoContraste ? "Desativar alto contraste" : "Ativar alto contraste"
+        }
+        title="Alto contraste"
+        aria-pressed={altoContraste}
+        suppressHydrationWarning
+      >
+        <Contrast className="size-5" aria-hidden="true" />
       </button>
     </div>
   );
