@@ -7,7 +7,7 @@
     "dev": "next dev",
     "dev:turbo": "next dev --turbopack",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3006",
     "lint": "eslint",
     "worker:afd": "tsx workers/afd.worker.ts",
     "prisma:generate": "prisma generate",

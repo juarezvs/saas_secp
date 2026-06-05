@@ -13,8 +13,19 @@ export type ListarServidoresParams = {
   status?: string;
 };
 
+function ehUuid(valor?: string | null): valor is string {
+  if (!valor) {
+    return false;
+  }
+
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    valor,
+  );
+}
+
 export function montarWhereServidores(params: ListarServidoresParams) {
   const busca = params.busca?.trim();
+  const orgaoId = params.orgaoId?.trim();
 
   return {
     ...(params.status === "ativo"
@@ -42,7 +53,7 @@ export function montarWhereServidores(params: ListarServidoresParams) {
         }
       : {}),
 
-    ...(params.orgaoId ? { orgaoId: params.orgaoId } : {}),
+    ...(orgaoId && ehUuid(orgaoId) ? { orgaoId } : {}),
 
     ...(params.vinculo ? { vinculo: params.vinculo as never } : {}),
 
@@ -174,6 +185,10 @@ export async function listarServidoresParaExportacao(
 }
 
 export async function buscarServidorPorId(id: string) {
+  if (!ehUuid(id)) {
+    return null;
+  }
+
   return prisma.servidor.findUnique({
     where: {
       id,
@@ -246,9 +261,15 @@ export async function usuarioMatriculaExiste(
   matricula: string,
   ignorarUsuarioId?: string,
 ) {
+  const valor = matricula?.trim();
+
+  if (!valor) {
+    return false;
+  }
+
   const usuario = await prisma.usuario.findUnique({
     where: {
-      matricula,
+      matricula: valor,
     },
   });
 
@@ -262,13 +283,20 @@ export async function usuarioMatriculaExiste(
 
   return true;
 }
+
 export async function matriculaServidorExiste(
   matricula: string,
   ignorarServidorId?: string,
 ) {
+  const valor = matricula?.trim();
+
+  if (!valor) {
+    return false;
+  }
+
   const servidor = await prisma.servidor.findUnique({
     where: {
-      matricula,
+      matricula: valor,
     },
   });
 
@@ -281,4 +309,70 @@ export async function matriculaServidorExiste(
   }
 
   return true;
+}
+
+export async function cpfServidorExiste(
+  cpf: string,
+  ignorarServidorId?: string,
+): Promise<boolean> {
+  const valorOriginal = cpf?.trim();
+  const valorSomenteDigitos = valorOriginal?.replace(/\D/g, "");
+
+  if (!valorSomenteDigitos) {
+    return false;
+  }
+
+  const whereExclusao =
+    ignorarServidorId && ehUuid(ignorarServidorId)
+      ? {
+          id: {
+            not: ignorarServidorId,
+          },
+        }
+      : {};
+
+  try {
+    const registro = await prisma.servidor.findFirst({
+      where: {
+        ...whereExclusao,
+        OR: [
+          {
+            cpf: {
+              equals: valorSomenteDigitos,
+            },
+          },
+          {
+            cpf: {
+              equals: valorOriginal,
+            },
+          },
+        ],
+      } as never,
+      select: {
+        id: true,
+      },
+    });
+
+    return Boolean(registro);
+  } catch {
+    const cpfNumerico = Number(valorSomenteDigitos);
+
+    if (!Number.isFinite(cpfNumerico)) {
+      return false;
+    }
+
+    const registro = await prisma.servidor.findFirst({
+      where: {
+        ...whereExclusao,
+        cpf: {
+          equals: cpfNumerico,
+        },
+      } as never,
+      select: {
+        id: true,
+      },
+    });
+
+    return Boolean(registro);
+  }
 }

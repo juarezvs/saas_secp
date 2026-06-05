@@ -1,12 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Download, FileText, Search } from "lucide-react";
 
 type OrgaoOption = {
   id: string;
   sigla: string;
+};
+
+type SelectOption = {
+  value: string;
+  label: string;
 };
 
 export function UnidadesListagemControles({
@@ -23,37 +34,49 @@ export function UnidadesListagemControles({
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
 
-  const [busca, setBusca] = useState(searchParams.get("busca") ?? "");
-
   const paramsAtuais = useMemo(
     () => new URLSearchParams(searchParams.toString()),
     [searchParams],
   );
 
-  function aplicarParametro(nome: string, valor: string) {
-    const params = new URLSearchParams(searchParams.toString());
+  const aplicarParametro = useCallback(
+    (nome: string, valor: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      const valorNormalizado = valor.trim();
 
-    if (valor) params.set(nome, valor);
-    else params.delete(nome);
-
-    params.set("pagina", "1");
-
-    startTransition(() => {
-      router.push(`${pathname}?${params.toString()}`);
-    });
-  }
-
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      const atual = searchParams.get("busca") ?? "";
-
-      if (busca !== atual) {
-        aplicarParametro("busca", busca);
+      if (valorNormalizado) {
+        params.set(nome, valorNormalizado);
+      } else {
+        params.delete(nome);
       }
-    }, 3000);
 
-    return () => window.clearTimeout(timeout);
-  }, [busca]);
+      params.set("pagina", "1");
+
+      const queryString = params.toString();
+      const destino = queryString ? `${pathname}?${queryString}` : pathname;
+
+      startTransition(() => {
+        router.push(destino);
+      });
+    },
+    [pathname, router, searchParams],
+  );
+
+  const opcoesOrgaos = useMemo<SelectOption[]>(
+    () => [
+      { value: "", label: "Todos" },
+      ...orgaos.map((orgao) => ({ value: orgao.id, label: orgao.sigla })),
+    ],
+    [orgaos],
+  );
+
+  const busca = paramsAtuais.get("busca") ?? "";
+  const sigla = paramsAtuais.get("sigla") ?? "";
+  const nome = paramsAtuais.get("nome") ?? "";
+  const superior = paramsAtuais.get("superior") ?? "";
+  const orgaoId = paramsAtuais.get("orgaoId") ?? "";
+  const tipo = paramsAtuais.get("tipo") ?? "";
+  const status = paramsAtuais.get("status") ?? "";
 
   return (
     <div className="space-y-4 border-b p-5">
@@ -85,54 +108,57 @@ export function UnidadesListagemControles({
       </div>
 
       <div className="grid gap-3 lg:grid-cols-6">
-        <div className="lg:col-span-2">
-          <label className="text-xs font-semibold uppercase text-[var(--muted-foreground)]">
-            Consulta geral
-          </label>
-
-          <div className="mt-2 flex h-10 items-center gap-2 rounded-md border px-3">
-            <Search className="size-4 text-[var(--muted-foreground)]" />
-            <input
-              value={busca}
-              onChange={(event) => setBusca(event.target.value)}
-              placeholder="Consulta aplicada após 3 segundos"
-              className="w-full bg-transparent text-sm outline-none"
-            />
-          </div>
-        </div>
+        <FiltroTextoComIcone
+          key={`busca-${busca}`}
+          className="lg:col-span-2"
+          label="Consulta geral"
+          nome="busca"
+          defaultValue={busca}
+          delay={3000}
+          placeholder="Consulta aplicada após 3 segundos"
+          onDebouncedChange={aplicarParametro}
+        />
 
         <FiltroTexto
+          key={`sigla-${sigla}`}
           label="Sigla"
-          value={paramsAtuais.get("sigla") ?? ""}
-          onChange={(valor) => aplicarParametro("sigla", valor)}
+          nome="sigla"
+          defaultValue={sigla}
+          delay={3000}
+          onDebouncedChange={aplicarParametro}
         />
 
         <FiltroTexto
+          key={`nome-${nome}`}
           label="Nome"
-          value={paramsAtuais.get("nome") ?? ""}
-          onChange={(valor) => aplicarParametro("nome", valor)}
+          nome="nome"
+          defaultValue={nome}
+          delay={3000}
+          onDebouncedChange={aplicarParametro}
         />
 
         <FiltroTexto
+          key={`superior-${superior}`}
           label="Superior"
-          value={paramsAtuais.get("superior") ?? ""}
-          onChange={(valor) => aplicarParametro("superior", valor)}
+          nome="superior"
+          defaultValue={superior}
+          delay={3000}
+          onDebouncedChange={aplicarParametro}
         />
 
         <FiltroSelect
           label="Órgão"
-          value={paramsAtuais.get("orgaoId") ?? ""}
-          onChange={(valor) => aplicarParametro("orgaoId", valor)}
-          options={[
-            { value: "", label: "Todos" },
-            ...orgaos.map((orgao) => ({ value: orgao.id, label: orgao.sigla })),
-          ]}
+          nome="orgaoId"
+          value={orgaoId}
+          onChange={aplicarParametro}
+          options={opcoesOrgaos}
         />
 
         <FiltroSelect
           label="Tipo"
-          value={paramsAtuais.get("tipo") ?? ""}
-          onChange={(valor) => aplicarParametro("tipo", valor)}
+          nome="tipo"
+          value={tipo}
+          onChange={aplicarParametro}
           options={[
             { value: "", label: "Todos" },
             { value: "SECAO_JUDICIARIA", label: "Seção Judiciária" },
@@ -149,8 +175,9 @@ export function UnidadesListagemControles({
 
         <FiltroSelect
           label="Status"
-          value={paramsAtuais.get("status") ?? ""}
-          onChange={(valor) => aplicarParametro("status", valor)}
+          nome="status"
+          value={status}
+          onChange={aplicarParametro}
           options={[
             { value: "", label: "Todos" },
             { value: "ativa", label: "Ativas" },
@@ -162,28 +189,78 @@ export function UnidadesListagemControles({
   );
 }
 
-function FiltroTexto({
+function FiltroTextoComIcone({
+  className,
   label,
-  value,
-  onChange,
+  nome,
+  defaultValue,
+  delay,
+  placeholder,
+  onDebouncedChange,
 }: {
+  className?: string;
   label: string;
-  value: string;
-  onChange: (valor: string) => void;
+  nome: string;
+  defaultValue: string;
+  delay: number;
+  placeholder?: string;
+  onDebouncedChange: (nome: string, valor: string) => void;
 }) {
-  const [valor, setValor] = useState(value);
-
-  useEffect(() => {
-    setValor(value);
-  }, [value]);
+  const [valor, setValor] = useState(defaultValue);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      if (valor !== value) onChange(valor);
-    }, 3000);
+      if (valor !== defaultValue) {
+        onDebouncedChange(nome, valor);
+      }
+    }, delay);
 
     return () => window.clearTimeout(timeout);
-  }, [valor, value, onChange]);
+  }, [defaultValue, delay, nome, onDebouncedChange, valor]);
+
+  return (
+    <div className={className}>
+      <label className="text-xs font-semibold uppercase text-[var(--muted-foreground)]">
+        {label}
+      </label>
+
+      <div className="mt-2 flex h-10 items-center gap-2 rounded-md border px-3">
+        <Search className="size-4 text-[var(--muted-foreground)]" />
+        <input
+          value={valor}
+          onChange={(event) => setValor(event.target.value)}
+          placeholder={placeholder}
+          className="w-full bg-transparent text-sm outline-none"
+        />
+      </div>
+    </div>
+  );
+}
+
+function FiltroTexto({
+  label,
+  nome,
+  defaultValue,
+  delay,
+  onDebouncedChange,
+}: {
+  label: string;
+  nome: string;
+  defaultValue: string;
+  delay: number;
+  onDebouncedChange: (nome: string, valor: string) => void;
+}) {
+  const [valor, setValor] = useState(defaultValue);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      if (valor !== defaultValue) {
+        onDebouncedChange(nome, valor);
+      }
+    }, delay);
+
+    return () => window.clearTimeout(timeout);
+  }, [defaultValue, delay, nome, onDebouncedChange, valor]);
 
   return (
     <div>
@@ -202,14 +279,16 @@ function FiltroTexto({
 
 function FiltroSelect({
   label,
+  nome,
   value,
   onChange,
   options,
 }: {
   label: string;
+  nome: string;
   value: string;
-  onChange: (valor: string) => void;
-  options: Array<{ value: string; label: string }>;
+  onChange: (nome: string, valor: string) => void;
+  options: SelectOption[];
 }) {
   return (
     <div>
@@ -219,7 +298,7 @@ function FiltroSelect({
 
       <select
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => onChange(nome, event.target.value)}
         className="mt-2 h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
       >
         {options.map((option) => (

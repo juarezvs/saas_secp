@@ -1,0 +1,168 @@
+name: secp-prod
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: secp-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      TZ: America/Manaus
+
+    volumes:
+      - secp_postgres_data:/var/lib/postgresql
+      - ./backups:/backups
+
+    networks:
+      - secp-network
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: secp-redis
+    restart: unless-stopped
+
+    command: >
+      redis-server
+      --appendonly yes
+      --save 60 1000
+
+    volumes:
+      - secp_redis_data:/data
+
+    networks:
+      - secp-network
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  migrate:
+    build:
+      context: .
+      target: migrator
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+
+    image: secp-migrator:${APP_VERSION}
+    container_name: secp-migrator
+
+    env_file:
+      - .env.production
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - secp-network
+
+    profiles:
+      - tools
+
+  seed:
+    build:
+      context: .
+      target: seeder
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+
+    image: secp-seeder:${APP_VERSION}
+    container_name: secp-seeder
+
+    env_file:
+      - .env.production
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - secp-network
+
+    profiles:
+      - tools
+
+  web:
+    build:
+      context: .
+      target: runner
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+        AUTH_SECRET: ${AUTH_SECRET}
+        NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+        AUTH_URL: ${AUTH_URL}
+        NEXTAUTH_URL: ${NEXTAUTH_URL}
+        REDIS_URL: ${REDIS_URL}
+
+    image: secp-web:${APP_VERSION}
+    container_name: secp-web
+    restart: unless-stopped
+
+    env_file:
+      - .env.production
+
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+
+    ports:
+      - "3000:3000"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    networks:
+      - secp-network
+
+  pgadmin:
+    image: dpage/pgadmin4:9.8
+    container_name: secp-pgadmin
+    restart: unless-stopped
+
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      PGADMIN_DISABLE_POSTFIX: "1"
+      TZ: America/Manaus
+
+    ports:
+      - "5050:80"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - secp-network
+
+    volumes:
+      - secp_pgadmin_data:/var/lib/pgadmin
+
+    profiles:
+      - admin
+
+volumes:
+  secp_postgres_data:
+  secp_redis_data:
+  secp_pgadmin_data:
+
+networks:
+  secp-network:
+    driver: bridge

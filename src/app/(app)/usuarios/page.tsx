@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Plus, UsersRound } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
-import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarUsuarios } from "@/modules/usuarios/infrastructure/repositories/usuario.repository";
 import { PageHeader } from "@/components/layout/page-header";

@@ -45,7 +45,6 @@ docker compose up -d
 
 e) criar arquivo .env no raiz do projeto e colar o conteúdo abaixo:
 
-
 ### inicio do conteúdo do arquivo .env
 
 # Banco de dados local
@@ -98,6 +97,7 @@ REDIS_PORT=6379
 AFD_UPLOAD_DIR=import/\_upload/afd
 
 # Integração com SARH
+
 SARH_BASE_URL="http://sarh.integracao.am.trf1.gov.br"
 SARH_TIMEOUT_MS="30000"
 
@@ -112,3 +112,17 @@ npm run worker:afd
 f) acessar a aplicação -> http://localhost:3000
 Para o primeiro acesso usar: Matricula -> secp
 Senha da rede -> secp
+
+
+## Para testar localmente, use o arquivo local
+docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local down
+docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local build --no-cache
+docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local up -d postgres redis
+docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local --profile tools run --rm migrate
+docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local --profile tools run --rm seed
+docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local up -d web --force-recreate
+http://localhost:3000
+
+
+## Para Produção usar
+
