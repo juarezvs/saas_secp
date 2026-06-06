@@ -8,6 +8,7 @@ type TransactionClient = Parameters<
 
 export async function criarAutorizacaoBiometricaMarcacao(params: {
   servidorId: string;
+  amostraId?: string | null;
   similaridade: number;
   distancia: number;
 }) {
@@ -19,8 +20,11 @@ export async function criarAutorizacaoBiometricaMarcacao(params: {
   const autorizacao = await prisma.autorizacaoBiometricaMarcacao.create({
     data: {
       servidorId: params.servidorId,
+      amostraId: params.amostraId ?? null,
       tokenHash,
+      status: "PENDENTE",
       expiraEm,
+      origem: "VALIDACAO_FACIAL_MARCACAO",
       metadados: {
         similaridade: params.similaridade,
         distancia: params.distancia,
@@ -52,6 +56,7 @@ export async function validarAutorizacaoBiometricaMarcacao(params: {
       id: params.autorizacaoId,
       servidorId: params.servidorId,
       marcacaoId: null,
+      status: "PENDENTE",
       expiraEm: {
         gt: new Date(),
       },
@@ -82,6 +87,8 @@ export async function consumirAutorizacaoBiometricaMarcacao(params: {
     },
     data: {
       marcacaoId: params.marcacaoId,
+      status: "UTILIZADA",
+      utilizadaEm: new Date(),
     },
   });
 }

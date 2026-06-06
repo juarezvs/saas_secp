@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, FileCheck2, Users } from "lucide-react";
+import { CalendarRange, FileCheck2, Users } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
@@ -114,7 +114,7 @@ export function RecessoDetalhe({ recesso }: RecessoDetalheProps) {
       />
 
       <PageHeader
-        icon={CalendarDays}
+        icon={CalendarRange}
         titulo={`Recesso ${recesso.ano}`}
         descricao={formatarPeriodoRecesso(recesso.dataInicio, recesso.dataFim)}
         artigo="Modulo proprio"
@@ -157,7 +157,7 @@ export function RecessoDetalhe({ recesso }: RecessoDetalheProps) {
           <h2 className="mt-1 text-xl font-bold">{recesso.convocados.length}</h2>
         </article>
         <article className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
-          <CalendarDays className="size-5 text-blue-900 dark:text-blue-300" />
+          <CalendarRange className="size-5 text-blue-900 dark:text-blue-300" />
           <p className="mt-3 text-sm text-[var(--muted-foreground)]">Portarias</p>
           <h2 className="mt-1 text-xl font-bold">{recesso.convocacoes.length}</h2>
         </article>

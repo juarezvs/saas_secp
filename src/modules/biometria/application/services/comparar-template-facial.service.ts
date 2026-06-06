@@ -1,8 +1,16 @@
 export function normalizarVetor(vetor: number[]) {
+  if (!Array.isArray(vetor) || vetor.length === 0) {
+    throw new Error("Template facial vazio.");
+  }
+
+  if (vetor.some((valor) => !Number.isFinite(valor))) {
+    throw new Error("Template facial contem valores invalidos.");
+  }
+
   const norma = Math.sqrt(vetor.reduce((acc, valor) => acc + valor * valor, 0));
 
   if (!norma || !Number.isFinite(norma)) {
-    throw new Error("Template facial com norma inválida.");
+    throw new Error("Template facial com norma invalida.");
   }
 
   return vetor.map((valor) => valor / norma);
@@ -10,7 +18,7 @@ export function normalizarVetor(vetor: number[]) {
 
 export function calcularSimilaridadeCosseno(a: number[], b: number[]) {
   if (a.length !== b.length) {
-    throw new Error("Templates faciais com dimensões diferentes.");
+    throw new Error("Templates faciais com dimensoes diferentes.");
   }
 
   const vetorA = normalizarVetor(a);
@@ -39,7 +47,7 @@ export function calcularTemplateMedio(amostras: number[][]) {
 
   for (const amostra of amostrasNormalizadas) {
     if (amostra.length !== dimensao) {
-      throw new Error("Amostras faciais com dimensões diferentes.");
+      throw new Error("Amostras faciais com dimensoes diferentes.");
     }
   }
 

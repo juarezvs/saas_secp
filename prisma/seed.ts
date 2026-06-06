@@ -427,6 +427,49 @@ const permissoesIniciais = [
     descricao: "Gerenciar cadastros biométricos faciais.",
   },
 
+  {
+    recurso: "biometriafacial",
+    acao: "cadastrar",
+    escopo: "proprio",
+    descricao: "Cadastrar a propria biometria facial com prova de vida.",
+  },
+  {
+    recurso: "biometriafacial",
+    acao: "recadastrar",
+    escopo: "proprio",
+    descricao: "Recadastrar a propria biometria facial.",
+  },
+  {
+    recurso: "biometriafacial",
+    acao: "registrar",
+    escopo: "proprio",
+    descricao: "Usar reconhecimento facial no registro do proprio ponto.",
+  },
+  {
+    recurso: "biometriafacial",
+    acao: "cadastrar",
+    escopo: "terceiros",
+    descricao: "Cadastrar biometria facial de terceiros.",
+  },
+  {
+    recurso: "biometriafacial",
+    acao: "recadastrar",
+    escopo: "terceiros",
+    descricao: "Recadastrar biometria facial de terceiros.",
+  },
+  {
+    recurso: "biometriafacial",
+    acao: "visualizar",
+    escopo: "auditoria",
+    descricao: "Consultar eventos e tentativas de biometria facial.",
+  },
+  {
+    recurso: "biometriafacial",
+    acao: "invalidar",
+    escopo: "global",
+    descricao: "Invalidar cadastro de biometria facial.",
+  },
+
   // AFD
   {
     recurso: "afd",
@@ -513,6 +556,9 @@ const codigosPermissoesServidor = [
   "biometria:consultar:proprio",
   "biometria:cadastrar:proprio",
   "biometria:validar:proprio",
+  "biometriafacial:cadastrar:proprio",
+  "biometriafacial:recadastrar:proprio",
+  "biometriafacial:registrar:proprio",
   "recesso:consultar:proprio",
   "recesso:fechar:proprio",
 ];

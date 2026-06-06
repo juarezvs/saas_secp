@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
+import { ScrollText } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
@@ -90,7 +90,7 @@ export default async function AuditoriaPage({
         </p>
 
         <PageHeader
-          icon={ShieldCheck}
+          icon={ScrollText}
           titulo="Eventos de auditoria"
           descricao="Consulte acoes sensiveis realizadas no SECP, incluindo marcacoes, solicitacoes, apuracoes, banco de horas, homologacoes, boletins, usuarios e perfis."
           artigo="Governanca, controle eletronico e responsabilidade"

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, ShieldCheck } from "lucide-react";
+import { Plus, ShieldAlert } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
@@ -75,7 +75,7 @@ export default async function PerfisPage({ searchParams }: PerfisPageProps) {
           </p>
 
           <PageHeader
-            icon={ShieldCheck}
+            icon={ShieldAlert}
             titulo="Perfis e permissoes"
             descricao="Gerencie perfis de acesso, permissoes e escopos de atuacao dos usuarios do SECP."
             artigo="Art. 2, inciso XII; Arts. 16 e 20"

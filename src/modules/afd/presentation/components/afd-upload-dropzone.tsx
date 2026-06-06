@@ -139,6 +139,10 @@ export function AfdUploadDropzone() {
           placeholder="Opcional. Ex.: BIO-NUTEC-01"
           className="mt-2 h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
         />
+        <p className="mt-2 text-xs leading-5 text-[var(--muted-foreground)]">
+          Se este campo ficar vazio, o SECP tenta identificar automaticamente o
+          equipamento pelo codigo ou numero de serie cadastrado e presente no AFD.
+        </p>
       </div>
 
       <div

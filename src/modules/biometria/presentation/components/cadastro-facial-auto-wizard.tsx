@@ -8,22 +8,38 @@ import {
   RotateCcw,
   ShieldCheck,
 } from "lucide-react";
-import { cadastrarFaceServidorAction } from "../../application/actions/cadastrar-face-servidor.action";
 
-type EtapaCadastro = "FRONTAL" | "DIREITA" | "ESQUERDA" | "CONCLUIDO";
+import { cadastrarFaceServidorAction } from "../../application/actions/cadastrar-face-servidor.action";
+import {
+  avaliarPoseParaEtapa,
+  normalizarAngulosHuman,
+  type AngulosFace,
+  type EtapaPoseFacial,
+} from "../../application/services/biometria-facial-config";
+
+type EtapaCadastro = EtapaPoseFacial | "CONCLUIDO";
 
 type TemplateCapturado = {
-  etapa: Exclude<EtapaCadastro, "CONCLUIDO">;
+  etapa: EtapaPoseFacial;
   template: number[];
   qualidade: number;
+  angulos: AngulosFace;
 };
 
 type HumanFace = {
   embedding?: number[];
+  description?: number[];
   descriptor?: number[];
   score?: number;
   boxScore?: number;
   box?: [number, number, number, number];
+  rotation?: {
+    angle?: {
+      yaw?: number;
+      pitch?: number;
+      roll?: number;
+    };
+  } | null;
 };
 
 type HumanResult = {
@@ -40,10 +56,10 @@ const ETAPA_LABEL: Record<EtapaCadastro, string> = {
   FRONTAL: "Olhe para frente e enquadre o rosto no contorno.",
   DIREITA: "Vire levemente o rosto para a direita.",
   ESQUERDA: "Vire levemente o rosto para a esquerda.",
-  CONCLUIDO: "Cadastro facial concluído.",
+  CONCLUIDO: "Cadastro facial concluido.",
 };
 
-const ETAPA_ORDEM: EtapaCadastro[] = ["FRONTAL", "DIREITA", "ESQUERDA"];
+const ETAPA_ORDEM: EtapaPoseFacial[] = ["FRONTAL", "DIREITA", "ESQUERDA"];
 
 export function CadastroFacialAutoWizard() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -52,15 +68,13 @@ export function CadastroFacialAutoWizard() {
   const ultimaCapturaEmRef = useRef(0);
   const etapaRef = useRef<EtapaCadastro>("FRONTAL");
   const salvandoRef = useRef(false);
-  const centroFrontalXRef = useRef<number | null>(null);
-  const centroDireitaXRef = useRef<number | null>(null);
 
   const [etapa, setEtapa] = useState<EtapaCadastro>("FRONTAL");
   const [capturas, setCapturas] = useState<TemplateCapturado[]>([]);
   const [cameraAtiva, setCameraAtiva] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [mensagem, setMensagem] = useState(
-    "Inicializando câmera e modelo facial...",
+    "Inicializando camera e modelo facial...",
   );
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, startSaving] = useTransition();
@@ -78,7 +92,6 @@ export function CadastroFacialAutoWizard() {
       startSaving(async () => {
         try {
           const templates = capturasParaSalvar.map((item) => item.template);
-
           const qualidadeMedia = limitar01(
             capturasParaSalvar.reduce((acc, item) => acc + item.qualidade, 0) /
               capturasParaSalvar.length,
@@ -86,14 +99,17 @@ export function CadastroFacialAutoWizard() {
 
           const formData = new FormData();
 
-          formData.set("template", JSON.stringify(templates[0]));
           formData.set("templates", JSON.stringify(templates));
           formData.set("qualidade", String(qualidadeMedia));
           formData.set(
             "metadados",
             JSON.stringify({
               origem: "CADASTRO_FACIAL_AUTO_WIZARD",
-              etapas: capturasParaSalvar.map((item) => item.etapa),
+              etapas: capturasParaSalvar.map((item) => ({
+                etapa: item.etapa,
+                qualidade: item.qualidade,
+                angulos: item.angulos,
+              })),
               quantidadeAmostras: capturasParaSalvar.length,
               qualidadeMedia,
               versaoAlgoritmo: "human-webgl-face-embedding",
@@ -111,7 +127,7 @@ export function CadastroFacialAutoWizard() {
           if (!resultado.sucesso) {
             setErro(
               resultado.mensagem ??
-                "Não foi possível salvar a biometria facial.",
+                "Nao foi possivel salvar a biometria facial.",
             );
             return;
           }
@@ -154,24 +170,23 @@ export function CadastroFacialAutoWizard() {
         return;
       }
 
-      const embedding = face.embedding ?? face.descriptor;
+      const embedding = face.embedding ?? face.description ?? face.descriptor;
 
       if (!embedding || !face.box) {
         setMensagem(
-          "Rosto detectado, mas o template facial ainda não foi gerado. Mantenha o rosto enquadrado.",
+          "Rosto detectado, mas o template facial ainda nao foi gerado. Mantenha o rosto enquadrado.",
         );
         return;
       }
 
-      const score = limitar01(face.score ?? face.boxScore ?? 0.9);
-
+      const score = limitar01(face.score ?? face.boxScore ?? 0);
+      const angulos = normalizarAngulosHuman(face.rotation?.angle);
       const avaliacao = avaliarFace({
         video,
         box: face.box,
         etapa: etapaAtual,
         score,
-        centroFrontalX: centroFrontalXRef.current,
-        centroDireitaX: centroDireitaXRef.current,
+        angulos,
       });
 
       setMensagem(avaliacao.mensagem);
@@ -182,20 +197,11 @@ export function CadastroFacialAutoWizard() {
 
       ultimaCapturaEmRef.current = agora;
 
-      const centroFaceX = face.box[0] + face.box[2] / 2;
-
-      if (etapaAtual === "FRONTAL") {
-        centroFrontalXRef.current = centroFaceX;
-      }
-
-      if (etapaAtual === "DIREITA") {
-        centroDireitaXRef.current = centroFaceX;
-      }
-
       const captura: TemplateCapturado = {
-        etapa: etapaAtual as Exclude<EtapaCadastro, "CONCLUIDO">,
+        etapa: etapaAtual,
         template: normalizarVetor(Array.from(embedding)),
         qualidade: score,
+        angulos,
       };
 
       const novasCapturas = [...capturasRef.current, captura];
@@ -208,7 +214,7 @@ export function CadastroFacialAutoWizard() {
       if (proxima === "CONCLUIDO") {
         etapaRef.current = "CONCLUIDO";
         setEtapa("CONCLUIDO");
-        setMensagem("Capturas concluídas. Salvando cadastro facial...");
+        setMensagem("Capturas concluidas. Salvando cadastro facial...");
         salvarCadastro(novasCapturas);
         return;
       }
@@ -231,7 +237,7 @@ export function CadastroFacialAutoWizard() {
 
         const human = new Human({
           backend: "webgl",
-          modelBasePath: "/models",
+          modelBasePath: "/models/human",
           face: {
             enabled: true,
             detector: {
@@ -258,7 +264,7 @@ export function CadastroFacialAutoWizard() {
         await human.load();
         await human.warmup();
 
-        setMensagem("Solicitando acesso à câmera...");
+        setMensagem("Solicitando acesso a camera...");
 
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -295,7 +301,7 @@ export function CadastroFacialAutoWizard() {
         setErro(
           error instanceof Error
             ? error.message
-            : "Não foi possível iniciar o cadastro facial.",
+            : "Nao foi possivel iniciar o cadastro facial.",
         );
         setCarregando(false);
       }
@@ -313,8 +319,6 @@ export function CadastroFacialAutoWizard() {
   function reiniciar() {
     capturasRef.current = [];
     etapaRef.current = "FRONTAL";
-    centroFrontalXRef.current = null;
-    centroDireitaXRef.current = null;
     ultimaCapturaEmRef.current = 0;
 
     setCapturas([]);
@@ -331,10 +335,10 @@ export function CadastroFacialAutoWizard() {
         </div>
 
         <div>
-          <h2 className="text-lg font-bold">Cadastro facial automático</h2>
+          <h2 className="text-lg font-bold">Cadastro facial automatico</h2>
 
           <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
-            Enquadre o rosto no contorno. O sistema fará as capturas
+            Enquadre o rosto no contorno. O sistema fara as capturas
             automaticamente.
           </p>
         </div>
@@ -452,14 +456,11 @@ function avaliarFace(params: {
   box: [number, number, number, number];
   etapa: EtapaCadastro;
   score: number;
-  centroFrontalX: number | null;
-  centroDireitaX: number | null;
+  angulos: AngulosFace;
 }) {
   const [x, y, width, height] = params.box;
-
   const videoWidth = params.video.videoWidth;
   const videoHeight = params.video.videoHeight;
-
   const centroX = x + width / 2;
   const centroY = y + height / 2;
 
@@ -468,16 +469,6 @@ function avaliarFace(params: {
     Math.abs(centroY - videoHeight / 2) < videoHeight * 0.25;
 
   const tamanhoOk = width > videoWidth * 0.18 && width < videoWidth * 0.68;
-  const confiancaOk = params.score >= 0.55;
-
-  if (!confiancaOk) {
-    return {
-      aprovado: false,
-      mensagem: `Aproxime-se e mantenha boa iluminação. Confiança: ${params.score.toFixed(
-        2,
-      )}`,
-    };
-  }
 
   if (!centroOk || !tamanhoOk) {
     return {
@@ -486,58 +477,22 @@ function avaliarFace(params: {
     };
   }
 
-  if (params.etapa === "FRONTAL") {
-    return {
-      aprovado: true,
-      mensagem: "Face frontal detectada. Capturando...",
-    };
-  }
-
-  const centroFrontalX = params.centroFrontalX ?? videoWidth / 2;
-  const deslocamento = centroX - centroFrontalX;
-  const limiteDeslocamento = videoWidth * 0.045;
-
-  if (params.etapa === "DIREITA") {
-    const direitaOk = Math.abs(deslocamento) >= limiteDeslocamento;
-
-    return {
-      aprovado: direitaOk,
-      mensagem: direitaOk
-        ? "Movimento lateral detectado. Capturando..."
-        : `Vire levemente o rosto para a direita. Deslocamento: ${Math.round(
-            deslocamento,
-          )}px`,
-    };
-  }
-
-  if (params.etapa === "ESQUERDA") {
-    const centroDireitaX = params.centroDireitaX;
-
-    const esquerdaOk =
-      centroDireitaX === null
-        ? Math.abs(deslocamento) >= limiteDeslocamento
-        : Math.sign(centroX - centroFrontalX) !==
-            Math.sign(centroDireitaX - centroFrontalX) &&
-          Math.abs(deslocamento) >= limiteDeslocamento;
-
-    return {
-      aprovado: esquerdaOk,
-      mensagem: esquerdaOk
-        ? "Movimento lateral oposto detectado. Capturando..."
-        : `Vire levemente o rosto para a esquerda. Deslocamento: ${Math.round(
-            deslocamento,
-          )}px`,
-    };
+  if (params.etapa !== "CONCLUIDO") {
+    return avaliarPoseParaEtapa({
+      etapa: params.etapa,
+      score: params.score,
+      angulos: params.angulos,
+    });
   }
 
   return {
     aprovado: false,
-    mensagem: "Cadastro concluído.",
+    mensagem: "Cadastro concluido.",
   };
 }
 
 function limitar01(valor: number) {
-  if (Number.isNaN(valor)) {
+  if (!Number.isFinite(valor)) {
     return 0;
   }
 
@@ -547,7 +502,7 @@ function limitar01(valor: number) {
 function normalizarVetor(vetor: number[]) {
   const norma = Math.sqrt(vetor.reduce((acc, valor) => acc + valor * valor, 0));
 
-  if (!norma || Number.isNaN(norma)) {
+  if (!norma || !Number.isFinite(norma)) {
     return vetor.map(() => 0);
   }
 

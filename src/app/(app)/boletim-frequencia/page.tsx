@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileCheck2 } from "lucide-react";
+import { FileSpreadsheet } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
@@ -18,6 +18,7 @@ import { BoletinsListagemControles } from "@/modules/boletim-frequencia/presenta
 type BoletimFrequenciaPageProps = {
   searchParams?: Promise<{
     busca?: string;
+    competencia?: string;
     anoReferencia?: string;
     mesReferencia?: string;
     unidade?: string;
@@ -26,6 +27,21 @@ type BoletimFrequenciaPageProps = {
     itensPorPagina?: string;
   }>;
 };
+
+function normalizarCompetencia(params: {
+  competencia?: string;
+  anoReferencia?: string;
+  mesReferencia?: string;
+}) {
+  const match = params.competencia?.match(/^(\d{4})-(\d{2})$/);
+  const ano = match?.[1] ?? params.anoReferencia ?? "";
+  const mes = match?.[2] ?? params.mesReferencia ?? "";
+
+  return {
+    anoReferencia: ano,
+    mesReferencia: mes,
+  };
+}
 
 export default async function BoletimFrequenciaPage({
   searchParams,
@@ -38,12 +54,13 @@ export default async function BoletimFrequenciaPage({
   const params = searchParams ? await searchParams : {};
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
+  const competencia = normalizarCompetencia(params);
 
   const [resultado, fechamentosDisponiveis] = await Promise.all([
     listarBoletinsFrequenciaPaginado({
       busca: params.busca ?? "",
-      anoReferencia: params.anoReferencia ?? "",
-      mesReferencia: params.mesReferencia ?? "",
+      anoReferencia: competencia.anoReferencia,
+      mesReferencia: competencia.mesReferencia,
       unidade: params.unidade ?? "",
       status: params.status ?? "",
       pagina,
@@ -56,14 +73,21 @@ export default async function BoletimFrequenciaPage({
 
   for (const chave of [
     "busca",
-    "anoReferencia",
-    "mesReferencia",
+    "competencia",
     "unidade",
     "status",
   ] as const) {
     if (params[chave]) {
       exportParams.set(chave, params[chave]!);
     }
+  }
+
+  if (competencia.anoReferencia) {
+    exportParams.set("anoReferencia", competencia.anoReferencia);
+  }
+
+  if (competencia.mesReferencia) {
+    exportParams.set("mesReferencia", competencia.mesReferencia);
   }
 
   const baseParams = new URLSearchParams(exportParams);
@@ -85,13 +109,45 @@ export default async function BoletimFrequenciaPage({
         </p>
 
         <PageHeader
-          icon={FileCheck2}
+          icon={FileSpreadsheet}
           titulo="Boletins mensais"
           descricao="Gere, consulte e encaminhe a SECAP/NUCGP os boletins mensais de frequencia das unidades homologadas."
           artigo="Arts. 16 e 17"
           regraTitulo="Boletim apos homologacao"
           regraDescricao="Apos a homologacao da frequencia mensal, o boletim consolida as ocorrencias e deve ser encaminhado a SECAP/NUCGP dentro do prazo regulamentar."
         />
+      </section>
+
+      <section className="grid gap-3 rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm md:grid-cols-3">
+        <article className="rounded-lg border bg-[var(--muted)] p-4">
+          <p className="text-xs font-bold uppercase text-[var(--muted-foreground)]">
+            1. Servidor
+          </p>
+          <h2 className="mt-2 font-bold">Apuracao mensal</h2>
+          <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
+            Marcacoes, ocorrencias e banco de horas compoem o espelho mensal.
+          </p>
+        </article>
+
+        <article className="rounded-lg border bg-[var(--muted)] p-4">
+          <p className="text-xs font-bold uppercase text-[var(--muted-foreground)]">
+            2. Chefia
+          </p>
+          <h2 className="mt-2 font-bold">Homologacao e boletim</h2>
+          <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
+            A unidade homologa o fechamento e gera o boletim consolidado.
+          </p>
+        </article>
+
+        <article className="rounded-lg border bg-[var(--muted)] p-4">
+          <p className="text-xs font-bold uppercase text-[var(--muted-foreground)]">
+            3. SECAP
+          </p>
+          <h2 className="mt-2 font-bold">Recebimento e conferencia</h2>
+          <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
+            A SECAP/NUCGP registra o recebimento e a conferencia administrativa.
+          </p>
+        </article>
       </section>
 
       <section className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">

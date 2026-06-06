@@ -1,3 +1,5 @@
+import { OrigemMarcacaoIcon } from "@/modules/marcacoes/presentation/components/origem-marcacao-icon";
+
 type MarcacaoBrutaItem = {
   id: string;
   cpf: string | null;
@@ -11,6 +13,11 @@ type MarcacaoBrutaItem = {
   processadaEm: Date | null;
   arquivoAfd?: {
     nomeOriginal: string;
+  } | null;
+  equipamento?: {
+    codigo: string;
+    nome: string;
+    numeroSerie: string | null;
   } | null;
   servidor: {
     matricula: string;
@@ -79,9 +86,7 @@ export function MarcacoesBrutasTable({
                 </td>
 
                 <td className="px-5 py-4">
-                  <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                    {item.origem}
-                  </span>
+                  <OrigemMarcacaoIcon origem={item.origem} />
                   {item.arquivoAfd && (
                     <div className="mt-2 max-w-60 truncate text-xs text-(--muted-foreground)">
                       {item.arquivoAfd.nomeOriginal}
@@ -112,7 +117,21 @@ export function MarcacoesBrutasTable({
                 </td>
 
                 <td className="px-5 py-4 font-mono text-xs">
-                  {item.equipamentoCodigo ?? "-"}
+                  {item.equipamento ? (
+                    <div className="space-y-1">
+                      <div className="font-semibold">{item.equipamento.codigo}</div>
+                      <div className="font-sans text-[var(--muted-foreground)]">
+                        {item.equipamento.nome}
+                      </div>
+                      {item.equipamento.numeroSerie && (
+                        <div className="text-[var(--muted-foreground)]">
+                          Serial: {item.equipamento.numeroSerie}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    item.equipamentoCodigo ?? "-"
+                  )}
                 </td>
 
                 <td className="px-5 py-4 font-mono text-xs">

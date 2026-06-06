@@ -106,10 +106,12 @@ export function Header({
         </div>
 
         <div className="flex min-w-0 items-center gap-2 overflow-x-auto py-2">
-          <div className="hidden min-w-0 items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-sm xl:flex">
-            <Building2 className="size-4 shrink-0" aria-hidden="true" />
-            <span className="max-w-56 truncate">{unidadeAtual}</span>
-          </div>
+          {unidadeAtual && (
+            <div className="hidden min-w-0 items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-sm xl:flex">
+              <Building2 className="size-4 shrink-0" aria-hidden="true" />
+              <span className="max-w-56 truncate">{unidadeAtual}</span>
+            </div>
+          )}
 
           <label className="hidden min-w-44 items-center gap-2 rounded-md bg-white/10 px-3 py-2 lg:flex">
             <ShieldCheck className="size-4 shrink-0" aria-hidden="true" />

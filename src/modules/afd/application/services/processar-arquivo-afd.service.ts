@@ -2,11 +2,45 @@ import fs from "node:fs/promises";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { criarMarcacaoBrutaService } from "@/modules/marcacoes-brutas/application/services/criar-marcacao-bruta.service";
 import { processarMarcacaoBrutaService } from "@/modules/marcacoes-brutas/application/services/processar-marcacao-bruta.service";
+import { listarEquipamentosParaIdentificacaoAfd } from "@/modules/integracoes/infrastructure/repositories/integracoes.repository";
 import {
+  conteudoAfdContemIdentificador,
+  extrairIdentificadoresEquipamentoAfd,
   obterTipoRegistroAfd,
   parseLinhaAfd,
   parseTrailerAfd,
 } from "./parse-afd.service";
+
+async function identificarEquipamentoAfd(conteudo: string, codigoInformado?: string | null) {
+  const equipamentos = await listarEquipamentosParaIdentificacaoAfd();
+
+  if (codigoInformado) {
+    const porCodigo = equipamentos.find(
+      (equipamento) => equipamento.codigo === codigoInformado,
+    );
+
+    if (porCodigo) {
+      return {
+        equipamento: porCodigo,
+        candidatos: [codigoInformado],
+      };
+    }
+  }
+
+  const candidatos = extrairIdentificadoresEquipamentoAfd(conteudo);
+  const equipamento =
+    equipamentos.find(
+      (item) =>
+        conteudoAfdContemIdentificador(conteudo, item.numeroSerie) ||
+        conteudoAfdContemIdentificador(conteudo, item.codigo) ||
+        candidatos.includes(item.codigo),
+    ) ?? null;
+
+  return {
+    equipamento,
+    candidatos,
+  };
+}
 
 export async function processarArquivoAfdService(params: {
   arquivoAfdId: string;
@@ -56,6 +90,26 @@ export async function processarArquivoAfdService(params: {
     const buffer = await fs.readFile(arquivo.caminhoArquivo);
     const conteudo = buffer.toString("latin1");
     const linhas = conteudo.split(/\r\n|\n|\r/);
+    const identificacaoEquipamento = await identificarEquipamentoAfd(
+      conteudo,
+      arquivo.equipamentoCodigo,
+    );
+    const equipamentoIdentificado = identificacaoEquipamento.equipamento;
+
+    if (
+      equipamentoIdentificado &&
+      equipamentoIdentificado.codigo !== arquivo.equipamentoCodigo
+    ) {
+      await prisma.arquivoAfd.update({
+        where: {
+          id: arquivo.id,
+        },
+        data: {
+          equipamentoCodigo: equipamentoIdentificado.codigo,
+        },
+      });
+    }
+
     const contadoresPorTipo = {
       tipo2: 0,
       tipo3: 0,
@@ -67,7 +121,6 @@ export async function processarArquivoAfdService(params: {
 
     let trailerEncontrado = false;
     let trailerInvalido = false;
-    let totalCrcInvalidos = 0;
     for (const linha of linhas) {
       if (!linha.trim()) {
         continue;
@@ -102,10 +155,6 @@ export async function processarArquivoAfdService(params: {
 
       const parseada = parseLinhaAfd(linha);
 
-      if (parseada && !parseada.crcValido) {
-        totalCrcInvalidos++;
-      }
-
       if (!parseada) {
         continue;
       }
@@ -116,7 +165,11 @@ export async function processarArquivoAfdService(params: {
           matricula: null,
           dataHora: parseada.dataHora,
           equipamentoCodigo:
-            arquivo.equipamentoCodigo ?? parseada.equipamentoCodigo ?? null,
+            equipamentoIdentificado?.codigo ??
+            arquivo.equipamentoCodigo ??
+            parseada.equipamentoCodigo ??
+            null,
+          equipamentoId: equipamentoIdentificado?.id ?? null,
           arquivoAfdId: arquivo.id,
           origem: "IMPORTACAO_AFD",
           nsr: parseada.nsr,
@@ -130,6 +183,16 @@ export async function processarArquivoAfdService(params: {
             crcCalculado: parseada.crcCalculado,
             crcInformado: parseada.crcInformado,
             linhaOriginal: parseada.linhaOriginal,
+            equipamentoIdentificado: equipamentoIdentificado
+              ? {
+                  id: equipamentoIdentificado.id,
+                  codigo: equipamentoIdentificado.codigo,
+                  nome: equipamentoIdentificado.nome,
+                  numeroSerie: equipamentoIdentificado.numeroSerie,
+                }
+              : null,
+            identificadoresEquipamentoAfd:
+              identificacaoEquipamento.candidatos.slice(0, 20),
           },
         });
 
@@ -166,9 +229,6 @@ export async function processarArquivoAfdService(params: {
     const mensagemErroValidacao =
       trailerInvalido || !trailerEncontrado
         ? [
-            totalCrcInvalidos > 0
-              ? `Foram encontradas ${totalCrcInvalidos} marcações tipo 3 com CRC inválido.`
-              : null,
             trailerInvalido
               ? "Trailer do AFD divergente dos totais apurados."
               : null,
@@ -178,11 +238,6 @@ export async function processarArquivoAfdService(params: {
           ]
             .filter((mensagem): mensagem is string => Boolean(mensagem))
             .join(" ")
-        : null;
-
-    const mensagemAlertaCrc =
-      totalCrcInvalidos > 0
-        ? `Alerta: foram encontradas ${totalCrcInvalidos} marcações tipo 3 com CRC diferente do calculado pelo SECP. As marcações foram importadas normalmente, pois o arquivo é considerado original e o CRC foi mantido apenas como diagnóstico.`
         : null;
 
     await prisma.arquivoAfd.update({
@@ -197,10 +252,7 @@ export async function processarArquivoAfdService(params: {
         totalProcessadas,
         totalPendentes,
         totalErros,
-        erro:
-          [mensagemErroValidacao, mensagemAlertaCrc]
-            .filter((mensagem): mensagem is string => Boolean(mensagem))
-            .join(" ") || null,
+        erro: mensagemErroValidacao,
         finalizadoEm: new Date(),
       },
     });

@@ -21,8 +21,7 @@ export function HomologacaoListagemControles({
       className: "lg:col-span-2",
       comIconeBusca: true,
     },
-    { tipo: "texto", nome: "anoReferencia", label: "Ano" },
-    { tipo: "texto", nome: "mesReferencia", label: "Mes" },
+    { tipo: "competencia", nome: "competencia", label: "Competencia" },
     { tipo: "texto", nome: "unidade", label: "Unidade" },
     {
       tipo: "select",

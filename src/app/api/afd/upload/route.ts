@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { auth } from "@/auth";
 import { enfileirarProcessamentoArquivoAfd } from "@/modules/afd/application/queues/afd-queue";
+import { usuarioPossuiPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 export const runtime = "nodejs";
@@ -48,9 +49,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const permissoes = session.user.perfilAtivo?.permissoes ?? [];
-
-  if (!permissoes.includes("afd:importar:global")) {
+  if (
+    !usuarioPossuiPermissaoNoPerfil(
+      session.user.perfilAtivo?.codigo,
+      session.user.perfilAtivo?.permissoes,
+      "afd:importar:global",
+    )
+  ) {
     return Response.json(
       {
         sucesso: false,

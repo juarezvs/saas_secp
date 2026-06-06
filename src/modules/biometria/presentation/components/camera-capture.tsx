@@ -3,20 +3,33 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, CheckCircle2, Loader2 } from "lucide-react";
 
+import {
+  avaliarPoseParaEtapa,
+  normalizarAngulosHuman,
+} from "../../application/services/biometria-facial-config";
+
 type CameraCaptureProps = {
   modo: "cadastro" | "validacao";
   inputName: "templates" | "template";
+  compact?: boolean;
 };
 
 type FaceDetectada = {
   score?: number;
+  boxScore?: number;
   embedding?: number[] | Float32Array;
   description?: number[] | Float32Array;
+  rotation?: {
+    angle?: {
+      yaw?: number;
+      pitch?: number;
+      roll?: number;
+    };
+  } | null;
 };
 
 type HumanInstance = {
   load: () => Promise<void>;
-  warmup: () => Promise<void>;
   detect: (input: HTMLVideoElement) => Promise<{
     face?: FaceDetectada[];
   }>;
@@ -36,14 +49,13 @@ async function carregarHumanNoBrowser() {
   }
 
   const mod = await import("@vladmandic/human");
-
   const HumanConstructor = (mod.default ??
     (mod as unknown as { Human?: HumanConstructor }).Human) as
     | HumanConstructor
     | undefined;
 
   if (!HumanConstructor) {
-    throw new Error("Não foi possível carregar o construtor do Human.");
+    throw new Error("Nao foi possivel carregar o construtor do Human.");
   }
 
   humanSingleton = new HumanConstructor({
@@ -53,17 +65,25 @@ async function carregarHumanNoBrowser() {
       enabled: true,
       detector: {
         enabled: true,
+        rotation: true,
+        maxDetected: 1,
       },
       description: {
         enabled: true,
       },
       mesh: {
-        enabled: false,
+        enabled: true,
       },
       iris: {
         enabled: false,
       },
       emotion: {
+        enabled: false,
+      },
+      antispoof: {
+        enabled: false,
+      },
+      liveness: {
         enabled: false,
       },
     },
@@ -82,12 +102,15 @@ async function carregarHumanNoBrowser() {
   });
 
   await humanSingleton.load();
-  await humanSingleton.warmup();
 
   return humanSingleton;
 }
 
-export function CameraCapture({ modo, inputName }: CameraCaptureProps) {
+export function CameraCapture({
+  modo,
+  inputName,
+  compact = false,
+}: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const [carregando, setCarregando] = useState(false);
@@ -98,6 +121,7 @@ export function CameraCapture({ modo, inputName }: CameraCaptureProps) {
     null,
   );
   const [qualidade, setQualidade] = useState(0);
+  const [metadados, setMetadados] = useState<Record<string, unknown>>({});
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -106,14 +130,6 @@ export function CameraCapture({ modo, inputName }: CameraCaptureProps) {
     async function iniciar() {
       try {
         setCarregando(true);
-
-        const instancia = await carregarHumanNoBrowser();
-
-        if (cancelado) {
-          return;
-        }
-
-        setHuman(instancia);
 
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -132,11 +148,19 @@ export function CameraCapture({ modo, inputName }: CameraCaptureProps) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
         }
+
+        const instancia = await carregarHumanNoBrowser();
+
+        if (cancelado) {
+          return;
+        }
+
+        setHuman(instancia);
       } catch (error) {
         setErro(
           error instanceof Error
             ? error.message
-            : "Não foi possível iniciar a câmera.",
+            : "Nao foi possivel iniciar a camera.",
         );
       } finally {
         setCarregando(false);
@@ -157,7 +181,7 @@ export function CameraCapture({ modo, inputName }: CameraCaptureProps) {
     }
 
     if (!human) {
-      setErro("Motor biométrico ainda não foi carregado.");
+      setErro("Motor biometrico ainda nao foi carregado.");
       return;
     }
 
@@ -178,14 +202,31 @@ export function CameraCapture({ modo, inputName }: CameraCaptureProps) {
       const descriptor = face.embedding ?? face.description;
 
       if (!descriptor || descriptor.length === 0) {
-        setErro("Não foi possível extrair o template facial.");
+        setErro("Nao foi possivel extrair o template facial.");
+        return;
+      }
+
+      const score = limitar01(face.score ?? face.boxScore ?? 0);
+      const angulos = normalizarAngulosHuman(face.rotation?.angle);
+      const avaliacao = avaliarPoseParaEtapa({
+        etapa: "FRONTAL",
+        score,
+        angulos,
+      });
+
+      if (!avaliacao.aprovado) {
+        setErro(avaliacao.mensagem);
         return;
       }
 
       const vetor = Array.from(descriptor).map(Number);
-      const score = typeof face.score === "number" ? face.score : 0;
 
       setQualidade(score);
+      setMetadados({
+        origem: modo === "cadastro" ? "CADASTRO_WEB" : "VALIDACAO_WEB",
+        pose: avaliacao.pose ?? "FRONTAL",
+        ...angulos,
+      });
 
       if (modo === "cadastro") {
         setTemplates((atual) => [...atual, vetor].slice(-5));
@@ -215,23 +256,40 @@ export function CameraCapture({ modo, inputName }: CameraCaptureProps) {
   const pronto = capturasAtuais >= capturasNecessarias;
 
   return (
-    <section className="rounded-xl border bg-(--card) p-5 text-(--card-foreground) shadow-sm">
-      <h2 className="text-lg font-bold">
-        {modo === "cadastro" ? "Captura facial" : "Validação facial"}
+    <section
+      className={
+        compact
+          ? "space-y-3"
+          : "rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm"
+      }
+    >
+      <h2 className={compact ? "font-semibold" : "text-lg font-bold"}>
+        {modo === "cadastro" ? "Captura facial" : "Validacao facial"}
       </h2>
 
-      <p className="mt-1 text-sm text-(--muted-foreground)">
-        Posicione o rosto de frente para a câmera, em ambiente iluminado.
+      <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+        Posicione o rosto de frente para a camera, em ambiente iluminado.
       </p>
 
       <input type="hidden" name={inputName} value={valorInput} />
       <input type="hidden" name="qualidade" value={qualidade} />
+      <input type="hidden" name="metadados" value={JSON.stringify(metadados)} />
 
-      <div className="mt-5 flex justify-center">
-        <div className="w-full max-w-md overflow-hidden rounded-xl border bg-black shadow-sm">
+      <div className={compact ? "flex justify-center" : "mt-5 flex justify-center"}>
+        <div
+          className={
+            compact
+              ? "w-56 max-w-full overflow-hidden rounded-md border bg-black shadow-sm"
+              : "w-full max-w-md overflow-hidden rounded-xl border bg-black shadow-sm"
+          }
+        >
           <video
             ref={videoRef}
-            className="aspect-4/3 w-full object-cover"
+            className={
+              compact
+                ? "aspect-square w-full scale-x-[-1] object-cover"
+                : "aspect-4/3 w-full scale-x-[-1] object-cover"
+            }
             muted
             playsInline
           />
@@ -244,10 +302,16 @@ export function CameraCapture({ modo, inputName }: CameraCaptureProps) {
         </div>
       )}
 
-      <div className="mt-4 flex flex-col justify-between gap-3 md:flex-row md:items-center">
-        <p className="text-sm text-(--muted-foreground)">
-          Capturas válidas: {capturasAtuais}/{capturasNecessarias}
-          {pronto ? " — pronto para enviar." : ""}
+      <div
+        className={
+          compact
+            ? "flex flex-col gap-3"
+            : "mt-4 flex flex-col justify-between gap-3 md:flex-row md:items-center"
+        }
+      >
+        <p className="text-sm text-[var(--muted-foreground)]">
+          Capturas validas: {capturasAtuais}/{capturasNecessarias}
+          {pronto ? " - pronto para enviar." : ""}
         </p>
 
         <button
@@ -268,4 +332,12 @@ export function CameraCapture({ modo, inputName }: CameraCaptureProps) {
       </div>
     </section>
   );
+}
+
+function limitar01(valor: number) {
+  if (!Number.isFinite(valor)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(1, valor));
 }

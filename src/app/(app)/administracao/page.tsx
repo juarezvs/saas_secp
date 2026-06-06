@@ -1,14 +1,16 @@
 import Link from "next/link";
 import {
   Building2,
+  Cpu,
   KeyRound,
   Settings,
   ShieldAlert,
   ShieldCheck,
   UsersRound,
 } from "lucide-react";
+
 import { Breadcrumb } from "@/components/layout/breadcrumb";
-import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { PageHeader } from "@/components/layout/page-header";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 
 export default async function AdministracaoPage() {
@@ -16,15 +18,14 @@ export default async function AdministracaoPage() {
 
   const cards = [
     {
-      titulo: "Perfis e permissões",
-      descricao:
-        "Gerencie perfis, permissões e acessos por papel institucional.",
+      titulo: "Perfis e permissoes",
+      descricao: "Gerencie perfis, permissoes e acessos por papel institucional.",
       href: "/perfis",
       icon: ShieldCheck,
     },
     {
-      titulo: "Usuários",
-      descricao: "Gerencie usuários internos, externos e contas técnicas.",
+      titulo: "Usuarios",
+      descricao: "Gerencie usuarios internos, externos e contas tecnicas.",
       href: "/usuarios",
       icon: UsersRound,
     },
@@ -41,22 +42,28 @@ export default async function AdministracaoPage() {
       icon: Building2,
     },
     {
-      titulo: "Parâmetros",
-      descricao: "Configure parâmetros gerais do controle eletrônico de ponto.",
+      titulo: "Parametros",
+      descricao: "Configure parametros gerais do controle eletronico de ponto.",
       href: "/administracao/parametros",
       icon: Settings,
     },
     {
-      titulo: "Credenciais e integrações",
-      descricao:
-        "Configure integrações futuras com SARH, SEI, LDAP e biometria.",
+      titulo: "Credenciais e integracoes",
+      descricao: "Configure integracoes futuras com SARH, SEI, LDAP e biometria.",
       href: "/administracao/integracoes",
       icon: KeyRound,
     },
     {
+      titulo: "Equipamentos biometricos",
+      descricao:
+        "Cadastre relogios de ponto, REP, totens e dispositivos usados na importacao AFD e nas marcacoes biometricas.",
+      href: "/equipamentos",
+      icon: Cpu,
+    },
+    {
       titulo: "Auditoria",
       descricao:
-        "Consulte trilhas de auditoria, alterações sensíveis, usuários responsáveis e dados antes/depois.",
+        "Consulte trilhas de auditoria, alteracoes sensiveis, usuarios responsaveis e dados antes/depois.",
       href: "/auditoria",
       icon: ShieldAlert,
       permissao: "auditoria:consultar:global",
@@ -65,27 +72,15 @@ export default async function AdministracaoPage() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Administração" }]} />
+      <Breadcrumb items={[{ label: "Administracao" }]} />
 
-      <section>
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Administração do sistema
-        </p>
-
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">
-          Configurações institucionais do SECP
-        </h1>
-
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
-          Área reservada para administração técnica, parâmetros do sistema,
-          perfis, permissões, usuários, unidades e integrações.
-        </p>
-      </section>
-
-      <RegraPortariaCard
+      <PageHeader
+        icon={Settings}
+        titulo="Configuracoes institucionais do SECP"
+        descricao="Area reservada para administracao tecnica, parametros do sistema, perfis, permissoes, usuarios, unidades e integracoes."
         artigo="Art. 20, inciso I"
-        titulo="Responsabilidade técnica do NUTEC"
-        descricao="O NUTEC é responsável por gerenciar o sistema de controle eletrônico de frequência quanto ao cadastro e alteração de usuários e por dirimir dúvidas sobre funcionamento e registros."
+        regraTitulo="Responsabilidade tecnica do NUTEC"
+        regraDescricao="O NUTEC e responsavel por gerenciar o sistema de controle eletronico de frequencia quanto ao cadastro e alteracao de usuarios e por dirimir duvidas sobre funcionamento e registros."
       />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

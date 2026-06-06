@@ -1,4 +1,7 @@
+import { CalendarRange } from "lucide-react";
+
 import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { PageHeader } from "@/components/layout/page-header";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { criarRecessoForenseAction } from "@/modules/recesso-forense/application/actions/recesso-forense.actions";
 import { RecessoForenseForm } from "@/modules/recesso-forense/presentation/components/recesso-forense-form";
@@ -15,18 +18,14 @@ export default async function NovoRecessoForensePage() {
         ]}
       />
 
-      <section>
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Recesso forense
-        </p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">
-          Novo recesso
-        </h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">
-          Cadastre o periodo anual proprio do recesso. O sistema fixa o intervalo
-          normativo de 20/12 a 06/01.
-        </p>
-      </section>
+      <PageHeader
+        icon={CalendarRange}
+        titulo="Novo recesso"
+        descricao="Cadastre o periodo anual proprio do recesso. O sistema fixa o intervalo normativo de 20/12 a 06/01."
+        artigo="Recesso forense"
+        regraTitulo="Periodo anual 20/12 a 06/01"
+        regraDescricao="O recesso deve ser tratado em modulo proprio, com convocacoes, escolhas, homologacao e fechamento separados do ponto ordinario."
+      />
 
       <RecessoForenseForm action={criarRecessoForenseAction} />
     </div>

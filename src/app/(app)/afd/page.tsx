@@ -1,5 +1,7 @@
+import { Upload } from "lucide-react";
+
 import { Breadcrumb } from "@/components/layout/breadcrumb";
-import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { PageHeader } from "@/components/layout/page-header";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { AfdUploadDropzone } from "@/modules/afd/presentation/components/afd-upload-dropzone";
 import { AfdImportacoesTable } from "@/modules/afd/presentation/components/afd-importacoes-table";
@@ -13,39 +15,26 @@ export default async function AfdPage() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Importação AFD" }]} />
+      <Breadcrumb items={[{ label: "Importacao AFD" }]} />
 
-      <section>
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Importação AFD
-        </p>
-
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">
-          Upload de arquivos AFD
-        </h1>
-
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
-          Envie arquivos AFD dos equipamentos biométricos para sincronizar
-          marcações brutas oficiais, evitando duplicidades e enfileirando o
-          processamento assíncrono.
-        </p>
-      </section>
-
-      <RegraPortariaCard
-        artigo="Registro biométrico"
-        titulo="Fonte oficial das marcações"
-        descricao="Os arquivos AFD são importados como marcações brutas imutáveis e posteriormente processados para apuração de frequência."
+      <PageHeader
+        icon={Upload}
+        titulo="Upload de arquivos AFD"
+        descricao="Envie arquivos AFD dos equipamentos biometricos para sincronizar marcacoes brutas oficiais, evitando duplicidades e enfileirando o processamento assincrono."
+        artigo="Registro biometrico"
+        regraTitulo="Fonte oficial das marcacoes"
+        regraDescricao="Os arquivos AFD sao importados como marcacoes brutas imutaveis e posteriormente processados para apuracao de frequencia."
       />
 
       <AfdUploadDropzone />
 
-      <section className="rounded-xl border bg-(--card) p-5 text-(--card-foreground) shadow-sm">
-        <h2 className="text-lg font-bold">Reprocessar pendências</h2>
+      <section className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
+        <h2 className="text-lg font-bold">Reprocessar pendencias</h2>
 
-        <p className="mt-2 text-sm leading-6 text-(--muted-foreground)">
-          Use esta ação após cadastrar servidores que possuíam marcações brutas
-          pendentes por CPF ou matrícula. O sistema tentará vincular e processar
-          novamente as marcações ainda não processadas.
+        <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+          Use esta acao apos cadastrar servidores que possuiam marcacoes brutas
+          pendentes por CPF ou matricula. O sistema tentara vincular e processar
+          novamente as marcacoes ainda nao processadas.
         </p>
 
         <form
@@ -54,9 +43,9 @@ export default async function AfdPage() {
         >
           <button
             type="submit"
-            className="rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-(--muted)"
+            className="rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)]"
           >
-            Reprocessar marcações brutas pendentes
+            Reprocessar marcacoes brutas pendentes
           </button>
         </form>
       </section>

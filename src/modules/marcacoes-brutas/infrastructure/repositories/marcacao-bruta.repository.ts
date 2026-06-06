@@ -67,6 +67,52 @@ const includeMarcacaoBrutaListagem = {
   },
 };
 
+async function anexarEquipamentosAsMarcacoesBrutas<
+  T extends { equipamentoId: string | null; equipamentoCodigo: string | null },
+>(marcacoes: T[]) {
+  const equipamentoIds = marcacoes
+    .map((item) => item.equipamentoId)
+    .filter((id): id is string => Boolean(id));
+  const equipamentoCodigos = marcacoes
+    .map((item) => item.equipamentoCodigo)
+    .filter((codigo): codigo is string => Boolean(codigo));
+
+  const filtros = [
+    equipamentoIds.length > 0 ? { id: { in: equipamentoIds } } : null,
+    equipamentoCodigos.length > 0 ? { codigo: { in: equipamentoCodigos } } : null,
+  ].filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+  if (filtros.length === 0) {
+    return marcacoes.map((item) => ({
+      ...item,
+      equipamento: null,
+    }));
+  }
+
+  const equipamentos = await prisma.equipamentoBiometrico.findMany({
+    where: {
+      OR: filtros,
+    },
+    select: {
+      id: true,
+      codigo: true,
+      nome: true,
+      numeroSerie: true,
+    },
+  });
+
+  const porId = new Map(equipamentos.map((item) => [item.id, item]));
+  const porCodigo = new Map(equipamentos.map((item) => [item.codigo, item]));
+
+  return marcacoes.map((item) => ({
+    ...item,
+    equipamento:
+      (item.equipamentoId ? porId.get(item.equipamentoId) : null) ??
+      (item.equipamentoCodigo ? porCodigo.get(item.equipamentoCodigo) : null) ??
+      null,
+  }));
+}
+
 export async function listarMarcacoesBrutasPendentes(params?: {
   limite?: number;
 }) {
@@ -117,7 +163,7 @@ export async function listarMarcacoesBrutasPorServidorPendente(params: {
 export async function listarMarcacoesBrutas(
   params?: ListarMarcacoesBrutasParams,
 ) {
-  return prisma.marcacaoBruta.findMany({
+  const marcacoes = await prisma.marcacaoBruta.findMany({
     where: montarWhereMarcacoesBrutas(params),
     include: includeMarcacaoBrutaListagem,
     orderBy: {
@@ -125,6 +171,8 @@ export async function listarMarcacoesBrutas(
     },
     take: params?.limite ?? 100,
   });
+
+  return anexarEquipamentosAsMarcacoesBrutas(marcacoes);
 }
 
 export async function listarMarcacoesBrutasPaginado(
@@ -137,7 +185,7 @@ export async function listarMarcacoesBrutasPaginado(
   );
   const where = montarWhereMarcacoesBrutas(params);
 
-  const [total, marcacoes] = await Promise.all([
+  const [total, marcacoesBase] = await Promise.all([
     prisma.marcacaoBruta.count({ where }),
     prisma.marcacaoBruta.findMany({
       where,
@@ -149,6 +197,7 @@ export async function listarMarcacoesBrutasPaginado(
       take: itensPorPagina,
     }),
   ]);
+  const marcacoes = await anexarEquipamentosAsMarcacoesBrutas(marcacoesBase);
 
   return {
     marcacoes,
@@ -162,11 +211,13 @@ export async function listarMarcacoesBrutasPaginado(
 export async function listarMarcacoesBrutasParaExportacao(
   params: ListarMarcacoesBrutasParams,
 ) {
-  return prisma.marcacaoBruta.findMany({
+  const marcacoes = await prisma.marcacaoBruta.findMany({
     where: montarWhereMarcacoesBrutas(params),
     include: includeMarcacaoBrutaListagem,
     orderBy: {
       dataHora: "desc",
     },
   });
+
+  return anexarEquipamentosAsMarcacoesBrutas(marcacoes);
 }

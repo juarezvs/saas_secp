@@ -193,4 +193,6 @@ body[data-font-size="xlarge"] {
 /* VLibras */
 [vw-access-button] {
   z-index: 999999 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }

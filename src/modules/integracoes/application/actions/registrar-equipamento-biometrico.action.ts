@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { usuarioPossuiPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import {
   equipamentoBiometricoSchema,
@@ -36,9 +37,13 @@ export async function registrarEquipamentoBiometricoAction(
     };
   }
 
-  const permissoes = session.user.perfilAtivo?.permissoes ?? [];
-
-  if (!permissoes.includes("integracoes:gerenciar:global")) {
+  if (
+    !usuarioPossuiPermissaoNoPerfil(
+      session.user.perfilAtivo?.codigo,
+      session.user.perfilAtivo?.permissoes,
+      "integracoes:gerenciar:global",
+    )
+  ) {
     return {
       sucesso: false,
       mensagem: "Você não possui permissão para gerenciar integrações.",
@@ -132,6 +137,7 @@ export async function registrarEquipamentoBiometricoAction(
   });
 
   revalidatePath("/integracoes");
+  revalidatePath("/equipamentos");
 
   return {
     sucesso: true,

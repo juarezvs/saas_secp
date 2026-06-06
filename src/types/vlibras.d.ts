@@ -13,6 +13,7 @@ declare module "react" {
 declare global {
   interface Window {
     __secpVLibrasWidget?: unknown;
+    __secpAbrirVLibras?: () => void;
     VLibras?: {
       Widget: new (url: string) => unknown;
     };

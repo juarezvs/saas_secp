@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 import { gerarBoletimUnidadeService } from "../services/gerar-boletim-unidade.service";
 
 export async function gerarBoletimFrequenciaAction(formData: FormData) {
@@ -12,11 +13,11 @@ export async function gerarBoletimFrequenciaAction(formData: FormData) {
     return;
   }
 
-  const permissoes = session.user.perfilAtivo?.permissoes ?? [];
-
-  const podeGerar =
-    permissoes.includes("boletim-frequencia:gerar:chefia") ||
-    permissoes.includes("boletim-frequencia:consultar:global");
+  const podeGerar = usuarioPossuiAlgumaPermissaoNoPerfil(
+    session.user.perfilAtivo?.codigo,
+    session.user.perfilAtivo?.permissoes,
+    ["boletim-frequencia:gerar:chefia", "boletim-frequencia:consultar:global"],
+  );
 
   if (!podeGerar) {
     return;

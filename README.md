@@ -96,6 +96,12 @@ REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
 AFD_UPLOAD_DIR=import/\_upload/afd
 
+# Biometria facial
+# Gere uma chave aleatoria de 32 bytes em base64.
+BIOMETRIA_FACIAL_ENCRYPTION_KEY=
+BIOMETRIA_FACIAL_TEMPLATE_PEPPER=
+BIOMETRIA_FACIAL_ALLOW_RAW_IMAGE_STORAGE=false
+
 # Integração com SARH
 
 SARH_BASE_URL="http://sarh.integracao.am.trf1.gov.br"

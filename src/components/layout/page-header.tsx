@@ -26,23 +26,25 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
-      <div>
-        <div className="flex items-center gap-3">
-          <div className="rounded-xl bg-blue-50 p-3 text-blue-900 dark:bg-blue-950 dark:text-blue-300">
-            <Icon className="size-6" />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="shrink-0 rounded-xl bg-blue-50 p-3 text-blue-900 dark:bg-blue-950 dark:text-blue-300">
+              <Icon className="size-6" aria-hidden="true" />
+            </div>
+
+            <h1 className="min-w-0 text-3xl font-bold tracking-tight">
+              {titulo}
+            </h1>
           </div>
 
-          <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-bold tracking-tight">{titulo}</h1>
-
-            {artigo && regraTitulo && regraDescricao && (
-              <RegraPortariaCard
-                artigo={artigo}
-                titulo={regraTitulo}
-                descricao={regraDescricao}
-              />
-            )}
-          </div>
+          {artigo && regraTitulo && regraDescricao && (
+            <RegraPortariaCard
+              artigo={artigo}
+              titulo={regraTitulo}
+              descricao={regraDescricao}
+            />
+          )}
         </div>
 
         {descricao && (

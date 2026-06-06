@@ -1,21 +1,22 @@
 import Link from "next/link";
-import { Building2, UserCheck } from "lucide-react";
+import { Building2, Network, UserCheck } from "lucide-react";
+
 import { Breadcrumb } from "@/components/layout/breadcrumb";
-import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { PageHeader } from "@/components/layout/page-header";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { vincularGestorUnidadeAction } from "@/modules/chefias/application/actions/vincular-gestor-unidade.action";
 import {
   listarServidoresAtivosParaGestao,
   listarUnidadesAtivasParaGestao,
   listarUnidadesComGestores,
 } from "@/modules/chefias/infrastructure/repositories/chefia.repository";
-import { vincularGestorUnidadeAction } from "@/modules/chefias/application/actions/vincular-gestor-unidade.action";
 import { GestorUnidadeForm } from "@/modules/chefias/presentation/components/gestor-unidade-form";
 
 function contarGestoresPorPapel(
   gestores: {
     papel: string;
   }[],
-  papel: string
+  papel: string,
 ) {
   return gestores.filter((gestor) => gestor.papel === papel).length;
 }
@@ -33,25 +34,13 @@ export default async function ChefiasPage() {
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "Chefias" }]} />
 
-      <section>
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Gestão hierárquica
-        </p>
-
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">
-          Chefias, gestores e delegações
-        </h1>
-
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
-          Cadastre gestores titulares, substitutos e delegados responsáveis por
-          autorizações, validações e futuras homologações de frequência.
-        </p>
-      </section>
-
-      <RegraPortariaCard
+      <PageHeader
+        icon={Network}
+        titulo="Chefias, gestores e delegacoes"
+        descricao="Cadastre gestores titulares, substitutos e delegados responsaveis por autorizacoes, validacoes e futuras homologacoes de frequencia."
         artigo="Art. 16, §§ 1º e 2º"
-        titulo="Homologação e delegação de competência"
-        descricao="A frequência mensal é homologada pelo superior hierárquico, que poderá delegar competência a servidor lotado na unidade, sem afastar sua responsabilidade e a responsabilidade pessoal do delegado."
+        regraTitulo="Homologacao e delegacao de competencia"
+        regraDescricao="A frequencia mensal e homologada pelo superior hierarquico, que podera delegar competencia a servidor lotado na unidade, sem afastar sua responsabilidade e a responsabilidade pessoal do delegado."
       />
 
       <GestorUnidadeForm
@@ -71,13 +60,13 @@ export default async function ChefiasPage() {
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
                 <th className="px-5 py-3">Unidade</th>
-                <th className="px-5 py-3">Órgão</th>
+                <th className="px-5 py-3">Orgao</th>
                 <th className="px-5 py-3">Superior</th>
                 <th className="px-5 py-3">Titulares</th>
                 <th className="px-5 py-3">Substitutos</th>
                 <th className="px-5 py-3">Delegados</th>
                 <th className="px-5 py-3">Lotados</th>
-                <th className="px-5 py-3 text-right">Ações</th>
+                <th className="px-5 py-3 text-right">Acoes</th>
               </tr>
             </thead>
 
@@ -92,32 +81,21 @@ export default async function ChefiasPage() {
                   </td>
 
                   <td className="px-5 py-4">{unidade.orgao.sigla}</td>
-
                   <td className="px-5 py-4">
                     {unidade.unidadePai?.sigla ?? "-"}
                   </td>
-
+                  <td className="px-5 py-4">
+                    {contarGestoresPorPapel(unidade.gestores, "GESTOR_TITULAR")}
+                  </td>
                   <td className="px-5 py-4">
                     {contarGestoresPorPapel(
                       unidade.gestores,
-                      "GESTOR_TITULAR"
+                      "GESTOR_SUBSTITUTO",
                     )}
                   </td>
-
                   <td className="px-5 py-4">
-                    {contarGestoresPorPapel(
-                      unidade.gestores,
-                      "GESTOR_SUBSTITUTO"
-                    )}
+                    {contarGestoresPorPapel(unidade.gestores, "DELEGADO_CHEFIA")}
                   </td>
-
-                  <td className="px-5 py-4">
-                    {contarGestoresPorPapel(
-                      unidade.gestores,
-                      "DELEGADO_CHEFIA"
-                    )}
-                  </td>
-
                   <td className="px-5 py-4">{unidade._count.lotacoes}</td>
 
                   <td className="px-5 py-4 text-right">

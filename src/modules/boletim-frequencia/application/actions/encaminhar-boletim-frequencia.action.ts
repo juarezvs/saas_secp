@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 export async function encaminharBoletimFrequenciaAction(formData: FormData) {
@@ -11,11 +12,14 @@ export async function encaminharBoletimFrequenciaAction(formData: FormData) {
     return;
   }
 
-  const permissoes = session.user.perfilAtivo?.permissoes ?? [];
-
-  const podeEncaminhar =
-    permissoes.includes("boletim-frequencia:encaminhar:chefia") ||
-    permissoes.includes("boletim-frequencia:consultar:global");
+  const podeEncaminhar = usuarioPossuiAlgumaPermissaoNoPerfil(
+    session.user.perfilAtivo?.codigo,
+    session.user.perfilAtivo?.permissoes,
+    [
+      "boletim-frequencia:encaminhar:chefia",
+      "boletim-frequencia:consultar:global",
+    ],
+  );
 
   if (!podeEncaminhar) {
     return;

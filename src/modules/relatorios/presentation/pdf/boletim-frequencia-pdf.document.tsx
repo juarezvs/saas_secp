@@ -16,6 +16,7 @@ type BoletimPdfProps = {
     status: string;
     processoSei: string | null;
     numeroSei: string | null;
+    observacao: string | null;
     totalServidores: number;
     totalHomologados: number;
     totalComRessalva: number;
@@ -26,6 +27,16 @@ type BoletimPdfProps = {
     totalDebitoMinutos: number;
     geradoEm: Date;
     encaminhadoEm: Date | null;
+    recebidoEm: Date | null;
+    geradoPor: {
+      nome: string;
+    };
+    encaminhadoPor: {
+      nome: string;
+    } | null;
+    recebidoPor: {
+      nome: string;
+    } | null;
     servidores: {
       tipoResumo: string;
       cargaPrevistaMinutos: number;
@@ -51,23 +62,27 @@ type BoletimPdfProps = {
   };
 };
 
+function dataOuPendente(data: Date | null) {
+  return data ? formatarDataHoraRelatorio(data) : "Pendente";
+}
+
 export function BoletimFrequenciaPdfDocument({ boletim }: BoletimPdfProps) {
   return (
     <Document
-      title={`Boletim de Frequência ${boletim.unidade.sigla} ${boletim.mesReferencia}/${boletim.anoReferencia}`}
+      title={`Boletim de Frequencia ${boletim.unidade.sigla} ${boletim.mesReferencia}/${boletim.anoReferencia}`}
       author="SECP"
-      subject="Boletim de Frequência"
+      subject="Boletim de Frequencia"
       creator="SECP"
       producer="SECP"
     >
       <Page size="A4" orientation="landscape" style={s.page}>
         <View style={s.header}>
           <Text style={s.orgao}>
-            Justiça Federal — Seção Judiciária do Amazonas
+            Justica Federal - Secao Judiciaria do Amazonas
           </Text>
-          <Text style={s.title}>Boletim de Frequência Mensal</Text>
+          <Text style={s.title}>Boletim de Frequencia Mensal</Text>
           <Text style={s.subtitle}>
-            {boletim.unidade.sigla} — {boletim.unidade.nome} • Referência{" "}
+            {boletim.unidade.sigla} - {boletim.unidade.nome} - Referencia{" "}
             {String(boletim.mesReferencia).padStart(2, "0")}/
             {boletim.anoReferencia}
           </Text>
@@ -113,13 +128,13 @@ export function BoletimFrequenciaPdfDocument({ boletim }: BoletimPdfProps) {
               </Text>
             </View>
             <View style={s.infoBox}>
-              <Text style={s.label}>Crédito</Text>
+              <Text style={s.label}>Credito</Text>
               <Text style={s.value}>
                 {minutosParaHoraRelatorio(boletim.totalCreditoMinutos)}
               </Text>
             </View>
             <View style={s.infoBox}>
-              <Text style={s.label}>Débito</Text>
+              <Text style={s.label}>Debito</Text>
               <Text style={s.value}>
                 {minutosParaHoraRelatorio(boletim.totalDebitoMinutos)}
               </Text>
@@ -135,6 +150,41 @@ export function BoletimFrequenciaPdfDocument({ boletim }: BoletimPdfProps) {
               <Text style={s.label}>Documento SEI</Text>
               <Text style={s.value}>{boletim.numeroSei ?? "-"}</Text>
             </View>
+            <View style={s.infoBox}>
+              <Text style={s.label}>Observacao</Text>
+              <Text style={s.value}>{boletim.observacao ?? "-"}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>Ciclo institucional</Text>
+          <View style={s.row}>
+            <View style={s.infoBox}>
+              <Text style={s.label}>Servidor</Text>
+              <Text style={s.value}>Espelho mensal apurado</Text>
+            </View>
+            <View style={s.infoBox}>
+              <Text style={s.label}>Chefia</Text>
+              <Text style={s.value}>
+                Gerado em {formatarDataHoraRelatorio(boletim.geradoEm)}
+              </Text>
+              <Text style={s.label}>{boletim.geradoPor.nome}</Text>
+            </View>
+            <View style={s.infoBox}>
+              <Text style={s.label}>Encaminhamento</Text>
+              <Text style={s.value}>{dataOuPendente(boletim.encaminhadoEm)}</Text>
+              <Text style={s.label}>
+                {boletim.encaminhadoPor?.nome ?? "Pendente"}
+              </Text>
+            </View>
+            <View style={s.infoBox}>
+              <Text style={s.label}>SECAP/NUCGP</Text>
+              <Text style={s.value}>{dataOuPendente(boletim.recebidoEm)}</Text>
+              <Text style={s.label}>
+                {boletim.recebidoPor?.nome ?? "Pendente"}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -144,21 +194,21 @@ export function BoletimFrequenciaPdfDocument({ boletim }: BoletimPdfProps) {
           <View style={s.table}>
             <View style={s.tableHeader}>
               <Text style={[s.th, { width: "22%" }]}>Servidor</Text>
-              <Text style={[s.th, { width: "8%" }]}>Lotação</Text>
+              <Text style={[s.th, { width: "8%" }]}>Lotacao</Text>
               <Text style={[s.th, { width: "10%" }]}>Resumo</Text>
               <Text style={[s.th, { width: "8%" }]}>Previsto</Text>
               <Text style={[s.th, { width: "8%" }]}>Trabalhado</Text>
-              <Text style={[s.th, { width: "8%" }]}>Crédito</Text>
-              <Text style={[s.th, { width: "8%" }]}>Débito</Text>
+              <Text style={[s.th, { width: "8%" }]}>Credito</Text>
+              <Text style={[s.th, { width: "8%" }]}>Debito</Text>
               <Text style={[s.th, { width: "6%" }]}>Faltas</Text>
               <Text style={[s.th, { width: "8%" }]}>Banco</Text>
-              <Text style={[s.th, { width: "14%" }]}>Observação</Text>
+              <Text style={[s.th, { width: "14%" }]}>Observacao</Text>
             </View>
 
             {boletim.servidores.map((item) => (
               <View key={item.servidor.matricula} style={s.tableRow}>
                 <Text style={[s.td, { width: "22%" }]}>
-                  {item.servidor.matricula} — {item.servidor.usuario.nome}
+                  {item.servidor.matricula} - {item.servidor.usuario.nome}
                 </Text>
                 <Text style={[s.td, { width: "8%" }]}>
                   {item.servidor.lotacoes[0]?.unidade.sigla ?? "-"}

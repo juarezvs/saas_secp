@@ -1,5 +1,7 @@
+import { Users } from "lucide-react";
+
 import { Breadcrumb } from "@/components/layout/breadcrumb";
-import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { PageHeader } from "@/components/layout/page-header";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { criarServidorAction } from "@/modules/servidores/application/actions/criar-servidor.action";
 import { listarOrgaosAtivosParaServidor } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
@@ -14,31 +16,19 @@ export default async function NovoServidorPage() {
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administração", href: "/administracao" },
+          { label: "Administracao", href: "/administracao" },
           { label: "Servidores", href: "/servidores" },
           { label: "Novo servidor" },
         ]}
       />
 
-      <section>
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Cadastro funcional
-        </p>
-
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">
-          Novo servidor
-        </h1>
-
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-(--muted-foreground)">
-          Cadastre o servidor e crie o usuário associado que será usado para
-          autenticação e autorização no SECP.
-        </p>
-      </section>
-
-      <RegraPortariaCard
-        artigo="Arts. 4º e 8º"
-        titulo="Cadastro funcional e apuração"
-        descricao="O cadastro do servidor será usado para definir jornada, lotação, apuração mensal, banco de horas e acesso ao espelho de frequência."
+      <PageHeader
+        icon={Users}
+        titulo="Novo servidor"
+        descricao="Cadastre o servidor e crie o usuario associado que sera usado para autenticacao e autorizacao no SECP."
+        artigo="Arts. 4 e 8"
+        regraTitulo="Cadastro funcional e apuracao"
+        regraDescricao="O cadastro do servidor sera usado para definir jornada, lotacao, apuracao mensal, banco de horas e acesso ao espelho de frequencia."
       />
 
       <ServidorForm

@@ -1,6 +1,8 @@
+import { BarChart3 } from "lucide-react";
+
 import { auth } from "@/auth";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
-import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { PageHeader } from "@/components/layout/page-header";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   buscarServidorRelatorioPorUsuarioId,
@@ -10,11 +12,43 @@ import {
 import { FiltrosRelatoriosCard } from "@/modules/relatorios/presentation/components/filtros-relatorios-card";
 import { RelatoriosListCard } from "@/modules/relatorios/presentation/components/relatorios-list-card";
 
+function normalizarCompetencia(params: {
+  competencia?: string;
+  ano?: string;
+  mes?: string;
+}) {
+  const hoje = new Date();
+  const matchCompetencia = params.competencia?.match(/^(\d{4})-(\d{2})$/);
+  const anoCompetencia = matchCompetencia ? Number(matchCompetencia[1]) : null;
+  const mesCompetencia = matchCompetencia ? Number(matchCompetencia[2]) : null;
+  const anoParam = params.ano ? Number(params.ano) : null;
+  const mesParam = params.mes ? Number(params.mes) : null;
+
+  const ano =
+    anoCompetencia && Number.isInteger(anoCompetencia)
+      ? anoCompetencia
+      : anoParam && Number.isInteger(anoParam)
+        ? anoParam
+        : hoje.getFullYear();
+  const mes =
+    mesCompetencia &&
+    Number.isInteger(mesCompetencia) &&
+    mesCompetencia >= 1 &&
+    mesCompetencia <= 12
+      ? mesCompetencia
+      : mesParam && Number.isInteger(mesParam) && mesParam >= 1 && mesParam <= 12
+        ? mesParam
+        : hoje.getMonth() + 1;
+
+  return { ano, mes };
+}
+
 export default async function RelatoriosPage({
   searchParams,
 }: {
   searchParams?: Promise<{
     servidorId?: string;
+    competencia?: string;
     ano?: string;
     mes?: string;
   }>;
@@ -31,10 +65,7 @@ export default async function RelatoriosPage({
   );
 
   const params = searchParams ? await searchParams : {};
-  const hoje = new Date();
-
-  const ano = Number(params.ano ?? hoje.getFullYear());
-  const mes = Number(params.mes ?? hoje.getMonth() + 1);
+  const { ano, mes } = normalizarCompetencia(params);
 
   const servidorProprio = session?.user
     ? await buscarServidorRelatorioPorUsuarioId(session.user.id)
@@ -55,33 +86,23 @@ export default async function RelatoriosPage({
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Relatórios" }]} />
+      <Breadcrumb items={[{ label: "Relatorios" }]} />
 
-      <section>
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Relatórios e exportação
-        </p>
-
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">
-          Relatórios do SECP
-        </h1>
-
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
-          Exporte espelho de ponto, banco de horas e boletins de frequência em
-          PDF.
-        </p>
-      </section>
-
-      <RegraPortariaCard
-        artigo="Arts. 8º, 16, 17 e 19"
-        titulo="Espelho, frequência mensal e Boletim"
-        descricao="Os relatórios consolidam frequência diária, saldo de horas, apuração mensal e Boletim de Frequência, servindo de base para conferência, homologação e juntada no SEI."
+      <PageHeader
+        icon={BarChart3}
+        titulo="Relatorios do SECP"
+        descricao="Exporte espelho de ponto, banco de horas e boletins de frequencia em PDF."
+        artigo="Arts. 8, 16, 17 e 19"
+        regraTitulo="Espelho, frequencia mensal e boletim"
+        regraDescricao="Os relatorios consolidam frequencia diaria, saldo de horas, apuracao mensal e Boletim de Frequencia, servindo de base para conferencia, homologacao e juntada no SEI."
       />
 
       <FiltrosRelatoriosCard
         servidores={servidores}
         servidorProprioId={servidorProprio?.id ?? null}
         podeConsultarGlobal={podeConsultarGlobal}
+        servidorSelecionadoId={servidorId}
+        competencia={`${ano}-${String(mes).padStart(2, "0")}`}
       />
 
       <RelatoriosListCard

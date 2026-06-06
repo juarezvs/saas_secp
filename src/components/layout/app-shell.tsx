@@ -30,7 +30,7 @@ export async function AppShell({ children }: AppShellProps) {
     unidade:
       lotacaoAtual?.unidade.nome ??
       lotacaoAtual?.unidade.sigla ??
-      "Administracao do SECP",
+      "",
     perfilAtivo: {
       codigo: perfilAtivo.codigo,
       nome: perfilAtivo.nome,

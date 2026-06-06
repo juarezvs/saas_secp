@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { LockKeyhole } from "lucide-react";
+
 import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { PageHeader } from "@/components/layout/page-header";
 
 type AcessoNegadoPageProps = {
   searchParams: Promise<{
@@ -17,6 +19,15 @@ export default async function AcessoNegadoPage({
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "Acesso negado" }]} />
 
+      <PageHeader
+        icon={LockKeyhole}
+        titulo="Acesso negado"
+        descricao="O SECP utiliza controle de acesso por perfis e permissoes para proteger funcionalidades administrativas e operacionais."
+        artigo="Controle de acesso"
+        regraTitulo="Perfil e permissao requerida"
+        regraDescricao="Funcionalidades sensiveis devem ser acessadas apenas por usuarios com perfil compativel e permissao ativa."
+      />
+
       <section className="rounded-xl border bg-[var(--card)] p-8 text-[var(--card-foreground)] shadow-sm">
         <div className="flex max-w-3xl gap-5">
           <div className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300">
@@ -28,19 +39,18 @@ export default async function AcessoNegadoPage({
               Acesso negado
             </p>
 
-            <h1 className="mt-2 text-2xl font-bold">
-              Você não possui permissão para acessar este recurso.
-            </h1>
+            <h2 className="mt-2 text-2xl font-bold">
+              Voce nao possui permissao para acessar este recurso.
+            </h2>
 
             <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
-              O SECP utiliza controle de acesso baseado em perfis e permissões.
-              Caso precise acessar esta funcionalidade, solicite revisão do seu
+              Caso precise acessar esta funcionalidade, solicite revisao do seu
               perfil ao administrador do sistema ou ao NUTEC.
             </p>
 
             {params.permissao && (
               <div className="mt-4 rounded-lg border bg-[var(--muted)] p-3 text-sm">
-                Permissão requerida:{" "}
+                Permissao requerida:{" "}
                 <code className="font-mono font-semibold">
                   {params.permissao}
                 </code>

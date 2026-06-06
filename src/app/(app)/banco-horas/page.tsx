@@ -16,10 +16,29 @@ type ServidorBancoHoras = NonNullable<
 type BancoHorasPageProps = {
   searchParams: Promise<{
     servidorId?: string;
+    competencia?: string;
     anoReferencia?: string;
     mesReferencia?: string;
   }>;
 };
+
+function normalizarCompetencia(params: {
+  competencia?: string;
+  anoReferencia?: string;
+  mesReferencia?: string;
+}) {
+  const hoje = new Date();
+  const match = params.competencia?.match(/^(\d{4})-(\d{2})$/);
+  const ano = Number(match?.[1] ?? params.anoReferencia ?? hoje.getFullYear());
+  const mes = Number(match?.[2] ?? params.mesReferencia ?? hoje.getMonth() + 1);
+
+  return {
+    anoReferencia: Number.isInteger(ano) ? ano : hoje.getFullYear(),
+    mesReferencia: Number.isInteger(mes) && mes >= 1 && mes <= 12
+      ? mes
+      : hoje.getMonth() + 1,
+  };
+}
 
 export default async function BancoHorasPage({ searchParams }: BancoHorasPageProps) {
   const permissao = await exigirUmaDasPermissoesOuRedirecionar([
@@ -29,9 +48,7 @@ export default async function BancoHorasPage({ searchParams }: BancoHorasPagePro
   ]);
 
   const params = await searchParams;
-  const hoje = new Date();
-  const anoReferencia = Number(params.anoReferencia ?? hoje.getFullYear());
-  const mesReferencia = Number(params.mesReferencia ?? hoje.getMonth() + 1);
+  const { anoReferencia, mesReferencia } = normalizarCompetencia(params);
 
   const podeConsultarGlobal = usuarioPossuiPermissaoNoPerfil(
     permissao.perfilAtivoCodigo,

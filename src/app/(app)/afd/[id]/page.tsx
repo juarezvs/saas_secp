@@ -87,6 +87,7 @@ export default async function AfdDetalhePage({ params }: AfdDetalhePageProps) {
             <thead className="border-b bg-[var(--muted)] text-xs uppercase text-[var(--muted-foreground)]">
               <tr>
                 <th className="px-5 py-3">Arquivo</th>
+                <th className="px-5 py-3">Equipamento</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Linhas</th>
                 <th className="px-5 py-3">Brutas</th>
@@ -107,6 +108,9 @@ export default async function AfdDetalhePage({ params }: AfdDetalhePageProps) {
                         {arquivo.erro}
                       </div>
                     )}
+                  </td>
+                  <td className="px-5 py-4 font-mono text-xs">
+                    {arquivo.equipamentoCodigo ?? "-"}
                   </td>
                   <td className="px-5 py-4">{arquivo.status}</td>
                   <td className="px-5 py-4">{arquivo.totalLinhas}</td>

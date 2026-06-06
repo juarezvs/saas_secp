@@ -198,6 +198,21 @@ export async function buscarBoletimFrequenciaPorId(id: string) {
   });
 }
 
+export async function listarHistoricoBoletimFrequencia(boletimId: string) {
+  return prisma.auditoriaEvento.findMany({
+    where: {
+      entidade: "BoletimFrequencia",
+      entidadeId: boletimId,
+    },
+    include: {
+      usuario: true,
+    },
+    orderBy: {
+      criadoEm: "asc",
+    },
+  });
+}
+
 export async function listarFechamentosHomologadosSemBoletim() {
   return prisma.fechamentoMensalUnidade.findMany({
     where: {

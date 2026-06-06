@@ -61,9 +61,9 @@ export function AppShellClient({
           <main
             id="conteudo-principal"
             tabIndex={-1}
-            className="flex-1 scroll-mt-20 px-4 py-6 focus:outline-none sm:px-6 lg:px-8"
+            className="flex-1 scroll-mt-20 px-3 py-5 focus:outline-none sm:px-4 lg:px-5 xl:px-6"
           >
-            <div className="mx-auto w-full max-w-7xl">{children}</div>
+            <div className="w-full">{children}</div>
           </main>
         </div>
       </div>

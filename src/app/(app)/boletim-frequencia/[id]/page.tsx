@@ -2,8 +2,13 @@ import { notFound } from "next/navigation";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import { buscarBoletimFrequenciaPorId } from "@/modules/boletim-frequencia/infrastructure/repositories/boletim-frequencia.repository";
+import {
+  buscarBoletimFrequenciaPorId,
+  listarHistoricoBoletimFrequencia,
+} from "@/modules/boletim-frequencia/infrastructure/repositories/boletim-frequencia.repository";
+import { BoletimCicloCard } from "@/modules/boletim-frequencia/presentation/components/boletim-ciclo-card";
 import { BoletimFrequenciaCard } from "@/modules/boletim-frequencia/presentation/components/boletim-frequencia-card";
+import { BoletimHistoricoCard } from "@/modules/boletim-frequencia/presentation/components/boletim-historico-card";
 import { BoletimServidoresTable } from "@/modules/boletim-frequencia/presentation/components/boletim-servidores-table";
 import { BoletimAcoesCard } from "@/modules/boletim-frequencia/presentation/components/boletim-acoes-card";
 
@@ -28,6 +33,8 @@ export default async function BoletimDetalhePage({
     notFound();
   }
 
+  const historico = await listarHistoricoBoletimFrequencia(boletim.id);
+
   return (
     <div className="space-y-6">
       <Breadcrumb
@@ -42,6 +49,8 @@ export default async function BoletimDetalhePage({
       />
 
       <BoletimFrequenciaCard boletim={boletim} />
+
+      <BoletimCicloCard boletim={boletim} />
 
       <a
         href={`/api/relatorios/boletim/${boletim.id}/pdf`}
@@ -58,6 +67,8 @@ export default async function BoletimDetalhePage({
       <BoletimAcoesCard boletimId={boletim.id} status={boletim.status} />
 
       <BoletimServidoresTable servidores={boletim.servidores} />
+
+      <BoletimHistoricoCard boletim={boletim} eventos={historico} />
     </div>
   );
 }

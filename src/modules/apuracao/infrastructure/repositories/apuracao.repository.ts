@@ -185,3 +185,31 @@ export async function listarMarcacoesDoServidorNoMes(params: {
     },
   });
 }
+
+export async function listarServidoresParaEspelhoPonto() {
+  return prisma.servidor.findMany({
+    where: {
+      ativo: true,
+      usuario: {
+        ativo: true,
+      },
+    },
+    include: {
+      usuario: true,
+      lotacoes: {
+        where: {
+          status: "ATIVO",
+        },
+        include: {
+          unidade: true,
+        },
+        orderBy: {
+          dataInicio: "desc",
+        },
+      },
+    },
+    orderBy: {
+      matricula: "asc",
+    },
+  });
+}

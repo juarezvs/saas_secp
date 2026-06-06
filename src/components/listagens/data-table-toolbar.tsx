@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { DataTableExportButtons } from "@/components/listagens/data-table-export-buttons";
 import { FiltroSelectImediato } from "@/components/listagens/filtro-select-imediato";
 import { FiltroTextoDebounce } from "@/components/listagens/filtro-texto-debounce";
+import { CompetenciaInput } from "@/components/ui";
 import {
   criarQueryStringAtualizada,
   montarHrefComQuery,
@@ -30,7 +31,17 @@ export type DataTableFiltroSelect = {
   className?: string;
 };
 
-export type DataTableFiltro = DataTableFiltroTexto | DataTableFiltroSelect;
+export type DataTableFiltroCompetencia = {
+  tipo: "competencia";
+  nome: string;
+  label: string;
+  className?: string;
+};
+
+export type DataTableFiltro =
+  | DataTableFiltroTexto
+  | DataTableFiltroSelect
+  | DataTableFiltroCompetencia;
 
 type DataTableToolbarProps = {
   filtros: DataTableFiltro[];
@@ -69,6 +80,26 @@ export function DataTableToolbar({
     [pathname, router, searchParams],
   );
 
+  const obterValorFiltro = useCallback(
+    (filtro: DataTableFiltro) => {
+      const value = paramsAtuais.get(filtro.nome) ?? "";
+
+      if (filtro.tipo !== "competencia" || value) {
+        return value;
+      }
+
+      const anoReferencia = paramsAtuais.get("anoReferencia");
+      const mesReferencia = paramsAtuais.get("mesReferencia");
+
+      if (!anoReferencia || !mesReferencia) {
+        return "";
+      }
+
+      return `${anoReferencia}-${mesReferencia.padStart(2, "0")}`;
+    },
+    [paramsAtuais],
+  );
+
   return (
     <>
       <div className="flex flex-col justify-end gap-3 lg:flex-row">
@@ -77,7 +108,7 @@ export function DataTableToolbar({
 
       <div className="grid gap-3 lg:grid-cols-6">
         {filtros.map((filtro) => {
-          const value = paramsAtuais.get(filtro.nome) ?? "";
+          const value = obterValorFiltro(filtro);
 
           if (filtro.tipo === "select") {
             return (
@@ -88,6 +119,21 @@ export function DataTableToolbar({
                 value={value}
                 options={filtro.options}
                 onChange={aplicarParametro}
+                className={filtro.className}
+              />
+            );
+          }
+
+          if (filtro.tipo === "competencia") {
+            return (
+              <CompetenciaInput
+                key={filtro.nome}
+                name={filtro.nome}
+                label={filtro.label}
+                value={value}
+                onChange={(event) =>
+                  aplicarParametro(filtro.nome, event.target.value)
+                }
                 className={filtro.className}
               />
             );

@@ -11,9 +11,10 @@ type BancoHorasCardProps = {
     horasAcimaLimiteMinutos: number;
     horasNaoAutorizadasMinutos: number;
   } | null;
+  className?: string;
 };
 
-export function BancoHorasCard({ saldo }: BancoHorasCardProps) {
+export function BancoHorasCard({ saldo, className }: BancoHorasCardProps) {
   const dados = saldo ?? {
     saldoMinutos: 0,
     creditosValidadosMinutos: 0,
@@ -25,7 +26,7 @@ export function BancoHorasCard({ saldo }: BancoHorasCardProps) {
   };
 
   return (
-    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <section className={className ?? "grid gap-4 md:grid-cols-2 xl:grid-cols-4"}>
       <Card
         titulo="Saldo atual"
         valor={minutosParaHoraBanco(dados.saldoMinutos)}

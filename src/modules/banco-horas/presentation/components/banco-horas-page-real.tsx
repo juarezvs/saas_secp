@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { AlertTriangle, CalendarClock, FileDown, RotateCw } from "lucide-react";
+import { AlertTriangle, FileDown, Hourglass, RotateCw } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
-import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { CompetenciaInput } from "@/components/ui";
 import { gerarMovimentosBancoHorasAction } from "../../application/actions/gerar-movimento-banco-horas.action";
 import { recalcularSaldoBancoHorasAction } from "../../application/actions/recalcular-saldo-banco-horas.action";
 import { LIMITE_CREDITO_MENSAL_MINUTOS } from "../../application/services/aplicar-limites-banco-horas.service";
@@ -123,6 +123,10 @@ function referenciaAtual() {
   };
 }
 
+function competenciaParaInput(anoReferencia: number, mesReferencia: number) {
+  return `${anoReferencia}-${String(mesReferencia).padStart(2, "0")}`;
+}
+
 export function BancoHorasPageReal({
   servidores,
   servidorSelecionado,
@@ -144,23 +148,17 @@ export function BancoHorasPageReal({
       <Breadcrumb items={[{ label: "Banco de horas" }]} />
 
       <PageHeader
-        icon={CalendarClock}
+        icon={Hourglass}
         titulo="Banco de horas"
         descricao="Acompanhe saldo individual, creditos, debitos, compensacoes, limites mensais e prazos regulamentares."
-        artigo="Portaria SJAM-DIREF 135/2025"
-        regraTitulo="16h mensais e ate 3 meses"
-        regraDescricao="Creditos e debitos exigem controle, autorizacao e compensacao em ate 3 meses."
-      />
-
-      <RegraPortariaCard
         artigo="Banco de horas"
-        titulo="Limite e compensacao"
-        descricao="O limite ordinario de credito para fruicao futura e de 16h mensais. Horas acima do limite ficam separadas e nao entram no saldo, salvo referendo competente."
+        regraTitulo="Limite e compensacao"
+        regraDescricao="O limite ordinario de credito para fruicao futura e de 16h mensais. Horas acima do limite ficam separadas e nao entram no saldo, salvo referendo competente."
       />
 
       <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
-        <form className="grid gap-4 md:grid-cols-[minmax(0,1fr)_120px_120px_auto] md:items-end">
-          <div className="space-y-2">
+        <form className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-end">
+          <div>
             <label htmlFor="servidorId" className="text-sm font-semibold">
               Servidor
             </label>
@@ -169,7 +167,7 @@ export function BancoHorasPageReal({
               name="servidorId"
               defaultValue={servidorSelecionado?.id ?? ""}
               disabled={!podeConsultarGlobal}
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm disabled:cursor-not-allowed disabled:opacity-70"
+              className="mt-2 h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm disabled:cursor-not-allowed disabled:opacity-70"
             >
               {servidores.map((servidor) => (
                 <option key={servidor.id} value={servidor.id}>
@@ -179,39 +177,13 @@ export function BancoHorasPageReal({
             </select>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="mesReferencia" className="text-sm font-semibold">
-              Mes
-            </label>
-            <input
-              id="mesReferencia"
-              name="mesReferencia"
-              type="number"
-              min={1}
-              max={12}
-              defaultValue={mesReferencia}
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="anoReferencia" className="text-sm font-semibold">
-              Ano
-            </label>
-            <input
-              id="anoReferencia"
-              name="anoReferencia"
-              type="number"
-              min={2024}
-              max={2100}
-              defaultValue={anoReferencia}
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-            />
-          </div>
+          <CompetenciaInput
+            defaultValue={competenciaParaInput(anoReferencia, mesReferencia)}
+          />
 
           <button
             type="submit"
-            className="h-11 rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)]"
+            className="h-10 rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)]"
           >
             Aplicar
           </button>
@@ -271,47 +243,69 @@ export function BancoHorasPageReal({
             </div>
           </section>
 
-          <BancoHorasCard saldo={servidorSelecionado.bancoHorasSaldo} />
+          <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+            <MovimentosBancoHorasTable movimentos={movimentos} />
 
-          <section className="grid gap-4 md:grid-cols-4">
-            <ResumoNormativo
-              titulo="Credito no mes"
-              valor={minutosParaHoraBanco(creditosMes)}
-              descricao={`Limite ordinario: ${minutosParaHoraBanco(
-                LIMITE_CREDITO_MENSAL_MINUTOS,
-              )}`}
-            />
-            <ResumoNormativo
-              titulo="Limite restante"
-              valor={minutosParaHoraBanco(limiteRestante)}
-              descricao="Horas acima do limite ficam nao computaveis."
-            />
-            <ResumoNormativo
-              titulo="Creditos a vencer"
-              valor={minutosParaHoraBanco(creditosAVencer)}
-              descricao="Compensacao em ate 3 meses."
-            />
-            <ResumoNormativo
-              titulo="Debitos a compensar"
-              valor={minutosParaHoraBanco(debitosACompensar)}
-              descricao="Debito nao compensado pode gerar notificacao."
-            />
-          </section>
-
-          {movimentosVencidos > 0 && (
-            <section className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
-              <AlertTriangle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
-              <div>
-                <h2 className="font-bold">Movimentos com prazo vencido</h2>
-                <p className="mt-1">
-                  Existem {minutosParaHoraBanco(movimentosVencidos)} em movimentos com
-                  vencimento anterior a hoje. Revise antes da homologacao mensal.
+            <aside className="space-y-4 xl:sticky xl:top-24">
+              <section className="rounded-xl border bg-[var(--card)] p-5 text-sm leading-6 text-[var(--muted-foreground)] shadow-sm">
+                <h2 className="text-base font-bold text-[var(--foreground)]">
+                  Como acompanhar o saldo
+                </h2>
+                <p className="mt-2">
+                  A tabela mostra a composicao da competencia selecionada. Os
+                  cards abaixo indicam saldo consolidado, pendencias e limites
+                  normativos para conferencia antes da homologacao.
                 </p>
-              </div>
-            </section>
-          )}
+              </section>
 
-          <MovimentosBancoHorasTable movimentos={movimentos} />
+              <BancoHorasCard
+                saldo={servidorSelecionado.bancoHorasSaldo}
+                className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1"
+              />
+
+              <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                <ResumoNormativo
+                  titulo="Credito no mes"
+                  valor={minutosParaHoraBanco(creditosMes)}
+                  descricao={`Limite ordinario: ${minutosParaHoraBanco(
+                    LIMITE_CREDITO_MENSAL_MINUTOS,
+                  )}`}
+                />
+                <ResumoNormativo
+                  titulo="Limite restante"
+                  valor={minutosParaHoraBanco(limiteRestante)}
+                  descricao="Horas acima do limite ficam nao computaveis."
+                />
+                <ResumoNormativo
+                  titulo="Creditos a vencer"
+                  valor={minutosParaHoraBanco(creditosAVencer)}
+                  descricao="Compensacao em ate 3 meses."
+                />
+                <ResumoNormativo
+                  titulo="Debitos a compensar"
+                  valor={minutosParaHoraBanco(debitosACompensar)}
+                  descricao="Debito nao compensado pode gerar notificacao."
+                />
+              </section>
+
+              {movimentosVencidos > 0 && (
+                <section className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+                  <AlertTriangle
+                    className="mt-0.5 size-5 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <div>
+                    <h2 className="font-bold">Movimentos com prazo vencido</h2>
+                    <p className="mt-1">
+                      Existem {minutosParaHoraBanco(movimentosVencidos)} em
+                      movimentos com vencimento anterior a hoje. Revise antes da
+                      homologacao mensal.
+                    </p>
+                  </div>
+                </section>
+              )}
+            </aside>
+          </section>
         </>
       ) : (
         <section className="rounded-xl border bg-[var(--card)] p-10 text-center text-sm text-[var(--muted-foreground)] shadow-sm">

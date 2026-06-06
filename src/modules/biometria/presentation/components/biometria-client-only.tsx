@@ -7,10 +7,15 @@ type ValidacaoFacialCardProps = {
   servidorId: string;
 };
 
-export const CadastroFacialAutoWizardClientOnly = dynamic(
+type CadastroFacialEnrollmentWizardProps = {
+  modo: "cadastro" | "recadastro";
+};
+
+export const CadastroFacialEnrollmentWizardClientOnly =
+  dynamic<CadastroFacialEnrollmentWizardProps>(
   () =>
-    import("./cadastro-facial-auto-wizard").then(
-      (mod) => mod.CadastroFacialAutoWizard,
+    import("./enrollment/cadastro-facial-enrollment-wizard").then(
+      (mod) => mod.CadastroFacialEnrollmentWizard,
     ),
   {
     ssr: false,
@@ -20,7 +25,7 @@ export const CadastroFacialAutoWizardClientOnly = dynamic(
       </section>
     ),
   },
-);
+  );
 
 export const ValidacaoFacialCardClientOnly = dynamic<ValidacaoFacialCardProps>(
   () =>

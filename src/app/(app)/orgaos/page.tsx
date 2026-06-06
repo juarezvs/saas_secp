@@ -1,4 +1,4 @@
-import { Building2 } from "lucide-react";
+import { Landmark } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
@@ -68,7 +68,7 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
       />
 
       <PageHeader
-        icon={Building2}
+        icon={Landmark}
         titulo="Orgaos"
         descricao="Consulte os orgaos institucionais usados como base para unidades, servidores, lotacoes e integracao SARH."
         artigo="Arts. 1, 3 e 20"

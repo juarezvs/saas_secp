@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
+import { CalendarRange } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { PageHeader } from "@/components/layout/page-header";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { buscarRecessoForensePorId } from "@/modules/recesso-forense/infrastructure/repositories/recesso-forense.repository";
 import { HomologacaoRecessoPanel } from "@/modules/recesso-forense/presentation/components/homologacao-recesso-panel";
@@ -35,14 +37,14 @@ export default async function RecessoHomologacaoPage({
         ]}
       />
 
-      <section>
-        <h1 className="text-3xl font-bold tracking-tight">
-          Homologacao do recesso {recesso.ano}
-        </h1>
-        <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-          Acompanhe os fechamentos separados de dezembro e janeiro.
-        </p>
-      </section>
+      <PageHeader
+        icon={CalendarRange}
+        titulo={`Homologacao do recesso ${recesso.ano}`}
+        descricao="Acompanhe os fechamentos separados de dezembro e janeiro."
+        artigo="Fluxo institucional"
+        regraTitulo="Homologacao separada"
+        regraDescricao="A homologacao do recesso deve respeitar os fechamentos de dezembro e janeiro antes do aceite SECAD e encaminhamentos posteriores."
+      />
 
       <HomologacaoRecessoPanel homologacoes={recesso.homologacoes} />
     </div>

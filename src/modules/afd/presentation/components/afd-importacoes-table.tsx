@@ -11,6 +11,7 @@ type ArquivoAfdItem = {
   totalPendentes: number;
   totalErros: number;
   erro: string | null;
+  equipamentoCodigo: string | null;
 };
 
 type ImportacaoAfdItem = {
@@ -92,6 +93,7 @@ export function AfdImportacoesTable({
                   <thead className="border-b bg-[var(--muted)] text-xs uppercase text-[var(--muted-foreground)]">
                     <tr>
                       <th className="px-4 py-3">Arquivo</th>
+                      <th className="px-4 py-3">Equipamento</th>
                       <th className="px-4 py-3">Status</th>
                       <th className="px-4 py-3">Linhas</th>
                       <th className="px-4 py-3">Brutas</th>
@@ -114,6 +116,10 @@ export function AfdImportacoesTable({
                               {arquivo.erro}
                             </div>
                           )}
+                        </td>
+
+                        <td className="px-4 py-3 font-mono text-xs">
+                          {arquivo.equipamentoCodigo ?? "-"}
                         </td>
 
                         <td className="px-4 py-3">

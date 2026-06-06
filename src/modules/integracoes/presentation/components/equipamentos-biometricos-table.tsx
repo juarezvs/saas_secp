@@ -6,6 +6,7 @@ type EquipamentoItem = {
   nome: string;
   fabricante: string | null;
   modelo: string | null;
+  numeroSerie: string | null;
   ip: string | null;
   localizacao: string | null;
   ativo: boolean;
@@ -38,6 +39,7 @@ export function EquipamentosBiometricosTable({
               <th className="px-5 py-3">Nome</th>
               <th className="px-5 py-3">Unidade</th>
               <th className="px-5 py-3">Modelo</th>
+              <th className="px-5 py-3">Serial</th>
               <th className="px-5 py-3">IP</th>
               <th className="px-5 py-3">Eventos</th>
               <th className="px-5 py-3">Heartbeat</th>
@@ -72,6 +74,10 @@ export function EquipamentosBiometricosTable({
                 </td>
 
                 <td className="px-5 py-4 font-mono text-xs">
+                  {equipamento.numeroSerie ?? "-"}
+                </td>
+
+                <td className="px-5 py-4 font-mono text-xs">
                   {equipamento.ip ?? "-"}
                 </td>
 
@@ -103,7 +109,7 @@ export function EquipamentosBiometricosTable({
             {equipamentos.length === 0 && (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={9}
                   className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                 >
                   Nenhum equipamento biométrico cadastrado.

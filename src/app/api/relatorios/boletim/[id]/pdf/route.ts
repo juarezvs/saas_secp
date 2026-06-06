@@ -2,6 +2,7 @@ import React, { type ReactElement } from "react";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 
 import { auth } from "@/auth";
+import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 import { BoletimFrequenciaPdfDocument } from "@/modules/relatorios/presentation/pdf/boletim-frequencia-pdf.document";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
@@ -26,17 +27,13 @@ export async function GET(_request: Request, context: RouteContext) {
     });
   }
 
-  const permissoes = session.user.perfilAtivo?.permissoes ?? [];
-
-  const podeConsultarGlobal = permissoes.includes(
-    "boletim-frequencia:consultar:global",
+  const podeAcessar = usuarioPossuiAlgumaPermissaoNoPerfil(
+    session.user.perfilAtivo?.codigo,
+    session.user.perfilAtivo?.permissoes,
+    ["boletim-frequencia:consultar:global", "boletim-frequencia:gerar:chefia"],
   );
 
-  const podeGerarChefia = permissoes.includes(
-    "boletim-frequencia:gerar:chefia",
-  );
-
-  if (!podeConsultarGlobal && !podeGerarChefia) {
+  if (!podeAcessar) {
     return new Response("Acesso negado.", {
       status: 403,
     });
@@ -50,6 +47,9 @@ export async function GET(_request: Request, context: RouteContext) {
     },
     include: {
       unidade: true,
+      geradoPor: true,
+      encaminhadoPor: true,
+      recebidoPor: true,
     },
   });
 
@@ -116,6 +116,7 @@ export async function GET(_request: Request, context: RouteContext) {
     status: boletim.status,
     processoSei: boletim.processoSei,
     numeroSei: boletim.numeroSei,
+    observacao: boletim.observacao,
     totalServidores: boletim.totalServidores,
     totalHomologados: boletim.totalHomologados,
     totalComRessalva: boletim.totalComRessalva,
@@ -126,6 +127,20 @@ export async function GET(_request: Request, context: RouteContext) {
     totalDebitoMinutos: boletim.totalDebitoMinutos,
     geradoEm: boletim.geradoEm,
     encaminhadoEm: boletim.encaminhadoEm,
+    recebidoEm: boletim.recebidoEm,
+    geradoPor: {
+      nome: boletim.geradoPor.nome,
+    },
+    encaminhadoPor: boletim.encaminhadoPor
+      ? {
+          nome: boletim.encaminhadoPor.nome,
+        }
+      : null,
+    recebidoPor: boletim.recebidoPor
+      ? {
+          nome: boletim.recebidoPor.nome,
+        }
+      : null,
     servidores: servidoresBoletim,
   };
 

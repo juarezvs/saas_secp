@@ -1,5 +1,7 @@
+import { UserCog } from "lucide-react";
+
 import { Breadcrumb } from "@/components/layout/breadcrumb";
-import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { PageHeader } from "@/components/layout/page-header";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { criarUsuarioAction } from "@/modules/usuarios/application/actions/criar-usuario.action";
 import { listarPerfisAtivosParaUsuario } from "@/modules/usuarios/infrastructure/repositories/usuario.repository";
@@ -14,30 +16,19 @@ export default async function NovoUsuarioPage() {
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administração", href: "/administracao" },
-          { label: "Usuários", href: "/usuarios" },
-          { label: "Novo usuário" },
+          { label: "Administracao", href: "/administracao" },
+          { label: "Usuarios", href: "/usuarios" },
+          { label: "Novo usuario" },
         ]}
       />
 
-      <section>
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Administração de acessos
-        </p>
-
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">
-          Novo usuário
-        </h1>
-
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
-          Cadastre uma conta de acesso ao SECP e vincule os perfis necessários.
-        </p>
-      </section>
-
-      <RegraPortariaCard
-        artigo="RBAC dinâmico do SECP"
-        titulo="Usuários e perfis"
-        descricao="O acesso ao sistema é controlado por perfis e permissões, permitindo que cada usuário tenha diferentes escopos de atuação."
+      <PageHeader
+        icon={UserCog}
+        titulo="Novo usuario"
+        descricao="Cadastre uma conta de acesso ao SECP e vincule os perfis necessarios."
+        artigo="RBAC dinamico do SECP"
+        regraTitulo="Usuarios e perfis"
+        regraDescricao="O acesso ao sistema e controlado por perfis e permissoes, permitindo que cada usuario tenha diferentes escopos de atuacao."
       />
 
       <UsuarioForm

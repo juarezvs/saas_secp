@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 export async function receberBoletimFrequenciaAction(formData: FormData) {
@@ -11,9 +12,13 @@ export async function receberBoletimFrequenciaAction(formData: FormData) {
     return;
   }
 
-  const permissoes = session.user.perfilAtivo?.permissoes ?? [];
+  const podeReceber = usuarioPossuiAlgumaPermissaoNoPerfil(
+    session.user.perfilAtivo?.codigo,
+    session.user.perfilAtivo?.permissoes,
+    ["boletim-frequencia:receber:global"],
+  );
 
-  if (!permissoes.includes("boletim-frequencia:receber:global")) {
+  if (!podeReceber) {
     return;
   }
 

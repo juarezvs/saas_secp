@@ -3,6 +3,7 @@ import {
   Activity,
   AlertTriangle,
   ArrowRight,
+  Cable,
   CheckCircle2,
   Clock3,
   DatabaseZap,
@@ -272,7 +273,7 @@ export default async function IntegracoesPage({
           </p>
 
           <PageHeader
-            icon={Network}
+            icon={Cable}
             titulo="Integracoes do SECP"
             descricao="Acompanhe fontes externas, sincronizacoes, disponibilidade, conflitos, erros operacionais e evolucao dos conectores do sistema."
             artigo="Governanca operacional"
@@ -346,12 +347,13 @@ export default async function IntegracoesPage({
         <IntegracaoCard
           titulo="Equipamentos biometricos"
           descricao="Integracao com relogios, totens e dispositivos biometricos para ingestao de marcacoes e eventos operacionais."
-          status="planejado"
+          href="/equipamentos"
+          status="disponivel"
           icon={Fingerprint}
           detalhes={[
-            "Recebimento de marcacoes",
-            "Heartbeat e monitoramento",
-            "Tratamento de falhas de comunicacao",
+            "Cadastro de equipamentos",
+            "Vinculo por codigo ou numero de serie",
+            "Associacao automatica na importacao AFD",
           ]}
         />
 

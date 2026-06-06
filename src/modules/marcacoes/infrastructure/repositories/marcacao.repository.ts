@@ -36,6 +36,7 @@ export async function buscarServidorPorUsuarioId(usuarioId: string) {
           dataInicio: "desc",
         },
       },
+      biometriaFacialServidor: true,
     },
   });
 }

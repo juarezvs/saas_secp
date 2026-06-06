@@ -144,6 +144,7 @@ export function calcularApuracaoDiaria(params: {
 
   const minutosBrutos = diferencaEmMinutos(entrada, saida);
   let minutosIntervalo = 0;
+  let minutosIntervaloParaCalculo = 0;
 
   if (jornada.exigeIntervalo) {
     if (!saidaIntervalo || !retornoIntervalo) {
@@ -171,11 +172,13 @@ export function calcularApuracaoDiaria(params: {
     }
 
     minutosIntervalo = diferencaEmMinutos(saidaIntervalo, retornoIntervalo);
+    minutosIntervaloParaCalculo = minutosIntervalo;
 
     if (
       jornada.intervaloMinimoMinutos &&
       minutosIntervalo < jornada.intervaloMinimoMinutos
     ) {
+      minutosIntervaloParaCalculo = jornada.intervaloMinimoMinutos;
       ocorrencias.push({
         tipo: "INTERVALO_INVALIDO",
         descricao: `Intervalo inferior ao mínimo de ${jornada.intervaloMinimoMinutos} minutos.`,
@@ -195,7 +198,10 @@ export function calcularApuracaoDiaria(params: {
     }
   }
 
-  const minutosTrabalhados = Math.max(0, minutosBrutos - minutosIntervalo);
+  const minutosTrabalhados = Math.max(
+    0,
+    minutosBrutos - minutosIntervaloParaCalculo,
+  );
   const saldo = minutosTrabalhados - jornada.cargaDiariaMinutos;
 
   const minutosCredito = saldo > 0 ? saldo : 0;

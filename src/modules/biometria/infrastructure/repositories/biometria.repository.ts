@@ -64,3 +64,18 @@ export async function listarCadastrosBiometricos() {
     },
   });
 }
+
+export async function buscarSessaoCadastroFacial(params: {
+  sessaoId: string;
+  usuarioId: string;
+}) {
+  return prisma.sessaoCadastroFacial.findFirst({
+    where: {
+      id: params.sessaoId,
+      usuarioId: params.usuarioId,
+    },
+    include: {
+      servidor: true,
+    },
+  });
+}

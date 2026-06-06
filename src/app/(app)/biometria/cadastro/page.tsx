@@ -1,9 +1,9 @@
+import { ScanFace } from "lucide-react";
+
 import { Breadcrumb } from "@/components/layout/breadcrumb";
-import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { PageHeader } from "@/components/layout/page-header";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import {
-  CadastroFacialAutoWizardClientOnly,
-} from "@/modules/biometria/presentation/components/biometria-client-only";
+import { CadastroFacialEnrollmentWizardClientOnly } from "@/modules/biometria/presentation/components/biometria-client-only";
 
 type CadastroBiometriaPageProps = {
   searchParams?: Promise<{
@@ -15,6 +15,8 @@ export default async function CadastroBiometriaPage({
   searchParams,
 }: CadastroBiometriaPageProps) {
   await exigirUmaDasPermissoesOuRedirecionar([
+    "biometriafacial:cadastrar:proprio",
+    "biometriafacial:recadastrar:proprio",
     "biometria:cadastrar:proprio",
     "biometria:gerenciar:global",
   ]);
@@ -31,35 +33,28 @@ export default async function CadastroBiometriaPage({
         ]}
       />
 
-      <section>
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Biometria facial
-        </p>
-
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">
-          {recadastro ? "Recadastro facial" : "Cadastro facial"}
-        </h1>
-
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
-          {recadastro
-            ? "Capture novas amostras faciais para substituir o template biométrico atualmente ativo."
-            : "Capture amostras faciais para criação do template biométrico do servidor autenticado."}
-        </p>
-      </section>
-
-      <RegraPortariaCard
-        artigo="Segurança e rastreabilidade"
-        titulo={
-          recadastro ? "Substituição do template facial" : "Template facial"
-        }
+      <PageHeader
+        icon={ScanFace}
+        titulo={recadastro ? "Recadastro facial" : "Cadastro facial"}
         descricao={
           recadastro
-            ? "O recadastro substituirá o template facial ativo por um novo template numérico, mantendo a rastreabilidade do evento em auditoria."
-            : "O cadastro deve armazenar apenas o template numérico necessário à comparação biométrica, evitando persistência de imagem bruta."
+            ? "Capture novas amostras faciais para substituir o template biometrico atualmente ativo."
+            : "Capture amostras faciais para criacao do template biometrico do servidor autenticado."
+        }
+        artigo="Seguranca e rastreabilidade"
+        regraTitulo={
+          recadastro ? "Substituicao do template facial" : "Template facial"
+        }
+        regraDescricao={
+          recadastro
+            ? "O recadastro substitui o template facial ativo por um novo template numerico, mantendo a rastreabilidade do evento em auditoria."
+            : "O cadastro armazena apenas o template numerico necessario a comparacao biometrica, evitando persistencia de imagem bruta."
         }
       />
 
-      <CadastroFacialAutoWizardClientOnly />
+      <CadastroFacialEnrollmentWizardClientOnly
+        modo={recadastro ? "recadastro" : "cadastro"}
+      />
     </div>
   );
 }

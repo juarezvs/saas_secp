@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BookOpenText, Contrast, Moon, Sun } from "lucide-react";
+import {
+  Accessibility,
+  BookOpenText,
+  Contrast,
+  Moon,
+  Sun,
+} from "lucide-react";
 
 type Tema = "light" | "dark";
 type TamanhoFonte = "normal" | "large" | "xlarge";
@@ -156,6 +162,10 @@ export function AccessibilityToolbar() {
     setFonteDislexia((ativoAtual) => !ativoAtual);
   }
 
+  function abrirVLibras() {
+    window.__secpAbrirVLibras?.();
+  }
+
   return (
     <div
       className="flex items-center gap-2"
@@ -231,6 +241,16 @@ export function AccessibilityToolbar() {
         suppressHydrationWarning
       >
         <Contrast className="size-5" aria-hidden="true" />
+      </button>
+
+      <button
+        type="button"
+        onClick={abrirVLibras}
+        className={obterClasseBotao(false)}
+        aria-label="Abrir tradutor VLibras"
+        title="VLibras"
+      >
+        <Accessibility className="size-5" aria-hidden="true" />
       </button>
     </div>
   );

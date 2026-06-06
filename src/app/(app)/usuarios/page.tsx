@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, UsersRound } from "lucide-react";
+import { Plus, UserCog } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
@@ -84,7 +84,7 @@ export default async function UsuariosPage({ searchParams }: UsuariosPageProps) 
           </p>
 
           <PageHeader
-            icon={UsersRound}
+            icon={UserCog}
             titulo="Usuarios"
             descricao="Gerencie contas, perfis de acesso, status e vinculos funcionais dos usuarios do SECP."
             artigo="Art. 20, inciso I"

@@ -3,7 +3,6 @@ import { CalendarRange, FileCheck2, Plus, Users } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
-import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { formatarPeriodoRecesso } from "../../application/services/recesso-forense.service";
 import { RecessoStatusBadge } from "./recesso-status-badge";
 
@@ -44,9 +43,9 @@ export function RecessoForenseDashboardReal({
         icon={CalendarRange}
         titulo="Recesso forense"
         descricao="Modulo proprio para convocacao, escolha de pecunia ou folga, fechamento, homologacao da chefia e aceite SECAD."
-        artigo="Recesso forense"
-        regraTitulo="Periodo anual 20/12 a 06/01"
-        regraDescricao="Dias nao convocados devem aparecer como Recesso forense e nao podem gerar falta ou debito no ponto ordinario."
+        artigo="Fluxo institucional"
+        regraTitulo="Servidor -> chefia -> SECAD -> SEPAG/SECAP"
+        regraDescricao="O recesso ocorre de 20/12 a 06/01. Dias nao convocados aparecem como Recesso forense e nao geram falta ou debito no ponto ordinario."
         actions={
           podeGerenciar ? (
             <Link
@@ -58,12 +57,6 @@ export function RecessoForenseDashboardReal({
             </Link>
           ) : null
         }
-      />
-
-      <RegraPortariaCard
-        artigo="Fluxo institucional"
-        titulo="Servidor -> chefia -> SECAD -> SEPAG/SECAP"
-        descricao="O servidor fecha dezembro e janeiro separadamente. A chefia homologa. A SECAD aceita a homologacao. SEPAG apura pecunia e SECAP registra folgas."
       />
 
       <section className="grid gap-4 md:grid-cols-3">

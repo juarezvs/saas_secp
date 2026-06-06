@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ClipboardCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
@@ -15,6 +15,7 @@ import { HomologacaoListagemControles } from "@/modules/homologacao/presentation
 type HomologacaoPageProps = {
   searchParams?: Promise<{
     busca?: string;
+    competencia?: string;
     anoReferencia?: string;
     mesReferencia?: string;
     unidade?: string;
@@ -23,6 +24,21 @@ type HomologacaoPageProps = {
     itensPorPagina?: string;
   }>;
 };
+
+function normalizarCompetencia(params: {
+  competencia?: string;
+  anoReferencia?: string;
+  mesReferencia?: string;
+}) {
+  const match = params.competencia?.match(/^(\d{4})-(\d{2})$/);
+  const ano = match?.[1] ?? params.anoReferencia ?? "";
+  const mes = match?.[2] ?? params.mesReferencia ?? "";
+
+  return {
+    anoReferencia: ano,
+    mesReferencia: mes,
+  };
+}
 
 function classeStatusFechamento(status: string) {
   if (["HOMOLOGADO", "HOMOLOGADO_PARCIAL"].includes(status)) {
@@ -51,11 +67,12 @@ export default async function HomologacaoPage({
   const params = searchParams ? await searchParams : {};
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
+  const competencia = normalizarCompetencia(params);
 
   const resultado = await listarFechamentosMensaisPaginado({
     busca: params.busca ?? "",
-    anoReferencia: params.anoReferencia ?? "",
-    mesReferencia: params.mesReferencia ?? "",
+    anoReferencia: competencia.anoReferencia,
+    mesReferencia: competencia.mesReferencia,
     unidade: params.unidade ?? "",
     status: params.status ?? "",
     pagina,
@@ -66,14 +83,21 @@ export default async function HomologacaoPage({
 
   for (const chave of [
     "busca",
-    "anoReferencia",
-    "mesReferencia",
+    "competencia",
     "unidade",
     "status",
   ] as const) {
     if (params[chave]) {
       exportParams.set(chave, params[chave]!);
     }
+  }
+
+  if (competencia.anoReferencia) {
+    exportParams.set("anoReferencia", competencia.anoReferencia);
+  }
+
+  if (competencia.mesReferencia) {
+    exportParams.set("mesReferencia", competencia.mesReferencia);
   }
 
   const baseParams = new URLSearchParams(exportParams);
@@ -95,7 +119,7 @@ export default async function HomologacaoPage({
         </p>
 
         <PageHeader
-          icon={ClipboardCheck}
+          icon={ShieldCheck}
           titulo="Fechamentos mensais"
           descricao="Acompanhe fechamentos de frequencia por unidade, competencia, status e servidores vinculados."
           artigo="Art. 16"

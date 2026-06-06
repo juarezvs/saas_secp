@@ -202,3 +202,17 @@ export async function buscarEquipamentoPorCodigo(codigo: string) {
     },
   });
 }
+
+export async function listarEquipamentosParaIdentificacaoAfd() {
+  return prisma.equipamentoBiometrico.findMany({
+    where: {
+      ativo: true,
+    },
+    select: {
+      id: true,
+      codigo: true,
+      nome: true,
+      numeroSerie: true,
+    },
+  });
+}

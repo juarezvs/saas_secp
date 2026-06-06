@@ -43,7 +43,7 @@ export async function enfileirarProcessamentoArquivoAfd(params: {
       usuarioId: params.usuarioId ?? null,
     },
     {
-      jobId: `afd:${params.arquivoAfdId}`,
+      jobId: `afd-${params.arquivoAfdId}`,
     },
   );
 }

@@ -1,10 +1,19 @@
 import { z } from "zod";
 
+import { BIOMETRIA_FACIAL_THRESHOLDS } from "../services/biometria-facial-config";
+
 export const templateFacialSchema = z.object({
-  servidorId: z.string().uuid("Servidor inválido.").optional(),
+  servidorId: z.string().uuid("Servidor invalido.").optional(),
   template: z
     .array(z.number())
-    .min(32, "Template facial inválido ou incompleto."),
+    .min(
+      BIOMETRIA_FACIAL_THRESHOLDS.minTemplateDimensao,
+      "Template facial invalido ou incompleto.",
+    )
+    .refine(
+      (valores) => valores.every((valor) => Number.isFinite(valor)),
+      "Template facial contem valores invalidos.",
+    ),
   qualidade: z.coerce.number().min(0).max(1).optional(),
   metadados: z
     .object({
@@ -12,6 +21,10 @@ export const templateFacialSchema = z.object({
       versaoAlgoritmo: z.string().optional(),
       amostras: z.number().optional(),
       origem: z.string().optional(),
+      pose: z.string().optional(),
+      yaw: z.number().optional(),
+      pitch: z.number().optional(),
+      roll: z.number().optional(),
     })
     .optional(),
 });

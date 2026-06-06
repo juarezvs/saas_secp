@@ -1,6 +1,7 @@
 import { Clock3 } from "lucide-react";
 import { formatarHoraPtBr } from "../../application/services/data-marcacao.service";
 import { obterRotuloTipoMarcacao } from "../../application/services/classificar-marcacao.service";
+import { OrigemMarcacaoIcon } from "./origem-marcacao-icon";
 
 type MarcacaoDiaItem = {
   id: string;
@@ -34,10 +35,10 @@ export function MarcacoesDiaCard({
                 {obterRotuloTipoMarcacao(marcacao.tipo)}
               </p>
 
-              <p className="mt-1 text-sm text-(--muted-foreground)">
-                {formatarHoraPtBr(marcacao.dataHora)} • Fonte:{" "}
-                {marcacao.fonte}
-              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-(--muted-foreground)">
+                <span>{formatarHoraPtBr(marcacao.dataHora)}</span>
+                <OrigemMarcacaoIcon origem={marcacao.fonte} />
+              </div>
 
               {marcacao.observacao && (
                 <p className="mt-1 text-sm text-(--muted-foreground)">

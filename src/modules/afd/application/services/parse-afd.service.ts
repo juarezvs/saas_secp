@@ -32,6 +32,10 @@ function somenteDigitos(valor: string) {
   return valor.replace(/\D/g, "");
 }
 
+function normalizarIdentificadorEquipamento(valor: string | null | undefined) {
+  return somenteDigitos(valor ?? "");
+}
+
 function normalizarCpfAfd(cpf12: string) {
   const cpf = somenteDigitos(cpf12);
 
@@ -75,6 +79,51 @@ export function obterTipoRegistroAfd(linha: string) {
   }
 
   return original.slice(9, 10);
+}
+
+export function extrairIdentificadoresEquipamentoAfd(conteudo: string) {
+  const candidatos = new Set<string>();
+  const linhas = conteudo.split(/\r\n|\n|\r/);
+
+  for (const linha of linhas) {
+    const original = limparQuebraLinha(linha);
+    const tipoRegistro = obterTipoRegistroAfd(original);
+
+    if (tipoRegistro !== "2") {
+      continue;
+    }
+
+    const digitos = somenteDigitos(original);
+
+    for (const match of digitos.matchAll(/\d{6,}/g)) {
+      candidatos.add(match[0]);
+    }
+  }
+
+  return Array.from(candidatos);
+}
+
+export function conteudoAfdContemIdentificador(
+  conteudo: string,
+  identificador: string | null | undefined,
+) {
+  const valor = identificador?.trim();
+
+  if (!valor) {
+    return false;
+  }
+
+  if (conteudo.toLocaleLowerCase("pt-BR").includes(valor.toLocaleLowerCase("pt-BR"))) {
+    return true;
+  }
+
+  const normalizado = normalizarIdentificadorEquipamento(valor);
+
+  if (!normalizado) {
+    return false;
+  }
+
+  return normalizarIdentificadorEquipamento(conteudo).includes(normalizado);
 }
 
 export function parseTrailerAfd(linha: string): TrailerAfdParseado | null {

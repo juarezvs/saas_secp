@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CalendarRange } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { PageHeader } from "@/components/layout/page-header";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { criarConvocacaoRecessoAction } from "@/modules/recesso-forense/application/actions/recesso-forense.actions";
 import {
@@ -52,25 +53,23 @@ export default async function RecessoConvocacoesPage({
         ]}
       />
 
-      <section className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Convocacoes do recesso {recesso.ano}
-          </h1>
-          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-            Cadastre portarias, servidores convocados por dia e chefia especifica
-            do recesso.
-          </p>
-        </div>
-
-        <Link
-          href={`/recesso-forense/${recesso.id}`}
-          className="inline-flex items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)]"
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Voltar ao recesso
-        </Link>
-      </section>
+      <PageHeader
+        icon={CalendarRange}
+        titulo={`Convocacoes do recesso ${recesso.ano}`}
+        descricao="Cadastre portarias, servidores convocados por dia e chefia especifica do recesso."
+        artigo="Recesso forense"
+        regraTitulo="Convocacao por data"
+        regraDescricao="O servidor pode ser convocado em dias especificos do periodo de 20/12 a 06/01, com escolha entre pecunia e folga quando aplicavel."
+        actions={
+          <Link
+            href={`/recesso-forense/${recesso.id}`}
+            className="inline-flex items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)]"
+          >
+            <ArrowLeft className="size-4" aria-hidden="true" />
+            Voltar ao recesso
+          </Link>
+        }
+      />
 
       <ConvocacaoRecessoForm
         recessoId={recesso.id}
