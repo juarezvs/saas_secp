@@ -12,6 +12,10 @@ export type JornadaVigente = {
   exigeIntervalo: boolean;
   intervaloMinimoMinutos: number | null;
   intervaloMaximoMinutos: number | null;
+  horarioDiferenciadoPermitido: boolean;
+  horarioDiferenciadoAutorizado: boolean;
+  entradaMinimaDiferenciada: string | null;
+  saidaMaximaDiferenciada: string | null;
   dataInicio: Date;
   dataFim: Date | null;
 };
@@ -65,6 +69,14 @@ export async function resolverJornadaVigenteDoServidor(
     exigeIntervalo: jornadaServidor.jornada.exigeIntervalo,
     intervaloMinimoMinutos: jornadaServidor.jornada.intervaloMinimoMinutos,
     intervaloMaximoMinutos: jornadaServidor.jornada.intervaloMaximoMinutos,
+    horarioDiferenciadoPermitido:
+      jornadaServidor.jornada.horarioDiferenciadoPermitido,
+    horarioDiferenciadoAutorizado:
+      jornadaServidor.horarioDiferenciadoAutorizado,
+    entradaMinimaDiferenciada:
+      jornadaServidor.jornada.entradaMinimaDiferenciada,
+    saidaMaximaDiferenciada:
+      jornadaServidor.jornada.saidaMaximaDiferenciada,
     dataInicio: jornadaServidor.dataInicio,
     dataFim: jornadaServidor.dataFim,
   };

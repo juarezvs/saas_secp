@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
+
 import { auth } from "@/auth";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { recalcularPosSolicitacaoAction } from "@/modules/recalculo/application/actions/recalcular-pos-solicitacao.action";
 import { analisarSolicitacaoAction } from "@/modules/solicitacoes/application/actions/analisar-solicitacao.action";
 import {
   classeStatusSolicitacao,
@@ -14,13 +16,37 @@ import { buscarSolicitacaoPorId } from "@/modules/solicitacoes/infrastructure/re
 import { AnalisarSolicitacaoForm } from "@/modules/solicitacoes/presentation/components/analisar-solicitacao-form";
 import { SolicitacaoStepper } from "@/modules/solicitacoes/presentation/components/solicitacao-stepper";
 import { SolicitacaoTimeline } from "@/modules/solicitacoes/presentation/components/solicitacao-timeline";
-import { recalcularPosSolicitacaoAction } from "@/modules/recalculo/application/actions/recalcular-pos-solicitacao.action";
 
 type SolicitacaoDetalhePageProps = {
   params: Promise<{
     id: string;
   }>;
 };
+
+function obterDadosBancoHoras(dados: unknown) {
+  if (!dados || typeof dados !== "object") {
+    return null;
+  }
+
+  const registro = dados as Record<string, unknown>;
+  const minutosSolicitados = Number(registro.minutosSolicitados);
+
+  if (!Number.isFinite(minutosSolicitados) || minutosSolicitados <= 0) {
+    return null;
+  }
+
+  return {
+    minutosSolicitados,
+    tipoCompensacao: String(registro.tipoCompensacao ?? ""),
+  };
+}
+
+function formatarHoras(minutos: number) {
+  const horas = Math.floor(minutos / 60);
+  const restante = minutos % 60;
+
+  return `${horas}h${String(restante).padStart(2, "0")}`;
+}
 
 export default async function SolicitacaoDetalhePage({
   params,
@@ -33,7 +59,6 @@ export default async function SolicitacaoDetalhePage({
   ]);
 
   const session = await auth();
-
   const { id } = await params;
   const solicitacao = await buscarSolicitacaoPorId(id);
 
@@ -46,8 +71,8 @@ export default async function SolicitacaoDetalhePage({
     solicitacaoPodeSerAnalisada(solicitacao.status) &&
     (permissoes.includes("solicitacoes:analisar:chefia") ||
       permissoes.includes("solicitacoes:consultar:global"));
-
   const action = analisarSolicitacaoAction.bind(null, solicitacao.id);
+  const dadosBancoHoras = obterDadosBancoHoras(solicitacao.dadosSolicitados);
 
   return (
     <div className="space-y-6">
@@ -63,11 +88,9 @@ export default async function SolicitacaoDetalhePage({
           <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
             {rotuloTipoSolicitacao(solicitacao.tipo)}
           </p>
-
           <h1 className="mt-2 text-3xl font-bold tracking-tight">
             {solicitacao.titulo}
           </h1>
-
           <p className="mt-2 text-sm text-(--muted-foreground)">
             Servidor: {solicitacao.servidor.usuario.nome} • Matrícula{" "}
             {solicitacao.servidor.matricula}
@@ -85,8 +108,8 @@ export default async function SolicitacaoDetalhePage({
 
       <RegraPortariaCard
         artigo="Arts. 9º, 10, 14, 16 e 18"
-        titulo="Análise pela chefia"
-        descricao="A chefia avalia a justificativa, autoriza ou indefere a solicitação e o resultado passa a compor a trilha de auditoria e a futura homologação mensal."
+        titulo="Autorização e análise pela chefia"
+        descricao="Créditos e compensações dependem de autorização prévia. A decisão registra período, quantidade, responsável e justificativa na trilha de auditoria."
       />
 
       <SolicitacaoStepper status={solicitacao.status} />
@@ -114,6 +137,40 @@ export default async function SolicitacaoDetalhePage({
               "Não identificada"
             }
           />
+          {solicitacao.dataInicio && (
+            <Info
+              label="Início do período"
+              value={new Intl.DateTimeFormat("pt-BR", {
+                dateStyle: "short",
+                timeStyle: "short",
+              }).format(solicitacao.dataInicio)}
+            />
+          )}
+          {solicitacao.dataFim && (
+            <Info
+              label="Fim do período"
+              value={new Intl.DateTimeFormat("pt-BR", {
+                dateStyle: "short",
+                timeStyle: "short",
+              }).format(solicitacao.dataFim)}
+            />
+          )}
+          {dadosBancoHoras && (
+            <Info
+              label="Quantidade solicitada"
+              value={formatarHoras(dadosBancoHoras.minutosSolicitados)}
+            />
+          )}
+          {dadosBancoHoras?.tipoCompensacao && (
+            <Info
+              label="Modalidade"
+              value={
+                dadosBancoHoras.tipoCompensacao === "COMPENSAR_DEBITO"
+                  ? "Trabalhar horas para compensar débito"
+                  : "Utilizar crédito para compensar débito"
+              }
+            />
+          )}
         </div>
 
         <div className="mt-5 rounded-lg border bg-(--muted) p-4">
@@ -131,30 +188,48 @@ export default async function SolicitacaoDetalhePage({
             </p>
           </div>
         )}
+
+        {solicitacao.autorizacaoBancoHoras && (
+          <div className="mt-5 rounded-lg border border-green-200 bg-green-50 p-4 text-green-900 dark:border-green-900 dark:bg-green-950 dark:text-green-100">
+            <p className="text-sm font-bold">Autorização prévia registrada</p>
+            <p className="mt-2 text-sm leading-6">
+              {formatarHoras(
+                solicitacao.autorizacaoBancoHoras.minutosAutorizados,
+              )} autorizadas por{" "}
+              {solicitacao.autorizacaoBancoHoras.autorizadoPor.nome} em{" "}
+              {new Intl.DateTimeFormat("pt-BR", {
+                dateStyle: "short",
+                timeStyle: "short",
+              }).format(solicitacao.autorizacaoBancoHoras.autorizadoEm)}
+              . Status: {solicitacao.autorizacaoBancoHoras.status}.
+            </p>
+          </div>
+        )}
       </section>
 
       {podeAnalisar && <AnalisarSolicitacaoForm action={action} />}
-      {solicitacao.status === "DEFERIDA" && (
-        <section className="rounded-xl border bg-(--card) p-5 text-(--card-foreground) shadow-sm">
-          <h2 className="text-lg font-bold">Recálculo</h2>
 
-          <p className="mt-1 text-sm leading-6 text-(--muted-foreground)">
-            Use esta ação para recalcular novamente a apuração e o banco de
-            horas impactados por esta solicitação.
-          </p>
-
-          <form action={recalcularPosSolicitacaoAction} className="mt-4">
-            <input type="hidden" name="solicitacaoId" value={solicitacao.id} />
-
-            <button
-              type="submit"
-              className="rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-(--muted)"
-            >
-              Recalcular efeitos da solicitação
-            </button>
-          </form>
-        </section>
-      )}
+      {solicitacao.status === "DEFERIDA" &&
+        ["AJUSTE_PONTO", "HORA_CREDITO_PREVIA", "COMPENSACAO"].includes(
+          solicitacao.tipo,
+        ) && (
+          <section className="rounded-xl border bg-(--card) p-5 text-(--card-foreground) shadow-sm">
+            <h2 className="text-lg font-bold">Recalcular efeitos</h2>
+            <p className="mt-1 text-sm leading-6 text-(--muted-foreground)">
+              Reprocesse a apuração e o banco de horas cobertos por esta
+              solicitação deferida.
+            </p>
+            <form action={recalcularPosSolicitacaoAction} className="mt-4">
+              <input type="hidden" name="solicitacaoId" value={solicitacao.id} />
+              <button
+                type="submit"
+                className="rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-(--muted)"
+              >
+                Recalcular efeitos da solicitação
+              </button>
+            </form>
+          </section>
+        )}
 
       <SolicitacaoTimeline eventos={solicitacao.eventos} />
     </div>

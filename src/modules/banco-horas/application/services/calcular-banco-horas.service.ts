@@ -28,6 +28,16 @@ export function calcularSaldoBancoHoras(
   };
 
   for (const movimento of movimentos) {
+    if (movimento.tipo === "HORAS_ACIMA_LIMITE") {
+      resultado.horasAcimaLimiteMinutos += movimento.minutos;
+      continue;
+    }
+
+    if (movimento.tipo === "HORAS_NAO_AUTORIZADAS") {
+      resultado.horasNaoAutorizadasMinutos += movimento.minutos;
+      continue;
+    }
+
     if (["DESCONSIDERADO", "ESTORNADO", "EXPIRADO"].includes(movimento.status)) {
       continue;
     }
@@ -64,13 +74,6 @@ export function calcularSaldoBancoHoras(
       resultado.saldoMinutos += movimento.minutos;
     }
 
-    if (movimento.tipo === "HORAS_ACIMA_LIMITE") {
-      resultado.horasAcimaLimiteMinutos += movimento.minutos;
-    }
-
-    if (movimento.tipo === "HORAS_NAO_AUTORIZADAS") {
-      resultado.horasNaoAutorizadasMinutos += movimento.minutos;
-    }
   }
 
   return resultado;

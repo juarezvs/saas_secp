@@ -18,6 +18,11 @@ export const tiposMarcacaoAjuste = [
   "SAIDA",
 ] as const;
 
+export const tiposCompensacaoBancoHoras = [
+  "UTILIZAR_CREDITO",
+  "COMPENSAR_DEBITO",
+] as const;
+
 export const criarSolicitacaoSchema = z
   .object({
     tipo: z.enum(tiposSolicitacao, {
@@ -39,6 +44,15 @@ export const criarSolicitacaoSchema = z
 
     tipoMarcacao: z.string().optional().or(z.literal("")),
     horaAjuste: z.string().optional().or(z.literal("")),
+    tipoCompensacao: z
+      .enum(tiposCompensacaoBancoHoras)
+      .optional()
+      .or(z.literal("")),
+    horasSolicitadas: z.coerce
+      .number()
+      .positive("Informe uma quantidade de horas maior que zero.")
+      .max(16, "A autorização não pode exceder 16 horas.")
+      .optional(),
   })
   .superRefine((data, ctx) => {
     if (data.tipo === "AJUSTE_PONTO") {
@@ -67,11 +81,13 @@ export const criarSolicitacaoSchema = z
       }
     }
 
-    if (
-      ["COMPENSACAO", "ATIVIDADE_EXTERNA", "VIAGEM_SERVICO", "CAPACITACAO"].includes(
-        data.tipo
-      )
-    ) {
+    if ([
+      "COMPENSACAO",
+      "HORA_CREDITO_PREVIA",
+      "ATIVIDADE_EXTERNA",
+      "VIAGEM_SERVICO",
+      "CAPACITACAO",
+    ].includes(data.tipo)) {
       if (!data.dataInicio) {
         ctx.addIssue({
           code: "custom",
@@ -87,6 +103,36 @@ export const criarSolicitacaoSchema = z
           message: "Informe a data/hora final.",
         });
       }
+
+      if (
+        data.dataInicio &&
+        data.dataFim &&
+        new Date(data.dataFim) <= new Date(data.dataInicio)
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["dataFim"],
+          message: "A data/hora final deve ser posterior à inicial.",
+        });
+      }
+    }
+
+    if (["COMPENSACAO", "HORA_CREDITO_PREVIA"].includes(data.tipo)) {
+      if (!data.horasSolicitadas) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["horasSolicitadas"],
+          message: "Informe a quantidade de horas que depende de autorização.",
+        });
+      }
+    }
+
+    if (data.tipo === "COMPENSACAO" && !data.tipoCompensacao) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["tipoCompensacao"],
+        message: "Informe a modalidade da compensação.",
+      });
     }
   });
 

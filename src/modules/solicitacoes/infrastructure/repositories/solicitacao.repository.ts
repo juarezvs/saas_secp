@@ -139,6 +139,11 @@ export async function buscarSolicitacaoPorId(id: string) {
         },
       },
       analisadaPor: true,
+      autorizacaoBancoHoras: {
+        include: {
+          autorizadoPor: true,
+        },
+      },
       eventos: {
         include: {
           usuario: true,

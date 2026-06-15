@@ -39,6 +39,7 @@ export async function recalcularPosSolicitacaoService({
       tipo: true,
       dataReferencia: true,
       dataInicio: true,
+      dataFim: true,
       criadoEm: true,
     },
   });
@@ -58,23 +59,49 @@ export async function recalcularPosSolicitacaoService({
   }
 
   const dataImpactada = obterDataImpactada(solicitacao);
-  const anoReferencia = dataImpactada.getFullYear();
-  const mesReferencia = dataImpactada.getMonth() + 1;
+  const resultadoDia =
+    solicitacao.tipo === "AJUSTE_PONTO"
+      ? await recalcularDiaServidorService({
+          servidorId: solicitacao.servidorId,
+          dataReferencia: dataImpactada,
+          usuarioIdAuditoria,
+          origem: "RECALCULO_POS_SOLICITACAO",
+        })
+      : null;
 
-  const resultadoDia = await recalcularDiaServidorService({
-    servidorId: solicitacao.servidorId,
-    dataReferencia: dataImpactada,
-    usuarioIdAuditoria,
-    origem: "RECALCULO_POS_SOLICITACAO",
-  });
+  const inicioPeriodo = solicitacao.dataInicio ?? dataImpactada;
+  const fimPeriodo = solicitacao.dataFim ?? inicioPeriodo;
+  const meses = new Map<string, { anoReferencia: number; mesReferencia: number }>();
+  const cursor = new Date(inicioPeriodo.getFullYear(), inicioPeriodo.getMonth(), 1);
+  const limite = new Date(fimPeriodo.getFullYear(), fimPeriodo.getMonth(), 1);
 
-  const resultadoBanco = await regerarBancoHorasMesService({
-    servidorId: solicitacao.servidorId,
-    anoReferencia,
-    mesReferencia,
-    usuarioIdAuditoria,
-    origem: "RECALCULO_POS_SOLICITACAO",
-  });
+  while (cursor <= limite) {
+    const anoReferencia = cursor.getFullYear();
+    const mesReferencia = cursor.getMonth() + 1;
+    meses.set(`${anoReferencia}-${mesReferencia}`, {
+      anoReferencia,
+      mesReferencia,
+    });
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  const resultadosBanco: Array<{
+    anoReferencia: number;
+    mesReferencia: number;
+    resultado: Awaited<ReturnType<typeof regerarBancoHorasMesService>>;
+  }> = [];
+
+  for (const competencia of meses.values()) {
+    resultadosBanco.push({
+      ...competencia,
+      resultado: await regerarBancoHorasMesService({
+        servidorId: solicitacao.servidorId,
+        ...competencia,
+        usuarioIdAuditoria,
+        origem: "RECALCULO_POS_SOLICITACAO",
+      }),
+    });
+  }
 
   await prisma.$transaction(async (tx) => {
     await tx.solicitacaoEvento.create({
@@ -86,15 +113,17 @@ export async function recalcularPosSolicitacaoService({
           "Apuração diária e banco de horas recalculados após deferimento da solicitação.",
         metadados: {
           dataImpactada,
-          resultadoDia: {
-            apuracaoId: resultadoDia.apuracao.id,
-            resultado: resultadoDia.apuracao.resultado,
-            status: resultadoDia.apuracao.status,
-            minutosTrabalhados: resultadoDia.apuracao.minutosTrabalhados,
-            minutosCredito: resultadoDia.apuracao.minutosCredito,
-            minutosDebito: resultadoDia.apuracao.minutosDebito,
-          },
-          resultadoBanco,
+          resultadoDia: resultadoDia
+            ? {
+                apuracaoId: resultadoDia.apuracao.id,
+                resultado: resultadoDia.apuracao.resultado,
+                status: resultadoDia.apuracao.status,
+                minutosTrabalhados: resultadoDia.apuracao.minutosTrabalhados,
+                minutosCredito: resultadoDia.apuracao.minutosCredito,
+                minutosDebito: resultadoDia.apuracao.minutosDebito,
+              }
+            : null,
+          resultadosBanco,
         },
       },
     });
@@ -110,7 +139,7 @@ export async function recalcularPosSolicitacaoService({
           servidorId: solicitacao.servidorId,
           tipo: solicitacao.tipo,
           dataImpactada,
-          resultadoBanco,
+          resultadosBanco,
         },
       },
     });
@@ -121,6 +150,6 @@ export async function recalcularPosSolicitacaoService({
     mensagem: "Recálculo pós-solicitação executado com sucesso.",
     dataImpactada,
     resultadoDia,
-    resultadoBanco,
+    resultadosBanco,
   };
 }

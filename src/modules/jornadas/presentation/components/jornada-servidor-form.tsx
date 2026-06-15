@@ -155,6 +155,31 @@ export function JornadaServidorForm({
           />
         </div>
 
+        <label className="flex items-start gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm md:col-span-2">
+          <input
+            type="checkbox"
+            name="horarioDiferenciadoAutorizado"
+            defaultChecked={
+              estado.campos?.horarioDiferenciadoAutorizado ?? false
+            }
+            className="mt-0.5 size-4 rounded border-slate-300 accent-blue-900"
+          />
+          <span>
+            <span className="block font-semibold">
+              Autorizar horário diferenciado
+            </span>
+            <span className="mt-1 block text-xs leading-5 text-[var(--muted-foreground)]">
+              Permite computar frequência entre 06:00 e 19:00, somente quando
+              a jornada selecionada admitir essa exceção.
+            </span>
+            {erro(estado, "horarioDiferenciadoAutorizado") && (
+              <span className="mt-1 block text-sm text-red-600">
+                {erro(estado, "horarioDiferenciadoAutorizado")}
+              </span>
+            )}
+          </span>
+        </label>
+
         <div className="space-y-2 md:col-span-2">
           <label htmlFor="justificativa" className="text-sm font-semibold">
             Justificativa
@@ -165,8 +190,13 @@ export function JornadaServidorForm({
             defaultValue={estado.campos?.justificativa ?? ""}
             rows={3}
             className="w-full rounded-md border bg-[var(--card)] px-3 py-2 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
-            placeholder="Informe a base administrativa ou justificativa da atribuição."
+            placeholder="Informe a base administrativa. É obrigatória para autorizar horário diferenciado."
           />
+          {erro(estado, "justificativa") && (
+            <p className="text-sm text-red-600">
+              {erro(estado, "justificativa")}
+            </p>
+          )}
         </div>
       </div>
 

@@ -15,6 +15,9 @@ function extrairDados(formData: FormData) {
     escalaId: String(formData.get("escalaId") ?? ""),
     dataInicio: String(formData.get("dataInicio") ?? ""),
     dataFim: String(formData.get("dataFim") ?? ""),
+    horarioDiferenciadoAutorizado:
+      formData.get("horarioDiferenciadoAutorizado") === "on" ||
+      formData.get("horarioDiferenciadoAutorizado") === "true",
     justificativa: String(formData.get("justificativa") ?? "").trim(),
   };
 }
@@ -55,6 +58,34 @@ export async function atribuirJornadaServidorAction(
     };
   }
 
+  const jornada = await prisma.jornada.findUnique({
+    where: { id: parsed.data.jornadaId },
+    select: { horarioDiferenciadoPermitido: true },
+  });
+
+  if (!jornada) {
+    return {
+      sucesso: false,
+      mensagem: "Jornada não encontrada.",
+    };
+  }
+
+  if (
+    parsed.data.horarioDiferenciadoAutorizado &&
+    !jornada.horarioDiferenciadoPermitido
+  ) {
+    return {
+      sucesso: false,
+      mensagem: "A jornada selecionada não admite horário diferenciado.",
+      erros: {
+        horarioDiferenciadoAutorizado: [
+          "Selecione uma jornada que permita horário diferenciado.",
+        ],
+      },
+      campos: dados,
+    };
+  }
+
   await prisma.$transaction(async (tx) => {
     if (!dataFim) {
       await tx.jornadaServidor.updateMany({
@@ -79,6 +110,14 @@ export async function atribuirJornadaServidorAction(
         dataFim,
         ativo: !dataFim,
         justificativa: parsed.data.justificativa || null,
+        horarioDiferenciadoAutorizado:
+          parsed.data.horarioDiferenciadoAutorizado,
+        autorizadoPorUsuarioId: parsed.data.horarioDiferenciadoAutorizado
+          ? permissao.usuarioId
+          : null,
+        autorizadoEm: parsed.data.horarioDiferenciadoAutorizado
+          ? new Date()
+          : null,
       },
     });
 
@@ -96,6 +135,10 @@ export async function atribuirJornadaServidorAction(
           dataInicio: vinculo.dataInicio,
           dataFim: vinculo.dataFim,
           justificativa: vinculo.justificativa,
+          horarioDiferenciadoAutorizado:
+            vinculo.horarioDiferenciadoAutorizado,
+          autorizadoPorUsuarioId: vinculo.autorizadoPorUsuarioId,
+          autorizadoEm: vinculo.autorizadoEm,
         },
       },
     });

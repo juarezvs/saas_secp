@@ -82,6 +82,14 @@ export async function recalcularDiaServidorService(
             jornadaServidor.jornada.intervaloMinimoMinutos,
           intervaloMaximoMinutos:
             jornadaServidor.jornada.intervaloMaximoMinutos,
+          horarioDiferenciadoPermitido:
+            jornadaServidor.jornada.horarioDiferenciadoPermitido,
+          horarioDiferenciadoAutorizado:
+            jornadaServidor.horarioDiferenciadoAutorizado,
+          entradaMinimaDiferenciada:
+            jornadaServidor.jornada.entradaMinimaDiferenciada,
+          saidaMaximaDiferenciada:
+            jornadaServidor.jornada.saidaMaximaDiferenciada,
         }
       : null,
   });
@@ -111,6 +119,8 @@ export async function recalcularDiaServidorService(
         metadados: {
           origem,
           quantidadeMarcacoes: marcacoes.length,
+          janelaExpediente: calculo.janelaExpediente,
+          minutosForaExpediente: calculo.minutosForaExpediente,
         },
       },
       create: {
@@ -132,6 +142,8 @@ export async function recalcularDiaServidorService(
         metadados: {
           origem,
           quantidadeMarcacoes: marcacoes.length,
+          janelaExpediente: calculo.janelaExpediente,
+          minutosForaExpediente: calculo.minutosForaExpediente,
         },
       },
     });
@@ -169,6 +181,8 @@ export async function recalcularDiaServidorService(
             minutosTrabalhados: calculo.minutosTrabalhados,
             minutosCredito: calculo.minutosCredito,
             minutosDebito: calculo.minutosDebito,
+            janelaExpediente: calculo.janelaExpediente,
+            minutosForaExpediente: calculo.minutosForaExpediente,
             origem,
           },
         },

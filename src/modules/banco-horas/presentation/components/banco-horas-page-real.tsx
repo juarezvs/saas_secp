@@ -45,10 +45,31 @@ type MovimentoBancoHoras = {
   expiraEm: Date | null;
 };
 
+type AutorizacaoBancoHoras = {
+  id: string;
+  tipo: string;
+  status: string;
+  dataInicio: Date;
+  dataFim: Date;
+  minutosAutorizados: number;
+  autorizadoEm: Date;
+  autorizadoPor: {
+    nome: string;
+  };
+  solicitacao: {
+    id: string;
+    titulo: string;
+  };
+  movimentos: Array<{
+    minutos: number;
+  }>;
+};
+
 type BancoHorasPageRealProps = {
   servidores: ServidorBancoHoras[];
   servidorSelecionado: ServidorBancoHoras | null;
   movimentos: MovimentoBancoHoras[];
+  autorizacoes: AutorizacaoBancoHoras[];
   anoReferencia: number;
   mesReferencia: number;
   podeConsultarGlobal: boolean;
@@ -131,6 +152,7 @@ export function BancoHorasPageReal({
   servidores,
   servidorSelecionado,
   movimentos,
+  autorizacoes,
   anoReferencia,
   mesReferencia,
   podeConsultarGlobal,
@@ -153,7 +175,7 @@ export function BancoHorasPageReal({
         descricao="Acompanhe saldo individual, creditos, debitos, compensacoes, limites mensais e prazos regulamentares."
         artigo="Banco de horas"
         regraTitulo="Limite e compensacao"
-        regraDescricao="O limite ordinario de credito para fruicao futura e de 16h mensais. Horas acima do limite ficam separadas e nao entram no saldo, salvo referendo competente."
+        regraDescricao="Créditos e compensações dependem de autorização prévia da chefia. O limite ordinário de crédito para fruição futura é de 16h mensais."
       />
 
       <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
@@ -244,7 +266,10 @@ export function BancoHorasPageReal({
           </section>
 
           <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
-            <MovimentosBancoHorasTable movimentos={movimentos} />
+            <div className="space-y-5">
+              <MovimentosBancoHorasTable movimentos={movimentos} />
+              <AutorizacoesBancoHorasTable autorizacoes={autorizacoes} />
+            </div>
 
             <aside className="space-y-4 xl:sticky xl:top-24">
               <section className="rounded-xl border bg-[var(--card)] p-5 text-sm leading-6 text-[var(--muted-foreground)] shadow-sm">
@@ -313,6 +338,98 @@ export function BancoHorasPageReal({
         </section>
       )}
     </div>
+  );
+}
+
+function AutorizacoesBancoHorasTable({
+  autorizacoes,
+}: {
+  autorizacoes: AutorizacaoBancoHoras[];
+}) {
+  const rotulos: Record<string, string> = {
+    CREDITO: "Geração de crédito",
+    COMPENSACAO_CREDITO: "Utilização de crédito",
+    COMPENSACAO_DEBITO: "Compensação de débito",
+  };
+
+  return (
+    <section className="rounded-xl border bg-[var(--card)] shadow-sm">
+      <div className="border-b p-5">
+        <h2 className="text-lg font-bold">Autorizações prévias da chefia</h2>
+        <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
+          Somente horas cobertas por autorização válida no período podem gerar
+          crédito ou compensação no banco de horas.
+        </p>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[820px] text-left text-sm">
+          <thead className="border-b bg-[var(--muted)] text-xs uppercase text-[var(--muted-foreground)]">
+            <tr>
+              <th className="px-5 py-3">Modalidade</th>
+              <th className="px-5 py-3">Período</th>
+              <th className="px-5 py-3">Autorizado</th>
+              <th className="px-5 py-3">Utilizado</th>
+              <th className="px-5 py-3">Chefia</th>
+              <th className="px-5 py-3">Status</th>
+              <th className="px-5 py-3">Solicitação</th>
+            </tr>
+          </thead>
+          <tbody>
+            {autorizacoes.map((autorizacao) => {
+              const utilizados = autorizacao.movimentos.reduce(
+                (total, movimento) => total + movimento.minutos,
+                0,
+              );
+
+              return (
+                <tr key={autorizacao.id} className="border-b last:border-0">
+                  <td className="px-5 py-4 font-semibold">
+                    {rotulos[autorizacao.tipo] ?? autorizacao.tipo}
+                  </td>
+                  <td className="px-5 py-4">
+                    {new Intl.DateTimeFormat("pt-BR").format(autorizacao.dataInicio)}
+                    {" a "}
+                    {new Intl.DateTimeFormat("pt-BR").format(autorizacao.dataFim)}
+                  </td>
+                  <td className="px-5 py-4 font-mono">
+                    {minutosParaHoraBanco(autorizacao.minutosAutorizados)}
+                  </td>
+                  <td className="px-5 py-4 font-mono">
+                    {minutosParaHoraBanco(utilizados)}
+                  </td>
+                  <td className="px-5 py-4">{autorizacao.autorizadoPor.nome}</td>
+                  <td className="px-5 py-4">
+                    <span className="rounded-full bg-green-50 px-2 py-1 text-xs font-semibold text-green-700 dark:bg-green-950 dark:text-green-300">
+                      {autorizacao.status}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4">
+                    <Link
+                      href={`/solicitacoes/${autorizacao.solicitacao.id}`}
+                      className="font-semibold text-blue-800 underline-offset-4 hover:underline dark:text-blue-300"
+                    >
+                      Ver solicitação
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
+
+            {autorizacoes.length === 0 && (
+              <tr>
+                <td
+                  colSpan={7}
+                  className="px-5 py-10 text-center text-[var(--muted-foreground)]"
+                >
+                  Nenhuma autorização prévia cobre a competência selecionada.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 

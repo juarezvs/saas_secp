@@ -1,4 +1,9 @@
 import { diferencaEmMinutos } from "./calcular-tempo.service";
+import {
+  calcularMinutosNoExpediente,
+  resolverJanelaExpediente,
+  type JanelaExpediente,
+} from "./expediente.service";
 
 type MarcacaoCalculo = {
   id: string;
@@ -12,6 +17,10 @@ type JornadaCalculo = {
   exigeIntervalo: boolean;
   intervaloMinimoMinutos: number | null;
   intervaloMaximoMinutos: number | null;
+  horarioDiferenciadoPermitido: boolean;
+  horarioDiferenciadoAutorizado: boolean;
+  entradaMinimaDiferenciada: string | null;
+  saidaMaximaDiferenciada: string | null;
 };
 
 export type OcorrenciaCalculada = {
@@ -21,7 +30,8 @@ export type OcorrenciaCalculada = {
     | "CREDITO"
     | "DEBITO"
     | "FALTA"
-    | "SEM_JORNADA";
+    | "SEM_JORNADA"
+    | "HORA_NAO_AUTORIZADA";
   descricao: string;
   minutos: number;
 };
@@ -44,6 +54,8 @@ export type ResultadoCalculoApuracaoDiaria = {
   saidaIntervalo: Date | null;
   retornoIntervalo: Date | null;
   ultimaSaida: Date | null;
+  janelaExpediente: JanelaExpediente | null;
+  minutosForaExpediente: number;
   ocorrencias: OcorrenciaCalculada[];
 };
 
@@ -70,6 +82,8 @@ export function calcularApuracaoDiaria(params: {
       saidaIntervalo: null,
       retornoIntervalo: null,
       ultimaSaida: null,
+      janelaExpediente: null,
+      minutosForaExpediente: 0,
       ocorrencias: [
         {
           tipo: "SEM_JORNADA",
@@ -94,6 +108,7 @@ export function calcularApuracaoDiaria(params: {
   const saida = encontrarMarcacao(ordenadas, "SAIDA");
 
   const ocorrencias: OcorrenciaCalculada[] = [];
+  const janelaExpediente = resolverJanelaExpediente(jornada);
 
   if (ordenadas.length === 0) {
     return {
@@ -108,6 +123,8 @@ export function calcularApuracaoDiaria(params: {
       saidaIntervalo: null,
       retornoIntervalo: null,
       ultimaSaida: null,
+      janelaExpediente,
+      minutosForaExpediente: 0,
       ocorrencias: [
         {
           tipo: "FALTA",
@@ -138,6 +155,8 @@ export function calcularApuracaoDiaria(params: {
       saidaIntervalo,
       retornoIntervalo,
       ultimaSaida: saida,
+      janelaExpediente,
+      minutosForaExpediente: 0,
       ocorrencias,
     };
   }
@@ -167,6 +186,8 @@ export function calcularApuracaoDiaria(params: {
         saidaIntervalo,
         retornoIntervalo,
         ultimaSaida: saida,
+        janelaExpediente,
+        minutosForaExpediente: 0,
         ocorrencias,
       };
     }
@@ -198,10 +219,49 @@ export function calcularApuracaoDiaria(params: {
     }
   }
 
+  const minutosBrutosTrabalhados = Math.max(
+    0,
+    minutosBrutos - minutosIntervalo,
+  );
+  const minutosBrutosNoExpediente = calcularMinutosNoExpediente({
+    inicio: entrada,
+    fim: saida,
+    janela: janelaExpediente,
+  });
+  const minutosIntervaloNoExpediente =
+    saidaIntervalo && retornoIntervalo
+      ? calcularMinutosNoExpediente({
+          inicio: saidaIntervalo,
+          fim: retornoIntervalo,
+          janela: janelaExpediente,
+        })
+      : 0;
+  const minutosTrabalhadosNoExpediente = Math.max(
+    0,
+    minutosBrutosNoExpediente - minutosIntervaloNoExpediente,
+  );
+  const ajusteIntervaloMinimo = Math.max(
+    0,
+    minutosIntervaloParaCalculo - minutosIntervalo,
+  );
   const minutosTrabalhados = Math.max(
     0,
-    minutosBrutos - minutosIntervaloParaCalculo,
+    minutosTrabalhadosNoExpediente - ajusteIntervaloMinimo,
   );
+  const minutosForaExpediente = Math.max(
+    0,
+    minutosBrutosTrabalhados - minutosTrabalhadosNoExpediente,
+  );
+
+  if (minutosForaExpediente > 0) {
+    ocorrencias.push({
+      tipo: "HORA_NAO_AUTORIZADA",
+      descricao: janelaExpediente.diferenciada
+        ? `Há ${minutosForaExpediente} minuto(s) fora da janela diferenciada autorizada de ${janelaExpediente.inicio} a ${janelaExpediente.fim}.`
+        : `Há ${minutosForaExpediente} minuto(s) fora do expediente padrão de ${janelaExpediente.inicio} a ${janelaExpediente.fim}, sem autorização de horário diferenciado.`,
+      minutos: minutosForaExpediente,
+    });
+  }
   const saldo = minutosTrabalhados - jornada.cargaDiariaMinutos;
 
   const minutosCredito = saldo > 0 ? saldo : 0;
@@ -228,7 +288,11 @@ export function calcularApuracaoDiaria(params: {
   }
 
   const status = ocorrencias.some((o) =>
-    ["MARCACAO_INCOMPLETA", "INTERVALO_INVALIDO"].includes(o.tipo),
+    [
+      "MARCACAO_INCOMPLETA",
+      "INTERVALO_INVALIDO",
+      "HORA_NAO_AUTORIZADA",
+    ].includes(o.tipo),
   )
     ? "INCONSISTENTE"
     : "CALCULADA";
@@ -245,6 +309,8 @@ export function calcularApuracaoDiaria(params: {
     saidaIntervalo,
     retornoIntervalo,
     ultimaSaida: saida,
+    janelaExpediente,
+    minutosForaExpediente,
     ocorrencias,
   };
 }

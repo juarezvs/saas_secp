@@ -162,6 +162,19 @@ enum StatusMovimentoBancoHoras {
   ESTORNADO
 }
 
+enum TipoAutorizacaoBancoHoras {
+  CREDITO
+  COMPENSACAO_CREDITO
+  COMPENSACAO_DEBITO
+}
+
+enum StatusAutorizacaoBancoHoras {
+  AUTORIZADA
+  UTILIZADA
+  CANCELADA
+  EXPIRADA
+}
+
 enum TipoSolicitacao {
   AJUSTE_PONTO
   COMPENSACAO
@@ -447,29 +460,31 @@ model Usuario {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  perfis                          UsuarioPerfil[]
-  servidor                        Servidor?
-  auditorias                      AuditoriaEvento[]
-  marcacoesCriadas                Marcacao[]                @relation("MarcacoesCriadasPorUsuario")
-  movimentosBancoHorasAutorizados MovimentoBancoHoras[]     @relation("MovimentosBancoHorasAutorizadosPor")
-  solicitacoesCriadas             Solicitacao[]             @relation("SolicitacoesCriadasPorUsuario")
-  solicitacoesAnalisadas          Solicitacao[]             @relation("SolicitacoesAnalisadasPorUsuario")
-  solicitacaoEventos              SolicitacaoEvento[]       @relation("SolicitacaoEventosPorUsuario")
-  fechamentosAbertos              FechamentoMensalUnidade[] @relation("FechamentosAbertosPorUsuario")
-  fechamentosHomologados          FechamentoMensalUnidade[] @relation("FechamentosHomologadosPorUsuario")
-  homologacoesServidor            HomologacaoServidorMes[]  @relation("HomologacoesServidorPorUsuario")
-  boletinsGerados                 BoletimFrequencia[]       @relation("BoletinsGeradosPorUsuario")
-  boletinsEncaminhados            BoletimFrequencia[]       @relation("BoletinsEncaminhadosPorUsuario")
-  boletinsRecebidos               BoletimFrequencia[]       @relation("BoletinsRecebidosPorUsuario")
-  integracoesSarhExecutadas       IntegracaoSarhExecucao[]  @relation("IntegracoesSarhExecutadasPorUsuario")
-  conflitosSarhResolvidos         IntegracaoSarhConflito[]  @relation("ConflitosSarhResolvidosPorUsuario")
-  recessosCriados                 RecessoForense[]          @relation("RecessosCriadosPorUsuario")
-  recessosFechados                RecessoForense[]          @relation("RecessosFechadosPorUsuario")
-  convocacoesRecessoCriadas       ConvocacaoRecesso[]       @relation("ConvocacoesRecessoCriadasPorUsuario")
-  convocadosRecessoFechados       ConvocadoRecesso[]        @relation("ConvocadosRecessoFechadosPorUsuario")
-  homologacoesRecesso             HomologacaoRecesso[]      @relation("HomologacoesRecessoPorUsuario")
-  aceitesRecessoSecad             HomologacaoRecesso[]      @relation("AceitesRecessoSecadPorUsuario")
-  sessoesCadastroFacial           SessaoCadastroFacial[]
+  perfis                           UsuarioPerfil[]
+  servidor                         Servidor?
+  auditorias                       AuditoriaEvento[]
+  marcacoesCriadas                 Marcacao[]                @relation("MarcacoesCriadasPorUsuario")
+  movimentosBancoHorasAutorizados  MovimentoBancoHoras[]     @relation("MovimentosBancoHorasAutorizadosPor")
+  autorizacoesBancoHorasConcedidas AutorizacaoBancoHoras[]   @relation("AutorizacoesBancoHorasConcedidasPor")
+  jornadasDiferenciadasAutorizadas JornadaServidor[]         @relation("JornadasDiferenciadasAutorizadasPor")
+  solicitacoesCriadas              Solicitacao[]             @relation("SolicitacoesCriadasPorUsuario")
+  solicitacoesAnalisadas           Solicitacao[]             @relation("SolicitacoesAnalisadasPorUsuario")
+  solicitacaoEventos               SolicitacaoEvento[]       @relation("SolicitacaoEventosPorUsuario")
+  fechamentosAbertos               FechamentoMensalUnidade[] @relation("FechamentosAbertosPorUsuario")
+  fechamentosHomologados           FechamentoMensalUnidade[] @relation("FechamentosHomologadosPorUsuario")
+  homologacoesServidor             HomologacaoServidorMes[]  @relation("HomologacoesServidorPorUsuario")
+  boletinsGerados                  BoletimFrequencia[]       @relation("BoletinsGeradosPorUsuario")
+  boletinsEncaminhados             BoletimFrequencia[]       @relation("BoletinsEncaminhadosPorUsuario")
+  boletinsRecebidos                BoletimFrequencia[]       @relation("BoletinsRecebidosPorUsuario")
+  integracoesSarhExecutadas        IntegracaoSarhExecucao[]  @relation("IntegracoesSarhExecutadasPorUsuario")
+  conflitosSarhResolvidos          IntegracaoSarhConflito[]  @relation("ConflitosSarhResolvidosPorUsuario")
+  recessosCriados                  RecessoForense[]          @relation("RecessosCriadosPorUsuario")
+  recessosFechados                 RecessoForense[]          @relation("RecessosFechadosPorUsuario")
+  convocacoesRecessoCriadas        ConvocacaoRecesso[]       @relation("ConvocacoesRecessoCriadasPorUsuario")
+  convocadosRecessoFechados        ConvocadoRecesso[]        @relation("ConvocadosRecessoFechadosPorUsuario")
+  homologacoesRecesso              HomologacaoRecesso[]      @relation("HomologacoesRecessoPorUsuario")
+  aceitesRecessoSecad              HomologacaoRecesso[]      @relation("AceitesRecessoSecadPorUsuario")
+  sessoesCadastroFacial            SessaoCadastroFacial[]
 
   @@map("usuarios")
 }
@@ -670,6 +685,7 @@ model Servidor {
   ocorrenciaFrequencias             OcorrenciaFrequencia[]
   bancoHorasSaldo                   BancoHorasSaldo?
   movimentoBancoHoras               MovimentoBancoHoras[]
+  autorizacoesBancoHoras            AutorizacaoBancoHoras[]
   solicitacoes                      Solicitacao[]                   @relation("SolicitacoesDoServidor")
   solicitacaoEventos                SolicitacaoEvento[]             @relation("SolicitacaoEventosPorServidor")
   homologacoesMensais               HomologacaoServidorMes[]
@@ -857,7 +873,10 @@ model JornadaServidor {
   dataFim    DateTime? @map("data_fim") @db.Date
   ativo      Boolean   @default(true)
 
-  justificativa String? @db.Text
+  justificativa                 String?   @db.Text
+  horarioDiferenciadoAutorizado Boolean   @default(false) @map("horario_diferenciado_autorizado")
+  autorizadoPorUsuarioId        String?   @map("autorizado_por_usuario_id") @db.Uuid
+  autorizadoEm                  DateTime? @map("autorizado_em")
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
@@ -865,12 +884,14 @@ model JornadaServidor {
   servidor        Servidor         @relation(fields: [servidorId], references: [id], onDelete: Restrict)
   jornada         Jornada          @relation(fields: [jornadaId], references: [id], onDelete: Restrict)
   escala          Escala?          @relation(fields: [escalaId], references: [id], onDelete: Restrict)
+  autorizadoPor   Usuario?         @relation("JornadasDiferenciadasAutorizadasPor", fields: [autorizadoPorUsuarioId], references: [id], onDelete: SetNull)
   marcacoes       Marcacao[]
   apuracaoDiarias ApuracaoDiaria[]
 
   @@index([servidorId])
   @@index([jornadaId])
   @@index([escalaId])
+  @@index([autorizadoPorUsuarioId])
   @@index([ativo])
   @@map("jornadas_servidores")
 }
@@ -1003,9 +1024,10 @@ model BancoHorasSaldo {
 }
 
 model MovimentoBancoHoras {
-  id               String  @id @default(uuid()) @db.Uuid
-  servidorId       String  @map("servidor_id") @db.Uuid
-  apuracaoDiariaId String? @map("apuracao_diaria_id") @db.Uuid
+  id                      String  @id @default(uuid()) @db.Uuid
+  servidorId              String  @map("servidor_id") @db.Uuid
+  apuracaoDiariaId        String? @map("apuracao_diaria_id") @db.Uuid
+  autorizacaoBancoHorasId String? @map("autorizacao_banco_horas_id") @db.Uuid
 
   tipo   TipoMovimentoBancoHoras
   origem OrigemMovimentoBancoHoras @default(APURACAO_DIARIA)
@@ -1030,17 +1052,52 @@ model MovimentoBancoHoras {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  servidor       Servidor        @relation(fields: [servidorId], references: [id], onDelete: Restrict)
-  apuracaoDiaria ApuracaoDiaria? @relation(fields: [apuracaoDiariaId], references: [id], onDelete: SetNull)
-  autorizadoPor  Usuario?        @relation("MovimentosBancoHorasAutorizadosPor", fields: [autorizadoPorUsuarioId], references: [id], onDelete: SetNull)
+  servidor              Servidor               @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  apuracaoDiaria        ApuracaoDiaria?        @relation(fields: [apuracaoDiariaId], references: [id], onDelete: SetNull)
+  autorizadoPor         Usuario?               @relation("MovimentosBancoHorasAutorizadosPor", fields: [autorizadoPorUsuarioId], references: [id], onDelete: SetNull)
+  autorizacaoBancoHoras AutorizacaoBancoHoras? @relation(fields: [autorizacaoBancoHorasId], references: [id], onDelete: SetNull)
 
   @@index([servidorId])
   @@index([apuracaoDiariaId])
+  @@index([autorizacaoBancoHorasId])
   @@index([dataReferencia])
   @@index([mesReferencia, anoReferencia])
   @@index([tipo])
   @@index([status])
   @@map("banco_horas_movimentos")
+}
+
+model AutorizacaoBancoHoras {
+  id String @id @default(uuid()) @db.Uuid
+
+  solicitacaoId          String @unique @map("solicitacao_id") @db.Uuid
+  servidorId             String @map("servidor_id") @db.Uuid
+  autorizadoPorUsuarioId String @map("autorizado_por_usuario_id") @db.Uuid
+
+  tipo   TipoAutorizacaoBancoHoras
+  status StatusAutorizacaoBancoHoras @default(AUTORIZADA)
+
+  dataInicio DateTime @map("data_inicio")
+  dataFim    DateTime @map("data_fim")
+
+  minutosAutorizados Int      @map("minutos_autorizados")
+  justificativa      String?  @db.Text
+  autorizadoEm       DateTime @default(now()) @map("autorizado_em")
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  solicitacao   Solicitacao           @relation(fields: [solicitacaoId], references: [id], onDelete: Cascade)
+  servidor      Servidor              @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  autorizadoPor Usuario               @relation("AutorizacoesBancoHorasConcedidasPor", fields: [autorizadoPorUsuarioId], references: [id], onDelete: Restrict)
+  movimentos    MovimentoBancoHoras[]
+
+  @@index([servidorId])
+  @@index([autorizadoPorUsuarioId])
+  @@index([tipo])
+  @@index([status])
+  @@index([dataInicio, dataFim])
+  @@map("banco_horas_autorizacoes")
 }
 
 model Solicitacao {
@@ -1077,7 +1134,8 @@ model Solicitacao {
   chefiaResponsavel  GestorUnidade?         @relation("SolicitacoesPorChefiaResponsavel", fields: [chefiaResponsavelId], references: [id], onDelete: SetNull)
   analisadaPor       Usuario?               @relation("SolicitacoesAnalisadasPorUsuario", fields: [analisadaPorUsuarioId], references: [id], onDelete: SetNull)
 
-  eventos SolicitacaoEvento[]
+  eventos               SolicitacaoEvento[]
+  autorizacaoBancoHoras AutorizacaoBancoHoras?
 
   @@index([servidorId])
   @@index([usuarioSolicitanteId])

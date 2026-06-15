@@ -49,6 +49,12 @@ function extrairDados(formData: FormData): Partial<CriarSolicitacaoInput> {
     dataFim: String(formData.get("dataFim") ?? ""),
     tipoMarcacao: String(formData.get("tipoMarcacao") ?? ""),
     horaAjuste: String(formData.get("horaAjuste") ?? ""),
+    tipoCompensacao: String(formData.get("tipoCompensacao") ?? "") as
+      | CriarSolicitacaoInput["tipoCompensacao"]
+      | "",
+    horasSolicitadas: formData.get("horasSolicitadas")
+      ? Number(formData.get("horasSolicitadas"))
+      : undefined,
   };
 }
 
@@ -129,6 +135,11 @@ export async function criarSolicitacaoAction(
         dadosSolicitados: {
           tipoMarcacao: parsed.data.tipoMarcacao || null,
           horaAjuste: parsed.data.horaAjuste || null,
+          tipoCompensacao: parsed.data.tipoCompensacao || null,
+          horasSolicitadas: parsed.data.horasSolicitadas ?? null,
+          minutosSolicitados: parsed.data.horasSolicitadas
+            ? Math.round(parsed.data.horasSolicitadas * 60)
+            : null,
           lotacaoAtual: {
             unidadeId: lotacaoAtual.unidadeId,
             unidadeSigla: lotacaoAtual.unidade.sigla,

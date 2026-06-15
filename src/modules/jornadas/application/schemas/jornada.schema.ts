@@ -7,6 +7,12 @@ function validarHoraHHMM(valor: string | undefined | null) {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(valor);
 }
 
+function horaParaMinutos(valor: string | undefined | null) {
+  if (!valor || !validarHoraHHMM(valor)) return null;
+  const [horas, minutos] = valor.split(":").map(Number);
+  return horas * 60 + minutos;
+}
+
 export const jornadaSchema = z
   .object({
     codigo: z
@@ -53,6 +59,96 @@ export const jornadaSchema = z
           code: "custom",
           path: [campo],
           message: "Informe a hora no formato HH:mm.",
+        });
+      }
+    }
+
+    const entradaPadrao = horaParaMinutos(data.horarioEntradaPadrao);
+    const saidaPadrao = horaParaMinutos(data.horarioSaidaPadrao);
+
+    if (entradaPadrao === null) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["horarioEntradaPadrao"],
+        message: "Informe a entrada padrão, a partir de 08:00.",
+      });
+    } else if (entradaPadrao < 8 * 60 || entradaPadrao > 18 * 60) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["horarioEntradaPadrao"],
+        message: "A entrada padrão deve estar entre 08:00 e 18:00.",
+      });
+    }
+
+    if (saidaPadrao === null) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["horarioSaidaPadrao"],
+        message: "Informe a saída padrão, até 18:00.",
+      });
+    } else if (saidaPadrao < 8 * 60 || saidaPadrao > 18 * 60) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["horarioSaidaPadrao"],
+        message: "A saída padrão deve estar entre 08:00 e 18:00.",
+      });
+    }
+
+    if (
+      entradaPadrao !== null &&
+      saidaPadrao !== null &&
+      saidaPadrao <= entradaPadrao
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["horarioSaidaPadrao"],
+        message: "A saída padrão deve ser posterior à entrada.",
+      });
+    }
+
+    if (data.horarioDiferenciadoPermitido) {
+      const entradaDiferenciada = horaParaMinutos(
+        data.entradaMinimaDiferenciada,
+      );
+      const saidaDiferenciada = horaParaMinutos(
+        data.saidaMaximaDiferenciada,
+      );
+
+      if (
+        entradaDiferenciada === null ||
+        entradaDiferenciada < 6 * 60 ||
+        entradaDiferenciada > 19 * 60
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["entradaMinimaDiferenciada"],
+          message:
+            "A entrada diferenciada deve respeitar o limite mínimo de 06:00.",
+        });
+      }
+
+      if (
+        saidaDiferenciada === null ||
+        saidaDiferenciada < 6 * 60 ||
+        saidaDiferenciada > 19 * 60
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["saidaMaximaDiferenciada"],
+          message:
+            "A saída diferenciada deve respeitar o limite máximo de 19:00.",
+        });
+      }
+
+      if (
+        entradaDiferenciada !== null &&
+        saidaDiferenciada !== null &&
+        saidaDiferenciada <= entradaDiferenciada
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["saidaMaximaDiferenciada"],
+          message: "A saída diferenciada deve ser posterior à entrada.",
         });
       }
     }

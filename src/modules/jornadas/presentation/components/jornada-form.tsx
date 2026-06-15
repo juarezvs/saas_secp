@@ -156,6 +156,11 @@ export function JornadaForm({
               defaultValue={campos?.horarioEntradaPadrao ?? ""}
               className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
             />
+            {erro(estado, "horarioEntradaPadrao") && (
+              <p className="text-sm text-red-600">
+                {erro(estado, "horarioEntradaPadrao")}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -169,6 +174,11 @@ export function JornadaForm({
               defaultValue={campos?.horarioSaidaPadrao ?? ""}
               className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
             />
+            {erro(estado, "horarioSaidaPadrao") && (
+              <p className="text-sm text-red-600">
+                {erro(estado, "horarioSaidaPadrao")}
+              </p>
+            )}
           </div>
 
           <label className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm">
@@ -250,6 +260,11 @@ export function JornadaForm({
               defaultValue={campos?.entradaMinimaDiferenciada ?? ""}
               className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
             />
+            {erro(estado, "entradaMinimaDiferenciada") && (
+              <p className="text-sm text-red-600">
+                {erro(estado, "entradaMinimaDiferenciada")}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -263,6 +278,11 @@ export function JornadaForm({
               defaultValue={campos?.saidaMaximaDiferenciada ?? ""}
               className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
             />
+            {erro(estado, "saidaMaximaDiferenciada") && (
+              <p className="text-sm text-red-600">
+                {erro(estado, "saidaMaximaDiferenciada")}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2 md:col-span-2">

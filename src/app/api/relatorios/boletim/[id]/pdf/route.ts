@@ -30,7 +30,12 @@ export async function GET(_request: Request, context: RouteContext) {
   const podeAcessar = usuarioPossuiAlgumaPermissaoNoPerfil(
     session.user.perfilAtivo?.codigo,
     session.user.perfilAtivo?.permissoes,
-    ["boletim-frequencia:consultar:global", "boletim-frequencia:gerar:chefia"],
+    [
+      "boletim-frequencia:gerar:chefia",
+      "boletim-frequencia:encaminhar:chefia",
+      "boletim-frequencia:receber:global",
+      "boletim-frequencia:consultar:global",
+    ],
   );
 
   if (!podeAcessar) {

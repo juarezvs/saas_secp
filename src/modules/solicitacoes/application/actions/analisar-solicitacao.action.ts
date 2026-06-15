@@ -58,6 +58,26 @@ function extrairDados(formData: FormData): Partial<AnalisarSolicitacaoInput> {
   };
 }
 
+function possuiDadosAutorizacaoBancoHoras(solicitacao: {
+  dataInicio: Date | null;
+  dataFim: Date | null;
+  dadosSolicitados: unknown;
+}) {
+  if (
+    !solicitacao.dataInicio ||
+    !solicitacao.dataFim ||
+    !solicitacao.dadosSolicitados ||
+    typeof solicitacao.dadosSolicitados !== "object"
+  ) {
+    return false;
+  }
+
+  const dados = solicitacao.dadosSolicitados as Record<string, unknown>;
+  const minutosSolicitados = Number(dados.minutosSolicitados);
+
+  return Number.isInteger(minutosSolicitados) && minutosSolicitados > 0;
+}
+
 export async function analisarSolicitacaoAction(
   solicitacaoId: string,
   _estadoAnterior: AnalisarSolicitacaoFormState,
@@ -116,6 +136,19 @@ export async function analisarSolicitacaoAction(
   const novoStatus =
     parsed.data.resultado === "DEFERIR" ? "DEFERIDA" : "INDEFERIDA";
 
+  if (
+    novoStatus === "DEFERIDA" &&
+    ["HORA_CREDITO_PREVIA", "COMPENSACAO"].includes(solicitacaoAtual.tipo) &&
+    !possuiDadosAutorizacaoBancoHoras(solicitacaoAtual)
+  ) {
+    return {
+      sucesso: false,
+      mensagem:
+        "A solicitação não possui período e quantidade válidos para registrar a autorização prévia.",
+      campos: parsed.data,
+    };
+  }
+
   await prisma.$transaction(async (tx) => {
     let dadosResultado: JsonInputValue | undefined;
 
@@ -129,8 +162,11 @@ export async function analisarSolicitacaoAction(
           usuarioSolicitanteId: solicitacaoAtual.usuarioSolicitanteId,
           tipo: solicitacaoAtual.tipo,
           dataReferencia: solicitacaoAtual.dataReferencia,
+          dataInicio: solicitacaoAtual.dataInicio,
+          dataFim: solicitacaoAtual.dataFim,
           dadosSolicitados: solicitacaoAtual.dadosSolicitados,
         },
+        justificativaAnalise: parsed.data.justificativaAnalise,
       });
 
       dadosResultado = converterParaJsonInput(efeito);
@@ -195,7 +231,12 @@ export async function analisarSolicitacaoAction(
     });
   });
 
-  if (novoStatus === "DEFERIDA") {
+  if (
+    novoStatus === "DEFERIDA" &&
+    ["AJUSTE_PONTO", "HORA_CREDITO_PREVIA", "COMPENSACAO"].includes(
+      solicitacaoAtual.tipo,
+    )
+  ) {
     await recalcularPosSolicitacaoService({
       solicitacaoId,
       usuarioIdAuditoria: session.user.id,

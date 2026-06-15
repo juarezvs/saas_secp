@@ -33,6 +33,8 @@ export default async function NovaJornadaPage() {
         valoresIniciais={{
           tipo: "SETE_HORAS",
           cargaDiariaMinutos: 420,
+          horarioEntradaPadrao: "08:00",
+          horarioSaidaPadrao: "15:00",
           ativo: true,
           horarioDiferenciadoPermitido: true,
           entradaMinimaDiferenciada: "06:00",

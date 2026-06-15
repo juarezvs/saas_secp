@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Loader2, Send } from "lucide-react";
 import { criarSolicitacaoAction } from "../../application/actions/criar-solicitacao.action";
 import {
   tiposMarcacaoAjuste,
+  tiposCompensacaoBancoHoras,
   tiposSolicitacao,
   type CriarSolicitacaoFormState,
 } from "../../application/schemas/solicitacao.schema";
@@ -26,6 +27,13 @@ export function SolicitacaoForm() {
   );
 
   const campos = estado.campos;
+  const [tipoSelecionado, setTipoSelecionado] = useState<string>(
+    campos?.tipo ?? "AJUSTE_PONTO",
+  );
+  const exigeAutorizacaoBancoHoras = [
+    "COMPENSACAO",
+    "HORA_CREDITO_PREVIA",
+  ].includes(tipoSelecionado);
 
   return (
     <form action={formAction} className="space-y-6">
@@ -51,6 +59,7 @@ export function SolicitacaoForm() {
               id="tipo"
               name="tipo"
               defaultValue={campos?.tipo ?? "AJUSTE_PONTO"}
+              onChange={(event) => setTipoSelecionado(event.target.value)}
               className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
               required
             >
@@ -144,6 +153,10 @@ export function SolicitacaoForm() {
               defaultValue={campos?.dataInicio ?? ""}
               className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
             />
+
+            {erro(estado, "dataInicio") && (
+              <p className="text-sm text-red-600">{erro(estado, "dataInicio")}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -158,7 +171,68 @@ export function SolicitacaoForm() {
               defaultValue={campos?.dataFim ?? ""}
               className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
             />
+
+            {erro(estado, "dataFim") && (
+              <p className="text-sm text-red-600">{erro(estado, "dataFim")}</p>
+            )}
           </div>
+
+          {exigeAutorizacaoBancoHoras && (
+            <>
+              {tipoSelecionado === "COMPENSACAO" && (
+                <div className="space-y-2">
+                  <label htmlFor="tipoCompensacao" className="text-sm font-semibold">
+                    Modalidade da compensação
+                  </label>
+                  <select
+                    id="tipoCompensacao"
+                    name="tipoCompensacao"
+                    defaultValue={campos?.tipoCompensacao ?? "UTILIZAR_CREDITO"}
+                    className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+                    required
+                  >
+                    {tiposCompensacaoBancoHoras.map((tipo) => (
+                      <option key={tipo} value={tipo}>
+                        {tipo === "UTILIZAR_CREDITO"
+                          ? "Utilizar crédito para compensar débito"
+                          : "Trabalhar horas para compensar débito"}
+                      </option>
+                    ))}
+                  </select>
+                  {erro(estado, "tipoCompensacao") && (
+                    <p className="text-sm text-red-600">
+                      {erro(estado, "tipoCompensacao")}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label htmlFor="horasSolicitadas" className="text-sm font-semibold">
+                  Quantidade de horas
+                </label>
+                <input
+                  id="horasSolicitadas"
+                  name="horasSolicitadas"
+                  type="number"
+                  min="0.25"
+                  max="16"
+                  step="0.25"
+                  defaultValue={campos?.horasSolicitadas ?? ""}
+                  className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+                  required
+                />
+                <p className="text-xs text-[var(--muted-foreground)]">
+                  A chefia autorizará esta quantidade para o período informado.
+                </p>
+                {erro(estado, "horasSolicitadas") && (
+                  <p className="text-sm text-red-600">
+                    {erro(estado, "horasSolicitadas")}
+                  </p>
+                )}
+              </div>
+            </>
+          )}
 
           <div className="space-y-2 md:col-span-2">
             <label htmlFor="titulo" className="text-sm font-semibold">

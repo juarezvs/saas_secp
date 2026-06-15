@@ -154,6 +154,17 @@ export default async function JornadaDetalhePage({
                   {formatarData(vinculo.dataInicio)} →{" "}
                   {formatarData(vinculo.dataFim)}
                 </p>
+                <p className="mt-2 text-xs font-semibold">
+                  {vinculo.horarioDiferenciadoAutorizado
+                    ? "Horário diferenciado autorizado (06:00–19:00)"
+                    : "Expediente padrão (08:00–18:00)"}
+                </p>
+                {vinculo.horarioDiferenciadoAutorizado &&
+                  vinculo.justificativa && (
+                    <p className="mt-1 max-w-2xl text-xs text-[var(--muted-foreground)]">
+                      Base da autorização: {vinculo.justificativa}
+                    </p>
+                  )}
               </div>
 
               <span

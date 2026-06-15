@@ -4,14 +4,25 @@ import { receberBoletimFrequenciaAction } from "../../application/actions/recebe
 export function BoletimAcoesCard({
   boletimId,
   status,
+  podeEncaminhar: possuiPermissaoEncaminhar,
+  podeRegistrarSecap: possuiPermissaoSecap,
 }: {
   boletimId: string;
   status: string;
+  podeEncaminhar: boolean;
+  podeRegistrarSecap: boolean;
 }) {
-  const podeEncaminhar = status === "GERADO";
-  const podeRegistrarSecap = ["ENCAMINHADO_SECAP", "RECEBIDO_SECAP"].includes(
-    status,
-  );
+  const podeEncaminhar =
+    possuiPermissaoEncaminhar && status === "GERADO";
+  const podeReceber =
+    possuiPermissaoSecap && status === "ENCAMINHADO_SECAP";
+  const podeConferir =
+    possuiPermissaoSecap && status === "RECEBIDO_SECAP";
+  const podeRegistrarSecap = podeReceber || podeConferir;
+
+  if (!possuiPermissaoEncaminhar && !possuiPermissaoSecap) {
+    return null;
+  }
 
   return (
     <section className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
@@ -90,12 +101,16 @@ export function BoletimAcoesCard({
 
           <select
             name="status"
-            defaultValue="RECEBIDO_SECAP"
+            defaultValue={podeConferir ? "CONFERIDO" : "RECEBIDO_SECAP"}
             disabled={!podeRegistrarSecap}
             className="h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <option value="RECEBIDO_SECAP">Recebido pela SECAP/NUCGP</option>
-            <option value="CONFERIDO">Conferido</option>
+            {podeReceber && (
+              <option value="RECEBIDO_SECAP">
+                Recebido pela SECAP/NUCGP
+              </option>
+            )}
+            {podeConferir && <option value="CONFERIDO">Conferido</option>}
           </select>
 
           <textarea

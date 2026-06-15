@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 import { listarBoletinsFrequenciaParaExportacao } from "@/modules/boletim-frequencia/infrastructure/repositories/boletim-frequencia.repository";
 import { rotuloStatusBoletim } from "@/modules/boletim-frequencia/application/services/formatar-boletim-frequencia.service";
 
@@ -7,11 +8,22 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   const session = await auth();
 
-  const permissoes = session?.user?.perfilAtivo?.permissoes ?? [];
-  if (
-    !permissoes.includes("boletim-frequencia:gerar:chefia") &&
-    !permissoes.includes("boletim-frequencia:consultar:global")
-  ) {
+  if (!session?.user) {
+    return new Response("Não autenticado.", { status: 401 });
+  }
+
+  const podeAcessar = usuarioPossuiAlgumaPermissaoNoPerfil(
+    session.user.perfilAtivo?.codigo,
+    session.user.perfilAtivo?.permissoes,
+    [
+      "boletim-frequencia:gerar:chefia",
+      "boletim-frequencia:encaminhar:chefia",
+      "boletim-frequencia:receber:global",
+      "boletim-frequencia:consultar:global",
+    ],
+  );
+
+  if (!podeAcessar) {
     return new Response("Acesso negado.", { status: 403 });
   }
 

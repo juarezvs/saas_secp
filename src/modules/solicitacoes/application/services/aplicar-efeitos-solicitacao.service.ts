@@ -9,6 +9,8 @@ type SolicitacaoParaEfeito = {
   usuarioSolicitanteId: string;
   tipo: string;
   dataReferencia: Date | null;
+  dataInicio: Date | null;
+  dataFim: Date | null;
   dadosSolicitados: unknown;
 };
 
@@ -32,12 +34,126 @@ function extrairDadosAjuste(dados: unknown) {
   };
 }
 
+function extrairDadosAutorizacao(dados: unknown) {
+  if (!dados || typeof dados !== "object") {
+    return null;
+  }
+
+  const obj = dados as Record<string, unknown>;
+  const minutosSolicitados = Number(obj.minutosSolicitados);
+  const tipoCompensacao = String(obj.tipoCompensacao ?? "");
+
+  if (!Number.isInteger(minutosSolicitados) || minutosSolicitados <= 0) {
+    return null;
+  }
+
+  return {
+    minutosSolicitados,
+    tipoCompensacao,
+  };
+}
+
 export async function aplicarEfeitosSolicitacaoDeferida(params: {
   tx: Tx;
   solicitacao: SolicitacaoParaEfeito;
   usuarioAnaliseId: string;
+  justificativaAnalise: string;
 }) {
-  const { tx, solicitacao, usuarioAnaliseId } = params;
+  const {
+    tx,
+    solicitacao,
+    usuarioAnaliseId,
+    justificativaAnalise,
+  } = params;
+
+  if (["HORA_CREDITO_PREVIA", "COMPENSACAO"].includes(solicitacao.tipo)) {
+    const dadosAutorizacao = extrairDadosAutorizacao(
+      solicitacao.dadosSolicitados,
+    );
+
+    if (
+      !solicitacao.dataInicio ||
+      !solicitacao.dataFim ||
+      !dadosAutorizacao
+    ) {
+      return {
+        efeitosAplicados: false,
+        mensagem:
+          "Solicitação sem período ou quantidade válidos para autorização do banco de horas.",
+      };
+    }
+
+    const tipo =
+      solicitacao.tipo === "HORA_CREDITO_PREVIA"
+        ? "CREDITO"
+        : dadosAutorizacao.tipoCompensacao === "COMPENSAR_DEBITO"
+          ? "COMPENSACAO_DEBITO"
+          : "COMPENSACAO_CREDITO";
+
+    const autorizacao = await tx.autorizacaoBancoHoras.upsert({
+      where: {
+        solicitacaoId: solicitacao.id,
+      },
+      update: {
+        tipo,
+        status: "AUTORIZADA",
+        dataInicio: solicitacao.dataInicio,
+        dataFim: solicitacao.dataFim,
+        minutosAutorizados: dadosAutorizacao.minutosSolicitados,
+        autorizadoPorUsuarioId: usuarioAnaliseId,
+        justificativa: justificativaAnalise,
+        autorizadoEm: new Date(),
+      },
+      create: {
+        solicitacaoId: solicitacao.id,
+        servidorId: solicitacao.servidorId,
+        autorizadoPorUsuarioId: usuarioAnaliseId,
+        tipo,
+        status: "AUTORIZADA",
+        dataInicio: solicitacao.dataInicio,
+        dataFim: solicitacao.dataFim,
+        minutosAutorizados: dadosAutorizacao.minutosSolicitados,
+        justificativa: justificativaAnalise,
+      },
+    });
+
+    await tx.auditoriaEvento.create({
+      data: {
+        usuarioId: usuarioAnaliseId,
+        entidade: "AutorizacaoBancoHoras",
+        entidadeId: autorizacao.id,
+        acao: "AUTORIZACAO_PREVIA_CONCEDIDA",
+        dadosDepois: {
+          solicitacaoId: solicitacao.id,
+          servidorId: solicitacao.servidorId,
+          tipo: autorizacao.tipo,
+          status: autorizacao.status,
+          dataInicio: autorizacao.dataInicio,
+          dataFim: autorizacao.dataFim,
+          minutosAutorizados: autorizacao.minutosAutorizados,
+          justificativa: justificativaAnalise,
+        },
+      },
+    });
+
+    return {
+      efeitosAplicados: true,
+      mensagem:
+        solicitacao.tipo === "HORA_CREDITO_PREVIA"
+          ? "Crédito previamente autorizado pela chefia."
+          : "Compensação previamente autorizada pela chefia.",
+      dadosResultado: {
+        autorizacaoBancoHorasId: autorizacao.id,
+        tipo: autorizacao.tipo,
+        status: autorizacao.status,
+        dataInicio: autorizacao.dataInicio,
+        dataFim: autorizacao.dataFim,
+        minutosAutorizados: autorizacao.minutosAutorizados,
+        autorizadoPorUsuarioId: autorizacao.autorizadoPorUsuarioId,
+        autorizadoEm: autorizacao.autorizadoEm,
+      },
+    };
+  }
 
   if (solicitacao.tipo !== "AJUSTE_PONTO") {
     return {

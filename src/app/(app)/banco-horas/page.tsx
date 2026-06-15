@@ -4,6 +4,7 @@ import {
 } from "@/modules/auth/application/services/permissao.service";
 import {
   buscarServidorBancoHorasPorUsuarioId,
+  listarAutorizacoesBancoHorasMes,
   listarMovimentosBancoHorasMes,
   listarServidoresComBancoHoras,
 } from "@/modules/banco-horas/infrastructure/repositories/banco-horas.repository";
@@ -84,11 +85,20 @@ export default async function BancoHorasPage({ searchParams }: BancoHorasPagePro
       })
     : [];
 
+  const autorizacoes = servidorSelecionado
+    ? await listarAutorizacoesBancoHorasMes({
+        servidorId: servidorSelecionado.id,
+        anoReferencia,
+        mesReferencia,
+      })
+    : [];
+
   return (
     <BancoHorasPageReal
       servidores={servidores}
       servidorSelecionado={servidorSelecionado}
       movimentos={movimentos}
+      autorizacoes={autorizacoes}
       anoReferencia={anoReferencia}
       mesReferencia={mesReferencia}
       podeConsultarGlobal={podeConsultarGlobal}

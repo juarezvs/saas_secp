@@ -3,7 +3,10 @@ import { FileSpreadsheet } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
-import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import {
+  exigirUmaDasPermissoesOuRedirecionar,
+  usuarioPossuiPermissaoNoPerfil,
+} from "@/modules/auth/application/services/permissao.service";
 import { gerarBoletimFrequenciaAction } from "@/modules/boletim-frequencia/application/actions/gerar-boletim-frequencia.action";
 import {
   listarBoletinsFrequenciaPaginado,
@@ -46,10 +49,17 @@ function normalizarCompetencia(params: {
 export default async function BoletimFrequenciaPage({
   searchParams,
 }: BoletimFrequenciaPageProps) {
-  await exigirUmaDasPermissoesOuRedirecionar([
+  const acesso = await exigirUmaDasPermissoesOuRedirecionar([
     "boletim-frequencia:gerar:chefia",
+    "boletim-frequencia:encaminhar:chefia",
+    "boletim-frequencia:receber:global",
     "boletim-frequencia:consultar:global",
   ]);
+  const podeGerar = usuarioPossuiPermissaoNoPerfil(
+    acesso.perfilAtivoCodigo,
+    acesso.permissoes,
+    "boletim-frequencia:gerar:chefia",
+  );
 
   const params = searchParams ? await searchParams : {};
   const pagina = Number(params.pagina ?? 1);
@@ -66,7 +76,7 @@ export default async function BoletimFrequenciaPage({
       pagina,
       itensPorPagina,
     }),
-    listarFechamentosHomologadosSemBoletim(),
+    podeGerar ? listarFechamentosHomologadosSemBoletim() : Promise.resolve([]),
   ]);
 
   const exportParams = new URLSearchParams();
@@ -150,45 +160,47 @@ export default async function BoletimFrequenciaPage({
         </article>
       </section>
 
-      <section className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
-        <h2 className="text-lg font-bold">
-          Gerar boletim de fechamento homologado
-        </h2>
+      {podeGerar && (
+        <section className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
+          <h2 className="text-lg font-bold">
+            Gerar boletim de fechamento homologado
+          </h2>
 
-        <form action={gerarBoletimFrequenciaAction} className="mt-4 space-y-4">
-          <select
-            name="fechamentoId"
-            defaultValue=""
-            className="h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-            required
-          >
-            <option value="">Selecione o fechamento homologado</option>
+          <form action={gerarBoletimFrequenciaAction} className="mt-4 space-y-4">
+            <select
+              name="fechamentoId"
+              defaultValue=""
+              className="h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+              required
+            >
+              <option value="">Selecione o fechamento homologado</option>
 
-            {fechamentosDisponiveis.map((fechamento) => (
-              <option key={fechamento.id} value={fechamento.id}>
-                {fechamento.unidade.sigla} -{" "}
-                {String(fechamento.mesReferencia).padStart(2, "0")}/
-                {fechamento.anoReferencia} - {fechamento.servidores.length}{" "}
-                servidores
-              </option>
-            ))}
-          </select>
+              {fechamentosDisponiveis.map((fechamento) => (
+                <option key={fechamento.id} value={fechamento.id}>
+                  {fechamento.unidade.sigla} -{" "}
+                  {String(fechamento.mesReferencia).padStart(2, "0")}/
+                  {fechamento.anoReferencia} - {fechamento.servidores.length}{" "}
+                  servidores
+                </option>
+              ))}
+            </select>
 
-          <textarea
-            name="observacao"
-            rows={3}
-            placeholder="Observacao opcional para o boletim"
-            className="w-full rounded-md border bg-[var(--card)] px-3 py-2 text-sm"
-          />
+            <textarea
+              name="observacao"
+              rows={3}
+              placeholder="Observacao opcional para o boletim"
+              className="w-full rounded-md border bg-[var(--card)] px-3 py-2 text-sm"
+            />
 
-          <button
-            type="submit"
-            className="rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            Gerar boletim
-          </button>
-        </form>
-      </section>
+            <button
+              type="submit"
+              className="rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              Gerar boletim
+            </button>
+          </form>
+        </section>
+      )}
 
       <DataTableShell
         title="Boletins gerados"

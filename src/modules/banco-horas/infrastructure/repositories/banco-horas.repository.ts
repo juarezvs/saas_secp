@@ -61,6 +61,53 @@ export async function listarMovimentosBancoHorasMes(params: {
   });
 }
 
+export async function listarAutorizacoesBancoHorasMes(params: {
+  servidorId: string;
+  anoReferencia: number;
+  mesReferencia: number;
+}) {
+  const inicio = new Date(params.anoReferencia, params.mesReferencia - 1, 1);
+  const fim = new Date(params.anoReferencia, params.mesReferencia, 1);
+
+  return prisma.autorizacaoBancoHoras.findMany({
+    where: {
+      servidorId: params.servidorId,
+      dataInicio: {
+        lt: fim,
+      },
+      dataFim: {
+        gte: inicio,
+      },
+    },
+    include: {
+      autorizadoPor: {
+        select: {
+          nome: true,
+        },
+      },
+      solicitacao: {
+        select: {
+          id: true,
+          titulo: true,
+        },
+      },
+      movimentos: {
+        where: {
+          status: {
+            in: ["PENDENTE", "VALIDADO"],
+          },
+        },
+        select: {
+          minutos: true,
+        },
+      },
+    },
+    orderBy: {
+      autorizadoEm: "desc",
+    },
+  });
+}
+
 export async function listarApuracoesCalculadasSemMovimento(params: {
   servidorId: string;
   anoReferencia: number;

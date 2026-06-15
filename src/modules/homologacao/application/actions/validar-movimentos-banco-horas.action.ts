@@ -41,11 +41,23 @@ export async function validarMovimentosBancoHorasHomologacaoAction(
         anoReferencia,
         mesReferencia,
         status: "PENDENTE",
+        autorizacaoBancoHorasId: null,
+      },
+      data: {
+        autorizadoPorUsuarioId: session.user.id,
+        autorizadoEm: new Date(),
+      },
+    });
+
+    await tx.movimentoBancoHoras.updateMany({
+      where: {
+        servidorId,
+        anoReferencia,
+        mesReferencia,
+        status: "PENDENTE",
       },
       data: {
         status: "VALIDADO",
-        autorizadoPorUsuarioId: session.user.id,
-        autorizadoEm: new Date(),
       },
     });
 

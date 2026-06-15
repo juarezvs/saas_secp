@@ -16,7 +16,7 @@ export async function gerarBoletimFrequenciaAction(formData: FormData) {
   const podeGerar = usuarioPossuiAlgumaPermissaoNoPerfil(
     session.user.perfilAtivo?.codigo,
     session.user.perfilAtivo?.permissoes,
-    ["boletim-frequencia:gerar:chefia", "boletim-frequencia:consultar:global"],
+    ["boletim-frequencia:gerar:chefia"],
   );
 
   if (!podeGerar) {

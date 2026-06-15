@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
-import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import {
+  exigirUmaDasPermissoesOuRedirecionar,
+  usuarioPossuiPermissaoNoPerfil,
+} from "@/modules/auth/application/services/permissao.service";
 import {
   buscarBoletimFrequenciaPorId,
   listarHistoricoBoletimFrequencia,
@@ -21,10 +24,22 @@ type BoletimDetalhePageProps = {
 export default async function BoletimDetalhePage({
   params,
 }: BoletimDetalhePageProps) {
-  await exigirUmaDasPermissoesOuRedirecionar([
+  const acesso = await exigirUmaDasPermissoesOuRedirecionar([
     "boletim-frequencia:gerar:chefia",
+    "boletim-frequencia:encaminhar:chefia",
+    "boletim-frequencia:receber:global",
     "boletim-frequencia:consultar:global",
   ]);
+  const podeEncaminhar = usuarioPossuiPermissaoNoPerfil(
+    acesso.perfilAtivoCodigo,
+    acesso.permissoes,
+    "boletim-frequencia:encaminhar:chefia",
+  );
+  const podeRegistrarSecap = usuarioPossuiPermissaoNoPerfil(
+    acesso.perfilAtivoCodigo,
+    acesso.permissoes,
+    "boletim-frequencia:receber:global",
+  );
 
   const { id } = await params;
   const boletim = await buscarBoletimFrequenciaPorId(id);
@@ -64,7 +79,12 @@ export default async function BoletimDetalhePage({
         descricao="O boletim consolidado deverá ser encaminhado à SECAP/NUCGP para conferência com os registros de pessoal e providências administrativas cabíveis."
       />
 
-      <BoletimAcoesCard boletimId={boletim.id} status={boletim.status} />
+      <BoletimAcoesCard
+        boletimId={boletim.id}
+        status={boletim.status}
+        podeEncaminhar={podeEncaminhar}
+        podeRegistrarSecap={podeRegistrarSecap}
+      />
 
       <BoletimServidoresTable servidores={boletim.servidores} />
 

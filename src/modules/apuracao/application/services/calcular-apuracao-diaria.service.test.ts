@@ -8,6 +8,10 @@ const jornada7h = {
   exigeIntervalo: false,
   intervaloMinimoMinutos: null,
   intervaloMaximoMinutos: null,
+  horarioDiferenciadoPermitido: true,
+  horarioDiferenciadoAutorizado: false,
+  entradaMinimaDiferenciada: "06:00",
+  saidaMaximaDiferenciada: "19:00",
 };
 
 const jornada8h = {
@@ -16,6 +20,10 @@ const jornada8h = {
   exigeIntervalo: true,
   intervaloMinimoMinutos: 60,
   intervaloMaximoMinutos: 180,
+  horarioDiferenciadoPermitido: true,
+  horarioDiferenciadoAutorizado: false,
+  entradaMinimaDiferenciada: "06:00",
+  saidaMaximaDiferenciada: "19:00",
 };
 
 function data(hora: string) {
@@ -138,5 +146,76 @@ describe("calcularApuracaoDiaria", () => {
     expect(resultado.status).toBe("INCONSISTENTE");
     expect(resultado.minutosTrabalhados).toBe(0);
     expect(resultado.minutosDebito).toBe(420);
+  });
+
+  it("desconsidera tempo anterior às 08:00 sem autorização diferenciada", () => {
+    const resultado = calcularApuracaoDiaria({
+      jornada: jornada7h,
+      marcacoes: [marcacao("ENTRADA", "07:00"), marcacao("SAIDA", "15:00")],
+    });
+
+    expect(resultado.minutosTrabalhados).toBe(420);
+    expect(resultado.minutosForaExpediente).toBe(60);
+    expect(resultado.resultado).toBe("REGULAR");
+    expect(resultado.status).toBe("INCONSISTENTE");
+    expect(resultado.ocorrencias).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          tipo: "HORA_NAO_AUTORIZADA",
+          minutos: 60,
+        }),
+      ]),
+    );
+  });
+
+  it("computa horário entre 06:00 e 19:00 quando formalmente autorizado", () => {
+    const resultado = calcularApuracaoDiaria({
+      jornada: {
+        ...jornada7h,
+        horarioDiferenciadoAutorizado: true,
+      },
+      marcacoes: [marcacao("ENTRADA", "06:00"), marcacao("SAIDA", "13:00")],
+    });
+
+    expect(resultado.minutosTrabalhados).toBe(420);
+    expect(resultado.minutosForaExpediente).toBe(0);
+    expect(resultado.resultado).toBe("REGULAR");
+    expect(resultado.status).toBe("CALCULADA");
+    expect(resultado.janelaExpediente).toEqual({
+      inicio: "06:00",
+      fim: "19:00",
+      diferenciada: true,
+    });
+  });
+
+  it("desconsidera tempo anterior às 06:00 mesmo com autorização", () => {
+    const resultado = calcularApuracaoDiaria({
+      jornada: {
+        ...jornada7h,
+        horarioDiferenciadoAutorizado: true,
+      },
+      marcacoes: [marcacao("ENTRADA", "05:30"), marcacao("SAIDA", "13:00")],
+    });
+
+    expect(resultado.minutosTrabalhados).toBe(420);
+    expect(resultado.minutosForaExpediente).toBe(30);
+    expect(resultado.status).toBe("INCONSISTENTE");
+  });
+
+  it("recorta os dois turnos da jornada de 8h pela janela padrão", () => {
+    const resultado = calcularApuracaoDiaria({
+      jornada: jornada8h,
+      marcacoes: [
+        marcacao("ENTRADA", "07:00"),
+        marcacao("SAIDA_INTERVALO", "12:00"),
+        marcacao("RETORNO_INTERVALO", "13:00"),
+        marcacao("SAIDA", "18:00"),
+      ],
+    });
+
+    expect(resultado.minutosTrabalhados).toBe(540);
+    expect(resultado.minutosForaExpediente).toBe(60);
+    expect(resultado.minutosCredito).toBe(60);
+    expect(resultado.status).toBe("INCONSISTENTE");
   });
 });
