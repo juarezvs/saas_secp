@@ -26,10 +26,17 @@ export type SarhCargoDto = {
 export type SarhServidorDto = {
   matricula: string;
   nome: string;
-  nomeSocial: string | null;
+  nomeSocial?: string | null;
   ativo: boolean;
-  cpf: string | number | null;
-  dataNascimento: string | null;
+  cpf?: string | number | null;
+  dataNascimento?: string | null;
+  cpfServidor?: {
+    cpf?: string | number | null;
+    dados?: {
+      cpf?: string | number | null;
+      dataNascimento?: string | null;
+    } | null;
+  } | null;
 
   /** O SARH retorna este campo com esta grafia no payload atual. */
   locatacaoId?: number | null;

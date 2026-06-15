@@ -24,7 +24,7 @@ export default async function NovaJornadaPage() {
         descricao="Cadastre jornadas ordinarias ou especiais que poderao ser atribuidas aos servidores."
         artigo="Art. 4"
         regraTitulo="Jornada de 7h ou 8h"
-        regraDescricao="A Portaria preve jornada de 7 horas ininterruptas ou de 8 horas em dois turnos, com intervalo regulamentar para repouso e alimentacao."
+        regraDescricao="A Portaria prevê jornada de 7 horas ininterruptas ou de 8 horas em dois turnos, com intervalo regulamentar para repouso e alimentacao."
       />
 
       <JornadaForm

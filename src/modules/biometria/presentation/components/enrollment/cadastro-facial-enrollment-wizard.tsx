@@ -111,7 +111,7 @@ export function CadastroFacialEnrollmentWizard({
     const reproduzir = () => {
       void video.play().catch(() => {
         setErroFluxo(
-          "A camera foi liberada, mas o navegador bloqueou a exibicao do video. Tente novamente.",
+          "A câmera foi liberada, mas o navegador bloqueou a exibição do vídeo. Tente novamente.",
         );
       });
     };
@@ -139,7 +139,7 @@ export function CadastroFacialEnrollmentWizard({
 
     try {
       await iniciarCamera();
-      setMensagem("Camera ativa. Preparando o reconhecimento facial...");
+      setMensagem("Câmera ativa. Preparando o reconhecimento facial...");
       setEtapa("CARREGANDO_MODELO");
       await aguardarRenderizacao();
       await prepararDetector();
@@ -152,7 +152,7 @@ export function CadastroFacialEnrollmentWizard({
           ? error.message
           : cameraErro ??
               detectorErro ??
-              "Nao foi possivel preparar a camera e o reconhecimento facial.",
+              "Não foi possível preparar a câmera e o reconhecimento facial.",
       );
     }
   }, [cameraErro, detectorErro, iniciarCamera, prepararDetector]);
@@ -193,7 +193,7 @@ export function CadastroFacialEnrollmentWizard({
         setErroFluxo(
           error instanceof Error
             ? error.message
-            : "Nao foi possivel concluir o cadastro facial.",
+            : "Não foi possível concluir o cadastro facial.",
         );
       } finally {
         finalizandoRef.current = false;
@@ -235,7 +235,7 @@ export function CadastroFacialEnrollmentWizard({
         if (snapshot.faces !== 1) {
           setMensagem(
             snapshot.faces > 1
-              ? "Mantenha apenas uma pessoa visivel na camera."
+              ? "Mantenha apenas uma pessoa visível na câmera."
               : "Mantenha o rosto dentro da moldura.",
           );
           return;
@@ -312,7 +312,7 @@ export function CadastroFacialEnrollmentWizard({
         }
       } catch {
         if (ativo) {
-          setMensagem("Mantenha o rosto visivel e tente novamente.");
+          setMensagem("Mantenha o rosto visível e tente novamente.");
         }
       }
 
@@ -379,7 +379,7 @@ export function CadastroFacialEnrollmentWizard({
       <section className="grid gap-6 lg:grid-cols-[minmax(0,560px)_1fr] lg:items-start">
         <CameraPreview
           videoRef={videoRef}
-          status="Camera ativa. Carregando reconhecimento facial..."
+          status="Câmera ativa. Carregando reconhecimento facial..."
         />
 
         <div
@@ -397,8 +397,8 @@ export function CadastroFacialEnrollmentWizard({
             </h2>
           </div>
           <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
-            A camera ja esta ativa. Aguarde enquanto os modelos de analise
-            facial sao carregados no navegador.
+            A câmera já esta ativa. Aguarde enquanto os modelos de análise
+            facial são carregados no navegador.
           </p>
           <p className="mt-3 text-sm text-[var(--muted-foreground)]">
             Na primeira utilizacao, esta etapa pode levar alguns segundos.
@@ -466,12 +466,12 @@ function avaliarQualidade(
   const mensagem = aprovado
     ? "Mantenha a posicao por alguns segundos."
     : snapshot.faces > 1
-      ? "Mantenha apenas uma pessoa visivel na camera."
+      ? "Mantenha apenas uma pessoa visível na câmera."
       : !rostoDetectado
         ? "Centralize o rosto dentro da moldura."
         : !centralizado
-          ? "Ajuste a distancia e centralize o rosto."
-          : "Melhore a iluminacao e mantenha o rosto visivel.";
+          ? "Ajuste a distância e centralize o rosto."
+          : "Melhore a iluminação e mantenha o rosto visível.";
 
   return { indicadores, aprovado, mensagem };
 }
@@ -510,7 +510,7 @@ function poseCorresponde(snapshot: FaceSnapshot, pose: PoseAmostraFacial) {
 
 function mensagemPose(pose: PoseAmostraFacial) {
   const mensagens: Record<PoseAmostraFacial, string> = {
-    FRONTAL: "Olhe de frente para a camera.",
+    FRONTAL: "Olhe de frente para a câmera.",
     ESQUERDA: "Vire levemente o rosto para a esquerda.",
     DIREITA: "Vire levemente o rosto para a direita.",
   };

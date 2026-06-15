@@ -72,24 +72,24 @@ export default async function UsuariosPage({ searchParams }: UsuariosPageProps) 
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administracao", href: "/administracao" },
-          { label: "Usuarios" },
+          { label: "Administração", href: "/administracao" },
+          { label: "Usuários" },
         ]}
       />
 
       <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-            Administracao de acessos
+            Administração de acessos
           </p>
 
           <PageHeader
             icon={UserCog}
-            titulo="Usuarios"
-            descricao="Gerencie contas, perfis de acesso, status e vinculos funcionais dos usuarios do SECP."
+            titulo="Usuários"
+            descricao="Gerencie contas, perfis de acesso, status e vínculos funcionais dos usuários do SECP."
             artigo="Art. 20, inciso I"
-            regraTitulo="Gerenciamento de usuarios"
-            regraDescricao="O gerenciamento tecnico dos usuarios do sistema e atribuicao administrativa essencial para garantir seguranca, rastreabilidade e controle de acesso."
+            regraTitulo="Gerenciamento de usuários"
+            regraDescricao="O gerenciamento técnico dos usuários do sistema é atribuição administrativa essencial para garantir segurança, rastreabilidade e controle de acesso."
           />
         </div>
 
@@ -98,12 +98,12 @@ export default async function UsuariosPage({ searchParams }: UsuariosPageProps) 
           className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <Plus className="size-4" aria-hidden="true" />
-          Novo usuario
+          Novo usuário
         </Link>
       </section>
 
       <DataTableShell
-        title="Usuarios cadastrados"
+        title="Usuários cadastrados"
         description="Use a pesquisa geral ou filtre diretamente pelas colunas da tabela."
         total={resultado.total}
         pagina={resultado.pagina}
@@ -120,18 +120,18 @@ export default async function UsuariosPage({ searchParams }: UsuariosPageProps) 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-left text-sm">
             <caption className="sr-only">
-              Listagem de usuarios com matricula, nome, tipo, lotacao, perfis,
-              status e acoes.
+              Listagem de usuários com matrícula, nome, tipo, lotação, perfis,
+              status e ações.
             </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
-                <th className="px-5 py-3">Matricula/Login</th>
+                <th className="px-5 py-3">Matrícula/Login</th>
                 <th className="px-5 py-3">Nome</th>
                 <th className="px-5 py-3">Tipo</th>
-                <th className="px-5 py-3">Lotacao</th>
+                <th className="px-5 py-3">Lotação</th>
                 <th className="px-5 py-3">Perfis</th>
                 <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Acoes</th>
+                <th className="px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
 
@@ -194,7 +194,7 @@ export default async function UsuariosPage({ searchParams }: UsuariosPageProps) 
                     colSpan={7}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
-                    Nenhum usuario encontrado para os filtros informados.
+                    Nenhum usuário encontrado para os filtros informados.
                   </td>
                 </tr>
               )}

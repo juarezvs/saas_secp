@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { criarMarcacaoBrutaService } from "@/modules/marcacoes-brutas/application/services/criar-marcacao-bruta.service";
 import { processarMarcacaoBrutaService } from "@/modules/marcacoes-brutas/application/services/processar-marcacao-bruta.service";
+import { resolverServidorMarcacaoBrutaService } from "@/modules/marcacoes-brutas/application/services/resolver-servidor-marcacao-bruta.service";
 import { listarEquipamentosParaIdentificacaoAfd } from "@/modules/integracoes/infrastructure/repositories/integracoes.repository";
 import {
   conteudoAfdContemIdentificador,
@@ -121,6 +122,11 @@ export async function processarArquivoAfdService(params: {
 
     let trailerEncontrado = false;
     let trailerInvalido = false;
+    const servidorPorCpf = new Map<
+      string,
+      Awaited<ReturnType<typeof resolverServidorMarcacaoBrutaService>>
+    >();
+
     for (const linha of linhas) {
       if (!linha.trim()) {
         continue;
@@ -160,9 +166,19 @@ export async function processarArquivoAfdService(params: {
       }
 
       try {
+        let servidor = servidorPorCpf.get(parseada.cpf);
+
+        if (servidor === undefined) {
+          servidor = await resolverServidorMarcacaoBrutaService({
+            cpf: parseada.cpf,
+          });
+          servidorPorCpf.set(parseada.cpf, servidor);
+        }
+
         const resultadoBruta = await criarMarcacaoBrutaService({
           cpf: parseada.cpf,
-          matricula: null,
+          matricula: servidor?.matricula ?? null,
+          servidorId: servidor?.id ?? null,
           dataHora: parseada.dataHora,
           equipamentoCodigo:
             equipamentoIdentificado?.codigo ??
@@ -174,6 +190,7 @@ export async function processarArquivoAfdService(params: {
           origem: "IMPORTACAO_AFD",
           nsr: parseada.nsr,
           codigoExterno: parseada.nsr,
+          ignorarMatriculaNoHash: true,
           payloadOriginal: {
             arquivoAfdId: arquivo.id,
             nomeOriginal: arquivo.nomeOriginal,

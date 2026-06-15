@@ -16,7 +16,7 @@ export default async function NovoServidorPage() {
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administracao", href: "/administracao" },
+          { label: "Administração", href: "/administracao" },
           { label: "Servidores", href: "/servidores" },
           { label: "Novo servidor" },
         ]}
@@ -25,10 +25,10 @@ export default async function NovoServidorPage() {
       <PageHeader
         icon={Users}
         titulo="Novo servidor"
-        descricao="Cadastre o servidor e crie o usuario associado que sera usado para autenticacao e autorizacao no SECP."
+        descricao="Cadastre o servidor e crie o usuário associado que será usado para autenticação e autorização no SECP."
         artigo="Arts. 4 e 8"
-        regraTitulo="Cadastro funcional e apuracao"
-        regraDescricao="O cadastro do servidor sera usado para definir jornada, lotacao, apuracao mensal, banco de horas e acesso ao espelho de frequencia."
+        regraTitulo="Cadastro funcional e apuração"
+        regraDescricao="O cadastro do servidor será usado para definir jornada, lotação, apuração mensal, banco de horas e acesso ao espelho de frequência."
       />
 
       <ServidorForm

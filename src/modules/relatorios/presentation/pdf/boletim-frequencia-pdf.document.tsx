@@ -71,18 +71,18 @@ export function BoletimFrequenciaPdfDocument({ boletim }: BoletimPdfProps) {
     <Document
       title={`Boletim de Frequencia ${boletim.unidade.sigla} ${boletim.mesReferencia}/${boletim.anoReferencia}`}
       author="SECP"
-      subject="Boletim de Frequencia"
+      subject="Boletim de Frequência"
       creator="SECP"
       producer="SECP"
     >
       <Page size="A4" orientation="landscape" style={s.page}>
         <View style={s.header}>
           <Text style={s.orgao}>
-            Justica Federal - Secao Judiciaria do Amazonas
+            Justica Federal - Seção Judiciária do Amazonas
           </Text>
-          <Text style={s.title}>Boletim de Frequencia Mensal</Text>
+          <Text style={s.title}>Boletim de Frequência Mensal</Text>
           <Text style={s.subtitle}>
-            {boletim.unidade.sigla} - {boletim.unidade.nome} - Referencia{" "}
+            {boletim.unidade.sigla} - {boletim.unidade.nome} - Referência{" "}
             {String(boletim.mesReferencia).padStart(2, "0")}/
             {boletim.anoReferencia}
           </Text>
@@ -128,13 +128,13 @@ export function BoletimFrequenciaPdfDocument({ boletim }: BoletimPdfProps) {
               </Text>
             </View>
             <View style={s.infoBox}>
-              <Text style={s.label}>Credito</Text>
+              <Text style={s.label}>Crédito</Text>
               <Text style={s.value}>
                 {minutosParaHoraRelatorio(boletim.totalCreditoMinutos)}
               </Text>
             </View>
             <View style={s.infoBox}>
-              <Text style={s.label}>Debito</Text>
+              <Text style={s.label}>Débito</Text>
               <Text style={s.value}>
                 {minutosParaHoraRelatorio(boletim.totalDebitoMinutos)}
               </Text>
@@ -194,12 +194,12 @@ export function BoletimFrequenciaPdfDocument({ boletim }: BoletimPdfProps) {
           <View style={s.table}>
             <View style={s.tableHeader}>
               <Text style={[s.th, { width: "22%" }]}>Servidor</Text>
-              <Text style={[s.th, { width: "8%" }]}>Lotacao</Text>
+              <Text style={[s.th, { width: "8%" }]}>Lotação</Text>
               <Text style={[s.th, { width: "10%" }]}>Resumo</Text>
               <Text style={[s.th, { width: "8%" }]}>Previsto</Text>
               <Text style={[s.th, { width: "8%" }]}>Trabalhado</Text>
-              <Text style={[s.th, { width: "8%" }]}>Credito</Text>
-              <Text style={[s.th, { width: "8%" }]}>Debito</Text>
+              <Text style={[s.th, { width: "8%" }]}>Crédito</Text>
+              <Text style={[s.th, { width: "8%" }]}>Débito</Text>
               <Text style={[s.th, { width: "6%" }]}>Faltas</Text>
               <Text style={[s.th, { width: "8%" }]}>Banco</Text>
               <Text style={[s.th, { width: "14%" }]}>Observacao</Text>

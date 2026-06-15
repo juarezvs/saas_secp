@@ -141,7 +141,7 @@ export function AfdUploadDropzone() {
         />
         <p className="mt-2 text-xs leading-5 text-[var(--muted-foreground)]">
           Se este campo ficar vazio, o SECP tenta identificar automaticamente o
-          equipamento pelo codigo ou numero de serie cadastrado e presente no AFD.
+          equipamento pelo código ou número de série cadastrado e presente no AFD.
         </p>
       </div>
 

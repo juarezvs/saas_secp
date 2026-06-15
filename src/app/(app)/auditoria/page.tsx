@@ -92,16 +92,16 @@ export default async function AuditoriaPage({
         <PageHeader
           icon={ScrollText}
           titulo="Eventos de auditoria"
-          descricao="Consulte acoes sensiveis realizadas no SECP, incluindo marcacoes, solicitacoes, apuracoes, banco de horas, homologacoes, boletins, usuarios e perfis."
-          artigo="Governanca, controle eletronico e responsabilidade"
-          regraTitulo="Rastreabilidade das acoes"
-          regraDescricao="A auditoria registra quem realizou cada acao, quando ocorreu, qual entidade foi afetada e quais dados foram alterados, apoiando a responsabilizacao administrativa e a integridade do controle de frequencia."
+          descricao="Consulte ações sensíveis realizadas no SECP, incluindo marcações, solicitações, apuracoes, banco de horas, homologações, boletins, usuários e perfis."
+          artigo="Governança, controle eletrônico e responsabilidade"
+          regraTitulo="Rastreabilidade das ações"
+          regraDescricao="A auditoria registra quem realizou cada ação, quando ocorreu, qual entidade foi afetada e quais dados foram alterados, apoiando a responsabilizacao administrativa e a integridade do controle de frequência."
         />
       </section>
 
       <DataTableShell
         title="Eventos de auditoria"
-        description="Use os filtros para localizar eventos por entidade, acao, usuario ou periodo."
+        description="Use os filtros para localizar eventos por entidade, ação, usuário ou período."
         total={resultado.paginacao.total}
         pagina={resultado.paginacao.pagina}
         totalPaginas={resultado.paginacao.totalPaginas}
@@ -119,18 +119,18 @@ export default async function AuditoriaPage({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1100px] text-left text-sm">
             <caption className="sr-only">
-              Listagem de eventos de auditoria com data, usuario, entidade, ID,
-              acao, IP e acoes.
+              Listagem de eventos de auditoria com data, usuário, entidade, ID,
+              ação, IP e ações.
             </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
                 <th className="px-5 py-3">Data/hora</th>
-                <th className="px-5 py-3">Usuario</th>
+                <th className="px-5 py-3">Usuário</th>
                 <th className="px-5 py-3">Entidade</th>
                 <th className="px-5 py-3">ID entidade</th>
-                <th className="px-5 py-3">Acao</th>
+                <th className="px-5 py-3">Ação</th>
                 <th className="px-5 py-3">IP</th>
-                <th className="px-5 py-3 text-right">Acoes</th>
+                <th className="px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
 
@@ -152,7 +152,7 @@ export default async function AuditoriaPage({
                       </>
                     ) : (
                       <span className="text-[var(--muted-foreground)]">
-                        Sistema/sem usuario
+                        Sistema/sem usuário
                       </span>
                     )}
                   </td>

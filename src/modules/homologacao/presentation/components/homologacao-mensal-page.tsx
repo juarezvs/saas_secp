@@ -21,7 +21,7 @@ export function HomologacaoMensalPage() {
         <p className="text-sm font-semibold uppercase text-secp-blue-700">Homologação mensal</p>
         <h1 className="mt-2 text-2xl font-bold md:text-3xl">{homologacaoChefiaMock.unidade} • {homologacaoChefiaMock.competencia}</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-          Analise cada servidor, devolva inconsistências e homologue apenas frequências aptas.
+          Análise cada servidor, devolva inconsistências e homologue apenas frequências aptas.
         </p>
       </section>
 

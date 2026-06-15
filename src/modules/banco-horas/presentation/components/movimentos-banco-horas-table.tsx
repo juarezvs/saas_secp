@@ -25,8 +25,8 @@ export function MovimentosBancoHorasTable({
         <div>
           <h2 className="text-lg font-bold">Movimentos do banco de horas</h2>
           <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
-            Cada linha mostra a origem do credito, debito ou compensacao da
-            competencia selecionada. Os saldos ao lado resumem o impacto dos
+            Cada linha mostra a origem do crédito, débito ou compensação da
+            competência selecionada. Os saldos ao lado resumem o impacto dos
             movimentos listados.
           </p>
         </div>
@@ -40,7 +40,7 @@ export function MovimentosBancoHorasTable({
         <table className="w-full min-w-[980px] text-left text-sm">
           <caption className="sr-only">
             Movimentos do banco de horas com data, tipo, origem, minutos,
-            status, expiracao e descricao.
+            status, expiracao e descrição.
           </caption>
           <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
             <tr>
@@ -50,7 +50,7 @@ export function MovimentosBancoHorasTable({
               <th className="px-5 py-3">Horas</th>
               <th className="px-5 py-3">Status</th>
               <th className="px-5 py-3">Expiracao</th>
-              <th className="px-5 py-3">Descricao</th>
+              <th className="px-5 py-3">Descrição</th>
             </tr>
           </thead>
 
@@ -108,7 +108,7 @@ export function MovimentosBancoHorasTable({
                   className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                 >
                   Nenhum movimento de banco de horas encontrado para a
-                  competencia selecionada.
+                  competência selecionada.
                 </td>
               </tr>
             )}

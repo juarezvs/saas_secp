@@ -1,13 +1,13 @@
 import { CalendarDays } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
-import { Card, CompetenciaInput } from "@/components/ui";
+import { Card, CompetenciaInput, SearchableSelect } from "@/components/ui";
 import { redirect } from "next/navigation";
 import {
   exigirUmaDasPermissoesOuRedirecionar,
   usuarioPossuiPermissaoNoPerfil,
 } from "@/modules/auth/application/services/permissao.service";
-import { recalcularMesServidorAction } from "@/modules/recalculo/application/actions/recalcular-mes-servidor.action";
+import { RecalcularMesForm } from "@/modules/recalculo/presentation/components/recalcular-mes-form";
 import {
   buscarServidorComUsuarioPorUsuarioId,
   listarApuracoesDoServidorNoMes,
@@ -176,10 +176,10 @@ export default async function EspelhoPontoPage({
       <PageHeader
         icon={CalendarDays}
         titulo="Espelho de ponto"
-        descricao="Consulte marcacoes, jornada prevista, horas trabalhadas, creditos, debitos e inconsistencias apuradas para a competencia selecionada."
+        descricao="Consulte marcações, jornada prevista, horas trabalhadas, créditos, débitos e inconsistências apuradas para a competência selecionada."
         artigo="Arts. 8, 16 e 17"
-        regraTitulo="Conferencia mensal da frequencia"
-        regraDescricao="O servidor pode consultar a propria frequencia e o saldo; a chefia homologa mensalmente comparecimento, ausencias, creditos, debitos e compensacoes."
+        regraTitulo="Conferência mensal da frequência"
+        regraDescricao="O servidor pode consultar a própria frequência e o saldo; a chefia homologa mensalmente comparecimento, ausências, créditos, débitos e compensações."
       />
 
       <Card className="p-5">
@@ -191,19 +191,18 @@ export default async function EspelhoPontoPage({
             >
               Servidor
             </label>
-            <select
+            <SearchableSelect
               id="servidorId"
               name="servidorId"
               defaultValue={servidorSelecionado?.id ?? ""}
               disabled={!podeConsultarGlobal}
-              className="mt-2 h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {servidores.map((servidor) => (
-                <option key={servidor.id} value={servidor.id}>
-                  {servidor.matricula} - {servidor.usuario.nome}
-                </option>
-              ))}
-            </select>
+              className="mt-2"
+              searchPlaceholder="Pesquisar por matrícula ou nome..."
+              options={servidores.map((servidor) => ({
+                value: servidor.id,
+                label: `${servidor.matricula} — ${servidor.usuario.nome}`,
+              }))}
+            />
           </div>
 
           <CompetenciaInput
@@ -219,17 +218,11 @@ export default async function EspelhoPontoPage({
         </form>
 
         {podeRecalcular && servidorSelecionado && (
-          <form action={recalcularMesServidorAction} className="mt-4">
-            <input type="hidden" name="servidorId" value={servidorSelecionado.id} />
-            <input type="hidden" name="anoReferencia" value={anoReferencia} />
-            <input type="hidden" name="mesReferencia" value={mesReferencia} />
-            <button
-              type="submit"
-              className="rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-950"
-            >
-              Recalcular mes e banco de horas
-            </button>
-          </form>
+          <RecalcularMesForm
+            servidorId={servidorSelecionado.id}
+            anoReferencia={anoReferencia}
+            mesReferencia={mesReferencia}
+          />
         )}
       </Card>
 
@@ -237,7 +230,7 @@ export default async function EspelhoPontoPage({
         <EspelhoPontoMensal apuracoes={apuracoes} marcacoes={marcacoes} />
       ) : (
         <Card className="p-8 text-center text-sm text-[var(--muted-foreground)]">
-          Nenhum servidor ativo foi encontrado para exibicao do espelho.
+          Nenhum servidor ativo foi encontrado para exibição do espelho.
         </Card>
       )}
     </div>

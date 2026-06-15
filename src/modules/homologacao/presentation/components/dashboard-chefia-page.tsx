@@ -20,7 +20,7 @@ export function DashboardChefiaPage() {
           <p className="text-sm font-semibold uppercase text-secp-blue-700">Homologação da chefia</p>
           <h1 className="mt-2 text-2xl font-bold md:text-3xl">Fila mensal da unidade {homologacaoChefiaMock.unidade}</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-            Priorize pendências críticas, analise solicitações e homologue a frequência mensal da equipe.
+            Priorize pendências críticas, análise solicitações e homologue a frequência mensal da equipe.
           </p>
         </div>
         <Link href="/homologacao/mock-junho-2026" className="inline-flex h-10 items-center justify-center rounded-md bg-secp-blue-900 px-4 text-sm font-semibold text-white hover:bg-secp-blue-800">

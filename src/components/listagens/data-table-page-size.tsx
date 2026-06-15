@@ -31,7 +31,7 @@ export function DataTablePageSize({
   return (
     <label className="flex items-center gap-2">
       <span className="text-sm text-[var(--muted-foreground)]">
-        Itens por pagina
+        Itens por página
       </span>
 
       <select

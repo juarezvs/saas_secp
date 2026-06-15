@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { Loader2, Plus } from "lucide-react";
+import { SearchableSelect } from "@/components/ui";
 import type { JornadaServidorFormState } from "../../application/schemas/jornada-servidor.schema";
 
 type ServidorItem = {
@@ -79,24 +80,23 @@ export function JornadaServidorForm({
           <label htmlFor="servidorId" className="text-sm font-semibold">
             Servidor
           </label>
-          <select
+          <SearchableSelect
             id="servidorId"
             name="servidorId"
             defaultValue={estado.campos?.servidorId ?? ""}
-            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
             required
-          >
-            <option value="">Selecione</option>
-            {servidores.map((servidor) => {
+            placeholder="Selecione o servidor"
+            searchPlaceholder="Pesquisar por matrícula, nome ou lotação..."
+            options={servidores.map((servidor) => {
               const lotacao = servidor.lotacoes[0]?.unidade.sigla;
-              return (
-                <option key={servidor.id} value={servidor.id}>
-                  {servidor.matricula} — {servidor.usuario.nome}
-                  {lotacao ? ` (${lotacao})` : ""}
-                </option>
-              );
+              return {
+                value: servidor.id,
+                label: `${servidor.matricula} — ${servidor.usuario.nome}${
+                  lotacao ? ` (${lotacao})` : ""
+                }`,
+              };
             })}
-          </select>
+          />
           {erro(estado, "servidorId") && (
             <p className="text-sm text-red-600">{erro(estado, "servidorId")}</p>
           )}

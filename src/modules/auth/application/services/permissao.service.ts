@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { PermissaoNegadaError } from "@/shared/domain/errors/permissao-negada.error";
+import { buscarUsuarioParaLoginPorMatricula } from "../../infrastructure/repositories/usuario-auth.repository";
 import { usuarioPossuiPermissaoNoPerfil } from "./permissao-utils";
 
 export {
@@ -30,11 +31,27 @@ export async function obterPermissoesDaSessao(): Promise<ResultadoPermissao> {
     };
   }
 
-  const perfilAtivo = session.user.perfilAtivo;
+  const usuario = await buscarUsuarioParaLoginPorMatricula(
+    session.user.matricula,
+  );
+
+  if (!usuario) {
+    return {
+      permitido: false,
+      permissoes: [],
+    };
+  }
+
+  const perfilAtivo =
+    usuario.perfis.find(
+      (perfil) => perfil.codigo === session.user.perfilAtivo?.codigo,
+    ) ??
+    usuario.perfilAtivo ??
+    usuario.perfis[0];
 
   return {
     permitido: true,
-    usuarioId: session.user.id,
+    usuarioId: usuario.id,
     perfilAtivoId: perfilAtivo?.id,
     perfilAtivoCodigo: perfilAtivo?.codigo,
     permissoes: perfilAtivo?.permissoes ?? [],

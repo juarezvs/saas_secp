@@ -10,7 +10,11 @@ import { MarcacoesDoDiaTimeline } from "./marcacoes-do-dia-timeline";
 import { NextActionCard } from "./next-action-card";
 import { dashboardServidorMock } from "../data/dashboard-servidor.mock";
 
-export function DashboardServidor() {
+type DashboardServidorProps = {
+  primeiroNome: string;
+};
+
+export function DashboardServidor({ primeiroNome }: DashboardServidorProps) {
   const dados = dashboardServidorMock;
 
   return (
@@ -19,7 +23,7 @@ export function DashboardServidor() {
         <div>
           <Badge className="bg-secp-blue-900 text-white">Perfil {dados.servidor.perfil}</Badge>
           <h1 className="mt-3 text-2xl font-bold text-foreground md:text-3xl">
-            Bom dia, {dados.servidor.nome}
+            Bom dia, {primeiroNome}
           </h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {dados.servidor.dataExtenso} • {dados.servidor.horaReferencia} • {dados.servidor.unidade}

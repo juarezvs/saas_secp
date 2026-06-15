@@ -67,9 +67,17 @@ export default async function BancoHorasPage({ searchParams }: BancoHorasPagePro
   ): servidor is ServidorBancoHoras => Boolean(servidor);
 
   const servidores = podeConsultarGlobal
-    ? await listarServidoresComBancoHoras()
+    ? await listarServidoresComBancoHoras({
+        anoReferencia,
+        mesReferencia,
+      })
     : permissao.usuarioId
-      ? [await buscarServidorBancoHorasPorUsuarioId(permissao.usuarioId)].filter(servidorEhValido)
+      ? [
+          await buscarServidorBancoHorasPorUsuarioId(permissao.usuarioId, {
+            anoReferencia,
+            mesReferencia,
+          }),
+        ].filter(servidorEhValido)
       : [];
 
   const servidorSelecionado =

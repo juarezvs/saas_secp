@@ -14,53 +14,16 @@ function chaveData(data: Date) {
   return data.toISOString().slice(0, 10);
 }
 
-function normalizarData(data: Date) {
-  const normalizada = new Date(data);
-  normalizada.setHours(0, 0, 0, 0);
-  return normalizada;
-}
-
-function isFimDeSemana(data: Date) {
-  const dia = data.getDay();
-  return dia === 0 || dia === 6;
-}
-
-function isPeriodoRecessoForenseOrdinario(data: Date) {
-  const mes = data.getMonth() + 1;
-  const dia = data.getDate();
-
-  return (mes === 12 && dia >= 20) || (mes === 1 && dia <= 6);
-}
-
-function calcularLimiteFimRecalculo(anoReferencia: number, mesReferencia: number) {
-  const fim = new Date(anoReferencia, mesReferencia, 1);
-  const hoje = normalizarData(new Date());
-  const anoAtual = hoje.getFullYear();
-  const mesAtual = hoje.getMonth() + 1;
-  const mesFuturo =
-    anoReferencia > anoAtual ||
-    (anoReferencia === anoAtual && mesReferencia > mesAtual);
-  const mesAtualSelecionado =
-    anoReferencia === anoAtual && mesReferencia === mesAtual;
-
-  if (mesFuturo) {
-    return new Date(anoReferencia, mesReferencia - 1, 1);
+function quantidadeMarcacoesMetadados(metadados: unknown) {
+  if (
+    typeof metadados !== "object" ||
+    metadados === null ||
+    !("quantidadeMarcacoes" in metadados)
+  ) {
+    return null;
   }
 
-  return mesAtualSelecionado && hoje < fim ? hoje : fim;
-}
-
-function dataEstaNoVinculoJornada(
-  data: Date,
-  jornadaServidor: {
-    dataInicio: Date;
-    dataFim: Date | null;
-  },
-) {
-  return (
-    jornadaServidor.dataInicio <= data &&
-    (!jornadaServidor.dataFim || jornadaServidor.dataFim >= data)
-  );
+  return Number(metadados.quantidadeMarcacoes);
 }
 
 export async function recalcularMesServidorService({
@@ -70,20 +33,14 @@ export async function recalcularMesServidorService({
   usuarioIdAuditoria,
   origem = "RECALCULO_MES_SERVIDOR",
 }: RecalcularMesServidorParams) {
-  const inicio = new Date(anoReferencia, mesReferencia - 1, 1);
-  const fim = new Date(anoReferencia, mesReferencia, 1);
-  const limiteFim = calcularLimiteFimRecalculo(anoReferencia, mesReferencia);
+  const inicio = new Date(Date.UTC(anoReferencia, mesReferencia - 1, 1));
+  const fim = new Date(Date.UTC(anoReferencia, mesReferencia, 1));
 
   /*
-   * Nesta versão, recalculamos as datas que possuem:
-   * - marcações;
-   * - apurações já existentes.
-   *
-   * Ainda não geramos falta automática para todos os dias úteis do mês,
-   * porque isso dependerá do módulo de calendário institucional,
-   * feriados, recesso forense e expedientes.
+   * Sem um calendario institucional completo, o recalculo mensal considera
+   * somente datas com marcacoes ou apuracoes legitimas ja existentes.
    */
-  const [marcacoes, apuracoesExistentes, jornadasServidor] = await Promise.all([
+  const [marcacoes, apuracoesExistentes] = await Promise.all([
     prisma.marcacao.findMany({
       where: {
         servidorId,
@@ -97,7 +54,6 @@ export async function recalcularMesServidorService({
       },
       distinct: ["dataReferencia"],
     }),
-
     prisma.apuracaoDiaria.findMany({
       where: {
         servidorId,
@@ -107,32 +63,15 @@ export async function recalcularMesServidorService({
         },
       },
       select: {
+        id: true,
         dataReferencia: true,
-      },
-      distinct: ["dataReferencia"],
-    }),
-
-    prisma.jornadaServidor.findMany({
-      where: {
-        servidorId,
-        ativo: true,
-        dataInicio: {
-          lt: limiteFim,
+        resultado: true,
+        metadados: true,
+        movimentoBancoHoras: {
+          select: {
+            status: true,
+          },
         },
-        OR: [
-          {
-            dataFim: null,
-          },
-          {
-            dataFim: {
-              gte: inicio,
-            },
-          },
-        ],
-      },
-      select: {
-        dataInicio: true,
-        dataFim: true,
       },
     }),
   ]);
@@ -143,31 +82,41 @@ export async function recalcularMesServidorService({
     datas.set(chaveData(marcacao.dataReferencia), marcacao.dataReferencia);
   }
 
-  for (const apuracao of apuracoesExistentes) {
-    datas.set(chaveData(apuracao.dataReferencia), apuracao.dataReferencia);
+  const apuracoesAutomaticasSemMarcacao = apuracoesExistentes.filter(
+    (apuracao) =>
+      !datas.has(chaveData(apuracao.dataReferencia)) &&
+      apuracao.resultado === "FALTA" &&
+      quantidadeMarcacoesMetadados(apuracao.metadados) === 0 &&
+      apuracao.movimentoBancoHoras.every(
+        (movimento) => movimento.status !== "VALIDADO",
+      ),
+  );
+  const idsAutomaticos = new Set(
+    apuracoesAutomaticasSemMarcacao.map((apuracao) => apuracao.id),
+  );
+
+  if (idsAutomaticos.size > 0) {
+    const ids = [...idsAutomaticos];
+
+    await prisma.$transaction([
+      prisma.movimentoBancoHoras.deleteMany({
+        where: {
+          apuracaoDiariaId: { in: ids },
+          status: { in: ["PENDENTE", "DESCONSIDERADO"] },
+        },
+      }),
+      prisma.ocorrenciaFrequencia.deleteMany({
+        where: { apuracaoDiariaId: { in: ids } },
+      }),
+      prisma.apuracaoDiaria.deleteMany({
+        where: { id: { in: ids } },
+      }),
+    ]);
   }
 
-  for (
-    let cursor = new Date(inicio);
-    cursor < limiteFim;
-    cursor.setDate(cursor.getDate() + 1)
-  ) {
-    const dataReferencia = normalizarData(cursor);
-
-    if (isFimDeSemana(dataReferencia)) {
-      continue;
-    }
-
-    if (isPeriodoRecessoForenseOrdinario(dataReferencia)) {
-      continue;
-    }
-
-    const possuiJornadaVigente = jornadasServidor.some((jornadaServidor) =>
-      dataEstaNoVinculoJornada(dataReferencia, jornadaServidor),
-    );
-
-    if (possuiJornadaVigente) {
-      datas.set(chaveData(dataReferencia), dataReferencia);
+  for (const apuracao of apuracoesExistentes) {
+    if (!idsAutomaticos.has(apuracao.id)) {
+      datas.set(chaveData(apuracao.dataReferencia), apuracao.dataReferencia);
     }
   }
 
@@ -194,6 +143,7 @@ export async function recalcularMesServidorService({
 
   return {
     diasRecalculados: resultadosDias.length,
+    apuracoesAutomaticasRemovidas: idsAutomaticos.size,
     bancoHoras,
   };
 }

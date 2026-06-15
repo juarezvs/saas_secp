@@ -115,7 +115,7 @@ export default async function ServidorDetalhePage({
           </div>
 
           <div>
-            <p className="text-sm text-[var(--muted-foreground)]">E-mail</p>
+            <p className="text-sm text-[var(--muted-foreground)]">É-mail</p>
             <p className="mt-1 font-semibold">
               {servidor.usuario.email ?? "-"}
             </p>

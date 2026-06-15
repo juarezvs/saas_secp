@@ -92,8 +92,8 @@ export default async function JornadasPage({
             titulo="Jornadas"
             descricao="Gerencie jornadas de 7h, 8h, especiais e atribuicoes de jornada aos servidores."
             artigo="Arts. 4, 8 e 18"
-            regraTitulo="Jornada cadastrada e apuracao futura"
-            regraDescricao="O sistema deve manter a jornada a ser cumprida pelo servidor, permitindo apurar a carga mensal e comparar com a jornada esperada no mes de referencia."
+            regraTitulo="Jornada cadastrada e apuração futura"
+            regraDescricao="O sistema deve manter a jornada a ser cumprida pelo servidor, permitindo apurar a carga mensal e comparar com a jornada esperada no mês de referência."
           />
         </div>
 
@@ -114,7 +114,7 @@ export default async function JornadasPage({
 
       <DataTableShell
         title="Jornadas cadastradas"
-        description="Use a pesquisa geral ou filtre por codigo, nome, tipo e status."
+        description="Use a pesquisa geral ou filtre por código, nome, tipo e status."
         total={resultado.total}
         pagina={resultado.pagina}
         totalPaginas={resultado.totalPaginas}
@@ -130,12 +130,12 @@ export default async function JornadasPage({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[920px] text-left text-sm">
             <caption className="sr-only">
-              Listagem de jornadas com codigo, nome, tipo, carga, intervalo,
-              escalas, servidores, status e acoes.
+              Listagem de jornadas com código, nome, tipo, carga, intervalo,
+              escalas, servidores, status e ações.
             </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
-                <th className="px-5 py-3">Codigo</th>
+                <th className="px-5 py-3">Código</th>
                 <th className="px-5 py-3">Nome</th>
                 <th className="px-5 py-3">Tipo</th>
                 <th className="px-5 py-3">Carga</th>
@@ -143,7 +143,7 @@ export default async function JornadasPage({
                 <th className="px-5 py-3">Escalas</th>
                 <th className="px-5 py-3">Servidores</th>
                 <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Acoes</th>
+                <th className="px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
 
@@ -172,7 +172,7 @@ export default async function JornadasPage({
                       ? `${jornada.intervaloMinimoMinutos ?? "-"} a ${
                           jornada.intervaloMaximoMinutos ?? "-"
                         } min`
-                      : "Nao"}
+                      : "Não"}
                   </td>
                   <td className="px-5 py-4">{jornada._count.escalas}</td>
                   <td className="px-5 py-4">{jornada._count.servidores}</td>

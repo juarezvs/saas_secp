@@ -78,7 +78,7 @@ export default async function ServidoresPage({
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administracao", href: "/administracao" },
+          { label: "Administração", href: "/administracao" },
           { label: "Servidores" },
         ]}
       />
@@ -92,10 +92,10 @@ export default async function ServidoresPage({
           <PageHeader
             icon={Users}
             titulo="Servidores"
-            descricao="Gerencie servidores, vinculos funcionais, usuarios relacionados e lotacoes em unidades organizacionais."
+            descricao="Gerencie servidores, vínculos funcionais, usuários relacionados e lotações em unidades organizacionais."
             artigo="Arts. 4, 8, 16 e 19"
-            regraTitulo="Servidor, jornada, frequencia e consulta"
-            regraDescricao="O cadastro funcional sustenta a jornada, a apuracao mensal, o banco de horas, a homologacao pela chefia e a consulta da propria frequencia pelo servidor."
+            regraTitulo="Servidor, jornada, frequência e consulta"
+            regraDescricao="O cadastro funcional sustenta a jornada, a apuração mensal, o banco de horas, a homologação pela chefia e a consulta da própria frequência pelo servidor."
           />
         </div>
 
@@ -127,21 +127,21 @@ export default async function ServidoresPage({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1120px] text-left text-sm">
             <caption className="sr-only">
-              Listagem de servidores com matricula, CPF, nome, orgao, vinculo,
-              lotacao atual, contadores, status e acoes.
+              Listagem de servidores com matrícula, CPF, nome, órgão, vínculo,
+              lotação atual, contadores, status e ações.
             </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
-                <th className="px-5 py-3">Matricula</th>
+                <th className="px-5 py-3">Matrícula</th>
                 <th className="px-5 py-3">CPF</th>
                 <th className="px-5 py-3">Nome</th>
-                <th className="px-5 py-3">Orgao</th>
-                <th className="px-5 py-3">Vinculo</th>
-                <th className="px-5 py-3">Lotacao atual</th>
-                <th className="px-5 py-3">Lotacoes</th>
+                <th className="px-5 py-3">Órgão</th>
+                <th className="px-5 py-3">Vínculo</th>
+                <th className="px-5 py-3">Lotação atual</th>
+                <th className="px-5 py-3">Lotações</th>
                 <th className="px-5 py-3">Gestoes</th>
                 <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Acoes</th>
+                <th className="px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
 

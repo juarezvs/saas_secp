@@ -13,7 +13,7 @@ export type CompetenciaInputProps = Omit<
 export function CompetenciaInput({
   id = "competencia",
   name = "competencia",
-  label = "Competencia",
+  label = "Competência",
   className,
   inputClassName,
   ...props

@@ -35,11 +35,11 @@ export default async function BiometriaPage() {
 
       <PageHeader
         icon={ScanFace}
-        titulo="Validacao facial"
-        descricao="Consulte o status do cadastro facial e realize validacao biometrica para reforco de autenticacao."
-        artigo="Controle eletronico de frequencia"
-        regraTitulo="Identificacao biometrica"
-        regraDescricao="A biometria facial complementa os mecanismos de autenticacao e pode ser usada em fluxos autorizados de registro de frequencia, totem e validacao complementar."
+        titulo="Validação facial"
+        descricao="Consulte o status do cadastro facial e realize validação biometrica para reforco de autenticação."
+        artigo="Controle eletrônico de frequência"
+        regraTitulo="Identificação biometrica"
+        regraDescricao="A biometria facial complementa os mecanismos de autenticação e pode ser usada em fluxos autorizados de registro de frequência, totem e validação complementar."
       />
 
       <section className="grid gap-4 md:grid-cols-3">
@@ -51,7 +51,7 @@ export default async function BiometriaPage() {
           </p>
 
           <h2 className="mt-1 text-xl font-bold">
-            {biometria?.status ?? "Nao cadastrado"}
+            {biometria?.status ?? "Não cadastrado"}
           </h2>
         </article>
 
@@ -81,10 +81,10 @@ export default async function BiometriaPage() {
       {!biometria || biometria.status !== "ATIVO" ? (
         podeCadastrarBiometria && (
           <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
-            <h2 className="text-lg font-bold">Cadastro facial necessario</h2>
+            <h2 className="text-lg font-bold">Cadastro facial necessário</h2>
 
             <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-              Voce ainda nao possui biometria facial ativa.
+              Voce ainda não possui biometria facial ativa.
             </p>
 
             <Link
@@ -102,7 +102,7 @@ export default async function BiometriaPage() {
 
             <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
               Sua biometria facial esta ativa. Caso tenha dificuldade na
-              validacao, alteracao significativa de aparencia ou necessidade
+              validação, alteração significativa de aparencia ou necessidade
               administrativa, voce pode recadastrar sua biometria facial.
             </p>
 

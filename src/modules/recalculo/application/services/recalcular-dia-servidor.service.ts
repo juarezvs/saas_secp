@@ -2,6 +2,7 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 import { calcularApuracaoDiaria } from "@/modules/apuracao/application/services/calcular-apuracao-diaria.service";
 import { normalizarDataReferencia } from "@/modules/apuracao/application/services/calcular-tempo.service";
 import { verificarPeriodoHomologado } from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
+import { normalizarMarcacoesSemIntervaloService } from "@/modules/marcacoes/application/services/normalizar-marcacoes-sem-intervalo.service";
 
 export type RecalcularDiaServidorParams = {
   servidorId: string;
@@ -71,8 +72,13 @@ export async function recalcularDiaServidorService(
     }),
   ]);
 
+  const marcacoesNormalizadas =
+    jornadaServidor && !jornadaServidor.jornada.exigeIntervalo
+      ? await normalizarMarcacoesSemIntervaloService(prisma, marcacoes)
+      : marcacoes;
+
   const calculo = calcularApuracaoDiaria({
-    marcacoes,
+    marcacoes: marcacoesNormalizadas,
     jornada: jornadaServidor
       ? {
           jornadaServidorId: jornadaServidor.id,
@@ -118,7 +124,7 @@ export async function recalcularDiaServidorService(
         calculadaEm: new Date(),
         metadados: {
           origem,
-          quantidadeMarcacoes: marcacoes.length,
+          quantidadeMarcacoes: marcacoesNormalizadas.length,
           janelaExpediente: calculo.janelaExpediente,
           minutosForaExpediente: calculo.minutosForaExpediente,
         },
@@ -141,7 +147,7 @@ export async function recalcularDiaServidorService(
         calculadaEm: new Date(),
         metadados: {
           origem,
-          quantidadeMarcacoes: marcacoes.length,
+          quantidadeMarcacoes: marcacoesNormalizadas.length,
           janelaExpediente: calculo.janelaExpediente,
           minutosForaExpediente: calculo.minutosForaExpediente,
         },

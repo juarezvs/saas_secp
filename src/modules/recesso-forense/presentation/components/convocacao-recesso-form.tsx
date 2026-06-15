@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
-import { Loader2, Save, UserPlus } from "lucide-react";
+import { Loader2, Pencil, Save, UserPlus } from "lucide-react";
+import { SearchableSelect } from "@/components/ui";
 
 import type { RecessoFormState } from "../../application/schemas/recesso-forense.schema";
 
@@ -27,6 +29,14 @@ type ConvocacaoRecessoFormProps = {
   ) => Promise<RecessoFormState>;
   unidades: UnidadeOption[];
   servidores: ServidorOption[];
+  convocacao?: {
+    id: string;
+    numeroPortaria: string;
+    dataPortaria: Date | null;
+    unidadeId: string | null;
+    chefiaResponsavelId: string | null;
+    descricao: string | null;
+  };
 };
 
 const estadoInicial: RecessoFormState = {
@@ -43,16 +53,46 @@ export function ConvocacaoRecessoForm({
   action,
   unidades,
   servidores,
+  convocacao,
 }: ConvocacaoRecessoFormProps) {
   const [estado, formAction, pendente] = useActionState(action, estadoInicial);
+  const editando = Boolean(convocacao);
+  const numeroPortaria = String(
+    estado.campos?.numeroPortaria ?? convocacao?.numeroPortaria ?? "",
+  );
+  const dataPortaria = String(
+    estado.campos?.dataPortaria ??
+      convocacao?.dataPortaria?.toISOString().slice(0, 10) ??
+      "",
+  );
+  const unidadeId = String(
+    estado.campos?.unidadeId ?? convocacao?.unidadeId ?? "",
+  );
+  const chefiaResponsavelId = String(
+    estado.campos?.chefiaResponsavelId ??
+      convocacao?.chefiaResponsavelId ??
+      "",
+  );
+  const descricao = String(
+    estado.campos?.descricao ?? convocacao?.descricao ?? "",
+  );
 
   return (
     <form action={formAction} className="rounded-xl border bg-[var(--card)] p-6 shadow-sm">
       <input type="hidden" name="recessoId" value={recessoId} />
+      {convocacao && (
+        <input type="hidden" name="convocacaoId" value={convocacao.id} />
+      )}
 
       <div className="flex items-center gap-2">
-        <UserPlus className="size-5 text-blue-900 dark:text-blue-300" />
-        <h2 className="text-lg font-bold">Portaria de convocacao</h2>
+        {editando ? (
+          <Pencil className="size-5 text-blue-900 dark:text-blue-300" />
+        ) : (
+          <UserPlus className="size-5 text-blue-900 dark:text-blue-300" />
+        )}
+        <h2 className="text-lg font-bold">
+          {editando ? "Editar portaria de convocação" : "Portaria de convocação"}
+        </h2>
       </div>
 
       {estado.mensagem && (
@@ -64,11 +104,12 @@ export function ConvocacaoRecessoForm({
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <label htmlFor="numeroPortaria" className="text-sm font-semibold">
-            Numero da portaria
+            Número da portaria
           </label>
           <input
             id="numeroPortaria"
             name="numeroPortaria"
+            defaultValue={numeroPortaria}
             className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
             required
           />
@@ -87,6 +128,7 @@ export function ConvocacaoRecessoForm({
             id="dataPortaria"
             name="dataPortaria"
             type="date"
+            defaultValue={dataPortaria}
             className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
           />
         </div>
@@ -95,59 +137,70 @@ export function ConvocacaoRecessoForm({
           <label htmlFor="unidadeId" className="text-sm font-semibold">
             Unidade
           </label>
-          <select
+          <SearchableSelect
+            key={`unidade-${convocacao?.id ?? "nova"}-${unidadeId}`}
             id="unidadeId"
             name="unidadeId"
-            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-          >
-            <option value="">Todas / nao informada</option>
-            {unidades.map((unidade) => (
-              <option key={unidade.id} value={unidade.id}>
-                {unidade.sigla} - {unidade.nome}
-              </option>
-            ))}
-          </select>
+            defaultValue={unidadeId}
+            placeholder="Todas / não informada"
+            searchPlaceholder="Pesquisar por sigla ou nome..."
+            emptyMessage="Nenhuma unidade encontrada."
+            options={unidades.map((unidade) => ({
+              value: unidade.id,
+              label: `${unidade.sigla} - ${unidade.nome}`,
+              searchText: `${unidade.sigla} ${unidade.nome}`,
+            }))}
+          />
         </div>
 
         <div className="space-y-2">
           <label htmlFor="chefiaResponsavelId" className="text-sm font-semibold">
             Chefia do recesso
           </label>
-          <select
+          <SearchableSelect
+            key={`chefia-${convocacao?.id ?? "nova"}-${chefiaResponsavelId}`}
             id="chefiaResponsavelId"
             name="chefiaResponsavelId"
-            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-          >
-            <option value="">Definir depois</option>
-            {servidores.map((servidor) => (
-              <option key={servidor.id} value={servidor.id}>
-                {servidor.matricula} - {servidor.usuario.nome}
-              </option>
-            ))}
-          </select>
+            defaultValue={chefiaResponsavelId}
+            placeholder="Definir depois"
+            searchPlaceholder="Pesquisar por matrícula ou nome..."
+            options={servidores.map((servidor) => ({
+              value: servidor.id,
+              label: `${servidor.matricula} — ${servidor.usuario.nome}`,
+            }))}
+          />
         </div>
 
         <div className="space-y-2 md:col-span-2">
           <label htmlFor="descricao" className="text-sm font-semibold">
-            Descricao
+            Descrição
           </label>
           <textarea
             id="descricao"
             name="descricao"
             rows={3}
+            defaultValue={descricao}
             className="w-full rounded-md border bg-[var(--card)] px-3 py-2 text-sm"
           />
         </div>
       </div>
 
-      <div className="mt-5 flex justify-end">
+      <div className="mt-5 flex justify-end gap-3">
+        {editando && (
+          <Link
+            href={`/recesso-forense/${recessoId}/convocacoes`}
+            className="inline-flex items-center rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)]"
+          >
+            Cancelar edição
+          </Link>
+        )}
         <button
           type="submit"
           disabled={pendente}
           className="inline-flex items-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-950 disabled:opacity-70"
         >
           {pendente ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-          Criar convocacao
+          {editando ? "Atualizar portaria" : "Criar convocação"}
         </button>
       </div>
     </form>

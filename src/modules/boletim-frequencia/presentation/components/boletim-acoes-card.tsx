@@ -28,10 +28,10 @@ export function BoletimAcoesCard({
     <section className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
       <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
         <div>
-          <h2 className="text-lg font-bold">Acoes do boletim</h2>
+          <h2 className="text-lg font-bold">Ações do boletim</h2>
           <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
             Registre o encaminhamento para a SECAP/NUCGP e, na etapa seguinte,
-            o recebimento ou conferencia administrativa do boletim.
+            o recebimento ou conferência administrativa do boletim.
           </p>
         </div>
 
@@ -50,7 +50,7 @@ export function BoletimAcoesCard({
           <div>
             <h3 className="font-semibold">Encaminhar a SECAP/NUCGP</h3>
             <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-              Disponivel quando o boletim estiver gerado pela chefia.
+              Disponível quando o boletim estiver gerado pela chefia.
             </p>
           </div>
 
@@ -94,7 +94,7 @@ export function BoletimAcoesCard({
           <div>
             <h3 className="font-semibold">Registro SECAP/NUCGP</h3>
             <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-              Use esta etapa para confirmar recebimento e conferencia do
+              Use esta etapa para confirmar recebimento e conferência do
               boletim encaminhado.
             </p>
           </div>
@@ -116,7 +116,7 @@ export function BoletimAcoesCard({
           <textarea
             name="observacao"
             rows={3}
-            placeholder="Observacao da conferencia"
+            placeholder="Observacao da conferência"
             disabled={!podeRegistrarSecap}
             className="w-full rounded-md border bg-[var(--card)] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
           />
@@ -126,7 +126,7 @@ export function BoletimAcoesCard({
             disabled={!podeRegistrarSecap}
             className="rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Registrar recebimento/conferencia
+            Registrar recebimento/conferência
           </button>
         </form>
       </div>

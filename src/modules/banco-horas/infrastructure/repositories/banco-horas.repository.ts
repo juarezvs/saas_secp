@@ -1,6 +1,31 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
-export async function buscarServidorBancoHorasPorUsuarioId(usuarioId: string) {
+function periodoCompetencia(anoReferencia: number, mesReferencia: number) {
+  return {
+    inicio: new Date(Date.UTC(anoReferencia, mesReferencia - 1, 1)),
+    fim: new Date(Date.UTC(anoReferencia, mesReferencia, 1)),
+  };
+}
+
+function filtroLotacaoNaCompetencia(
+  anoReferencia: number,
+  mesReferencia: number,
+) {
+  const { inicio, fim } = periodoCompetencia(anoReferencia, mesReferencia);
+
+  return {
+    dataInicio: { lt: fim },
+    OR: [{ dataFim: null }, { dataFim: { gte: inicio } }],
+  };
+}
+
+export async function buscarServidorBancoHorasPorUsuarioId(
+  usuarioId: string,
+  params: {
+    anoReferencia: number;
+    mesReferencia: number;
+  },
+) {
   return prisma.servidor.findFirst({
     where: {
       usuarioId,
@@ -9,6 +34,18 @@ export async function buscarServidorBancoHorasPorUsuarioId(usuarioId: string) {
     include: {
       usuario: true,
       bancoHorasSaldo: true,
+      lotacoes: {
+        where: filtroLotacaoNaCompetencia(
+          params.anoReferencia,
+          params.mesReferencia,
+        ),
+        include: {
+          unidade: true,
+        },
+        orderBy: {
+          dataInicio: "desc",
+        },
+      },
     },
   });
 }
@@ -171,7 +208,10 @@ export async function somarCreditoValidadoNoMes(params: {
   return resultado._sum.minutos ?? 0;
 }
 
-export async function listarServidoresComBancoHoras() {
+export async function listarServidoresComBancoHoras(params: {
+  anoReferencia: number;
+  mesReferencia: number;
+}) {
   return prisma.servidor.findMany({
     where: {
       ativo: true,
@@ -183,9 +223,10 @@ export async function listarServidoresComBancoHoras() {
       usuario: true,
       bancoHorasSaldo: true,
       lotacoes: {
-        where: {
-          status: "ATIVO",
-        },
+        where: filtroLotacaoNaCompetencia(
+          params.anoReferencia,
+          params.mesReferencia,
+        ),
         include: {
           unidade: true,
         },

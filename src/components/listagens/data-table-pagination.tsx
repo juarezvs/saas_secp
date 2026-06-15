@@ -43,7 +43,7 @@ export function DataTablePagination({
             : "hover:bg-[var(--muted)]"
         }`}
       >
-        Proxima
+        Próxima
       </Link>
     </nav>
   );

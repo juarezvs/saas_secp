@@ -24,7 +24,7 @@ export function UnidadesListagemControles({
       tipo: "texto",
       nome: "busca",
       label: "Consulta geral",
-      placeholder: "Consulta aplicada apos 3 segundos",
+      placeholder: "Consulta aplicada após 3 segundos",
       className: "lg:col-span-2",
       comIconeBusca: true,
     },
@@ -34,7 +34,7 @@ export function UnidadesListagemControles({
     {
       tipo: "select",
       nome: "orgaoId",
-      label: "Orgao",
+      label: "Órgão",
       options: [
         { value: "", label: "Todos" },
         ...orgaos.map((orgao) => ({ value: orgao.id, label: orgao.sigla })),
@@ -46,15 +46,15 @@ export function UnidadesListagemControles({
       label: "Tipo",
       options: [
         { value: "", label: "Todos" },
-        { value: "ORGAO", label: "Orgao" },
-        { value: "SECAO_JUDICIARIA", label: "Secao Judiciaria" },
-        { value: "SUBSECAO_JUDICIARIA", label: "Subsecao Judiciaria" },
+        { value: "ORGAO", label: "Órgão" },
+        { value: "SECAO_JUDICIARIA", label: "Seção Judiciária" },
+        { value: "SUBSECAO_JUDICIARIA", label: "Subseção Judiciária" },
         {
           value: "UNIDADE_AVANCADA_ATENDIMENTO",
           label: "Unidade Avancada de Atendimento",
         },
-        { value: "NUCLEO", label: "Nucleo" },
-        { value: "SECAO", label: "Secao" },
+        { value: "NUCLEO", label: "Núcleo" },
+        { value: "SECAO", label: "Seção" },
         { value: "SECRETARIA", label: "Secretaria" },
         { value: "VARA", label: "Vara" },
         { value: "GABINETE", label: "Gabinete" },

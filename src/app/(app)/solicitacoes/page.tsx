@@ -39,22 +39,22 @@ export default async function SolicitacoesPage() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Solicitacoes" }]} />
+      <Breadcrumb items={[{ label: "Solicitações" }]} />
 
       <PageHeader
         icon={ClipboardList}
-        titulo="Solicitacoes"
-        descricao="Solicite ajustes, compensacoes, justificativas, abonos, atividades externas, capacitacoes e viagens a servico."
+        titulo="Solicitações"
+        descricao="Solicite ajustes, compensações, justificativas, abonos, atividades externas, capacitações e viagens a serviço."
         artigo="Arts. 8, 9, 10, 13, 14 e 18"
-        regraTitulo="Comunicacao, autorizacao e correcao de frequencia"
-        regraDescricao="As solicitacoes registram comunicacoes e pedidos que impactam a jornada, como ajuste de ponto, compensacao, abono, atividade externa, capacitacao e autorizacao previa de horas."
+        regraTitulo="Comunicação, autorização e correção de frequência"
+        regraDescricao="As solicitações registram comunicações e pedidos que impactam a jornada, como ajuste de ponto, compensação, abono, atividade externa, capacitação e autorização prévia de horas."
         actions={
           <Link
             href="/solicitacoes/nova"
             className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950"
           >
             <Plus className="size-4" aria-hidden="true" />
-            Nova solicitacao
+            Nova solicitação
           </Link>
         }
       />

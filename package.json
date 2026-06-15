@@ -10,6 +10,7 @@
     "start": "next start -p 3006",
     "lint": "eslint",
     "worker:afd": "tsx workers/afd.worker.ts",
+    "worker:reprocessamento-global": "tsx workers/reprocessamento-global.worker.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",

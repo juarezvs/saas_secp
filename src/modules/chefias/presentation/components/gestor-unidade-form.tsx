@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { Loader2, Plus } from "lucide-react";
+import { SearchableSelect } from "@/components/ui";
 import {
   papeisGestao,
   type GestorUnidadeFormState,
@@ -129,26 +130,23 @@ export function GestorUnidadeForm({
             Servidor
           </label>
 
-          <select
+          <SearchableSelect
             id="servidorId"
             name="servidorId"
             defaultValue={estado.campos?.servidorId ?? ""}
-            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
             required
-          >
-            <option value="">Selecione</option>
-
-            {servidores.map((servidor) => {
+            placeholder="Selecione o servidor"
+            searchPlaceholder="Pesquisar por matrícula, nome ou lotação..."
+            options={servidores.map((servidor) => {
               const lotacaoAtual = servidor.lotacoes[0]?.unidade.sigla;
-
-              return (
-                <option key={servidor.id} value={servidor.id}>
-                  {servidor.matricula} — {servidor.usuario.nome}
-                  {lotacaoAtual ? ` (${lotacaoAtual})` : ""}
-                </option>
-              );
+              return {
+                value: servidor.id,
+                label: `${servidor.matricula} — ${servidor.usuario.nome}${
+                  lotacaoAtual ? ` (${lotacaoAtual})` : ""
+                }`,
+              };
             })}
-          </select>
+          />
 
           {obterErro(estado.erros, "servidorId") && (
             <p className="text-sm text-red-600">

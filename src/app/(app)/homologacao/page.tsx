@@ -111,26 +111,26 @@ export default async function HomologacaoPage({
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Homologacao" }]} />
+      <Breadcrumb items={[{ label: "Homologação" }]} />
 
       <section>
         <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Homologacao mensal
+          Homologação mensal
         </p>
 
         <PageHeader
           icon={ShieldCheck}
           titulo="Fechamentos mensais"
-          descricao="Acompanhe fechamentos de frequencia por unidade, competencia, status e servidores vinculados."
+          descricao="Acompanhe fechamentos de frequência por unidade, competência, status e servidores vinculados."
           artigo="Art. 16"
-          regraTitulo="Prazo de homologacao"
-          regraDescricao="A chefia deve homologar mensalmente a frequencia ate o segundo dia util do mes subsequente, permitindo a consolidacao do boletim de frequencia."
+          regraTitulo="Prazo de homologação"
+          regraDescricao="A chefia deve homologar mensalmente a frequência ate o segundo dia util do mês subsequente, permitindo a consolidacao do boletim de frequência."
         />
       </section>
 
       <DataTableShell
-        title="Fechamentos para homologacao"
-        description="Use a pesquisa geral ou filtre por competencia, unidade e status."
+        title="Fechamentos para homologação"
+        description="Use a pesquisa geral ou filtre por competência, unidade e status."
         total={resultado.total}
         pagina={resultado.pagina}
         totalPaginas={resultado.totalPaginas}
@@ -146,18 +146,18 @@ export default async function HomologacaoPage({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-left text-sm">
             <caption className="sr-only">
-              Listagem de fechamentos mensais com competencia, unidade,
-              servidores, status, responsaveis e acoes.
+              Listagem de fechamentos mensais com competência, unidade,
+              servidores, status, responsáveis e ações.
             </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
-                <th className="px-5 py-3">Referencia</th>
+                <th className="px-5 py-3">Referência</th>
                 <th className="px-5 py-3">Unidade</th>
                 <th className="px-5 py-3">Servidores</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Aberto por</th>
                 <th className="px-5 py-3">Homologado por</th>
-                <th className="px-5 py-3 text-right">Acoes</th>
+                <th className="px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
 

@@ -40,7 +40,7 @@ const origemConfig: Record<string, OrigemConfig> = {
     className: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300",
   },
   EQUIPAMENTO_BIOMETRICO: {
-    label: "Equipamento biometrico",
+    label: "Equipamento biométrico",
     icon: Fingerprint,
     className: "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950 dark:text-violet-300",
   },
@@ -62,7 +62,7 @@ const origemConfig: Record<string, OrigemConfig> = {
 };
 
 export function obterRotuloOrigemMarcacao(origem: string | null | undefined) {
-  return origemConfig[origem ?? ""]?.label ?? origem ?? "Origem nao informada";
+  return origemConfig[origem ?? ""]?.label ?? origem ?? "Origem não informada";
 }
 
 export function OrigemMarcacaoIcon({

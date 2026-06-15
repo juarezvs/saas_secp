@@ -27,8 +27,8 @@ export function EspelhoPontoTable({ dias }: EspelhoPontoTableProps) {
       <div className="overflow-x-auto">
         <table className="w-full min-w-[980px] text-left text-sm">
           <caption className="sr-only">
-            Espelho de ponto mensal com data, jornada prevista, marcacoes,
-            resultado, creditos, debitos, situacao e acoes.
+            Espelho de ponto mensal com data, jornada prevista, marcações,
+            resultado, créditos, débitos, situacao e ações.
           </caption>
           <thead className="bg-muted text-xs uppercase text-muted-foreground">
             <tr>

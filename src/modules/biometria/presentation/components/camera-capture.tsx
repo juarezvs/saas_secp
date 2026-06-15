@@ -55,7 +55,7 @@ async function carregarHumanNoBrowser() {
     | undefined;
 
   if (!HumanConstructor) {
-    throw new Error("Nao foi possivel carregar o construtor do Human.");
+    throw new Error("Não foi possível carregar o construtor do Human.");
   }
 
   humanSingleton = new HumanConstructor({
@@ -160,7 +160,7 @@ export function CameraCapture({
         setErro(
           error instanceof Error
             ? error.message
-            : "Nao foi possivel iniciar a camera.",
+            : "Não foi possível iniciar a câmera.",
         );
       } finally {
         setCarregando(false);
@@ -181,7 +181,7 @@ export function CameraCapture({
     }
 
     if (!human) {
-      setErro("Motor biometrico ainda nao foi carregado.");
+      setErro("Motor biométrico ainda não foi carregado.");
       return;
     }
 
@@ -202,7 +202,7 @@ export function CameraCapture({
       const descriptor = face.embedding ?? face.description;
 
       if (!descriptor || descriptor.length === 0) {
-        setErro("Nao foi possivel extrair o template facial.");
+        setErro("Não foi possível extrair o template facial.");
         return;
       }
 
@@ -264,11 +264,11 @@ export function CameraCapture({
       }
     >
       <h2 className={compact ? "font-semibold" : "text-lg font-bold"}>
-        {modo === "cadastro" ? "Captura facial" : "Validacao facial"}
+        {modo === "cadastro" ? "Captura facial" : "Validação facial"}
       </h2>
 
       <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-        Posicione o rosto de frente para a camera, em ambiente iluminado.
+        Posicione o rosto de frente para a câmera, em ambiente iluminado.
       </p>
 
       <input type="hidden" name={inputName} value={valorInput} />

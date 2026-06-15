@@ -63,7 +63,7 @@ export function BoletimHistoricoCard({
           data: boletim.encaminhadoEm,
           autor: boletim.encaminhadoPor?.nome ?? "SECP",
           descricao:
-            "Boletim encaminhado para conferencia e providencias administrativas.",
+            "Boletim encaminhado para conferência e providências administrativas.",
         }
       : null,
     boletim.recebidoEm
@@ -72,16 +72,16 @@ export function BoletimHistoricoCard({
           titulo: "Registro da SECAP/NUCGP",
           data: boletim.recebidoEm,
           autor: boletim.recebidoPor?.nome ?? "SECAP/NUCGP",
-          descricao: "Recebimento ou conferencia registrado no sistema.",
+          descricao: "Recebimento ou conferência registrado no sistema.",
         }
       : null,
   ].filter((marco): marco is NonNullable<typeof marco> => Boolean(marco));
 
   return (
     <section className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
-      <h2 className="text-lg font-bold">Historico do boletim</h2>
+      <h2 className="text-lg font-bold">Histórico do boletim</h2>
       <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
-        Registro cronologico das etapas do boletim e dos eventos auditaveis do
+        Registro cronológico das etapas do boletim e dos eventos auditáveis do
         ciclo Chefia → SECAP.
       </p>
 

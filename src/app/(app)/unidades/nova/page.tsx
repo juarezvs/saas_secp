@@ -22,7 +22,7 @@ export default async function NovaUnidadePage() {
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administracao", href: "/administracao" },
+          { label: "Administração", href: "/administracao" },
           { label: "Unidades", href: "/unidades" },
           { label: "Nova unidade" },
         ]}
@@ -31,10 +31,10 @@ export default async function NovaUnidadePage() {
       <PageHeader
         icon={Building2}
         titulo="Nova unidade organizacional"
-        descricao="Cadastre unidades administrativas, judiciais, nucleos, secoes, subsecoes, varas, gabinetes e demais estruturas necessarias ao SECP."
+        descricao="Cadastre unidades administrativas, judiciais, núcleos, seções, subseções, varas, gabinetes e demais estruturas necessárias ao SECP."
         artigo="Art. 20, inciso I"
-        regraTitulo="Gestao tecnica pelo NUTEC"
-        regraDescricao="A estrutura organizacional sera usada pelo sistema para controle de usuarios, lotacoes, chefias, relatorios e demais acoes gerenciais do controle de frequencia."
+        regraTitulo="Gestão técnica pelo NUTEC"
+        regraDescricao="A estrutura organizacional será usada pelo sistema para controle de usuários, lotações, chefias, relatórios e demais ações gerenciais do controle de frequência."
       />
 
       <UnidadeForm

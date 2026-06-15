@@ -117,19 +117,19 @@ export function RecessoDetalhe({ recesso }: RecessoDetalheProps) {
         icon={CalendarRange}
         titulo={`Recesso ${recesso.ano}`}
         descricao={formatarPeriodoRecesso(recesso.dataInicio, recesso.dataFim)}
-        artigo="Modulo proprio"
+        artigo="Módulo próprio"
         regraTitulo="Fechamento separado"
-        regraDescricao="Dezembro e janeiro devem ser fechados separadamente pelo servidor antes da homologacao."
+        regraDescricao="Dezembro e janeiro devem ser fechados separadamente pelo servidor antes da homologação."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link className="rounded-md border px-4 py-2 text-sm font-semibold hover:bg-[var(--muted)]" href={`/recesso-forense/${recesso.id}/convocacoes`}>
-              Convocacoes
+              Convocações
             </Link>
             <Link className="rounded-md border px-4 py-2 text-sm font-semibold hover:bg-[var(--muted)]" href={`/recesso-forense/${recesso.id}/espelho`}>
               Espelho
             </Link>
             <Link className="rounded-md border px-4 py-2 text-sm font-semibold hover:bg-[var(--muted)]" href={`/recesso-forense/${recesso.id}/homologacao`}>
-              Homologacao
+              Homologação
             </Link>
             <form action={fecharRecessoForenseAction}>
               <input type="hidden" name="recessoId" value={recesso.id} />
@@ -163,7 +163,7 @@ export function RecessoDetalhe({ recesso }: RecessoDetalheProps) {
         </article>
         <article className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
           <FileCheck2 className="size-5 text-blue-900 dark:text-blue-300" />
-          <p className="mt-3 text-sm text-[var(--muted-foreground)]">Homologacoes</p>
+          <p className="mt-3 text-sm text-[var(--muted-foreground)]">Homologações</p>
           <h2 className="mt-1 text-xl font-bold">{recesso.homologacoes.length}</h2>
         </article>
       </section>
@@ -186,7 +186,7 @@ export function RecessoDetalhe({ recesso }: RecessoDetalheProps) {
             href={`/recesso-forense/${recesso.id}/convocacoes`}
             className="rounded-md border px-4 py-2 text-sm font-semibold hover:bg-[var(--muted)]"
           >
-            Gerenciar convocacoes
+            Gerenciar convocações
           </Link>
         </div>
 
@@ -197,7 +197,7 @@ export function RecessoDetalhe({ recesso }: RecessoDetalheProps) {
                 <th className="px-5 py-3">Servidor</th>
                 <th className="px-5 py-3">Unidade</th>
                 <th className="px-5 py-3">Portaria</th>
-                <th className="px-5 py-3">Pecunia</th>
+                <th className="px-5 py-3">Pecúnia</th>
                 <th className="px-5 py-3">Folga</th>
                 <th className="px-5 py-3">Status</th>
               </tr>

@@ -147,7 +147,7 @@ export function UsuarioForm({
 
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-semibold">
-              E-mail
+              É-mail
             </label>
 
             <input

@@ -39,14 +39,14 @@ export function RecessoForenseForm({ action }: RecessoForenseFormProps) {
       <section className="rounded-xl border bg-[var(--card)] p-6 shadow-sm">
         <h2 className="text-lg font-bold">Dados do recesso</h2>
         <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-          O periodo sera definido automaticamente de 20/12 do ano informado a
+          O período será definido automaticamente de 20/12 do ano informado a
           06/01 do ano seguinte.
         </p>
 
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <div className="space-y-2">
             <label htmlFor="ano" className="text-sm font-semibold">
-              Ano de referencia
+              Ano de referência
             </label>
             <input
               id="ano"

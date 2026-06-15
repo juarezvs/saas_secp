@@ -33,7 +33,7 @@ export default async function RecessoHomologacaoPage({
         items={[
           { label: "Recesso forense", href: "/recesso-forense" },
           { label: String(recesso.ano), href: `/recesso-forense/${recesso.id}` },
-          { label: "Homologacao" },
+          { label: "Homologação" },
         ]}
       />
 
@@ -42,8 +42,8 @@ export default async function RecessoHomologacaoPage({
         titulo={`Homologacao do recesso ${recesso.ano}`}
         descricao="Acompanhe os fechamentos separados de dezembro e janeiro."
         artigo="Fluxo institucional"
-        regraTitulo="Homologacao separada"
-        regraDescricao="A homologacao do recesso deve respeitar os fechamentos de dezembro e janeiro antes do aceite SECAD e encaminhamentos posteriores."
+        regraTitulo="Homologação separada"
+        regraDescricao="A homologação do recesso deve respeitar os fechamentos de dezembro e janeiro antes do aceite SECAD e encaminhamentos posteriores."
       />
 
       <HomologacaoRecessoPanel homologacoes={recesso.homologacoes} />

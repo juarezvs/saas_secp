@@ -11,6 +11,7 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 
 import {
   aceitarRecessoSecadSchema,
+  atualizarConvocacaoRecessoSchema,
   convocacaoRecessoSchema,
   convocadoRecessoLoteSchema,
   convocadoRecessoSchema,
@@ -203,6 +204,85 @@ export async function criarConvocacaoRecessoAction(
 
   revalidatePath(`/recesso-forense/${parsed.data.recessoId}`);
   redirect(`/recesso-forense/${parsed.data.recessoId}/convocacoes?convocacao=${convocacao.id}`);
+}
+
+export async function atualizarConvocacaoRecessoAction(
+  _estadoAnterior: RecessoFormState,
+  formData: FormData,
+): Promise<RecessoFormState> {
+  const permissao = await exigirUmaDasPermissoesOuRedirecionar([
+    "recesso:convocacao:gerenciar",
+    "recesso:gerenciar:global",
+  ]);
+
+  const dados = {
+    convocacaoId: texto(formData, "convocacaoId"),
+    recessoId: texto(formData, "recessoId"),
+    numeroPortaria: texto(formData, "numeroPortaria"),
+    dataPortaria: texto(formData, "dataPortaria"),
+    unidadeId: texto(formData, "unidadeId"),
+    chefiaResponsavelId: texto(formData, "chefiaResponsavelId"),
+    descricao: texto(formData, "descricao"),
+  };
+
+  const parsed = atualizarConvocacaoRecessoSchema.safeParse(dados);
+
+  if (!parsed.success) {
+    return estadoErro(
+      "Verifique os campos da convocacao.",
+      parsed.error.flatten().fieldErrors,
+      dados,
+    );
+  }
+
+  const existente = await prisma.convocacaoRecesso.findFirst({
+    where: {
+      id: parsed.data.convocacaoId,
+      recessoId: parsed.data.recessoId,
+    },
+  });
+
+  if (!existente) {
+    return estadoErro("A portaria informada nao pertence a este recesso.");
+  }
+
+  if (existente.status === "CANCELADA") {
+    return estadoErro("Uma portaria cancelada nao pode ser atualizada.");
+  }
+
+  const atualizada = await prisma.$transaction(async (tx) => {
+    const registro = await tx.convocacaoRecesso.update({
+      where: { id: existente.id },
+      data: {
+        numeroPortaria: parsed.data.numeroPortaria,
+        dataPortaria: parsed.data.dataPortaria
+          ? criarDataUtc(parsed.data.dataPortaria)
+          : null,
+        unidadeId: parsed.data.unidadeId || null,
+        chefiaResponsavelId: parsed.data.chefiaResponsavelId || null,
+        descricao: parsed.data.descricao || null,
+      },
+    });
+
+    await tx.auditoriaEvento.create({
+      data: {
+        usuarioId: permissao.usuarioId,
+        entidade: "ConvocacaoRecesso",
+        entidadeId: registro.id,
+        acao: "CONVOCACAO_RECESSO_ATUALIZADA",
+        dadosAntes: existente,
+        dadosDepois: registro,
+      },
+    });
+
+    return registro;
+  });
+
+  revalidatePath(`/recesso-forense/${parsed.data.recessoId}`);
+  revalidatePath(`/recesso-forense/${parsed.data.recessoId}/convocacoes`);
+  redirect(
+    `/recesso-forense/${parsed.data.recessoId}/convocacoes?convocacao=${atualizada.id}`,
+  );
 }
 
 export async function convocarServidorRecessoAction(

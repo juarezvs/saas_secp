@@ -17,11 +17,11 @@ export function JornadasListagemControles({
       tipo: "texto",
       nome: "busca",
       label: "Consulta geral",
-      placeholder: "Consulta aplicada apos 3 segundos",
+      placeholder: "Consulta aplicada após 3 segundos",
       className: "lg:col-span-2",
       comIconeBusca: true,
     },
-    { tipo: "texto", nome: "codigo", label: "Codigo" },
+    { tipo: "texto", nome: "codigo", label: "Código" },
     { tipo: "texto", nome: "nome", label: "Nome" },
     {
       tipo: "select",

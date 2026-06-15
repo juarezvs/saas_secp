@@ -25,9 +25,9 @@ export function ConsentimentoBiometriaCard({
         <div>
           <h2 className="text-lg font-bold">Uso da biometria facial</h2>
           <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
-            A captura sera feita pela camera em tempo real, com prova de vida.
-            Nao e permitido enviar foto. O SECP armazena o template facial
-            criptografado e nao guarda a imagem bruta por padrao.
+            A captura será feita pela câmera em tempo real, com prova de vida.
+            Não é permitido enviar foto. O SECP armazena o template facial
+            criptografado e não guarda a imagem bruta por padrão.
           </p>
         </div>
       </div>
@@ -40,7 +40,7 @@ export function ConsentimentoBiometriaCard({
           className="mt-1 size-4 accent-blue-900"
         />
         <span className="text-sm leading-6">
-          Li e compreendi as informacoes sobre o uso da biometria facial.
+          Li e compreendi as informações sobre o uso da biometria facial.
         </span>
       </label>
 

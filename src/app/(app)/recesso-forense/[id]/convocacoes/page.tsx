@@ -5,7 +5,10 @@ import { ArrowLeft, CalendarRange } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import { criarConvocacaoRecessoAction } from "@/modules/recesso-forense/application/actions/recesso-forense.actions";
+import {
+  atualizarConvocacaoRecessoAction,
+  criarConvocacaoRecessoAction,
+} from "@/modules/recesso-forense/application/actions/recesso-forense.actions";
 import {
   buscarRecessoForensePorId,
   listarServidoresParaRecesso,
@@ -43,13 +46,18 @@ export default async function RecessoConvocacoesPage({
     notFound();
   }
 
+  const convocacaoSelecionada =
+    recesso.convocacoes.find(
+      (convocacao) => convocacao.id === filtros.convocacao,
+    ) ?? null;
+
   return (
     <div className="space-y-6">
       <Breadcrumb
         items={[
           { label: "Recesso forense", href: "/recesso-forense" },
           { label: String(recesso.ano), href: `/recesso-forense/${recesso.id}` },
-          { label: "Convocacoes" },
+          { label: "Convocações" },
         ]}
       />
 
@@ -58,8 +66,8 @@ export default async function RecessoConvocacoesPage({
         titulo={`Convocacoes do recesso ${recesso.ano}`}
         descricao="Cadastre portarias, servidores convocados por dia e chefia especifica do recesso."
         artigo="Recesso forense"
-        regraTitulo="Convocacao por data"
-        regraDescricao="O servidor pode ser convocado em dias especificos do periodo de 20/12 a 06/01, com escolha entre pecunia e folga quando aplicavel."
+        regraTitulo="Convocação por data"
+        regraDescricao="O servidor pode ser convocado em dias específicos do período de 20/12 a 06/01, com escolha entre pecúnia e folga quando aplicável."
         actions={
           <Link
             href={`/recesso-forense/${recesso.id}`}
@@ -72,10 +80,16 @@ export default async function RecessoConvocacoesPage({
       />
 
       <ConvocacaoRecessoForm
+        key={convocacaoSelecionada?.id ?? "nova"}
         recessoId={recesso.id}
-        action={criarConvocacaoRecessoAction}
+        action={
+          convocacaoSelecionada
+            ? atualizarConvocacaoRecessoAction
+            : criarConvocacaoRecessoAction
+        }
         unidades={unidades}
         servidores={servidores}
+        convocacao={convocacaoSelecionada ?? undefined}
       />
 
       <ConvocacoesRecessoPanel

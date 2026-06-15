@@ -27,9 +27,9 @@ export function HomologacaoRecessoPanel({
   return (
     <section className="rounded-xl border bg-[var(--card)] shadow-sm">
       <div className="border-b p-5">
-        <h2 className="text-lg font-bold">Homologacoes do recesso</h2>
+        <h2 className="text-lg font-bold">Homologações do recesso</h2>
         <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-          Chefia homologa e SECAD aceita antes dos relatorios SEPAG/SECAP.
+          Chefia homologa e SECAD aceita antes dos relatórios SEPAG/SECAP.
         </p>
       </div>
 
@@ -38,12 +38,12 @@ export function HomologacaoRecessoPanel({
           <thead className="border-b bg-[var(--muted)] text-xs uppercase text-[var(--muted-foreground)]">
             <tr>
               <th className="px-5 py-3">Servidor</th>
-              <th className="px-5 py-3">Mes</th>
+              <th className="px-5 py-3">Mês</th>
               <th className="px-5 py-3">Status</th>
               <th className="px-5 py-3">Dias</th>
-              <th className="px-5 py-3">Pecunia</th>
+              <th className="px-5 py-3">Pecúnia</th>
               <th className="px-5 py-3">Folga</th>
-              <th className="px-5 py-3">Acoes</th>
+              <th className="px-5 py-3">Ações</th>
             </tr>
           </thead>
           <tbody>

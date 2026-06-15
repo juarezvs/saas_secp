@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { garantirJornadaPadraoServidorService } from "@/modules/jornadas/application/services/garantir-jornada-padrao-servidor.service";
 import { vincularMarcacoesBrutasServidorService } from "@/modules/marcacoes-brutas/application/services/vincular-marcacoes-brutas-servidor.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
@@ -133,6 +134,8 @@ export async function criarServidorAction(
         ativo: parsed.data.ativo,
       },
     });
+
+    await garantirJornadaPadraoServidorService(tx, novoServidor.id);
 
     await tx.auditoriaEvento.create({
       data: {

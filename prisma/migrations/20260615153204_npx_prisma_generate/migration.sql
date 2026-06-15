@@ -1,0 +1,2 @@
+-- RenameIndex
+ALTER INDEX "recessos_convocados_convocacao_id_servidor_id_data_convocacao_k" RENAME TO "recessos_convocados_convocacao_id_servidor_id_data_convocac_key";

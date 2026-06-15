@@ -35,22 +35,22 @@ export default async function MarcacoesPage() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Marcacoes" }]} />
+      <Breadcrumb items={[{ label: "Marcações" }]} />
 
       <PageHeader
         icon={Clock}
-        titulo="Marcacoes de ponto"
-        descricao="Consulte suas marcacoes do dia e registre novo horario."
+        titulo="Marcações de ponto"
+        descricao="Consulte suas marcações do dia e registre novo horário."
         artigo="Art. 6"
-        regraTitulo="Marcacao de entrada, saida e intervalo"
-        regraDescricao="O sistema registra entrada, saida, saida para intervalo e retorno do intervalo, permitindo futura apuracao da jornada diaria e mensal."
+        regraTitulo="Marcação de entrada, saida e intervalo"
+        regraDescricao="O sistema registra entrada, saida, saida para intervalo e retorno do intervalo, permitindo futura apuração da jornada diária e mensal."
         actions={
           <Link
             href="/marcacoes/registrar"
             className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950"
           >
             <Plus className="size-4" aria-hidden="true" />
-            Registrar horario
+            Registrar horário
           </Link>
         }
       />
@@ -61,7 +61,7 @@ export default async function MarcacoesPage() {
         <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
           <div className="flex items-center gap-2 border-b p-5">
             <Clock3 className="size-5 text-blue-900 dark:text-blue-300" />
-            <h2 className="text-lg font-bold">Ultimas marcacoes registradas</h2>
+            <h2 className="text-lg font-bold">Ultimas marcações registradas</h2>
           </div>
 
           <div className="overflow-x-auto">
@@ -70,7 +70,7 @@ export default async function MarcacoesPage() {
                 <tr>
                   <th className="px-5 py-3">Data/hora</th>
                   <th className="px-5 py-3">Servidor</th>
-                  <th className="px-5 py-3">Lotacao</th>
+                  <th className="px-5 py-3">Lotação</th>
                   <th className="px-5 py-3">Tipo</th>
                   <th className="px-5 py-3">Fonte</th>
                   <th className="px-5 py-3">Status</th>
@@ -129,7 +129,7 @@ export default async function MarcacoesPage() {
                       colSpan={6}
                       className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                     >
-                      Nenhuma marcacao encontrada.
+                      Nenhuma marcação encontrada.
                     </td>
                   </tr>
                 )}

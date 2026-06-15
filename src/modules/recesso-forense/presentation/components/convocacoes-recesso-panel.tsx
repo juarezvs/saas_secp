@@ -141,13 +141,21 @@ export function ConvocacoesRecessoPanel({
                   {convocacao.dataPortaria
                     ? formatarDataRecesso(convocacao.dataPortaria)
                     : "Sem data"}{" "}
-                  - {convocacao.unidade?.sigla ?? "Unidade nao informada"} -
+                  - {convocacao.unidade?.sigla ?? "Unidade não informada"} -
                   Chefia:{" "}
                   {convocacao.chefiaResponsavel?.usuario.nome ??
-                    "nao definida"}
+                    "não definida"}
                 </p>
               </div>
-              <RecessoStatusBadge status={convocacao.status} />
+              <div className="flex items-center gap-3">
+                <Link
+                  href={`/recesso-forense/${recesso.id}/convocacoes?convocacao=${convocacao.id}`}
+                  className="inline-flex rounded-md border px-3 py-1.5 text-xs font-semibold text-blue-900 transition hover:bg-[var(--muted)] dark:text-blue-300"
+                >
+                  Editar portaria
+                </Link>
+                <RecessoStatusBadge status={convocacao.status} />
+              </div>
             </div>
           </div>
 
@@ -172,10 +180,10 @@ export function ConvocacoesRecessoPanel({
                 <tr>
                   <th className="px-5 py-3">Servidor</th>
                   <th className="px-5 py-3">Unidade</th>
-                  <th className="px-5 py-3">Pecunia</th>
+                  <th className="px-5 py-3">Pecúnia</th>
                   <th className="px-5 py-3">Folga</th>
                   <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3">Acoes</th>
+                  <th className="px-5 py-3">Ações</th>
                 </tr>
               </thead>
               <tbody>

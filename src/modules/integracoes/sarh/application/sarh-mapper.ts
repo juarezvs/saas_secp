@@ -4,9 +4,10 @@ import {
   mapearTipoUnidadeSarhParaSecp,
   normalizarCodigoLotacaoPaiServidor,
   normalizarCodigoLotacaoServidor,
-  normalizarCpf,
   normalizarDataSarh,
   normalizarMatricula,
+  obterCpfServidorSarh,
+  obterDataNascimentoServidorSarh,
 } from "../domain/sarh-normalizer";
 
 export function mapearCargoSarh(payload: SarhCargoDto) {
@@ -62,7 +63,7 @@ export function mapearUnidadeSarh(payload: SarhLotacaoDto, orgaoId: string, unid
 }
 
 export function mapearUsuarioServidorSarh(payload: SarhServidorDto) {
-  const cpf = normalizarCpf(payload.cpf);
+  const cpf = obterCpfServidorSarh(payload);
   const nome = limparTexto(payload.nomeSocial) ?? limparTexto(payload.nome) ?? normalizarMatricula(payload.matricula);
 
   return {
@@ -79,12 +80,12 @@ export function mapearServidorSarh(payload: SarhServidorDto, usuarioId: string, 
     usuarioId,
     orgaoId,
     matricula: normalizarMatricula(payload.matricula),
-    cpf: normalizarCpf(payload.cpf),
+    cpf: obterCpfServidorSarh(payload),
     nomeFuncional: limparTexto(payload.nomeSocial) ?? limparTexto(payload.nome),
     vinculo: "EFETIVO",
     ativo: payload.ativo,
     cargoId: cargoId ?? null,
-    dataNascimento: normalizarDataSarh(payload.dataNascimento),
+    dataNascimento: obterDataNascimentoServidorSarh(payload),
     nomeCompletoSarh: limparTexto(payload.nome),
     nomeSocialSarh: limparTexto(payload.nomeSocial),
     codigoLotacaoSarh: normalizarCodigoLotacaoServidor(payload),

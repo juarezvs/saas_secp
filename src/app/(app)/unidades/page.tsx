@@ -73,7 +73,7 @@ export default async function UnidadesPage({
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administracao", href: "/administracao" },
+          { label: "Administração", href: "/administracao" },
           { label: "Unidades" },
         ]}
       />
@@ -81,10 +81,10 @@ export default async function UnidadesPage({
       <PageHeader
         icon={Building2}
         titulo="Unidades organizacionais"
-        descricao="Cadastre e mantenha a estrutura organizacional usada para lotacao, chefia, homologacao, relatorios e controle de frequencia."
+        descricao="Cadastre e mantenha a estrutura organizacional usada para lotação, chefia, homologação, relatórios e controle de frequência."
         artigo="Arts. 1, 3, 16 e 20"
-        regraTitulo="Abrangencia institucional e gestao da frequencia"
-        regraDescricao="A estrutura de unidades permite controlar frequencia, homologacoes, boletins e responsabilidades gerenciais dentro da Secao Judiciaria do Amazonas, subsecoes e unidades vinculadas."
+        regraTitulo="Abrangência institucional e gestão da frequência"
+        regraDescricao="A estrutura de unidades permite controlar frequência, homologações, boletins e responsabilidades gerenciais dentro da Seção Judiciária do Amazonas, subseções e unidades vinculadas."
         actions={
           <Link
             href="/unidades/nova"
@@ -115,20 +115,20 @@ export default async function UnidadesPage({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-left text-sm">
             <caption className="sr-only">
-              Listagem de unidades com sigla, nome, tipo, orgao, unidade
-              superior, contadores, status e acoes.
+              Listagem de unidades com sigla, nome, tipo, órgão, unidade
+              superior, contadores, status e ações.
             </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
                 <th className="px-5 py-3">Sigla</th>
                 <th className="px-5 py-3">Nome</th>
                 <th className="px-5 py-3">Tipo</th>
-                <th className="px-5 py-3">Orgao</th>
+                <th className="px-5 py-3">Órgão</th>
                 <th className="px-5 py-3">Superior</th>
                 <th className="px-5 py-3">Subunidades</th>
                 <th className="px-5 py-3">Lotados</th>
                 <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Acoes</th>
+                <th className="px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
 

@@ -37,10 +37,10 @@ export default async function ChefiasPage() {
       <PageHeader
         icon={Network}
         titulo="Chefias, gestores e delegacoes"
-        descricao="Cadastre gestores titulares, substitutos e delegados responsaveis por autorizacoes, validacoes e futuras homologacoes de frequencia."
+        descricao="Cadastre gestores titulares, substitutos e delegados responsáveis por autorizações, validações e futuras homologações de frequência."
         artigo="Art. 16, §§ 1º e 2º"
-        regraTitulo="Homologacao e delegacao de competencia"
-        regraDescricao="A frequencia mensal e homologada pelo superior hierarquico, que podera delegar competencia a servidor lotado na unidade, sem afastar sua responsabilidade e a responsabilidade pessoal do delegado."
+        regraTitulo="Homologação e delegacao de competência"
+        regraDescricao="A frequência mensal é homologada pelo superior hierárquico, que poderá delegar competência a servidor lotado na unidade, sem afastar sua responsabilidade e a responsabilidade pessoal do delegado."
       />
 
       <GestorUnidadeForm
@@ -60,13 +60,13 @@ export default async function ChefiasPage() {
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
                 <th className="px-5 py-3">Unidade</th>
-                <th className="px-5 py-3">Orgao</th>
+                <th className="px-5 py-3">Órgão</th>
                 <th className="px-5 py-3">Superior</th>
                 <th className="px-5 py-3">Titulares</th>
                 <th className="px-5 py-3">Substitutos</th>
                 <th className="px-5 py-3">Delegados</th>
                 <th className="px-5 py-3">Lotados</th>
-                <th className="px-5 py-3 text-right">Acoes</th>
+                <th className="px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
 

@@ -33,7 +33,7 @@ export function ComprovanteRegistroCard({
               <dd>{horario}</dd>
             </div>
             <div>
-              <dt className="font-semibold">Método</dt>
+              <dt className="font-semibold">Metodo</dt>
               <dd>{metodo}</dd>
             </div>
             <div>

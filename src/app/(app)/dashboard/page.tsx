@@ -36,6 +36,11 @@ export default async function DashboardPage() {
       return <DashboardDiref />;
     case "SERVIDOR":
     default:
-      return <DashboardServidor />;
+      return (
+        <DashboardServidor
+          usuarioId={session.user.id}
+          nomeFallback={session.user.nome || session.user.name || "Servidor"}
+        />
+      );
   }
 }

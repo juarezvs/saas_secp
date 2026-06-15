@@ -38,7 +38,7 @@ export function ValidacaoFacialCard({
 
           {typeof estado.distancia === "number" && (
             <p className="mt-2 text-xs">
-              Distancia: {estado.distancia.toFixed(4)} | Similaridade:{" "}
+              Distância: {estado.distancia.toFixed(4)} | Similaridade:{" "}
               {estado.similaridade?.toFixed(4)}
             </p>
           )}
@@ -49,7 +49,7 @@ export function ValidacaoFacialCard({
         <section className="rounded-md border border-green-200 bg-green-50 p-4 text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
           <h2 className="font-bold">Identidade confirmada</h2>
           <p className="mt-2 text-sm leading-6">
-            A validacao facial foi concluida. Confirme para gravar a marcacao
+            A validação facial foi concluida. Confirme para gravar a marcação
             com data e hora atuais.
           </p>
 
@@ -69,7 +69,7 @@ export function ValidacaoFacialCard({
             formAction={registrarMarcacaoFacialAutorizadaAction}
             className="mt-4 rounded-md bg-green-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-800"
           >
-            Registrar marcacao agora
+            Registrar marcação agora
           </button>
         </section>
       ) : (

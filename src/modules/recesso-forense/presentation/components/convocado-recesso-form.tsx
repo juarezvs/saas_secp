@@ -204,8 +204,8 @@ export function ConvocadoRecessoForm({
           </h3>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
             {servidorIdInicial
-              ? "Ajuste as datas convocadas e alterne entre Pecunia e Folga antes de salvar."
-              : "Selecione o servidor, monte o periodo do recesso e marque todas as datas convocadas antes de salvar."}
+              ? "Ajuste as datas convocadas e alterne entre Pecúnia e Folga antes de salvar."
+              : "Selecione o servidor, monte o período do recesso e marque todas as datas convocadas antes de salvar."}
           </p>
         </div>
         <div className="rounded-md border bg-[var(--muted)] px-3 py-2 text-sm font-semibold">
@@ -219,7 +219,7 @@ export function ConvocadoRecessoForm({
             <div>
               <p className="font-semibold">Modo edicao ativo</p>
               <p className="mt-1">
-                Editando a convocacao de {servidorSelecionado.usuario.nome}. Desmarcar uma
+                Editando a convocação de {servidorSelecionado.usuario.nome}. Desmarcar uma
                 data remove o servidor daquele dia do recesso.
               </p>
             </div>
@@ -270,8 +270,8 @@ export function ConvocadoRecessoForm({
                 }
               }}
               className="h-11 w-full rounded-md border bg-[var(--card)] pl-9 pr-3 text-sm disabled:cursor-not-allowed disabled:opacity-70"
-              placeholder="Pesquise por matricula ou nome"
-              aria-label="Pesquisar servidor por matricula ou nome"
+              placeholder="Pesquise por matrícula ou nome"
+              aria-label="Pesquisar servidor por matrícula ou nome"
               autoComplete="off"
               required={!servidorIdInicial}
             />
@@ -303,7 +303,7 @@ export function ConvocadoRecessoForm({
           </div>
           {!servidorId && servidorBusca && !servidorIdInicial && (
             <p className="text-xs text-[var(--muted-foreground)]">
-              Selecione um servidor na lista para habilitar a convocacao.
+              Selecione um servidor na lista para habilitar a convocação.
             </p>
           )}
           {erro(estado, "servidorId") && (
@@ -332,10 +332,10 @@ export function ConvocadoRecessoForm({
             disabled={!servidorId || Boolean(servidorIdInicial)}
             onClick={() => setTabelaMontada(true)}
             className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label="Criar tabela de datas da convocacao"
+            aria-label="Criar tabela de datas da convocação"
           >
             <CalendarDays className="size-4" />
-            {servidorIdInicial ? "Tabela montada" : "Criar convocacao"}
+            {servidorIdInicial ? "Tabela montada" : "Criar convocação"}
           </button>
         </div>
       </div>
@@ -349,7 +349,7 @@ export function ConvocadoRecessoForm({
           name="observacao"
           rows={2}
           className="w-full rounded-md border bg-[var(--card)] px-3 py-2 text-sm"
-          placeholder="Informacao administrativa opcional sobre a convocacao."
+          placeholder="Informação administrativa opcional sobre a convocação."
         />
       </div>
 
@@ -360,7 +360,7 @@ export function ConvocadoRecessoForm({
               Datas do recesso para {servidorSelecionado.usuario.nome}
             </p>
             <p className="text-xs text-[var(--muted-foreground)]">
-              Clique na linha para marcar a data. A opcao padrao e Pecunia; use o
+              Clique na linha para marcar a data. A opção padrão é Pecúnia; use o
               toggle para alternar para Folga.
             </p>
           </div>
@@ -433,7 +433,7 @@ export function ConvocadoRecessoForm({
                               escolha === "FOLGA" ? "text-[var(--muted-foreground)]" : "text-white"
                             }`}
                           >
-                            Pecunia
+                            Pecúnia
                           </span>
                           <span
                             className={`relative z-10 text-center transition-colors duration-300 ${
@@ -464,7 +464,7 @@ export function ConvocadoRecessoForm({
           className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-70"
         >
           {pendente ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" />}
-          {servidorIdInicial ? "Salvar alteracoes" : "Salvar convocacao"}
+          {servidorIdInicial ? "Salvar alteracoes" : "Salvar convocação"}
         </button>
       </div>
     </form>

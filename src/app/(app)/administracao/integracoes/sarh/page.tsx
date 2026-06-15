@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { CircleAlert } from "lucide-react";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { SarhStatusCard } from "@/modules/integracoes/sarh/presentation/components/sarh-status-card";
@@ -105,7 +107,28 @@ export default async function IntegracaoSarhPage() {
                       <td className="py-2 pr-3">{execucao.totalRecebidos}</td>
                       <td className="py-2 pr-3">{execucao.totalCriados}</td>
                       <td className="py-2 pr-3">{execucao.totalAtualizados}</td>
-                      <td className="py-2 pr-3">{execucao.totalErros}</td>
+                      <td className="py-2 pr-3">
+                        <span className="inline-flex items-center gap-2">
+                          {execucao.totalErros +
+                            (execucao.mensagemErro && execucao.totalErros === 0
+                              ? 1
+                              : 0)}
+                          {(execucao.totalErros > 0 ||
+                            Boolean(execucao.mensagemErro)) && (
+                            <Link
+                              href={`/administracao/integracoes/sarh/execucoes/${execucao.id}/erros`}
+                              className="inline-flex rounded text-red-600 transition hover:text-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:text-red-400 dark:hover:text-red-300"
+                              aria-label="Ver resumo dos erros desta execução"
+                              title="Ver resumo dos erros"
+                            >
+                              <CircleAlert
+                                className="size-4"
+                                aria-hidden="true"
+                              />
+                            </Link>
+                          )}
+                        </span>
+                      </td>
                     </tr>
                   ))
                 )}

@@ -15,7 +15,7 @@ export function RegistrarPontoCard() {
           <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
             Use esta opção apenas quando houver permissão específica para
             registro de ponto pelo sistema web. A marcação será gravada como
-            dado bruto e processada pelo SECP.
+            dado bruto e será processada pelo SECP.
           </p>
 
           <form action={registrarMarcacaoWebAutorizadaAction} className="mt-4">

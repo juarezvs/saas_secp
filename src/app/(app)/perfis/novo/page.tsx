@@ -16,8 +16,8 @@ export default async function NovoPerfilPage() {
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administracao", href: "/administracao" },
-          { label: "Perfis e permissoes", href: "/perfis" },
+          { label: "Administração", href: "/administracao" },
+          { label: "Perfis e permissões", href: "/perfis" },
           { label: "Novo perfil" },
         ]}
       />
@@ -25,10 +25,10 @@ export default async function NovoPerfilPage() {
       <PageHeader
         icon={ShieldAlert}
         titulo="Novo perfil"
-        descricao="Crie um perfil institucional e associe permissoes de acordo com as responsabilidades do usuario no SECP."
+        descricao="Crie um perfil institucional e associe permissões de acordo com as responsabilidades do usuário no SECP."
         artigo="Modelo RBAC do SECP"
         regraTitulo="Perfis customizados"
-        regraDescricao="O SECP permite criar perfis personalizados para refletir responsabilidades institucionais, administrativas, tecnicas, gerenciais e de consulta."
+        regraDescricao="O SECP permite criar perfis personalizados para refletir responsabilidades institucionais, administrativas, técnicas, gerenciais e de consulta."
       />
 
       <PerfilForm

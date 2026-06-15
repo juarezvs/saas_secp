@@ -115,15 +115,22 @@ async function anexarEquipamentosAsMarcacoesBrutas<
 
 export async function listarMarcacoesBrutasPendentes(params?: {
   limite?: number;
+  cursorId?: string | null;
 }) {
+  const limite = params?.limite ?? 100;
   return prisma.marcacaoBruta.findMany({
     where: {
       processada: false,
+      servidorId: { not: null },
     },
-    orderBy: {
-      dataHora: "desc",
-    },
-    take: params?.limite ?? 100,
+    orderBy: [{ dataHora: "desc" }, { id: "desc" }],
+    ...(params?.cursorId
+      ? {
+          cursor: { id: params.cursorId },
+          skip: 1,
+        }
+      : {}),
+    take: limite,
   });
 }
 

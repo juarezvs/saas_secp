@@ -64,7 +64,15 @@ SECP_ADMIN_SENHA="secp"
 SECP_ADMIN_NOME="Administrador SECP"
 SECP_ADMIN_EMAIL="secp@localhost"
 
-# LDAP / Active Directory - configurar depois
+# Active Directory
+
+# O login tenta primeiro a API do AD e, em caso de falha,
+
+# utiliza a senha local cadastrada no SECP.
+
+AD_AUTH_URL="http://login.ad.integracao.am.trf1.gov.br/auth/login"
+
+# Configurações LDAP legadas
 
 LDAP_URL="ldap://srvdc1-am.jfam.local:389"
 LDAP_BASE_DN="DC=jfam,DC=local"
@@ -97,7 +105,9 @@ REDIS_PORT=6379
 AFD_UPLOAD_DIR=import/\_upload/afd
 
 # Biometria facial
+
 # Gere uma chave aleatoria de 32 bytes em base64.
+
 BIOMETRIA_FACIAL_ENCRYPTION_KEY=
 BIOMETRIA_FACIAL_TEMPLATE_PEPPER=
 BIOMETRIA_FACIAL_ALLOW_RAW_IMAGE_STORAGE=false
@@ -115,12 +125,13 @@ h) npx prisma db seed
 e) rodar a aplicação ->
 npm run dev
 npm run worker:afd
+npm run worker:reprocessamento-global
 f) acessar a aplicação -> http://localhost:3000
 Para o primeiro acesso usar: Matricula -> secp
 Senha da rede -> secp
 
-
 ## Para testar localmente, use o arquivo local
+
 docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local down
 docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local build --no-cache
 docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local up -d postgres redis
@@ -129,6 +140,7 @@ docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker
 docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local up -d web --force-recreate
 http://localhost:3000
 
-
 ## Para Produção usar
 
+em http://localhost:3000/recesso-forense, apenas para o perfil "servidor", os servidor só deve ver o seus dados. na tabela de "recessos cadastrados", as colunas "Convocações" e "Convocados" devem ser substituidas por "Pecúnia" e "folga" respectivamente e com o resumo dos dias que foram escolhidos para pecúnia e folga (similar ao que tem em (http://localhost:3000/recesso-forense/017355a3-9568-49e3-a938-2c7cabae3159) e não deve ter a coluça ações.
+Para outros perfis manter como está hoje.

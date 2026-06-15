@@ -13,9 +13,12 @@ export async function buscarUsuarioParaLoginPorMatricula(
     })
   | null
 > {
-  const usuario = await prisma.usuario.findUnique({
+  const usuario = await prisma.usuario.findFirst({
     where: {
-      matricula,
+      matricula: {
+        equals: matricula,
+        mode: "insensitive",
+      },
     },
     include: {
       perfis: {

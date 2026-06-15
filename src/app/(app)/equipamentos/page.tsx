@@ -26,18 +26,18 @@ export default async function EquipamentosPage() {
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administracao", href: "/administracao" },
-          { label: "Equipamentos biometricos" },
+          { label: "Administração", href: "/administracao" },
+          { label: "Equipamentos biométricos" },
         ]}
       />
 
       <PageHeader
         icon={Cpu}
-        titulo="Equipamentos biometricos"
-        descricao="Cadastre relogios de ponto, REP, totens e dispositivos biometricos usados para receber marcacoes oficiais e importar arquivos AFD."
-        artigo="Controle de frequencia"
+        titulo="Equipamentos biométricos"
+        descricao="Cadastre relógios de ponto, REP, totens e dispositivos biométricos usados para receber marcações oficiais e importar arquivos AFD."
+        artigo="Controle de frequência"
         regraTitulo="Equipamento, AFD e rastreabilidade"
-        regraDescricao="Ao importar AFD, o SECP tenta associar o arquivo ao equipamento cadastrado pelo codigo ou numero de serie, preservando a origem da marcacao."
+        regraDescricao="Ao importar AFD, o SECP tenta associar o arquivo ao equipamento cadastrado pelo código ou número de série, preservando a origem da marcação."
       />
 
       <EquipamentoBiometricoForm unidades={unidades} />

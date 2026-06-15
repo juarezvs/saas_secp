@@ -17,7 +17,7 @@ export function IntegracoesListagemControles({
       tipo: "texto",
       nome: "busca",
       label: "Consulta geral",
-      placeholder: "Nome, descricao, URL ou erro",
+      placeholder: "Nome, descrição, URL ou erro",
       className: "lg:col-span-2",
       comIconeBusca: true,
     },
@@ -29,7 +29,7 @@ export function IntegracoesListagemControles({
         { value: "", label: "Todos" },
         { value: "SARH", label: "SARH" },
         { value: "SEI", label: "SEI" },
-        { value: "EQUIPAMENTO_BIOMETRICO", label: "Equipamento biometrico" },
+        { value: "EQUIPAMENTO_BIOMETRICO", label: "Equipamento biométrico" },
         { value: "LDAP", label: "LDAP" },
         { value: "WEBHOOK", label: "Webhook" },
         { value: "OUTRO", label: "Outro" },
@@ -44,13 +44,13 @@ export function IntegracoesListagemControles({
         { value: "ATIVA", label: "Ativa" },
         { value: "INATIVA", label: "Inativa" },
         { value: "ERRO", label: "Erro" },
-        { value: "NAO_CONFIGURADA", label: "Nao configurada" },
+        { value: "NAO_CONFIGURADA", label: "Não configurada" },
       ],
     },
     {
       tipo: "select",
       nome: "direcao",
-      label: "Direcao",
+      label: "Direção",
       options: [
         { value: "", label: "Todas" },
         { value: "ENTRADA", label: "Entrada" },
@@ -65,7 +65,7 @@ export function IntegracoesListagemControles({
       options: [
         { value: "", label: "Todas" },
         { value: "true", label: "Sim" },
-        { value: "false", label: "Nao" },
+        { value: "false", label: "Não" },
       ],
     },
   ];

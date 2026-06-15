@@ -74,7 +74,7 @@ export function CadastroFacialAutoWizard() {
   const [cameraAtiva, setCameraAtiva] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [mensagem, setMensagem] = useState(
-    "Inicializando camera e modelo facial...",
+    "Inicializando câmera e modelo facial...",
   );
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, startSaving] = useTransition();
@@ -127,7 +127,7 @@ export function CadastroFacialAutoWizard() {
           if (!resultado.sucesso) {
             setErro(
               resultado.mensagem ??
-                "Nao foi possivel salvar a biometria facial.",
+                "Não foi possível salvar a biometria facial.",
             );
             return;
           }
@@ -174,7 +174,7 @@ export function CadastroFacialAutoWizard() {
 
       if (!embedding || !face.box) {
         setMensagem(
-          "Rosto detectado, mas o template facial ainda nao foi gerado. Mantenha o rosto enquadrado.",
+          "Rosto detectado, mas o template facial ainda não foi gerado. Mantenha o rosto enquadrado.",
         );
         return;
       }
@@ -264,7 +264,7 @@ export function CadastroFacialAutoWizard() {
         await human.load();
         await human.warmup();
 
-        setMensagem("Solicitando acesso a camera...");
+        setMensagem("Solicitando acesso a câmera...");
 
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -301,7 +301,7 @@ export function CadastroFacialAutoWizard() {
         setErro(
           error instanceof Error
             ? error.message
-            : "Nao foi possivel iniciar o cadastro facial.",
+            : "Não foi possível iniciar o cadastro facial.",
         );
         setCarregando(false);
       }

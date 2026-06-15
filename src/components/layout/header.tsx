@@ -99,7 +99,7 @@ export function Header({
 
           <div className="min-w-0">
             <p className="truncate text-xs font-semibold uppercase text-white/75">
-              Sistema Eletronico de Controle de Ponto
+              Sistema Eletrônico de Controle de Ponto
             </p>
             <h1 className="truncate text-base font-bold">SECP</h1>
           </div>

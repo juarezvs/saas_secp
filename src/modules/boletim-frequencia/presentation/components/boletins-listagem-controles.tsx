@@ -17,11 +17,11 @@ export function BoletinsListagemControles({
       tipo: "texto",
       nome: "busca",
       label: "Consulta geral",
-      placeholder: "Unidade, processo SEI ou responsavel",
+      placeholder: "Unidade, processo SEI ou responsável",
       className: "lg:col-span-2",
       comIconeBusca: true,
     },
-    { tipo: "competencia", nome: "competencia", label: "Competencia" },
+    { tipo: "competencia", nome: "competencia", label: "Competência" },
     { tipo: "texto", nome: "unidade", label: "Unidade" },
     {
       tipo: "select",

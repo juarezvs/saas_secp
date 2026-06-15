@@ -62,23 +62,23 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administracao", href: "/administracao" },
-          { label: "Orgaos" },
+          { label: "Administração", href: "/administracao" },
+          { label: "Órgãos" },
         ]}
       />
 
       <PageHeader
         icon={Landmark}
-        titulo="Orgaos"
-        descricao="Consulte os orgaos institucionais usados como base para unidades, servidores, lotacoes e integracao SARH."
+        titulo="Órgãos"
+        descricao="Consulte os órgãos institucionais usados como base para unidades, servidores, lotações e integracao SARH."
         artigo="Arts. 1, 3 e 20"
-        regraTitulo="Abrangencia institucional"
-        regraDescricao="A estrutura de orgaos organiza a abrangencia administrativa do SECP e sustenta cadastros funcionais, unidades organizacionais e sincronizacoes externas."
+        regraTitulo="Abrangência institucional"
+        regraDescricao="A estrutura de órgãos organiza a abrangência administrativa do SECP e sustenta cadastros funcionais, unidades organizacionais e sincronizações externas."
       />
 
       <DataTableShell
-        title="Orgaos cadastrados"
-        description="Use a pesquisa geral ou filtre por sigla, nome, codigo SARH e status."
+        title="Órgãos cadastrados"
+        description="Use a pesquisa geral ou filtre por sigla, nome, código SARH e status."
         total={resultado.total}
         pagina={resultado.pagina}
         totalPaginas={resultado.totalPaginas}
@@ -94,17 +94,17 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[880px] text-left text-sm">
             <caption className="sr-only">
-              Listagem de orgaos com sigla, nome, codigo SARH, unidades,
-              servidores, status e datas de sincronizacao.
+              Listagem de órgãos com sigla, nome, código SARH, unidades,
+              servidores, status e datas de sincronização.
             </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
                 <th className="px-5 py-3">Sigla</th>
                 <th className="px-5 py-3">Nome</th>
-                <th className="px-5 py-3">Codigo SARH</th>
+                <th className="px-5 py-3">Código SARH</th>
                 <th className="px-5 py-3">Unidades</th>
                 <th className="px-5 py-3">Servidores</th>
-                <th className="px-5 py-3">Ultima sincronizacao</th>
+                <th className="px-5 py-3">Última sincronização</th>
                 <th className="px-5 py-3">Status</th>
               </tr>
             </thead>
@@ -151,7 +151,7 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
                     colSpan={7}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
-                    Nenhum orgao encontrado para os filtros informados.
+                    Nenhum órgão encontrado para os filtros informados.
                   </td>
                 </tr>
               )}

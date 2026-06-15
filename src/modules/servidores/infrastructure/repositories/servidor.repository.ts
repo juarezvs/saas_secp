@@ -224,6 +224,26 @@ export async function buscarServidorPorId(id: string) {
   });
 }
 
+export async function buscarNomeServidorPorUsuarioId(usuarioId: string) {
+  if (!ehUuid(usuarioId)) {
+    return null;
+  }
+
+  return prisma.servidor.findUnique({
+    where: {
+      usuarioId,
+    },
+    select: {
+      nomeFuncional: true,
+      usuario: {
+        select: {
+          nome: true,
+        },
+      },
+    },
+  });
+}
+
 export async function listarUnidadesAtivasParaLotacao() {
   return prisma.unidadeOrganizacional.findMany({
     where: {

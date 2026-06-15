@@ -15,20 +15,20 @@ export async function DashboardMaster() {
 
   return (
     <DashboardPerfilShell
-      eyebrow="Administracao master"
+      eyebrow="Administração master"
       title="Dashboard master"
-      description="Visao ampla de governanca, cadastros, integracoes, auditoria e saude operacional do SECP."
+      description="Visão ampla de governança, cadastros, integracoes, auditoria e saúde operacional do SECP."
       icon={ShieldCheck}
     >
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <DashboardRoleCard
-          titulo="Usuarios"
+          titulo="Usuários"
           valor={usuarios}
           descricao="Contas cadastradas no sistema."
           icon={ShieldCheck}
         />
         <DashboardRoleCard
-          titulo="Integracoes"
+          titulo="Integrações"
           valor={integracoes}
           descricao="Conectores institucionais registrados."
           icon={Network}
@@ -36,22 +36,22 @@ export async function DashboardMaster() {
         <DashboardRoleCard
           titulo="Auditoria"
           valor={eventosAuditoria}
-          descricao="Eventos auditaveis acumulados."
+          descricao="Eventos auditáveis acumulados."
           icon={Activity}
         />
         <DashboardRoleCard
-          titulo="Marcacoes pendentes"
+          titulo="Marcações pendentes"
           valor={marcacoesPendentes}
-          descricao="Registros brutos ainda nao processados."
+          descricao="Registros brutos ainda não processados."
           icon={DatabaseZap}
         />
       </section>
 
       <section className="grid gap-4 md:grid-cols-4">
-        <DashboardAtalho href="/administracao" titulo="Administracao" />
-        <DashboardAtalho href="/integracoes" titulo="Integracoes" />
+        <DashboardAtalho href="/administracao" titulo="Administração" />
+        <DashboardAtalho href="/integracoes" titulo="Integrações" />
         <DashboardAtalho href="/auditoria" titulo="Auditoria" />
-        <DashboardAtalho href="/marcacoes-brutas" titulo="Marcacoes brutas" />
+        <DashboardAtalho href="/marcacoes-brutas" titulo="Marcações brutas" />
       </section>
     </DashboardPerfilShell>
   );

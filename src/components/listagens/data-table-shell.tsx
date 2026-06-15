@@ -54,7 +54,7 @@ export function DataTableShell({
 
       <div className="flex flex-col justify-between gap-3 border-t p-5 md:flex-row md:items-center">
         <p className="text-sm text-[var(--muted-foreground)]">
-          Pagina {pagina} de {totalPaginas}
+          Página {pagina} de {totalPaginas}
         </p>
 
         <DataTablePagination

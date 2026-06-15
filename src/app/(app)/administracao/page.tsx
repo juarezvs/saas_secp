@@ -18,20 +18,20 @@ export default async function AdministracaoPage() {
 
   const cards = [
     {
-      titulo: "Perfis e permissoes",
-      descricao: "Gerencie perfis, permissoes e acessos por papel institucional.",
+      titulo: "Perfis e permissões",
+      descricao: "Gerencie perfis, permissões e acessos por papel institucional.",
       href: "/perfis",
       icon: ShieldCheck,
     },
     {
-      titulo: "Usuarios",
-      descricao: "Gerencie usuarios internos, externos e contas tecnicas.",
+      titulo: "Usuários",
+      descricao: "Gerencie usuários internos, externos e contas técnicas.",
       href: "/usuarios",
       icon: UsersRound,
     },
     {
-      titulo: "Orgaos",
-      descricao: "Consulte orgaos institucionais usados por unidades e SARH.",
+      titulo: "Órgãos",
+      descricao: "Consulte órgãos institucionais usados por unidades e SARH.",
       href: "/orgaos",
       icon: Building2,
     },
@@ -43,7 +43,7 @@ export default async function AdministracaoPage() {
     },
     {
       titulo: "Parametros",
-      descricao: "Configure parametros gerais do controle eletronico de ponto.",
+      descricao: "Configure parametros gerais do controle eletrônico de ponto.",
       href: "/administracao/parametros",
       icon: Settings,
     },
@@ -54,16 +54,16 @@ export default async function AdministracaoPage() {
       icon: KeyRound,
     },
     {
-      titulo: "Equipamentos biometricos",
+      titulo: "Equipamentos biométricos",
       descricao:
-        "Cadastre relogios de ponto, REP, totens e dispositivos usados na importacao AFD e nas marcacoes biometricas.",
+        "Cadastre relógios de ponto, REP, totens e dispositivos usados na importação AFD e nas marcações biometricas.",
       href: "/equipamentos",
       icon: Cpu,
     },
     {
       titulo: "Auditoria",
       descricao:
-        "Consulte trilhas de auditoria, alteracoes sensiveis, usuarios responsaveis e dados antes/depois.",
+        "Consulte trilhas de auditoria, alteracoes sensíveis, usuários responsáveis e dados antes/depois.",
       href: "/auditoria",
       icon: ShieldAlert,
       permissao: "auditoria:consultar:global",
@@ -72,15 +72,15 @@ export default async function AdministracaoPage() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Administracao" }]} />
+      <Breadcrumb items={[{ label: "Administração" }]} />
 
       <PageHeader
         icon={Settings}
-        titulo="Configuracoes institucionais do SECP"
-        descricao="Area reservada para administracao tecnica, parametros do sistema, perfis, permissoes, usuarios, unidades e integracoes."
+        titulo="Configurações institucionais do SECP"
+        descricao="Area reservada para administração técnica, parametros do sistema, perfis, permissões, usuários, unidades e integracoes."
         artigo="Art. 20, inciso I"
-        regraTitulo="Responsabilidade tecnica do NUTEC"
-        regraDescricao="O NUTEC e responsavel por gerenciar o sistema de controle eletronico de frequencia quanto ao cadastro e alteracao de usuarios e por dirimir duvidas sobre funcionamento e registros."
+        regraTitulo="Responsabilidade técnica do NUTEC"
+        regraDescricao="O NUTEC é responsável por gerenciar o sistema de controle eletrônico de frequência quanto ao cadastro e alteração de usuários e por dirimir dúvidas sobre funcionamento e registros."
       />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

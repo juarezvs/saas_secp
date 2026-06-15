@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CircleAlert, ClockAlert, Copy } from "lucide-react";
 
 type ArquivoAfdItem = {
   id: string;
@@ -77,10 +78,28 @@ export function AfdImportacoesTable({
               <Resumo label="Arquivos" value={importacao.quantidadeArquivos} />
               <Resumo label="Linhas" value={importacao.totalLinhas} />
               <Resumo label="Brutas" value={importacao.totalMarcacoesBrutas} />
-              <Resumo label="Duplicadas" value={importacao.totalDuplicadas} />
+              <ResumoProblema
+                importacaoId={importacao.id}
+                tipo="duplicadas"
+                label="Duplicadas"
+                value={importacao.totalDuplicadas}
+                icon={Copy}
+              />
               <Resumo label="Processadas" value={importacao.totalProcessadas} />
-              <Resumo label="Pendentes" value={importacao.totalPendentes} />
-              <Resumo label="Erros" value={importacao.totalErros} />
+              <ResumoProblema
+                importacaoId={importacao.id}
+                tipo="pendentes"
+                label="Pendentes"
+                value={importacao.totalPendentes}
+                icon={ClockAlert}
+              />
+              <ResumoProblema
+                importacaoId={importacao.id}
+                tipo="erros"
+                label="Erros"
+                value={importacao.totalErros}
+                icon={CircleAlert}
+              />
               <Resumo
                 label="Finalizada"
                 value={importacao.finalizadoEm ? "Sim" : "Não"}
@@ -136,12 +155,36 @@ export function AfdImportacoesTable({
                         <td className="px-4 py-3">
                           {arquivo.totalMarcacoesBrutas}
                         </td>
-                        <td className="px-4 py-3">{arquivo.totalDuplicadas}</td>
+                        <td className="px-4 py-3">
+                          <ValorProblema
+                            importacaoId={importacao.id}
+                            arquivoId={arquivo.id}
+                            tipo="duplicadas"
+                            value={arquivo.totalDuplicadas}
+                            icon={Copy}
+                          />
+                        </td>
                         <td className="px-4 py-3">
                           {arquivo.totalProcessadas}
                         </td>
-                        <td className="px-4 py-3">{arquivo.totalPendentes}</td>
-                        <td className="px-4 py-3">{arquivo.totalErros}</td>
+                        <td className="px-4 py-3">
+                          <ValorProblema
+                            importacaoId={importacao.id}
+                            arquivoId={arquivo.id}
+                            tipo="pendentes"
+                            value={arquivo.totalPendentes}
+                            icon={ClockAlert}
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <ValorProblema
+                            importacaoId={importacao.id}
+                            arquivoId={arquivo.id}
+                            tipo="erros"
+                            value={arquivo.totalErros}
+                            icon={CircleAlert}
+                          />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -169,6 +212,73 @@ function Resumo({ label, value }: { label: string; value: string | number }) {
       </p>
       <p className="mt-1 font-bold">{value}</p>
     </div>
+  );
+}
+
+type TipoProblemaAfd = "erros" | "pendentes" | "duplicadas";
+
+function ResumoProblema({
+  importacaoId,
+  tipo,
+  label,
+  value,
+  icon: Icon,
+}: {
+  importacaoId: string;
+  tipo: TipoProblemaAfd;
+  label: string;
+  value: number;
+  icon: typeof CircleAlert;
+}) {
+  return (
+    <div className="rounded-lg border bg-[var(--muted)] p-3">
+      <p className="text-xs font-semibold uppercase text-[var(--muted-foreground)]">
+        {label}
+      </p>
+      <div className="mt-1 flex items-center gap-2">
+        <p className="font-bold">{value}</p>
+        {value > 0 && (
+          <Link
+            href={`/afd/${importacaoId}/problemas?tipo=${tipo}`}
+            className="inline-flex rounded text-red-600 transition hover:text-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:text-red-400 dark:hover:text-red-300"
+            aria-label={`Analisar ${label.toLowerCase()} da importação`}
+            title={`Analisar ${label.toLowerCase()}`}
+          >
+            <Icon className="size-4" aria-hidden="true" />
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ValorProblema({
+  importacaoId,
+  arquivoId,
+  tipo,
+  value,
+  icon: Icon,
+}: {
+  importacaoId: string;
+  arquivoId: string;
+  tipo: TipoProblemaAfd;
+  value: number;
+  icon: typeof CircleAlert;
+}) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      {value}
+      {value > 0 && (
+        <Link
+          href={`/afd/${importacaoId}/problemas?tipo=${tipo}&arquivo=${arquivoId}`}
+          className="inline-flex rounded text-red-600 transition hover:text-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:text-red-400 dark:hover:text-red-300"
+          aria-label={`Analisar ${tipo} deste arquivo`}
+          title={`Analisar ${tipo}`}
+        >
+          <Icon className="size-4" aria-hidden="true" />
+        </Link>
+      )}
+    </span>
   );
 }
 

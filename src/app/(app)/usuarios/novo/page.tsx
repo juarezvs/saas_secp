@@ -16,19 +16,19 @@ export default async function NovoUsuarioPage() {
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administracao", href: "/administracao" },
-          { label: "Usuarios", href: "/usuarios" },
-          { label: "Novo usuario" },
+          { label: "Administração", href: "/administracao" },
+          { label: "Usuários", href: "/usuarios" },
+          { label: "Novo usuário" },
         ]}
       />
 
       <PageHeader
         icon={UserCog}
-        titulo="Novo usuario"
-        descricao="Cadastre uma conta de acesso ao SECP e vincule os perfis necessarios."
+        titulo="Novo usuário"
+        descricao="Cadastre uma conta de acesso ao SECP e vincule os perfis necessários."
         artigo="RBAC dinamico do SECP"
-        regraTitulo="Usuarios e perfis"
-        regraDescricao="O acesso ao sistema e controlado por perfis e permissoes, permitindo que cada usuario tenha diferentes escopos de atuacao."
+        regraTitulo="Usuários e perfis"
+        regraDescricao="O acesso ao sistema é controlado por perfis e permissões, permitindo que cada usuário tenha diferentes escopos de atuação."
       />
 
       <UsuarioForm

@@ -27,9 +27,9 @@ export function CameraCheckStep({
         <ol className="mt-4 space-y-3 text-sm leading-6 text-[var(--muted-foreground)]">
           <li>1. Fique em local bem iluminado.</li>
           <li>2. Remova mascara, bone ou oculos escuros.</li>
-          <li>3. Mantenha apenas uma pessoa diante da camera.</li>
+          <li>3. Mantenha apenas uma pessoa diante da câmera.</li>
           <li>4. Posicione o rosto dentro da moldura.</li>
-          <li>5. Nao utilize foto, video ou outra tela.</li>
+          <li>5. Não utilize foto, vídeo ou outra tela.</li>
         </ol>
 
         {erro && (
@@ -49,7 +49,7 @@ export function CameraCheckStep({
           ) : (
             <Camera className="size-4" aria-hidden="true" />
           )}
-          {cameraAtiva ? "Camera verificada" : "Verificar camera"}
+          {cameraAtiva ? "Câmera verificada" : "Verificar câmera"}
         </button>
       </div>
     </section>

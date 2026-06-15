@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { garantirJornadaPadraoServidorService } from "@/modules/jornadas/application/services/garantir-jornada-padrao-servidor.service";
 
 import { buscarOuCriarIntegracaoSarh } from "../../infrastructure/repositories/integracoes.repository";
 import { buscarServidoresSarh } from "./sarh-client.service";
@@ -92,7 +93,7 @@ export async function sincronizarServidoresSarhService(params: {
         });
 
         if (servidorExistente) {
-          await tx.servidor.update({
+          const servidor = await tx.servidor.update({
             where: {
               id: servidorExistente.id,
             },
@@ -113,10 +114,12 @@ export async function sincronizarServidoresSarhService(params: {
             },
           });
 
+          await garantirJornadaPadraoServidorService(tx, servidor.id);
+
           return usuarioExistente ? "ATUALIZADO" : "CRIADO";
         }
 
-        await tx.servidor.create({
+        const servidor = await tx.servidor.create({
           data: {
             matricula: item.matricula,
             nomeFuncional: item.nome || "",
@@ -134,6 +137,8 @@ export async function sincronizarServidoresSarhService(params: {
             },
           },
         });
+
+        await garantirJornadaPadraoServidorService(tx, servidor.id);
 
         return "CRIADO";
       });

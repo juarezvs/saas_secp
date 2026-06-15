@@ -27,7 +27,7 @@ export function AuditoriaListagemControles({
       tipo: "texto",
       nome: "busca",
       label: "Consulta geral",
-      placeholder: "Acao, entidade, usuario ou ID",
+      placeholder: "Ação, entidade, usuário ou ID",
       className: "lg:col-span-2",
       comIconeBusca: true,
     },
@@ -40,11 +40,11 @@ export function AuditoriaListagemControles({
         ...entidades.map((entidade) => ({ value: entidade, label: entidade })),
       ],
     },
-    { tipo: "texto", nome: "acao", label: "Acao" },
+    { tipo: "texto", nome: "acao", label: "Ação" },
     {
       tipo: "select",
       nome: "usuarioId",
-      label: "Usuario",
+      label: "Usuário",
       options: [
         { value: "", label: "Todos" },
         ...usuarios.map((usuario) => ({

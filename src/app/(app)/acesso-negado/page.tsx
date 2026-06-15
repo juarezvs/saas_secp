@@ -22,10 +22,10 @@ export default async function AcessoNegadoPage({
       <PageHeader
         icon={LockKeyhole}
         titulo="Acesso negado"
-        descricao="O SECP utiliza controle de acesso por perfis e permissoes para proteger funcionalidades administrativas e operacionais."
+        descricao="O SECP utiliza controle de acesso por perfis e permissões para proteger funcionalidades administrativas e operacionais."
         artigo="Controle de acesso"
-        regraTitulo="Perfil e permissao requerida"
-        regraDescricao="Funcionalidades sensiveis devem ser acessadas apenas por usuarios com perfil compativel e permissao ativa."
+        regraTitulo="Perfil e permissão requerida"
+        regraDescricao="Funcionalidades sensíveis devem ser acessadas apenas por usuários com perfil compatível e permissão ativa."
       />
 
       <section className="rounded-xl border bg-[var(--card)] p-8 text-[var(--card-foreground)] shadow-sm">
@@ -40,7 +40,7 @@ export default async function AcessoNegadoPage({
             </p>
 
             <h2 className="mt-2 text-2xl font-bold">
-              Voce nao possui permissao para acessar este recurso.
+              Voce não possui permissão para acessar este recurso.
             </h2>
 
             <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
@@ -50,7 +50,7 @@ export default async function AcessoNegadoPage({
 
             {params.permissao && (
               <div className="mt-4 rounded-lg border bg-[var(--muted)] p-3 text-sm">
-                Permissao requerida:{" "}
+                Permissão requerida:{" "}
                 <code className="font-mono font-semibold">
                   {params.permissao}
                 </code>

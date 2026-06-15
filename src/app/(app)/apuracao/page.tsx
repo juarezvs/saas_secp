@@ -36,22 +36,22 @@ export default async function ApuracaoPage() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Apuracao" }]} />
+      <Breadcrumb items={[{ label: "Apuração" }]} />
 
       <PageHeader
         icon={FileCheck2}
-        titulo="Apuracao de frequencia"
-        descricao="Calcule a apuracao diaria com base nas marcacoes registradas e na jornada vigente do servidor."
+        titulo="Apuração de frequência"
+        descricao="Calcule a apuração diária com base nas marcações registradas e na jornada vigente do servidor."
         artigo="Art. 8"
         regraTitulo="Carga horaria mensal e horas trabalhadas"
-        regraDescricao="A apuracao compara as horas efetivamente trabalhadas com a carga horaria prevista, permitindo identificar credito, debito e inconsistencias."
+        regraDescricao="A apuração compara as horas efetivamente trabalhadas com a carga horaria prevista, permitindo identificar crédito, débito e inconsistências."
       />
 
       {servidor ? (
         <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
           <h2 className="text-lg font-bold">{servidor.usuario.nome}</h2>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-            Matricula: {servidor.matricula}
+            Matrícula: {servidor.matricula}
           </p>
 
           <form action={recalcularApuracaoDiaAction} className="mt-5 flex gap-3">
@@ -73,7 +73,7 @@ export default async function ApuracaoPage() {
         </section>
       ) : (
         <section className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-          Nenhum servidor ativo foi encontrado para o usuario autenticado.
+          Nenhum servidor ativo foi encontrado para o usuário autenticado.
         </section>
       )}
 

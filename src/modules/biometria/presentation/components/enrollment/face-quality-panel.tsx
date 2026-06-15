@@ -20,7 +20,7 @@ export function FaceQualityPanel({
   const itens = [
     ["Rosto detectado", indicadores.rostoDetectado],
     ["Centralizacao", indicadores.centralizado],
-    ["Iluminacao", indicadores.iluminacao],
+    ["Iluminação", indicadores.iluminacao],
     ["Nitidez", indicadores.nitidez],
     ["Apenas uma pessoa", indicadores.apenasUmaPessoa],
   ] as const;

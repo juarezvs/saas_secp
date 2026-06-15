@@ -3,7 +3,7 @@ import { AlertTriangle, FileDown, Hourglass, RotateCw } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
-import { CompetenciaInput } from "@/components/ui";
+import { CompetenciaInput, SearchableSelect } from "@/components/ui";
 import { gerarMovimentosBancoHorasAction } from "../../application/actions/gerar-movimento-banco-horas.action";
 import { recalcularSaldoBancoHorasAction } from "../../application/actions/recalcular-saldo-banco-horas.action";
 import { LIMITE_CREDITO_MENSAL_MINUTOS } from "../../application/services/aplicar-limites-banco-horas.service";
@@ -172,9 +172,9 @@ export function BancoHorasPageReal({
       <PageHeader
         icon={Hourglass}
         titulo="Banco de horas"
-        descricao="Acompanhe saldo individual, creditos, debitos, compensacoes, limites mensais e prazos regulamentares."
+        descricao="Acompanhe saldo individual, créditos, débitos, compensações, limites mensais e prazos regulamentares."
         artigo="Banco de horas"
-        regraTitulo="Limite e compensacao"
+        regraTitulo="Limite e compensação"
         regraDescricao="Créditos e compensações dependem de autorização prévia da chefia. O limite ordinário de crédito para fruição futura é de 16h mensais."
       />
 
@@ -184,19 +184,18 @@ export function BancoHorasPageReal({
             <label htmlFor="servidorId" className="text-sm font-semibold">
               Servidor
             </label>
-            <select
+            <SearchableSelect
               id="servidorId"
               name="servidorId"
               defaultValue={servidorSelecionado?.id ?? ""}
               disabled={!podeConsultarGlobal}
-              className="mt-2 h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {servidores.map((servidor) => (
-                <option key={servidor.id} value={servidor.id}>
-                  {servidor.matricula} - {servidor.usuario.nome}
-                </option>
-              ))}
-            </select>
+              className="mt-2"
+              searchPlaceholder="Pesquisar por matrícula ou nome..."
+              options={servidores.map((servidor) => ({
+                value: servidor.id,
+                label: `${servidor.matricula} — ${servidor.usuario.nome}`,
+              }))}
+            />
           </div>
 
           <CompetenciaInput
@@ -221,8 +220,9 @@ export function BancoHorasPageReal({
                 {servidorSelecionado.usuario.nome}
               </h2>
               <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                Matricula {servidorSelecionado.matricula} -{" "}
-                {servidorSelecionado.lotacoes?.[0]?.unidade.sigla ?? "Sem lotacao ativa"}
+                Matrícula {servidorSelecionado.matricula} -{" "}
+                {servidorSelecionado.lotacoes?.[0]?.unidade.sigla ??
+                  "Sem lotação na competência"}
               </p>
             </div>
 
@@ -277,9 +277,9 @@ export function BancoHorasPageReal({
                   Como acompanhar o saldo
                 </h2>
                 <p className="mt-2">
-                  A tabela mostra a composicao da competencia selecionada. Os
-                  cards abaixo indicam saldo consolidado, pendencias e limites
-                  normativos para conferencia antes da homologacao.
+                  A tabela mostra a composicao da competência selecionada. Os
+                  cards abaixo indicam saldo consolidado, pendências e limites
+                  normativos para conferência antes da homologação.
                 </p>
               </section>
 
@@ -290,7 +290,7 @@ export function BancoHorasPageReal({
 
               <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
                 <ResumoNormativo
-                  titulo="Credito no mes"
+                  titulo="Crédito no mês"
                   valor={minutosParaHoraBanco(creditosMes)}
                   descricao={`Limite ordinario: ${minutosParaHoraBanco(
                     LIMITE_CREDITO_MENSAL_MINUTOS,
@@ -299,17 +299,17 @@ export function BancoHorasPageReal({
                 <ResumoNormativo
                   titulo="Limite restante"
                   valor={minutosParaHoraBanco(limiteRestante)}
-                  descricao="Horas acima do limite ficam nao computaveis."
+                  descricao="Horas acima do limite ficam não computaveis."
                 />
                 <ResumoNormativo
-                  titulo="Creditos a vencer"
+                  titulo="Créditos a vencer"
                   valor={minutosParaHoraBanco(creditosAVencer)}
-                  descricao="Compensacao em ate 3 meses."
+                  descricao="Compensação em ate 3 meses."
                 />
                 <ResumoNormativo
-                  titulo="Debitos a compensar"
+                  titulo="Débitos a compensar"
                   valor={minutosParaHoraBanco(debitosACompensar)}
-                  descricao="Debito nao compensado pode gerar notificacao."
+                  descricao="Débito não compensado pode gerar notificacao."
                 />
               </section>
 
@@ -324,7 +324,7 @@ export function BancoHorasPageReal({
                     <p className="mt-1">
                       Existem {minutosParaHoraBanco(movimentosVencidos)} em
                       movimentos com vencimento anterior a hoje. Revise antes da
-                      homologacao mensal.
+                      homologação mensal.
                     </p>
                   </div>
                 </section>
@@ -334,7 +334,7 @@ export function BancoHorasPageReal({
         </>
       ) : (
         <section className="rounded-xl border bg-[var(--card)] p-10 text-center text-sm text-[var(--muted-foreground)] shadow-sm">
-          Nenhum servidor disponivel para consulta de banco de horas.
+          Nenhum servidor disponível para consulta de banco de horas.
         </section>
       )}
     </div>

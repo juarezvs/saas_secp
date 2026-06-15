@@ -267,7 +267,7 @@ export default async function IntegracoesPage() {
 
         <IntegracaoCard
           titulo="Equipamentos biométricos"
-          descricao="Integração com relógios, totens e dispositivos de identificação biométrica para ingestão de marcações e eventos operacionais."
+          descricao="Integração com relógios, totens e dispositivos de identificação biometrica para ingestão de marcações e eventos operacionais."
           status="planejado"
           icon={Fingerprint}
           detalhes={[

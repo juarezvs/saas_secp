@@ -21,10 +21,10 @@ export default async function NovoRecessoForensePage() {
       <PageHeader
         icon={CalendarRange}
         titulo="Novo recesso"
-        descricao="Cadastre o periodo anual proprio do recesso. O sistema fixa o intervalo normativo de 20/12 a 06/01."
+        descricao="Cadastre o período anual próprio do recesso. O sistema fixa o intervalo normativo de 20/12 a 06/01."
         artigo="Recesso forense"
-        regraTitulo="Periodo anual 20/12 a 06/01"
-        regraDescricao="O recesso deve ser tratado em modulo proprio, com convocacoes, escolhas, homologacao e fechamento separados do ponto ordinario."
+        regraTitulo="Período anual 20/12 a 06/01"
+        regraDescricao="O recesso deve ser tratado em módulo próprio, com convocações, escolhas, homologação e fechamento separados do ponto ordinário."
       />
 
       <RecessoForenseForm action={criarRecessoForenseAction} />

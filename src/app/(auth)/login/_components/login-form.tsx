@@ -23,7 +23,7 @@ export function LoginForm() {
   return (
     <form action={formAction} className="space-y-5">
       <div className="space-y-2">
-        <Label htmlFor="matricula">Matricula</Label>
+        <Label htmlFor="matricula">Matrícula</Label>
         <div className="relative">
           <UserRound
             className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground"
@@ -36,7 +36,7 @@ export function LoginForm() {
             defaultValue={estado.campos?.matricula ?? ""}
             autoComplete="username"
             className="pl-10"
-            placeholder="Digite sua matricula"
+            placeholder="Digite sua matrícula"
             required
           />
         </div>

@@ -66,25 +66,25 @@ export function RegistroPontoPage({
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Marcacoes", href: "/marcacoes" },
-          { label: "Registrar horario" },
+          { label: "Marcações", href: "/marcacoes" },
+          { label: "Registrar horário" },
         ]}
       />
 
       <PageHeader
         icon={Clock3}
-        titulo="Registrar horario"
-        descricao="Confirme sua identidade facial para registrar a proxima marcacao da jornada."
+        titulo="Registrar horário"
+        descricao="Confirme sua identidade facial para registrar a próxima marcação da jornada."
         artigo="Art. 6"
-        regraTitulo="Registro eletronico de frequencia"
-        regraDescricao="A marcacao deve identificar o servidor, registrar data e hora e preservar a rastreabilidade da origem."
+        regraTitulo="Registro eletrônico de frequência"
+        regraDescricao="A marcação deve identificar o servidor, registrar data e hora e preservar a rastreabilidade da origem."
       />
 
       {!servidor ? (
         <Card className="p-6">
-          <h2 className="font-semibold">Servidor nao localizado</h2>
+          <h2 className="font-semibold">Servidor não localizado</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Nao foi encontrado um servidor ativo vinculado ao usuario atual.
+            Não foi encontrado um servidor ativo vinculado ao usuário atual.
           </p>
         </Card>
       ) : (
@@ -95,7 +95,7 @@ export function RegistroPontoPage({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-xs font-bold uppercase text-blue-800 dark:text-blue-300">
-                      Proxima marcacao
+                      Próxima marcação
                     </p>
                     <h2 className="mt-1 text-2xl font-bold">
                       {fluxoConcluido
@@ -116,10 +116,10 @@ export function RegistroPontoPage({
                     <BadgeCheck className="mt-0.5 size-6 text-green-700" />
                     <div>
                       <p className="font-semibold">
-                        Todas as marcacoes ordinarias foram registradas.
+                        Todas as marcações ordinarias foram registradas.
                       </p>
                       <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                        Consulte o espelho de ponto para acompanhar a apuracao
+                        Consulte o espelho de ponto para acompanhar a apuração
                         da jornada.
                       </p>
                     </div>
@@ -135,7 +135,7 @@ export function RegistroPontoPage({
                           Confirmacao facial obrigatoria
                         </p>
                         <p className="mt-1 max-w-xl text-sm leading-6 text-muted-foreground">
-                          Ao continuar, a camera sera aberta em uma janela
+                          Ao continuar, a câmera será aberta em uma janela
                           compacta para validar sua identidade.
                         </p>
                       </div>
@@ -147,7 +147,7 @@ export function RegistroPontoPage({
                         <ScanFace className="size-5" aria-hidden="true" />
                       }
                     >
-                      Registrar horario
+                      Registrar horário
                     </Button>
                   </div>
                 )}
@@ -161,7 +161,7 @@ export function RegistroPontoPage({
               </div>
               <dl className="mt-4 grid gap-3 text-sm">
                 <InfoLinha label="Nome" valor={servidor.nome} />
-                <InfoLinha label="Matricula" valor={servidor.matricula} />
+                <InfoLinha label="Matrícula" valor={servidor.matricula} />
                 <InfoLinha label="Unidade" valor={servidor.unidade} />
                 <InfoLinha label="Jornada" valor={servidor.jornada} />
               </dl>
@@ -172,13 +172,13 @@ export function RegistroPontoPage({
             <div className="flex flex-wrap items-center justify-between gap-3 border-b p-5">
               <div className="flex items-center gap-2">
                 <Clock3 className="size-5 text-blue-900 dark:text-blue-300" />
-                <h2 className="text-lg font-semibold">Marcacoes do dia</h2>
+                <h2 className="text-lg font-semibold">Marcações do dia</h2>
               </div>
               <Link
                 href="/marcacoes"
                 className="text-sm font-semibold text-blue-800 hover:underline dark:text-blue-300"
               >
-                Ver historico
+                Ver histórico
               </Link>
             </div>
 
@@ -215,9 +215,9 @@ export function RegistroPontoPage({
               {marcacoes.length === 0 && (
                 <div className="p-8 text-center">
                   <Clock3 className="mx-auto size-8 text-muted-foreground" />
-                  <p className="mt-3 font-semibold">Nenhuma marcacao hoje</p>
+                  <p className="mt-3 font-semibold">Nenhuma marcação hoje</p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    O primeiro registro sera identificado como entrada.
+                    O primeiro registro será identificado como entrada.
                   </p>
                 </div>
               )}
@@ -229,7 +229,7 @@ export function RegistroPontoPage({
             onOpenChange={setReconhecimentoAberto}
             title="Confirmar identidade facial"
             description={`Validacao para registrar ${
-              proximaMarcacao?.toLowerCase() ?? "o horario atual"
+              proximaMarcacao?.toLowerCase() ?? "o horário atual"
             }.`}
             className="max-h-[92vh] overflow-y-auto sm:w-[min(92vw,480px)]"
           >
@@ -237,7 +237,7 @@ export function RegistroPontoPage({
               <ValidacaoFacialCard compact />
             ) : (
               <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                <p className="font-semibold">Biometria facial nao cadastrada</p>
+                <p className="font-semibold">Biometria facial não cadastrada</p>
                 <p className="mt-2 text-sm leading-6">
                   Cadastre sua biometria antes de registrar o ponto por
                   reconhecimento facial.

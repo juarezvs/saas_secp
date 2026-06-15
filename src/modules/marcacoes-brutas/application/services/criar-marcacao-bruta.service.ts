@@ -4,6 +4,7 @@ import { gerarHashMarcacaoBruta } from "./gerar-hash-marcacao-bruta.service";
 export async function criarMarcacaoBrutaService(params: {
   cpf?: string | null;
   matricula?: string | null;
+  servidorId?: string | null;
   dataHora: Date;
   equipamentoCodigo?: string | null;
   equipamentoId?: string | null;
@@ -16,10 +17,11 @@ export async function criarMarcacaoBrutaService(params: {
   nsr?: string | null;
   codigoExterno?: string | null;
   payloadOriginal?: unknown;
+  ignorarMatriculaNoHash?: boolean;
 }) {
   const hashRegistro = gerarHashMarcacaoBruta({
     cpf: params.cpf,
-    matricula: params.matricula,
+    matricula: params.ignorarMatriculaNoHash ? null : params.matricula,
     dataHora: params.dataHora,
     equipamentoCodigo: params.equipamentoCodigo,
     origem: params.origem,
@@ -34,9 +36,22 @@ export async function criarMarcacaoBrutaService(params: {
   });
 
   if (existente) {
+    const deveAtualizarIdentificacao =
+      (!existente.matricula && params.matricula) ||
+      (!existente.servidorId && params.servidorId);
+    const marcacaoBruta = deveAtualizarIdentificacao
+      ? await prisma.marcacaoBruta.update({
+          where: { id: existente.id },
+          data: {
+            matricula: existente.matricula ?? params.matricula ?? null,
+            servidorId: existente.servidorId ?? params.servidorId ?? null,
+          },
+        })
+      : existente;
+
     return {
       criada: false,
-      marcacaoBruta: existente,
+      marcacaoBruta,
     };
   }
 
@@ -44,6 +59,7 @@ export async function criarMarcacaoBrutaService(params: {
     data: {
       cpf: params.cpf ?? null,
       matricula: params.matricula ?? null,
+      servidorId: params.servidorId ?? null,
       dataHora: params.dataHora,
       equipamentoCodigo: params.equipamentoCodigo ?? null,
       equipamentoId: params.equipamentoId ?? null,

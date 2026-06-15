@@ -3,8 +3,8 @@ import { Badge } from "@/components/ui/badge";
 const labels: Record<string, string> = {
   PLANEJADO: "Planejado",
   ABERTO: "Aberto",
-  EM_CONVOCACAO: "Em convocacao",
-  EM_EXECUCAO: "Em execucao",
+  EM_CONVOCACAO: "Em convocação",
+  EM_EXECUCAO: "Em execução",
   FECHADO: "Fechado",
   CANCELADO: "Cancelado",
   RASCUNHO: "Rascunho",
@@ -15,7 +15,7 @@ const labels: Record<string, string> = {
   DEVOLVIDO: "Devolvido",
   ACEITO_SECAD: "Aceito SECAD",
   RECESSO_FORENSE: "Recesso forense",
-  PECUNIA: "Pecunia",
+  PECUNIA: "Pecúnia",
   FOLGA: "Folga",
   MISTO: "Misto",
 };

@@ -56,7 +56,7 @@ export function EspelhoRecessoReal({
                 <th className="px-5 py-3">Situacao</th>
                 <th className="px-5 py-3">Escolha</th>
                 <th className="px-5 py-3">Minutos</th>
-                <th className="px-5 py-3">Acao</th>
+                <th className="px-5 py-3">Ação</th>
               </tr>
             </thead>
             <tbody>
@@ -82,7 +82,7 @@ export function EspelhoRecessoReal({
                           value="PECUNIA"
                           className="rounded-md border px-3 py-1 text-xs font-semibold hover:bg-[var(--muted)]"
                         >
-                          Pecunia
+                          Pecúnia
                         </button>
                         <button
                           type="submit"
@@ -95,7 +95,7 @@ export function EspelhoRecessoReal({
                       </form>
                     ) : (
                       <span className="text-xs text-[var(--muted-foreground)]">
-                        Nao convocado
+                        Não convocado
                       </span>
                     )}
                   </td>
@@ -141,7 +141,7 @@ export function EspelhoRecessoReal({
               type="submit"
               className="mt-4 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-950"
             >
-              Fechar periodo
+              Fechar período
             </button>
           </form>
         ))}

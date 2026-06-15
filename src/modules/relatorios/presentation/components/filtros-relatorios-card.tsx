@@ -1,4 +1,4 @@
-import { CompetenciaInput } from "@/components/ui";
+import { CompetenciaInput, SearchableSelect } from "@/components/ui";
 
 type ServidorRelatorioItem = {
   id: string;
@@ -45,22 +45,22 @@ export function FiltrosRelatoriosCard({
           >
             Servidor
           </label>
-          <select
+          <SearchableSelect
             id="relatorios-servidorId"
             name="servidorId"
             defaultValue={servidorSelecionadoId ?? servidorProprioId ?? ""}
             disabled={!podeConsultarGlobal}
-            className="mt-2 h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm disabled:cursor-not-allowed disabled:opacity-70"
-          >
-          {servidores.map((servidor) => (
-            <option key={servidor.id} value={servidor.id}>
-              {servidor.matricula} — {servidor.usuario.nome}
-              {servidor.lotacoes[0]
-                ? ` (${servidor.lotacoes[0].unidade.sigla})`
-                : ""}
-            </option>
-          ))}
-          </select>
+            className="mt-2"
+            searchPlaceholder="Pesquisar por matrícula, nome ou lotação..."
+            options={servidores.map((servidor) => ({
+              value: servidor.id,
+              label: `${servidor.matricula} — ${servidor.usuario.nome}${
+                servidor.lotacoes[0]
+                  ? ` (${servidor.lotacoes[0].unidade.sigla})`
+                  : ""
+              }`,
+            }))}
+          />
         </div>
 
         {!podeConsultarGlobal && servidorProprioId && (

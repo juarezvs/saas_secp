@@ -17,11 +17,11 @@ export function HomologacaoListagemControles({
       tipo: "texto",
       nome: "busca",
       label: "Consulta geral",
-      placeholder: "Unidade ou responsavel",
+      placeholder: "Unidade ou responsável",
       className: "lg:col-span-2",
       comIconeBusca: true,
     },
-    { tipo: "competencia", nome: "competencia", label: "Competencia" },
+    { tipo: "competencia", nome: "competencia", label: "Competência" },
     { tipo: "texto", nome: "unidade", label: "Unidade" },
     {
       tipo: "select",
@@ -30,7 +30,7 @@ export function HomologacaoListagemControles({
       options: [
         { value: "", label: "Todos" },
         { value: "ABERTO", label: "Aberto" },
-        { value: "EM_HOMOLOGACAO", label: "Em homologacao" },
+        { value: "EM_HOMOLOGACAO", label: "Em homologação" },
         { value: "HOMOLOGADO", label: "Homologado" },
         { value: "HOMOLOGADO_PARCIAL", label: "Homologado parcial" },
         { value: "CANCELADO", label: "Cancelado" },

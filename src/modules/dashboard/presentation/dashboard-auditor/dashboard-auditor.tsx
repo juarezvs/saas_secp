@@ -17,7 +17,7 @@ export async function DashboardAuditor() {
     <DashboardPerfilShell
       eyebrow="Auditoria"
       title="Dashboard do auditor"
-      description="Monitore trilhas de auditoria, registros brutos, solicitacoes em curso e integracoes com erro."
+      description="Monitore trilhas de auditoria, registros brutos, solicitações em curso e integracoes com erro."
       icon={Search}
     >
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -28,30 +28,30 @@ export async function DashboardAuditor() {
           icon={Activity}
         />
         <DashboardRoleCard
-          titulo="Marcacoes brutas"
+          titulo="Marcações brutas"
           valor={marcacoesBrutas}
           descricao="Registros oficiais preservados como fonte bruta."
           icon={DatabaseZap}
         />
         <DashboardRoleCard
-          titulo="Solicitacoes abertas"
+          titulo="Solicitações abertas"
           valor={solicitacoes}
-          descricao="Pedidos ainda em analise ou enviados."
+          descricao="Pedidos ainda em análise ou enviados."
           icon={Search}
         />
         <DashboardRoleCard
-          titulo="Integracoes com erro"
+          titulo="Integrações com erro"
           valor={integracoesComErro}
-          descricao="Conectores exigindo verificacao tecnica."
+          descricao="Conectores exigindo verificacao técnica."
           icon={ShieldAlert}
         />
       </section>
 
       <section className="grid gap-4 md:grid-cols-4">
         <DashboardAtalho href="/auditoria" titulo="Auditoria" />
-        <DashboardAtalho href="/marcacoes-brutas" titulo="Marcacoes brutas" />
-        <DashboardAtalho href="/solicitacoes" titulo="Solicitacoes" />
-        <DashboardAtalho href="/integracoes" titulo="Integracoes" />
+        <DashboardAtalho href="/marcacoes-brutas" titulo="Marcações brutas" />
+        <DashboardAtalho href="/solicitacoes" titulo="Solicitações" />
+        <DashboardAtalho href="/integracoes" titulo="Integrações" />
       </section>
     </DashboardPerfilShell>
   );

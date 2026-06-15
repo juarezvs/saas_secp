@@ -6,7 +6,8 @@ import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application
 import { listarMarcacoesBrutasPaginado } from "@/modules/marcacoes-brutas/infrastructure/repositories/marcacao-bruta.repository";
 import { MarcacoesBrutasListagemControles } from "@/modules/marcacoes-brutas/presentation/components/marcacoes-brutas-listagem-controles";
 import { MarcacoesBrutasTable } from "@/modules/marcacoes-brutas/presentation/components/marcacoes-brutas-table";
-import { reprocessarMarcacoesBrutasPendentesAction } from "@/modules/marcacoes-brutas/application/actions/reprocessar-marcacoes-brutas-pendentes.action";
+import { ReprocessarMarcacoesBrutasForm } from "@/modules/marcacoes-brutas/presentation/components/reprocessar-marcacoes-brutas-form";
+import { ReprocessarTodosForm } from "@/modules/marcacoes-brutas/presentation/components/reprocessar-todos-form";
 
 type MarcacoesBrutasPageProps = {
   searchParams?: Promise<{
@@ -58,20 +59,20 @@ export default async function MarcacoesBrutasPage({
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Marcacoes Brutas" }]} />
+      <Breadcrumb items={[{ label: "Marcações Brutas" }]} />
 
       <section>
         <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Marcacoes brutas
+          Marcações brutas
         </p>
 
         <PageHeader
           icon={DatabaseZap}
-          titulo="Fonte oficial das marcacoes"
-          descricao="Consulte os registros brutos imutaveis recebidos por equipamento biometrico, importacao AFD, registro web autorizado ou reconhecimento facial autorizado."
+          titulo="Fonte oficial das marcações"
+          descricao="Consulte os registros brutos imutaveis recebidos por equipamento biométrico, importação AFD, registro web autorizado ou reconhecimento facial autorizado."
           artigo="Fonte oficial"
           regraTitulo="Registro bruto imutavel"
-          regraDescricao="As marcacoes brutas preservam o dado original recebido pelo SECP. A marcacao classificada usada na apuracao e derivada deste registro."
+          regraDescricao="As marcações brutas preservam o dado original recebido pelo SECP. A marcação classificada usada na apuração é derivada deste registro."
         />
       </section>
 
@@ -79,23 +80,18 @@ export default async function MarcacoesBrutasPage({
         <h2 className="text-lg font-bold">Reprocessamento</h2>
 
         <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-          Tente processar novamente marcacoes brutas pendentes, especialmente
-          apos cadastro ou atualizacao de servidores.
+          Associe e processe novamente as marcações brutas pendentes. O sistema
+          percorre automaticamente todos os lotes e preserva separadamente os
+          registros bloqueados por cadastro, jornada ou homologação.
         </p>
 
-        <form action={reprocessarMarcacoesBrutasPendentesAction} className="mt-4">
-          <button
-            type="submit"
-            className="rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            Reprocessar pendentes
-          </button>
-        </form>
+        <ReprocessarMarcacoesBrutasForm rotuloBotao="Reprocessar pendentes" />
+        <ReprocessarTodosForm />
       </section>
 
       <DataTableShell
-        title="Marcacoes brutas"
-        description="Fonte oficial e imutavel das marcacoes recebidas pelo SECP."
+        title="Marcações brutas"
+        description="Fonte oficial e imutavel das marcações recebidas pelo SECP."
         total={resultado.total}
         pagina={resultado.pagina}
         totalPaginas={resultado.totalPaginas}

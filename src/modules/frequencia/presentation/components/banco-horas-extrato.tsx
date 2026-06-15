@@ -12,7 +12,7 @@ export function BancoHorasExtrato() {
         <table className="w-full min-w-[820px] text-left text-sm">
           <caption className="sr-only">
             Extrato do banco de horas com data, tipo, horas, status,
-            vencimento e descricao.
+            vencimento e descrição.
           </caption>
           <thead className="bg-muted text-xs uppercase text-muted-foreground">
             <tr>

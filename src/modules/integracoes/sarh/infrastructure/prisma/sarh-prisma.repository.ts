@@ -1,4 +1,5 @@
 import type { prisma as prismaClient } from "@/shared/infrastructure/database/prisma";
+import { garantirJornadaPadraoServidorService } from "@/modules/jornadas/application/services/garantir-jornada-padrao-servidor.service";
 
 import type {
   OperacaoRegistroSarhDb,
@@ -107,6 +108,14 @@ function jsonObject(valor: unknown): JsonInputObject {
   return {};
 }
 
+function gerarCodigoUnidadeSarhAlternativo(
+  codigoBase: string,
+  codigoExternoSarh: number,
+) {
+  const sufixo = `-${codigoExternoSarh}`;
+  return `${codigoBase.slice(0, 80 - sufixo.length)}${sufixo}`;
+}
+
 export class SarhPrismaRepository {
   constructor(private readonly prisma: PrismaLike) {}
 
@@ -183,6 +192,9 @@ export class SarhPrismaRepository {
       data: {
         status,
         ...params.contadores,
+        totalErros: params.erro
+          ? params.contadores.totalErros + 1
+          : params.contadores.totalErros,
         mensagemErro: params.erro ?? null,
         finalizadoEm,
         duracaoMs,
@@ -445,10 +457,58 @@ export class SarhPrismaRepository {
         })
       : null;
 
-    const existente = await this.prisma.unidadeOrganizacional.findFirst({
-      where: { orgaoId: orgao.id, codigoExternoSarh: params.payload.id },
-    });
-    const data = mapearUnidadeSarh(params.payload, orgao.id, pai?.id ?? null);
+    const existentePorCodigoExterno =
+      await this.prisma.unidadeOrganizacional.findFirst({
+        where: { orgaoId: orgao.id, codigoExternoSarh: params.payload.id },
+      });
+    const codigoMapeado =
+      limparTexto(params.payload.sigla) ?? `SARH-${params.payload.id}`;
+    const candidatosSemVinculo =
+      await this.prisma.unidadeOrganizacional.findMany({
+        where: {
+          codigo: codigoMapeado,
+          codigoExternoSarh: null,
+        },
+        take: 2,
+      });
+
+    if (
+      existentePorCodigoExterno &&
+      candidatosSemVinculo.length === 1 &&
+      !params.modoSimulacao
+    ) {
+      await this.consolidarUnidadeDuplicada(
+        candidatosSemVinculo[0].id,
+        existentePorCodigoExterno.id,
+      );
+    }
+
+    const existente =
+      existentePorCodigoExterno ??
+      (candidatosSemVinculo.length === 1 ? candidatosSemVinculo[0] : null);
+    const dataMapeada = mapearUnidadeSarh(
+      params.payload,
+      orgao.id,
+      pai?.id ?? null,
+    );
+    const unidadeComMesmoCodigo =
+      await this.prisma.unidadeOrganizacional.findUnique({
+        where: {
+          orgaoId_codigo: {
+            orgaoId: orgao.id,
+            codigo: dataMapeada.codigo,
+          },
+        },
+        select: { id: true },
+      });
+    const codigo =
+      unidadeComMesmoCodigo && unidadeComMesmoCodigo.id !== existente?.id
+        ? gerarCodigoUnidadeSarhAlternativo(
+            dataMapeada.codigo,
+            params.payload.id,
+          )
+        : dataMapeada.codigo;
+    const data = { ...dataMapeada, codigo };
     const operacao: OperacaoRegistroSarhDb = existente ? "ATUALIZAR" : "CRIAR";
 
     if (params.modoSimulacao) {
@@ -467,7 +527,12 @@ export class SarhPrismaRepository {
           }.`,
           dadosAntes: existente,
           dadosDepois: data,
-          metadados: { modoSimulacao: true, paiEncontrado: Boolean(pai) },
+          metadados: {
+            modoSimulacao: true,
+            paiEncontrado: Boolean(pai),
+            codigoOriginal: dataMapeada.codigo,
+            codigoAlternativo: codigo !== dataMapeada.codigo,
+          },
         },
         params.registroBrutoId,
       );
@@ -511,6 +576,8 @@ export class SarhPrismaRepository {
         metadados: {
           paiEncontrado: Boolean(pai),
           idPaiSarh: params.payload.idPai,
+          codigoOriginal: dataMapeada.codigo,
+          codigoAlternativo: codigo !== dataMapeada.codigo,
         },
       },
       params.registroBrutoId,
@@ -657,6 +724,7 @@ export class SarhPrismaRepository {
         });
 
     await this.vincularPerfilServidor(usuario.id);
+    await garantirJornadaPadraoServidorService(this.prisma, servidor.id);
 
     await this.upsertMapeamento(
       "SERVIDOR",
@@ -979,6 +1047,45 @@ export class SarhPrismaRepository {
     }
 
     return orgao;
+  }
+
+  private async consolidarUnidadeDuplicada(
+    unidadeDuplicadaId: string,
+    unidadeSarhId: string,
+  ) {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.unidadeOrganizacional.updateMany({
+        where: { unidadePaiId: unidadeDuplicadaId },
+        data: { unidadePaiId: unidadeSarhId },
+      });
+      await tx.lotacao.updateMany({
+        where: { unidadeId: unidadeDuplicadaId },
+        data: { unidadeId: unidadeSarhId },
+      });
+      await tx.gestorUnidade.updateMany({
+        where: { unidadeId: unidadeDuplicadaId },
+        data: { unidadeId: unidadeSarhId },
+      });
+      await tx.solicitacao.updateMany({
+        where: { unidadeId: unidadeDuplicadaId },
+        data: { unidadeId: unidadeSarhId },
+      });
+      await tx.fechamentoMensalUnidade.updateMany({
+        where: { unidadeId: unidadeDuplicadaId },
+        data: { unidadeId: unidadeSarhId },
+      });
+      await tx.boletimFrequencia.updateMany({
+        where: { unidadeId: unidadeDuplicadaId },
+        data: { unidadeId: unidadeSarhId },
+      });
+      await tx.equipamentoBiometrico.updateMany({
+        where: { unidadeId: unidadeDuplicadaId },
+        data: { unidadeId: unidadeSarhId },
+      });
+      await tx.unidadeOrganizacional.delete({
+        where: { id: unidadeDuplicadaId },
+      });
+    });
   }
 
   private async vincularPerfilServidor(usuarioId: string) {

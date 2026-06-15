@@ -25,7 +25,7 @@ export async function AppShell({ children }: AppShellProps) {
   }
 
   const usuario = {
-    nome: session.user.nome || session.user.name || "Usuario SECP",
+    nome: session.user.nome || session.user.name || "Usuário SECP",
     matricula: session.user.matricula,
     unidade:
       lotacaoAtual?.unidade.nome ??

@@ -27,6 +27,24 @@ export function normalizarCpf(cpf: string | number | null | undefined): string |
   return somenteDigitos.padStart(11, "0").slice(-11);
 }
 
+export function obterCpfServidorSarh(
+  payload: SarhServidorDto,
+): string | null {
+  return normalizarCpf(
+    payload.cpf ??
+      payload.cpfServidor?.cpf ??
+      payload.cpfServidor?.dados?.cpf,
+  );
+}
+
+export function obterDataNascimentoServidorSarh(
+  payload: SarhServidorDto,
+): Date | null {
+  return normalizarDataSarh(
+    payload.dataNascimento ?? payload.cpfServidor?.dados?.dataNascimento,
+  );
+}
+
 export function normalizarDataSarh(data: string | null | undefined): Date | null {
   if (!data) return null;
   const date = new Date(data);

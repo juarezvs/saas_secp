@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import type { UsuarioAutenticado } from "../../domain/entities/usuario-autenticado";
+import { autenticarNoActiveDirectory } from "../../infrastructure/active-directory/active-directory-auth.service";
 import { buscarUsuarioParaLoginPorMatricula } from "../../infrastructure/repositories/usuario-auth.repository";
 
 type AutenticarUsuarioParams = {
@@ -11,19 +12,24 @@ export async function autenticarUsuarioPorCredenciais({
   matricula,
   senha,
 }: AutenticarUsuarioParams): Promise<UsuarioAutenticado | null> {
-  const usuario = await buscarUsuarioParaLoginPorMatricula(matricula);
+  const matriculaNormalizada = matricula.trim().toUpperCase();
+  const usuario =
+    await buscarUsuarioParaLoginPorMatricula(matriculaNormalizada);
 
-  if (!usuario || !usuario.senhaHash) {
+  if (!usuario || usuario.perfis.length === 0) {
     return null;
   }
 
-  const senhaValida = await bcrypt.compare(senha, usuario.senhaHash);
+  const senhaAdValida = await autenticarNoActiveDirectory(
+    usuario.matricula,
+    senha,
+  );
+  const senhaLocalValida =
+    !senhaAdValida &&
+    Boolean(usuario.senhaHash) &&
+    (await bcrypt.compare(senha, usuario.senhaHash ?? ""));
 
-  if (!senhaValida) {
-    return null;
-  }
-
-  if (usuario.perfis.length === 0) {
+  if (!senhaAdValida && !senhaLocalValida) {
     return null;
   }
 

@@ -17,9 +17,9 @@ export async function DashboardDiref() {
 
   return (
     <DashboardPerfilShell
-      eyebrow="Direcao do foro"
+      eyebrow="Direção do foro"
       title="Dashboard DIREF"
-      description="Visao gerencial da abrangencia institucional, homologacoes e boletins de frequencia."
+      description="Visão gerencial da abrangência institucional, homologações e boletins de frequência."
       icon={Scale}
     >
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -32,13 +32,13 @@ export async function DashboardDiref() {
         <DashboardRoleCard
           titulo="Fechamentos homologados"
           valor={homologados}
-          descricao="Competencias ja homologadas pelas chefias."
+          descricao="Competencias já homologadas pelas chefias."
           icon={ClipboardCheck}
         />
         <DashboardRoleCard
-          titulo="Pendencias de homologacao"
+          titulo="Pendências de homologação"
           valor={pendentes}
-          descricao="Fechamentos ainda abertos, em homologacao ou parciais."
+          descricao="Fechamentos ainda abertos, em homologação ou parciais."
           icon={ClipboardCheck}
         />
         <DashboardRoleCard
@@ -50,10 +50,10 @@ export async function DashboardDiref() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-4">
-        <DashboardAtalho href="/homologacao" titulo="Homologacao" />
+        <DashboardAtalho href="/homologacao" titulo="Homologação" />
         <DashboardAtalho href="/boletim-frequencia" titulo="Boletins" />
         <DashboardAtalho href="/unidades" titulo="Unidades" />
-        <DashboardAtalho href="/relatorios" titulo="Relatorios" />
+        <DashboardAtalho href="/relatorios" titulo="Relatórios" />
       </section>
     </DashboardPerfilShell>
   );

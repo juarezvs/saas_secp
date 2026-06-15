@@ -760,6 +760,19 @@ async function criarEstruturaInicial() {
     },
   });
 
+  const estruturaGerenciadaPeloSarh =
+    await prisma.unidadeOrganizacional.findFirst({
+      where: {
+        codigo: { in: ["SJAM", "NUTEC", "NUCGP", "SECAD"] },
+        codigoExternoSarh: { not: null },
+      },
+      select: { id: true },
+    });
+
+  if (estruturaGerenciadaPeloSarh) {
+    return orgao;
+  }
+
   const sjam = await prisma.unidadeOrganizacional.upsert({
     where: {
       orgaoId_codigo: {

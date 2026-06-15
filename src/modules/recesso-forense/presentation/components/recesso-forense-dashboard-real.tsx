@@ -42,10 +42,10 @@ export function RecessoForenseDashboardReal({
       <PageHeader
         icon={CalendarRange}
         titulo="Recesso forense"
-        descricao="Modulo proprio para convocacao, escolha de pecunia ou folga, fechamento, homologacao da chefia e aceite SECAD."
+        descricao="Módulo próprio para convocação, escolha de pecúnia ou folga, fechamento, homologação da chefia e aceite SECAD."
         artigo="Fluxo institucional"
         regraTitulo="Servidor -> chefia -> SECAD -> SEPAG/SECAP"
-        regraDescricao="O recesso ocorre de 20/12 a 06/01. Dias nao convocados aparecem como Recesso forense e nao geram falta ou debito no ponto ordinario."
+        regraDescricao="O recesso ocorre de 20/12 a 06/01. Dias não convocados aparecem como Recesso forense e não geram falta ou débito no ponto ordinário."
         actions={
           podeGerenciar ? (
             <Link
@@ -66,7 +66,7 @@ export function RecessoForenseDashboardReal({
             Recesso ativo
           </p>
           <h2 className="mt-1 text-xl font-bold">
-            {ativo ? ativo.ano : "Nao cadastrado"}
+            {ativo ? ativo.ano : "Não cadastrado"}
           </h2>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
             {ativo ? formatarPeriodoRecesso(ativo.dataInicio, ativo.dataFim) : "-"}
@@ -86,7 +86,7 @@ export function RecessoForenseDashboardReal({
         <article className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
           <FileCheck2 className="size-5 text-blue-900 dark:text-blue-300" />
           <p className="mt-3 text-sm text-[var(--muted-foreground)]">
-            Pendencias de fluxo
+            Pendências de fluxo
           </p>
           <h2 className="mt-1 text-xl font-bold">{pendencias}</h2>
         </article>
@@ -102,11 +102,11 @@ export function RecessoForenseDashboardReal({
             <thead className="border-b bg-[var(--muted)] text-xs uppercase text-[var(--muted-foreground)]">
               <tr>
                 <th className="px-5 py-3">Ano</th>
-                <th className="px-5 py-3">Periodo</th>
+                <th className="px-5 py-3">Período</th>
                 <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Convocacoes</th>
+                <th className="px-5 py-3">Convocações</th>
                 <th className="px-5 py-3">Convocados</th>
-                <th className="px-5 py-3">Acoes</th>
+                <th className="px-5 py-3">Ações</th>
               </tr>
             </thead>
             <tbody>

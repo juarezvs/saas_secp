@@ -41,7 +41,7 @@ export function BoletimCicloCard({ boletim }: BoletimCicloCardProps) {
   const etapas = [
     {
       titulo: "Servidor",
-      descricao: "Frequencia mensal apurada, espelho disponivel e dados prontos para analise.",
+      descricao: "Frequência mensal apurada, espelho disponível e dados prontos para análise.",
       data: "Base do fechamento",
       autor: "SECP",
       concluida: true,
@@ -49,7 +49,7 @@ export function BoletimCicloCard({ boletim }: BoletimCicloCardProps) {
     },
     {
       titulo: "Chefia",
-      descricao: "Frequencia homologada e boletim mensal gerado pela unidade.",
+      descricao: "Frequência homologada e boletim mensal gerado pela unidade.",
       data: formatarDataHora(boletim.geradoEm),
       autor: boletim.geradoPor.nome,
       concluida: true,
@@ -57,7 +57,7 @@ export function BoletimCicloCard({ boletim }: BoletimCicloCardProps) {
     },
     {
       titulo: "Encaminhamento",
-      descricao: "Boletim enviado para conferencia da SECAP/NUCGP.",
+      descricao: "Boletim enviado para conferência da SECAP/NUCGP.",
       data: formatarDataHora(boletim.encaminhadoEm),
       autor: boletim.encaminhadoPor?.nome ?? "Pendente",
       concluida: Boolean(boletim.encaminhadoEm),
@@ -65,7 +65,7 @@ export function BoletimCicloCard({ boletim }: BoletimCicloCardProps) {
     },
     {
       titulo: "SECAP",
-      descricao: "Recebimento, conferencia e registro administrativo do boletim.",
+      descricao: "Recebimento, conferência e registro administrativo do boletim.",
       data: formatarDataHora(boletim.recebidoEm),
       autor: boletim.recebidoPor?.nome ?? "Pendente",
       concluida: ["RECEBIDO_SECAP", "CONFERIDO"].includes(boletim.status),
@@ -79,8 +79,8 @@ export function BoletimCicloCard({ boletim }: BoletimCicloCardProps) {
         <div>
           <h2 className="text-lg font-bold">Ciclo do boletim</h2>
           <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
-            Acompanhe o caminho institucional do boletim: apuracao do servidor,
-            homologacao da chefia, encaminhamento e recebimento pela SECAP.
+            Acompanhe o caminho institucional do boletim: apuração do servidor,
+            homologação da chefia, encaminhamento e recebimento pela SECAP.
           </p>
         </div>
 
@@ -125,7 +125,7 @@ export function BoletimCicloCard({ boletim }: BoletimCicloCardProps) {
                   <dd className="font-medium">{etapa.data}</dd>
                 </div>
                 <div>
-                  <dt className="font-semibold uppercase opacity-70">Responsavel</dt>
+                  <dt className="font-semibold uppercase opacity-70">Responsável</dt>
                   <dd className="font-medium">{etapa.autor}</dd>
                 </div>
               </dl>

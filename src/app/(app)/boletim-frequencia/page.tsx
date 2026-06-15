@@ -111,20 +111,20 @@ export default async function BoletimFrequenciaPage({
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Boletim de Frequencia" }]} />
+      <Breadcrumb items={[{ label: "Boletim de Frequência" }]} />
 
       <section>
         <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Boletim de Frequencia
+          Boletim de Frequência
         </p>
 
         <PageHeader
           icon={FileSpreadsheet}
           titulo="Boletins mensais"
-          descricao="Gere, consulte e encaminhe a SECAP/NUCGP os boletins mensais de frequencia das unidades homologadas."
+          descricao="Gere, consulte e encaminhe a SECAP/NUCGP os boletins mensais de frequência das unidades homologadas."
           artigo="Arts. 16 e 17"
-          regraTitulo="Boletim apos homologacao"
-          regraDescricao="Apos a homologacao da frequencia mensal, o boletim consolida as ocorrencias e deve ser encaminhado a SECAP/NUCGP dentro do prazo regulamentar."
+          regraTitulo="Boletim após homologação"
+          regraDescricao="Após a homologação da frequência mensal, o boletim consolida as ocorrências e deve ser encaminhado a SECAP/NUCGP dentro do prazo regulamentar."
         />
       </section>
 
@@ -133,9 +133,9 @@ export default async function BoletimFrequenciaPage({
           <p className="text-xs font-bold uppercase text-[var(--muted-foreground)]">
             1. Servidor
           </p>
-          <h2 className="mt-2 font-bold">Apuracao mensal</h2>
+          <h2 className="mt-2 font-bold">Apuração mensal</h2>
           <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
-            Marcacoes, ocorrencias e banco de horas compoem o espelho mensal.
+            Marcações, ocorrências e banco de horas compõem o espelho mensal.
           </p>
         </article>
 
@@ -143,7 +143,7 @@ export default async function BoletimFrequenciaPage({
           <p className="text-xs font-bold uppercase text-[var(--muted-foreground)]">
             2. Chefia
           </p>
-          <h2 className="mt-2 font-bold">Homologacao e boletim</h2>
+          <h2 className="mt-2 font-bold">Homologação e boletim</h2>
           <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
             A unidade homologa o fechamento e gera o boletim consolidado.
           </p>
@@ -153,9 +153,9 @@ export default async function BoletimFrequenciaPage({
           <p className="text-xs font-bold uppercase text-[var(--muted-foreground)]">
             3. SECAP
           </p>
-          <h2 className="mt-2 font-bold">Recebimento e conferencia</h2>
+          <h2 className="mt-2 font-bold">Recebimento e conferência</h2>
           <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
-            A SECAP/NUCGP registra o recebimento e a conferencia administrativa.
+            A SECAP/NUCGP registra o recebimento e a conferência administrativa.
           </p>
         </article>
       </section>
@@ -204,7 +204,7 @@ export default async function BoletimFrequenciaPage({
 
       <DataTableShell
         title="Boletins gerados"
-        description="Use a pesquisa geral ou filtre por competencia, unidade e status."
+        description="Use a pesquisa geral ou filtre por competência, unidade e status."
         total={resultado.total}
         pagina={resultado.pagina}
         totalPaginas={resultado.totalPaginas}
@@ -220,18 +220,18 @@ export default async function BoletimFrequenciaPage({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-left text-sm">
             <caption className="sr-only">
-              Listagem de boletins de frequencia com referencia, unidade,
-              servidores, status, processo SEI, responsavel e acoes.
+              Listagem de boletins de frequência com referência, unidade,
+              servidores, status, processo SEI, responsável e ações.
             </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
-                <th className="px-5 py-3">Referencia</th>
+                <th className="px-5 py-3">Referência</th>
                 <th className="px-5 py-3">Unidade</th>
                 <th className="px-5 py-3">Servidores</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Processo SEI</th>
                 <th className="px-5 py-3">Gerado por</th>
-                <th className="px-5 py-3 text-right">Acoes</th>
+                <th className="px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
 

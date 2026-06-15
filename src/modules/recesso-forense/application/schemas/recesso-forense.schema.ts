@@ -45,6 +45,11 @@ export const convocacaoRecessoSchema = z.object({
   descricao: z.string().trim().max(2000).optional().or(z.literal("")),
 });
 
+export const atualizarConvocacaoRecessoSchema =
+  convocacaoRecessoSchema.extend({
+    convocacaoId: z.string().uuid("Convocacao invalida."),
+  });
+
 export const convocadoRecessoSchema = z
   .object({
     recessoId: z.string().uuid("Recesso invalido."),

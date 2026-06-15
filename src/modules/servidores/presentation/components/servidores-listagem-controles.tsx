@@ -24,18 +24,18 @@ export function ServidoresListagemControles({
       tipo: "texto",
       nome: "busca",
       label: "Consulta geral",
-      placeholder: "Consulta aplicada apos 3 segundos",
+      placeholder: "Consulta aplicada após 3 segundos",
       className: "lg:col-span-2",
       comIconeBusca: true,
     },
-    { tipo: "texto", nome: "matricula", label: "Matricula" },
+    { tipo: "texto", nome: "matricula", label: "Matrícula" },
     { tipo: "texto", nome: "cpf", label: "CPF" },
     { tipo: "texto", nome: "nome", label: "Nome" },
-    { tipo: "texto", nome: "lotacao", label: "Lotacao" },
+    { tipo: "texto", nome: "lotacao", label: "Lotação" },
     {
       tipo: "select",
       nome: "orgaoId",
-      label: "Orgao",
+      label: "Órgão",
       options: [
         { value: "", label: "Todos" },
         ...orgaos.map((orgao) => ({ value: orgao.id, label: orgao.sigla })),
@@ -44,7 +44,7 @@ export function ServidoresListagemControles({
     {
       tipo: "select",
       nome: "vinculo",
-      label: "Vinculo",
+      label: "Vínculo",
       options: [
         { value: "", label: "Todos" },
         { value: "EFETIVO", label: "Efetivo" },

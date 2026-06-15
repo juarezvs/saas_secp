@@ -15,7 +15,7 @@ export function EspelhoRecessoServidor({ dias }: EspelhoRecessoServidorProps) {
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px] text-left text-sm">
           <caption className="sr-only">
-            Espelho do recesso forense com data, convocacao, marcacoes e
+            Espelho do recesso forense com data, convocação, marcações e
             situacao.
           </caption>
           <thead className="bg-muted text-xs uppercase text-muted-foreground">

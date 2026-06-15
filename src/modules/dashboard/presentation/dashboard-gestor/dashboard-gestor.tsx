@@ -22,33 +22,33 @@ export async function DashboardGestor() {
     <DashboardPerfilShell
       eyebrow="Painel da chefia"
       title="Dashboard do gestor"
-      description="Acompanhe fechamentos mensais, pendencias dos servidores e boletins que dependem de providencias da chefia."
+      description="Acompanhe fechamentos mensais, pendências dos servidores e boletins que dependem de providências da chefia."
       icon={ClipboardCheck}
     >
       <section className="grid gap-4 md:grid-cols-3">
         <DashboardRoleCard
-          titulo="Fechamentos em homologacao"
+          titulo="Fechamentos em homologação"
           valor={fechamentosEmHomologacao}
-          descricao="Competencias abertas para analise mensal pela chefia."
+          descricao="Competencias abertas para análise mensal pela chefia."
           icon={ClipboardCheck}
         />
         <DashboardRoleCard
           titulo="Servidores pendentes"
           valor={homologacoesPendentes}
-          descricao="Homologacoes individuais com pendencia, devolucao ou analise."
+          descricao="Homologações individuais com pendência, devolucao ou análise."
           icon={UsersRound}
         />
         <DashboardRoleCard
           titulo="Boletins gerados"
           valor={boletinsGerados}
-          descricao="Boletins aguardando encaminhamento ou conferencia."
+          descricao="Boletins aguardando encaminhamento ou conferência."
           icon={FileCheck2}
         />
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <DashboardAtalho href="/homologacao" titulo="Homologar frequencia" />
-        <DashboardAtalho href="/solicitacoes" titulo="Analisar solicitacoes" />
+        <DashboardAtalho href="/homologacao" titulo="Homologar frequência" />
+        <DashboardAtalho href="/solicitacoes" titulo="Analisar solicitações" />
         <DashboardAtalho href="/boletim-frequencia" titulo="Gerar boletim" />
       </section>
     </DashboardPerfilShell>

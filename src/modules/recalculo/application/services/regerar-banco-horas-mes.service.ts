@@ -31,7 +31,7 @@ function autorizacaoAbrangeData(
   dataReferencia: Date,
 ) {
   const inicioDia = new Date(dataReferencia);
-  inicioDia.setHours(0, 0, 0, 0);
+  inicioDia.setUTCHours(0, 0, 0, 0);
 
   const fimDia = new Date(inicioDia);
   fimDia.setDate(fimDia.getDate() + 1);
@@ -91,8 +91,8 @@ export async function regerarBancoHorasMesService({
   usuarioIdAuditoria,
   origem = "REGERACAO_BANCO_HORAS_MES",
 }: RegerarBancoHorasMesParams) {
-  const inicio = new Date(anoReferencia, mesReferencia - 1, 1);
-  const fim = new Date(anoReferencia, mesReferencia, 1);
+  const inicio = new Date(Date.UTC(anoReferencia, mesReferencia - 1, 1));
+  const fim = new Date(Date.UTC(anoReferencia, mesReferencia, 1));
 
   const apuracoes = await prisma.apuracaoDiaria.findMany({
     where: {

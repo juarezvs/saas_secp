@@ -63,8 +63,8 @@ export default async function PerfisPage({ searchParams }: PerfisPageProps) {
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administracao", href: "/administracao" },
-          { label: "Perfis e permissoes" },
+          { label: "Administração", href: "/administracao" },
+          { label: "Perfis e permissões" },
         ]}
       />
 
@@ -76,11 +76,11 @@ export default async function PerfisPage({ searchParams }: PerfisPageProps) {
 
           <PageHeader
             icon={ShieldAlert}
-            titulo="Perfis e permissoes"
-            descricao="Gerencie perfis de acesso, permissoes e escopos de atuacao dos usuarios do SECP."
+            titulo="Perfis e permissões"
+            descricao="Gerencie perfis de acesso, permissões e escopos de atuação dos usuários do SECP."
             artigo="Art. 2, inciso XII; Arts. 16 e 20"
-            regraTitulo="Acoes gerenciais e responsabilidades"
-            regraDescricao="O controle de acesso por perfis garante que chefias, delegados, administradores, SECAP, SECAD, DIREF e NUTEC executem apenas acoes compativeis com suas responsabilidades institucionais."
+            regraTitulo="Ações gerenciais e responsabilidades"
+            regraDescricao="O controle de acesso por perfis garante que chefias, delegados, administradores, SECAP, SECAD, DIREF e NUTEC executem apenas ações compatíveis com suas responsabilidades institucionais."
           />
         </div>
 
@@ -95,7 +95,7 @@ export default async function PerfisPage({ searchParams }: PerfisPageProps) {
 
       <DataTableShell
         title="Perfis cadastrados"
-        description="Use a pesquisa geral ou filtre por codigo, nome, permissao e status."
+        description="Use a pesquisa geral ou filtre por código, nome, permissão e status."
         total={resultado.total}
         pagina={resultado.pagina}
         totalPaginas={resultado.totalPaginas}
@@ -111,17 +111,17 @@ export default async function PerfisPage({ searchParams }: PerfisPageProps) {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
             <caption className="sr-only">
-              Listagem de perfis com codigo, nome, usuarios, permissoes, status
-              e acoes.
+              Listagem de perfis com código, nome, usuários, permissões, status
+              e ações.
             </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
-                <th className="px-5 py-3">Codigo</th>
+                <th className="px-5 py-3">Código</th>
                 <th className="px-5 py-3">Nome</th>
-                <th className="px-5 py-3">Usuarios</th>
-                <th className="px-5 py-3">Permissoes</th>
+                <th className="px-5 py-3">Usuários</th>
+                <th className="px-5 py-3">Permissões</th>
                 <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Acoes</th>
+                <th className="px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
 

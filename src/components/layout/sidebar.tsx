@@ -54,28 +54,28 @@ export type MenuItem = {
 export const MENU_ITEMS: MenuItem[] = [
   { label: "Inicio", href: "/dashboard", icon: LayoutDashboard, permissoes: ["dashboard:visualizar:proprio"] },
   { label: "Registrar ponto", href: "/marcacoes/registrar", icon: Fingerprint, permissoes: ["marcacoes:registrar:proprio"] },
-  { label: "Marcacoes", href: "/marcacoes", icon: Clock, permissoes: ["marcacoes:consultar:global"] },
-  { label: "Marcacoes brutas", href: "/marcacoes-brutas", icon: DatabaseZap, permissoes: ["marcacoes:gerenciar:global", "afd:importar:global"] },
+  { label: "Marcações", href: "/marcacoes", icon: Clock, permissoes: ["marcacoes:consultar:global"] },
+  { label: "Marcações brutas", href: "/marcacoes-brutas", icon: DatabaseZap, permissoes: ["marcacoes:gerenciar:global", "afd:importar:global"] },
   { label: "Espelho de ponto", href: "/espelho-ponto", icon: CalendarDays, permissoes: ["espelho-ponto:visualizar:proprio", "apuracao:consultar:proprio", "apuracao:consultar:global"] },
   { label: "Banco de horas", href: "/banco-horas", icon: Hourglass, permissoes: ["banco-horas:visualizar:proprio", "banco-horas:consultar:proprio", "banco-horas:consultar:global"] },
-  { label: "Solicitacoes", href: "/solicitacoes", icon: ClipboardList, permissoes: ["solicitacoes:criar:proprio", "solicitacoes:consultar:proprio", "solicitacoes:analisar:chefia", "solicitacoes:consultar:global"] },
-  { label: "Homologacao", href: "/homologacao", icon: ShieldCheck, permissoes: ["homologacao:gerenciar:chefia", "homologacao:consultar:global", "homologacao:gerenciar:global"] },
-  { label: "Boletim de frequencia", href: "/boletim-frequencia", icon: FileSpreadsheet, permissoes: ["boletim-frequencia:gerar:chefia", "boletim-frequencia:encaminhar:chefia", "boletim-frequencia:receber:global", "boletim-frequencia:consultar:global"] },
+  { label: "Solicitações", href: "/solicitacoes", icon: ClipboardList, permissoes: ["solicitacoes:criar:proprio", "solicitacoes:consultar:proprio", "solicitacoes:analisar:chefia", "solicitacoes:consultar:global"] },
+  { label: "Homologação", href: "/homologacao", icon: ShieldCheck, permissoes: ["homologacao:gerenciar:chefia", "homologacao:consultar:global", "homologacao:gerenciar:global"] },
+  { label: "Boletim de frequência", href: "/boletim-frequencia", icon: FileSpreadsheet, permissoes: ["boletim-frequencia:gerar:chefia", "boletim-frequencia:encaminhar:chefia", "boletim-frequencia:receber:global", "boletim-frequencia:consultar:global"] },
   { label: "Recesso forense", href: "/recesso-forense", icon: CalendarRange, permissoes: ["recesso:consultar:proprio", "recesso:consultar:global", "recesso:gerenciar:global", "recesso:homologar:chefia", "recesso:aceitar:secad"] },
-  { label: "Relatorios", href: "/relatorios", icon: BarChart3, permissoes: ["relatorios:consultar:proprio", "relatorios:consultar:global"] },
+  { label: "Relatórios", href: "/relatorios", icon: BarChart3, permissoes: ["relatorios:consultar:proprio", "relatorios:consultar:global"] },
   { label: "Biometria", href: "/biometria", icon: ScanFace, permissoes: ["biometria:consultar:proprio", "biometria:cadastrar:proprio", "biometria:gerenciar:global"] },
   { label: "Equipamentos", href: "/equipamentos", icon: Cpu, permissoes: ["integracoes:consultar:global", "integracoes:gerenciar:global", "afd:importar:global"] },
-  { label: "Apuracao", href: "/apuracao", icon: FileCheck2, permissoes: ["apuracao:consultar:global", "apuracao:recalcular:global"] },
+  { label: "Apuração", href: "/apuracao", icon: FileCheck2, permissoes: ["apuracao:consultar:global", "apuracao:recalcular:global"] },
   { label: "AFD", href: "/afd", icon: Upload, permissoes: ["afd:importar:global"] },
   { label: "Servidores", href: "/servidores", icon: Users, permissoes: ["servidores:gerenciar:global", "servidores:consultar:global"] },
-  { label: "Usuarios", href: "/usuarios", icon: UserCog, permissoes: ["usuarios:gerenciar:global", "usuarios:consultar:global"] },
+  { label: "Usuários", href: "/usuarios", icon: UserCog, permissoes: ["usuarios:gerenciar:global", "usuarios:consultar:global"] },
   { label: "Perfis", href: "/perfis", icon: ShieldAlert, permissoes: ["perfis:gerenciar:global"] },
   { label: "Unidades", href: "/unidades", icon: Building2, permissoes: ["unidades:gerenciar:global"] },
-  { label: "Orgaos", href: "/orgaos", icon: Landmark, permissoes: ["unidades:gerenciar:global"] },
+  { label: "Órgãos", href: "/orgaos", icon: Landmark, permissoes: ["unidades:gerenciar:global"] },
   { label: "Jornadas", href: "/jornadas", icon: CalendarClock, permissoes: ["jornadas:gerenciar:global"] },
   { label: "Chefias", href: "/chefias", icon: Network, permissoes: ["chefias:gerenciar:global"] },
-  { label: "Integracoes", href: "/integracoes", icon: Cable, permissoes: ["integracoes:consultar:global", "integracoes:gerenciar:global"] },
-  { label: "Administracao", href: "/administracao", icon: Settings, permissoes: ["configuracoes:gerenciar:global"] },
+  { label: "Integrações", href: "/integracoes", icon: Cable, permissoes: ["integracoes:consultar:global", "integracoes:gerenciar:global"] },
+  { label: "Administração", href: "/administracao", icon: Settings, permissoes: ["configuracoes:gerenciar:global"] },
   { label: "Auditoria", href: "/auditoria", icon: ScrollText, permissoes: ["auditoria:consultar:global", "auditoria:detalhar:global"] },
 ];
 
@@ -156,7 +156,7 @@ function MenuPrincipal({
         })}
         {itensVisiveis.length === 0 && (
           <li className="rounded-md border border-dashed border-border px-3 py-4 text-xs text-muted-foreground">
-            Nenhum item disponivel para o perfil ativo.
+            Nenhum item disponível para o perfil ativo.
           </li>
         )}
       </ul>

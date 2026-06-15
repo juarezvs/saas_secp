@@ -86,15 +86,15 @@ export default async function RelatoriosPage({
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Relatorios" }]} />
+      <Breadcrumb items={[{ label: "Relatórios" }]} />
 
       <PageHeader
         icon={BarChart3}
-        titulo="Relatorios do SECP"
-        descricao="Exporte espelho de ponto, banco de horas e boletins de frequencia em PDF."
+        titulo="Relatórios do SECP"
+        descricao="Exporte espelho de ponto, banco de horas e boletins de frequência em PDF."
         artigo="Arts. 8, 16, 17 e 19"
-        regraTitulo="Espelho, frequencia mensal e boletim"
-        regraDescricao="Os relatorios consolidam frequencia diaria, saldo de horas, apuracao mensal e Boletim de Frequencia, servindo de base para conferencia, homologacao e juntada no SEI."
+        regraTitulo="Espelho, frequência mensal e boletim"
+        regraDescricao="Os relatórios consolidam frequência diária, saldo de horas, apuração mensal e Boletim de Frequência, servindo de base para conferência, homologação e juntada no SEI."
       />
 
       <FiltrosRelatoriosCard

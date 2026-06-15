@@ -58,9 +58,9 @@ function obterBadgeStatus(status: StatusVisual) {
   };
 
   const labels: Record<StatusVisual, string> = {
-    disponivel: "Disponivel",
+    disponivel: "Disponível",
     planejado: "Planejado",
-    atencao: "Atencao",
+    atencao: "Atenção",
     inativo: "Inativo",
   };
 
@@ -261,24 +261,24 @@ export default async function IntegracoesPage({
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administracao", href: "/administracao" },
-          { label: "Integracoes" },
+          { label: "Administração", href: "/administracao" },
+          { label: "Integrações" },
         ]}
       />
 
       <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-            Administracao
+            Administração
           </p>
 
           <PageHeader
             icon={Cable}
-            titulo="Integracoes do SECP"
-            descricao="Acompanhe fontes externas, sincronizacoes, disponibilidade, conflitos, erros operacionais e evolucao dos conectores do sistema."
-            artigo="Governanca operacional"
-            regraTitulo="Integracoes institucionais"
-            regraDescricao="As integracoes apoiam o controle eletronico de frequencia, a conferencia cadastral, a rastreabilidade das sincronizacoes e a governanca operacional do SECP."
+            titulo="Integrações do SECP"
+            descricao="Acompanhe fontes externas, sincronizações, disponibilidade, conflitos, erros operacionais e evolução dos conectores do sistema."
+            artigo="Governança operacional"
+            regraTitulo="Integrações institucionais"
+            regraDescricao="As integracoes apoiam o controle eletrônico de frequência, a conferência cadastral, a rastreabilidade das sincronizações e a governança operacional do SECP."
           />
         </div>
 
@@ -293,13 +293,13 @@ export default async function IntegracoesPage({
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatusResumoCard
-          titulo="Integracoes cadastradas"
+          titulo="Integrações cadastradas"
           valor={integracoesResumo.length}
-          descricao="Total de integracoes registradas em Administracao."
+          descricao="Total de integracoes registradas em Administração."
           icon={Network}
         />
         <StatusResumoCard
-          titulo="Integracoes ativas"
+          titulo="Integrações ativas"
           valor={integracoesAtivas}
           descricao="Conectores habilitados para uso operacional."
           icon={Activity}
@@ -307,13 +307,13 @@ export default async function IntegracoesPage({
         <StatusResumoCard
           titulo="Conflitos SARH"
           valor={conflitosPendentesSarh}
-          descricao="Pendencias que exigem decisao administrativa."
+          descricao="Pendências que exigem decisao administrativa."
           icon={AlertTriangle}
         />
         <StatusResumoCard
           titulo="Itens SARH com erro"
           valor={itensComErroSarh}
-          descricao="Registros que precisam de analise ou reprocessamento."
+          descricao="Registros que precisam de análise ou reprocessamento."
           icon={DatabaseZap}
         />
       </section>
@@ -321,12 +321,12 @@ export default async function IntegracoesPage({
       <section className="grid gap-5 lg:grid-cols-2 2xl:grid-cols-4">
         <IntegracaoCard
           titulo="SARH"
-          descricao="Integracao com o Sistema de Gestao de Recursos Humanos para carga e sincronizacao de orgaos, lotacoes, cargos, servidores e vinculos."
+          descricao="Integração com o Sistema de Gestão de Recursos Humanos para carga e sincronização de órgãos, lotações, cargos, servidores e vínculos."
           href="/administracao/integracoes/sarh"
           status={statusSarh}
           icon={UsersRound}
           detalhes={[
-            `Status: ${sarh?.status ?? "nao configurada"}`,
+            `Status: ${sarh?.status ?? "não configurada"}`,
             `Ultima execucao: ${formatarData(ultimaExecucaoSarh?.iniciadoEm)}`,
             `Base URL: ${sarh?.baseUrl ?? "SARH_BASE_URL pendente"}`,
           ]}
@@ -334,7 +334,7 @@ export default async function IntegracoesPage({
 
         <IntegracaoCard
           titulo="SEI"
-          descricao="Conector previsto para documentos, boletins de frequencia e processos administrativos relacionados ao ponto."
+          descricao="Conector previsto para documentos, boletins de frequência e processos administrativos relacionados ao ponto."
           status="planejado"
           icon={FileText}
           detalhes={[
@@ -345,25 +345,25 @@ export default async function IntegracoesPage({
         />
 
         <IntegracaoCard
-          titulo="Equipamentos biometricos"
-          descricao="Integracao com relogios, totens e dispositivos biometricos para ingestao de marcacoes e eventos operacionais."
+          titulo="Equipamentos biométricos"
+          descricao="Integração com relógios, totens e dispositivos biométricos para ingestão de marcações e eventos operacionais."
           href="/equipamentos"
           status="disponivel"
           icon={Fingerprint}
           detalhes={[
             "Cadastro de equipamentos",
-            "Vinculo por codigo ou numero de serie",
-            "Associacao automatica na importacao AFD",
+            "Vínculo por código ou número de série",
+            "Associacao automatica na importação AFD",
           ]}
         />
 
         <IntegracaoCard
           titulo="LDAP / Active Directory"
-          descricao="Integracao com a rede Windows institucional para autenticacao, identificacao por matricula e grupos administrativos."
+          descricao="Integração com a rede Windows institucional para autenticação, identificação por matrícula e grupos administrativos."
           status="planejado"
           icon={KeyRound}
           detalhes={[
-            "Login com matricula e senha de rede",
+            "Login com matrícula e senha de rede",
             "Mapeamento de grupos para perfis",
             "Suporte futuro a multiplos provedores",
           ]}
@@ -371,8 +371,8 @@ export default async function IntegracoesPage({
       </section>
 
       <DataTableShell
-        title="Integracoes registradas"
-        description="Visao tecnica dos conectores cadastrados na tabela de integracoes do SECP."
+        title="Integrações registradas"
+        description="Visão técnica dos conectores cadastrados na tabela de integracoes do SECP."
         total={resultado.total}
         pagina={resultado.pagina}
         totalPaginas={resultado.totalPaginas}
@@ -388,20 +388,20 @@ export default async function IntegracoesPage({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[980px] text-left text-sm">
             <caption className="sr-only">
-              Listagem de integracoes com nome, tipo, status, direcao, ativo,
-              ultimo sucesso, ultimo erro e contadores.
+              Listagem de integracoes com nome, tipo, status, direção, ativo,
+              último sucesso, último erro e contadores.
             </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
                 <th className="px-5 py-3">Nome</th>
                 <th className="px-5 py-3">Tipo</th>
                 <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Direcao</th>
+                <th className="px-5 py-3">Direção</th>
                 <th className="px-5 py-3">Ativa</th>
                 <th className="px-5 py-3">Logs</th>
                 <th className="px-5 py-3">Equip.</th>
-                <th className="px-5 py-3">Ultimo sucesso</th>
-                <th className="px-5 py-3">Ultimo erro</th>
+                <th className="px-5 py-3">Último sucesso</th>
+                <th className="px-5 py-3">Último erro</th>
               </tr>
             </thead>
             <tbody>
@@ -414,7 +414,7 @@ export default async function IntegracoesPage({
                   <td className="px-5 py-4">{integracao.status}</td>
                   <td className="px-5 py-4">{integracao.direcao}</td>
                   <td className="px-5 py-4">
-                    {integracao.ativo ? "Sim" : "Nao"}
+                    {integracao.ativo ? "Sim" : "Não"}
                   </td>
                   <td className="px-5 py-4">{integracao._count.logs}</td>
                   <td className="px-5 py-4">
@@ -456,7 +456,7 @@ export default async function IntegracoesPage({
       {integracoesComErro > 0 ? (
         <section className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
           Existem {integracoesComErro} integracao(oes) com status de erro.
-          Verifique os logs antes de executar novas sincronizacoes.
+          Verifique os logs antes de executar novas sincronizações.
         </section>
       ) : null}
     </div>
