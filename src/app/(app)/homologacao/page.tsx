@@ -11,6 +11,13 @@ import {
   rotuloStatusFechamento,
 } from "@/modules/homologacao/application/services/formatar-homologacao.service";
 import { HomologacaoListagemControles } from "@/modules/homologacao/presentation/components/homologacao-listagem-controles";
+import {
+  calcularPrazoHomologacaoCompetenciaComCalendario,
+  classeSituacaoPrazoRegulatorio,
+  descreverPrazoRegulatorio,
+  formatarDataPrazoRegulatorio,
+  rotuloSituacaoPrazoRegulatorio,
+} from "@/modules/frequencia/application/services/prazo-regulatorio-frequencia.service";
 
 type HomologacaoPageProps = {
   searchParams?: Promise<{
@@ -56,6 +63,30 @@ function classeStatusFechamento(status: string) {
   return "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
 }
 
+function renderizarPrazoHomologacao(
+  prazo: Awaited<
+    ReturnType<typeof calcularPrazoHomologacaoCompetenciaComCalendario>
+  >,
+) {
+  return (
+    <div>
+      <div className="font-semibold">
+        {formatarDataPrazoRegulatorio(prazo.dataLimite)}
+      </div>
+      <span
+        className={`mt-1 inline-flex rounded-full px-2 py-1 text-xs font-semibold ${classeSituacaoPrazoRegulatorio(
+          prazo.situacao,
+        )}`}
+      >
+        {rotuloSituacaoPrazoRegulatorio(prazo.situacao)}
+      </span>
+      <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+        {descreverPrazoRegulatorio(prazo)}
+      </div>
+    </div>
+  );
+}
+
 export default async function HomologacaoPage({
   searchParams,
 }: HomologacaoPageProps) {
@@ -78,6 +109,21 @@ export default async function HomologacaoPage({
     pagina,
     itensPorPagina,
   });
+  const prazosPorFechamento = new Map<
+    string,
+    Awaited<ReturnType<typeof calcularPrazoHomologacaoCompetenciaComCalendario>>
+  >();
+
+  for (const fechamento of resultado.fechamentos) {
+    prazosPorFechamento.set(
+      fechamento.id,
+      await calcularPrazoHomologacaoCompetenciaComCalendario({
+        anoReferencia: fechamento.anoReferencia,
+        mesReferencia: fechamento.mesReferencia,
+        concluidoEm: fechamento.homologadoEm,
+      }),
+    );
+  }
 
   const exportParams = new URLSearchParams();
 
@@ -155,6 +201,7 @@ export default async function HomologacaoPage({
                 <th className="px-5 py-3">Unidade</th>
                 <th className="px-5 py-3">Servidores</th>
                 <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3">Prazo</th>
                 <th className="px-5 py-3">Aberto por</th>
                 <th className="px-5 py-3">Homologado por</th>
                 <th className="px-5 py-3 text-right">Ações</th>
@@ -186,6 +233,11 @@ export default async function HomologacaoPage({
                       {rotuloStatusFechamento(fechamento.status)}
                     </span>
                   </td>
+                  <td className="px-5 py-4">
+                    {renderizarPrazoHomologacao(
+                      prazosPorFechamento.get(fechamento.id)!,
+                    )}
+                  </td>
                   <td className="px-5 py-4">{fechamento.abertoPor.nome}</td>
                   <td className="px-5 py-4">
                     {fechamento.homologadoPor?.nome ?? "-"}
@@ -204,7 +256,7 @@ export default async function HomologacaoPage({
               {resultado.fechamentos.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
                     Nenhum fechamento encontrado para os filtros informados.

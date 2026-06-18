@@ -1,0 +1,67 @@
+Matriz Funcional
+
+RF	    Funcionalidade extraída da Portaria	                                                        Status
+-----------------------------------------------------------------------------------------------------------------
+RF01	Expediente institucional padrão: funcionamento em dias úteis das 8h às 18h	                Implementado
+RF02	Diferenciar expediente interno 8h-16h e externo 8h-15h por tipo de unidade	                Implementado
+RF03	Garantir atendimento/urgências entre 15h01 e 18h nas unidades judiciais	                    Implementado
+RF04	Cadastro de jornadas de 7h ininterruptas e 8h com intervalo	                                Implementado
+RF05	Validar intervalo da jornada de 8h entre 1h e 3h	                                        Implementado
+RF06	Suportar jornadas especiais de profissão regulamentada	                                    Implementado
+RF07	FC/CJ submetidos à dedicação integral, preferencialmente 8h	                                Implementado
+RF08	Cadastro de escalas individuais, semanais e revezamento	                                    Implementado
+RF09	Horário diferenciado autorizado entre 6h e 19h	                                            Implementado
+RF10	Desconsiderar tempo fora do expediente autorizado como hora não autorizada	                Implementado
+RF11	Vedação de ausência durante expediente sem autorização da chefia	                        Implementado
+RF12	Registro eletrônico de entrada, saída, saída de intervalo e retorno	                        Implementado
+RF13	Registro por biometria/equipamento integrado	                                            Implementado
+RF14	Registro facial/web como meio alternativo rastreável	                                    Implementado
+RF15	Importação/processamento de marcações AFD/equipamento	                                    Implementado
+RF16	Dispensa excepcional de ponto para oficiais de justiça e locais sem equipamento	            Implementado
+RF17	Frequência manual obrigatória para dispensados do ponto eletrônico	                        Implementado
+RF18	Teletrabalho/trabalho remoto avaliado por regra própria	                                    Implementado
+RF19	Serviço extraordinário em teletrabalho/remoto obrigatoriamente registrado biometricamente	Implementado
+RF20	Capacitação como efetivo exercício	                                                        Implementado
+RF21	Capacitação externa >= 4h conta jornada integral	                                        Implementado
+RF22	Capacitação externa < 4h exige complementação	                                            Implementado
+RF23	Capacitação interna exige registro biométrico	                                            Implementado
+RF24	Apuração diária pela jornada vigente e marcações registradas	                            Implementado
+RF25	Apuração mensal: dias úteis do mês x jornada 7h/8h	                                        Implementado
+RF26	Folha/espelho mensal com ausências, atividades externas e viagens	                        Implementado
+RF27	Viagem a serviço como efetivo exercício validado pela chefia	                            Implementado
+RF28	Jornada 7h só gera crédito a partir da 8ª hora com intervalo mínimo de 1h	                Implementado
+RF29	Ausências por caso fortuito/força maior podem ser compensadas ou abonadas	                Implementado
+RF30	Banco de horas individual com saldo positivo/negativo	                                    Implementado
+RF31	Crédito, débito e compensação dependem de autorização prévia da chefia	                    Implementado
+RF32	Compensação de crédito/débito em até 3 meses	                                            Implementado
+RF33	Expiração de débitos não compensados para desconto em folha	                                Implementado parcial
+RF34	Limite ordinário de 16h mensais de crédito para fruição futura	                            Implementado
+RF35	Horas acima do limite não entram no saldo	                                                Implementado
+RF36	Referendo excepcional da DIREF para horas acima do limite	                                Não implementado
+RF37	Horas-crédito nunca convertidas em pecúnia	                                                Implementado parcial
+RF38	Atividade externa só gera crédito se exceder jornada e houver comprovação	                Implementado parcial
+RF39	Falta injustificada pode virar débito por decisão da chefia	                                Implementado parcial
+RF40	Vedação de compensação antes das 6h e após as 19h, salvo exceção autorizada	                Implementado parcial
+RF41	Horas em sábado com acréscimo de 50%	                                                    Não implementado
+RF42	Horas em domingo/feriado em dobro	                                                        Não implementado
+RF43	Ponto facultativo tratado como dia normal, com crédito após 8h + intervalo	                Implementado parcial
+RF44	Horas noturnas após 19h como não autorizadas, salvo jornada diária	                        Implementado parcial
+RF45	Recesso forense separado do ponto ordinário	                                                Implementado
+RF46	Trabalho em recesso com convocação, fechamento, homologação e aceite SECAD	                Implementado
+RF47	Registro de trabalho em plantão	                                                            Não implementado claramente
+RF48	Homologação mensal pela chefia	                                                            Implementado
+RF49	Delegação de homologação a servidor da unidade	                                            Implementado parcial
+RF50	Boletim de Frequência após homologação	                                                    Implementado
+RF51	Prazo de homologação até 2º dia útil do mês seguinte	                                    Implementado
+RF52	Encaminhamento do boletim à SECAP até dia 10 ou útil seguinte	                            Implementado
+RF53	Fluxo SECAP: encaminhado, recebido e conferido	                                            Implementado
+RF54	Notificação por falta injustificada/débito vencido com defesa em 2 dias úteis	            Não implementado
+RF55	Registro de providências para desconto de faltas, atrasos e débitos vencidos	            Não implementado
+RF56	Correção de falha de marcação até o prazo do boletim	                                    Implementado parcial
+RF57	Acesso do servidor à frequência diária e saldo	                                            Implementado
+RF58	Acesso da chefia à frequência dos subordinados	                                            Implementado
+RF59	Exportação/relatórios de espelho, banco de horas e boletim	                                Implementado
+RF60	Campos/processo SEI para boletim	                                                        Implementado parcial
+RF61	Integração real com SEI para juntada/consulta documental	                                Não implementado
+RF62	Responsabilidades institucionais por perfil: NUTEC, SECAP/NUCGP, SECAD, DIREF	            Implementado parcial
+RF63	Auditoria/rastreabilidade das ações críticas	                                            Implementado

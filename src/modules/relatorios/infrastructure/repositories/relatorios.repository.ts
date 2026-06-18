@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { montarEspelhoMensalCompleto } from "@/modules/apuracao/application/services/montar-espelho-mensal-completo.service";
 
 export async function buscarServidorRelatorioPorUsuarioId(usuarioId: string) {
   return prisma.servidor.findFirst({
@@ -130,6 +131,8 @@ export async function buscarDadosEspelhoPontoPdf(params: {
 }) {
   const inicio = new Date(params.ano, params.mes - 1, 1);
   const fim = new Date(params.ano, params.mes, 1);
+  const inicioMarcacoes = new Date(Date.UTC(params.ano, params.mes - 1, 1));
+  const fimMarcacoes = new Date(Date.UTC(params.ano, params.mes, 1));
 
   const servidor = await prisma.servidor.findUnique({
     where: {
@@ -163,28 +166,88 @@ export async function buscarDadosEspelhoPontoPdf(params: {
     },
   });
 
-  const apuracoes = await prisma.apuracaoDiaria.findMany({
-    where: {
-      servidorId: params.servidorId,
-      dataReferencia: {
-        gte: inicio,
-        lt: fim,
+  const [apuracoesCalculadas, jornadas] = await Promise.all([
+    prisma.apuracaoDiaria.findMany({
+      where: {
+        servidorId: params.servidorId,
+        dataReferencia: {
+          gte: inicio,
+          lt: fim,
+        },
       },
-    },
-    include: {
-      ocorrencias: true,
-    },
-    orderBy: {
-      dataReferencia: "asc",
-    },
+      include: {
+        ocorrencias: true,
+        movimentoBancoHoras: {
+          where: {
+            status: {
+              in: ["PENDENTE", "VALIDADO"],
+            },
+          },
+          include: {
+            autorizacaoBancoHoras: {
+              select: {
+                solicitacao: {
+                  select: {
+                    id: true,
+                    tipo: true,
+                    titulo: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        dataReferencia: "asc",
+      },
+    }),
+    prisma.jornadaServidor.findMany({
+      where: {
+        servidorId: params.servidorId,
+        ativo: true,
+        dataInicio: {
+          lt: fim,
+        },
+        OR: [
+          {
+            dataFim: null,
+          },
+          {
+            dataFim: {
+              gte: inicio,
+            },
+          },
+        ],
+      },
+      include: {
+        jornada: {
+          select: {
+            cargaDiariaMinutos: true,
+          },
+        },
+      },
+      orderBy: {
+        dataInicio: "asc",
+      },
+    }),
+  ]);
+  const espelho = await montarEspelhoMensalCompleto({
+    anoReferencia: params.ano,
+    mesReferencia: params.mes,
+    apuracoes: apuracoesCalculadas,
+    jornadas,
   });
 
   const marcacoes = await prisma.marcacao.findMany({
     where: {
       servidorId: params.servidorId,
-      dataReferencia: {
-        gte: inicio,
-        lt: fim,
+      dataHora: {
+        gte: inicioMarcacoes,
+        lt: fimMarcacoes,
+      },
+      status: {
+        in: ["VALIDA", "AJUSTADA", "PENDENTE"],
       },
     },
     orderBy: {
@@ -194,7 +257,7 @@ export async function buscarDadosEspelhoPontoPdf(params: {
 
   return {
     servidor,
-    apuracoes,
+    apuracoes: espelho.itens,
     marcacoes,
     ano: params.ano,
     mes: params.mes,

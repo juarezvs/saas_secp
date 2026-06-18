@@ -81,7 +81,10 @@ export default async function BoletimDetalhePage({
 
       <BoletimAcoesCard
         boletimId={boletim.id}
+        anoReferencia={boletim.anoReferencia}
+        mesReferencia={boletim.mesReferencia}
         status={boletim.status}
+        encaminhadoEm={boletim.encaminhadoEm}
         podeEncaminhar={podeEncaminhar}
         podeRegistrarSecap={podeRegistrarSecap}
       />

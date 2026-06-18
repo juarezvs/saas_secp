@@ -13,6 +13,14 @@ function horaParaMinutos(valor: string | undefined | null) {
   return horas * 60 + minutos;
 }
 
+function contemFundamentoNormativo(valor: string | undefined | null) {
+  if (!valor) return false;
+
+  return /\b(lei|resolucao|resolução|portaria|decreto|norma|regulamento|ato|cjf|cnj)\b/i.test(
+    valor,
+  );
+}
+
 export const jornadaSchema = z
   .object({
     codigo: z
@@ -158,6 +166,19 @@ export const jornadaSchema = z
         code: "custom",
         path: ["exigeIntervalo"],
         message: "Jornada de 8 horas deve exigir intervalo.",
+      });
+    }
+
+    if (
+      data.tipo === "ESPECIAL" &&
+      ((data.descricao?.trim().length ?? 0) < 20 ||
+        !contemFundamentoNormativo(data.descricao))
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["descricao"],
+        message:
+          "Informe o fundamento legal/normativo da jornada especial ou profissao regulamentada.",
       });
     }
 

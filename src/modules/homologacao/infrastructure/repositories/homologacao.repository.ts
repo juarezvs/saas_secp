@@ -295,6 +295,45 @@ export async function listarApuracoesServidorMes(params: {
   });
 }
 
+export async function listarJornadasServidorMes(params: {
+  servidorId: string;
+  anoReferencia: number;
+  mesReferencia: number;
+}) {
+  const inicio = new Date(Date.UTC(params.anoReferencia, params.mesReferencia - 1, 1));
+  const fim = new Date(Date.UTC(params.anoReferencia, params.mesReferencia, 1));
+
+  return prisma.jornadaServidor.findMany({
+    where: {
+      servidorId: params.servidorId,
+      ativo: true,
+      dataInicio: {
+        lt: fim,
+      },
+      OR: [
+        {
+          dataFim: null,
+        },
+        {
+          dataFim: {
+            gte: inicio,
+          },
+        },
+      ],
+    },
+    include: {
+      jornada: {
+        select: {
+          cargaDiariaMinutos: true,
+        },
+      },
+    },
+    orderBy: {
+      dataInicio: "asc",
+    },
+  });
+}
+
 export async function listarSolicitacoesPendentesServidorMes(params: {
   servidorId: string;
   anoReferencia: number;

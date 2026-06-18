@@ -47,6 +47,7 @@ export function obterDashboardHrefPorPerfil(
   const dashboardPorPerfil: Record<DashboardPerfil, string> = {
     ADMIN: "/dashboard",
     MASTER: "/dashboard",
+    SUPORTE: "/dashboard",
     GESTOR: "/dashboard",
     SERVIDOR: "/dashboard",
     SECAP: "/dashboard",

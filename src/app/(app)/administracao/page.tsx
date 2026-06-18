@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   Building2,
+  CalendarDays,
   Cpu,
   KeyRound,
   Settings,
@@ -46,6 +47,13 @@ export default async function AdministracaoPage() {
       descricao: "Configure parametros gerais do controle eletrônico de ponto.",
       href: "/administracao/parametros",
       icon: Settings,
+    },
+    {
+      titulo: "Calendário institucional",
+      descricao:
+        "Cadastre feriados, pontos facultativos e suspensões que impactam prazos e a apuração do ponto.",
+      href: "/administracao/calendario",
+      icon: CalendarDays,
     },
     {
       titulo: "Credenciais e integracoes",

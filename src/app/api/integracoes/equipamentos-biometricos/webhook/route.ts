@@ -1,57 +1,164 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { criarMarcacaoBrutaService } from "@/modules/marcacoes-brutas/application/services/criar-marcacao-bruta.service";
 import { processarMarcacaoBrutaService } from "@/modules/marcacoes-brutas/application/services/processar-marcacao-bruta.service";
+import {
+  equipamentoBiometricoWebhookSchema,
+  type EquipamentoBiometricoWebhookInput,
+} from "@/modules/integracoes/application/schemas/integracao.schema";
 
 export const runtime = "nodejs";
 
-type PayloadWebhookEquipamento = {
-  equipamentoCodigo?: string;
-  tipoEvento?: "MARCACAO" | "HEARTBEAT" | "SINCRONIZACAO" | "ERRO";
-  codigoEventoExterno?: string;
-  nsr?: string;
-  cpf?: string;
-  matricula?: string;
-  dataHora?: string;
-  payload?: unknown;
+type ConfiguracaoEquipamento = {
+  webhookToken?: unknown;
+  tokenWebhook?: unknown;
 };
 
-function validarToken(request: Request) {
-  const tokenEsperado = process.env.SECP_EQUIPAMENTO_WEBHOOK_TOKEN;
-
-  if (!tokenEsperado) {
-    return false;
-  }
-
+function extrairTokenRecebido(request: Request) {
   const authorization = request.headers.get("authorization");
   const tokenHeader = request.headers.get("x-secp-webhook-token");
 
-  const tokenRecebido = authorization?.startsWith("Bearer ")
-    ? authorization.replace("Bearer ", "").trim()
-    : tokenHeader;
+  if (authorization?.startsWith("Bearer ")) {
+    return authorization.replace("Bearer ", "").trim();
+  }
 
-  return tokenRecebido === tokenEsperado;
+  return tokenHeader?.trim() || null;
+}
+
+function extrairTokenConfigurado(configuracao: unknown) {
+  if (!configuracao || typeof configuracao !== "object") {
+    return null;
+  }
+
+  const dados = configuracao as ConfiguracaoEquipamento;
+  const token = dados.webhookToken ?? dados.tokenWebhook;
+
+  return typeof token === "string" && token.trim() ? token.trim() : null;
+}
+
+function validarToken(request: Request, configuracaoEquipamento: unknown) {
+  const tokenRecebido = extrairTokenRecebido(request);
+
+  if (!tokenRecebido) {
+    return false;
+  }
+
+  const tokensAceitos = [
+    process.env.SECP_EQUIPAMENTO_WEBHOOK_TOKEN,
+    extrairTokenConfigurado(configuracaoEquipamento),
+  ].filter((token): token is string => Boolean(token));
+
+  if (tokensAceitos.length === 0) {
+    return false;
+  }
+
+  return tokensAceitos.includes(tokenRecebido);
+}
+
+async function buscarEventoDuplicado(
+  equipamentoId: string,
+  body: EquipamentoBiometricoWebhookInput,
+) {
+  const filtros = [
+    body.codigoEventoExterno
+      ? { codigoEventoExterno: body.codigoEventoExterno }
+      : null,
+    body.nsr ? { nsr: body.nsr } : null,
+  ].filter(
+    (filtro): filtro is { codigoEventoExterno: string } | { nsr: string } =>
+      Boolean(filtro),
+  );
+
+  if (filtros.length === 0) {
+    return null;
+  }
+
+  return prisma.eventoEquipamentoBiometrico.findFirst({
+    where: {
+      equipamentoId,
+      OR: filtros,
+    },
+    select: {
+      id: true,
+      processado: true,
+      marcacaoId: true,
+      erro: true,
+    },
+  });
+}
+
+async function registrarEventoOperacional(
+  equipamento: {
+    id: string;
+    integracaoId: string | null;
+  },
+  body: EquipamentoBiometricoWebhookInput,
+) {
+  const dataHora = body.dataHora ? new Date(body.dataHora) : null;
+
+  await prisma.$transaction(async (tx) => {
+    if (body.tipoEvento === "HEARTBEAT") {
+      await tx.equipamentoBiometrico.update({
+        where: {
+          id: equipamento.id,
+        },
+        data: {
+          ultimoHeartbeatEm: new Date(),
+        },
+      });
+    }
+
+    await tx.eventoEquipamentoBiometrico.create({
+      data: {
+        equipamentoId: equipamento.id,
+        tipoEvento: body.tipoEvento,
+        codigoEventoExterno: body.codigoEventoExterno || null,
+        nsr: body.nsr || null,
+        matricula: body.matricula || null,
+        dataHora,
+        processado: true,
+        processadoEm: new Date(),
+        erro: body.tipoEvento === "ERRO" ? "Erro reportado pelo equipamento." : null,
+        payload: body as never,
+      },
+    });
+
+    await tx.logIntegracao.create({
+      data: {
+        integracaoId: equipamento.integracaoId,
+        tipo: "EQUIPAMENTO_BIOMETRICO",
+        direcao: "ENTRADA",
+        status: body.tipoEvento === "ERRO" ? "ERRO" : "SUCESSO",
+        entidade: "EquipamentoBiometrico",
+        entidadeId: equipamento.id,
+        mensagem:
+          body.tipoEvento === "HEARTBEAT"
+            ? "Heartbeat recebido do equipamento biometrico."
+            : `Evento ${body.tipoEvento} recebido do equipamento biometrico.`,
+        payloadEntrada: body as never,
+        finalizadoEm: new Date(),
+      },
+    });
+  });
+
+  return Response.json({
+    sucesso: true,
+    mensagem:
+      body.tipoEvento === "HEARTBEAT"
+        ? "Heartbeat recebido."
+        : "Evento do equipamento recebido.",
+  });
 }
 
 export async function POST(request: Request) {
-  if (!validarToken(request)) {
+  let payload: unknown;
+
+  try {
+    payload = await request.json();
+  } catch {
     return Response.json(
       {
         sucesso: false,
-        mensagem: "Token inválido.",
-      },
-      {
-        status: 401,
-      },
-    );
-  }
-
-  const body = (await request.json()) as PayloadWebhookEquipamento;
-
-  if (!body.equipamentoCodigo) {
-    return Response.json(
-      {
-        sucesso: false,
-        mensagem: "Código do equipamento não informado.",
+        mensagem: "Payload JSON invalido.",
       },
       {
         status: 400,
@@ -59,6 +166,22 @@ export async function POST(request: Request) {
     );
   }
 
+  const parsed = equipamentoBiometricoWebhookSchema.safeParse(payload);
+
+  if (!parsed.success) {
+    return Response.json(
+      {
+        sucesso: false,
+        mensagem: "Payload do equipamento invalido.",
+        erros: parsed.error.flatten().fieldErrors,
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  const body = parsed.data;
   const equipamento = await prisma.equipamentoBiometrico.findUnique({
     where: {
       codigo: body.equipamentoCodigo,
@@ -69,7 +192,7 @@ export async function POST(request: Request) {
     return Response.json(
       {
         sucesso: false,
-        mensagem: "Equipamento não cadastrado ou inativo.",
+        mensagem: "Equipamento nao cadastrado ou inativo.",
       },
       {
         status: 404,
@@ -77,81 +200,43 @@ export async function POST(request: Request) {
     );
   }
 
-  if (body.tipoEvento === "HEARTBEAT") {
-    await prisma.$transaction(async (tx) => {
-      await tx.equipamentoBiometrico.update({
-        where: {
-          id: equipamento.id,
-        },
-        data: {
-          ultimoHeartbeatEm: new Date(),
-        },
-      });
+  if (!validarToken(request, equipamento.configuracao)) {
+    return Response.json(
+      {
+        sucesso: false,
+        mensagem: "Token invalido.",
+      },
+      {
+        status: 401,
+      },
+    );
+  }
 
-      await tx.eventoEquipamentoBiometrico.create({
-        data: {
-          equipamentoId: equipamento.id,
-          tipoEvento: "HEARTBEAT",
-          codigoEventoExterno: body.codigoEventoExterno || null,
-          nsr: body.nsr || null,
-          processado: true,
-          processadoEm: new Date(),
-          payload: body as never,
-        },
-      });
+  const eventoDuplicado = await buscarEventoDuplicado(equipamento.id, body);
 
-      await tx.logIntegracao.create({
-        data: {
-          integracaoId: equipamento.integracaoId,
-          tipo: "EQUIPAMENTO_BIOMETRICO",
-          direcao: "ENTRADA",
-          status: "SUCESSO",
-          entidade: "EquipamentoBiometrico",
-          entidadeId: equipamento.id,
-          mensagem: "Heartbeat recebido do equipamento biométrico.",
-          payloadEntrada: body as never,
-          finalizadoEm: new Date(),
-        },
-      });
-    });
-
+  if (eventoDuplicado) {
     return Response.json({
       sucesso: true,
-      mensagem: "Heartbeat recebido.",
+      mensagem: "Evento ja recebido anteriormente. Duplicidade ignorada.",
+      duplicado: true,
+      eventoEquipamentoId: eventoDuplicado.id,
+      processada: eventoDuplicado.processado,
+      marcacaoId: eventoDuplicado.marcacaoId,
+      erro: eventoDuplicado.erro,
     });
   }
 
-  if (!body.cpf && !body.matricula) {
-    return Response.json(
-      {
-        sucesso: false,
-        mensagem: "Informe CPF ou matrícula para registrar a marcação bruta.",
-      },
-      {
-        status: 400,
-      },
-    );
+  if (body.tipoEvento !== "MARCACAO") {
+    return registrarEventoOperacional(equipamento, body);
   }
 
-  if (!body.dataHora) {
+  const dataHora = body.dataHora ? new Date(body.dataHora) : null;
+
+  if (!dataHora) {
     return Response.json(
       {
         sucesso: false,
-        mensagem: "Data/hora da marcação não informada.",
-      },
-      {
-        status: 400,
-      },
-    );
-  }
-
-  const dataHora = new Date(body.dataHora);
-
-  if (Number.isNaN(dataHora.getTime())) {
-    return Response.json(
-      {
-        sucesso: false,
-        mensagem: "Data/hora da marcação inválida.",
+        mensagem: "Data/hora da marcacao nao informada.",
       },
       {
         status: 400,
@@ -227,8 +312,8 @@ export async function POST(request: Request) {
   return Response.json({
     sucesso: true,
     mensagem: resultadoBruta.criada
-      ? "Marcação bruta recebida."
-      : "Marcação bruta já existente. Duplicidade ignorada.",
+      ? "Marcacao bruta recebida."
+      : "Marcacao bruta ja existente. Duplicidade ignorada.",
     criada: resultadoBruta.criada,
     processada: processamento.sucesso,
     detalheProcessamento: processamento.mensagem,

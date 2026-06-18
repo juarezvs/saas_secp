@@ -563,6 +563,31 @@ const codigosPermissoesServidor = [
   "recesso:fechar:proprio",
 ];
 
+const codigosPermissoesSuporte = [
+  "dashboard:visualizar:proprio",
+  "integracoes:consultar:global",
+  "integracoes:gerenciar:global",
+  "integracoes:sincronizar:global",
+  "integracoes-sarh:consultar:global",
+  "integracoes-sarh:configurar:global",
+  "integracoes-sarh:executar:global",
+  "integracoes-sarh:simular:global",
+  "integracoes-sarh:reprocessar:global",
+  "integracoes-sarh:resolver-conflito:global",
+  "integracoes-sarh:visualizar-payload:global",
+  "afd:importar:global",
+  "marcacoes:consultar:global",
+  "biometria:gerenciar:global",
+  "biometriafacial:cadastrar:terceiros",
+  "biometriafacial:recadastrar:terceiros",
+  "biometriafacial:visualizar:auditoria",
+  "biometriafacial:invalidar:global",
+  "auditoria:consultar:global",
+  "auditoria:detalhar:global",
+  "usuarios:consultar:global",
+  "servidores:consultar:global",
+];
+
 function codigoPermissao(item: {
   recurso: string;
   acao: string;
@@ -641,6 +666,27 @@ async function criarPerfilServidor() {
       codigo: "SERVIDOR",
       nome: "Servidor",
       descricao: "Perfil básico para servidores utilizarem o SECP.",
+      sistema: true,
+      ativo: true,
+    },
+  });
+}
+
+async function criarPerfilSuporte() {
+  return prisma.perfil.upsert({
+    where: { codigo: "SUPORTE" },
+    update: {
+      nome: "Suporte tecnico",
+      descricao:
+        "Perfil tecnico para monitorar integracoes, importacoes, biometria e processamento operacional.",
+      sistema: true,
+      ativo: true,
+    },
+    create: {
+      codigo: "SUPORTE",
+      nome: "Suporte tecnico",
+      descricao:
+        "Perfil tecnico para monitorar integracoes, importacoes, biometria e processamento operacional.",
       sistema: true,
       ativo: true,
     },
@@ -1012,11 +1058,16 @@ async function main() {
 
   const perfilAdmin = await criarPerfilAdministrador();
   const perfilServidor = await criarPerfilServidor();
+  const perfilSuporte = await criarPerfilSuporte();
 
   await vincularPermissoesAoPerfil(perfilAdmin.id, permissoes);
   await vincularPermissoesPorCodigoAoPerfil(
     perfilServidor.id,
     codigosPermissoesServidor,
+  );
+  await vincularPermissoesPorCodigoAoPerfil(
+    perfilSuporte.id,
+    codigosPermissoesSuporte,
   );
 
   const usuarioInicial = await criarUsuarioInicial(perfilAdmin.id);
@@ -1033,7 +1084,7 @@ async function main() {
       acao: "SEED_INICIAL_EXECUTADO",
       dadosDepois: {
         usuarioInicial: usuarioInicial.matricula,
-        perfis: ["ADMIN", "SERVIDOR"],
+        perfis: ["ADMIN", "SERVIDOR", "SUPORTE"],
         estrutura: ["JFAM", "SJAM", "NUTEC", "NUCGP", "SECAD"],
         jornadas: ["JORNADA_7H", "JORNADA_8H"],
         integracoes: [integracaoSarh.nome],

@@ -16,24 +16,24 @@ const styles = {
 
 export function AlertasEAvisosCard({ alertas }: AlertasEAvisosCardProps) {
   return (
-    <Card className="p-5">
+    <Card className="p-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">Alertas e avisos</h2>
-        <Link href="/solicitacoes" className="text-sm font-semibold text-secp-blue-700 hover:underline">Ver todos</Link>
+        <h2 className="text-sm font-semibold">Alertas e avisos</h2>
+        <Link href="/solicitacoes" className="text-xs font-semibold text-secp-blue-700 hover:underline">Ver todos</Link>
       </div>
-      <div className="mt-4 space-y-3">
+      <div className="mt-3 space-y-2">
         {alertas.map((alerta) => {
           const Icon = styles[alerta.tipo].icon;
 
           return (
-            <article key={alerta.titulo} className={`rounded-md border p-4 ${styles[alerta.tipo].className}`}>
-              <div className="flex gap-3">
-                <Icon className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+            <article key={alerta.titulo} className={`rounded-md border p-3 ${styles[alerta.tipo].className}`}>
+              <div className="flex gap-2.5">
+                <Icon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                 <div>
-                  <h3 className="text-sm font-bold">{alerta.titulo}</h3>
-                  <p className="mt-1 text-sm leading-6">{alerta.descricao}</p>
+                  <h3 className="text-xs font-bold">{alerta.titulo}</h3>
+                  <p className="mt-1 text-xs leading-5">{alerta.descricao}</p>
                   {alerta.acao && (
-                    <Link href={alerta.acao.href} className="mt-2 inline-flex text-sm font-semibold underline">
+                    <Link href={alerta.acao.href} className="mt-2 inline-flex text-xs font-semibold underline">
                       {alerta.acao.label}
                     </Link>
                   )}

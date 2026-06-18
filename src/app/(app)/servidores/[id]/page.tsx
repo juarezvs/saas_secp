@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Edit, ShieldCheck, UserRound } from "lucide-react";
+import { CalendarClock, Edit, ShieldCheck, UserRound } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
@@ -8,7 +8,12 @@ import {
   buscarServidorPorId,
   listarUnidadesAtivasParaLotacao,
 } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
+import {
+  criarDispensaPontoServidorAction,
+  encerrarDispensaPontoServidorAction,
+} from "@/modules/servidores/application/actions/dispensa-ponto-servidor.action";
 import { vincularLotacaoAction } from "@/modules/servidores/application/actions/vincular-lotacao.action";
+import { DispensaPontoServidorCard } from "@/modules/servidores/presentation/components/dispensa-ponto-servidor-card";
 import { LotacaoForm } from "@/modules/servidores/presentation/components/lotacao-form";
 import { ServidorLotacoesCard } from "@/modules/servidores/presentation/components/servidor-lotacoes-card";
 
@@ -17,6 +22,21 @@ type ServidorDetalhePageProps = {
     id: string;
   }>;
 };
+
+function formatarData(data: Date | null) {
+  if (!data) return "Atual";
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "UTC",
+  }).format(data);
+}
+
+function formatarCarga(minutos: number) {
+  const horas = Math.floor(minutos / 60);
+  const resto = minutos % 60;
+
+  return resto === 0 ? `${horas}h` : `${horas}h${resto}`;
+}
 
 export default async function ServidorDetalhePage({
   params,
@@ -35,6 +55,26 @@ export default async function ServidorDetalhePage({
   }
 
   const actionLotacao = vincularLotacaoAction.bind(null, servidor.id);
+  const actionDispensaPonto = criarDispensaPontoServidorAction.bind(
+    null,
+    servidor.id,
+  );
+  const dispensasPonto = servidor.dispensasPonto.map((dispensa) => ({
+    id: dispensa.id,
+    motivo: dispensa.motivo,
+    atoAutorizativo: dispensa.atoAutorizativo,
+    processoSei: dispensa.processoSei,
+    observacao: dispensa.observacao,
+    exigeFrequenciaManual: dispensa.exigeFrequenciaManual,
+    status: dispensa.status,
+    dataInicio: dispensa.dataInicio.toISOString(),
+    dataFim: dispensa.dataFim?.toISOString() ?? null,
+    encerrarAction: encerrarDispensaPontoServidorAction.bind(
+      null,
+      servidor.id,
+      dispensa.id,
+    ),
+  }));
 
   return (
     <div className="space-y-6">
@@ -115,7 +155,7 @@ export default async function ServidorDetalhePage({
           </div>
 
           <div>
-            <p className="text-sm text-[var(--muted-foreground)]">É-mail</p>
+            <p className="text-sm text-[var(--muted-foreground)]">E-mail</p>
             <p className="mt-1 font-semibold">
               {servidor.usuario.email ?? "-"}
             </p>
@@ -139,46 +179,120 @@ export default async function ServidorDetalhePage({
         </div>
       </section>
 
-      <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
-        <div className="flex items-center gap-2 border-b p-5">
-          <ShieldCheck className="size-5 text-blue-900 dark:text-blue-300" />
-          <h2 className="text-lg font-bold">Perfis vinculados</h2>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
+          <div className="flex items-center gap-2 border-b p-5">
+            <ShieldCheck className="size-5 text-blue-900 dark:text-blue-300" />
+            <h2 className="text-lg font-bold">Perfis vinculados</h2>
+          </div>
+
+          <div className="divide-y">
+            {servidor.usuario.perfis.map((usuarioPerfil) => (
+              <div
+                key={usuarioPerfil.id}
+                className="flex flex-col justify-between gap-2 p-5 sm:flex-row sm:items-center"
+              >
+                <div>
+                  <p className="font-semibold">{usuarioPerfil.perfil.nome}</p>
+                  <p className="font-mono text-xs text-[var(--muted-foreground)]">
+                    {usuarioPerfil.perfil.codigo}
+                  </p>
+                </div>
+
+                <span
+                  className={`w-fit rounded-full px-2 py-1 text-xs font-semibold ${
+                    usuarioPerfil.ativo
+                      ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
+                      : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                  }`}
+                >
+                  {usuarioPerfil.ativo ? "Ativo" : "Inativo"}
+                </span>
+              </div>
+            ))}
+
+            {servidor.usuario.perfis.length === 0 && (
+              <div className="p-8 text-center text-sm text-[var(--muted-foreground)]">
+                Nenhum perfil vinculado a este usuário.
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="divide-y">
-          {servidor.usuario.perfis.map((usuarioPerfil) => (
-            <div
-              key={usuarioPerfil.id}
-              className="flex flex-col justify-between gap-2 p-5 md:flex-row md:items-center"
-            >
-              <div>
-                <p className="font-semibold">{usuarioPerfil.perfil.nome}</p>
-                <p className="font-mono text-xs text-[var(--muted-foreground)]">
-                  {usuarioPerfil.perfil.codigo}
-                </p>
+        <div className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
+          <div className="flex items-center gap-2 border-b p-5">
+            <CalendarClock className="size-5 text-blue-900 dark:text-blue-300" />
+            <h2 className="text-lg font-bold">Jornadas vinculadas</h2>
+          </div>
+
+          <div className="divide-y">
+            {servidor.jornadas.map((jornadaServidor) => (
+              <div key={jornadaServidor.id} className="space-y-3 p-5">
+                <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-start">
+                  <div>
+                    <p className="font-semibold">
+                      {jornadaServidor.jornada.nome}
+                    </p>
+                    <p className="font-mono text-xs text-[var(--muted-foreground)]">
+                      {jornadaServidor.jornada.codigo}
+                    </p>
+                  </div>
+
+                  <span
+                    className={`w-fit rounded-full px-2 py-1 text-xs font-semibold ${
+                      jornadaServidor.ativo
+                        ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
+                        : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                    }`}
+                  >
+                    {jornadaServidor.ativo ? "Vigente" : "Encerrada"}
+                  </span>
+                </div>
+
+                <div className="grid gap-2 text-sm text-[var(--muted-foreground)] sm:grid-cols-2">
+                  <p>
+                    Início:{" "}
+                    <span className="font-semibold text-[var(--foreground)]">
+                      {formatarData(jornadaServidor.dataInicio)}
+                    </span>
+                  </p>
+                  <p>
+                    Fim:{" "}
+                    <span className="font-semibold text-[var(--foreground)]">
+                      {formatarData(jornadaServidor.dataFim)}
+                    </span>
+                  </p>
+                  <p>
+                    Carga:{" "}
+                    <span className="font-semibold text-[var(--foreground)]">
+                      {formatarCarga(jornadaServidor.jornada.cargaDiariaMinutos)}
+                    </span>
+                  </p>
+                  <p>
+                    Escala:{" "}
+                    <span className="font-semibold text-[var(--foreground)]">
+                      {jornadaServidor.escala?.nome ?? "-"}
+                    </span>
+                  </p>
+                </div>
               </div>
+            ))}
 
-              <span
-                className={`w-fit rounded-full px-2 py-1 text-xs font-semibold ${
-                  usuarioPerfil.ativo
-                    ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
-                    : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                }`}
-              >
-                {usuarioPerfil.ativo ? "Ativo" : "Inativo"}
-              </span>
-            </div>
-          ))}
-
-          {servidor.usuario.perfis.length === 0 && (
-            <div className="p-8 text-center text-sm text-[var(--muted-foreground)]">
-              Nenhum perfil vinculado a este usuário.
-            </div>
-          )}
+            {servidor.jornadas.length === 0 && (
+              <div className="p-8 text-center text-sm text-[var(--muted-foreground)]">
+                Nenhuma jornada vinculada a este servidor.
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
       <ServidorLotacoesCard lotacoes={servidor.lotacoes} />
+
+      <DispensaPontoServidorCard
+        dispensas={dispensasPonto}
+        action={actionDispensaPonto}
+      />
 
       <LotacaoForm action={actionLotacao} unidades={unidades} />
     </div>

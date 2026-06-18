@@ -190,7 +190,7 @@ export function JornadaServidorForm({
             defaultValue={estado.campos?.justificativa ?? ""}
             rows={3}
             className="w-full rounded-md border bg-[var(--card)] px-3 py-2 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
-            placeholder="Informe a base administrativa. É obrigatória para autorizar horário diferenciado."
+            placeholder="Informe a base administrativa. Obrigatoria para horario diferenciado ou jornada inferior a 8h em FC/CJ."
           />
           {erro(estado, "justificativa") && (
             <p className="text-sm text-red-600">

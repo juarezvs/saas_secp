@@ -1,8 +1,10 @@
 import {
   listarApuracoesServidorMes,
+  listarJornadasServidorMes,
   listarMovimentosPendentesBancoHorasMes,
   listarSolicitacoesPendentesServidorMes,
 } from "../../infrastructure/repositories/homologacao.repository";
+import { calcularCargaMensalEsperada } from "./calcular-carga-mensal-esperada.service";
 
 export type PendenciaHomologacao = {
   tipo:
@@ -12,6 +14,9 @@ export type PendenciaHomologacao = {
     | "BANCO_HORAS_PENDENTE"
     | "FALTA"
     | "DEBITO"
+    | "JORNADA_NAO_CONFIGURADA"
+    | "APURACAO_MENSAL_INCOMPLETA"
+    | "CARGA_PREVISTA_DIVERGENTE"
     | "SEM_APURACAO";
   descricao: string;
   quantidade?: number;
@@ -23,20 +28,80 @@ export async function validarPendenciasHomologacaoServidor(params: {
   anoReferencia: number;
   mesReferencia: number;
 }) {
-  const [apuracoes, solicitacoesPendentes, movimentosPendentes] =
+  const [apuracoes, solicitacoesPendentes, movimentosPendentes, jornadas] =
     await Promise.all([
       listarApuracoesServidorMes(params),
       listarSolicitacoesPendentesServidorMes(params),
       listarMovimentosPendentesBancoHorasMes(params),
+      listarJornadasServidorMes(params),
     ]);
+  const cargaEsperada = await calcularCargaMensalEsperada({
+    anoReferencia: params.anoReferencia,
+    mesReferencia: params.mesReferencia,
+    jornadas,
+  });
 
   const pendencias: PendenciaHomologacao[] = [];
+  const apuracoesPorData = new Map(
+    apuracoes.map((apuracao) => [
+      apuracao.dataReferencia.toISOString().slice(0, 10),
+      apuracao,
+    ]),
+  );
+  const diasUteisEsperadosSemApuracao = cargaEsperada.dias.filter(
+    (dia) => !apuracoesPorData.has(dia.dataReferencia.toISOString().slice(0, 10)),
+  );
+  const cargasDivergentes = cargaEsperada.dias.filter((dia) => {
+    const apuracao = apuracoesPorData.get(
+      dia.dataReferencia.toISOString().slice(0, 10),
+    );
+
+    return (
+      apuracao &&
+      apuracao.cargaPrevistaMinutos !== dia.cargaPrevistaMinutos
+    );
+  });
 
   if (apuracoes.length === 0) {
     pendencias.push({
       tipo: "SEM_APURACAO",
       descricao: "Não há apuração calculada para o servidor no mês.",
       quantidade: 1,
+    });
+  }
+
+  if (cargaEsperada.diasUteisSemJornada.length > 0) {
+    pendencias.push({
+      tipo: "JORNADA_NAO_CONFIGURADA",
+      descricao:
+        "Existem dias uteis no mes sem jornada vigente para apuracao da carga mensal.",
+      quantidade: cargaEsperada.diasUteisSemJornada.length,
+    });
+  }
+
+  if (diasUteisEsperadosSemApuracao.length > 0) {
+    pendencias.push({
+      tipo: "APURACAO_MENSAL_INCOMPLETA",
+      descricao:
+        "Existem dias uteis com jornada vigente sem apuracao diaria calculada.",
+      quantidade: diasUteisEsperadosSemApuracao.length,
+      minutos: diasUteisEsperadosSemApuracao.reduce(
+        (total, dia) => total + dia.cargaPrevistaMinutos,
+        0,
+      ),
+    });
+  }
+
+  if (cargasDivergentes.length > 0) {
+    pendencias.push({
+      tipo: "CARGA_PREVISTA_DIVERGENTE",
+      descricao:
+        "Existem apuracoes diarias com carga prevista diferente da jornada vigente no mes.",
+      quantidade: cargasDivergentes.length,
+      minutos: cargasDivergentes.reduce(
+        (total, dia) => total + dia.cargaPrevistaMinutos,
+        0,
+      ),
     });
   }
 
@@ -109,10 +174,7 @@ export async function validarPendenciasHomologacaoServidor(params: {
   }
 
   const totais = {
-    cargaPrevistaMinutos: apuracoes.reduce(
-      (total, item) => total + item.cargaPrevistaMinutos,
-      0,
-    ),
+    cargaPrevistaMinutos: cargaEsperada.cargaPrevistaMinutos,
     minutosTrabalhados: apuracoes.reduce(
       (total, item) => total + item.minutosTrabalhados,
       0,

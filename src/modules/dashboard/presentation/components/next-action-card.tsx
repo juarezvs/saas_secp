@@ -10,26 +10,39 @@ type NextActionCardProps = {
   regra: string;
 };
 
-export function NextActionCard({ titulo, descricao, href, regra }: NextActionCardProps) {
+export function NextActionCard({
+  titulo,
+  descricao,
+  href,
+  regra,
+}: NextActionCardProps) {
   return (
-    <section className="rounded-lg bg-secp-blue-900 p-5 text-white shadow-card md:p-6">
-      <div className="flex items-start justify-between gap-5">
+    <section className="rounded-md bg-secp-blue-900 p-3.5 text-white shadow-card">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <Badge className="bg-white/15 text-white">Próxima ação recomendada</Badge>
-          <h2 className="mt-4 max-w-xl text-xl font-bold leading-tight md:text-2xl">{titulo}</h2>
-          <p className="mt-2 text-sm leading-6 text-white/80">{descricao}</p>
+          <Badge className="bg-white/15 text-white">
+            Próxima ação recomendada
+          </Badge>
+          <h2 className="mt-2.5 max-w-xl text-sm font-bold leading-tight md:text-base">
+            {titulo}
+          </h2>
+          <p className="mt-1 text-xs leading-5 text-white/80">{descricao}</p>
           <Link
             href={href}
-            className="mt-5 inline-flex items-center gap-3 rounded-md bg-white px-4 py-2.5 text-sm font-bold text-secp-blue-900 shadow-sm transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className="mt-3 inline-flex items-center gap-2 rounded-md bg-white px-3 py-1.5 text-sm font-bold text-secp-blue-900 shadow-sm transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             Registrar ponto
             <ArrowRight className="size-4" aria-hidden="true" />
           </Link>
         </div>
-        <ScanFace className="hidden size-24 shrink-0 text-white/80 sm:block" aria-hidden="true" />
+        <ScanFace
+          className="hidden size-12 shrink-0 text-white/80 sm:block"
+          aria-hidden="true"
+        />
       </div>
-      <p className="mt-5 rounded-md bg-white/10 px-3 py-2 text-xs leading-5 text-white/80">{regra}</p>
+      <p className="mt-3 rounded-md bg-white/10 px-2.5 py-1 text-xs leading-5 text-white/80">
+        {regra}
+      </p>
     </section>
   );
 }
-

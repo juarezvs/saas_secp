@@ -1,14 +1,26 @@
 import Link from "next/link";
-import { AlertTriangle, FileDown, Hourglass, RotateCw } from "lucide-react";
+import {
+  AlertTriangle,
+  Banknote,
+  CalendarClock,
+  Clock3,
+  FileDown,
+  Hourglass,
+  PlusCircle,
+  RotateCw,
+  TrendingDown,
+  TrendingUp,
+  type LucideIcon,
+} from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { CompetenciaInput, SearchableSelect } from "@/components/ui";
 import { gerarMovimentosBancoHorasAction } from "../../application/actions/gerar-movimento-banco-horas.action";
+import { incluirAjusteManualBancoHorasAction } from "../../application/actions/incluir-ajuste-manual-banco-horas.action";
 import { recalcularSaldoBancoHorasAction } from "../../application/actions/recalcular-saldo-banco-horas.action";
 import { LIMITE_CREDITO_MENSAL_MINUTOS } from "../../application/services/aplicar-limites-banco-horas.service";
 import { minutosParaHoraBanco } from "../../application/services/formatar-banco-horas.service";
-import { BancoHorasCard } from "./banco-horas-card";
 import { MovimentosBancoHorasTable } from "./movimentos-banco-horas-table";
 
 type ServidorBancoHoras = {
@@ -135,6 +147,27 @@ function totalMovimentosVencidos(movimentos: MovimentoBancoHoras[]) {
   );
 }
 
+function menorDataLimite(
+  movimentos: MovimentoBancoHoras[],
+  filtro: (movimento: MovimentoBancoHoras) => boolean,
+) {
+  const datas = movimentos
+    .filter(
+      (movimento) =>
+        filtro(movimento) &&
+        ["PENDENTE", "VALIDADO"].includes(movimento.status) &&
+        Boolean(movimento.expiraEm),
+    )
+    .map((movimento) => inicioDoDia(movimento.expiraEm as Date))
+    .sort((a, b) => a.getTime() - b.getTime());
+
+  return datas[0] ?? null;
+}
+
+function formatarDataLimite(data: Date | null) {
+  return data ? new Intl.DateTimeFormat("pt-BR").format(data) : null;
+}
+
 function referenciaAtual() {
   const data = new Date();
 
@@ -146,6 +179,20 @@ function referenciaAtual() {
 
 function competenciaParaInput(anoReferencia: number, mesReferencia: number) {
   return `${anoReferencia}-${String(mesReferencia).padStart(2, "0")}`;
+}
+
+function dadosSaldoPadrao(saldo: ServidorBancoHoras["bancoHorasSaldo"]) {
+  return (
+    saldo ?? {
+      saldoMinutos: 0,
+      creditosValidadosMinutos: 0,
+      debitosValidadosMinutos: 0,
+      creditosPendentesMinutos: 0,
+      debitosPendentesMinutos: 0,
+      horasAcimaLimiteMinutos: 0,
+      horasNaoAutorizadasMinutos: 0,
+    }
+  );
 }
 
 export function BancoHorasPageReal({
@@ -163,6 +210,12 @@ export function BancoHorasPageReal({
   const creditosAVencer = totalCreditosAVencer(movimentos);
   const debitosACompensar = totalDebitosACompensar(movimentos);
   const movimentosVencidos = totalMovimentosVencidos(movimentos);
+  const limiteCredito = formatarDataLimite(
+    menorDataLimite(movimentos, (movimento) => movimento.tipo === "CREDITO"),
+  );
+  const limiteDebito = formatarDataLimite(
+    menorDataLimite(movimentos, (movimento) => movimento.tipo === "DEBITO"),
+  );
   const { ano, mes } = referenciaAtual();
 
   return (
@@ -265,9 +318,22 @@ export function BancoHorasPageReal({
             </div>
           </section>
 
+          <ResumoBancoHorasGrid
+            saldo={servidorSelecionado.bancoHorasSaldo}
+            creditosMes={creditosMes}
+            limiteRestante={limiteRestante}
+            creditosAVencer={creditosAVencer}
+            debitosACompensar={debitosACompensar}
+            limiteCredito={limiteCredito}
+            limiteDebito={limiteDebito}
+          />
+
           <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
             <div className="space-y-5">
-              <MovimentosBancoHorasTable movimentos={movimentos} />
+              <MovimentosBancoHorasTable
+                movimentos={movimentos}
+                podeGerenciar={podeGerenciar}
+              />
               <AutorizacoesBancoHorasTable autorizacoes={autorizacoes} />
             </div>
 
@@ -278,40 +344,18 @@ export function BancoHorasPageReal({
                 </h2>
                 <p className="mt-2">
                   A tabela mostra a composicao da competência selecionada. Os
-                  cards abaixo indicam saldo consolidado, pendências e limites
+                  painel acima indica saldo consolidado, pendências e limites
                   normativos para conferência antes da homologação.
                 </p>
               </section>
 
-              <BancoHorasCard
-                saldo={servidorSelecionado.bancoHorasSaldo}
-                className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1"
-              />
-
-              <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-                <ResumoNormativo
-                  titulo="Crédito no mês"
-                  valor={minutosParaHoraBanco(creditosMes)}
-                  descricao={`Limite ordinario: ${minutosParaHoraBanco(
-                    LIMITE_CREDITO_MENSAL_MINUTOS,
-                  )}`}
+              {podeGerenciar && (
+                <AjusteManualBancoHorasForm
+                  servidorId={servidorSelecionado.id}
+                  anoReferencia={anoReferencia}
+                  mesReferencia={mesReferencia}
                 />
-                <ResumoNormativo
-                  titulo="Limite restante"
-                  valor={minutosParaHoraBanco(limiteRestante)}
-                  descricao="Horas acima do limite ficam não computaveis."
-                />
-                <ResumoNormativo
-                  titulo="Créditos a vencer"
-                  valor={minutosParaHoraBanco(creditosAVencer)}
-                  descricao="Compensação em ate 3 meses."
-                />
-                <ResumoNormativo
-                  titulo="Débitos a compensar"
-                  valor={minutosParaHoraBanco(debitosACompensar)}
-                  descricao="Débito não compensado pode gerar notificacao."
-                />
-              </section>
+              )}
 
               {movimentosVencidos > 0 && (
                 <section className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
@@ -338,6 +382,271 @@ export function BancoHorasPageReal({
         </section>
       )}
     </div>
+  );
+}
+
+function ResumoBancoHorasGrid({
+  saldo,
+  creditosMes,
+  limiteRestante,
+  creditosAVencer,
+  debitosACompensar,
+  limiteCredito,
+  limiteDebito,
+}: {
+  saldo: ServidorBancoHoras["bancoHorasSaldo"];
+  creditosMes: number;
+  limiteRestante: number;
+  creditosAVencer: number;
+  debitosACompensar: number;
+  limiteCredito: string | null;
+  limiteDebito: string | null;
+}) {
+  const dados = dadosSaldoPadrao(saldo);
+
+  return (
+    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <ResumoBancoHorasCard
+        titulo="Saldo atual"
+        valor={minutosParaHoraBanco(dados.saldoMinutos)}
+        descricao="Créditos validados menos débitos validados."
+        detalhe="Saldo consolidado do servidor."
+        icon={Banknote}
+      />
+      <ResumoBancoHorasCard
+        titulo="Créditos validados"
+        valor={minutosParaHoraBanco(dados.creditosValidadosMinutos)}
+        descricao="Horas efetivamente incorporadas ao banco."
+        detalhe={
+          limiteCredito
+            ? `Usufruto/compensação até ${limiteCredito}.`
+            : "Sem crédito com vencimento aberto."
+        }
+        icon={TrendingUp}
+      />
+      <ResumoBancoHorasCard
+        titulo="Débitos validados"
+        valor={minutosParaHoraBanco(dados.debitosValidadosMinutos)}
+        descricao="Horas negativas confirmadas no saldo."
+        detalhe={
+          limiteDebito
+            ? `Compensação até ${limiteDebito}.`
+            : "Sem débito com vencimento aberto."
+        }
+        icon={TrendingDown}
+      />
+      <ResumoBancoHorasCard
+        titulo="Pendências"
+        valor={`${minutosParaHoraBanco(
+          dados.creditosPendentesMinutos,
+        )} / ${minutosParaHoraBanco(dados.debitosPendentesMinutos)}`}
+        descricao="Créditos e débitos pendentes de validação."
+        detalhe="Crédito / débito aguardando conferência."
+        icon={Clock3}
+      />
+      <ResumoBancoHorasCard
+        titulo="Crédito no mês"
+        valor={minutosParaHoraBanco(creditosMes)}
+        descricao="Créditos da competência selecionada."
+        detalhe={`Limite ordinário: ${minutosParaHoraBanco(
+          LIMITE_CREDITO_MENSAL_MINUTOS,
+        )}.`}
+        icon={TrendingUp}
+      />
+      <ResumoBancoHorasCard
+        titulo="Limite restante"
+        valor={minutosParaHoraBanco(limiteRestante)}
+        descricao="Margem disponível no limite mensal."
+        detalhe="Horas acima do limite não são computáveis."
+        icon={CalendarClock}
+      />
+      <ResumoBancoHorasCard
+        titulo="Créditos a vencer"
+        valor={minutosParaHoraBanco(creditosAVencer)}
+        descricao="Créditos válidos para fruição futura."
+        detalhe={
+          limiteCredito
+            ? `Próximo prazo: ${limiteCredito}.`
+            : "Sem prazo de usufruto aberto."
+        }
+        icon={CalendarClock}
+      />
+      <ResumoBancoHorasCard
+        titulo="Débitos a compensar"
+        valor={minutosParaHoraBanco(debitosACompensar)}
+        descricao="Débitos ainda compensáveis no prazo."
+        detalhe={
+          limiteDebito
+            ? `Compensar até ${limiteDebito}.`
+            : "Sem prazo de compensação aberto."
+        }
+        icon={TrendingDown}
+      />
+    </section>
+  );
+}
+
+function ResumoBancoHorasCard({
+  titulo,
+  valor,
+  descricao,
+  detalhe,
+  icon: Icon,
+}: {
+  titulo: string;
+  valor: string;
+  descricao: string;
+  detalhe: string;
+  icon: LucideIcon;
+}) {
+  return (
+    <article className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-[var(--muted-foreground)]">
+            {titulo}
+          </p>
+          <h3 className="mt-2 text-2xl font-bold">{valor}</h3>
+        </div>
+        <div className="rounded-lg bg-blue-50 p-3 text-blue-900 dark:bg-blue-950 dark:text-blue-200">
+          <Icon className="size-5" aria-hidden="true" />
+        </div>
+      </div>
+      <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
+        {descricao}
+      </p>
+      <p className="mt-2 text-xs font-semibold text-[var(--foreground)]">
+        {detalhe}
+      </p>
+    </article>
+  );
+}
+
+function AjusteManualBancoHorasForm({
+  servidorId,
+  anoReferencia,
+  mesReferencia,
+}: {
+  servidorId: string;
+  anoReferencia: number;
+  mesReferencia: number;
+}) {
+  const dataPadrao = `${anoReferencia}-${String(mesReferencia).padStart(
+    2,
+    "0",
+  )}-01`;
+
+  return (
+    <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
+      <div className="flex items-start gap-3">
+        <PlusCircle
+          className="mt-0.5 size-5 text-[var(--muted-foreground)]"
+          aria-hidden="true"
+        />
+        <div>
+          <h2 className="text-base font-bold text-[var(--foreground)]">
+            Ajuste administrativo
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
+            Inclua credito ou debito autorizado por processo administrativo ou
+            autoridade competente. O movimento entra validado e recalcula o
+            saldo imediatamente.
+          </p>
+        </div>
+      </div>
+
+      <form action={incluirAjusteManualBancoHorasAction} className="mt-4 space-y-3">
+        <input type="hidden" name="servidorId" value={servidorId} />
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="text-sm font-semibold">
+            Natureza
+            <select
+              name="tipo"
+              required
+              className="mt-1 h-10 w-full rounded-md border bg-[var(--background)] px-3 text-sm"
+              defaultValue="CREDITO"
+            >
+              <option value="CREDITO">Credito</option>
+              <option value="DEBITO">Debito</option>
+            </select>
+          </label>
+
+          <label className="text-sm font-semibold">
+            Data de referencia
+            <input
+              type="date"
+              name="dataReferencia"
+              required
+              defaultValue={dataPadrao}
+              className="mt-1 h-10 w-full rounded-md border bg-[var(--background)] px-3 text-sm"
+            />
+          </label>
+        </div>
+
+        <label className="block text-sm font-semibold">
+          Quantidade de horas
+          <input
+            type="number"
+            name="horas"
+            min="0.01"
+            max="240"
+            step="0.01"
+            required
+            placeholder="Ex.: 2.5"
+            className="mt-1 h-10 w-full rounded-md border bg-[var(--background)] px-3 text-sm"
+          />
+        </label>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="text-sm font-semibold">
+            Processo SEI
+            <input
+              name="processoSei"
+              maxLength={80}
+              className="mt-1 h-10 w-full rounded-md border bg-[var(--background)] px-3 text-sm"
+            />
+          </label>
+
+          <label className="text-sm font-semibold">
+            Ato/autorizacao
+            <input
+              name="atoAutorizativo"
+              maxLength={160}
+              className="mt-1 h-10 w-full rounded-md border bg-[var(--background)] px-3 text-sm"
+            />
+          </label>
+        </div>
+
+        <label className="block text-sm font-semibold">
+          Autoridade
+          <input
+            name="autoridade"
+            maxLength={160}
+            className="mt-1 h-10 w-full rounded-md border bg-[var(--background)] px-3 text-sm"
+          />
+        </label>
+
+        <label className="block text-sm font-semibold">
+          Justificativa
+          <textarea
+            name="justificativa"
+            required
+            minLength={10}
+            rows={4}
+            className="mt-1 w-full rounded-md border bg-[var(--background)] px-3 py-2 text-sm"
+          />
+        </label>
+
+        <button
+          type="submit"
+          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-[var(--primary)] px-4 text-sm font-semibold text-[var(--primary-foreground)] transition hover:opacity-90"
+        >
+          <PlusCircle className="size-4" aria-hidden="true" />
+          Incluir ajuste
+        </button>
+      </form>
+    </section>
   );
 }
 
@@ -433,22 +742,3 @@ function AutorizacoesBancoHorasTable({
   );
 }
 
-function ResumoNormativo({
-  titulo,
-  valor,
-  descricao,
-}: {
-  titulo: string;
-  valor: string;
-  descricao: string;
-}) {
-  return (
-    <article className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
-      <p className="text-sm text-[var(--muted-foreground)]">{titulo}</p>
-      <h3 className="mt-2 text-2xl font-bold">{valor}</h3>
-      <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-        {descricao}
-      </p>
-    </article>
-  );
-}

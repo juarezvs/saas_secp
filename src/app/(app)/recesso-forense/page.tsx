@@ -3,7 +3,10 @@ import {
   usuarioPossuiPermissaoNoPerfil,
 } from "@/modules/auth/application/services/permissao.service";
 import { RecessoForenseDashboardReal } from "@/modules/recesso-forense/presentation/components/recesso-forense-dashboard-real";
-import { listarRecessosForenses } from "@/modules/recesso-forense/infrastructure/repositories/recesso-forense.repository";
+import {
+  listarRecessosDoServidor,
+  listarRecessosForenses,
+} from "@/modules/recesso-forense/infrastructure/repositories/recesso-forense.repository";
 
 export default async function RecessoForensePage() {
   const permissao = await exigirUmaDasPermissoesOuRedirecionar([
@@ -14,7 +17,11 @@ export default async function RecessoForensePage() {
     "recesso:aceitar:secad",
   ]);
 
-  const recessos = await listarRecessosForenses();
+  const perfilServidor = permissao.perfilAtivoCodigo === "SERVIDOR";
+  const recessos =
+    perfilServidor && permissao.usuarioId
+      ? await listarRecessosDoServidor(permissao.usuarioId)
+      : await listarRecessosForenses();
   const podeGerenciar = usuarioPossuiPermissaoNoPerfil(
     permissao.perfilAtivoCodigo,
     permissao.permissoes,
@@ -25,6 +32,7 @@ export default async function RecessoForensePage() {
     <RecessoForenseDashboardReal
       recessos={recessos}
       podeGerenciar={podeGerenciar}
+      visualizacaoServidor={perfilServidor}
     />
   );
 }

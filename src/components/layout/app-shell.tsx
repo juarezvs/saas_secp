@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { logoutAction } from "@/modules/auth/application/actions/logout.action";
 import { buscarServidorPorUsuarioId } from "@/modules/marcacoes/infrastructure/repositories/marcacao.repository";
+import { contarNotificacoesUsuario } from "@/modules/notificacoes/application/notificacoes.service";
 import { AppShellClient } from "./app-shell-client";
 
 type AppShellProps = {
@@ -16,7 +17,10 @@ export async function AppShell({ children }: AppShellProps) {
     redirect("/login");
   }
 
-  const servidor = await buscarServidorPorUsuarioId(session.user.id);
+  const [servidor, totalNotificacoes] = await Promise.all([
+    buscarServidorPorUsuarioId(session.user.id),
+    contarNotificacoesUsuario(session.user.id),
+  ]);
   const lotacaoAtual = servidor?.lotacoes[0];
   const perfilAtivo = session.user.perfilAtivo ?? session.user.perfis[0];
 
@@ -49,6 +53,7 @@ export async function AppShell({ children }: AppShellProps) {
     <AppShellClient
       key={`${session.user.id}-${perfilAtivo.codigo}`}
       usuario={usuario}
+      totalNotificacoes={totalNotificacoes}
       onLogout={logoutAction}
     >
       {children}

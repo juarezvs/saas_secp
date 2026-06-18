@@ -4,30 +4,50 @@ import { Badge } from "@/components/ui";
 import { AcessoRapidoGrid } from "./acesso-rapido-grid";
 import { AlertasEAvisosCard } from "./alertas-e-avisos-card";
 import { DashboardMetricCard } from "./dashboard-metric-card";
+import { DashboardServidorRelogio } from "./dashboard-servidor-relogio";
 import { FrequenciaMesResumo } from "./frequencia-mes-resumo";
-import { GuiaRapidoCard } from "./guia-rapido-card";
 import { MarcacoesDoDiaTimeline } from "./marcacoes-do-dia-timeline";
 import { NextActionCard } from "./next-action-card";
 import { dashboardServidorMock } from "../data/dashboard-servidor.mock";
+import type { FrequenciaMesServidorResumo } from "../../application/frequencia-mes-servidor.service";
 
 type DashboardServidorProps = {
   primeiroNome: string;
+  cabecalho?: Partial<typeof dashboardServidorMock.servidor>;
+  totalNotificacoes?: number;
+  frequenciaMes?: FrequenciaMesServidorResumo;
 };
 
-export function DashboardServidor({ primeiroNome }: DashboardServidorProps) {
-  const dados = dashboardServidorMock;
+export function DashboardServidor({
+  primeiroNome,
+  cabecalho,
+  totalNotificacoes = 0,
+  frequenciaMes,
+}: DashboardServidorProps) {
+  const dados = {
+    ...dashboardServidorMock,
+    servidor: {
+      ...dashboardServidorMock.servidor,
+      ...cabecalho,
+    },
+    frequenciaMes: frequenciaMes ?? dashboardServidorMock.frequenciaMes,
+  };
 
   return (
     <div className="space-y-5">
       <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div>
-          <Badge className="bg-secp-blue-900 text-white">Perfil {dados.servidor.perfil}</Badge>
+          <Badge className="bg-secp-blue-900 text-white">
+            Perfil {dados.servidor.perfil}
+          </Badge>
           <h1 className="mt-3 text-2xl font-bold text-foreground md:text-3xl">
             Bom dia, {primeiroNome}
           </h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            {dados.servidor.dataExtenso} • {dados.servidor.horaReferencia} • {dados.servidor.unidade}
-          </p>
+          <DashboardServidorRelogio
+            dataExtenso={dados.servidor.dataExtenso}
+            horaReferencia={dados.servidor.horaReferencia}
+            unidade={dados.servidor.unidade}
+          />
         </div>
 
         <a
@@ -36,28 +56,34 @@ export function DashboardServidor({ primeiroNome }: DashboardServidorProps) {
         >
           <Bell className="size-5 text-secp-blue-700" aria-hidden="true" />
           Ver notificações
-          <Badge variant="regular">3</Badge>
+          {totalNotificacoes > 0 && (
+            <Badge variant="regular">
+              {totalNotificacoes > 99 ? "99+" : totalNotificacoes}
+            </Badge>
+          )}
         </a>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[2fr_repeat(4,1fr)]">
+      <section className="grid gap-3 xl:grid-cols-[minmax(18rem,0.8fr)_minmax(0,1.65fr)]">
         <NextActionCard {...dados.proximaAcao} />
-        {dados.metricas.map((metrica) => (
-          <DashboardMetricCard key={metrica.titulo} {...metrica} />
-        ))}
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {dados.metricas.map((metrica) => (
+            <DashboardMetricCard key={metrica.titulo} {...metrica} />
+          ))}
+        </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.95fr_1.2fr]">
-        <MarcacoesDoDiaTimeline marcacoes={dados.marcacoes} />
-        <AlertasEAvisosCard alertas={dados.alertas} />
-        <FrequenciaMesResumo resumo={dados.frequenciaMes} />
+      <section className="grid gap-4 xl:grid-cols-[0.82fr_1.38fr]">
+        <div className="grid gap-3">
+          <MarcacoesDoDiaTimeline marcacoes={dados.marcacoes} />
+          <AlertasEAvisosCard alertas={dados.alertas} />
+        </div>
+        <div className="grid gap-3">
+          <AcessoRapidoGrid acessos={dados.acessos} />
+          <FrequenciaMesResumo resumo={dados.frequenciaMes} />
+        </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1fr_18rem]">
-        <AcessoRapidoGrid acessos={dados.acessos} />
-        <GuiaRapidoCard regras={dados.regras} />
-      </section>
     </div>
   );
 }
-

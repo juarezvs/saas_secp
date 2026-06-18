@@ -980,6 +980,8 @@ export class SarhPrismaRepository {
       gerarHashRegistro(params.payload),
     );
 
+    await garantirJornadaPadraoServidorService(this.prisma, servidor.id);
+
     await this.registrarItem(
       params.execucaoId,
       endpoint,

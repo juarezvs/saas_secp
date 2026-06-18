@@ -24,3 +24,15 @@ export function minutosParaHoraBanco(minutos: number) {
   
     return rotulos[tipo] ?? tipo;
   }
+
+  export function rotuloOrigemMovimentoBancoHoras(origem: string) {
+    const rotulos: Record<string, string> = {
+      APURACAO_DIARIA: "Apuracao diaria",
+      SOLICITACAO: "Solicitacao",
+      HOMOLOGACAO: "Homologacao",
+      AJUSTE_ADMINISTRATIVO: "Ajuste administrativo",
+      IMPORTACAO: "Importacao",
+    };
+
+    return rotulos[origem] ?? origem;
+  }

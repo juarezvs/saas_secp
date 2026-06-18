@@ -1,4 +1,4 @@
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Download } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CompetenciaInput, SearchableSelect } from "@/components/ui";
@@ -104,6 +104,19 @@ function servidorProprioParaLista(
       lotacoes: [],
     },
   ];
+}
+
+function montarHrefExportacaoEspelho(params: {
+  servidorId: string;
+  anoReferencia: number;
+  mesReferencia: number;
+}) {
+  const query = new URLSearchParams({
+    ano: String(params.anoReferencia),
+    mes: String(params.mesReferencia),
+  });
+
+  return `/api/relatorios/espelho/${params.servidorId}/pdf?${query.toString()}`;
 }
 
 export default async function EspelhoPontoPage({
@@ -223,6 +236,22 @@ export default async function EspelhoPontoPage({
             anoReferencia={anoReferencia}
             mesReferencia={mesReferencia}
           />
+        )}
+
+        {servidorSelecionado && (
+          <div className="mt-4 flex justify-end border-t pt-4">
+            <a
+              href={montarHrefExportacaoEspelho({
+                servidorId: servidorSelecionado.id,
+                anoReferencia,
+                mesReferencia,
+              })}
+              className="inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-semibold hover:bg-[var(--muted)]"
+            >
+              <Download className="size-4" aria-hidden="true" />
+              Exportar PDF
+            </a>
+          </div>
         )}
       </Card>
 

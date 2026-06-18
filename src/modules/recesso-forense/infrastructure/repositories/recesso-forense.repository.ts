@@ -79,6 +79,26 @@ export async function buscarRecessoForensePorAno(ano: number) {
   });
 }
 
+export async function listarRecessosForensesNoPeriodo(
+  inicio: Date,
+  fimExclusivo: Date,
+) {
+  return prisma.recessoForense.findMany({
+    where: {
+      status: {
+        not: "CANCELADO",
+      },
+      dataInicio: {
+        lt: fimExclusivo,
+      },
+      dataFim: {
+        gte: inicio,
+      },
+    },
+    orderBy: [{ dataInicio: "asc" }, { ano: "asc" }],
+  });
+}
+
 export async function listarUnidadesParaRecesso() {
   return prisma.unidadeOrganizacional.findMany({
     where: { ativo: true },

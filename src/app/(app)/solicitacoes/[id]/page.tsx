@@ -48,6 +48,16 @@ function formatarHoras(minutos: number) {
   return `${horas}h${String(restante).padStart(2, "0")}`;
 }
 
+function formatarDataReferencia(data: Date | null) {
+  if (!data) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "UTC",
+  }).format(data);
+}
+
 export default async function SolicitacaoDetalhePage({
   params,
 }: SolicitacaoDetalhePageProps) {
@@ -122,13 +132,7 @@ export default async function SolicitacaoDetalhePage({
           <Info label="Unidade" value={solicitacao.unidade?.sigla ?? "-"} />
           <Info
             label="Data de referência"
-            value={
-              solicitacao.dataReferencia
-                ? new Intl.DateTimeFormat("pt-BR").format(
-                    solicitacao.dataReferencia,
-                  )
-                : "-"
-            }
+            value={formatarDataReferencia(solicitacao.dataReferencia)}
           />
           <Info
             label="Chefia responsável"

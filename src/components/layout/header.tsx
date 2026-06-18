@@ -1,7 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState, useTransition } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
   Building2,
@@ -26,6 +27,7 @@ type HeaderProps = {
   onLogout: () => Promise<void>;
   sidebarRecolhida: boolean;
   drawerAberto: boolean;
+  totalNotificacoes: number;
 };
 
 export function Header({
@@ -40,9 +42,58 @@ export function Header({
   onLogout,
   sidebarRecolhida,
   drawerAberto,
+  totalNotificacoes,
 }: HeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const [totalNotificacoesAtual, setTotalNotificacoesAtual] =
+    useState(totalNotificacoes);
   const [perfilPendente, startTransition] = useTransition();
+
+  const buscarTotalNotificacoes = useCallback(async () => {
+    try {
+      const response = await fetch("/api/notificacoes/contador", {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        return totalNotificacoes;
+      }
+
+      const payload = (await response.json()) as { total?: number };
+      return Number(payload.total ?? 0);
+    } catch {
+      return totalNotificacoes;
+    }
+  }, [totalNotificacoes]);
+
+  useEffect(() => {
+    let ativo = true;
+
+    buscarTotalNotificacoes().then((total) => {
+      if (ativo) {
+        setTotalNotificacoesAtual(total);
+      }
+    });
+
+    return () => {
+      ativo = false;
+    };
+  }, [pathname, buscarTotalNotificacoes]);
+
+  useEffect(() => {
+    function atualizarAoFocar() {
+      buscarTotalNotificacoes().then(setTotalNotificacoesAtual);
+    }
+
+    window.addEventListener("focus", atualizarAoFocar);
+    document.addEventListener("visibilitychange", atualizarAoFocar);
+
+    return () => {
+      window.removeEventListener("focus", atualizarAoFocar);
+      document.removeEventListener("visibilitychange", atualizarAoFocar);
+    };
+  }, [buscarTotalNotificacoes]);
 
   function selecionarPerfil(codigo: string) {
     const novoPerfil = perfis.find((perfil) => perfil.codigo === codigo);
@@ -62,6 +113,7 @@ export function Header({
         if (response.ok) {
           onPerfilAtivoChange(novoPerfil);
           router.refresh();
+          buscarTotalNotificacoes().then(setTotalNotificacoesAtual);
         }
       });
     }
@@ -133,13 +185,18 @@ export function Header({
 
           <AccessibilityToolbar />
 
-          <button
-            type="button"
-            className="hidden size-10 items-center justify-center rounded-md border border-white/20 bg-white/10 transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:inline-flex"
-            aria-label="Ver notificacoes"
+          <Link
+            href="/notificacoes"
+            className="relative hidden size-10 items-center justify-center rounded-md border border-white/20 bg-white/10 transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:inline-flex"
+            aria-label={`Ver notificações${totalNotificacoesAtual > 0 ? `: ${totalNotificacoesAtual} não lida(s)` : ""}`}
           >
             <Bell className="size-5" aria-hidden="true" />
-          </button>
+            {totalNotificacoesAtual > 0 && (
+              <span className="absolute -right-1 -top-1 flex min-w-5 items-center justify-center rounded-full bg-secp-danger px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                {totalNotificacoesAtual > 99 ? "99+" : totalNotificacoesAtual}
+              </span>
+            )}
+          </Link>
 
           <div className="hidden min-w-0 items-center gap-3 rounded-md bg-white/10 px-3 py-2 md:flex">
             <span className="flex size-8 items-center justify-center rounded-full bg-white text-secp-blue-900">

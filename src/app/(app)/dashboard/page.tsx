@@ -9,6 +9,7 @@ import { DashboardGestor } from "@/modules/dashboard/presentation/dashboard-gest
 import { DashboardMaster } from "@/modules/dashboard/presentation/dashboard-master/dashboard-master";
 import { DashboardSecap } from "@/modules/dashboard/presentation/dashboard-secap/dashboard-secap";
 import { DashboardServidor } from "@/modules/dashboard/presentation/dashboard-servidor/dashboard-servidor";
+import { DashboardSuporte } from "@/modules/dashboard/presentation/dashboard-suporte/dashboard-suporte";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -34,6 +35,8 @@ export default async function DashboardPage() {
       return <DashboardAuditor />;
     case "DIREF":
       return <DashboardDiref />;
+    case "SUPORTE":
+      return <DashboardSuporte />;
     case "SERVIDOR":
     default:
       return (

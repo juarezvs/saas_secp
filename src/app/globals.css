@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "./tokens.css";
 
+@source not "../../.tmp";
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @font-face {
@@ -29,18 +31,6 @@
   src: url("/fonts/opendyslexic/OpenDyslexic-BoldItalic.otf") format("opentype");
   font-weight: 700;
   font-style: italic;
-}
-
-[data-font-size="normal"] {
-  font-size: 16px;
-}
-
-[data-font-size="large"] {
-  font-size: 18px;
-}
-
-[data-font-size="xlarge"] {
-  font-size: 20px;
 }
 
 [data-dyslexia-font="true"] {
@@ -167,16 +157,32 @@ button:disabled,
   z-index: 80 !important;
 }
 
-body[data-font-size="normal"] {
-  font-size: 100%;
+html[data-font-size="13"] {
+  font-size: 13px;
 }
 
-body[data-font-size="large"] {
-  font-size: 112.5%;
+html[data-font-size="14"] {
+  font-size: 14px;
 }
 
-body[data-font-size="xlarge"] {
-  font-size: 125%;
+html[data-font-size="16"] {
+  font-size: 16px;
+}
+
+html[data-font-size="18"] {
+  font-size: 18px;
+}
+
+html[data-font-size="20"] {
+  font-size: 20px;
+}
+
+html[data-font-size="24"] {
+  font-size: 24px;
+}
+
+html[data-font-size="30"] {
+  font-size: 30px;
 }
 
 @media (prefers-reduced-motion: reduce) {

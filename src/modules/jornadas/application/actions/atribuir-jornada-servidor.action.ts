@@ -7,6 +7,7 @@ import {
   jornadaServidorSchema,
   type JornadaServidorFormState,
 } from "../schemas/jornada-servidor.schema";
+import { avaliarCompatibilidadeJornadaDedicacaoIntegral } from "../services/dedicacao-integral.service";
 
 function extrairDados(formData: FormData) {
   return {
@@ -58,15 +59,76 @@ export async function atribuirJornadaServidorAction(
     };
   }
 
-  const jornada = await prisma.jornada.findUnique({
-    where: { id: parsed.data.jornadaId },
-    select: { horarioDiferenciadoPermitido: true },
-  });
+  const [jornada, servidor] = await Promise.all([
+    prisma.jornada.findUnique({
+      where: { id: parsed.data.jornadaId },
+      select: {
+        horarioDiferenciadoPermitido: true,
+        cargaDiariaMinutos: true,
+      },
+    }),
+    prisma.servidor.findUnique({
+      where: { id: parsed.data.servidorId },
+      select: {
+        cargo: {
+          select: {
+            descricao: true,
+          },
+        },
+        lotacoes: {
+          where: {
+            status: "ATIVO",
+          },
+          select: {
+            cargo: {
+              select: {
+                descricao: true,
+              },
+            },
+          },
+          orderBy: {
+            dataInicio: "desc",
+          },
+        },
+      },
+    }),
+  ]);
 
   if (!jornada) {
     return {
       sucesso: false,
       mensagem: "Jornada não encontrada.",
+    };
+  }
+
+  if (!servidor) {
+    return {
+      sucesso: false,
+      mensagem: "Servidor nao encontrado.",
+    };
+  }
+
+  const avaliacaoDedicacaoIntegral =
+    avaliarCompatibilidadeJornadaDedicacaoIntegral({
+      descricaoCargoServidor: servidor.cargo?.descricao,
+      descricoesCargosLotacoes: servidor.lotacoes.map(
+        (lotacao) => lotacao.cargo?.descricao,
+      ),
+      jornadaCargaDiariaMinutos: jornada.cargaDiariaMinutos,
+      justificativa: parsed.data.justificativa,
+    });
+
+  if (!avaliacaoDedicacaoIntegral.compativel) {
+    return {
+      sucesso: false,
+      mensagem:
+        "Servidor ocupante de FC/CJ deve cumprir dedicacao integral, preferencialmente com jornada de 8 horas.",
+      erros: {
+        justificativa: [
+          "Informe justificativa formal para atribuir jornada inferior a 8 horas a ocupante de FC/CJ.",
+        ],
+      },
+      campos: dados,
     };
   }
 

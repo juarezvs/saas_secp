@@ -48,6 +48,40 @@ function minutosDisponiveis(autorizacao: AutorizacaoDisponivel) {
   return Math.max(0, autorizacao.minutosAutorizados - utilizados);
 }
 
+function hojeManaus() {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Manaus",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const ano = Number(partes.find((parte) => parte.type === "year")?.value);
+  const mes = Number(partes.find((parte) => parte.type === "month")?.value);
+  const dia = Number(partes.find((parte) => parte.type === "day")?.value);
+
+  return new Date(Date.UTC(ano, mes - 1, dia));
+}
+
+function dataLimiteMovimentos(params: {
+  anoReferencia: number;
+  mesReferencia: number;
+}) {
+  const inicio = new Date(Date.UTC(params.anoReferencia, params.mesReferencia - 1, 1));
+  const fim = new Date(Date.UTC(params.anoReferencia, params.mesReferencia, 1));
+  const hoje = hojeManaus();
+
+  if (hoje < inicio) {
+    return new Date(inicio.getTime() - 1);
+  }
+
+  if (hoje >= fim) {
+    return new Date(fim.getTime() - 1);
+  }
+
+  return hoje;
+}
+
 function alocarAutorizacoes(params: {
   autorizacoes: AutorizacaoDisponivel[];
   tipos: AutorizacaoDisponivel["tipo"][];
@@ -93,6 +127,10 @@ export async function regerarBancoHorasMesService({
 }: RegerarBancoHorasMesParams) {
   const inicio = new Date(Date.UTC(anoReferencia, mesReferencia - 1, 1));
   const fim = new Date(Date.UTC(anoReferencia, mesReferencia, 1));
+  const limiteMovimentos = dataLimiteMovimentos({
+    anoReferencia,
+    mesReferencia,
+  });
 
   const apuracoes = await prisma.apuracaoDiaria.findMany({
     where: {
@@ -100,6 +138,7 @@ export async function regerarBancoHorasMesService({
       dataReferencia: {
         gte: inicio,
         lt: fim,
+        lte: limiteMovimentos,
       },
       status: {
         in: ["CALCULADA", "INCONSISTENTE"],

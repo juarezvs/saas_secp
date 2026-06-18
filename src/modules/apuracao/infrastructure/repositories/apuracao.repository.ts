@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { montarEspelhoMensalCompleto } from "../../application/services/montar-espelho-mensal-completo.service";
 
 export async function buscarServidorComUsuarioPorUsuarioId(usuarioId: string) {
   return prisma.servidor.findFirst({
@@ -88,8 +89,93 @@ export async function listarApuracoesDoServidorNoMes(params: {
   ano: number;
   mes: number;
 }) {
-  const inicio = new Date(params.ano, params.mes - 1, 1);
-  const fim = new Date(params.ano, params.mes, 1);
+  const inicio = new Date(Date.UTC(params.ano, params.mes - 1, 1));
+  const fim = new Date(Date.UTC(params.ano, params.mes, 1));
+
+  const [apuracoes, jornadas] = await Promise.all([
+    prisma.apuracaoDiaria.findMany({
+      where: {
+        servidorId: params.servidorId,
+        dataReferencia: {
+          gte: inicio,
+          lt: fim,
+        },
+      },
+      include: {
+        ocorrencias: true,
+        movimentoBancoHoras: {
+          where: {
+            status: {
+              in: ["PENDENTE", "VALIDADO"],
+            },
+          },
+          include: {
+            autorizacaoBancoHoras: {
+              select: {
+                solicitacao: {
+                  select: {
+                    id: true,
+                    tipo: true,
+                    titulo: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        dataReferencia: "asc",
+      },
+    }),
+    prisma.jornadaServidor.findMany({
+      where: {
+        servidorId: params.servidorId,
+        ativo: true,
+        dataInicio: {
+          lt: fim,
+        },
+        OR: [
+          {
+            dataFim: null,
+          },
+          {
+            dataFim: {
+              gte: inicio,
+            },
+          },
+        ],
+      },
+      include: {
+        jornada: {
+          select: {
+            cargaDiariaMinutos: true,
+          },
+        },
+      },
+      orderBy: {
+        dataInicio: "asc",
+      },
+    }),
+  ]);
+
+  const espelho = await montarEspelhoMensalCompleto({
+    anoReferencia: params.ano,
+    mesReferencia: params.mes,
+    apuracoes,
+    jornadas,
+  });
+
+  return espelho.itens;
+}
+
+export async function listarApuracoesCalculadasDoServidorNoMes(params: {
+  servidorId: string;
+  ano: number;
+  mes: number;
+}) {
+  const inicio = new Date(Date.UTC(params.ano, params.mes - 1, 1));
+  const fim = new Date(Date.UTC(params.ano, params.mes, 1));
 
   return prisma.apuracaoDiaria.findMany({
     where: {

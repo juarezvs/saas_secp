@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import {
+  PeriodoHomologadoError,
+  verificarPeriodoHomologado,
+} from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
 import { resolverChefiaResponsavelDaUnidade } from "@/modules/chefias/application/services/resolver-chefia.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
@@ -14,6 +18,10 @@ import {
   type CriarSolicitacaoFormState,
   type CriarSolicitacaoInput,
 } from "../schemas/solicitacao.schema";
+import {
+  PrazoAjustePontoExpiradoError,
+  verificarPrazoAjustePontoComCalendario,
+} from "../services/verificar-prazo-ajuste-ponto.service";
 
 type TipoSolicitacao = CriarSolicitacaoInput["tipo"];
 
@@ -55,6 +63,15 @@ function extrairDados(formData: FormData): Partial<CriarSolicitacaoInput> {
     horasSolicitadas: formData.get("horasSolicitadas")
       ? Number(formData.get("horasSolicitadas"))
       : undefined,
+    regimeTrabalhoRemotoTipo: String(
+      formData.get("regimeTrabalhoRemotoTipo") ?? "NAO_SE_APLICA",
+    ) as CriarSolicitacaoInput["regimeTrabalhoRemotoTipo"],
+    diasRemotos: formData
+      .getAll("diasRemotos")
+      .map((valor) => String(valor)) as CriarSolicitacaoInput["diasRemotos"],
+    modalidadeCapacitacao: String(
+      formData.get("modalidadeCapacitacao") ?? "",
+    ) as CriarSolicitacaoInput["modalidadeCapacitacao"],
   };
 }
 
@@ -118,6 +135,42 @@ export async function criarSolicitacaoAction(
     lotacaoAtual.unidadeId,
   );
 
+  if (parsed.data.tipo === "AJUSTE_PONTO" && parsed.data.dataReferencia) {
+    const dataReferenciaAjuste = valorOpcionalData(parsed.data.dataReferencia);
+
+    if (dataReferenciaAjuste) {
+      try {
+        await verificarPeriodoHomologado({
+          servidorId: servidor.id,
+          dataReferencia: dataReferenciaAjuste,
+        });
+        await verificarPrazoAjustePontoComCalendario({
+          dataReferencia: dataReferenciaAjuste,
+        });
+      } catch (error) {
+        if (error instanceof PeriodoHomologadoError) {
+          return {
+            sucesso: false,
+            mensagem:
+              "Este periodo ja foi homologado. A correcao da marcacao depende de reabertura administrativa formal.",
+            campos: dados,
+          };
+        }
+
+        if (error instanceof PrazoAjustePontoExpiradoError) {
+          return {
+            sucesso: false,
+            mensagem:
+              "O prazo regulamentar para correcao da marcacao ja expirou para essa competencia.",
+            campos: dados,
+          };
+        }
+
+        throw error;
+      }
+    }
+  }
+
   const solicitacao = await prisma.$transaction(async (tx) => {
     const novaSolicitacao = await tx.solicitacao.create({
       data: {
@@ -140,6 +193,21 @@ export async function criarSolicitacaoAction(
           minutosSolicitados: parsed.data.horasSolicitadas
             ? Math.round(parsed.data.horasSolicitadas * 60)
             : null,
+          modalidadeCapacitacao:
+            parsed.data.tipo === "CAPACITACAO"
+              ? parsed.data.modalidadeCapacitacao
+              : null,
+          regimeTrabalhoRemoto:
+            parsed.data.tipo === "DISPENSA_PONTO" &&
+            parsed.data.regimeTrabalhoRemotoTipo !== "NAO_SE_APLICA"
+              ? {
+                  tipo: parsed.data.regimeTrabalhoRemotoTipo,
+                  diasRemotos:
+                    parsed.data.regimeTrabalhoRemotoTipo === "TOTAL"
+                      ? []
+                      : parsed.data.diasRemotos,
+                }
+              : null,
           lotacaoAtual: {
             unidadeId: lotacaoAtual.unidadeId,
             unidadeSigla: lotacaoAtual.unidade.sigla,

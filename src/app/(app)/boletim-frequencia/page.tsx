@@ -17,6 +17,13 @@ import {
   rotuloStatusBoletim,
 } from "@/modules/boletim-frequencia/application/services/formatar-boletim-frequencia.service";
 import { BoletinsListagemControles } from "@/modules/boletim-frequencia/presentation/components/boletins-listagem-controles";
+import {
+  calcularPrazoEncaminhamentoBoletimCompetenciaComCalendario,
+  classeSituacaoPrazoRegulatorio,
+  descreverPrazoRegulatorio,
+  formatarDataPrazoRegulatorio,
+  rotuloSituacaoPrazoRegulatorio,
+} from "@/modules/frequencia/application/services/prazo-regulatorio-frequencia.service";
 
 type BoletimFrequenciaPageProps = {
   searchParams?: Promise<{
@@ -44,6 +51,30 @@ function normalizarCompetencia(params: {
     anoReferencia: ano,
     mesReferencia: mes,
   };
+}
+
+function renderizarPrazoBoletim(
+  prazo: Awaited<
+    ReturnType<typeof calcularPrazoEncaminhamentoBoletimCompetenciaComCalendario>
+  >,
+) {
+  return (
+    <div>
+      <div className="font-semibold">
+        {formatarDataPrazoRegulatorio(prazo.dataLimite)}
+      </div>
+      <span
+        className={`mt-1 inline-flex rounded-full px-2 py-1 text-xs font-semibold ${classeSituacaoPrazoRegulatorio(
+          prazo.situacao,
+        )}`}
+      >
+        {rotuloSituacaoPrazoRegulatorio(prazo.situacao)}
+      </span>
+      <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+        {descreverPrazoRegulatorio(prazo)}
+      </div>
+    </div>
+  );
 }
 
 export default async function BoletimFrequenciaPage({
@@ -78,6 +109,23 @@ export default async function BoletimFrequenciaPage({
     }),
     podeGerar ? listarFechamentosHomologadosSemBoletim() : Promise.resolve([]),
   ]);
+  const prazosPorBoletim = new Map<
+    string,
+    Awaited<
+      ReturnType<typeof calcularPrazoEncaminhamentoBoletimCompetenciaComCalendario>
+    >
+  >();
+
+  for (const boletim of resultado.boletins) {
+    prazosPorBoletim.set(
+      boletim.id,
+      await calcularPrazoEncaminhamentoBoletimCompetenciaComCalendario({
+        anoReferencia: boletim.anoReferencia,
+        mesReferencia: boletim.mesReferencia,
+        concluidoEm: boletim.encaminhadoEm,
+      }),
+    );
+  }
 
   const exportParams = new URLSearchParams();
 
@@ -229,6 +277,7 @@ export default async function BoletimFrequenciaPage({
                 <th className="px-5 py-3">Unidade</th>
                 <th className="px-5 py-3">Servidores</th>
                 <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3">Prazo envio</th>
                 <th className="px-5 py-3">Processo SEI</th>
                 <th className="px-5 py-3">Gerado por</th>
                 <th className="px-5 py-3 text-right">Ações</th>
@@ -258,6 +307,11 @@ export default async function BoletimFrequenciaPage({
                       {rotuloStatusBoletim(boletim.status)}
                     </span>
                   </td>
+                  <td className="px-5 py-4">
+                    {renderizarPrazoBoletim(
+                      prazosPorBoletim.get(boletim.id)!,
+                    )}
+                  </td>
                   <td className="px-5 py-4">{boletim.processoSei ?? "-"}</td>
                   <td className="px-5 py-4">{boletim.geradoPor.nome}</td>
                   <td className="px-5 py-4 text-right">
@@ -274,7 +328,7 @@ export default async function BoletimFrequenciaPage({
               {resultado.boletins.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
                     Nenhum boletim encontrado para os filtros informados.

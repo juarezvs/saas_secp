@@ -1,5 +1,9 @@
+import { Trash2 } from "lucide-react";
+
+import { excluirAjusteManualBancoHorasAction } from "../../application/actions/excluir-ajuste-manual-banco-horas.action";
 import {
   minutosParaHoraBanco,
+  rotuloOrigemMovimentoBancoHoras,
   rotuloTipoMovimentoBancoHoras,
 } from "../../application/services/formatar-banco-horas.service";
 
@@ -16,9 +20,13 @@ type MovimentoBancoHorasItem = {
 
 export function MovimentosBancoHorasTable({
   movimentos,
+  podeGerenciar = false,
 }: {
   movimentos: MovimentoBancoHorasItem[];
+  podeGerenciar?: boolean;
 }) {
+  const colSpan = podeGerenciar ? 8 : 7;
+
   return (
     <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
       <div className="flex flex-col justify-between gap-3 border-b p-5 md:flex-row md:items-start">
@@ -51,6 +59,7 @@ export function MovimentosBancoHorasTable({
               <th className="px-5 py-3">Status</th>
               <th className="px-5 py-3">Expiracao</th>
               <th className="px-5 py-3">Descrição</th>
+              {podeGerenciar && <th className="px-5 py-3">Acoes</th>}
             </tr>
           </thead>
 
@@ -67,7 +76,9 @@ export function MovimentosBancoHorasTable({
                   {rotuloTipoMovimentoBancoHoras(movimento.tipo)}
                 </td>
 
-                <td className="px-5 py-4">{movimento.origem}</td>
+                <td className="px-5 py-4">
+                  {rotuloOrigemMovimentoBancoHoras(movimento.origem)}
+                </td>
 
                 <td className="px-5 py-4 font-mono font-semibold">
                   {minutosParaHoraBanco(movimento.minutos)}
@@ -98,13 +109,38 @@ export function MovimentosBancoHorasTable({
                 <td className="px-5 py-4 text-[var(--muted-foreground)]">
                   {movimento.descricao ?? "-"}
                 </td>
+
+                {podeGerenciar && (
+                  <td className="px-5 py-4">
+                    {movimentoPodeSerExcluido(movimento) ? (
+                      <form action={excluirAjusteManualBancoHorasAction}>
+                        <input
+                          type="hidden"
+                          name="movimentoId"
+                          value={movimento.id}
+                        />
+                        <button
+                          type="submit"
+                          className="inline-flex items-center gap-2 rounded-md border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
+                        >
+                          <Trash2 className="size-3.5" aria-hidden="true" />
+                          Excluir
+                        </button>
+                      </form>
+                    ) : (
+                      <span className="text-xs text-[var(--muted-foreground)]">
+                        -
+                      </span>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
 
             {movimentos.length === 0 && (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={colSpan}
                   className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                 >
                   Nenhum movimento de banco de horas encontrado para a
@@ -116,5 +152,12 @@ export function MovimentosBancoHorasTable({
         </table>
       </div>
     </section>
+  );
+}
+
+function movimentoPodeSerExcluido(movimento: MovimentoBancoHorasItem) {
+  return (
+    movimento.origem === "AJUSTE_ADMINISTRATIVO" &&
+    !["ESTORNADO", "DESCONSIDERADO", "EXPIRADO"].includes(movimento.status)
   );
 }

@@ -28,10 +28,30 @@ export async function normalizarMarcacoesSemIntervaloService(
   }
 
   const primeira = importadas[0];
+  const segunda = importadas[1];
+  const terceira = importadas[2];
   const ultima = importadas.at(-1);
-  const tipos = new Map<string, "ENTRADA" | "SAIDA" | "MANUAL">();
+  const tipos = new Map<
+    string,
+    "ENTRADA" | "SAIDA_INTERVALO" | "RETORNO_INTERVALO" | "SAIDA" | "MANUAL"
+  >();
 
   for (const marcacao of importadas) {
+    if (
+      importadas.length >= 4 &&
+      segunda &&
+      terceira &&
+      marcacao.id === segunda.id
+    ) {
+      tipos.set(marcacao.id, "SAIDA_INTERVALO");
+      continue;
+    }
+
+    if (importadas.length >= 4 && terceira && marcacao.id === terceira.id) {
+      tipos.set(marcacao.id, "RETORNO_INTERVALO");
+      continue;
+    }
+
     tipos.set(
       marcacao.id,
       marcacao.id === primeira.id

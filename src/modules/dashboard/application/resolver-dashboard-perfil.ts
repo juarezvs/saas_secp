@@ -5,6 +5,7 @@ export type DashboardPerfil =
   | "GESTOR"
   | "ADMIN"
   | "MASTER"
+  | "SUPORTE"
   | "SECAP"
   | "AUDITOR"
   | "DIREF";
@@ -19,6 +20,9 @@ export function resolverDashboardPerfil(
   if (codigo === "DIREF") return "DIREF";
   if (codigo === "SECAP") return "SECAP";
   if (codigo === "AUDITOR") return "AUDITOR";
+  if (["SUPORTE", "SUPORTE_TECNICO", "NUTEC"].includes(codigo)) {
+    return "SUPORTE";
+  }
   if (codigo === "ADMIN") return "ADMIN";
 
   if (
@@ -44,6 +48,15 @@ export function resolverDashboardPerfil(
     permissoes.includes("boletim-frequencia:receber:global")
   ) {
     return "SECAP";
+  }
+
+  if (
+    permissoes.includes("integracoes:gerenciar:global") ||
+    permissoes.includes("integracoes-sarh:executar:global") ||
+    permissoes.includes("integracoes-sarh:reprocessar:global") ||
+    permissoes.includes("afd:importar:global")
+  ) {
+    return "SUPORTE";
   }
 
   if (

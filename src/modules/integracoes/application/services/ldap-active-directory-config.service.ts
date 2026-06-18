@@ -1,0 +1,131 @@
+import { prisma } from "@/shared/infrastructure/database/prisma";
+
+export const LDAP_ACTIVE_DIRECTORY_INTEGRACAO_ID =
+  "00000000-0000-0000-0000-000000000103";
+
+export type ModoAutenticacaoLdapAd = "HTTP_AD_API" | "LDAP_BIND";
+
+export type LdapActiveDirectoryConfig = {
+  modoAutenticacao: ModoAutenticacaoLdapAd;
+  nome: string;
+  ativo: boolean;
+  authUrl: string;
+  ldapUrl: string;
+  baseDn: string;
+  dominio: string;
+  bindDn: string;
+  bindPassword: string;
+  userDnPattern: string;
+  searchFilter: string;
+  timeoutMs: number;
+};
+
+const AD_AUTH_URL_PADRAO =
+  "http://login.ad.integracao.am.trf1.gov.br/auth/login";
+
+const LDAP_TIMEOUT_PADRAO_MS = 5000;
+
+function lerString(configuracao: Record<string, unknown>, chave: string) {
+  const valor = configuracao[chave];
+  return typeof valor === "string" ? valor : "";
+}
+
+function lerNumero(configuracao: Record<string, unknown>, chave: string) {
+  const valor = configuracao[chave];
+  return typeof valor === "number" && Number.isFinite(valor) ? valor : null;
+}
+
+function normalizarConfiguracao(valor: unknown): Record<string, unknown> {
+  return valor && typeof valor === "object" && !Array.isArray(valor)
+    ? (valor as Record<string, unknown>)
+    : {};
+}
+
+export function obterConfiguracaoLdapActiveDirectoryAmbiente(): LdapActiveDirectoryConfig {
+  return {
+    modoAutenticacao: process.env.LDAP_URL ? "LDAP_BIND" : "HTTP_AD_API",
+    nome: "LDAP / Active Directory",
+    ativo: true,
+    authUrl: process.env.AD_AUTH_URL?.trim() || AD_AUTH_URL_PADRAO,
+    ldapUrl: process.env.LDAP_URL?.trim() || "",
+    baseDn: process.env.LDAP_BASE_DN?.trim() || "",
+    dominio: process.env.LDAP_DOMAIN?.trim() || "",
+    bindDn: process.env.LDAP_BIND_DN?.trim() || "",
+    bindPassword: process.env.LDAP_BIND_PASSWORD ?? "",
+    userDnPattern: "",
+    searchFilter: "(sAMAccountName={{matricula}})",
+    timeoutMs: Number(process.env.LDAP_TIMEOUT_MS ?? "") || LDAP_TIMEOUT_PADRAO_MS,
+  };
+}
+
+export async function obterConfiguracaoLdapActiveDirectory(): Promise<LdapActiveDirectoryConfig> {
+  const fallback = obterConfiguracaoLdapActiveDirectoryAmbiente();
+  const integracao = await prisma.integracaoSistema.findFirst({
+    where: { tipo: "LDAP" },
+    orderBy: { atualizadoEm: "desc" },
+  });
+
+  if (!integracao) {
+    return fallback;
+  }
+
+  const configuracao = normalizarConfiguracao(integracao.configuracao);
+  const modoConfigurado = lerString(configuracao, "modoAutenticacao");
+  const modoAutenticacao: ModoAutenticacaoLdapAd =
+    modoConfigurado === "LDAP_BIND" || modoConfigurado === "HTTP_AD_API"
+      ? modoConfigurado
+      : fallback.modoAutenticacao;
+
+  return {
+    modoAutenticacao,
+    nome: integracao.nome || fallback.nome,
+    ativo: integracao.ativo && integracao.status !== "INATIVA",
+    authUrl: integracao.baseUrl || lerString(configuracao, "authUrl") || fallback.authUrl,
+    ldapUrl: lerString(configuracao, "ldapUrl") || fallback.ldapUrl,
+    baseDn: lerString(configuracao, "baseDn") || fallback.baseDn,
+    dominio: lerString(configuracao, "dominio") || fallback.dominio,
+    bindDn: lerString(configuracao, "bindDn") || fallback.bindDn,
+    bindPassword:
+      lerString(configuracao, "bindPassword") || fallback.bindPassword,
+    userDnPattern:
+      lerString(configuracao, "userDnPattern") || fallback.userDnPattern,
+    searchFilter:
+      lerString(configuracao, "searchFilter") || fallback.searchFilter,
+    timeoutMs:
+      lerNumero(configuracao, "timeoutMs") ??
+      fallback.timeoutMs ??
+      LDAP_TIMEOUT_PADRAO_MS,
+  };
+}
+
+export async function obterOuCriarIntegracaoLdapActiveDirectory() {
+  const ambiente = obterConfiguracaoLdapActiveDirectoryAmbiente();
+
+  return prisma.integracaoSistema.upsert({
+    where: { id: LDAP_ACTIVE_DIRECTORY_INTEGRACAO_ID },
+    update: {},
+    create: {
+      id: LDAP_ACTIVE_DIRECTORY_INTEGRACAO_ID,
+      nome: ambiente.nome,
+      tipo: "LDAP",
+      direcao: "ENTRADA",
+      status: ambiente.authUrl || ambiente.ldapUrl ? "ATIVA" : "NAO_CONFIGURADA",
+      baseUrl: ambiente.authUrl || null,
+      ativo: true,
+      descricao:
+        "IntegraÃ§Ã£o usada pelo login institucional do SECP para autenticaÃ§Ã£o por LDAP/Active Directory.",
+      configuracao: {
+        modoAutenticacao: ambiente.modoAutenticacao,
+        authUrl: ambiente.authUrl,
+        ldapUrl: ambiente.ldapUrl,
+        baseDn: ambiente.baseDn,
+        dominio: ambiente.dominio,
+        bindDn: ambiente.bindDn,
+        bindPassword: ambiente.bindPassword,
+        userDnPattern: ambiente.userDnPattern,
+        searchFilter: ambiente.searchFilter,
+        timeoutMs: ambiente.timeoutMs,
+      },
+    },
+  });
+}

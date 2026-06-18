@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarClock, Edit, UsersRound } from "lucide-react";
+import { CalendarClock, Edit, ListChecks, UsersRound } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { criarEscalaAction } from "@/modules/jornadas/application/actions/criar-escala.action";
 import { buscarJornadaPorId } from "@/modules/jornadas/infrastructure/repositories/jornada.repository";
+import { EscalaForm } from "@/modules/jornadas/presentation/components/escala-form";
 
 type JornadaDetalhePageProps = {
   params: Promise<{
@@ -23,6 +25,41 @@ function formatarData(data: Date | null) {
   return new Intl.DateTimeFormat("pt-BR").format(data);
 }
 
+const rotulosDia: Record<string, string> = {
+  DOMINGO: "Dom",
+  SEGUNDA: "Seg",
+  TERCA: "Ter",
+  QUARTA: "Qua",
+  QUINTA: "Qui",
+  SEXTA: "Sex",
+  SABADO: "Sáb",
+};
+
+function descreverDiaEscala(dia: {
+  diaSemana: string;
+  trabalha: boolean;
+  horarioEntrada: string | null;
+  horarioSaida: string | null;
+  intervaloInicio: string | null;
+  intervaloFim: string | null;
+  cargaPrevistaMinutos: number;
+}) {
+  if (!dia.trabalha) {
+    return `${rotulosDia[dia.diaSemana] ?? dia.diaSemana}: folga`;
+  }
+
+  const intervalo =
+    dia.intervaloInicio && dia.intervaloFim
+      ? `, intervalo ${dia.intervaloInicio}-${dia.intervaloFim}`
+      : "";
+
+  return `${rotulosDia[dia.diaSemana] ?? dia.diaSemana}: ${
+    dia.horarioEntrada ?? "-"
+  }-${dia.horarioSaida ?? "-"}${intervalo}, ${minutosParaHoras(
+    dia.cargaPrevistaMinutos,
+  )}`;
+}
+
 export default async function JornadaDetalhePage({
   params,
 }: JornadaDetalhePageProps) {
@@ -34,6 +71,8 @@ export default async function JornadaDetalhePage({
   if (!jornada) {
     notFound();
   }
+
+  const actionEscala = criarEscalaAction.bind(null, jornada.id);
 
   return (
     <div className="space-y-6">
@@ -130,6 +169,76 @@ export default async function JornadaDetalhePage({
             label="Saída máxima diferenciada"
             value={jornada.saidaMaximaDiferenciada ?? "-"}
           />
+        </div>
+      </section>
+
+      <EscalaForm
+        action={actionEscala}
+        valoresPadrao={{
+          horarioEntradaPadrao: jornada.horarioEntradaPadrao,
+          horarioSaidaPadrao: jornada.horarioSaidaPadrao,
+          cargaDiariaMinutos: jornada.cargaDiariaMinutos,
+          exigeIntervalo: jornada.exigeIntervalo,
+          intervaloMinimoMinutos: jornada.intervaloMinimoMinutos,
+        }}
+      />
+
+      <section className="rounded-xl border bg-[var(--card)] shadow-sm">
+        <div className="flex items-center gap-2 border-b p-5">
+          <ListChecks className="size-5 text-blue-900 dark:text-blue-300" />
+          <h2 className="text-lg font-bold">Escalas cadastradas</h2>
+        </div>
+
+        <div className="divide-y">
+          {jornada.escalas.map((escala) => (
+            <div key={escala.id} className="space-y-4 p-5">
+              <div className="flex flex-col justify-between gap-3 md:flex-row md:items-start">
+                <div>
+                  <p className="font-semibold">{escala.nome}</p>
+                  <p className="font-mono text-xs text-[var(--muted-foreground)]">
+                    {escala.codigo}
+                  </p>
+                  {escala.descricao && (
+                    <p className="mt-2 max-w-3xl text-sm text-[var(--muted-foreground)]">
+                      {escala.descricao}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <span className="w-fit rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-950 dark:text-blue-200">
+                    {escala.tipo}
+                  </span>
+                  <span
+                    className={`w-fit rounded-full px-2 py-1 text-xs font-semibold ${
+                      escala.ativo
+                        ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
+                        : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                    }`}
+                  >
+                    {escala.ativo ? "Ativa" : "Inativa"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                {escala.dias.map((dia) => (
+                  <div
+                    key={dia.id}
+                    className="rounded-lg border bg-[var(--muted)] px-3 py-2 text-sm"
+                  >
+                    {descreverDiaEscala(dia)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {jornada.escalas.length === 0 && (
+            <div className="p-8 text-center text-sm text-[var(--muted-foreground)]">
+              Nenhuma escala cadastrada para esta jornada.
+            </div>
+          )}
         </div>
       </section>
 

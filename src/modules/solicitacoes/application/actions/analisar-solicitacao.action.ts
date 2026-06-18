@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
+import {
+  PeriodoHomologadoError,
+  verificarPeriodoHomologado,
+} from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
 import { recalcularPosSolicitacaoService } from "@/modules/recalculo/application/services/recalcular-pos-solicitacao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
@@ -13,6 +17,10 @@ import {
   type AnalisarSolicitacaoInput,
 } from "../schemas/solicitacao.schema";
 import { aplicarEfeitosSolicitacaoDeferida } from "../services/aplicar-efeitos-solicitacao.service";
+import {
+  listarDatasImpactadasSolicitacao,
+  TIPOS_SOLICITACAO_COM_RECALCULO_APOS_DEFERIMENTO,
+} from "../services/periodo-solicitacao.service";
 
 type ResultadoAnalise = AnalisarSolicitacaoInput["resultado"];
 
@@ -76,6 +84,75 @@ function possuiDadosAutorizacaoBancoHoras(solicitacao: {
   const minutosSolicitados = Number(dados.minutosSolicitados);
 
   return Number.isInteger(minutosSolicitados) && minutosSolicitados > 0;
+}
+
+function deveRecalcularPosDeferimento(tipo: string) {
+  return TIPOS_SOLICITACAO_COM_RECALCULO_APOS_DEFERIMENTO.includes(
+    tipo as (typeof TIPOS_SOLICITACAO_COM_RECALCULO_APOS_DEFERIMENTO)[number],
+  );
+}
+
+function deveRecalcularApuracaoDiaria(tipo: string) {
+  return deveRecalcularPosDeferimento(tipo);
+}
+
+async function validarPeriodosImpactadosAbertos(solicitacao: {
+  servidorId: string;
+  tipo: string;
+  dataReferencia: Date | null;
+  dataInicio: Date | null;
+  dataFim: Date | null;
+}) {
+  if (!deveRecalcularApuracaoDiaria(solicitacao.tipo)) {
+    return null;
+  }
+
+  try {
+    for (const dataReferencia of listarDatasImpactadasSolicitacao(solicitacao)) {
+      await verificarPeriodoHomologado({
+        servidorId: solicitacao.servidorId,
+        dataReferencia,
+      });
+    }
+  } catch (error) {
+    if (error instanceof PeriodoHomologadoError) {
+      return `A competencia ${String(error.mesReferencia).padStart(
+        2,
+        "0",
+      )}/${error.anoReferencia} ja foi homologada. Reabra o periodo antes de deferir uma solicitacao que altera o espelho de ponto.`;
+    }
+
+    throw error;
+  }
+
+  return null;
+}
+
+function revalidarCompetenciasDoEspelho(params: {
+  servidorId: string;
+  datasImpactadas?: Date[];
+  resultadosBanco?: Array<{ anoReferencia: number; mesReferencia: number }>;
+}) {
+  const competencias = new Map<string, string>();
+
+  for (const data of params.datasImpactadas ?? []) {
+    const ano = data.getFullYear();
+    const mes = data.getMonth() + 1;
+    competencias.set(`${ano}-${mes}`, `${ano}-${String(mes).padStart(2, "0")}`);
+  }
+
+  for (const item of params.resultadosBanco ?? []) {
+    competencias.set(
+      `${item.anoReferencia}-${item.mesReferencia}`,
+      `${item.anoReferencia}-${String(item.mesReferencia).padStart(2, "0")}`,
+    );
+  }
+
+  for (const competencia of competencias.values()) {
+    revalidatePath(
+      `/espelho-ponto?servidorId=${params.servidorId}&competencia=${competencia}`,
+    );
+  }
 }
 
 export async function analisarSolicitacaoAction(
@@ -147,6 +224,19 @@ export async function analisarSolicitacaoAction(
         "A solicitação não possui período e quantidade válidos para registrar a autorização prévia.",
       campos: parsed.data,
     };
+  }
+
+  if (novoStatus === "DEFERIDA") {
+    const mensagemPeriodoBloqueado =
+      await validarPeriodosImpactadosAbertos(solicitacaoAtual);
+
+    if (mensagemPeriodoBloqueado) {
+      return {
+        sucesso: false,
+        mensagem: mensagemPeriodoBloqueado,
+        campos: parsed.data,
+      };
+    }
   }
 
   await prisma.$transaction(async (tx) => {
@@ -231,17 +321,14 @@ export async function analisarSolicitacaoAction(
     });
   });
 
-  if (
+  const resultadoRecalculo =
     novoStatus === "DEFERIDA" &&
-    ["AJUSTE_PONTO", "HORA_CREDITO_PREVIA", "COMPENSACAO"].includes(
-      solicitacaoAtual.tipo,
-    )
-  ) {
-    await recalcularPosSolicitacaoService({
-      solicitacaoId,
-      usuarioIdAuditoria: session.user.id,
-    });
-  }
+    deveRecalcularPosDeferimento(solicitacaoAtual.tipo)
+      ? await recalcularPosSolicitacaoService({
+          solicitacaoId,
+          usuarioIdAuditoria: session.user.id,
+        })
+      : null;
 
   revalidatePath("/solicitacoes");
   revalidatePath(`/solicitacoes/${solicitacaoId}`);
@@ -249,6 +336,14 @@ export async function analisarSolicitacaoAction(
   revalidatePath("/apuracao");
   revalidatePath("/espelho-ponto");
   revalidatePath("/banco-horas");
+
+  if (resultadoRecalculo?.sucesso) {
+    revalidarCompetenciasDoEspelho({
+      servidorId: solicitacaoAtual.servidorId,
+      datasImpactadas: resultadoRecalculo.datasImpactadas,
+      resultadosBanco: resultadoRecalculo.resultadosBanco,
+    });
+  }
 
   return {
     sucesso: true,

@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { auth } from "@/auth";
 import { enfileirarProcessamentoArquivoAfd } from "@/modules/afd/application/queues/afd-queue";
+import { garantirAfdWorkerAutomatico } from "@/modules/afd/application/workers/afd-worker-runtime";
 import { usuarioPossuiPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
@@ -90,6 +91,7 @@ export async function POST(request: Request) {
   }
 
   const uploadDir = process.env.AFD_UPLOAD_DIR ?? "import/_upload/afd";
+  garantirAfdWorkerAutomatico();
 
   const importacao = await prisma.importacaoAfd.create({
     data: {

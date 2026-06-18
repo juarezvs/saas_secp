@@ -23,21 +23,37 @@ export const tiposCompensacaoBancoHoras = [
   "COMPENSAR_DEBITO",
 ] as const;
 
+export const tiposRegimeTrabalhoRemoto = [
+  "NAO_SE_APLICA",
+  "TOTAL",
+  "HIBRIDO",
+] as const;
+
+export const modalidadesCapacitacao = ["EXTERNA", "INTERNA"] as const;
+
+export const diasSemanaRegimeHibrido = [
+  "SEGUNDA",
+  "TERCA",
+  "QUARTA",
+  "QUINTA",
+  "SEXTA",
+] as const;
+
 export const criarSolicitacaoSchema = z
   .object({
     tipo: z.enum(tiposSolicitacao, {
-      error: "Informe o tipo da solicitação.",
+      error: "Informe o tipo da solicitacao.",
     }),
     titulo: z
       .string()
       .trim()
-      .min(5, "Informe um título com pelo menos 5 caracteres.")
-      .max(180, "O título deve ter no máximo 180 caracteres."),
+      .min(5, "Informe um titulo com pelo menos 5 caracteres.")
+      .max(180, "O titulo deve ter no maximo 180 caracteres."),
     descricao: z
       .string()
       .trim()
-      .min(10, "Descreva a solicitação com mais detalhes.")
-      .max(3000, "A descrição deve ter no máximo 3000 caracteres."),
+      .min(10, "Descreva a solicitacao com mais detalhes.")
+      .max(3000, "A descricao deve ter no maximo 3000 caracteres."),
     dataReferencia: z.string().optional().or(z.literal("")),
     dataInicio: z.string().optional().or(z.literal("")),
     dataFim: z.string().optional().or(z.literal("")),
@@ -51,8 +67,16 @@ export const criarSolicitacaoSchema = z
     horasSolicitadas: z.coerce
       .number()
       .positive("Informe uma quantidade de horas maior que zero.")
-      .max(16, "A autorização não pode exceder 16 horas.")
+      .max(16, "A autorizacao nao pode exceder 16 horas.")
       .optional(),
+    regimeTrabalhoRemotoTipo: z
+      .enum(tiposRegimeTrabalhoRemoto)
+      .default("NAO_SE_APLICA"),
+    diasRemotos: z.array(z.enum(diasSemanaRegimeHibrido)).default([]),
+    modalidadeCapacitacao: z
+      .enum(modalidadesCapacitacao)
+      .optional()
+      .or(z.literal("")),
   })
   .superRefine((data, ctx) => {
     if (data.tipo === "AJUSTE_PONTO") {
@@ -68,7 +92,7 @@ export const criarSolicitacaoSchema = z
         ctx.addIssue({
           code: "custom",
           path: ["tipoMarcacao"],
-          message: "Informe o tipo de marcação a ajustar.",
+          message: "Informe o tipo de marcacao a ajustar.",
         });
       }
 
@@ -76,18 +100,22 @@ export const criarSolicitacaoSchema = z
         ctx.addIssue({
           code: "custom",
           path: ["horaAjuste"],
-          message: "Informe o horário solicitado.",
+          message: "Informe o horario solicitado.",
         });
       }
     }
 
-    if ([
-      "COMPENSACAO",
-      "HORA_CREDITO_PREVIA",
-      "ATIVIDADE_EXTERNA",
-      "VIAGEM_SERVICO",
-      "CAPACITACAO",
-    ].includes(data.tipo)) {
+    if (
+      [
+        "COMPENSACAO",
+        "HORA_CREDITO_PREVIA",
+        "ABONO_JUSTIFICATIVA",
+        "ATIVIDADE_EXTERNA",
+        "VIAGEM_SERVICO",
+        "CAPACITACAO",
+        "DISPENSA_PONTO",
+      ].includes(data.tipo)
+    ) {
       if (!data.dataInicio) {
         ctx.addIssue({
           code: "custom",
@@ -112,7 +140,7 @@ export const criarSolicitacaoSchema = z
         ctx.addIssue({
           code: "custom",
           path: ["dataFim"],
-          message: "A data/hora final deve ser posterior à inicial.",
+          message: "A data/hora final deve ser posterior a inicial.",
         });
       }
     }
@@ -122,7 +150,7 @@ export const criarSolicitacaoSchema = z
         ctx.addIssue({
           code: "custom",
           path: ["horasSolicitadas"],
-          message: "Informe a quantidade de horas que depende de autorização.",
+          message: "Informe a quantidade de horas que depende de autorizacao.",
         });
       }
     }
@@ -131,20 +159,40 @@ export const criarSolicitacaoSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["tipoCompensacao"],
-        message: "Informe a modalidade da compensação.",
+        message: "Informe a modalidade da compensacao.",
+      });
+    }
+
+    if (data.tipo === "CAPACITACAO" && !data.modalidadeCapacitacao) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["modalidadeCapacitacao"],
+        message: "Informe se a capacitacao e interna ou externa.",
+      });
+    }
+
+    if (
+      data.tipo === "DISPENSA_PONTO" &&
+      data.regimeTrabalhoRemotoTipo === "HIBRIDO" &&
+      data.diasRemotos.length === 0
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["diasRemotos"],
+        message: "Informe pelo menos um dia remoto para o regime hibrido.",
       });
     }
   });
 
 export const analisarSolicitacaoSchema = z.object({
   resultado: z.enum(["DEFERIR", "INDEFERIR"], {
-    error: "Informe o resultado da análise.",
+    error: "Informe o resultado da analise.",
   }),
   justificativaAnalise: z
     .string()
     .trim()
-    .min(5, "Informe a justificativa da análise.")
-    .max(3000, "A justificativa deve ter no máximo 3000 caracteres."),
+    .min(5, "Informe a justificativa da analise.")
+    .max(3000, "A justificativa deve ter no maximo 3000 caracteres."),
 });
 
 export type CriarSolicitacaoInput = z.infer<typeof criarSolicitacaoSchema>;

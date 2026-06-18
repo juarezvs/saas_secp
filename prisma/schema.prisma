@@ -21,6 +21,12 @@ enum StatusRegistro {
   INATIVO
 }
 
+enum TipoCalendarioInstitucional {
+  FERIADO
+  PONTO_FACULTATIVO
+  SUSPENSAO_EXPEDIENTE
+}
+
 enum TipoUnidadeOrganizacional {
   ORGAO
   SECAO_JUDICIARIA
@@ -485,8 +491,23 @@ model Usuario {
   homologacoesRecesso              HomologacaoRecesso[]      @relation("HomologacoesRecessoPorUsuario")
   aceitesRecessoSecad              HomologacaoRecesso[]      @relation("AceitesRecessoSecadPorUsuario")
   sessoesCadastroFacial            SessaoCadastroFacial[]
+  notificacoesLidas                NotificacaoLeitura[]
 
   @@map("usuarios")
+}
+
+model NotificacaoLeitura {
+  id            String   @id @default(uuid()) @db.Uuid
+  usuarioId     String   @map("usuario_id") @db.Uuid
+  notificacaoId String   @map("notificacao_id") @db.VarChar(160)
+  lidaEm        DateTime @default(now()) @map("lida_em")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioId, notificacaoId])
+  @@index([usuarioId])
+  @@index([notificacaoId])
+  @@map("notificacoes_lidas")
 }
 
 model Perfil {
@@ -694,6 +715,7 @@ model Servidor {
   amostraBiometricaFacial           AmostraBiometricaFacial[]
   autorizacaoesBiometricasMarcacaos AutorizacaoBiometricaMarcacao[]
   marcacoesBrutas                   MarcacaoBruta[]
+  dispensasPonto                    DispensaPontoServidor[]
   convocacoesRecessoChefia          ConvocacaoRecesso[]             @relation("ConvocacoesRecessoPorChefia")
   convocadosRecesso                 ConvocadoRecesso[]
   espelhosRecesso                   EspelhoRecesso[]
@@ -739,6 +761,36 @@ model Lotacao {
   @@index([origemSarh])
   @@index([status])
   @@map("lotacoes")
+}
+
+model DispensaPontoServidor {
+  id String @id @default(uuid()) @db.Uuid
+
+  servidorId String @map("servidor_id") @db.Uuid
+
+  motivo                String  @db.VarChar(250)
+  atoAutorizativo       String? @map("ato_autorizativo") @db.VarChar(120)
+  processoSei           String? @map("processo_sei") @db.VarChar(120)
+  observacao            String? @db.Text
+  exigeFrequenciaManual Boolean @default(true) @map("exige_frequencia_manual")
+
+  status     StatusRegistro @default(ATIVO)
+  dataInicio DateTime       @map("data_inicio") @db.Date
+  dataFim    DateTime?      @map("data_fim") @db.Date
+
+  criadoPorUsuarioId    String?   @map("criado_por_usuario_id") @db.Uuid
+  encerradoPorUsuarioId String?   @map("encerrado_por_usuario_id") @db.Uuid
+  encerradoEm           DateTime? @map("encerrado_em")
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  servidor Servidor @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+
+  @@index([servidorId])
+  @@index([status])
+  @@index([dataInicio, dataFim])
+  @@map("dispensas_ponto_servidores")
 }
 
 model GestorUnidade {
@@ -1852,6 +1904,27 @@ model ArquivoAfd {
   @@index([importacaoId])
   @@index([status])
   @@map("afd_arquivos")
+}
+
+model CalendarioInstitucional {
+  id String @id @default(uuid()) @db.Uuid
+
+  dataReferencia DateTime                    @unique @map("data_referencia") @db.Date
+  descricao      String                      @db.VarChar(200)
+  tipo           TipoCalendarioInstitucional
+
+  contaComoDiaUtil    Boolean @default(false) @map("conta_como_dia_util")
+  geraApuracaoRegular Boolean @default(false) @map("gera_apuracao_regular")
+  observacao          String? @db.Text
+  ativo               Boolean @default(true)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  @@index([dataReferencia])
+  @@index([tipo])
+  @@index([ativo])
+  @@map("calendarios_institucionais")
 }
 
 model RecessoForense {

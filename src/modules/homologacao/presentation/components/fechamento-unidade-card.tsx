@@ -1,5 +1,11 @@
 import { CalendarCheck } from "lucide-react";
 import { rotuloStatusFechamento } from "../../application/services/formatar-homologacao.service";
+import {
+  calcularPrazoHomologacaoCompetenciaComCalendario,
+  descreverPrazoRegulatorio,
+  formatarDataPrazoRegulatorio,
+  rotuloSituacaoPrazoRegulatorio,
+} from "@/modules/frequencia/application/services/prazo-regulatorio-frequencia.service";
 
 type FechamentoUnidadeCardProps = {
   fechamento: {
@@ -25,13 +31,18 @@ type FechamentoUnidadeCardProps = {
   };
 };
 
-export function FechamentoUnidadeCard({
+export async function FechamentoUnidadeCard({
   fechamento,
 }: FechamentoUnidadeCardProps) {
   const total = fechamento.servidores.length;
   const homologados = fechamento.servidores.filter((item) =>
     ["HOMOLOGADO", "HOMOLOGADO_COM_RESSALVA"].includes(item.status),
   ).length;
+  const prazo = await calcularPrazoHomologacaoCompetenciaComCalendario({
+    anoReferencia: fechamento.anoReferencia,
+    mesReferencia: fechamento.mesReferencia,
+    concluidoEm: fechamento.homologadoEm,
+  });
 
   return (
     <section className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
@@ -60,6 +71,13 @@ export function FechamentoUnidadeCard({
             />
             <Info label="Servidores" value={`${homologados}/${total}`} />
             <Info
+              label="Prazo"
+              value={`${formatarDataPrazoRegulatorio(prazo.dataLimite)} - ${rotuloSituacaoPrazoRegulatorio(
+                prazo.situacao,
+              )}`}
+              detail={descreverPrazoRegulatorio(prazo)}
+            />
+            <Info
               label="Chefia"
               value={
                 fechamento.gestorResponsavel?.servidor.usuario.nome ??
@@ -79,13 +97,24 @@ export function FechamentoUnidadeCard({
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function Info({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail?: string;
+}) {
   return (
-    <div className="rounded-lg border bg-(--muted) p-4">
-      <p className="text-xs font-semibold uppercase text-(--muted-foreground)">
+    <div className="rounded-lg border bg-[var(--muted)] p-4">
+      <p className="text-xs font-semibold uppercase text-[var(--muted-foreground)]">
         {label}
       </p>
       <p className="mt-2 font-semibold">{value}</p>
+      {detail ? (
+        <p className="mt-1 text-xs text-[var(--muted-foreground)]">{detail}</p>
+      ) : null}
     </div>
   );
 }

@@ -220,6 +220,25 @@ export async function buscarServidorPorId(id: string) {
           dataInicio: "desc",
         },
       },
+      jornadas: {
+        include: {
+          jornada: true,
+          escala: true,
+        },
+        orderBy: {
+          dataInicio: "desc",
+        },
+      },
+      dispensasPonto: {
+        orderBy: [
+          {
+            status: "asc",
+          },
+          {
+            dataInicio: "desc",
+          },
+        ],
+      },
     },
   });
 }

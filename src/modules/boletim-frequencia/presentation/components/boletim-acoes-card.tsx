@@ -1,14 +1,27 @@
 import { encaminharBoletimFrequenciaAction } from "../../application/actions/encaminhar-boletim-frequencia.action";
 import { receberBoletimFrequenciaAction } from "../../application/actions/receber-boletim-frequencia.action";
+import {
+  calcularPrazoEncaminhamentoBoletimCompetenciaComCalendario,
+  classeSituacaoPrazoRegulatorio,
+  descreverPrazoRegulatorio,
+  formatarDataPrazoRegulatorio,
+  rotuloSituacaoPrazoRegulatorio,
+} from "@/modules/frequencia/application/services/prazo-regulatorio-frequencia.service";
 
-export function BoletimAcoesCard({
+export async function BoletimAcoesCard({
   boletimId,
+  anoReferencia,
+  mesReferencia,
   status,
+  encaminhadoEm,
   podeEncaminhar: possuiPermissaoEncaminhar,
   podeRegistrarSecap: possuiPermissaoSecap,
 }: {
   boletimId: string;
+  anoReferencia: number;
+  mesReferencia: number;
   status: string;
+  encaminhadoEm: Date | null;
   podeEncaminhar: boolean;
   podeRegistrarSecap: boolean;
 }) {
@@ -19,6 +32,12 @@ export function BoletimAcoesCard({
   const podeConferir =
     possuiPermissaoSecap && status === "RECEBIDO_SECAP";
   const podeRegistrarSecap = podeReceber || podeConferir;
+  const prazoEncaminhamento =
+    await calcularPrazoEncaminhamentoBoletimCompetenciaComCalendario({
+      anoReferencia,
+      mesReferencia,
+      concluidoEm: encaminhadoEm,
+    });
 
   if (!possuiPermissaoEncaminhar && !possuiPermissaoSecap) {
     return null;
@@ -38,6 +57,19 @@ export function BoletimAcoesCard({
         <span className="w-fit rounded-full border px-3 py-1 text-xs font-semibold text-[var(--muted-foreground)]">
           Fluxo Chefia -&gt; SECAP
         </span>
+      </div>
+
+      <div
+        className={`mt-5 rounded-lg border px-4 py-3 text-sm ${classeSituacaoPrazoRegulatorio(
+          prazoEncaminhamento.situacao,
+        )}`}
+      >
+        <p className="font-semibold">
+          Prazo regulatorio de encaminhamento:{" "}
+          {formatarDataPrazoRegulatorio(prazoEncaminhamento.dataLimite)} (
+          {rotuloSituacaoPrazoRegulatorio(prazoEncaminhamento.situacao)})
+        </p>
+        <p className="mt-1">{descreverPrazoRegulatorio(prazoEncaminhamento)}</p>
       </div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-2">

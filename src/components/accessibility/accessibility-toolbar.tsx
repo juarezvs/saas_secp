@@ -10,7 +10,8 @@ import {
 } from "lucide-react";
 
 type Tema = "light" | "dark";
-type TamanhoFonte = "normal" | "large" | "xlarge";
+const TAMANHOS_FONTE = ["13", "14", "16", "18", "20", "24", "30"] as const;
+type TamanhoFonte = (typeof TAMANHOS_FONTE)[number];
 
 const STORAGE_TEMA = "secp-tema";
 const STORAGE_TAMANHO_FONTE = "secp-tamanho-fonte";
@@ -22,11 +23,23 @@ function normalizarTema(valor: string | null): Tema {
 }
 
 function normalizarTamanhoFonte(valor: string | null): TamanhoFonte {
-  if (valor === "normal" || valor === "large" || valor === "xlarge") {
-    return valor;
+  if (valor === "normal") {
+    return "16";
   }
 
-  return "normal";
+  if (valor === "large") {
+    return "18";
+  }
+
+  if (valor === "xlarge") {
+    return "20";
+  }
+
+  if (TAMANHOS_FONTE.includes(valor as TamanhoFonte)) {
+    return valor as TamanhoFonte;
+  }
+
+  return "16";
 }
 
 function lerTemaInicial(): Tema {
@@ -39,7 +52,7 @@ function lerTemaInicial(): Tema {
 
 function lerTamanhoFonteInicial(): TamanhoFonte {
   if (typeof window === "undefined") {
-    return "normal";
+    return "16";
   }
 
   return normalizarTamanhoFonte(
@@ -76,7 +89,7 @@ function aplicarTema(tema: Tema) {
 }
 
 function aplicarTamanhoFonte(tamanho: TamanhoFonte) {
-  document.body.dataset.fontSize = tamanho;
+  document.documentElement.dataset.fontSize = tamanho;
   window.localStorage.setItem(STORAGE_TAMANHO_FONTE, tamanho);
 }
 
@@ -91,7 +104,7 @@ function aplicarAltoContraste(ativo: boolean) {
 }
 
 function obterClasseBotao(ativo: boolean) {
-  return `inline-flex size-10 shrink-0 items-center justify-center rounded-lg border text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
+  return `relative inline-flex size-10 shrink-0 items-center justify-center rounded-lg border text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
     ativo
       ? "border-blue-700 bg-blue-900 text-white"
       : "bg-card text-foreground hover:bg-muted"
@@ -132,29 +145,15 @@ export function AccessibilityToolbar() {
 
   function aumentarFonte() {
     setTamanhoFonte((tamanhoAtual) => {
-      if (tamanhoAtual === "normal") {
-        return "large";
-      }
-
-      if (tamanhoAtual === "large") {
-        return "xlarge";
-      }
-
-      return "xlarge";
+      const indiceAtual = TAMANHOS_FONTE.indexOf(tamanhoAtual);
+      return TAMANHOS_FONTE[Math.min(indiceAtual + 1, TAMANHOS_FONTE.length - 1)];
     });
   }
 
   function diminuirFonte() {
     setTamanhoFonte((tamanhoAtual) => {
-      if (tamanhoAtual === "xlarge") {
-        return "large";
-      }
-
-      if (tamanhoAtual === "large") {
-        return "normal";
-      }
-
-      return "normal";
+      const indiceAtual = TAMANHOS_FONTE.indexOf(tamanhoAtual);
+      return TAMANHOS_FONTE[Math.max(indiceAtual - 1, 0)];
     });
   }
 
@@ -193,24 +192,32 @@ export function AccessibilityToolbar() {
       <button
         type="button"
         onClick={aumentarFonte}
-        className={obterClasseBotao(tamanhoFonte !== "normal")}
-        aria-label={`Aumentar fonte. Tamanho atual: ${tamanhoFonte}`}
+        className={obterClasseBotao(tamanhoFonte !== "16")}
+        aria-label={`Aumentar fonte. Tamanho atual: ${tamanhoFonte}px`}
         title="Aumentar fonte"
-        aria-pressed={tamanhoFonte !== "normal"}
+        aria-pressed={tamanhoFonte !== "16"}
+        disabled={tamanhoFonte === "30"}
         suppressHydrationWarning
       >
         <span aria-hidden="true" className="font-bold">A+</span>
+        <span className="absolute bottom-0.5 right-0.5 rounded bg-current px-0.5 text-[8px] font-bold leading-none text-card">
+          {tamanhoFonte}
+        </span>
       </button>
 
       <button
         type="button"
         onClick={diminuirFonte}
         className={obterClasseBotao(false)}
-        aria-label={`Diminuir fonte. Tamanho atual: ${tamanhoFonte}`}
+        aria-label={`Diminuir fonte. Tamanho atual: ${tamanhoFonte}px`}
         title="Diminuir fonte"
+        disabled={tamanhoFonte === "13"}
         suppressHydrationWarning
       >
         <span aria-hidden="true" className="font-bold">A-</span>
+        <span className="absolute bottom-0.5 right-0.5 rounded bg-current px-0.5 text-[8px] font-bold leading-none text-card">
+          {tamanhoFonte}
+        </span>
       </button>
 
       <button

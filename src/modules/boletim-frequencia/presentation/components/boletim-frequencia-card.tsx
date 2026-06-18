@@ -4,6 +4,12 @@ import {
   minutosParaHoraBoletim,
   rotuloStatusBoletim,
 } from "../../application/services/formatar-boletim-frequencia.service";
+import {
+  calcularPrazoEncaminhamentoBoletimCompetenciaComCalendario,
+  descreverPrazoRegulatorio,
+  formatarDataPrazoRegulatorio,
+  rotuloSituacaoPrazoRegulatorio,
+} from "@/modules/frequencia/application/services/prazo-regulatorio-frequencia.service";
 
 type BoletimFrequenciaCardProps = {
   boletim: {
@@ -30,7 +36,16 @@ type BoletimFrequenciaCardProps = {
   };
 };
 
-export function BoletimFrequenciaCard({ boletim }: BoletimFrequenciaCardProps) {
+export async function BoletimFrequenciaCard({
+  boletim,
+}: BoletimFrequenciaCardProps) {
+  const prazoEncaminhamento =
+    await calcularPrazoEncaminhamentoBoletimCompetenciaComCalendario({
+    anoReferencia: boletim.anoReferencia,
+    mesReferencia: boletim.mesReferencia,
+    concluidoEm: boletim.encaminhadoEm,
+  });
+
   return (
     <section className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
       <div className="flex items-start gap-3">
@@ -95,6 +110,15 @@ export function BoletimFrequenciaCard({ boletim }: BoletimFrequenciaCardProps) {
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             <Info label="Processo SEI" value={boletim.processoSei ?? "-"} />
             <Info label="Documento SEI" value={boletim.numeroSei ?? "-"} />
+            <Info
+              label="Prazo envio"
+              value={`${formatarDataPrazoRegulatorio(
+                prazoEncaminhamento.dataLimite,
+              )} - ${rotuloSituacaoPrazoRegulatorio(
+                prazoEncaminhamento.situacao,
+              )}`}
+              detail={descreverPrazoRegulatorio(prazoEncaminhamento)}
+            />
           </div>
         </div>
       </div>
@@ -102,13 +126,24 @@ export function BoletimFrequenciaCard({ boletim }: BoletimFrequenciaCardProps) {
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function Info({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail?: string;
+}) {
   return (
     <div className="rounded-lg border bg-[var(--muted)] p-3">
       <p className="text-xs font-semibold uppercase text-[var(--muted-foreground)]">
         {label}
       </p>
       <p className="mt-1 font-bold">{value}</p>
+      {detail ? (
+        <p className="mt-1 text-xs text-[var(--muted-foreground)]">{detail}</p>
+      ) : null}
     </div>
   );
 }

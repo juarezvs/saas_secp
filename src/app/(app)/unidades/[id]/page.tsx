@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Building2, Edit, UsersRound, UserCheck } from "lucide-react";
+import { Building2, Clock3, Edit, UsersRound, UserCheck } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { resolverExpedienteUnidade } from "@/modules/apuracao/application/services/expediente.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { buscarUnidadePorId } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
 import { UnidadeHierarquiaCard } from "@/modules/unidades/presentation/components/unidade-hierarquia-card";
@@ -24,6 +25,8 @@ export default async function UnidadeDetalhePage({
   if (!unidade) {
     notFound();
   }
+
+  const expedienteUnidade = resolverExpedienteUnidade(unidade);
 
   return (
     <div className="space-y-6">
@@ -77,6 +80,26 @@ export default async function UnidadeDetalhePage({
         titulo="Unidade como base da frequência"
         descricao="A unidade organizacional será usada para lotação, acompanhamento de frequência, homologação mensal pela chefia e emissão/encaminhamento do Boletim de Frequência."
       />
+
+      <section className="rounded-xl border bg-(--card) p-5 text-(--card-foreground) shadow-sm">
+        <div className="flex items-start gap-3">
+          <Clock3 className="mt-0.5 size-5 text-blue-900 dark:text-blue-300" />
+          <div>
+            <h2 className="text-lg font-bold">Expediente e urgências</h2>
+            <p className="mt-1 text-sm leading-6 text-(--muted-foreground)">
+              Expediente interno {expedienteUnidade.expedienteInterno.inicio}-
+              {expedienteUnidade.expedienteInterno.fim}; expediente externo{" "}
+              {expedienteUnidade.expedienteExterno.inicio}-
+              {expedienteUnidade.expedienteExterno.fim}.
+            </p>
+            <p className="mt-3 w-fit rounded-md bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-900 dark:bg-blue-950 dark:text-blue-300">
+              {expedienteUnidade.coberturaUrgencias.obrigatoria
+                ? `Cobertura obrigatória de urgências das ${expedienteUnidade.coberturaUrgencias.inicio} às ${expedienteUnidade.coberturaUrgencias.fim}.`
+                : "Sem janela específica de cobertura de urgências para este tipo de unidade."}
+            </p>
+          </div>
+        </div>
+      </section>
 
       <section className="grid gap-4 md:grid-cols-4">
         <div className="rounded-xl border bg-(--card) p-5 shadow-sm">

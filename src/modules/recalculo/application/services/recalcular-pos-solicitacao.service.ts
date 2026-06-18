@@ -2,6 +2,10 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 import { normalizarDataReferencia } from "@/modules/apuracao/application/services/calcular-tempo.service";
 import { recalcularDiaServidorService } from "./recalcular-dia-servidor.service";
 import { regerarBancoHorasMesService } from "./regerar-banco-horas-mes.service";
+import {
+  listarDatasImpactadasSolicitacao,
+  TIPOS_SOLICITACAO_COM_RECALCULO_APOS_DEFERIMENTO,
+} from "@/modules/solicitacoes/application/services/periodo-solicitacao.service";
 
 export type RecalcularPosSolicitacaoParams = {
   solicitacaoId: string;
@@ -47,32 +51,49 @@ export async function recalcularPosSolicitacaoService({
   if (!solicitacao) {
     return {
       sucesso: false,
-      mensagem: "Solicitação não encontrada para recálculo.",
+      mensagem: "Solicitacao nao encontrada para recalculo.",
     };
   }
 
   if (solicitacao.status !== "DEFERIDA") {
     return {
       sucesso: false,
-      mensagem: "Somente solicitações deferidas geram recálculo automático.",
+      mensagem: "Somente solicitacoes deferidas geram recalculo automatico.",
     };
   }
 
   const dataImpactada = obterDataImpactada(solicitacao);
-  const resultadoDia =
-    solicitacao.tipo === "AJUSTE_PONTO"
-      ? await recalcularDiaServidorService({
-          servidorId: solicitacao.servidorId,
-          dataReferencia: dataImpactada,
-          usuarioIdAuditoria,
-          origem: "RECALCULO_POS_SOLICITACAO",
-        })
-      : null;
+  const deveRecalcularApuracao =
+    TIPOS_SOLICITACAO_COM_RECALCULO_APOS_DEFERIMENTO.includes(
+      solicitacao.tipo as (typeof TIPOS_SOLICITACAO_COM_RECALCULO_APOS_DEFERIMENTO)[number],
+    );
+  const datasImpactadas = deveRecalcularApuracao
+    ? listarDatasImpactadasSolicitacao(solicitacao)
+    : [];
+  const resultadosDias: Array<
+    Awaited<ReturnType<typeof recalcularDiaServidorService>>
+  > = [];
 
+  for (const dataReferencia of datasImpactadas) {
+    resultadosDias.push(
+      await recalcularDiaServidorService({
+        servidorId: solicitacao.servidorId,
+        dataReferencia,
+        usuarioIdAuditoria,
+        origem: "RECALCULO_POS_SOLICITACAO",
+      }),
+    );
+  }
+
+  const resultadoDia = resultadosDias.length === 1 ? resultadosDias[0] : null;
   const inicioPeriodo = solicitacao.dataInicio ?? dataImpactada;
   const fimPeriodo = solicitacao.dataFim ?? inicioPeriodo;
   const meses = new Map<string, { anoReferencia: number; mesReferencia: number }>();
-  const cursor = new Date(inicioPeriodo.getFullYear(), inicioPeriodo.getMonth(), 1);
+  const cursor = new Date(
+    inicioPeriodo.getFullYear(),
+    inicioPeriodo.getMonth(),
+    1,
+  );
   const limite = new Date(fimPeriodo.getFullYear(), fimPeriodo.getMonth(), 1);
 
   while (cursor <= limite) {
@@ -110,9 +131,10 @@ export async function recalcularPosSolicitacaoService({
         usuarioId: usuarioIdAuditoria,
         tipo: "EFEITO_APLICADO",
         descricao:
-          "Apuração diária e banco de horas recalculados após deferimento da solicitação.",
+          "Apuracao diaria e banco de horas recalculados apos deferimento da solicitacao.",
         metadados: {
           dataImpactada,
+          datasImpactadas,
           resultadoDia: resultadoDia
             ? {
                 apuracaoId: resultadoDia.apuracao.id,
@@ -123,6 +145,15 @@ export async function recalcularPosSolicitacaoService({
                 minutosDebito: resultadoDia.apuracao.minutosDebito,
               }
             : null,
+          resultadosDias: resultadosDias.map((resultado) => ({
+            apuracaoId: resultado.apuracao.id,
+            dataReferencia: resultado.apuracao.dataReferencia,
+            resultado: resultado.apuracao.resultado,
+            status: resultado.apuracao.status,
+            minutosTrabalhados: resultado.apuracao.minutosTrabalhados,
+            minutosCredito: resultado.apuracao.minutosCredito,
+            minutosDebito: resultado.apuracao.minutosDebito,
+          })),
           resultadosBanco,
         },
       },
@@ -139,6 +170,7 @@ export async function recalcularPosSolicitacaoService({
           servidorId: solicitacao.servidorId,
           tipo: solicitacao.tipo,
           dataImpactada,
+          datasImpactadas,
           resultadosBanco,
         },
       },
@@ -147,9 +179,12 @@ export async function recalcularPosSolicitacaoService({
 
   return {
     sucesso: true,
-    mensagem: "Recálculo pós-solicitação executado com sucesso.",
+    mensagem: "Recalculo pos-solicitacao executado com sucesso.",
+    servidorId: solicitacao.servidorId,
     dataImpactada,
+    datasImpactadas,
     resultadoDia,
+    resultadosDias,
     resultadosBanco,
   };
 }

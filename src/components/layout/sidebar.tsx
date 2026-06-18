@@ -52,7 +52,7 @@ export type MenuItem = {
 };
 
 export const MENU_ITEMS: MenuItem[] = [
-  { label: "Inicio", href: "/dashboard", icon: LayoutDashboard, permissoes: ["dashboard:visualizar:proprio"] },
+  { label: "Inicio", href: "/dashboard", icon: LayoutDashboard },
   { label: "Registrar ponto", href: "/marcacoes/registrar", icon: Fingerprint, permissoes: ["marcacoes:registrar:proprio"] },
   { label: "Marcações", href: "/marcacoes", icon: Clock, permissoes: ["marcacoes:consultar:global"] },
   { label: "Marcações brutas", href: "/marcacoes-brutas", icon: DatabaseZap, permissoes: ["marcacoes:gerenciar:global", "afd:importar:global"] },

@@ -15,12 +15,14 @@ type UsuarioNavegacao = {
 type AppShellClientProps = {
   children: React.ReactNode;
   usuario: UsuarioNavegacao;
+  totalNotificacoes: number;
   onLogout: () => Promise<void>;
 };
 
 export function AppShellClient({
   children,
   usuario,
+  totalNotificacoes,
   onLogout,
 }: AppShellClientProps) {
   const [sidebarRecolhida, setSidebarRecolhida] = useState(false);
@@ -56,6 +58,7 @@ export function AppShellClient({
             onOpenMobileMenu={() => setDrawerAberto(true)}
             sidebarRecolhida={sidebarRecolhida}
             drawerAberto={drawerAberto}
+            totalNotificacoes={totalNotificacoes}
           />
 
           <main

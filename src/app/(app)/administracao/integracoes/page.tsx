@@ -15,6 +15,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { obterConfiguracaoLdapActiveDirectory } from "@/modules/integracoes/application/services/ldap-active-directory-config.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 type StatusVisual = "disponivel" | "planejado" | "atencao" | "inativo";
@@ -147,7 +148,13 @@ export default async function IntegracoesPage() {
     "integracoes:gerenciar:global",
   ]);
 
-  const [integracoes, ultimaExecucaoSarh, conflitosPendentesSarh, itensComErroSarh] = await Promise.all([
+  const [
+    integracoes,
+    ultimaExecucaoSarh,
+    conflitosPendentesSarh,
+    itensComErroSarh,
+    configuracaoLdapAd,
+  ] = await Promise.all([
     prisma.integracaoSistema.findMany({
       orderBy: [{ tipo: "asc" }, { nome: "asc" }],
     }),
@@ -160,9 +167,11 @@ export default async function IntegracoesPage() {
     prisma.integracaoSarhItem.count({
       where: { status: "ERRO" },
     }),
+    obterConfiguracaoLdapActiveDirectory(),
   ]);
 
   const sarh = integracoes.find((integracao) => integracao.tipo === "SARH");
+  const ldap = integracoes.find((integracao) => integracao.tipo === "LDAP");
   const integracoesAtivas = integracoes.filter((integracao) => integracao.ativo).length;
   const integracoesComErro = integracoes.filter((integracao) => integracao.status === "ERRO").length;
 
@@ -173,6 +182,17 @@ export default async function IntegracoesPage() {
       : sarh.status === "ERRO"
         ? "atencao"
         : "inativo";
+  const statusLdap: StatusVisual = !configuracaoLdapAd.ativo
+    ? "inativo"
+    : ldap?.status === "ERRO"
+      ? "atencao"
+      : configuracaoLdapAd.authUrl || configuracaoLdapAd.ldapUrl
+        ? "disponivel"
+        : "atencao";
+  const destinoLdap =
+    configuracaoLdapAd.modoAutenticacao === "LDAP_BIND"
+      ? configuracaoLdapAd.ldapUrl
+      : configuracaoLdapAd.authUrl;
 
   return (
     <main className="space-y-6 p-6">
@@ -279,13 +299,18 @@ export default async function IntegracoesPage() {
 
         <IntegracaoCard
           titulo="LDAP / Active Directory"
-          descricao="Integração com a rede Windows institucional para autenticação, identificação por matrícula e eventual leitura de grupos administrativos."
-          status="planejado"
+          descricao="Integração usada pelo login institucional do SECP para autenticar matrícula e senha contra a rede Windows, via API AD ou bind LDAP direto."
+          href="/administracao/integracoes/ldap"
+          status={statusLdap}
           icon={KeyRound}
           detalhes={[
-            "Login com matrícula e senha de rede",
-            "Mapeamento de grupos para perfis",
-            "Suporte futuro a múltiplos provedores",
+            `Modo: ${
+              configuracaoLdapAd.modoAutenticacao === "LDAP_BIND"
+                ? "Bind LDAP/AD"
+                : "API HTTP AD"
+            }`,
+            `Destino: ${destinoLdap || "pendente de configuração"}`,
+            "Fallback local: senha cadastrada no SECP",
           ]}
         />
       </section>

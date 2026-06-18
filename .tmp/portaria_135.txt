@@ -1,0 +1,659 @@
+SEÇÃO JUDICIÁRIA DO AMAZONAS
+PORTARIA SJAM-DIREF 135/2025
+Regulamenta o expediente, a jornada de trabalho e
+institui o controle eletrônico de frequência e o banco de
+horas no âmbito da Seção Judiciária do Amazonas e dá
+outras providências.
+ 
+O JUIZ FEDERAL DIRETOR DO FORO E CORREGEDOR
+PERMANENTE DOS ASSUNTOS AUXILIARES DA SEÇÃO JUDICIÁRIA DO
+ESTADO DO AMAZONAS,
+ no uso das competências e atribuições que lhe foram
+conferidas pela 
+Resolução CJF n. 79/2009
+, do Conselho da Justiça Federal - CJF, e
+pelo 
+Provimento Coger n. 10126799, de 19.04.2020
+, da Corregedoria Regional da
+Justiça Federal da 1ª Região,
+ 
+CONSIDERANDO:
+a) o disposto, no que couber, da 
+Lei nº 8.112/1990
+, que dispõe sobre o
+regime jurídico dos servidores públicos civis da União, das autarquias e das
+fundações públicas federais; 
+b) a 
+Resolução CNJ nº 88/2009
+, que dispõe, dentre outros assuntos,
+sobre a jornada de trabalho no âmbito do Poder Judiciário, notadamente quanto à
+necessidade de ﬁxar parâmetros uniformes para o funcionamento dos órgãos do
+Poder Judiciário quanto à jornada de trabalho de seus servidores;
+c) a 
+Instrução Normativa/CNJ nº 16/2009
+, que dispõe sobre a prestação
+de serviço extraordinário por servidores do Conselho Nacional de Justiça, prevê o
+pagamento da hora extraordinária prestada em dias úteis, sábados e pontos
+facultativos, com o acréscimo de 50% em relação à hora normal de trabalho;
+ d) a 
+Resolução CJF nº 4/2008
+, e alterações, no que tange à prestação
+de serviço extraordinário no âmbito do Conselho da Justiça Federal e da Justiça
+Federal de primeiro e segundo graus;
+e) os subitens 6.23 e 9.1.5 do 
+Acórdão nº 928/2013 – TCU – Plenário
+,
+que determinou a implantação de efetivo e sistemático controle de horário de
+entrada e saída dos servidores, mediante controle diário de frequência; 
+f) o disposto no 
+Provimento Coger n. 10126799/2020
+, no que couber,
+em especial os artigos 210 e 212, VI, que tratam do controle de frequência nas
+Secretarias das unidades judiciárias; 
+g) os artigos 41, inciso I, 42 e 43 da 
+Resolução Presi-Cenag n. 6/2012
+,
+que aprovou o Regulamento Geral das Centrais de Mandados da Justiça Federal da
+1ª Região, contendo normas gerais para o funcionamento dessas unidades, bem
+como para as atividades dos oﬁciais de justiça no âmbito da Justiça Federal da 1ª
+Região;
+h) o disposto na 
+Resolução Presi n. 10119147/2020
+, que regulamenta
+o expediente e a jornada de trabalho do Tribunal Regional Federal da 1ª Região, o
+controle eletrônico de frequência e o banco de horas e dá outras providências;
+Portaria SJAM-Diref 135 (23258652)         SEI 0002698-92.2022.4.01.8002 / pg. 1
+
+i) o disposto na 
+Resolução Presi n. 8324992/2019
+, que dispõe sobre a
+jornada de trabalho e o horário de funcionamento da Justiça Federal de 1º grau da 1ª
+Região;
+j) a 
+Resolução Presi n. 58/2021
+, que institui o Modelo de Gestão
+Integrada do Trabalho (presencial e remoto) Teletrabalho no âmbito da Justiça
+Federal de 1º e 2º Graus da 1ª Região, no que couber;
+k) a Portaria Diref n. 
+10240626
+/2020, que dispõe sobre a jornada de
+trabalho e o horário de funcionamento da Seção Judiciária do Amazonas, da
+Subseção Judiciária de Tabatinga e da Unidade Avançada de Atendimento do
+município de Tefé/AM;
+l) a necessidade de aperfeiçoar, modernizar e automatizar os
+mecanismos concernentes ao controle de frequência e cumprimento de jornada de
+trabalho;
+m) a disponibilidade de equipamento biométrico de identiﬁcação por
+impressão digital, integrado ao sistema de controle eletrônico de frequência;
+n) a necessidade de implementar mecanismos de governança digital
+dos recursos humanos, de forma a propiciar que os serviços administrativos sejam
+prestados de forma eficiente, célere e impessoal; e
+o) as deliberações constantes do Processo SEI n. 
+0002698-
+92.2022.4.01.8002
+;
+ 
+ 
+RESOLVE:
+ 
+CAPÍTULO I
+DAS DISPOSIÇÕES GERAIS
+ 
+Art. 1º DETERMINAR 
+que o expediente e a jornada de trabalho da
+Seção Judiciária do Amazonas, da Subseção Judiciária de Tabatinga e da Unidade
+Avançada de Atendimento (UAA) do município de Tefé/AM, regulamentados pela
+Portaria Diref n. 
+10240626
+/2020, bem como o acompanhamento da frequência dos
+servidores, por meio de controle eletrônico e o banco de horas obedecerão às
+disposições contidas nesta Portaria.
+Parágrafo único.
+ A frequência dos servidores (entrada e saída) será
+realizada por meio de equipamento biométrico de identiﬁcação por impressão
+digital, integrado ao sistema de controle eletrônico de frequência.
+Art. 2º 
+Para efeitos desta Portaria, consideram-se:
+I – horas: unidades de tempo cuja contagem é utilizada para ﬁns de
+registro no sistema de ponto eletrônico, incluindo os minutos;
+II – horas-débito: aquelas que o servidor deixou de cumprir da sua
+carga mensal de horas, que devem ser compensadas com horas-crédito, autorizadas
+pelo superior hierárquico, preferencialmente dentro do mês de referência,
+observado o prazo limite de compensação;
+III – horas-crédito: aquelas realizadas além da jornada de trabalho, que
+podem ser compensadas com entradas tardias, saídas antecipadas ou ausências,
+desde que autorizadas pelo superior hierárquico, observado o prazo limite para
+Portaria SJAM-Diref 135 (23258652)         SEI 0002698-92.2022.4.01.8002 / pg. 2
+
+compensação estabelecido nesta Portaria;
+IV – horas não autorizadas: aquelas registradas pelo equipamento
+biométrico além da jornada de trabalho, realizadas sem autorização do superior
+hierárquico, não sujeitas ao pagamento do Adicional Por Serviço Extraordinário (hora
+extra) e não computadas para o saldo do banco de horas ou para compensação de
+horas-débito;
+V – horas acima do limite permitido: aquelas registradas pelo
+equipamento biométrico, computadas acima do limite mensal das horas-crédito
+estabelecido nesta Portaria, não sujeitas ao pagamento do Adicional Por Serviço
+Extraordinário (hora extra) e não computadas para o saldo do banco de horas ou
+para compensação de horas-débito;
+VI – horas excedentes: aquelas trabalhadas aos sábados, domingos e
+feriados e em dias considerados pontos facultativos, não estão sujeitas ao
+pagamento do Adicional Por Serviço Extraordinário (hora extra), e, a critério da
+Administração, podem ser convertidas em horas-crédito com acréscimo de 50%, se
+trabalhadas aos sábados e horas-crédito em dobro, se trabalhadas aos domingos e
+feriados. Os dias declarados como ponto facultativo são considerados como dias
+normais e como tais, as horas que excederem a jornada de oito horas de trabalho
+com intervalo de, no mínimo, uma hora, também podem ser convertidas em horas-
+crédito com acréscimo de 50%;
+VII – horas excedentes noturnas: aquelas trabalhadas fora do horário
+de funcionamento desta Seccional, a partir das 19h horas, nos dias úteis, não
+sujeitas ao pagamento do Adicional Por Serviço Extraordinário (hora extra), que
+podem ser convertidas pelo superior hierárquico em horas não autorizadas, exceto
+quando o servidor estiver cumprindo sua jornada diária de trabalho, hipótese em
+que as horas serão convertidas em horas-crédito, a critério da Administração;
+VIII – horário diferenciado: jornada a ser cumprida dentro do horário de
+funcionamento desta Seccional, devidamente deﬁnida pelo superior hierárquico, por
+conveniência do serviço e para cumprimento de horário preestabelecido;
+IX – superior hierárquico: Diretor do Foro, Juízes Federais, diretores de
+Secretaria e diretores de Núcleo, podendo ocorrer delegação;
+X – imperiosa necessidade do serviço: os serviços inadiáveis, os que se
+sujeitem a prazo certo e os acumulados por motivos de força maior ou caso fortuito,
+hipóteses em que serão devidamente justiﬁcadas de forma pormenorizada, não
+cabendo justificativas genéricas;
+XI – banco de horas: registro do saldo de horas-crédito ou de horas-
+débito que o servidor acumulou no ﬁnal de cada mês, após apuradas as
+compensações conforme definido nesta Portaria;
+XII – sistema de controle eletrônico de frequência: conjunto de
+programas de informática e equipamentos destinados ao registro e armazenamento
+dos horários de entrada e saída de servidores e às ações gerenciais dos superiores
+hierárquicos e dos administradores do sistema;
+XIII - mês de referência: mês da ocorrência do fato gerador das horas-
+crédito e/ou das horas-débito ou ainda o mês a que se refere a frequência da
+jornada a ser apurada;
+XIV - homologação da frequência mensal: é o ato pelo qual o superior
+hierárquico, no âmbito de cada unidade, efetua análises quanto a comparecimentos,
+ausências, horas-débito e horas-crédito, para ﬁns de compensação de seus
+subordinados, no respectivo mês, e registros no Boletim de Frequência inserido em
+Portaria SJAM-Diref 135 (23258652)         SEI 0002698-92.2022.4.01.8002 / pg. 3
+
+Processo Administrativo no Sistema Eletrônico de Informações – SEI.
+ 
+CAPÍTULO II
+DO EXPEDIENTE DA SEÇÃO JUDICIÁRIA DO AMAZONAS, DA SUBSEÇÃO
+JUDICIÁRIA DE TABATINGA E DA UNIDADE AVANÇADA DE ATENDIMENTO DO
+MUNICÍPIO DE TEFÉ/AM E DA JORNADA DE TRABALHO DOS SERVIDORES
+ 
+Seção I
+Do expediente
+Art. 3º
+ A Seção Judiciária do Amazonas, a Subseção Judiciária de
+Tabatinga e a Unidade Avançada de Atendimento (UAA) do município de Tefé/AM
+funcionarão nos dias úteis, para ﬁns de cumprimento de jornada de trabalho de seus
+servidores, de segunda a sexta-feira, ininterruptamente, no horário das 8h às 18h, o
+qual compreende o atendimento ao público externo.
+§ 1º
+ Caberá à Secretaria Administrativa (Secad) e ao Núcleo Judiciário
+(Nucju), na sede da Seção Judiciária, e à Seção de Protocolo e Suporte Judicial
+(Sepju), na Subseção Judiciária de Tabatinga, e à Unidade Avançada de Atendimento
+(UAA) do município de Tefé/AM adotarem as medidas necessárias para a
+manutenção ininterrupta, de 8h às 18h, dos serviços de Protocolo, Distribuição e
+aqueles considerados urgentes e impreteríveis.
+§ 2º 
+As Secretarias de Varas, Gabinetes de Magistrados, Centro de
+Conciliação, Núcleo de Apoio à Coordenação do JEF, Turma Recursal e as unidades
+administrativas funcionarão da seguinte forma: a) no horário de 8h às 16h em
+expediente interno; e b) das 8h às 15h em expediente externo.
+§ 3º
+ Caberá às Secretarias das Varas e Turma Recursal, na sede da
+Seção Judiciária e na Subseção Judiciária de Tabatinga, adotar as medidas
+necessárias tendentes a garantir a apreciação de pedidos considerados urgentes,
+inadiáveis e que visem evitar perecimento de direito, no período compreendido
+entre as 15h01 e 18h.
+ 
+Seção II
+Da jornada de trabalho dos servidores
+Art. 4º 
+Os servidores da Seção Judiciária do Amazonas, da Subseção
+Judiciária de Tabatinga e da Unidade Avançada de Atendimento (UAA) do município
+de Tefé/AM cumprirão jornada de trabalho de 7 (sete) horas ininterruptas ou de 8
+(oito) horas, sendo esta última em dois turnos, com intervalo regulamentar para
+repouso e alimentação.
+§ 1º 
+A Diretoria do Foro e os magistrados titulares de unidades
+judiciais organizarão a jornada dos servidores que lhes são subordinados, respeitada
+a jornada de que trata o caput deste artigo e o horário de funcionamento deﬁnido no
+caput deste artigo, e de modo que as atividades não sejam interrompidas.
+§ 2º
+ Os servidores que exerçam proﬁssão regulamentada ou estejam
+sujeitos à jornada de trabalho especial subordinam-se ao estabelecido na respectiva
+legislação, salvo se investidos em cargo em comissão (CJ) ou função comissionada
+(FC), caso em que será observada a jornada estabelecida no art. 7º desta Portaria,
+conforme o caso.
+Portaria SJAM-Diref 135 (23258652)         SEI 0002698-92.2022.4.01.8002 / pg. 4
+
+§ 3º 
+Será permitida ao servidor a ﬂexibilização do horário de
+cumprimento da jornada em duas horas na entrada e em uma hora na saída do
+expediente, considerando-se o horário diferenciado de 6h e de 19h horas,
+respectivamente, para atender a situações de caráter excepcional ou por imperiosa
+necessidade de serviço, devidamente justiﬁcadas pelo superior hierárquico e
+autorizadas pelo Diretor do Foro, ouvido o Diretor da Secretaria Administrativa.
+§ 4º 
+Poderá ser adotado o regime de turno de revezamento ou escala,
+quando os serviços exigirem atividades contínuas, sobretudo quanto aos percentuais
+de trabalho presencial, observada a legislação vigente.
+§ 5º 
+O servidor cedido, requisitado, redistribuído, removido ou em
+exercício provisório, de qualquer órgão ou esfera da Administração, em exercício na
+Seção Judiciária do Amazonas, na Subseção Judiciária de Tabatinga e na Unidade
+Avançada de Atendimento (UAA) do município de Tefé/AM, está sujeito à carga
+horária ﬁxada para os servidores desta Seccional, observando-se as disposições
+desta Portaria.
+§ 6º 
+O intervalo para repouso e alimentação não poderá ser inferior a
+1 (uma) hora e nem superior a 3 (três) horas no que tange à jornada de 8 (oito)
+horas, com intervalo para repouso e alimentação.
+§ 7º 
+A Administração desta Seccional ﬁca desobrigada de manter à
+disposição das unidades apoio ou serviço no horário compreendido de 19h01
+(dezenove horas e um minuto) a 6h59 (seis horas e cinquenta e nove minutos).
+§ 8º 
+É vedado ao servidor ausentar-se do Órgão durante o expediente
+sem prévia autorização de sua chefia imediata.
+Art. 5º 
+Os servidores ocupantes de função comissionada ou de cargos
+em comissão de todos os níveis ﬁcarão submetidos ao regime integral de dedicação
+ao serviço, cumprirão jornada de trabalho conforme o disposto no art. 4º desta
+Portaria, preferencialmente a de 8 (oito) horas, com intervalo regulamentar para
+repouso e alimentação, podendo ser convocados sempre que houver interesse da
+Administração.
+ 
+CAPÍTULO III
+DO CONTROLE DE FREQUÊNCIA
+Art. 6º 
+A frequência dos servidores desta Seccional será registrada
+por meio de equipamento biométrico de identiﬁcação por impressão digital,
+integrado ao sistema de controle eletrônico de frequência, excepcionadas as
+situações previstas no § 4º, deste artigo.
+§ 1º
+ Somente na impossibilidade de identiﬁcação do servidor por meio
+de impressão digital, a frequência será registrada mediante outro meio alternativo e
+idôneo que se revele eﬁcaz para atender aos propósitos desta Portaria, a ser
+disponibilizado pelo Núcleo de Tecnologia da Informação (Nutec).
+§ 2º 
+Para registro da frequência, o servidor deverá apor a sua digital
+no equipamento biométrico ou utilizar o meio alternativo a que se refere o § 1º deste
+artigo, e realizar o registro de entrada e o de saída.
+§ 3º 
+Todos os servidores, inclusive ocupantes de cargos em comissão
+e de funções comissionadas, ficam sujeitos ao registro de ingressos e saídas previsto
+nesta Portaria, incluindo-se a saída e retorno do intervalo para repouso e
+alimentação, obedecendo-se à jornada prevista no Capítulo II, Seção II, desta
+Portaria.
+Portaria SJAM-Diref 135 (23258652)         SEI 0002698-92.2022.4.01.8002 / pg. 5
+
+§ 4º 
+Poderá ser concedida a dispensa do ponto eletrônico, objeto
+desta Portaria, mediante prévia autorização do Diretor do Foro, em caráter
+excepcional, somente nos seguintes casos:
+I – aos servidores ocupantes do cargo de Analista Judiciário, Área
+Judiciária, especialidade Oﬁcial de Justiça Avaliador Federal, pela natureza dos
+serviços externos que realizam;
+II – aos servidores que laboram em locais que ainda não tenham o
+meio eletrônico instalado.
+§ 5º 
+A dispensa do ponto eletrônico não implica ausência da obrigação
+do lançamento de frequência no sistema manual.
+§ 6º 
+Os servidores que laboram no regime de teletrabalho/trabalho
+remoto terão a frequência avaliada conforme preconiza o § 3º, do art. 24, da
+Resolução Presi/TRF1 n. 58/2021.
+§ 7º
+ Nos dias em que ocorrer a prestação de serviço extraordinário, a
+frequência ordinária e a extraordinária deverá ser obrigatoriamente registrada por
+meio de equipamento biométrico de identificação por impressão digital, integrado ao
+sistema de controle eletrônico de frequência, inclusive pelos servidores que laboram
+no regime de teletrabalho/trabalho remoto.
+Art. 7º
+ Os afastamentos para participação em eventos de
+capacitação, autorizados pela Administração, serão considerados como de efetivo
+exercício.
+§ 1º
+ Quando o evento de capacitação ocorrer fora das dependências
+da Seção Judiciária do Amazonas, da Subseção Judiciária de Tabatinga e da Unidade
+Avançada de Atendimento (UAA) do município de Tefé/AM e tiver carga horária igual
+ou superior a 4 (quatro) horas diárias considerar-se-á que o servidor cumpriu sua
+jornada de trabalho integralmente, mediante documentação comprobatória de sua
+participação no evento, inclusive junto ao TRF1.
+§ 2º
+ Quando o evento de capacitação externa ocorrer na mesma
+cidade de lotação do servidor e tiver carga horária inferior a 4 (quatro) horas, será
+exigida a complementação da jornada.
+§ 3º 
+Os servidores participantes de evento de capacitação deverão
+registrar frequência no sistema biométrico quando o treinamento ocorrer nas
+dependências da Seção Judiciária do Amazonas, da Subseção Judiciária de Tabatinga
+e da Unidade Avançada de Atendimento (UAA) do município de Tefé/AM,
+observando-se os parágrafos anteriores nos demais casos, sendo as horas dedicadas
+aos eventos de capacitação consideradas efetiva jornada de trabalho.
+Art. 8º 
+O controle de frequência e de horas será realizado com base
+nas informações registradas no equipamento biométrico de identiﬁcação por
+impressão digital, integrado ao sistema de controle eletrônico de frequência,
+conforme jornada de trabalho a ser cumprida pelo servidor, cujo registro é
+obrigatório.
+§ 1º
+ A informação de jornada a ser cumprida pelo servidor será
+cadastrada no sistema de controle eletrônico de frequência pelo Núcleo de
+Tecnologia da Informação (NUTEC), observadas as jornadas especiais legalmente
+previstas.
+§ 2º 
+A carga mensal de horas trabalhadas será apurada no âmbito da
+unidade de lotação do servidor, pelo seu superior hierárquico, mediante a soma da
+quantidade diária de horas realizadas no respectivo mês.
+§ 3º
+ O resultado veriﬁcado no § 2º deste artigo será comparado com a
+Portaria SJAM-Diref 135 (23258652)         SEI 0002698-92.2022.4.01.8002 / pg. 6
+
+jornada que deveria ser cumprida pelo servidor, apurada mediante a multiplicação
+da quantidade de dias úteis no mês de referência pela jornada de 7 (sete) ou 8 (oito)
+horas, de acordo com a informação de que trata o caput deste artigo.
+§ 4º 
+A folha de frequência mensal será emitida pelo sistema de
+controle eletrônico e posteriormente juntada ao Processo Administrativo no Sistema
+Eletrônico de Informações – SEI, a qual será validada pelo superior hierárquico, que,
+a seu turno, emitirá o respectivo Boletim de Frequência, contendo:
+I – as ausências do servidor, regularmente autorizadas;
+II – as horas dedicadas pelo servidor a atividades externas às
+instalações da Seção Judiciária do Amazonas, da Subseção Judiciária de Tabatinga e
+da Unidade Avançada de Atendimento (UAA) do município de Tefé/AM, autorizadas
+pelo superior hierárquico, independentemente de designação formal.
+§ 5º
+ As viagens a serviço, devidamente autorizadas, serão
+consideradas como efetivo exercício, devendo ser informadas na folha de frequência
+pelo servidor e validadas pelo superior hierárquico.
+§ 6º
+ No caso de servidores que devam cumprir jornada de 7 (sete)
+horas e tenham trabalhado além dessa jornada por necessidade do serviço e desde
+que previamente autorizado pelo superior hierárquico, somente terão computadas
+horas crédito a partir da 8ª (oitava) hora, com intervalo de, no mínimo, uma hora,
+vedado o pagamento em pecúnia.
+Art. 9º
+ As faltas ou ausências decorrentes de caso fortuito ou de força
+maior, desde que devidamente justiﬁcadas pelo servidor, poderão ser compensadas
+com a utilização de horas-crédito, ou, a critério do superior hierárquico e sob sua
+responsabilidade, poderão ser abonadas.
+ 
+CAPÍTULO IV
+DO BANCO DE HORAS, DA COMPENSAÇÃO E DAS HORAS EXCEDENTES
+ 
+Seção I
+Do Banco de Horas
+Art. 10.
+ Fica instituído o banco de horas da Seção Judiciária do
+Amazonas, da Subseção Judiciária de Tabatinga e da Unidade Avançada de
+Atendimento (UAA) do município de Tefé/AM, com a ﬁnalidade de registrar, de forma
+individualizada, o saldo positivo ou negativo entre as horas-crédito e as horas-débito
+para fins de compensação.
+§ 1º
+ A realização e a compensação de horas-crédito, de horas
+excedentes e de horas-débito devem ser previamente autorizadas pelo superior
+hierárquico, salvo a impossibilidade de fazê-lo, observados o interesse da
+Administração e as necessidades da unidade.
+§ 2º 
+As horas-crédito e as horas-débito devem ser compensadas em
+até três meses após o mês de sua realização.
+§ 3º
+ Na hipótese de o servidor tiver alcançado o limite do saldo
+mensal estabelecido no art. 14 desta Portaria, somente poderá realizar horas-crédito
+se a compensação ocorrer dentro do mês de realização das referidas horas.
+§ 4º 
+As horas-crédito realizadas em discordância com a vedação
+determinada no § 3º deste artigo serão automaticamente consideradas como “horas
+acima do limite permitido” e não serão computadas para ﬁns de acumulação no
+Portaria SJAM-Diref 135 (23258652)         SEI 0002698-92.2022.4.01.8002 / pg. 7
+
+banco de horas nem para compensação de horas-débito.
+§ 5º
+ As horas-débito correspondentes ao saldo negativo do banco de
+horas que não forem compensadas no prazo estabelecido no § 2º deste artigo serão
+descontadas em folha de pagamento após o encerramento do prazo de
+compensação.
+§ 6º
+ Cada servidor deve ser responsável pelo controle das próprias
+horas-crédito e horas-débito realizadas no mês de referência, de modo que o saldo
+positivo no ﬁm do mês não seja superior ao limite estabelecido nesta Portaria e que
+o saldo negativo possa ser compensado em tempo hábil a evitar o desconto em
+folha de pagamento, observando-se que as devidas compensações sejam realizadas
+dentro dos prazos estabelecidos mediante autorização do superior hierárquico, sem
+prejuízo do controle realizado por este.
+§ 7º 
+É atribuição do superior hierárquico o gerenciamento eﬁcaz das
+horas-crédito e das horas-débito dos servidores subordinados, estabelecendo,
+quando for o caso, plano de compensação de horas que atenda ao interesse do
+serviço e, sempre que possível, de forma a atender às expectativas do servidor
+quanto ao melhor momento para a compensação.
+§ 8º 
+Em situações de caso fortuito ou força maior, o Diretor do Foro
+poderá referendar as horas-crédito realizadas acima do limite estabelecido no art.
+14 desta Portaria, mediante justiﬁcativa apresentada pelo superior hierárquico da
+unidade de lotação do servidor, em Processo Administrativo no Sistema Eletrônico
+de Informações – SEI que demonstre inequivocamente a necessidade do serviço e a
+impossibilidade de compensação das horas dentro do prazo de compensação.
+§ 9º 
+As horas-crédito trabalhadas nos termos dos arts. 13 e 14 desta
+Portaria, em nenhuma hipótese, serão caracterizadas como serviço extraordinário ou
+convertidas em pecúnia.
+§ 10
+ Para efeito de registro de horas-crédito em banco de horas, a
+atividade externa somente será computada se o serviço prestado se estender além
+da jornada prevista para o servidor, mediante documentação comprobatória.
+ 
+Seção II
+Da compensação de horas de jornada
+Art. 11.
+ As horas-débito devem ser preferencialmente compensadas
+dentro do mês de referência, observado o disposto nos §§ 2º e 5º do art. 10 desta
+Portaria.
+Parágrafo único. 
+A critério do superior hierárquico, as ocorrências de
+faltas injustiﬁcadas no sistema de controle eletrônico de frequência poderão ser
+substituídas por horas-débito, que deverão ser compensadas pelo servidor no prazo
+fixado no § 2º do art. 10 desta Portaria.
+Art. 12.
+ Ressalvadas as situações excepcionais e devidamente
+autorizadas pelo respectivo superior hierárquico, é vedada a compensação de horas-
+débito antes das 6h e após as 19h.
+ 
+Seção III
+Das horas excedentes para fruição futura
+Art. 13.
+ As horas-crédito apuradas no mês de referência, não
+destinadas à compensação de horas-débito, e cumpridas no interesse do serviço,
+Portaria SJAM-Diref 135 (23258652)         SEI 0002698-92.2022.4.01.8002 / pg. 8
+
+serão computadas exclusivamente para compensação futura.
+§ 1º 
+A prestação de horas-crédito para ﬁns de compensação futura
+somente ocorrerá por imperiosa necessidade do serviço e dependerá de autorização
+prévia do superior hierárquico.
+§ 2º
+ É vedada a compensação de horas-crédito enquanto o saldo do
+banco de horas estiver negativo.
+Art. 14.
+ Fica estabelecido o limite máximo de acumulação de horas-
+crédito no banco de horas, por servidor, para ﬁns de fruição futura, no total de 16
+(dezesseis) horas mensais, salvo imperiosa necessidade do serviço, devidamente
+justificada pelo superior hierárquico, nos termos do § 8º do art. 10.
+§ 1º 
+A compensação do saldo positivo das horas registradas no banco
+de horas depende de autorização do superior hierárquico, observados os limites e
+prazos desta Portaria.
+§ 2º 
+A ausência não autorizada conﬁgura falta ao serviço, ainda que o
+servidor tenha disponibilidade de horas para fruição, desde que a compensação não
+tenha sido autorizada pelo superior hierárquico.
+§ 3º
+ Em qualquer caso, a comunicação com a superior hierárquico é
+premissa para o cumprimento da jornada, considerando as compensações, o abono
+de falta ou qualquer outra circunstância capaz de inﬂuir na jornada e frequência a
+ser registrada.
+Art. 15.
+ As horas trabalhadas durante o recesso forense também
+seguem a sistemática normativa especíﬁca e vigente, editada pelo TRF1, seja
+quanto aos limites de horas, tipologia de serviço a ser prestado no período, dentre
+outras circunstâncias. Em todo caso, a frequência de trabalho em recesso forense
+deve ser necessariamente registrada no sistema de ponto eletrônico, por meio do
+equipamento biométrico.
+Parágrafo único. 
+As horas trabalhadas em regime de plantão
+poderão ser registradas no sistema de controle eletrônico de frequência, por meio do
+equipamento biométrico, com observância das normas vigentes.
+ 
+CAPÍTULO V
+DA HOMOLOGAÇÃO DE FREQUÊNCIA
+Art. 16. 
+Os superiores hierárquicos deverão homologar a frequência
+mensal dos servidores sob a sua subordinação, analisando quanto a
+comparecimentos, ausências, horas-débito e horas-crédito, para ﬁns de
+compensação, no respectivo mês, e realizando os devidos registros no Boletim de
+Frequência inserido em Processo Administrativo no Sistema Eletrônico de
+Informações – SEI.
+§ 1º 
+Os superiores hierárquicos poderão, sob sua responsabilidade,
+delegar competência a servidor lotado em suas respectivas unidades para
+homologar os lançamentos no sistema, mediante comunicação ao Núcleo de Gestão
+de Pessoas (NucGP).
+§ 2º 
+A responsabilidade do superior hierárquico pela homologação da
+frequência dos servidores da unidade não exclui a responsabilidade pessoal do
+servidor delegado que validar informações incorretas no sistema de ponto
+eletrônico.
+§ 3º
+ Após a homologação, o superior hierárquico deverá preencher o
+Boletim de Frequência mensal, até o 2º dia útil do mês subsequente ao mês de
+Portaria SJAM-Diref 135 (23258652)         SEI 0002698-92.2022.4.01.8002 / pg. 9
+
+referência, com a consolidação das ocorrências relativas à frequência dos seus
+servidores, as quais estão elencadas no caput deste artigo.
+§ 4º
+ Ocorrendo falta injustiﬁcada e horas-débito não compensadas no
+prazo estabelecido no § 2º, do art. 10, desta Portaria, o superior hierárquico
+notiﬁcará o servidor, que deverá apresentar as justiﬁcativas quanto ao ocorrido em
+até 2 (dois) dias úteis, contados a partir da notiﬁcação, valendo-se do seu direito à
+ampla defesa e ao contraditório.
+§ 5º
+ Escoado o prazo acima assinalado, sem que o servidor apresente
+as justiﬁcativas ou que não tenham sido assentidas pelo superior hierárquico, este
+deverá informar a Administração para adoção das providências quanto à
+autorização dos descontos das faltas ao serviço, saídas antecipadas, atrasos e
+horas-débito não compensadas no prazo estabelecido nesta Portaria.
+Art. 17. 
+As Secretarias de Vara, Gabinetes, Núcleos e demais
+unidades organizacionais da Seção Judiciária do Amazonas, da Subseção Judiciária
+de Tabatinga e da Unidade Avançada de Atendimento (UAA) do município de
+Tefé/AM deverão encaminhar o Boletim de Frequência mensal para a Seção de
+Cadastro de Pessoal (Secap/NucGP) até o dia 10 de cada mês ou, quando for o caso,
+no primeiro dia útil subsequente.
+ 
+CAPÍTULO VI
+DAS DISPOSIÇÕES FINAIS
+Art. 18. 
+Havendo viabilidade técnica, o sistema de ponto eletrônico
+observará o seguinte:
+I – devem ser cadastradas:
+a) as escalas individuais de cada servidor, previstas no art. 8º, desta
+Portaria; e
+b) as jornadas de horário diferenciado, mencionadas no § 3º, do art.
+4º, desta Portaria;
+II – devem ser consignados e validados os eventos e trabalhos
+externos, referidos no inciso II, do § 4º, do art. 8º, desta Portaria;
+III – devem ser incluídas as viagens a serviço citadas no § 5º, do art.
+8º, desta Portaria, quando não cadastradas no sistema especíﬁco, previamente à
+data da viagem;
+IV – deve ser permitida, até o prazo estabelecido no art. 17 desta
+Portaria, a correção de falha na marcação eletrônica relativa à hora de entrada e/ou
+saída, quando o sistema, por quaisquer motivos, não registrar a entrada/saída
+lançada pelo servidor.
+Art. 19.
+ O sistema de ponto eletrônico permitirá o acesso à
+frequência diária:
+I – ao Diretor do Foro, aos Juízes Federais, aos diretores de Secretaria,
+aos diretores de Núcleo, incluídos os seus substitutos, e autoridades delegadas, para
+a veriﬁcação da pontualidade e assiduidade dos respectivos subordinados, inclusive
+para ﬁns de progressão funcional, mediante a extração, pelo servidor, do espelho de
+sua frequência;
+II – aos servidores, para consulta da respectiva frequência e saldo de
+horas, para fins de compensação ou fruição.
+Art. 20.
+ Para o pleno funcionamento do sistema de controle de
+Portaria SJAM-Diref 135 (23258652)         SEI 0002698-92.2022.4.01.8002 / pg. 10
+
+frequência, ficará sob a responsabilidade do(a):
+I - Núcleo de Tecnologia da Informação (Nutec): gerenciar o sistema
+(de) Controle Eletrônico de Frequência quanto ao cadastro e alteração de usuários e
+realizar as seguintes atividades, entre outras: dirimir as dúvidas quanto ao
+funcionamento e registro nos equipamentos biométricos de identiﬁcação por
+impressão digital;
+II - Seção de Cadastro de Pessoal (Secap/NucGP):
+a) receber os Boletins de Frequência e proceder à conferência,
+cotejando com os dados lançados no Sistema de Gestão de Recursos Humanos
+(SARH), cabendo ao superior hierárquico informar, para ﬁns de desconto em folha de
+pagamento, quando for o caso, a ocorrência de faltas injustiﬁcadas, bem como de
+horas-débito não compensadas no prazo.
+b) informar ao Núcleo de Gestão de Pessoas (NucGP), até o dia 20 do
+mês subsequente, as ocorrências relativas a faltas ao serviço, atrasos e saídas
+antecipadas que não tenham sido assentidos pelo superior hierárquico.
+III – Diretoria do Foro (Diref): autorizar os descontos das faltas ao
+serviço, atrasos e saídas antecipadas com base nas informações expedidas ou
+registradas pela SECAP, após esgotado o prazo para ampla defesa e contraditório.
+Art. 21.
+ A Secretaria Administrativa (Secad), a Seção de
+Modernização Administrativa (Semad), os Núcleos de Tecnologia da Informação
+(Nutec), de Administração (Nucad) e de Gestão de Pessoas (NucGP) providenciarão
+os meios necessários ao fiel cumprimento desta Portaria.
+Art. 22.
+ Os casos omissos serão submetidos ao Juiz Federal Diretor do
+Foro, para deliberação, após ouvir o diretor da Secretaria Administrativa (Secad).
+Art. 23. 
+Ficam revogadas as Portarias SJAM-Diref – 10240626/2020
+(
+10240626
+), 16/2022 (
+15170120
+), 144/2022 (
+17062690
+) e demais disposições em
+contrário.
+Art. 24. 
+Esta Portaria entrará em vigor na data de sua publicação,
+produzindo efeitos a partir do dia 1º de agosto de 2025.
+ 
+PUBLIQUE-SE. REGISTRE-SE. CUMPRA-SE.
+Manaus/AM, 24 de julho de 2025.
+ 
+ÉRICO RODRIGO FREITAS PINHEIRO
+Juiz Federal Diretor do Foro
+Documento assinado eletronicamente por 
+Érico Rodrigo Freitas Pinheiro
+,
+Diretor do Foro
+, em 24/07/2025, às 12:06 (horário de Brasília), conforme art. 1º,
+§ 2º, III, "b", da Lei 11.419/2006.
+A autenticidade do documento pode ser conferida no site
+https://sei.trf1.jus.br/autenticidade informando o código verificador 
+23258652
+ e o
+código CRC 
+D7BC2066
+.
+ 
+Portaria SJAM-Diref 135 (23258652)         SEI 0002698-92.2022.4.01.8002 / pg. 11
+
+Avenida André Araújo, 25 
+- Bairro Aleixo - CEP 69060-000 - Manaus - AM 
+- www.trf1.jus.br/sjam/
+0002698-92.2022.4.01.8002
+23258652v
+5
+Portaria SJAM-Diref 135 (23258652)         SEI 0002698-92.2022.4.01.8002 / pg. 12

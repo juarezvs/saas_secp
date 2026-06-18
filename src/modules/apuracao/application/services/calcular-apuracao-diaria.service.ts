@@ -1,6 +1,7 @@
 import { diferencaEmMinutos } from "./calcular-tempo.service";
 import {
   calcularMinutosNoExpediente,
+  resolverExpedienteInstitucional,
   resolverJanelaExpediente,
   type JanelaExpediente,
 } from "./expediente.service";
@@ -21,6 +22,33 @@ type JornadaCalculo = {
   horarioDiferenciadoAutorizado: boolean;
   entradaMinimaDiferenciada: string | null;
   saidaMaximaDiferenciada: string | null;
+};
+
+type DiaInstitucionalCalculo = {
+  tipo: string;
+  descricao?: string | null;
+  contaComoDiaUtil: boolean;
+  geraApuracaoRegular: boolean;
+};
+
+type DispensaPontoEletronicoCalculo = {
+  ativa: boolean;
+  motivos: string[];
+  exigeFrequenciaManual: boolean;
+};
+
+export type TrabalhoRemotoCalculo = {
+  ativo: boolean;
+  regime: "TOTAL" | "HIBRIDO";
+  diaSemana: string;
+  exigeRegistroPonto: boolean;
+  descricao: string;
+};
+
+export type FrequenciaManualCalculo = {
+  obrigatoria: boolean;
+  registrada: boolean;
+  descricao: string;
 };
 
 export type OcorrenciaCalculada = {
@@ -48,7 +76,8 @@ export type ResultadoCalculoApuracaoDiaria = {
     | "DEBITO"
     | "FALTA"
     | "INCOMPLETA"
-    | "SEM_JORNADA";
+    | "SEM_JORNADA"
+    | "SEM_EXPEDIENTE";
   status: "CALCULADA" | "INCONSISTENTE";
   primeiraEntrada: Date | null;
   saidaIntervalo: Date | null;
@@ -56,20 +85,76 @@ export type ResultadoCalculoApuracaoDiaria = {
   ultimaSaida: Date | null;
   janelaExpediente: JanelaExpediente | null;
   minutosForaExpediente: number;
+  dispensaPontoEletronico: DispensaPontoEletronicoCalculo | null;
+  trabalhoRemoto: TrabalhoRemotoCalculo | null;
+  frequenciaManual: FrequenciaManualCalculo | null;
   ocorrencias: OcorrenciaCalculada[];
 };
+
+const CARGA_MINIMA_CREDITO_JORNADA_SETE_HORAS = 8 * 60;
+const INTERVALO_MINIMO_CREDITO_JORNADA_SETE_HORAS = 60;
+const TIPOS_OCORRENCIA_INCONSISTENTE = [
+  "MARCACAO_INCOMPLETA",
+  "INTERVALO_INVALIDO",
+  "HORA_NAO_AUTORIZADA",
+  "FALTA",
+  "DEBITO",
+] as const;
 
 function encontrarMarcacao(marcacoes: MarcacaoCalculo[], tipo: string) {
   return marcacoes.find((marcacao) => marcacao.tipo === tipo)?.dataHora ?? null;
 }
 
+function criarResultadoSemExpediente(params: {
+  marcacoes: MarcacaoCalculo[];
+  diaInstitucional: DiaInstitucionalCalculo;
+}): ResultadoCalculoApuracaoDiaria {
+  return {
+    cargaPrevistaMinutos: 0,
+    minutosTrabalhados: 0,
+    minutosIntervalo: 0,
+    minutosCredito: 0,
+    minutosDebito: 0,
+    resultado: "SEM_EXPEDIENTE",
+    status: "CALCULADA",
+    primeiraEntrada: encontrarMarcacao(params.marcacoes, "ENTRADA"),
+    saidaIntervalo: encontrarMarcacao(params.marcacoes, "SAIDA_INTERVALO"),
+    retornoIntervalo: encontrarMarcacao(params.marcacoes, "RETORNO_INTERVALO"),
+    ultimaSaida: encontrarMarcacao(params.marcacoes, "SAIDA"),
+    janelaExpediente: null,
+    minutosForaExpediente: 0,
+    dispensaPontoEletronico: null,
+    trabalhoRemoto: null,
+    frequenciaManual: null,
+    ocorrencias: [],
+  };
+}
+
 export function calcularApuracaoDiaria(params: {
   marcacoes: MarcacaoCalculo[];
   jornada: JornadaCalculo | null;
+  diaInstitucional?: DiaInstitucionalCalculo | null;
+  dispensaPontoEletronico?: DispensaPontoEletronicoCalculo | null;
 }): ResultadoCalculoApuracaoDiaria {
-  const { marcacoes, jornada } = params;
+  const {
+    marcacoes,
+    jornada,
+    diaInstitucional = null,
+    dispensaPontoEletronico = null,
+  } = params;
+  const expedienteInstitucional =
+    resolverExpedienteInstitucional(diaInstitucional);
+  const diaSemExpediente =
+    !expedienteInstitucional.temExpedienteOrdinario;
 
   if (!jornada) {
+    if (diaSemExpediente && marcacoes.length === 0 && diaInstitucional) {
+      return criarResultadoSemExpediente({
+        marcacoes,
+        diaInstitucional,
+      });
+    }
+
     return {
       cargaPrevistaMinutos: 0,
       minutosTrabalhados: 0,
@@ -84,6 +169,9 @@ export function calcularApuracaoDiaria(params: {
       ultimaSaida: null,
       janelaExpediente: null,
       minutosForaExpediente: 0,
+      dispensaPontoEletronico,
+      trabalhoRemoto: null,
+      frequenciaManual: null,
       ocorrencias: [
         {
           tipo: "SEM_JORNADA",
@@ -111,27 +199,66 @@ export function calcularApuracaoDiaria(params: {
   const janelaExpediente = resolverJanelaExpediente(jornada);
 
   if (ordenadas.length === 0) {
+    if (diaSemExpediente && diaInstitucional) {
+      return criarResultadoSemExpediente({
+        marcacoes: ordenadas,
+        diaInstitucional,
+      });
+    }
+
+    const exigeFrequenciaManual =
+      Boolean(dispensaPontoEletronico?.ativa) &&
+      Boolean(dispensaPontoEletronico?.exigeFrequenciaManual);
+
     return {
       cargaPrevistaMinutos: jornada.cargaDiariaMinutos,
-      minutosTrabalhados: 0,
+      minutosTrabalhados: dispensaPontoEletronico?.ativa
+        ? jornada.cargaDiariaMinutos
+        : 0,
       minutosIntervalo: 0,
       minutosCredito: 0,
-      minutosDebito: jornada.cargaDiariaMinutos,
-      resultado: "FALTA",
-      status: "INCONSISTENTE",
+      minutosDebito: dispensaPontoEletronico?.ativa
+        ? 0
+        : jornada.cargaDiariaMinutos,
+      resultado: dispensaPontoEletronico?.ativa ? "REGULAR" : "FALTA",
+      status: dispensaPontoEletronico?.ativa && !exigeFrequenciaManual
+        ? "CALCULADA"
+        : "INCONSISTENTE",
       primeiraEntrada: null,
       saidaIntervalo: null,
       retornoIntervalo: null,
       ultimaSaida: null,
       janelaExpediente,
       minutosForaExpediente: 0,
-      ocorrencias: [
-        {
-          tipo: "FALTA",
-          descricao: "Nenhuma marcação registrada no dia.",
-          minutos: jornada.cargaDiariaMinutos,
-        },
-      ],
+      dispensaPontoEletronico,
+      trabalhoRemoto: null,
+      frequenciaManual: exigeFrequenciaManual
+        ? {
+            obrigatoria: true,
+            registrada: false,
+            descricao:
+              "Frequencia manual obrigatoria para servidor dispensado do ponto eletronico.",
+          }
+        : null,
+      ocorrencias: dispensaPontoEletronico?.ativa
+        ? exigeFrequenciaManual
+          ? [
+              {
+                tipo: "MARCACAO_INCOMPLETA",
+                descricao:
+                  "Frequencia manual obrigatoria nao registrada para servidor dispensado do ponto eletronico.",
+                minutos: 0,
+              },
+            ]
+          : []
+        : [
+            {
+              tipo: "FALTA",
+              descricao:
+                "Ausencia integral durante o expediente, sem autorizacao da chefia.",
+              minutos: jornada.cargaDiariaMinutos,
+            },
+          ],
     };
   }
 
@@ -157,6 +284,9 @@ export function calcularApuracaoDiaria(params: {
       ultimaSaida: saida,
       janelaExpediente,
       minutosForaExpediente: 0,
+      dispensaPontoEletronico,
+      trabalhoRemoto: null,
+      frequenciaManual: null,
       ocorrencias,
     };
   }
@@ -188,6 +318,9 @@ export function calcularApuracaoDiaria(params: {
         ultimaSaida: saida,
         janelaExpediente,
         minutosForaExpediente: 0,
+        dispensaPontoEletronico,
+        trabalhoRemoto: null,
+        frequenciaManual: null,
         ocorrencias,
       };
     }
@@ -219,10 +352,59 @@ export function calcularApuracaoDiaria(params: {
     }
   }
 
+  if (!jornada.exigeIntervalo && saidaIntervalo && retornoIntervalo) {
+    minutosIntervalo = diferencaEmMinutos(saidaIntervalo, retornoIntervalo);
+    minutosIntervaloParaCalculo = minutosIntervalo;
+  }
+
   const minutosBrutosTrabalhados = Math.max(
     0,
     minutosBrutos - minutosIntervalo,
   );
+
+  if (diaSemExpediente) {
+    const minutosTrabalhados = Math.max(
+      0,
+      minutosBrutos - minutosIntervaloParaCalculo,
+    );
+    const ocorrenciasDiaSemExpediente = [...ocorrencias];
+
+    if (minutosTrabalhados > 0) {
+      ocorrenciasDiaSemExpediente.push({
+        tipo: "CREDITO",
+        descricao:
+          "Tempo trabalhado em dia sem expediente ordinário, contabilizado integralmente como crédito.",
+        minutos: minutosTrabalhados,
+      });
+    }
+
+    const status = ocorrenciasDiaSemExpediente.some((o) =>
+      ["MARCACAO_INCOMPLETA", "INTERVALO_INVALIDO"].includes(o.tipo),
+    )
+      ? "INCONSISTENTE"
+      : "CALCULADA";
+
+    return {
+      cargaPrevistaMinutos: 0,
+      minutosTrabalhados,
+      minutosIntervalo,
+      minutosCredito: minutosTrabalhados,
+      minutosDebito: 0,
+      resultado: minutosTrabalhados > 0 ? "CREDITO" : "SEM_EXPEDIENTE",
+      status,
+      primeiraEntrada: entrada,
+      saidaIntervalo,
+      retornoIntervalo,
+      ultimaSaida: saida,
+      janelaExpediente: null,
+      minutosForaExpediente: 0,
+      dispensaPontoEletronico,
+      trabalhoRemoto: null,
+      frequenciaManual: null,
+      ocorrencias: ocorrenciasDiaSemExpediente,
+    };
+  }
+
   const minutosBrutosNoExpediente = calcularMinutosNoExpediente({
     inicio: entrada,
     fim: saida,
@@ -264,8 +446,36 @@ export function calcularApuracaoDiaria(params: {
   }
   const saldo = minutosTrabalhados - jornada.cargaDiariaMinutos;
 
-  const minutosCredito = saldo > 0 ? saldo : 0;
-  const minutosDebito = saldo < 0 ? Math.abs(saldo) : 0;
+  let minutosCredito = saldo > 0 ? saldo : 0;
+  let minutosDebito = saldo < 0 ? Math.abs(saldo) : 0;
+
+  if (
+    jornada.cargaDiariaMinutos === 7 * 60 &&
+    !jornada.exigeIntervalo &&
+    minutosTrabalhados > jornada.cargaDiariaMinutos
+  ) {
+    const intervaloCumprido =
+      saidaIntervalo &&
+      retornoIntervalo &&
+      minutosIntervalo >= INTERVALO_MINIMO_CREDITO_JORNADA_SETE_HORAS;
+
+    minutosCredito = intervaloCumprido
+      ? Math.max(0, minutosTrabalhados - CARGA_MINIMA_CREDITO_JORNADA_SETE_HORAS)
+      : 0;
+    minutosDebito = 0;
+
+    if (
+      minutosTrabalhados >= CARGA_MINIMA_CREDITO_JORNADA_SETE_HORAS &&
+      !intervaloCumprido
+    ) {
+      ocorrencias.push({
+        tipo: "INTERVALO_INVALIDO",
+        descricao:
+          "A jornada de 7 horas somente gera credito apos 8 horas efetivas e com intervalo minimo de 60 minutos.",
+        minutos: minutosIntervalo,
+      });
+    }
+  }
 
   let resultado: ResultadoCalculoApuracaoDiaria["resultado"] = "REGULAR";
 
@@ -282,17 +492,16 @@ export function calcularApuracaoDiaria(params: {
     resultado = "DEBITO";
     ocorrencias.push({
       tipo: "DEBITO",
-      descricao: "Tempo trabalhado inferior à carga diária prevista.",
+      descricao:
+        "Ausencia parcial durante o expediente, sem autorizacao da chefia.",
       minutos: minutosDebito,
     });
   }
 
   const status = ocorrencias.some((o) =>
-    [
-      "MARCACAO_INCOMPLETA",
-      "INTERVALO_INVALIDO",
-      "HORA_NAO_AUTORIZADA",
-    ].includes(o.tipo),
+    TIPOS_OCORRENCIA_INCONSISTENTE.includes(
+      o.tipo as (typeof TIPOS_OCORRENCIA_INCONSISTENTE)[number],
+    ),
   )
     ? "INCONSISTENTE"
     : "CALCULADA";
@@ -311,6 +520,9 @@ export function calcularApuracaoDiaria(params: {
     ultimaSaida: saida,
     janelaExpediente,
     minutosForaExpediente,
+    dispensaPontoEletronico,
+    trabalhoRemoto: null,
+    frequenciaManual: null,
     ocorrencias,
   };
 }

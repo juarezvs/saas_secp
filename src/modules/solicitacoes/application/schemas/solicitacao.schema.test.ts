@@ -3,15 +3,15 @@ import { describe, expect, it } from "vitest";
 import { criarSolicitacaoSchema } from "./solicitacao.schema";
 
 const dadosBase = {
-  titulo: "Autorização de banco de horas",
-  descricao: "Solicitação apresentada previamente para análise da chefia.",
+  titulo: "Autorizacao de banco de horas",
+  descricao: "Solicitacao apresentada previamente para analise da chefia.",
   dataReferencia: "",
   tipoMarcacao: "",
   horaAjuste: "",
 };
 
 describe("criarSolicitacaoSchema", () => {
-  it("exige período e quantidade para crédito prévio", () => {
+  it("exige periodo e quantidade para credito previo", () => {
     const resultado = criarSolicitacaoSchema.safeParse({
       ...dadosBase,
       tipo: "HORA_CREDITO_PREVIA",
@@ -29,7 +29,7 @@ describe("criarSolicitacaoSchema", () => {
     }
   });
 
-  it("aceita compensação prévia completa", () => {
+  it("aceita compensacao previa completa", () => {
     const resultado = criarSolicitacaoSchema.safeParse({
       ...dadosBase,
       tipo: "COMPENSACAO",
@@ -42,7 +42,7 @@ describe("criarSolicitacaoSchema", () => {
     expect(resultado.success).toBe(true);
   });
 
-  it("rejeita autorização acima do limite mensal ordinário", () => {
+  it("rejeita autorizacao acima do limite mensal ordinario", () => {
     const resultado = criarSolicitacaoSchema.safeParse({
       ...dadosBase,
       tipo: "HORA_CREDITO_PREVIA",
@@ -53,5 +53,50 @@ describe("criarSolicitacaoSchema", () => {
     });
 
     expect(resultado.success).toBe(false);
+  });
+
+  it("exige periodo para abono com efeito na apuracao", () => {
+    const resultado = criarSolicitacaoSchema.safeParse({
+      ...dadosBase,
+      tipo: "ABONO_JUSTIFICATIVA",
+      dataInicio: "",
+      dataFim: "",
+    });
+
+    expect(resultado.success).toBe(false);
+
+    if (!resultado.success) {
+      const erros = resultado.error.flatten().fieldErrors;
+      expect(erros.dataInicio).toBeDefined();
+      expect(erros.dataFim).toBeDefined();
+    }
+  });
+
+  it("exige modalidade para capacitacao", () => {
+    const resultado = criarSolicitacaoSchema.safeParse({
+      ...dadosBase,
+      tipo: "CAPACITACAO",
+      dataInicio: "2026-06-15T08:00",
+      dataFim: "2026-06-15T12:30",
+    });
+
+    expect(resultado.success).toBe(false);
+
+    if (!resultado.success) {
+      const erros = resultado.error.flatten().fieldErrors;
+      expect(erros.modalidadeCapacitacao).toBeDefined();
+    }
+  });
+
+  it("aceita capacitacao interna com periodo informado", () => {
+    const resultado = criarSolicitacaoSchema.safeParse({
+      ...dadosBase,
+      tipo: "CAPACITACAO",
+      dataInicio: "2026-06-15T08:00",
+      dataFim: "2026-06-15T12:30",
+      modalidadeCapacitacao: "INTERNA",
+    });
+
+    expect(resultado.success).toBe(true);
   });
 });
