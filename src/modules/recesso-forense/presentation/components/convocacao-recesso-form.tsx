@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { Loader2, Pencil, Save, UserPlus } from "lucide-react";
 import { SearchableSelect } from "@/components/ui";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 import type { RecessoFormState } from "../../application/schemas/recesso-forense.schema";
 
@@ -16,6 +17,7 @@ type UnidadeOption = {
 type ServidorOption = {
   id: string;
   matricula: string;
+  nomeFuncional?: string | null;
   usuario: {
     nome: string;
   };
@@ -166,7 +168,7 @@ export function ConvocacaoRecessoForm({
             searchPlaceholder="Pesquisar por matrícula ou nome..."
             options={servidores.map((servidor) => ({
               value: servidor.id,
-              label: `${servidor.matricula} — ${servidor.usuario.nome}`,
+              label: `${servidor.matricula} — ${nomeServidor(servidor)}`,
             }))}
           />
         </div>

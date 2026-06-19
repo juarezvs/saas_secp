@@ -4,11 +4,13 @@ import { useActionState, useMemo, useState } from "react";
 import { CalendarDays, Check, Loader2, Search, UserPlus } from "lucide-react";
 import Link from "next/link";
 
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import type { RecessoFormState } from "../../application/schemas/recesso-forense.schema";
 
 type ServidorOption = {
   id: string;
   matricula: string;
+  nomeFuncional?: string | null;
   usuario: {
     nome: string;
   };
@@ -98,7 +100,7 @@ function mapearDiasIniciais(dias: DiaConvocadoInicial[] | undefined) {
 }
 
 function rotuloServidor(servidor: ServidorOption) {
-  return `${servidor.matricula} - ${servidor.usuario.nome}`;
+  return `${servidor.matricula} - ${nomeServidor(servidor)}`;
 }
 
 export function ConvocadoRecessoForm({
@@ -147,7 +149,7 @@ export function ConvocadoRecessoForm({
 
     return servidores
       .filter((servidor) =>
-        `${servidor.matricula} ${servidor.usuario.nome}`
+        `${servidor.matricula} ${nomeServidor(servidor)}`
           .toLocaleLowerCase("pt-BR")
           .includes(termo),
       )
@@ -219,7 +221,7 @@ export function ConvocadoRecessoForm({
             <div>
               <p className="font-semibold">Modo edicao ativo</p>
               <p className="mt-1">
-                Editando a convocação de {servidorSelecionado.usuario.nome}. Desmarcar uma
+                Editando a convocação de {nomeServidor(servidorSelecionado)}. Desmarcar uma
                 data remove o servidor daquele dia do recesso.
               </p>
             </div>
@@ -286,7 +288,7 @@ export function ConvocadoRecessoForm({
                     onClick={() => selecionarServidor(servidor)}
                     className="flex w-full flex-col px-3 py-2 text-left text-sm transition hover:bg-[var(--muted)] focus:bg-[var(--muted)] focus:outline-none"
                   >
-                    <span className="font-semibold">{servidor.usuario.nome}</span>
+                    <span className="font-semibold">{nomeServidor(servidor)}</span>
                     <span className="font-mono text-xs text-[var(--muted-foreground)]">
                       {servidor.matricula}
                     </span>
@@ -357,7 +359,7 @@ export function ConvocadoRecessoForm({
         <div className="mt-5 overflow-hidden rounded-lg border">
           <div className="border-b bg-[var(--muted)] px-4 py-3">
             <p className="text-sm font-semibold">
-              Datas do recesso para {servidorSelecionado.usuario.nome}
+              Datas do recesso para {nomeServidor(servidorSelecionado)}
             </p>
             <p className="text-xs text-[var(--muted-foreground)]">
               Clique na linha para marcar a data. A opção padrão é Pecúnia; use o

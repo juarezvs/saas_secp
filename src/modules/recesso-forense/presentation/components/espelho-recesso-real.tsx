@@ -6,6 +6,7 @@ import {
   formatarDataRecesso,
   formatarPeriodoRecesso,
 } from "../../application/services/recesso-forense.service";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { RecessoStatusBadge } from "./recesso-status-badge";
 
 type RecessoEspelhoRealProps = {
@@ -18,6 +19,7 @@ type RecessoEspelhoRealProps = {
   servidor: {
     id: string;
     matricula: string;
+    nomeFuncional?: string | null;
     usuario: { nome: string };
   };
   dias: Array<{
@@ -42,7 +44,7 @@ export function EspelhoRecessoReal({
       <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
         <h2 className="text-lg font-bold">Espelho do recesso</h2>
         <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-          {servidor.usuario.nome} - {servidor.matricula} -{" "}
+          {nomeServidor(servidor)} - {servidor.matricula} -{" "}
           {formatarPeriodoRecesso(recesso.dataInicio, recesso.dataFim)}
         </p>
       </section>

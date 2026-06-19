@@ -44,4 +44,22 @@ describe("calcularSaldoBancoHoras", () => {
 
     expect(resultado.saldoMinutos).toBe(30);
   });
+
+  it("desconsidera debitos expirados do saldo apos encaminhamento para desconto", () => {
+    const resultado = calcularSaldoBancoHoras([
+      {
+        tipo: "DEBITO",
+        status: "VALIDADO",
+        minutos: 90,
+      },
+      {
+        tipo: "DEBITO",
+        status: "EXPIRADO",
+        minutos: 45,
+      },
+    ]);
+
+    expect(resultado.saldoMinutos).toBe(-90);
+    expect(resultado.debitosValidadosMinutos).toBe(90);
+  });
 });

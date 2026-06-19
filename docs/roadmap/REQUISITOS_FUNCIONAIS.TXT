@@ -34,7 +34,7 @@ RF29	Ausências por caso fortuito/força maior podem ser compensadas ou abonadas
 RF30	Banco de horas individual com saldo positivo/negativo	                                    Implementado
 RF31	Crédito, débito e compensação dependem de autorização prévia da chefia	                    Implementado
 RF32	Compensação de crédito/débito em até 3 meses	                                            Implementado
-RF33	Expiração de débitos não compensados para desconto em folha	                                Implementado parcial
+RF33	Expiração de débitos não compensados para desconto em folha	                                Implementado
 RF34	Limite ordinário de 16h mensais de crédito para fruição futura	                            Implementado
 RF35	Horas acima do limite não entram no saldo	                                                Implementado
 RF36	Referendo excepcional da DIREF para horas acima do limite	                                Não implementado

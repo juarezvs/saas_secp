@@ -1,6 +1,7 @@
 import { Bell } from "lucide-react";
 
 import { Badge } from "@/components/ui";
+import { PERMISSOES_ACESSO_REGISTRO_PONTO_SECP } from "@/modules/auth/domain/constants/perfis-sistema";
 import { AcessoRapidoGrid } from "./acesso-rapido-grid";
 import { AlertasEAvisosCard } from "./alertas-e-avisos-card";
 import { DashboardMetricCard } from "./dashboard-metric-card";
@@ -16,6 +17,7 @@ type DashboardServidorProps = {
   cabecalho?: Partial<typeof dashboardServidorMock.servidor>;
   totalNotificacoes?: number;
   frequenciaMes?: FrequenciaMesServidorResumo;
+  permissoesPerfil?: string[];
 };
 
 export function DashboardServidor({
@@ -23,7 +25,14 @@ export function DashboardServidor({
   cabecalho,
   totalNotificacoes = 0,
   frequenciaMes,
+  permissoesPerfil = [],
 }: DashboardServidorProps) {
+  const podeRegistrarPontoPeloSecp = PERMISSOES_ACESSO_REGISTRO_PONTO_SECP.some(
+    (permissao) => permissoesPerfil.includes(permissao),
+  );
+  const podeRegistrarPontoFacial = permissoesPerfil.includes(
+    "marcacoes:registrar-facial:proprio",
+  );
   const dados = {
     ...dashboardServidorMock,
     servidor: {
@@ -32,6 +41,17 @@ export function DashboardServidor({
     },
     frequenciaMes: frequenciaMes ?? dashboardServidorMock.frequenciaMes,
   };
+  const acessos = podeRegistrarPontoPeloSecp
+    ? dados.acessos
+    : dados.acessos.filter((acesso) => acesso.href !== "/marcacoes/registrar");
+  const proximaAcao = podeRegistrarPontoFacial
+    ? dados.proximaAcao
+    : {
+        ...dados.proximaAcao,
+        titulo: "Registre sua marcação pelo sistema web autorizado.",
+        descricao:
+          "Use esta exceção apenas quando houver autorização específica para registro pelo SECP.",
+      };
 
   return (
     <div className="space-y-5">
@@ -64,15 +84,21 @@ export function DashboardServidor({
         </a>
       </section>
 
-      <section className="grid gap-3 xl:grid-cols-[minmax(18rem,0.8fr)_minmax(0,1.65fr)]">
-        <NextActionCard {...dados.proximaAcao} />
+      <section
+        className={
+          podeRegistrarPontoPeloSecp
+            ? "grid gap-3 xl:grid-cols-[minmax(18rem,0.8fr)_minmax(0,1.65fr)]"
+            : "grid gap-3"
+        }
+      >
+        {podeRegistrarPontoPeloSecp && <NextActionCard {...proximaAcao} />}
         <div className="grid gap-3">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {dados.metricas.map((metrica) => (
               <DashboardMetricCard key={metrica.titulo} {...metrica} />
             ))}
           </div>
-          <AcessoRapidoGrid acessos={dados.acessos} />
+          <AcessoRapidoGrid acessos={acessos} />
         </div>
       </section>
 

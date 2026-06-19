@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 const DIAS_RETORNO_SOLICITACAO = 30;
 
@@ -215,7 +216,7 @@ export async function listarNotificacoesUsuario(
       categoria: "solicitacao",
       prioridade: "alta",
       titulo: "Solicitação aguardando análise",
-      descricao: `${solicitacao.servidor.usuario.nome} enviou "${solicitacao.titulo}" para ${solicitacao.unidade?.sigla ?? "a unidade"}.`,
+      descricao: `${nomeServidor(solicitacao.servidor)} enviou "${solicitacao.titulo}" para ${solicitacao.unidade?.sigla ?? "a unidade"}.`,
       href: `/solicitacoes/${solicitacao.id}`,
       criadoEm: solicitacao.criadoEm,
       origem: "Solicitações",

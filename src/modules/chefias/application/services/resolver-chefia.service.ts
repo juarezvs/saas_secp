@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 export type ChefiaResolvida = {
   unidadeOrigemId: string;
@@ -56,7 +57,7 @@ export async function resolverChefiaResponsavelDaUnidade(
       servidorId: gestorTitular.servidorId,
       usuarioId: gestorTitular.servidor.usuarioId,
       matricula: gestorTitular.servidor.matricula,
-      nome: gestorTitular.servidor.usuario.nome,
+      nome: nomeServidor(gestorTitular.servidor),
       papel: gestorTitular.papel,
       herdada: false,
     };

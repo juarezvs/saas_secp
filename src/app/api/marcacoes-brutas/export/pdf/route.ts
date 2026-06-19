@@ -10,6 +10,7 @@ import {
 } from "@react-pdf/renderer";
 import { auth } from "@/auth";
 import { listarMarcacoesBrutasParaExportacao } from "@/modules/marcacoes-brutas/infrastructure/repositories/marcacao-bruta.repository";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 export const runtime = "nodejs";
 
@@ -110,7 +111,7 @@ function MarcacoesBrutasPdfDocument({
             React.createElement(
               Text,
               { style: styles.cellServidor },
-              item.servidor?.usuario.nome ?? "-",
+              nomeServidor(item.servidor) || "-",
             ),
             React.createElement(
               Text,

@@ -4,10 +4,12 @@ import { ConvocadoRecessoForm } from "./convocado-recesso-form";
 import { RecessoStatusBadge } from "./recesso-status-badge";
 import { convocarServidorRecessoEmLoteAction } from "../../application/actions/recesso-forense.actions";
 import { formatarDataRecesso } from "../../application/services/recesso-forense.service";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 type ServidorOption = {
   id: string;
   matricula: string;
+  nomeFuncional?: string | null;
   usuario: {
     nome: string;
   };
@@ -34,6 +36,7 @@ type ConvocacoesRecessoPanelProps = {
         servidor: {
           id: string;
           matricula: string;
+          nomeFuncional?: string | null;
           usuario: { nome: string };
           lotacoes: Array<{ unidade: { sigla: string } }>;
         };
@@ -70,7 +73,7 @@ function agruparConvocadosPorServidor(
       grupos.get(servidorId) ??
       {
         servidorId,
-        nome: item.servidor.usuario.nome,
+        nome: nomeServidor(item.servidor),
         matricula: item.servidor.matricula,
         unidade: item.servidor.lotacoes[0]?.unidade.sigla ?? "-",
         pecunia: [],

@@ -1,7 +1,9 @@
 "use server";
 
 import { AuthError } from "next-auth";
+import { cookies } from "next/headers";
 import { signIn } from "@/auth";
+import { PERFIL_ATIVO_COOKIE } from "../../domain/constants/perfil-ativo-cookie";
 import { loginSchema } from "../schemas/login.schema";
 
 export type LoginActionState = {
@@ -34,6 +36,9 @@ export async function loginAction(
   }
 
   try {
+    const cookieStore = await cookies();
+    cookieStore.delete(PERFIL_ATIVO_COOKIE);
+
     await signIn("credentials", {
       matricula: parsed.data.matricula,
       senha: parsed.data.senha,

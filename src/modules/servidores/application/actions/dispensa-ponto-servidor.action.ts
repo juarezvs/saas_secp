@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { PeriodoHomologadoError } from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
+import { recalcularMesServidorService } from "@/modules/recalculo/application/services/recalcular-mes-servidor.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   dispensaPontoServidorSchema,
@@ -72,6 +74,78 @@ async function existeDispensaSobreposta(params: {
   });
 }
 
+function listarCompetenciasPeriodo(dataInicio: Date, dataFim: Date | null) {
+  const hoje = normalizarDataFormulario(dataAtualFormulario());
+  const fimEfetivo = dataFim ?? (hoje > dataInicio ? hoje : dataInicio);
+  const competencias = new Map<
+    string,
+    { anoReferencia: number; mesReferencia: number }
+  >();
+  const cursor = new Date(dataInicio.getFullYear(), dataInicio.getMonth(), 1);
+  const limite = new Date(
+    fimEfetivo.getFullYear(),
+    fimEfetivo.getMonth(),
+    1,
+  );
+
+  while (cursor <= limite) {
+    const anoReferencia = cursor.getFullYear();
+    const mesReferencia = cursor.getMonth() + 1;
+
+    competencias.set(`${anoReferencia}-${mesReferencia}`, {
+      anoReferencia,
+      mesReferencia,
+    });
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  return [...competencias.values()];
+}
+
+async function recalcularDispensaNoEspelho(params: {
+  servidorId: string;
+  dataInicio: Date;
+  dataFim: Date | null;
+  usuarioIdAuditoria: string;
+  origem: string;
+}) {
+  let periodosHomologadosIgnorados = 0;
+
+  for (const competencia of listarCompetenciasPeriodo(
+    params.dataInicio,
+    params.dataFim,
+  )) {
+    try {
+      await recalcularMesServidorService({
+        servidorId: params.servidorId,
+        ...competencia,
+        usuarioIdAuditoria: params.usuarioIdAuditoria,
+        origem: params.origem,
+      });
+    } catch (error) {
+      if (error instanceof PeriodoHomologadoError) {
+        periodosHomologadosIgnorados += 1;
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  return {
+    periodosHomologadosIgnorados,
+  };
+}
+
+function revalidarRotasImpactadas(servidorId: string) {
+  revalidatePath("/servidores");
+  revalidatePath(`/servidores/${servidorId}`);
+  revalidatePath("/apuracao");
+  revalidatePath("/espelho-ponto");
+  revalidatePath("/banco-horas");
+  revalidatePath("/dashboard");
+}
+
 export async function criarDispensaPontoServidorAction(
   servidorId: string,
   _estadoAnterior: DispensaPontoServidorFormState,
@@ -80,6 +154,14 @@ export async function criarDispensaPontoServidorAction(
   const permissao = await exigirPermissaoOuRedirecionar(
     "servidores:gerenciar:global",
   );
+  const usuarioId = permissao.usuarioId;
+
+  if (!usuarioId) {
+    return {
+      sucesso: false,
+      mensagem: "Nao foi possivel identificar o usuario autenticado.",
+    };
+  }
 
   const dados = extrairDadosDispensa(servidorId, formData);
   const parsed = dispensaPontoServidorSchema.safeParse(dados);
@@ -138,13 +220,13 @@ export async function criarDispensaPontoServidorAction(
       status: "ATIVO",
       dataInicio,
       dataFim,
-      criadoPorUsuarioId: permissao.usuarioId,
+      criadoPorUsuarioId: usuarioId,
     },
   });
 
   await prisma.auditoriaEvento.create({
     data: {
-      usuarioId: permissao.usuarioId,
+      usuarioId,
       entidade: "DispensaPontoServidor",
       entidadeId: dispensa.id,
       acao: "DISPENSA_PONTO_SERVIDOR_CRIADA",
@@ -162,12 +244,22 @@ export async function criarDispensaPontoServidorAction(
     },
   });
 
-  revalidatePath("/servidores");
-  revalidatePath(`/servidores/${servidorId}`);
+  const recalculo = await recalcularDispensaNoEspelho({
+    servidorId,
+    dataInicio,
+    dataFim,
+    usuarioIdAuditoria: usuarioId,
+    origem: "DISPENSA_PONTO_SERVIDOR_CRIADA",
+  });
+
+  revalidarRotasImpactadas(servidorId);
 
   return {
     sucesso: true,
-    mensagem: "Dispensa de ponto registrada com sucesso.",
+    mensagem:
+      recalculo.periodosHomologadosIgnorados > 0
+        ? "Dispensa de ponto registrada. Periodos homologados nao foram recalculados."
+        : "Dispensa de ponto registrada com sucesso.",
   };
 }
 
@@ -180,6 +272,14 @@ export async function encerrarDispensaPontoServidorAction(
   const permissao = await exigirPermissaoOuRedirecionar(
     "servidores:gerenciar:global",
   );
+  const usuarioId = permissao.usuarioId;
+
+  if (!usuarioId) {
+    return {
+      sucesso: false,
+      mensagem: "Nao foi possivel identificar o usuario autenticado.",
+    };
+  }
 
   const dados = {
     dataFim: String(formData.get("dataFim") ?? dataAtualFormulario()),
@@ -230,14 +330,14 @@ export async function encerrarDispensaPontoServidorAction(
     data: {
       status: "INATIVO",
       dataFim,
-      encerradoPorUsuarioId: permissao.usuarioId,
+      encerradoPorUsuarioId: usuarioId,
       encerradoEm: new Date(),
     },
   });
 
   await prisma.auditoriaEvento.create({
     data: {
-      usuarioId: permissao.usuarioId,
+      usuarioId,
       entidade: "DispensaPontoServidor",
       entidadeId: dispensa.id,
       acao: "DISPENSA_PONTO_SERVIDOR_ENCERRADA",
@@ -253,11 +353,21 @@ export async function encerrarDispensaPontoServidorAction(
     },
   });
 
-  revalidatePath("/servidores");
-  revalidatePath(`/servidores/${servidorId}`);
+  const recalculo = await recalcularDispensaNoEspelho({
+    servidorId,
+    dataInicio: dispensaAtual.dataInicio,
+    dataFim,
+    usuarioIdAuditoria: usuarioId,
+    origem: "DISPENSA_PONTO_SERVIDOR_ENCERRADA",
+  });
+
+  revalidarRotasImpactadas(servidorId);
 
   return {
     sucesso: true,
-    mensagem: "Dispensa de ponto encerrada com sucesso.",
+    mensagem:
+      recalculo.periodosHomologadosIgnorados > 0
+        ? "Dispensa de ponto encerrada. Periodos homologados nao foram recalculados."
+        : "Dispensa de ponto encerrada com sucesso.",
   };
 }

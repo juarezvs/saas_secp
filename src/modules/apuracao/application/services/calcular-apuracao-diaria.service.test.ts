@@ -200,7 +200,7 @@ describe("calcularApuracaoDiaria", () => {
     );
   });
 
-  it("exige frequencia manual quando ha dispensa excepcional de ponto eletronico", () => {
+  it("calcula dia dispensado sem inconsistencia mesmo com frequencia manual", () => {
     const resultado = calcularApuracaoDiaria({
       jornada: jornada7h,
       marcacoes: [],
@@ -212,7 +212,7 @@ describe("calcularApuracaoDiaria", () => {
     });
 
     expect(resultado.resultado).toBe("REGULAR");
-    expect(resultado.status).toBe("INCONSISTENTE");
+    expect(resultado.status).toBe("CALCULADA");
     expect(resultado.minutosTrabalhados).toBe(420);
     expect(resultado.minutosDebito).toBe(0);
     expect(resultado.frequenciaManual).toEqual(
@@ -221,20 +221,40 @@ describe("calcularApuracaoDiaria", () => {
         registrada: false,
       }),
     );
-    expect(resultado.ocorrencias).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          tipo: "MARCACAO_INCOMPLETA",
-          descricao: expect.stringContaining("Frequencia manual obrigatoria"),
-        }),
-      ]),
-    );
+    expect(resultado.ocorrencias).toEqual([]);
     expect(resultado.dispensaPontoEletronico).toEqual(
       expect.objectContaining({
         ativa: true,
         exigeFrequenciaManual: true,
       }),
     );
+  });
+
+  it("desconsidera marcacoes existentes quando ha dispensa de ponto na data", () => {
+    const resultado = calcularApuracaoDiaria({
+      jornada: jornada7h,
+      marcacoes: [
+        {
+          id: "m1",
+          tipo: "ENTRADA",
+          dataHora: new Date("2026-06-10T08:00:00Z"),
+        },
+      ],
+      dispensaPontoEletronico: {
+        ativa: true,
+        motivos: ["Dispensa administrativa de ponto."],
+        exigeFrequenciaManual: false,
+      },
+    });
+
+    expect(resultado.resultado).toBe("REGULAR");
+    expect(resultado.status).toBe("CALCULADA");
+    expect(resultado.minutosTrabalhados).toBe(420);
+    expect(resultado.minutosCredito).toBe(0);
+    expect(resultado.minutosDebito).toBe(0);
+    expect(resultado.primeiraEntrada).toBeNull();
+    expect(resultado.ultimaSaida).toBeNull();
+    expect(resultado.ocorrencias).toEqual([]);
   });
 
   it("marca sem expediente em dia institucional sem apuracao regular e sem marcacoes", () => {

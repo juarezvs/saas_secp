@@ -182,6 +182,35 @@ export function calcularApuracaoDiaria(params: {
     };
   }
 
+  if (dispensaPontoEletronico?.ativa) {
+    return {
+      cargaPrevistaMinutos: jornada.cargaDiariaMinutos,
+      minutosTrabalhados: jornada.cargaDiariaMinutos,
+      minutosIntervalo: 0,
+      minutosCredito: 0,
+      minutosDebito: 0,
+      resultado: "REGULAR",
+      status: "CALCULADA",
+      primeiraEntrada: null,
+      saidaIntervalo: null,
+      retornoIntervalo: null,
+      ultimaSaida: null,
+      janelaExpediente: resolverJanelaExpediente(jornada),
+      minutosForaExpediente: 0,
+      dispensaPontoEletronico,
+      trabalhoRemoto: null,
+      frequenciaManual: dispensaPontoEletronico.exigeFrequenciaManual
+        ? {
+            obrigatoria: true,
+            registrada: false,
+            descricao:
+              "Frequencia manual dispensada pela dispensa de ponto na data.",
+          }
+        : null,
+      ocorrencias: [],
+    };
+  }
+
   const ordenadas = marcacoes
     .filter((m) =>
       ["ENTRADA", "SAIDA_INTERVALO", "RETORNO_INTERVALO", "SAIDA"].includes(

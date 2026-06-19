@@ -6,6 +6,7 @@ import {
   formatarDataPrazoRegulatorio,
   rotuloSituacaoPrazoRegulatorio,
 } from "@/modules/frequencia/application/services/prazo-regulatorio-frequencia.service";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 type FechamentoUnidadeCardProps = {
   fechamento: {
@@ -20,6 +21,7 @@ type FechamentoUnidadeCardProps = {
     homologadoEm: Date | null;
     gestorResponsavel: {
       servidor: {
+        nomeFuncional?: string | null;
         usuario: {
           nome: string;
         };
@@ -80,7 +82,7 @@ export async function FechamentoUnidadeCard({
             <Info
               label="Chefia"
               value={
-                fechamento.gestorResponsavel?.servidor.usuario.nome ??
+                nomeServidor(fechamento.gestorResponsavel?.servidor) ||
                 "Não identificada"
               }
             />

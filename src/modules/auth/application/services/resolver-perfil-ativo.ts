@@ -3,12 +3,14 @@ import {
   resolverDashboardPerfil,
   type DashboardPerfil,
 } from "@/modules/dashboard/application/resolver-dashboard-perfil";
+import { escolherPerfilInicial } from "./perfil-servidor-prioritario.service";
 
 export type UsuarioSessaoComPerfis = {
   id?: string;
   nome?: string | null;
   name?: string | null;
   matricula?: string | null;
+  tipo?: string | null;
   perfilAtivo?: PerfilSessao | null;
   perfis?: PerfilSessao[];
 };
@@ -20,14 +22,17 @@ export function resolverPerfilAtivoDaSessao(
   const perfis = usuario.perfis ?? [];
   const codigoNormalizado = perfilAtivoCodigo?.toUpperCase();
 
-  return (
+  const perfilPreferido =
     perfis.find(
       (perfil) => perfil.codigo.toUpperCase() === codigoNormalizado,
     ) ??
-    usuario.perfilAtivo ??
-    perfis[0] ??
-    null
-  );
+    usuario.perfilAtivo;
+
+  return escolherPerfilInicial({
+    tipoUsuario: usuario.tipo,
+    perfis,
+    perfilPreferido,
+  });
 }
 
 export function obterTipoDashboardPorPerfil(

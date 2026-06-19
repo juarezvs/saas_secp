@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { minutosParaTexto } from "../../application/services/calcular-tempo.service";
 import {
   classificarDiaEspelho,
@@ -39,9 +41,11 @@ type MarcacaoItem = {
 export function EspelhoPontoMensal({
   apuracoes,
   marcacoes,
+  controles,
 }: {
   apuracoes: ApuracaoMensalItem[];
   marcacoes: MarcacaoItem[];
+  controles?: ReactNode;
 }) {
   const marcacoesPorDia = agruparMarcacoesPorDiaManaus(marcacoes);
 
@@ -71,11 +75,15 @@ export function EspelhoPontoMensal({
 
   return (
     <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
-      <div className="border-b p-5">
-        <h2 className="text-lg font-bold">Espelho mensal</h2>
-        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-          Consolidação preliminar das apurações diárias calculadas.
-        </p>
+      <div className="flex flex-col gap-4 border-b p-5 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h2 className="text-lg font-bold">Espelho mensal</h2>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+            Consolidação preliminar das apurações diárias calculadas.
+          </p>
+        </div>
+
+        {controles ? <div className="lg:ml-auto">{controles}</div> : null}
       </div>
 
       <div className="grid gap-4 border-b p-5 md:grid-cols-4 xl:grid-cols-7">
@@ -140,6 +148,7 @@ export function EspelhoPontoMensal({
               const marcacoesDoDia = marcacoesPorDia.get(chaveReferencia) ?? [];
               const trabalhoRemoto = extrairTrabalhoRemoto(item.metadados);
               const classificacao = classificarDiaEspelho(item);
+              const dispensaPonto = classificacao.dispensaPonto;
               const solicitacoesAplicadas =
                 classificacao.solicitacoesAplicadas;
               const conferencia = conferenciaEspelho(item.status, item);
@@ -153,7 +162,14 @@ export function EspelhoPontoMensal({
                   </td>
 
                   <td className="px-5 py-4">
-                    {trabalhoRemoto ? (
+                    {dispensaPonto ? (
+                      <span
+                        className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
+                        title="Marcações preservadas internamente para rastreio, mas desconsideradas visualmente pela dispensa de ponto."
+                      >
+                        Dispensa de ponto
+                      </span>
+                    ) : trabalhoRemoto ? (
                       <span
                         className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300"
                         title={trabalhoRemoto.descricao}
@@ -188,6 +204,7 @@ export function EspelhoPontoMensal({
                     <OcorrenciasDia
                       ausente={classificacao.ausente}
                       ausenciaParcial={classificacao.ausenciaParcial}
+                      dispensaPonto={classificacao.dispensaPonto}
                       solicitacoes={solicitacoesAplicadas}
                     />
                   </td>
@@ -284,10 +301,12 @@ export function EspelhoPontoMensal({
 function OcorrenciasDia({
   ausente,
   ausenciaParcial,
+  dispensaPonto,
   solicitacoes,
 }: {
   ausente: boolean;
   ausenciaParcial: boolean;
+  dispensaPonto: boolean;
   solicitacoes: SolicitacaoAplicadaEspelho[];
 }) {
   const itens = [
@@ -303,11 +322,21 @@ function OcorrenciasDia({
           },
         ]
       : []),
+    ...(dispensaPonto
+      ? [
+          {
+            chave: "dispensa-ponto",
+            label: "Dispensa de ponto",
+            classe: "ok" as const,
+          },
+        ]
+      : []),
     ...solicitacoes
       .filter((solicitacao) =>
         ["ATIVIDADE_EXTERNA", "VIAGEM_SERVICO", "COMPENSACAO"].includes(
           solicitacao.tipo,
-        ),
+        ) ||
+        (solicitacao.tipo === "DISPENSA_PONTO" && !dispensaPonto),
       )
       .map((solicitacao) => ({
         chave: solicitacao.id,

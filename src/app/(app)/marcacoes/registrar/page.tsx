@@ -1,13 +1,18 @@
 import { auth } from "@/auth";
-import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { PERMISSOES_ACESSO_REGISTRO_PONTO_SECP } from "@/modules/auth/domain/constants/perfis-sistema";
 import { classificarProximaMarcacao } from "@/modules/marcacoes/application/services/classificar-marcacao.service";
 import { listarMarcacoesDoUsuarioNoDia } from "@/modules/marcacoes/infrastructure/repositories/marcacao.repository";
 import { RegistroPontoPage } from "@/modules/marcacoes/presentation/components/registro-ponto-page";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 export default async function RegistrarMarcacaoPage() {
-  await exigirPermissaoOuRedirecionar("marcacoes:registrar:proprio");
+  await exigirUmaDasPermissoesOuRedirecionar(
+    PERMISSOES_ACESSO_REGISTRO_PONTO_SECP,
+  );
 
   const session = await auth();
+  const permissoes = session?.user.perfilAtivo?.permissoes ?? [];
   const { servidor, marcacoes } = session?.user
     ? await listarMarcacoesDoUsuarioNoDia(session.user.id)
     : { servidor: null, marcacoes: [] };
@@ -32,7 +37,7 @@ export default async function RegistrarMarcacaoPage() {
       servidor={
         servidor
           ? {
-              nome: servidor.usuario.nome,
+              nome: nomeServidor(servidor),
               matricula: servidor.matricula,
               unidade:
                 servidor.lotacoes[0]?.unidade.sigla ??
@@ -53,6 +58,10 @@ export default async function RegistrarMarcacaoPage() {
       }))}
       proximaMarcacao={proximaMarcacao}
       fluxoConcluido={fluxoConcluido}
+      podeRegistrarWeb={permissoes.includes("marcacoes:registrar-web:proprio")}
+      podeRegistrarFacial={permissoes.includes(
+        "marcacoes:registrar-facial:proprio",
+      )}
     />
   );
 }

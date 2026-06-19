@@ -1,10 +1,19 @@
 import Link from "next/link";
-import { Clock3, FileCheck2, FileClock, FileX2, type LucideIcon } from "lucide-react";
+import {
+  Check,
+  Clock3,
+  FileCheck2,
+  FileClock,
+  FileX2,
+  Filter,
+  type LucideIcon,
+} from "lucide-react";
 import {
   classeStatusSolicitacao,
   rotuloStatusSolicitacao,
   rotuloTipoSolicitacao,
 } from "../../application/services/fluxo-solicitacao.service";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 type SolicitacaoItem = {
   id: string;
@@ -17,6 +26,7 @@ type SolicitacaoItem = {
   dataFim: Date | null;
   servidor: {
     matricula: string;
+    nomeFuncional?: string | null;
     usuario: {
       nome: string;
     };
@@ -72,6 +82,13 @@ function contarStatus(solicitacoes: SolicitacaoItem[]) {
   );
 }
 
+function contarPorTipo(solicitacoes: SolicitacaoItem[]) {
+  return solicitacoes.reduce((acc, solicitacao) => {
+    acc.set(solicitacao.tipo, (acc.get(solicitacao.tipo) ?? 0) + 1);
+    return acc;
+  }, new Map<string, number>());
+}
+
 function ResumoItem({
   icon: Icon,
   label,
@@ -94,23 +111,84 @@ function ResumoItem({
 
 export function SolicitacoesTable({
   solicitacoes,
+  tipoSelecionado,
 }: {
   solicitacoes: SolicitacaoItem[];
+  tipoSelecionado?: string;
 }) {
-  const resumo = contarStatus(solicitacoes);
+  const tipoAtivo = solicitacoes.some(
+    (solicitacao) => solicitacao.tipo === tipoSelecionado,
+  )
+    ? tipoSelecionado
+    : undefined;
+  const solicitacoesFiltradas = tipoAtivo
+    ? solicitacoes.filter((solicitacao) => solicitacao.tipo === tipoAtivo)
+    : solicitacoes;
+  const resumo = contarStatus(solicitacoesFiltradas);
+  const contagemPorTipo = contarPorTipo(solicitacoes);
+  const tipos = Array.from(contagemPorTipo.keys()).sort((a, b) =>
+    rotuloTipoSolicitacao(a).localeCompare(rotuloTipoSolicitacao(b), "pt-BR"),
+  );
 
   return (
     <section className="space-y-4">
       <div className="grid gap-4 md:grid-cols-4">
-        <ResumoItem icon={Clock3} label="Total" valor={solicitacoes.length} />
+        <ResumoItem
+          icon={Clock3}
+          label="Total"
+          valor={solicitacoesFiltradas.length}
+        />
         <ResumoItem icon={FileClock} label="Pendentes" valor={resumo.pendentes} />
         <ResumoItem icon={FileCheck2} label="Deferidas" valor={resumo.deferidas} />
         <ResumoItem icon={FileX2} label="Indeferidas" valor={resumo.indeferidas} />
       </div>
 
       <div className="rounded-lg border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
-        <div className="border-b p-5">
-          <h2 className="text-lg font-bold">Solicitacoes registradas</h2>
+        <div className="flex flex-col gap-3 border-b p-5 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 className="text-lg font-bold">Solicitacoes registradas</h2>
+            {tipoAtivo ? (
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                Filtrando por {rotuloTipoSolicitacao(tipoAtivo)}.
+              </p>
+            ) : null}
+          </div>
+
+          <details className="relative self-start">
+            <summary className="inline-flex h-10 cursor-pointer list-none items-center gap-2 rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)] [&::-webkit-details-marker]:hidden">
+              <Filter className="size-4" aria-hidden="true" />
+              Filtrar tipo
+            </summary>
+
+            <div className="absolute right-0 z-20 mt-2 w-80 rounded-md border bg-[var(--card)] p-2 shadow-lg">
+              <Link
+                href="/solicitacoes"
+                className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-semibold hover:bg-[var(--muted)]"
+              >
+                <span>Todos os tipos</span>
+                {!tipoAtivo ? <Check className="size-4" aria-hidden="true" /> : null}
+              </Link>
+
+              {tipos.map((tipo) => {
+                const ativo = tipoAtivo === tipo;
+                const query = new URLSearchParams({ tipo });
+
+                return (
+                  <Link
+                    key={tipo}
+                    href={`/solicitacoes?${query.toString()}`}
+                    className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm hover:bg-[var(--muted)]"
+                  >
+                    <span>{rotuloTipoSolicitacao(tipo)}</span>
+                    <span className="flex items-center gap-2 text-xs font-semibold text-[var(--muted-foreground)]">
+                      {contagemPorTipo.get(tipo) ?? 0}
+                      {ativo ? <Check className="size-4" aria-hidden="true" /> : null}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </details>
         </div>
 
         <div className="overflow-x-auto">
@@ -129,7 +207,7 @@ export function SolicitacoesTable({
             </thead>
 
             <tbody>
-              {solicitacoes.map((solicitacao) => (
+              {solicitacoesFiltradas.map((solicitacao) => (
                 <tr key={solicitacao.id} className="border-b last:border-b-0">
                   <td className="px-5 py-4">
                     {new Intl.DateTimeFormat("pt-BR").format(
@@ -143,7 +221,7 @@ export function SolicitacoesTable({
 
                   <td className="px-5 py-4">
                     <div className="font-semibold">
-                      {solicitacao.servidor.usuario.nome}
+                      {nomeServidor(solicitacao.servidor)}
                     </div>
                     <div className="mt-1 font-mono text-xs text-[var(--muted-foreground)]">
                       {solicitacao.servidor.matricula}
@@ -181,7 +259,7 @@ export function SolicitacoesTable({
                 </tr>
               ))}
 
-              {solicitacoes.length === 0 && (
+              {solicitacoesFiltradas.length === 0 && (
                 <tr>
                   <td
                     colSpan={8}

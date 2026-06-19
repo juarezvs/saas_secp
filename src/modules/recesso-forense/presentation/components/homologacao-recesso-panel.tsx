@@ -3,6 +3,7 @@ import {
   devolverHomologacaoRecessoAction,
   homologarRecessoAction,
 } from "../../application/actions/recesso-forense.actions";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { RecessoStatusBadge } from "./recesso-status-badge";
 
 type HomologacaoRecessoPanelProps = {
@@ -16,6 +17,7 @@ type HomologacaoRecessoPanelProps = {
     minutosTrabalhados: number;
     servidor: {
       matricula: string;
+      nomeFuncional?: string | null;
       usuario: { nome: string };
     };
   }>;
@@ -51,7 +53,7 @@ export function HomologacaoRecessoPanel({
               <tr key={homologacao.id} className="border-b align-top last:border-b-0">
                 <td className="px-5 py-4">
                   <div className="font-semibold">
-                    {homologacao.servidor.usuario.nome}
+                    {nomeServidor(homologacao.servidor)}
                   </div>
                   <div className="font-mono text-xs text-[var(--muted-foreground)]">
                     {homologacao.servidor.matricula}

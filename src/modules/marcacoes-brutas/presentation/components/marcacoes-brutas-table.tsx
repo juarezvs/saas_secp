@@ -1,4 +1,5 @@
 import { OrigemMarcacaoIcon } from "@/modules/marcacoes/presentation/components/origem-marcacao-icon";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 type MarcacaoBrutaItem = {
   id: string;
@@ -21,6 +22,7 @@ type MarcacaoBrutaItem = {
   } | null;
   servidor: {
     matricula: string;
+    nomeFuncional?: string | null;
     usuario: {
       nome: string;
     };
@@ -103,7 +105,7 @@ export function MarcacoesBrutasTable({
                   {item.servidor ? (
                     <>
                       <div className="font-semibold">
-                        {item.servidor.usuario.nome}
+                        {nomeServidor(item.servidor)}
                       </div>
                       <div className="mt-1 font-mono text-xs text-[var(--muted-foreground)]">
                         {item.servidor.matricula}

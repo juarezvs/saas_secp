@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { listarMarcacoesBrutasParaExportacao } from "@/modules/marcacoes-brutas/infrastructure/repositories/marcacao-bruta.repository";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 export const runtime = "nodejs";
 
@@ -51,7 +52,7 @@ export async function GET(request: Request) {
       item.origem,
       item.cpf ?? "",
       item.matricula ?? "",
-      item.servidor?.usuario.nome ?? "",
+      nomeServidor(item.servidor),
       item.equipamentoCodigo ?? "",
       item.nsr ?? "",
       item.codigoExterno ?? "",

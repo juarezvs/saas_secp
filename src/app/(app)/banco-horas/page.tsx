@@ -5,6 +5,7 @@ import {
 import {
   buscarServidorBancoHorasPorUsuarioId,
   listarAutorizacoesBancoHorasMes,
+  listarMovimentosComposicaoSaldoBancoHoras,
   listarMovimentosBancoHorasMes,
   listarServidoresComBancoHoras,
 } from "@/modules/banco-horas/infrastructure/repositories/banco-horas.repository";
@@ -20,6 +21,8 @@ type BancoHorasPageProps = {
     competencia?: string;
     anoReferencia?: string;
     mesReferencia?: string;
+    extrato?: string;
+    detalhar?: string;
   }>;
 };
 
@@ -93,6 +96,12 @@ export default async function BancoHorasPage({ searchParams }: BancoHorasPagePro
       })
     : [];
 
+  const movimentosComposicaoSaldo = servidorSelecionado
+    ? await listarMovimentosComposicaoSaldoBancoHoras({
+        servidorId: servidorSelecionado.id,
+      })
+    : [];
+
   const autorizacoes = servidorSelecionado
     ? await listarAutorizacoesBancoHorasMes({
         servidorId: servidorSelecionado.id,
@@ -106,11 +115,15 @@ export default async function BancoHorasPage({ searchParams }: BancoHorasPagePro
       servidores={servidores}
       servidorSelecionado={servidorSelecionado}
       movimentos={movimentos}
+      movimentosComposicaoSaldo={movimentosComposicaoSaldo}
       autorizacoes={autorizacoes}
       anoReferencia={anoReferencia}
       mesReferencia={mesReferencia}
       podeConsultarGlobal={podeConsultarGlobal}
       podeGerenciar={podeGerenciar}
+      perfilAtivoCodigo={permissao.perfilAtivoCodigo}
+      extratoSelecionado={params.extrato}
+      competenciaDetalhada={params.detalhar}
     />
   );
 }

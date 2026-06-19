@@ -61,6 +61,7 @@ export async function recalcularMesServidorService({
     marcacoes,
     apuracoesExistentes,
     solicitacoesDeferidas,
+    dispensasPonto,
     jornadasVigentes,
     calendario,
   ] = await Promise.all([
@@ -116,6 +117,28 @@ export async function recalcularMesServidorService({
       },
       select: {
         dataReferencia: true,
+        dataInicio: true,
+        dataFim: true,
+      },
+    }),
+    prisma.dispensaPontoServidor.findMany({
+      where: {
+        servidorId,
+        dataInicio: {
+          lt: fim,
+        },
+        OR: [
+          {
+            dataFim: null,
+          },
+          {
+            dataFim: {
+              gte: inicio,
+            },
+          },
+        ],
+      },
+      select: {
         dataInicio: true,
         dataFim: true,
       },
@@ -182,6 +205,21 @@ export async function recalcularMesServidorService({
       if (dataImpactada >= inicio && dataImpactada < fim) {
         datas.set(chaveData(dataImpactada), dataImpactada);
       }
+    }
+  }
+
+  for (const dispensa of dispensasPonto) {
+    const inicioDispensa =
+      dispensa.dataInicio > inicio ? dispensa.dataInicio : inicio;
+    const fimDispensa = clonarData(fim);
+
+    if (dispensa.dataFim && dispensa.dataFim < fimDispensa) {
+      fimDispensa.setTime(dispensa.dataFim.getTime());
+      fimDispensa.setUTCDate(fimDispensa.getUTCDate() + 1);
+    }
+
+    if (inicioDispensa < fimDispensa) {
+      adicionarDatasNoIntervalo(datas, inicioDispensa, fimDispensa);
     }
   }
 

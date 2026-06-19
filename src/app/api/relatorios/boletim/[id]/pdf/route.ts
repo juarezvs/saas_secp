@@ -99,6 +99,7 @@ export async function GET(_request: Request, context: RouteContext) {
       observacaoChefia: item.observacaoChefia,
       servidor: {
         matricula: item.servidor.matricula,
+        nomeFuncional: item.servidor.nomeFuncional,
         usuario: {
           nome: item.servidor.usuario.nome,
         },

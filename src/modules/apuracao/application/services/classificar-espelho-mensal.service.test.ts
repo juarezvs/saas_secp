@@ -57,6 +57,33 @@ describe("classificar espelho mensal", () => {
     );
   });
 
+  it("nao exige analise quando ha dispensa de ponto aplicada", () => {
+    expect(
+      conferenciaEspelho("INCONSISTENTE", {
+        resultado: "FALTA",
+        minutosDebito: 420,
+        ocorrencias: [
+          {
+            tipo: "FALTA",
+            descricao: "Ausencia integral sem marcacao.",
+            minutos: 420,
+          },
+        ],
+        metadados: {
+          dispensaPontoAdministrativa: {
+            ativa: true,
+            motivo: "Dispensa administrativa de ponto.",
+          },
+        },
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        rotulo: "Calculada",
+        tom: "ok",
+      }),
+    );
+  });
+
   it("classifica falta e debito como ausencia no espelho", () => {
     expect(
       classificarDiaEspelho({

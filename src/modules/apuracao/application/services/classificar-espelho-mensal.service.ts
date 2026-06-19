@@ -25,6 +25,7 @@ export type ClassificacaoDiaEspelho = {
   ausenciaParcial: boolean;
   atividadeExterna: boolean;
   viagemServico: boolean;
+  dispensaPonto: boolean;
   solicitacoesAplicadas: SolicitacaoAplicadaEspelho[];
   ocorrencias: OcorrenciaEspelho[];
 };
@@ -48,6 +49,15 @@ export function conferenciaEspelho(
   status: string,
   item?: ItemEspelhoMensalClassificacao,
 ): ConferenciaEspelho {
+  if (item && possuiDispensaPontoEspelho(item.metadados)) {
+    return {
+      rotulo: "Calculada",
+      descricao:
+        "Dispensa de ponto aplicada na data; não há pendência de conferência por ausência de marcação eletrônica.",
+      tom: "ok",
+    };
+  }
+
   if (status === "CALCULADA") {
     return {
       rotulo: "Calculada",
@@ -216,6 +226,26 @@ export function rotuloSolicitacaoEspelho(tipo: string) {
   return rotulos[tipo] ?? tipo;
 }
 
+function possuiDispensaPontoEspelho(metadados: unknown) {
+  if (!metadados || typeof metadados !== "object") {
+    return false;
+  }
+
+  const dados = metadados as Record<string, unknown>;
+  const dispensaAdministrativa = dados.dispensaPontoAdministrativa;
+  const dispensaEletronica = dados.dispensaPontoEletronico;
+
+  if (dispensaAdministrativa && typeof dispensaAdministrativa === "object") {
+    return true;
+  }
+
+  if (dispensaEletronica && typeof dispensaEletronica === "object") {
+    return (dispensaEletronica as { ativa?: unknown }).ativa === true;
+  }
+
+  return false;
+}
+
 export function classificarDiaEspelho(
   item: ItemEspelhoMensalClassificacao,
 ): ClassificacaoDiaEspelho {
@@ -229,6 +259,11 @@ export function classificarDiaEspelho(
   const viagemServico = solicitacoesAplicadas.some(
     (solicitacao) => solicitacao.tipo === "VIAGEM_SERVICO",
   );
+  const dispensaPonto =
+    possuiDispensaPontoEspelho(item.metadados) ||
+    solicitacoesAplicadas.some(
+      (solicitacao) => solicitacao.tipo === "DISPENSA_PONTO",
+    );
   const ausente =
     item.resultado === "FALTA" ||
     ocorrencias.some((ocorrencia) => ocorrencia.tipo === "FALTA");
@@ -242,6 +277,7 @@ export function classificarDiaEspelho(
     ausenciaParcial,
     atividadeExterna,
     viagemServico,
+    dispensaPonto,
     solicitacoesAplicadas,
     ocorrencias,
   };

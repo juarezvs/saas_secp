@@ -4,6 +4,7 @@ import {
   minutosParaHoraHomologacao,
   rotuloStatusHomologacaoServidor,
 } from "../../application/services/formatar-homologacao.service";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { HomologarServidorForm } from "./homologar-servidor-form";
 import { PendenciasHomologacaoCard } from "./pendencias-homologacao-card";
 
@@ -21,6 +22,7 @@ type ServidorHomologacaoItem = {
   pendencias: unknown;
   servidor: {
     matricula: string;
+    nomeFuncional?: string | null;
     usuario: {
       nome: string;
     };
@@ -67,7 +69,7 @@ export function ServidoresHomologacaoTable({
             <article key={item.id} className="space-y-4 p-5">
               <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
                 <div>
-                  <p className="font-semibold">{item.servidor.usuario.nome}</p>
+                  <p className="font-semibold">{nomeServidor(item.servidor)}</p>
                   <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                     Matrícula: {item.servidor.matricula} • Lotação:{" "}
                     {item.servidor.lotacoes[0]?.unidade.sigla ?? "-"}

@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { listarServidoresParaExportacao } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
 import {
   PdfListagemDocument,
@@ -33,7 +34,7 @@ const columns: PdfTableColumn<ServidorExportacao>[] = [
     key: "nome",
     header: "Nome",
     width: "34%",
-    render: (servidor) => servidor.usuario.nome,
+    render: (servidor) => nomeServidor(servidor),
   },
   {
     key: "orgao",

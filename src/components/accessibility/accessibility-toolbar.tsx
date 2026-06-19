@@ -111,6 +111,21 @@ function obterClasseBotao(ativo: boolean) {
   }`;
 }
 
+function IndicadorTamanhoFonte({ tamanho }: { tamanho: TamanhoFonte }) {
+  if (tamanho === "16") {
+    return null;
+  }
+
+  return (
+    <span
+      className="absolute -right-1 -top-1 flex min-w-5 items-center justify-center rounded-full bg-amber-300 px-1.5 py-0.5 text-[10px] font-black leading-none text-slate-950 shadow-sm ring-1 ring-white/80"
+      aria-hidden="true"
+    >
+      {tamanho}
+    </span>
+  );
+}
+
 export function AccessibilityToolbar() {
   const [tema, setTema] = useState<Tema>(lerTemaInicial);
   const [tamanhoFonte, setTamanhoFonte] = useState<TamanhoFonte>(
@@ -200,9 +215,7 @@ export function AccessibilityToolbar() {
         suppressHydrationWarning
       >
         <span aria-hidden="true" className="font-bold">A+</span>
-        <span className="absolute bottom-0.5 right-0.5 rounded bg-current px-0.5 text-[8px] font-bold leading-none text-card">
-          {tamanhoFonte}
-        </span>
+        <IndicadorTamanhoFonte tamanho={tamanhoFonte} />
       </button>
 
       <button
@@ -215,9 +228,7 @@ export function AccessibilityToolbar() {
         suppressHydrationWarning
       >
         <span aria-hidden="true" className="font-bold">A-</span>
-        <span className="absolute bottom-0.5 right-0.5 rounded bg-current px-0.5 text-[8px] font-bold leading-none text-card">
-          {tamanhoFonte}
-        </span>
+        <IndicadorTamanhoFonte tamanho={tamanhoFonte} />
       </button>
 
       <button

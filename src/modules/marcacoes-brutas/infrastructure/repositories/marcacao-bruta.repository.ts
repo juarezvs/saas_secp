@@ -42,6 +42,14 @@ export function montarWhereMarcacoesBrutas(
             { codigoExterno: { contains: busca } },
             {
               servidor: {
+                nomeFuncional: {
+                  contains: busca,
+                  mode: "insensitive" as const,
+                },
+              },
+            },
+            {
+              servidor: {
                 usuario: {
                   nome: { contains: busca, mode: "insensitive" as const },
                 },

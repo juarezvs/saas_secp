@@ -12,7 +12,15 @@ import {
 } from "@/modules/solicitacoes/infrastructure/repositories/solicitacao.repository";
 import { SolicitacoesTable } from "@/modules/solicitacoes/presentation/components/solicitacoes-table";
 
-export default async function SolicitacoesPage() {
+type SolicitacoesPageProps = {
+  searchParams: Promise<{
+    tipo?: string;
+  }>;
+};
+
+export default async function SolicitacoesPage({
+  searchParams,
+}: SolicitacoesPageProps) {
   await exigirUmaDasPermissoesOuRedirecionar([
     "solicitacoes:consultar:proprio",
     "solicitacoes:visualizar:proprio",
@@ -21,6 +29,7 @@ export default async function SolicitacoesPage() {
   ]);
 
   const session = await auth();
+  const params = await searchParams;
   const permissoes = session?.user.perfilAtivo?.permissoes ?? [];
   const podeConsultarGlobal = permissoes.includes(
     "solicitacoes:consultar:global",
@@ -59,7 +68,10 @@ export default async function SolicitacoesPage() {
         }
       />
 
-      <SolicitacoesTable solicitacoes={solicitacoes} />
+      <SolicitacoesTable
+        solicitacoes={solicitacoes}
+        tipoSelecionado={params.tipo}
+      />
     </div>
   );
 }

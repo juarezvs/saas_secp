@@ -1,11 +1,10 @@
 import Link from "next/link";
 import {
   AlertTriangle,
-  Banknote,
   CalendarClock,
-  Clock3,
   FileDown,
   Hourglass,
+  Landmark,
   PlusCircle,
   RotateCw,
   TrendingDown,
@@ -16,16 +15,22 @@ import {
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { CompetenciaInput, SearchableSelect } from "@/components/ui";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { gerarMovimentosBancoHorasAction } from "../../application/actions/gerar-movimento-banco-horas.action";
+import { expirarDebitosVencidosAction } from "../../application/actions/expirar-debitos-vencidos.action";
 import { incluirAjusteManualBancoHorasAction } from "../../application/actions/incluir-ajuste-manual-banco-horas.action";
 import { recalcularSaldoBancoHorasAction } from "../../application/actions/recalcular-saldo-banco-horas.action";
 import { LIMITE_CREDITO_MENSAL_MINUTOS } from "../../application/services/aplicar-limites-banco-horas.service";
-import { minutosParaHoraBanco } from "../../application/services/formatar-banco-horas.service";
+import {
+  minutosParaHoraBanco,
+  rotuloOrigemMovimentoBancoHoras,
+} from "../../application/services/formatar-banco-horas.service";
 import { MovimentosBancoHorasTable } from "./movimentos-banco-horas-table";
 
 type ServidorBancoHoras = {
   id: string;
   matricula: string;
+  nomeFuncional?: string | null;
   usuario: {
     nome: string;
   };
@@ -49,6 +54,8 @@ type ServidorBancoHoras = {
 type MovimentoBancoHoras = {
   id: string;
   dataReferencia: Date;
+  mesReferencia: number;
+  anoReferencia: number;
   tipo: string;
   origem: string;
   status: string;
@@ -81,11 +88,56 @@ type BancoHorasPageRealProps = {
   servidores: ServidorBancoHoras[];
   servidorSelecionado: ServidorBancoHoras | null;
   movimentos: MovimentoBancoHoras[];
+  movimentosComposicaoSaldo: MovimentoBancoHoras[];
   autorizacoes: AutorizacaoBancoHoras[];
   anoReferencia: number;
   mesReferencia: number;
   podeConsultarGlobal: boolean;
   podeGerenciar: boolean;
+  perfilAtivoCodigo?: string;
+  extratoSelecionado?: string;
+  competenciaDetalhada?: string;
+};
+
+type ExtratoSaldoTipo =
+  | "creditos-validados"
+  | "debitos-validados"
+  | "creditos-pendentes"
+  | "debitos-pendentes";
+
+const extratosSaldo: Record<
+  ExtratoSaldoTipo,
+  {
+    titulo: string;
+    descricao: string;
+    tipo: "CREDITO" | "DEBITO";
+    status: "VALIDADO" | "PENDENTE";
+  }
+> = {
+  "creditos-validados": {
+    titulo: "Créditos validados",
+    descricao: "Horas positivas já confirmadas e incorporadas ao saldo consolidado.",
+    tipo: "CREDITO",
+    status: "VALIDADO",
+  },
+  "debitos-validados": {
+    titulo: "Débitos validados",
+    descricao: "Horas negativas já confirmadas no saldo consolidado.",
+    tipo: "DEBITO",
+    status: "VALIDADO",
+  },
+  "creditos-pendentes": {
+    titulo: "Créditos pendentes",
+    descricao: "Horas positivas aguardando conferência ou validação no saldo consolidado.",
+    tipo: "CREDITO",
+    status: "PENDENTE",
+  },
+  "debitos-pendentes": {
+    titulo: "Débitos pendentes",
+    descricao: "Horas negativas aguardando conferência ou validação no saldo consolidado.",
+    tipo: "DEBITO",
+    status: "PENDENTE",
+  },
 };
 
 function inicioDoDia(data: Date) {
@@ -147,6 +199,19 @@ function totalMovimentosVencidos(movimentos: MovimentoBancoHoras[]) {
   );
 }
 
+function totalDebitosVencidosParaDesconto(movimentos: MovimentoBancoHoras[]) {
+  const hoje = inicioDoDia(new Date());
+
+  return somarMovimentos(
+    movimentos,
+    (movimento) =>
+      movimento.tipo === "DEBITO" &&
+      movimento.status === "VALIDADO" &&
+      Boolean(movimento.expiraEm) &&
+      inicioDoDia(movimento.expiraEm as Date) < hoje,
+  );
+}
+
 function menorDataLimite(
   movimentos: MovimentoBancoHoras[],
   filtro: (movimento: MovimentoBancoHoras) => boolean,
@@ -181,6 +246,50 @@ function competenciaParaInput(anoReferencia: number, mesReferencia: number) {
   return `${anoReferencia}-${String(mesReferencia).padStart(2, "0")}`;
 }
 
+function normalizarExtratoSaldo(
+  extrato?: string,
+): ExtratoSaldoTipo | null {
+  return extrato && extrato in extratosSaldo
+    ? (extrato as ExtratoSaldoTipo)
+    : null;
+}
+
+function hrefExtratoSaldo({
+  servidorId,
+  anoReferencia,
+  mesReferencia,
+  extrato,
+  competenciaDetalhada,
+  ancora = "extrato-saldo",
+}: {
+  servidorId: string;
+  anoReferencia: number;
+  mesReferencia: number;
+  extrato: ExtratoSaldoTipo;
+  competenciaDetalhada?: string;
+  ancora?: "extrato-saldo" | "extrato-diario";
+}) {
+  const params = new URLSearchParams({
+    servidorId,
+    competencia: competenciaParaInput(anoReferencia, mesReferencia),
+    extrato,
+  });
+
+  if (competenciaDetalhada) {
+    params.set("detalhar", competenciaDetalhada);
+  }
+
+  return `/banco-horas?${params.toString()}#${ancora}`;
+}
+
+function chaveCompetencia(anoReferencia: number, mesReferencia: number) {
+  return `${anoReferencia}-${String(mesReferencia).padStart(2, "0")}`;
+}
+
+function rotuloCompetencia(anoReferencia: number, mesReferencia: number) {
+  return `${String(mesReferencia).padStart(2, "0")}/${anoReferencia}`;
+}
+
 function dadosSaldoPadrao(saldo: ServidorBancoHoras["bancoHorasSaldo"]) {
   return (
     saldo ?? {
@@ -195,20 +304,545 @@ function dadosSaldoPadrao(saldo: ServidorBancoHoras["bancoHorasSaldo"]) {
   );
 }
 
+function FiltrosBancoHoras({
+  servidores,
+  servidorSelecionado,
+  anoReferencia,
+  mesReferencia,
+  podeConsultarGlobal,
+  compacto = false,
+}: {
+  servidores: ServidorBancoHoras[];
+  servidorSelecionado: ServidorBancoHoras | null;
+  anoReferencia: number;
+  mesReferencia: number;
+  podeConsultarGlobal: boolean;
+  compacto?: boolean;
+}) {
+  return (
+    <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
+      <div className="mb-4">
+        <p className="text-sm font-bold text-[var(--foreground)]">
+          {compacto ? "Consultar outro mês" : "Consulta"}
+        </p>
+        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+          {compacto
+            ? "Altere a competência sem sair do seu saldo."
+            : "Selecione o servidor e a competência antes de analisar o saldo."}
+        </p>
+      </div>
+
+      <form
+        className={
+          compacto
+            ? "space-y-4"
+            : "grid gap-4 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-end"
+        }
+      >
+        <div className={compacto && !podeConsultarGlobal ? "hidden" : undefined}>
+          <label htmlFor="servidorId" className="text-sm font-semibold">
+            Servidor
+          </label>
+          <SearchableSelect
+            id="servidorId"
+            name="servidorId"
+            defaultValue={servidorSelecionado?.id ?? ""}
+            disabled={!podeConsultarGlobal}
+            className="mt-2"
+            searchPlaceholder="Pesquisar por matrícula ou nome..."
+            options={servidores.map((servidor) => ({
+              value: servidor.id,
+              label: `${servidor.matricula} - ${nomeServidor(servidor)}`,
+            }))}
+          />
+        </div>
+
+        <CompetenciaInput
+          defaultValue={competenciaParaInput(anoReferencia, mesReferencia)}
+        />
+
+        <button
+          type="submit"
+          className="h-10 rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)]"
+        >
+          Aplicar
+        </button>
+      </form>
+    </section>
+  );
+}
+
+function SaldoPrincipalCard({
+  servidor,
+  saldoMinutos,
+  creditosValidadosMinutos,
+  debitosValidadosMinutos,
+  creditosPendentesMinutos,
+  debitosPendentesMinutos,
+  anoReferencia,
+  mesReferencia,
+  perfilServidorAtivo,
+  extratoAtivo,
+}: {
+  servidor: ServidorBancoHoras;
+  saldoMinutos: number;
+  creditosValidadosMinutos: number;
+  debitosValidadosMinutos: number;
+  creditosPendentesMinutos: number;
+  debitosPendentesMinutos: number;
+  anoReferencia: number;
+  mesReferencia: number;
+  perfilServidorAtivo: boolean;
+  extratoAtivo: ExtratoSaldoTipo | null;
+}) {
+  const saldoPositivo = saldoMinutos >= 0;
+
+  return (
+    <section className="overflow-hidden rounded-xl border bg-blue-950 text-white shadow-sm">
+      <div className="p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-blue-100">
+              {perfilServidorAtivo ? "Meu saldo disponível" : "Saldo do servidor"}
+            </p>
+            <h2 className="mt-3 text-4xl font-bold tracking-tight md:text-5xl">
+              {minutosParaHoraBanco(saldoMinutos)}
+            </h2>
+            <p className="mt-2 text-sm text-blue-100">
+              {saldoPositivo
+                ? "Horas disponíveis para fruição ou compensação."
+                : "Saldo negativo que exige compensação no prazo."}
+            </p>
+          </div>
+
+          <Link
+            href={`/api/relatorios/banco-horas/${servidor.id}/pdf?ano=${anoReferencia}&mes=${mesReferencia}`}
+            className="inline-flex w-fit items-center gap-2 rounded-md bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/20"
+          >
+            <FileDown className="size-4" aria-hidden="true" />
+            Exportar PDF
+          </Link>
+        </div>
+
+        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <SaldoMiniIndicador
+            titulo="Créditos validados"
+            valor={minutosParaHoraBanco(creditosValidadosMinutos)}
+            href={hrefExtratoSaldo({
+              servidorId: servidor.id,
+              anoReferencia,
+              mesReferencia,
+              extrato: "creditos-validados",
+            })}
+            ativo={extratoAtivo === "creditos-validados"}
+          />
+          <SaldoMiniIndicador
+            titulo="Débitos validados"
+            valor={minutosParaHoraBanco(debitosValidadosMinutos)}
+            href={hrefExtratoSaldo({
+              servidorId: servidor.id,
+              anoReferencia,
+              mesReferencia,
+              extrato: "debitos-validados",
+            })}
+            ativo={extratoAtivo === "debitos-validados"}
+          />
+          <SaldoMiniIndicador
+            titulo="Créditos pendentes"
+            valor={minutosParaHoraBanco(creditosPendentesMinutos)}
+            href={hrefExtratoSaldo({
+              servidorId: servidor.id,
+              anoReferencia,
+              mesReferencia,
+              extrato: "creditos-pendentes",
+            })}
+            ativo={extratoAtivo === "creditos-pendentes"}
+          />
+          <SaldoMiniIndicador
+            titulo="Débitos pendentes"
+            valor={minutosParaHoraBanco(debitosPendentesMinutos)}
+            href={hrefExtratoSaldo({
+              servidorId: servidor.id,
+              anoReferencia,
+              mesReferencia,
+              extrato: "debitos-pendentes",
+            })}
+            ativo={extratoAtivo === "debitos-pendentes"}
+          />
+        </div>
+      </div>
+
+      <div className="border-t border-white/10 bg-white/5 px-6 py-4">
+        <p className="text-sm font-semibold">{nomeServidor(servidor)}</p>
+        <p className="mt-1 text-sm text-blue-100">
+          Matrícula {servidor.matricula} -{" "}
+          {servidor.lotacoes?.[0]?.unidade.sigla ??
+            "Sem lotação na competência"}
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function SaldoMiniIndicador({
+  titulo,
+  valor,
+  href,
+  ativo,
+}: {
+  titulo: string;
+  valor: string;
+  href: string;
+  ativo: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`rounded-lg p-3 ring-1 transition hover:bg-white/20 ${
+        ativo ? "bg-white/25 ring-white/60" : "bg-white/10 ring-white/10"
+      }`}
+    >
+      <p className="text-xs font-medium text-blue-100">{titulo}</p>
+      <p className="mt-1 font-mono text-lg font-bold">{valor}</p>
+      <p className="mt-2 text-xs font-semibold text-blue-100">
+        Ver composição
+      </p>
+    </Link>
+  );
+}
+
+function AcoesBancoHoras({
+  servidorId,
+  anoReferencia,
+  mesReferencia,
+  podeGerenciar,
+}: {
+  servidorId: string;
+  anoReferencia: number;
+  mesReferencia: number;
+  podeGerenciar: boolean;
+}) {
+  if (!podeGerenciar) {
+    return (
+      <section className="rounded-xl border bg-[var(--card)] p-5 text-sm text-[var(--muted-foreground)] shadow-sm">
+        <h2 className="text-base font-bold text-[var(--foreground)]">
+          Próximos passos
+        </h2>
+        <p className="mt-2 leading-6">
+          Consulte os movimentos abaixo para entender a composição do saldo. Em
+          caso de divergência, registre uma solicitação para análise da chefia.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
+      <h2 className="text-base font-bold text-[var(--foreground)]">
+        Ações administrativas
+      </h2>
+      <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
+        Rotinas de manutenção do saldo e tratamento de débitos vencidos.
+      </p>
+
+      <div className="mt-4 space-y-2">
+        <form action={gerarMovimentosBancoHorasAction}>
+          <input type="hidden" name="servidorId" value={servidorId} />
+          <input type="hidden" name="anoReferencia" value={anoReferencia} />
+          <input type="hidden" name="mesReferencia" value={mesReferencia} />
+          <button
+            type="submit"
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)]"
+          >
+            <RotateCw className="size-4" aria-hidden="true" />
+            Gerar movimentos
+          </button>
+        </form>
+
+        <form action={recalcularSaldoBancoHorasAction}>
+          <input type="hidden" name="servidorId" value={servidorId} />
+          <button
+            type="submit"
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)]"
+          >
+            <RotateCw className="size-4" aria-hidden="true" />
+            Recalcular saldo
+          </button>
+        </form>
+
+        <form action={expirarDebitosVencidosAction}>
+          <input type="hidden" name="servidorId" value={servidorId} />
+          <button
+            type="submit"
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-amber-200 px-4 text-sm font-semibold text-amber-800 transition hover:bg-amber-50 dark:border-amber-900 dark:text-amber-300 dark:hover:bg-amber-950"
+          >
+            <Landmark className="size-4" aria-hidden="true" />
+            Expirar débitos vencidos
+          </button>
+        </form>
+      </div>
+    </section>
+  );
+}
+
+function ExtratoComposicaoSaldo({
+  extrato,
+  movimentos,
+  servidorId,
+  anoReferencia,
+  mesReferencia,
+  competenciaDetalhada,
+}: {
+  extrato: ExtratoSaldoTipo;
+  movimentos: MovimentoBancoHoras[];
+  servidorId: string;
+  anoReferencia: number;
+  mesReferencia: number;
+  competenciaDetalhada?: string;
+}) {
+  const configuracao = extratosSaldo[extrato];
+  const movimentosFiltrados = movimentos.filter(
+    (movimento) =>
+      movimento.tipo === configuracao.tipo &&
+      movimento.status === configuracao.status,
+  );
+  const total = movimentosFiltrados.reduce(
+    (soma, movimento) => soma + movimento.minutos,
+    0,
+  );
+  const competencias = Array.from(
+    movimentosFiltrados
+      .reduce((mapa, movimento) => {
+        const chave = chaveCompetencia(
+          movimento.anoReferencia,
+          movimento.mesReferencia,
+        );
+        const atual = mapa.get(chave) ?? {
+          chave,
+          anoReferencia: movimento.anoReferencia,
+          mesReferencia: movimento.mesReferencia,
+          total: 0,
+          quantidade: 0,
+        };
+
+        atual.total += movimento.minutos;
+        atual.quantidade += 1;
+        mapa.set(chave, atual);
+
+        return mapa;
+      }, new Map<string, { chave: string; anoReferencia: number; mesReferencia: number; total: number; quantidade: number }>())
+      .values(),
+  ).sort((a, b) =>
+    a.anoReferencia === b.anoReferencia
+      ? a.mesReferencia - b.mesReferencia
+      : a.anoReferencia - b.anoReferencia,
+  );
+  const detalheAtivo = competencias.some(
+    (competencia) => competencia.chave === competenciaDetalhada,
+  )
+    ? competenciaDetalhada
+    : null;
+  const movimentosDetalhados = detalheAtivo
+    ? movimentosFiltrados.filter(
+        (movimento) =>
+          chaveCompetencia(
+            movimento.anoReferencia,
+            movimento.mesReferencia,
+          ) === detalheAtivo,
+      )
+    : [];
+
+  return (
+    <section
+      id="extrato-saldo"
+      className="scroll-mt-24 rounded-xl border bg-[var(--card)] shadow-sm"
+    >
+      <div className="flex flex-col gap-3 border-b p-5 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">
+            Extrato da composição
+          </p>
+          <h2 className="mt-1 text-xl font-bold">{configuracao.titulo}</h2>
+          <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
+            {configuracao.descricao}
+          </p>
+        </div>
+
+        <div className="rounded-lg bg-[var(--muted)] px-4 py-3 text-right">
+          <p className="text-xs font-semibold uppercase text-[var(--muted-foreground)]">
+            Total
+          </p>
+          <p className="mt-1 font-mono text-2xl font-bold">
+            {minutosParaHoraBanco(total)}
+          </p>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[680px] text-left text-sm">
+          <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
+            <tr>
+              <th className="px-5 py-3">Competência</th>
+              <th className="px-5 py-3">Lançamentos</th>
+              <th className="px-5 py-3 text-right">Horas</th>
+              <th className="px-5 py-3 text-right">Detalhe</th>
+            </tr>
+          </thead>
+          <tbody>
+            {competencias.map((competencia) => (
+              <tr key={competencia.chave} className="border-b last:border-0">
+                <td className="px-5 py-4 font-mono">
+                  {rotuloCompetencia(
+                    competencia.anoReferencia,
+                    competencia.mesReferencia,
+                  )}
+                </td>
+                <td className="px-5 py-4 text-[var(--muted-foreground)]">
+                  {competencia.quantidade} lançamento
+                  {competencia.quantidade === 1 ? "" : "s"}
+                </td>
+                <td className="px-5 py-4 text-right font-mono font-bold">
+                  {minutosParaHoraBanco(competencia.total)}
+                </td>
+                <td className="px-5 py-4 text-right">
+                  <Link
+                    href={
+                      detalheAtivo === competencia.chave
+                        ? hrefExtratoSaldo({
+                            servidorId,
+                            anoReferencia,
+                            mesReferencia,
+                            extrato,
+                          })
+                        : hrefExtratoSaldo({
+                            servidorId,
+                            anoReferencia,
+                            mesReferencia,
+                            extrato,
+                            competenciaDetalhada: competencia.chave,
+                            ancora: "extrato-diario",
+                          })
+                    }
+                    className="text-sm font-semibold text-blue-800 underline-offset-4 hover:underline dark:text-blue-300"
+                  >
+                    {detalheAtivo === competencia.chave
+                      ? "Detalhando"
+                      : "Detalhar"}
+                  </Link>
+                </td>
+              </tr>
+            ))}
+
+            {competencias.length === 0 && (
+              <tr>
+                <td
+                  colSpan={4}
+                  className="px-5 py-10 text-center text-[var(--muted-foreground)]"
+                >
+                  Nenhum movimento encontrado para esta composição na
+                  composição do saldo.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {detalheAtivo ? (
+        <div id="extrato-diario" className="scroll-mt-24 border-t p-5">
+          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h3 className="text-base font-bold">
+                Composição diária de{" "}
+                {rotuloCompetencia(
+                  Number(detalheAtivo.slice(0, 4)),
+                  Number(detalheAtivo.slice(5, 7)),
+                )}
+              </h3>
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                Lançamentos que compõem o total consolidado da competência.
+              </p>
+            </div>
+
+            <Link
+              href={hrefExtratoSaldo({
+                servidorId,
+                anoReferencia,
+                mesReferencia,
+                extrato,
+              })}
+              className="inline-flex w-fit items-center justify-center rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)]"
+            >
+              Voltar para competências
+            </Link>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left text-sm">
+              <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
+                <tr>
+                  <th className="px-5 py-3">Data</th>
+                  <th className="px-5 py-3">Origem</th>
+                  <th className="px-5 py-3">Descrição</th>
+                  <th className="px-5 py-3">Vencimento</th>
+                  <th className="px-5 py-3 text-right">Horas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {movimentosDetalhados.map((movimento) => (
+                  <tr key={movimento.id} className="border-b last:border-0">
+                    <td className="px-5 py-4">
+                      {new Intl.DateTimeFormat("pt-BR").format(
+                        movimento.dataReferencia,
+                      )}
+                    </td>
+                    <td className="px-5 py-4 font-semibold">
+                      {rotuloOrigemMovimentoBancoHoras(movimento.origem)}
+                    </td>
+                    <td className="px-5 py-4 text-[var(--muted-foreground)]">
+                      {movimento.descricao ?? "-"}
+                    </td>
+                    <td className="px-5 py-4">
+                      {movimento.expiraEm
+                        ? new Intl.DateTimeFormat("pt-BR").format(
+                            movimento.expiraEm,
+                          )
+                        : "-"}
+                    </td>
+                    <td className="px-5 py-4 text-right font-mono font-bold">
+                      {minutosParaHoraBanco(movimento.minutos)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 export function BancoHorasPageReal({
   servidores,
   servidorSelecionado,
   movimentos,
+  movimentosComposicaoSaldo,
   autorizacoes,
   anoReferencia,
   mesReferencia,
   podeConsultarGlobal,
   podeGerenciar,
+  perfilAtivoCodigo,
+  extratoSelecionado,
+  competenciaDetalhada,
 }: BancoHorasPageRealProps) {
   const creditosMes = totalCreditosMes(movimentos);
   const limiteRestante = Math.max(0, LIMITE_CREDITO_MENSAL_MINUTOS - creditosMes);
   const creditosAVencer = totalCreditosAVencer(movimentos);
   const debitosACompensar = totalDebitosACompensar(movimentos);
+  const debitosVencidosParaDesconto =
+    totalDebitosVencidosParaDesconto(movimentos);
   const movimentosVencidos = totalMovimentosVencidos(movimentos);
   const limiteCredito = formatarDataLimite(
     menorDataLimite(movimentos, (movimento) => movimento.tipo === "CREDITO"),
@@ -217,6 +851,9 @@ export function BancoHorasPageReal({
     menorDataLimite(movimentos, (movimento) => movimento.tipo === "DEBITO"),
   );
   const { ano, mes } = referenciaAtual();
+  const perfilServidorAtivo = perfilAtivoCodigo?.toUpperCase() === "SERVIDOR";
+  const dadosSaldo = dadosSaldoPadrao(servidorSelecionado?.bancoHorasSaldo ?? null);
+  const extratoAtivo = normalizarExtratoSaldo(extratoSelecionado);
 
   return (
     <div className="space-y-6">
@@ -231,7 +868,13 @@ export function BancoHorasPageReal({
         regraDescricao="Créditos e compensações dependem de autorização prévia da chefia. O limite ordinário de crédito para fruição futura é de 16h mensais."
       />
 
-      <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
+      <section
+        className={
+          perfilServidorAtivo
+            ? "hidden"
+            : "rounded-xl border bg-[var(--card)] p-5 shadow-sm"
+        }
+      >
         <form className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-end">
           <div>
             <label htmlFor="servidorId" className="text-sm font-semibold">
@@ -246,7 +889,7 @@ export function BancoHorasPageReal({
               searchPlaceholder="Pesquisar por matrícula ou nome..."
               options={servidores.map((servidor) => ({
                 value: servidor.id,
-                label: `${servidor.matricula} — ${servidor.usuario.nome}`,
+                label: `${servidor.matricula} — ${nomeServidor(servidor)}`,
               }))}
             />
           </div>
@@ -266,11 +909,57 @@ export function BancoHorasPageReal({
 
       {servidorSelecionado ? (
         <>
-          <section className="flex flex-col justify-between gap-3 rounded-xl border bg-[var(--card)] p-5 shadow-sm md:flex-row md:items-center">
+          <section className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+            <SaldoPrincipalCard
+              servidor={servidorSelecionado}
+              saldoMinutos={dadosSaldo.saldoMinutos}
+              creditosValidadosMinutos={dadosSaldo.creditosValidadosMinutos}
+              debitosValidadosMinutos={dadosSaldo.debitosValidadosMinutos}
+              creditosPendentesMinutos={dadosSaldo.creditosPendentesMinutos}
+              debitosPendentesMinutos={dadosSaldo.debitosPendentesMinutos}
+              anoReferencia={anoReferencia}
+              mesReferencia={mesReferencia}
+              perfilServidorAtivo={perfilServidorAtivo}
+              extratoAtivo={extratoAtivo}
+            />
+
+            <div className="space-y-4">
+              {perfilServidorAtivo ? (
+                <FiltrosBancoHoras
+                  servidores={servidores}
+                  servidorSelecionado={servidorSelecionado}
+                  anoReferencia={anoReferencia}
+                  mesReferencia={mesReferencia}
+                  podeConsultarGlobal={podeConsultarGlobal}
+                  compacto
+                />
+              ) : null}
+
+              <AcoesBancoHoras
+                servidorId={servidorSelecionado.id}
+                anoReferencia={anoReferencia || ano}
+                mesReferencia={mesReferencia || mes}
+                podeGerenciar={podeGerenciar}
+              />
+            </div>
+          </section>
+
+          {extratoAtivo ? (
+            <ExtratoComposicaoSaldo
+              extrato={extratoAtivo}
+              movimentos={movimentosComposicaoSaldo}
+              servidorId={servidorSelecionado.id}
+              anoReferencia={anoReferencia}
+              mesReferencia={mesReferencia}
+              competenciaDetalhada={competenciaDetalhada}
+            />
+          ) : null}
+
+          <section className="hidden">
             <div>
               <p className="text-sm text-[var(--muted-foreground)]">Servidor selecionado</p>
               <h2 className="mt-1 text-xl font-bold">
-                {servidorSelecionado.usuario.nome}
+                {nomeServidor(servidorSelecionado)}
               </h2>
               <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                 Matrícula {servidorSelecionado.matricula} -{" "}
@@ -313,13 +1002,23 @@ export function BancoHorasPageReal({
                       Recalcular saldo
                     </button>
                   </form>
+
+                  <form action={expirarDebitosVencidosAction}>
+                    <input type="hidden" name="servidorId" value={servidorSelecionado.id} />
+                    <button
+                      type="submit"
+                      className="inline-flex items-center gap-2 rounded-md border border-amber-200 px-4 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-50 dark:border-amber-900 dark:text-amber-300 dark:hover:bg-amber-950"
+                    >
+                      <Landmark className="size-4" aria-hidden="true" />
+                      Expirar debitos vencidos
+                    </button>
+                  </form>
                 </>
               )}
             </div>
           </section>
 
           <ResumoBancoHorasGrid
-            saldo={servidorSelecionado.bancoHorasSaldo}
             creditosMes={creditosMes}
             limiteRestante={limiteRestante}
             creditosAVencer={creditosAVencer}
@@ -373,6 +1072,26 @@ export function BancoHorasPageReal({
                   </div>
                 </section>
               )}
+
+              {debitosVencidosParaDesconto > 0 && (
+                <section className="flex gap-3 rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-100">
+                  <Landmark
+                    className="mt-0.5 size-5 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <div>
+                    <h2 className="font-bold">
+                      Debitos prontos para desconto em folha
+                    </h2>
+                    <p className="mt-1">
+                      Existem {minutosParaHoraBanco(debitosVencidosParaDesconto)} em
+                      debitos validados cujo prazo de compensacao venceu.
+                      Use a rotina de expiracao para retirar esses debitos do
+                      saldo e registrar a providencia de desconto.
+                    </p>
+                  </div>
+                </section>
+              )}
             </aside>
           </section>
         </>
@@ -386,7 +1105,6 @@ export function BancoHorasPageReal({
 }
 
 function ResumoBancoHorasGrid({
-  saldo,
   creditosMes,
   limiteRestante,
   creditosAVencer,
@@ -394,7 +1112,6 @@ function ResumoBancoHorasGrid({
   limiteCredito,
   limiteDebito,
 }: {
-  saldo: ServidorBancoHoras["bancoHorasSaldo"];
   creditosMes: number;
   limiteRestante: number;
   creditosAVencer: number;
@@ -402,86 +1119,56 @@ function ResumoBancoHorasGrid({
   limiteCredito: string | null;
   limiteDebito: string | null;
 }) {
-  const dados = dadosSaldoPadrao(saldo);
-
   return (
-    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <ResumoBancoHorasCard
-        titulo="Saldo atual"
-        valor={minutosParaHoraBanco(dados.saldoMinutos)}
-        descricao="Créditos validados menos débitos validados."
-        detalhe="Saldo consolidado do servidor."
-        icon={Banknote}
-      />
-      <ResumoBancoHorasCard
-        titulo="Créditos validados"
-        valor={minutosParaHoraBanco(dados.creditosValidadosMinutos)}
-        descricao="Horas efetivamente incorporadas ao banco."
-        detalhe={
-          limiteCredito
-            ? `Usufruto/compensação até ${limiteCredito}.`
-            : "Sem crédito com vencimento aberto."
-        }
-        icon={TrendingUp}
-      />
-      <ResumoBancoHorasCard
-        titulo="Débitos validados"
-        valor={minutosParaHoraBanco(dados.debitosValidadosMinutos)}
-        descricao="Horas negativas confirmadas no saldo."
-        detalhe={
-          limiteDebito
-            ? `Compensação até ${limiteDebito}.`
-            : "Sem débito com vencimento aberto."
-        }
-        icon={TrendingDown}
-      />
-      <ResumoBancoHorasCard
-        titulo="Pendências"
-        valor={`${minutosParaHoraBanco(
-          dados.creditosPendentesMinutos,
-        )} / ${minutosParaHoraBanco(dados.debitosPendentesMinutos)}`}
-        descricao="Créditos e débitos pendentes de validação."
-        detalhe="Crédito / débito aguardando conferência."
-        icon={Clock3}
-      />
-      <ResumoBancoHorasCard
-        titulo="Crédito no mês"
-        valor={minutosParaHoraBanco(creditosMes)}
-        descricao="Créditos da competência selecionada."
-        detalhe={`Limite ordinário: ${minutosParaHoraBanco(
-          LIMITE_CREDITO_MENSAL_MINUTOS,
-        )}.`}
-        icon={TrendingUp}
-      />
-      <ResumoBancoHorasCard
-        titulo="Limite restante"
-        valor={minutosParaHoraBanco(limiteRestante)}
-        descricao="Margem disponível no limite mensal."
-        detalhe="Horas acima do limite não são computáveis."
-        icon={CalendarClock}
-      />
-      <ResumoBancoHorasCard
-        titulo="Créditos a vencer"
-        valor={minutosParaHoraBanco(creditosAVencer)}
-        descricao="Créditos válidos para fruição futura."
-        detalhe={
-          limiteCredito
-            ? `Próximo prazo: ${limiteCredito}.`
-            : "Sem prazo de usufruto aberto."
-        }
-        icon={CalendarClock}
-      />
-      <ResumoBancoHorasCard
-        titulo="Débitos a compensar"
-        valor={minutosParaHoraBanco(debitosACompensar)}
-        descricao="Débitos ainda compensáveis no prazo."
-        detalhe={
-          limiteDebito
-            ? `Compensar até ${limiteDebito}.`
-            : "Sem prazo de compensação aberto."
-        }
-        icon={TrendingDown}
-      />
+    <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
+      <div className="mb-4">
+        <h2 className="text-lg font-bold">Prazos e limites</h2>
+        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+          Indicadores de apoio para acompanhar limite mensal, vencimentos e
+          compensações da competência selecionada.
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <ResumoBancoHorasCard
+          titulo="Crédito no mês"
+          valor={minutosParaHoraBanco(creditosMes)}
+          descricao="Créditos da competência selecionada."
+          detalhe={`Limite ordinário: ${minutosParaHoraBanco(
+            LIMITE_CREDITO_MENSAL_MINUTOS,
+          )}.`}
+          icon={TrendingUp}
+        />
+        <ResumoBancoHorasCard
+          titulo="Limite restante"
+          valor={minutosParaHoraBanco(limiteRestante)}
+          descricao="Margem disponível no limite mensal."
+          detalhe="Horas acima do limite não são computáveis."
+          icon={CalendarClock}
+        />
+        <ResumoBancoHorasCard
+          titulo="Créditos a vencer"
+          valor={minutosParaHoraBanco(creditosAVencer)}
+          descricao="Créditos válidos para fruição futura."
+          detalhe={
+            limiteCredito
+              ? `Próximo prazo: ${limiteCredito}.`
+              : "Sem prazo de usufruto aberto."
+          }
+          icon={CalendarClock}
+        />
+        <ResumoBancoHorasCard
+          titulo="Débitos a compensar"
+          valor={minutosParaHoraBanco(debitosACompensar)}
+          descricao="Débitos ainda compensáveis no prazo."
+          detalhe={
+            limiteDebito
+              ? `Compensar até ${limiteDebito}.`
+              : "Sem prazo de compensação aberto."
+          }
+          icon={TrendingDown}
+        />
+      </div>
     </section>
   );
 }
@@ -500,7 +1187,7 @@ function ResumoBancoHorasCard({
   icon: LucideIcon;
 }) {
   return (
-    <article className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
+    <article className="rounded-lg border bg-[var(--background)] p-4 text-[var(--card-foreground)]">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-[var(--muted-foreground)]">

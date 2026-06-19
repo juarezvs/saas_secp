@@ -16,6 +16,7 @@ import { buscarSolicitacaoPorId } from "@/modules/solicitacoes/infrastructure/re
 import { AnalisarSolicitacaoForm } from "@/modules/solicitacoes/presentation/components/analisar-solicitacao-form";
 import { SolicitacaoStepper } from "@/modules/solicitacoes/presentation/components/solicitacao-stepper";
 import { SolicitacaoTimeline } from "@/modules/solicitacoes/presentation/components/solicitacao-timeline";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 type SolicitacaoDetalhePageProps = {
   params: Promise<{
@@ -102,7 +103,7 @@ export default async function SolicitacaoDetalhePage({
             {solicitacao.titulo}
           </h1>
           <p className="mt-2 text-sm text-(--muted-foreground)">
-            Servidor: {solicitacao.servidor.usuario.nome} • Matrícula{" "}
+            Servidor: {nomeServidor(solicitacao.servidor)} • Matrícula{" "}
             {solicitacao.servidor.matricula}
           </p>
         </div>
@@ -137,7 +138,7 @@ export default async function SolicitacaoDetalhePage({
           <Info
             label="Chefia responsável"
             value={
-              solicitacao.chefiaResponsavel?.servidor.usuario.nome ??
+              nomeServidor(solicitacao.chefiaResponsavel?.servidor) ||
               "Não identificada"
             }
           />

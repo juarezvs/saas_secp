@@ -129,7 +129,7 @@ export async function criarServidorAction(
         },
         matricula,
         cpf: parsed.data.cpf || null,
-        nomeFuncional: parsed.data.nomeFuncional || null,
+        nomeFuncional: parsed.data.nomeFuncional || parsed.data.nome,
         vinculo: parsed.data.vinculo,
         ativo: parsed.data.ativo,
       },

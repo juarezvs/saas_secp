@@ -11,6 +11,7 @@ import {
   buscarApuracaoDiaria,
   buscarServidorComUsuarioPorUsuarioId,
 } from "@/modules/apuracao/infrastructure/repositories/apuracao.repository";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 export default async function ApuracaoPage() {
   await exigirUmaDasPermissoesOuRedirecionar([
@@ -49,7 +50,7 @@ export default async function ApuracaoPage() {
 
       {servidor ? (
         <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
-          <h2 className="text-lg font-bold">{servidor.usuario.nome}</h2>
+          <h2 className="text-lg font-bold">{nomeServidor(servidor)}</h2>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
             Matrícula: {servidor.matricula}
           </p>

@@ -36,6 +36,7 @@ import {
 import {
   usuarioPossuiAlgumaPermissaoNoPerfil,
 } from "@/modules/auth/application/services/permissao-utils";
+import { PERMISSOES_ACESSO_REGISTRO_PONTO_SECP } from "@/modules/auth/domain/constants/perfis-sistema";
 
 export type PerfilNavegacao = {
   codigo: string;
@@ -53,7 +54,7 @@ export type MenuItem = {
 
 export const MENU_ITEMS: MenuItem[] = [
   { label: "Inicio", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Registrar ponto", href: "/marcacoes/registrar", icon: Fingerprint, permissoes: ["marcacoes:registrar:proprio"] },
+  { label: "Registrar ponto", href: "/marcacoes/registrar", icon: Fingerprint, permissoes: PERMISSOES_ACESSO_REGISTRO_PONTO_SECP },
   { label: "Marcações", href: "/marcacoes", icon: Clock, permissoes: ["marcacoes:consultar:global"] },
   { label: "Marcações brutas", href: "/marcacoes-brutas", icon: DatabaseZap, permissoes: ["marcacoes:gerenciar:global", "afd:importar:global"] },
   { label: "Espelho de ponto", href: "/espelho-ponto", icon: CalendarDays, permissoes: ["espelho-ponto:visualizar:proprio", "apuracao:consultar:proprio", "apuracao:consultar:global"] },

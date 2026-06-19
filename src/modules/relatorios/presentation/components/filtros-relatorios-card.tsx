@@ -1,8 +1,10 @@
 import { CompetenciaInput, SearchableSelect } from "@/components/ui";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 type ServidorRelatorioItem = {
   id: string;
   matricula: string;
+  nomeFuncional?: string | null;
   usuario: {
     nome: string;
   };
@@ -54,7 +56,7 @@ export function FiltrosRelatoriosCard({
             searchPlaceholder="Pesquisar por matrícula, nome ou lotação..."
             options={servidores.map((servidor) => ({
               value: servidor.id,
-              label: `${servidor.matricula} — ${servidor.usuario.nome}${
+              label: `${servidor.matricula} — ${nomeServidor(servidor)}${
                 servidor.lotacoes[0]
                   ? ` (${servidor.lotacoes[0].unidade.sigla})`
                   : ""

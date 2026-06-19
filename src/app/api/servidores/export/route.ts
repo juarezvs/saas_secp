@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { listarServidoresParaExportacao } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
 import { type CsvColumn } from "@/shared/export/csv-builder";
 import { criarCsvResponse } from "@/shared/export/csv-response";
@@ -12,7 +13,7 @@ type ServidorExportacao = Awaited<
 const columns: CsvColumn<ServidorExportacao>[] = [
   { header: "Matricula", render: (servidor) => servidor.matricula },
   { header: "CPF", render: (servidor) => servidor.cpf ?? "" },
-  { header: "Nome", render: (servidor) => servidor.usuario.nome },
+  { header: "Nome", render: (servidor) => nomeServidor(servidor) },
   { header: "E-mail", render: (servidor) => servidor.usuario.email ?? "" },
   { header: "Orgao", render: (servidor) => servidor.orgao.sigla },
   { header: "Vinculo", render: (servidor) => servidor.vinculo },

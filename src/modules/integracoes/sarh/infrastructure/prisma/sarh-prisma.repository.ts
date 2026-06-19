@@ -710,15 +710,22 @@ export class SarhPrismaRepository {
       cargo?.id ?? null,
     );
 
+    const servidorUpdateData = Object.fromEntries(
+      Object.entries(servidorData).filter(([campo]) => campo !== "nomeFuncional"),
+    ) as Omit<typeof servidorData, "nomeFuncional">;
+
     const servidor = servidorExistente
       ? await this.prisma.servidor.update({
           where: { id: servidorExistente.id },
-          data: servidorData as Parameters<
+          data: servidorUpdateData as Parameters<
             typeof this.prisma.servidor.update
           >[0]["data"],
         })
       : await this.prisma.servidor.create({
-          data: servidorData as Parameters<
+          data: {
+            ...servidorData,
+            nomeFuncional: usuario.nome,
+          } as Parameters<
             typeof this.prisma.servidor.create
           >[0]["data"],
         });

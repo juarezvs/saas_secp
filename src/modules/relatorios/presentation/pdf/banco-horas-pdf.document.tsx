@@ -4,11 +4,13 @@ import {
   formatarDataRelatorio,
   minutosParaHoraRelatorio,
 } from "../../application/services/formatar-relatorio.service";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 type BancoHorasPdfProps = {
   dados: {
     servidor: {
       matricula: string;
+      nomeFuncional?: string | null;
       usuario: {
         nome: string;
       };
@@ -77,7 +79,7 @@ export function BancoHorasPdfDocument({ dados }: BancoHorasPdfProps) {
             </View>
             <View style={s.infoBox}>
               <Text style={s.label}>Nome</Text>
-              <Text style={s.value}>{servidor?.usuario.nome ?? "-"}</Text>
+              <Text style={s.value}>{nomeServidor(servidor) || "-"}</Text>
             </View>
             <View style={s.infoBox}>
               <Text style={s.label}>Lotação</Text>

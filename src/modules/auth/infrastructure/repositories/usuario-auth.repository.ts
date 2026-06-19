@@ -1,4 +1,6 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { aplicarExcecoesRegistroPontoAoPerfilServidor } from "../../application/services/perfil-excecao-registro-ponto.service";
+import { escolherPerfilInicial } from "../../application/services/perfil-servidor-prioritario.service";
 import { perfilEhAdministradorSistema } from "../../domain/constants/perfis-sistema";
 import type {
   PerfilSessao,
@@ -73,16 +75,24 @@ export async function buscarUsuarioParaLoginPorMatricula(
     (permissao) => permissao.codigo,
   );
 
-  const perfis: PerfilSessao[] = perfisBase.map((perfil) =>
-    perfilEhAdministradorSistema(perfil)
-      ? {
-          ...perfil,
-          permissoes: codigosTodasPermissoes,
-        }
-      : perfil,
+  const perfisComPermissoesExpandidas: PerfilSessao[] = perfisBase.map(
+    (perfil) =>
+      perfilEhAdministradorSistema(perfil)
+        ? {
+            ...perfil,
+            permissoes: codigosTodasPermissoes,
+          }
+        : perfil,
   );
 
-  const perfilAtivo = perfis[0] ?? null;
+  const perfis = aplicarExcecoesRegistroPontoAoPerfilServidor(
+    perfisComPermissoesExpandidas,
+  );
+
+  const perfilAtivo = escolherPerfilInicial({
+    tipoUsuario: usuario.tipo,
+    perfis,
+  });
 
   return {
     id: usuario.id,

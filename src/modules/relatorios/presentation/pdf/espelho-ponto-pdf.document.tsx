@@ -12,11 +12,13 @@ import {
   rotuloSolicitacaoEspelho,
   type SolicitacaoAplicadaEspelho,
 } from "@/modules/apuracao/application/services/classificar-espelho-mensal.service";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 type EspelhoPontoPdfProps = {
   dados: {
     servidor: {
       matricula: string;
+      nomeFuncional?: string | null;
       usuario: {
         nome: string;
       };
@@ -89,6 +91,15 @@ const badgeRemoto = {
   borderColor: "#bfdbfe",
   backgroundColor: "#eff6ff",
   color: "#1e40af",
+  fontSize: 7,
+};
+
+const badgeDispensa = {
+  padding: 2,
+  borderWidth: 1,
+  borderColor: "#a7f3d0",
+  backgroundColor: "#ecfdf5",
+  color: "#065f46",
   fontSize: 7,
 };
 
@@ -172,7 +183,7 @@ export function EspelhoPontoPdfDocument({ dados }: EspelhoPontoPdfProps) {
             </View>
             <View style={s.infoBox}>
               <Text style={s.label}>Nome</Text>
-              <Text style={s.value}>{servidor?.usuario.nome ?? "-"}</Text>
+              <Text style={s.value}>{nomeServidor(servidor) || "-"}</Text>
             </View>
           </View>
 
@@ -277,6 +288,7 @@ export function EspelhoPontoPdfDocument({ dados }: EspelhoPontoPdfProps) {
               const marcacoesDoDia = marcacoesPorDia.get(chaveReferencia) ?? [];
               const trabalhoRemoto = extrairTrabalhoRemoto(item.metadados);
               const classificacao = classificarDiaEspelho(item);
+              const dispensaPonto = classificacao.dispensaPonto;
               const solicitacoesAplicadas =
                 classificacao.solicitacoesAplicadas;
               const possuiMarcacaoAjustada =
@@ -289,7 +301,9 @@ export function EspelhoPontoPdfDocument({ dados }: EspelhoPontoPdfProps) {
                     {formatarDataRelatorio(item.dataReferencia)}
                   </Text>
                   <View style={[s.td, { width: "21%" }]}>
-                    {trabalhoRemoto ? (
+                    {dispensaPonto ? (
+                      <Text style={badgeDispensa}>Dispensa de ponto</Text>
+                    ) : trabalhoRemoto ? (
                       <Text style={badgeRemoto}>
                         {trabalhoRemoto.regime === "TOTAL"
                           ? "Teletrabalho"
@@ -307,6 +321,7 @@ export function EspelhoPontoPdfDocument({ dados }: EspelhoPontoPdfProps) {
                     <OcorrenciasDiaPdf
                       ausente={classificacao.ausente}
                       ausenciaParcial={classificacao.ausenciaParcial}
+                      dispensaPonto={classificacao.dispensaPonto}
                       solicitacoes={solicitacoesAplicadas}
                     />
                   </View>
@@ -375,10 +390,12 @@ export function EspelhoPontoPdfDocument({ dados }: EspelhoPontoPdfProps) {
 function OcorrenciasDiaPdf({
   ausente,
   ausenciaParcial,
+  dispensaPonto,
   solicitacoes,
 }: {
   ausente: boolean;
   ausenciaParcial: boolean;
+  dispensaPonto: boolean;
   solicitacoes: SolicitacaoAplicadaEspelho[];
 }) {
   const itens = [
@@ -394,11 +411,21 @@ function OcorrenciasDiaPdf({
           },
         ]
       : []),
+    ...(dispensaPonto
+      ? [
+          {
+            chave: "dispensa-ponto",
+            label: "Dispensa de ponto",
+            tipo: "ok" as const,
+          },
+        ]
+      : []),
     ...solicitacoes
       .filter((solicitacao) =>
         ["ATIVIDADE_EXTERNA", "VIAGEM_SERVICO", "COMPENSACAO"].includes(
           solicitacao.tipo,
-        ),
+        ) ||
+        (solicitacao.tipo === "DISPENSA_PONTO" && !dispensaPonto),
       )
       .map((solicitacao) => ({
         chave: solicitacao.id,

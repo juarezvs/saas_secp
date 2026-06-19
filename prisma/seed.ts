@@ -536,9 +536,6 @@ const permissoesIniciais = [
 
 const codigosPermissoesServidor = [
   "dashboard:visualizar:proprio",
-  "marcacoes:registrar:proprio",
-  "marcacoes:registrar-web:proprio",
-  "marcacoes:registrar-facial:proprio",
   "marcacoes:consultar:proprio",
   "marcacoes:visualizar:proprio",
   "apuracao:consultar:proprio",
@@ -555,12 +552,80 @@ const codigosPermissoesServidor = [
   "jornada:visualizar:proprio",
   "biometria:consultar:proprio",
   "biometria:cadastrar:proprio",
-  "biometria:validar:proprio",
   "biometriafacial:cadastrar:proprio",
   "biometriafacial:recadastrar:proprio",
-  "biometriafacial:registrar:proprio",
   "recesso:consultar:proprio",
   "recesso:fechar:proprio",
+];
+
+const codigosPermissoesChefia = [
+  "dashboard:visualizar:proprio",
+  "servidores:consultar:global",
+  "marcacoes:consultar:global",
+  "apuracao:consultar:global",
+  "banco-horas:consultar:global",
+  "solicitacoes:analisar:chefia",
+  "solicitacoes:consultar:global",
+  "homologacao:gerenciar:chefia",
+  "homologacao:consultar:global",
+  "boletim-frequencia:gerar:chefia",
+  "boletim-frequencia:encaminhar:chefia",
+  "boletim-frequencia:consultar:global",
+  "relatorios:consultar:global",
+  "relatorios:exportar:global",
+  "recesso:homologar:chefia",
+  "recesso:consultar:global",
+];
+
+const codigosPermissoesSecap = [
+  "dashboard:visualizar:proprio",
+  "usuarios:consultar:global",
+  "servidores:gerenciar:global",
+  "servidores:consultar:global",
+  "chefias:gerenciar:global",
+  "jornadas:gerenciar:global",
+  "jornadas:gerenciar-politicas:global",
+  "marcacoes:consultar:global",
+  "marcacoes:gerenciar:global",
+  "apuracao:consultar:global",
+  "apuracao:recalcular:global",
+  "banco-horas:consultar:global",
+  "banco-horas:gerenciar:global",
+  "solicitacoes:consultar:global",
+  "homologacao:consultar:global",
+  "homologacao:gerenciar:global",
+  "boletim-frequencia:receber:global",
+  "boletim-frequencia:consultar:global",
+  "relatorios:consultar:global",
+  "relatorios:exportar:global",
+  "recesso:consultar:global",
+  "recesso:relatorio:secap",
+];
+
+const codigosPermissoesSecad = [
+  "dashboard:visualizar:proprio",
+  "servidores:consultar:global",
+  "recesso:gerenciar:global",
+  "recesso:consultar:global",
+  "recesso:convocacao:gerenciar",
+  "recesso:aceitar:secad",
+  "relatorios:consultar:global",
+  "relatorios:exportar:global",
+  "boletim-frequencia:consultar:global",
+];
+
+const codigosPermissoesDiref = [
+  "dashboard:visualizar:proprio",
+  "servidores:consultar:global",
+  "marcacoes:consultar:global",
+  "apuracao:consultar:global",
+  "banco-horas:consultar:global",
+  "homologacao:consultar:global",
+  "boletim-frequencia:consultar:global",
+  "relatorios:consultar:global",
+  "relatorios:exportar:global",
+  "recesso:consultar:global",
+  "auditoria:consultar:global",
 ];
 
 const codigosPermissoesSuporte = [
@@ -586,6 +651,18 @@ const codigosPermissoesSuporte = [
   "auditoria:detalhar:global",
   "usuarios:consultar:global",
   "servidores:consultar:global",
+];
+
+const codigosPermissoesExcecaoRegistroWeb = [
+  "marcacoes:registrar:proprio",
+  "marcacoes:registrar-web:proprio",
+];
+
+const codigosPermissoesExcecaoRegistroFacial = [
+  "marcacoes:registrar:proprio",
+  "marcacoes:registrar-facial:proprio",
+  "biometria:validar:proprio",
+  "biometriafacial:registrar:proprio",
 ];
 
 function codigoPermissao(item: {
@@ -672,21 +749,168 @@ async function criarPerfilServidor() {
   });
 }
 
+async function criarPerfilChefia() {
+  return prisma.perfil.upsert({
+    where: { codigo: "CHEFIA" },
+    update: {
+      nome: "Chefia/Gestor de Unidade",
+      descricao:
+        "Perfil para chefias, gestores e substitutos analisarem solicitações, homologarem frequência e encaminharem boletins.",
+      sistema: true,
+      ativo: true,
+    },
+    create: {
+      codigo: "CHEFIA",
+      nome: "Chefia/Gestor de Unidade",
+      descricao:
+        "Perfil para chefias, gestores e substitutos analisarem solicitações, homologarem frequência e encaminharem boletins.",
+      sistema: true,
+      ativo: true,
+    },
+  });
+}
+
+async function criarPerfilSecap() {
+  return prisma.perfil.upsert({
+    where: { codigo: "SECAP" },
+    update: {
+      nome: "SECAP/NUCGP",
+      descricao:
+        "Perfil da gestão de pessoas para acompanhar apuração, banco de horas, homologações, boletins e cadastros funcionais.",
+      sistema: true,
+      ativo: true,
+    },
+    create: {
+      codigo: "SECAP",
+      nome: "SECAP/NUCGP",
+      descricao:
+        "Perfil da gestão de pessoas para acompanhar apuração, banco de horas, homologações, boletins e cadastros funcionais.",
+      sistema: true,
+      ativo: true,
+    },
+  });
+}
+
+async function criarPerfilSecad() {
+  return prisma.perfil.upsert({
+    where: { codigo: "SECAD" },
+    update: {
+      nome: "SECAD",
+      descricao:
+        "Perfil da Secretaria Administrativa para gerir e aceitar fluxos do recesso forense e consultar relatórios institucionais.",
+      sistema: true,
+      ativo: true,
+    },
+    create: {
+      codigo: "SECAD",
+      nome: "SECAD",
+      descricao:
+        "Perfil da Secretaria Administrativa para gerir e aceitar fluxos do recesso forense e consultar relatórios institucionais.",
+      sistema: true,
+      ativo: true,
+    },
+  });
+}
+
+async function criarPerfilDiref() {
+  return prisma.perfil.upsert({
+    where: { codigo: "DIREF" },
+    update: {
+      nome: "Direção do Foro",
+      descricao:
+        "Perfil de consulta institucional da DIREF para acompanhar frequência, banco de horas, boletins, recesso e auditoria.",
+      sistema: true,
+      ativo: true,
+    },
+    create: {
+      codigo: "DIREF",
+      nome: "Direção do Foro",
+      descricao:
+        "Perfil de consulta institucional da DIREF para acompanhar frequência, banco de horas, boletins, recesso e auditoria.",
+      sistema: true,
+      ativo: true,
+    },
+  });
+}
+
 async function criarPerfilSuporte() {
+  return prisma.perfil.upsert({
+    where: { codigo: "NUTEC" },
+    update: {
+      nome: "NUTEC",
+      descricao:
+        "Perfil técnico para monitorar integrações, importações, biometria e processamento operacional.",
+      sistema: true,
+      ativo: true,
+    },
+    create: {
+      codigo: "NUTEC",
+      nome: "NUTEC",
+      descricao:
+        "Perfil técnico para monitorar integrações, importações, biometria e processamento operacional.",
+      sistema: true,
+      ativo: true,
+    },
+  });
+}
+
+async function criarPerfilSuporteLegado() {
   return prisma.perfil.upsert({
     where: { codigo: "SUPORTE" },
     update: {
-      nome: "Suporte tecnico",
+      nome: "Suporte técnico",
       descricao:
-        "Perfil tecnico para monitorar integracoes, importacoes, biometria e processamento operacional.",
+        "Perfil técnico legado equivalente ao NUTEC, mantido por compatibilidade.",
       sistema: true,
       ativo: true,
     },
     create: {
       codigo: "SUPORTE",
-      nome: "Suporte tecnico",
+      nome: "Suporte técnico",
       descricao:
-        "Perfil tecnico para monitorar integracoes, importacoes, biometria e processamento operacional.",
+        "Perfil técnico legado equivalente ao NUTEC, mantido por compatibilidade.",
+      sistema: true,
+      ativo: true,
+    },
+  });
+}
+
+async function criarPerfilExcecaoRegistroWeb() {
+  return prisma.perfil.upsert({
+    where: { codigo: "EXCECAO_REGISTRO_WEB" },
+    update: {
+      nome: "Exceção - Registro web",
+      descricao:
+        "Perfil técnico oculto na troca de perfis. Autoriza o servidor a registrar ponto pelo SECP sem reconhecimento facial.",
+      sistema: true,
+      ativo: true,
+    },
+    create: {
+      codigo: "EXCECAO_REGISTRO_WEB",
+      nome: "Exceção - Registro web",
+      descricao:
+        "Perfil técnico oculto na troca de perfis. Autoriza o servidor a registrar ponto pelo SECP sem reconhecimento facial.",
+      sistema: true,
+      ativo: true,
+    },
+  });
+}
+
+async function criarPerfilExcecaoRegistroFacial() {
+  return prisma.perfil.upsert({
+    where: { codigo: "EXCECAO_REGISTRO_FACIAL" },
+    update: {
+      nome: "Exceção - Registro facial",
+      descricao:
+        "Perfil técnico oculto na troca de perfis. Autoriza o servidor a registrar ponto pelo SECP com reconhecimento facial.",
+      sistema: true,
+      ativo: true,
+    },
+    create: {
+      codigo: "EXCECAO_REGISTRO_FACIAL",
+      nome: "Exceção - Registro facial",
+      descricao:
+        "Perfil técnico oculto na troca de perfis. Autoriza o servidor a registrar ponto pelo SECP com reconhecimento facial.",
       sistema: true,
       ativo: true,
     },
@@ -718,6 +942,8 @@ async function vincularPermissoesPorCodigoAoPerfil(
   perfilId: string,
   codigos: string[],
 ) {
+  const permissaoIdsSincronizados: string[] = [];
+
   for (const codigo of codigos) {
     const permissao = await prisma.permissao.findUnique({
       where: { codigo },
@@ -727,6 +953,8 @@ async function vincularPermissoesPorCodigoAoPerfil(
       console.warn(`Permissão não encontrada no seed: ${codigo}`);
       continue;
     }
+
+    permissaoIdsSincronizados.push(permissao.id);
 
     await prisma.perfilPermissao.upsert({
       where: {
@@ -742,6 +970,15 @@ async function vincularPermissoesPorCodigoAoPerfil(
       },
     });
   }
+
+  await prisma.perfilPermissao.deleteMany({
+    where: {
+      perfilId,
+      permissaoId: {
+        notIn: permissaoIdsSincronizados,
+      },
+    },
+  });
 }
 
 async function criarUsuarioInicial(perfilId: string) {
@@ -1058,7 +1295,14 @@ async function main() {
 
   const perfilAdmin = await criarPerfilAdministrador();
   const perfilServidor = await criarPerfilServidor();
+  const perfilChefia = await criarPerfilChefia();
+  const perfilSecap = await criarPerfilSecap();
+  const perfilSecad = await criarPerfilSecad();
+  const perfilDiref = await criarPerfilDiref();
   const perfilSuporte = await criarPerfilSuporte();
+  const perfilSuporteLegado = await criarPerfilSuporteLegado();
+  const perfilExcecaoRegistroWeb = await criarPerfilExcecaoRegistroWeb();
+  const perfilExcecaoRegistroFacial = await criarPerfilExcecaoRegistroFacial();
 
   await vincularPermissoesAoPerfil(perfilAdmin.id, permissoes);
   await vincularPermissoesPorCodigoAoPerfil(
@@ -1066,8 +1310,36 @@ async function main() {
     codigosPermissoesServidor,
   );
   await vincularPermissoesPorCodigoAoPerfil(
+    perfilChefia.id,
+    codigosPermissoesChefia,
+  );
+  await vincularPermissoesPorCodigoAoPerfil(
+    perfilSecap.id,
+    codigosPermissoesSecap,
+  );
+  await vincularPermissoesPorCodigoAoPerfil(
+    perfilSecad.id,
+    codigosPermissoesSecad,
+  );
+  await vincularPermissoesPorCodigoAoPerfil(
+    perfilDiref.id,
+    codigosPermissoesDiref,
+  );
+  await vincularPermissoesPorCodigoAoPerfil(
     perfilSuporte.id,
     codigosPermissoesSuporte,
+  );
+  await vincularPermissoesPorCodigoAoPerfil(
+    perfilSuporteLegado.id,
+    codigosPermissoesSuporte,
+  );
+  await vincularPermissoesPorCodigoAoPerfil(
+    perfilExcecaoRegistroWeb.id,
+    codigosPermissoesExcecaoRegistroWeb,
+  );
+  await vincularPermissoesPorCodigoAoPerfil(
+    perfilExcecaoRegistroFacial.id,
+    codigosPermissoesExcecaoRegistroFacial,
   );
 
   const usuarioInicial = await criarUsuarioInicial(perfilAdmin.id);
@@ -1084,7 +1356,18 @@ async function main() {
       acao: "SEED_INICIAL_EXECUTADO",
       dadosDepois: {
         usuarioInicial: usuarioInicial.matricula,
-        perfis: ["ADMIN", "SERVIDOR", "SUPORTE"],
+        perfis: [
+          "ADMIN",
+          "SERVIDOR",
+          "CHEFIA",
+          "SECAP",
+          "SECAD",
+          "DIREF",
+          "NUTEC",
+          "SUPORTE",
+          "EXCECAO_REGISTRO_WEB",
+          "EXCECAO_REGISTRO_FACIAL",
+        ],
         estrutura: ["JFAM", "SJAM", "NUTEC", "NUCGP", "SECAD"],
         jornadas: ["JORNADA_7H", "JORNADA_8H"],
         integracoes: [integracaoSarh.nome],

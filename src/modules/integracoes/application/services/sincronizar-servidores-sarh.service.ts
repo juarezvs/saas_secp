@@ -105,7 +105,6 @@ export async function sincronizarServidoresSarhService(params: {
               },
               ativo: item.ativo,
               cpf: item.cpf || null,
-              nomeFuncional: item.nome,
               usuario: {
                 connect: {
                   id: usuario.id,
@@ -122,7 +121,7 @@ export async function sincronizarServidoresSarhService(params: {
         const servidor = await tx.servidor.create({
           data: {
             matricula: item.matricula,
-            nomeFuncional: item.nome || "",
+            nomeFuncional: usuario.nome,
             cpf: item.cpf || null,
             ativo: item.ativo,
             usuario: {

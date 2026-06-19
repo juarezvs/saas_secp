@@ -14,6 +14,7 @@ import {
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge, Button, Card, Modal } from "@/components/ui";
+import { registrarMarcacaoWebAutorizadaAction } from "@/modules/marcacoes-brutas/application/actions/registrar-marcacao-web.action";
 import { obterRotuloTipoMarcacao } from "../../application/services/classificar-marcacao.service";
 import { OrigemMarcacaoIcon } from "./origem-marcacao-icon";
 
@@ -52,6 +53,8 @@ type RegistroPontoPageProps = {
   }>;
   proximaMarcacao: string | null;
   fluxoConcluido: boolean;
+  podeRegistrarWeb: boolean;
+  podeRegistrarFacial: boolean;
 };
 
 export function RegistroPontoPage({
@@ -59,6 +62,8 @@ export function RegistroPontoPage({
   marcacoes,
   proximaMarcacao,
   fluxoConcluido,
+  podeRegistrarWeb,
+  podeRegistrarFacial,
 }: RegistroPontoPageProps) {
   const [reconhecimentoAberto, setReconhecimentoAberto] = useState(false);
 
@@ -74,7 +79,7 @@ export function RegistroPontoPage({
       <PageHeader
         icon={Clock3}
         titulo="Registrar horário"
-        descricao="Confirme sua identidade facial para registrar a próxima marcação da jornada."
+        descricao="Registro excepcional de ponto pelo SECP, liberado somente para servidores com autorização específica."
         artigo="Art. 6"
         regraTitulo="Registro eletrônico de frequência"
         regraDescricao="A marcação deve identificar o servidor, registrar data e hora e preservar a rastreabilidade da origem."
@@ -132,23 +137,44 @@ export function RegistroPontoPage({
                       </div>
                       <div>
                         <p className="font-semibold">
-                          Confirmacao facial obrigatoria
+                          {podeRegistrarFacial
+                            ? "Confirmação facial obrigatória"
+                            : "Registro web autorizado"}
                         </p>
                         <p className="mt-1 max-w-xl text-sm leading-6 text-muted-foreground">
-                          Ao continuar, a câmera será aberta em uma janela
-                          compacta para validar sua identidade.
+                          {podeRegistrarFacial
+                            ? "Ao continuar, a câmera será aberta em uma janela compacta para validar sua identidade."
+                            : "Ao registrar, o SECP gravará a marcação atual como registro web autorizado e processará a frequência."}
                         </p>
                       </div>
                     </div>
-                    <Button
-                      size="lg"
-                      onClick={() => setReconhecimentoAberto(true)}
-                      leftIcon={
-                        <ScanFace className="size-5" aria-hidden="true" />
-                      }
-                    >
-                      Registrar horário
-                    </Button>
+                    {podeRegistrarFacial ? (
+                      <Button
+                        size="lg"
+                        onClick={() => setReconhecimentoAberto(true)}
+                        leftIcon={
+                          <ScanFace className="size-5" aria-hidden="true" />
+                        }
+                      >
+                        Registrar com reconhecimento facial
+                      </Button>
+                    ) : podeRegistrarWeb ? (
+                      <form action={registrarMarcacaoWebAutorizadaAction}>
+                        <Button
+                          type="submit"
+                          size="lg"
+                          leftIcon={
+                            <Clock3 className="size-5" aria-hidden="true" />
+                          }
+                        >
+                          Registrar via sistema web
+                        </Button>
+                      </form>
+                    ) : (
+                      <Badge variant="pendente">
+                        Registro pelo SECP não autorizado
+                      </Badge>
+                    )}
                   </div>
                 )}
               </div>

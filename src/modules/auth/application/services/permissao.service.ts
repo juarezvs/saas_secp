@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { PermissaoNegadaError } from "@/shared/domain/errors/permissao-negada.error";
 import { buscarUsuarioParaLoginPorMatricula } from "../../infrastructure/repositories/usuario-auth.repository";
+import { escolherPerfilInicial } from "./perfil-servidor-prioritario.service";
 import { usuarioPossuiPermissaoNoPerfil } from "./permissao-utils";
 
 export {
@@ -42,12 +43,16 @@ export async function obterPermissoesDaSessao(): Promise<ResultadoPermissao> {
     };
   }
 
-  const perfilAtivo =
+  const perfilPreferido =
     usuario.perfis.find(
       (perfil) => perfil.codigo === session.user.perfilAtivo?.codigo,
     ) ??
-    usuario.perfilAtivo ??
-    usuario.perfis[0];
+    usuario.perfilAtivo;
+  const perfilAtivo = escolherPerfilInicial({
+    tipoUsuario: usuario.tipo,
+    perfis: usuario.perfis,
+    perfilPreferido,
+  });
 
   return {
     permitido: true,

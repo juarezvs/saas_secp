@@ -4,6 +4,7 @@ import {
   formatarDataHoraRelatorio,
   minutosParaHoraRelatorio,
 } from "../../application/services/formatar-relatorio.service";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 type BoletimPdfProps = {
   boletim: {
@@ -49,6 +50,7 @@ type BoletimPdfProps = {
       observacaoChefia: string | null;
       servidor: {
         matricula: string;
+        nomeFuncional?: string | null;
         usuario: {
           nome: string;
         };
@@ -208,7 +210,7 @@ export function BoletimFrequenciaPdfDocument({ boletim }: BoletimPdfProps) {
             {boletim.servidores.map((item) => (
               <View key={item.servidor.matricula} style={s.tableRow}>
                 <Text style={[s.td, { width: "22%" }]}>
-                  {item.servidor.matricula} - {item.servidor.usuario.nome}
+                  {item.servidor.matricula} - {nomeServidor(item.servidor)}
                 </Text>
                 <Text style={[s.td, { width: "8%" }]}>
                   {item.servidor.lotacoes[0]?.unidade.sigla ?? "-"}

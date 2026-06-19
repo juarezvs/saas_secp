@@ -8,6 +8,7 @@ import {
   buscarServidorPorId,
   listarUnidadesAtivasParaLotacao,
 } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import {
   criarDispensaPontoServidorAction,
   encerrarDispensaPontoServidorAction,
@@ -55,6 +56,7 @@ export default async function ServidorDetalhePage({
   }
 
   const actionLotacao = vincularLotacaoAction.bind(null, servidor.id);
+  const nomeFuncional = nomeServidor(servidor);
   const actionDispensaPonto = criarDispensaPontoServidorAction.bind(
     null,
     servidor.id,
@@ -93,7 +95,7 @@ export default async function ServidorDetalhePage({
           </p>
 
           <h1 className="mt-2 text-3xl font-bold tracking-tight">
-            {servidor.usuario.nome}
+            {nomeFuncional}
           </h1>
 
           <p className="mt-2 font-mono text-sm text-[var(--muted-foreground)]">
@@ -151,7 +153,7 @@ export default async function ServidorDetalhePage({
         <div className="grid gap-4 p-5 md:grid-cols-2">
           <div>
             <p className="text-sm text-[var(--muted-foreground)]">Nome</p>
-            <p className="mt-1 font-semibold">{servidor.usuario.nome}</p>
+            <p className="mt-1 font-semibold">{nomeFuncional}</p>
           </div>
 
           <div>

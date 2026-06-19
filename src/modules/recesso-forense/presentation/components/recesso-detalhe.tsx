@@ -8,6 +8,7 @@ import {
   formatarPeriodoRecesso,
 } from "../../application/services/recesso-forense.service";
 import { fecharRecessoForenseAction } from "../../application/actions/recesso-forense.actions";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { RecessoStatusBadge } from "./recesso-status-badge";
 
 type RecessoDetalheProps = {
@@ -27,6 +28,7 @@ type RecessoDetalheProps = {
       servidor: {
         id: string;
         matricula: string;
+        nomeFuncional?: string | null;
         usuario: { nome: string };
         lotacoes: Array<{ unidade: { sigla: string } }>;
       };
@@ -59,7 +61,7 @@ function agruparConvocadosRecesso(recesso: RecessoDetalheProps["recesso"]) {
       grupos.get(item.servidor.id) ??
       {
         servidorId: item.servidor.id,
-        nome: item.servidor.usuario.nome,
+        nome: nomeServidor(item.servidor),
         matricula: item.servidor.matricula,
         unidade: item.servidor.lotacoes[0]?.unidade.sigla ?? "-",
         portarias: [],

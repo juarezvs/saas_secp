@@ -3,6 +3,7 @@ import { BarChart3 } from "lucide-react";
 import { auth } from "@/auth";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
+import { CompetenciaInput } from "@/components/ui";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   buscarServidorRelatorioPorUsuarioId,
@@ -63,6 +64,8 @@ export default async function RelatoriosPage({
   const podeConsultarGlobal = permissoes.includes(
     "relatorios:consultar:global",
   );
+  const perfilServidorAtivo =
+    session?.user.perfilAtivo?.codigo?.toUpperCase() === "SERVIDOR";
 
   const params = searchParams ? await searchParams : {};
   const { ano, mes } = normalizarCompetencia(params);
@@ -78,7 +81,7 @@ export default async function RelatoriosPage({
       : [];
 
   const servidorId =
-    params.servidorId && podeConsultarGlobal
+    params.servidorId && podeConsultarGlobal && !perfilServidorAtivo
       ? params.servidorId
       : (servidorProprio?.id ?? null);
 
@@ -97,19 +100,40 @@ export default async function RelatoriosPage({
         regraDescricao="Os relatórios consolidam frequência diária, saldo de horas, apuração mensal e Boletim de Frequência, servindo de base para conferência, homologação e juntada no SEI."
       />
 
-      <FiltrosRelatoriosCard
-        servidores={servidores}
-        servidorProprioId={servidorProprio?.id ?? null}
-        podeConsultarGlobal={podeConsultarGlobal}
-        servidorSelecionadoId={servidorId}
-        competencia={`${ano}-${String(mes).padStart(2, "0")}`}
-      />
+      {!perfilServidorAtivo && (
+        <FiltrosRelatoriosCard
+          servidores={servidores}
+          servidorProprioId={servidorProprio?.id ?? null}
+          podeConsultarGlobal={podeConsultarGlobal}
+          servidorSelecionadoId={servidorId}
+          competencia={`${ano}-${String(mes).padStart(2, "0")}`}
+        />
+      )}
 
       <RelatoriosListCard
         servidorId={servidorId}
         ano={ano}
         mes={mes}
         boletins={boletins}
+        controles={
+          perfilServidorAtivo ? (
+            <form
+              action="/relatorios"
+              className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-end"
+            >
+              <CompetenciaInput
+                defaultValue={`${ano}-${String(mes).padStart(2, "0")}`}
+              />
+
+              <button
+                type="submit"
+                className="h-10 rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)]"
+              >
+                Preparar links
+              </button>
+            </form>
+          ) : undefined
+        }
       />
     </div>
   );

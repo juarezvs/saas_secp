@@ -5,6 +5,7 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { resolverExpedienteUnidade } from "@/modules/apuracao/application/services/expediente.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { buscarUnidadePorId } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
 import { UnidadeHierarquiaCard } from "@/modules/unidades/presentation/components/unidade-hierarquia-card";
 
@@ -143,7 +144,7 @@ export default async function UnidadeDetalhePage({
               className="flex flex-col justify-between gap-2 p-5 md:flex-row md:items-center"
             >
               <div>
-                <p className="font-semibold">{gestor.servidor.usuario.nome}</p>
+                <p className="font-semibold">{nomeServidor(gestor.servidor)}</p>
                 <p className="text-sm text-(--muted-foreground)">
                   Matrícula: {gestor.servidor.matricula}
                 </p>
@@ -176,7 +177,7 @@ export default async function UnidadeDetalhePage({
               className="flex flex-col justify-between gap-2 p-5 md:flex-row md:items-center"
             >
               <div>
-                <p className="font-semibold">{lotacao.servidor.usuario.nome}</p>
+                <p className="font-semibold">{nomeServidor(lotacao.servidor)}</p>
                 <p className="text-sm text-(--muted-foreground)">
                   Matrícula: {lotacao.servidor.matricula}
                 </p>

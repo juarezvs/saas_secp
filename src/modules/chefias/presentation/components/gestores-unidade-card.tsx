@@ -1,4 +1,5 @@
 import { UserCheck } from "lucide-react";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { encerrarGestorUnidadeAction } from "../../application/actions/encerrar-gestor-unidade.action";
 
 type GestorItem = {
@@ -10,6 +11,7 @@ type GestorItem = {
   unidadeId: string;
   servidor: {
     matricula: string;
+    nomeFuncional?: string | null;
     usuario: {
       nome: string;
       email: string | null;
@@ -63,7 +65,7 @@ export function GestoresUnidadeCard({
               className="flex flex-col justify-between gap-4 p-5 lg:flex-row lg:items-center"
             >
               <div>
-                <p className="font-semibold">{gestor.servidor.usuario.nome}</p>
+                <p className="font-semibold">{nomeServidor(gestor.servidor)}</p>
 
                 <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                   Matrícula: {gestor.servidor.matricula}

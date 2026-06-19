@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { Loader2, Plus } from "lucide-react";
 import { SearchableSelect } from "@/components/ui";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import {
   papeisGestao,
   type GestorUnidadeFormState,
@@ -18,6 +19,7 @@ type UnidadeItem = {
 type ServidorItem = {
   id: string;
   matricula: string;
+  nomeFuncional?: string | null;
   usuario: {
     nome: string;
     email: string | null;
@@ -141,7 +143,7 @@ export function GestorUnidadeForm({
               const lotacaoAtual = servidor.lotacoes[0]?.unidade.sigla;
               return {
                 value: servidor.id,
-                label: `${servidor.matricula} — ${servidor.usuario.nome}${
+                label: `${servidor.matricula} — ${nomeServidor(servidor)}${
                   lotacaoAtual ? ` (${lotacaoAtual})` : ""
                 }`,
               };

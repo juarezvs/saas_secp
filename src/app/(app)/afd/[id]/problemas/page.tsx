@@ -3,6 +3,7 @@ import { ArrowLeft, CircleAlert, ClockAlert, Copy } from "lucide-react";
 import { notFound } from "next/navigation";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 type TipoProblemaAfd = "erros" | "pendentes" | "duplicadas";
@@ -107,6 +108,7 @@ export default async function ProblemasImportacaoAfdPage({
             id: true,
             cpf: true,
             matricula: true,
+            nomeFuncional: true,
             usuario: { select: { nome: true } },
           },
         })
@@ -216,7 +218,7 @@ export default async function ProblemasImportacaoAfdPage({
                     ? "Sem CPF ou matrícula no registro AFD."
                     : !servidor
                       ? "Servidor ativo não encontrado. Sincronize ou cadastre o servidor."
-                      : `Servidor encontrado: ${servidor.usuario.nome}. Verifique jornada vigente e período homologado.`;
+                      : `Servidor encontrado: ${nomeServidor(servidor)}. Verifique jornada vigente e período homologado.`;
 
                   return (
                     <tr key={item.id} className="border-b last:border-b-0">

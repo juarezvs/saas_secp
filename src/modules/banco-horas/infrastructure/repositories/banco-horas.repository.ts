@@ -98,6 +98,30 @@ export async function listarMovimentosBancoHorasMes(params: {
   });
 }
 
+export async function listarMovimentosComposicaoSaldoBancoHoras(params: {
+  servidorId: string;
+}) {
+  return prisma.movimentoBancoHoras.findMany({
+    where: {
+      servidorId: params.servidorId,
+      tipo: {
+        in: ["CREDITO", "DEBITO"],
+      },
+      status: {
+        in: ["PENDENTE", "VALIDADO"],
+      },
+    },
+    orderBy: [
+      {
+        dataReferencia: "asc",
+      },
+      {
+        criadoEm: "asc",
+      },
+    ],
+  });
+}
+
 export async function listarAutorizacoesBancoHorasMes(params: {
   servidorId: string;
   anoReferencia: number;

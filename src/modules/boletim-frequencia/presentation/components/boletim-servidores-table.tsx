@@ -2,6 +2,7 @@ import {
   minutosParaHoraBoletim,
   rotuloTipoResumoServidor,
 } from "../../application/services/formatar-boletim-frequencia.service";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 type BoletimServidorItem = {
   id: string;
@@ -16,6 +17,7 @@ type BoletimServidorItem = {
   observacaoChefia: string | null;
   servidor: {
     matricula: string;
+    nomeFuncional?: string | null;
     usuario: {
       nome: string;
     };
@@ -63,7 +65,7 @@ export function BoletimServidoresTable({
               <tr key={item.id} className="border-b last:border-b-0">
                 <td className="px-5 py-4">
                   <div className="font-semibold">
-                    {item.servidor.usuario.nome}
+                    {nomeServidor(item.servidor)}
                   </div>
                   <div className="mt-1 font-mono text-xs text-[var(--muted-foreground)]">
                     {item.servidor.matricula}

@@ -141,7 +141,6 @@ export async function recalcularDiaServidorService(
       prisma.dispensaPontoServidor.findFirst({
         where: {
           servidorId,
-          status: "ATIVO",
           dataInicio: {
             lte: dataNormalizada,
           },

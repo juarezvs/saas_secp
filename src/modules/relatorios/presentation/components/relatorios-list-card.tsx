@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Download, FileCheck2, FileClock, WalletCards } from "lucide-react";
+import type { ReactNode } from "react";
 
 type BoletimRelatorioItem = {
   id: string;
@@ -17,15 +18,29 @@ export function RelatoriosListCard({
   ano,
   mes,
   boletins,
+  controles,
 }: {
   servidorId: string | null;
   ano: number;
   mes: number;
   boletins: BoletimRelatorioItem[];
+  controles?: ReactNode;
 }) {
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 md:grid-cols-2">
+      <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
+        <div className="flex flex-col gap-4 border-b p-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 className="text-lg font-bold">Relatórios do servidor</h2>
+            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+              Escolha a competência e exporte os documentos individuais em PDF.
+            </p>
+          </div>
+
+          {controles ? <div className="lg:ml-auto">{controles}</div> : null}
+        </div>
+
+        <div className="grid gap-4 p-5 md:grid-cols-2">
         <RelatorioCard
           titulo="Espelho de Ponto"
           descricao="Exporta o espelho mensal com apurações diárias, créditos, débitos e status."
@@ -47,6 +62,7 @@ export function RelatoriosListCard({
               : null
           }
         />
+        </div>
       </section>
 
       <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">

@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 import { buscarFechamentoParaBoletim } from "../../infrastructure/repositories/boletim-frequencia.repository";
 import { consolidarBoletimServidor } from "./consolidar-boletim-servidor.service";
@@ -80,8 +81,8 @@ export async function gerarBoletimUnidadeService(params: {
           },
           gestorResponsavel: fechamento.gestorResponsavel
             ? {
-                servidorId: fechamento.gestorResponsavel.servidorId,
-                nome: fechamento.gestorResponsavel.servidor.usuario.nome,
+              servidorId: fechamento.gestorResponsavel.servidorId,
+                nome: nomeServidor(fechamento.gestorResponsavel.servidor),
               }
             : null,
           geradoEm: new Date(),

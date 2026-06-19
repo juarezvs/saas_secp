@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { logoutAction } from "@/modules/auth/application/actions/logout.action";
 import { buscarServidorPorUsuarioId } from "@/modules/marcacoes/infrastructure/repositories/marcacao.repository";
 import { contarNotificacoesUsuario } from "@/modules/notificacoes/application/notificacoes.service";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { AppShellClient } from "./app-shell-client";
 
 type AppShellProps = {
@@ -29,7 +30,11 @@ export async function AppShell({ children }: AppShellProps) {
   }
 
   const usuario = {
-    nome: session.user.nome || session.user.name || "Usuário SECP",
+    nome:
+      nomeServidor(servidor) ||
+      session.user.nome ||
+      session.user.name ||
+      "Usuario SECP",
     matricula: session.user.matricula,
     unidade:
       lotacaoAtual?.unidade.nome ??
@@ -60,3 +65,4 @@ export async function AppShell({ children }: AppShellProps) {
     </AppShellClient>
   );
 }
+

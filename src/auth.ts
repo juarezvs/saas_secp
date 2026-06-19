@@ -4,7 +4,9 @@ import { cookies } from "next/headers";
 
 import { PERFIL_ATIVO_COOKIE } from "@/modules/auth/domain/constants/perfil-ativo-cookie";
 import { loginSchema } from "@/modules/auth/application/schemas/login.schema";
+import { aplicarExcecoesRegistroPontoAoPerfilServidor } from "@/modules/auth/application/services/perfil-excecao-registro-ponto.service";
 import { autenticarUsuarioPorCredenciais } from "@/modules/auth/application/services/autenticar-usuario.service";
+import { escolherPerfilInicial } from "@/modules/auth/application/services/perfil-servidor-prioritario.service";
 import type { UsuarioAutenticado } from "@/modules/auth/domain/entities/usuario-autenticado";
 
 type PerfilSessao = UsuarioAutenticado["perfis"][number];
@@ -37,7 +39,9 @@ function normalizarPerfisSessao(valor: unknown): PerfilSessao[] {
     return [];
   }
 
-  return valor.filter(isPerfilSessao);
+  return aplicarExcecoesRegistroPontoAoPerfilServidor(
+    valor.filter(isPerfilSessao),
+  );
 }
 
 function normalizarPerfilAtivoSessao(valor: unknown): PerfilSessao | null {
@@ -126,11 +130,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       const perfis = normalizarPerfisSessao(token.perfis);
       const perfilAtivoToken = normalizarPerfilAtivoSessao(token.perfilAtivo);
       const perfilAtivoCookie = await obterCodigoPerfilAtivoCookie();
-      const perfilAtivo =
+      const perfilAtivoTokenVisivel = perfilAtivoToken
+        ? (perfis.find((perfil) => perfil.codigo === perfilAtivoToken.codigo) ??
+          null)
+        : null;
+      const perfilAtivoPreferido =
         perfis.find((perfil) => perfil.codigo === perfilAtivoCookie) ??
-        perfilAtivoToken ??
-        perfis[0] ??
-        null;
+        perfilAtivoTokenVisivel;
+      const perfilAtivo = escolherPerfilInicial({
+        tipoUsuario: String(token.tipo),
+        perfis,
+        perfilPreferido: perfilAtivoPreferido,
+      });
 
       session.user.id = String(token.id);
       session.user.matricula = String(token.matricula);

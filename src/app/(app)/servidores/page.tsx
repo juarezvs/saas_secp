@@ -4,6 +4,7 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
 import { listarServidoresPaginado } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
 import { ServidoresListagemControles } from "@/modules/servidores/presentation/components/servidores-listagem-controles";
@@ -159,7 +160,7 @@ export default async function ServidoresPage({
                     </td>
                     <td className="px-5 py-4">
                       <div className="font-semibold">
-                        {servidor.usuario.nome}
+                        {nomeServidor(servidor)}
                       </div>
                       {servidor.usuario.email && (
                         <div className="mt-1 text-xs text-[var(--muted-foreground)]">

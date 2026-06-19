@@ -67,7 +67,7 @@ export async function registrarMarcacaoAction(
 
   const permissoes = session.user.perfilAtivo?.permissoes ?? [];
 
-  if (!permissoes.includes("marcacoes:registrar:proprio")) {
+  if (!permissoes.includes("marcacoes:registrar-facial:proprio")) {
     return {
       sucesso: false,
       mensagem: "Você não possui permissão para registrar ponto.",

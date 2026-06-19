@@ -8,6 +8,7 @@ import {
   usuarioPossuiPermissaoNoPerfil,
 } from "@/modules/auth/application/services/permissao.service";
 import { RecalcularMesForm } from "@/modules/recalculo/presentation/components/recalcular-mes-form";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import {
   buscarServidorComUsuarioPorUsuarioId,
   listarApuracoesDoServidorNoMes,
@@ -141,6 +142,8 @@ export default async function EspelhoPontoPage({
     permissao.permissoes,
     "apuracao:recalcular:global",
   );
+  const perfilServidorAtivo =
+    permissao.perfilAtivoCodigo?.toUpperCase() === "SERVIDOR";
 
   const servidores = podeConsultarGlobal
     ? await listarServidoresParaEspelhoPonto()
@@ -195,6 +198,7 @@ export default async function EspelhoPontoPage({
         regraDescricao="O servidor pode consultar a própria frequência e o saldo; a chefia homologa mensalmente comparecimento, ausências, créditos, débitos e compensações."
       />
 
+      {!perfilServidorAtivo && (
       <Card className="p-5">
         <form className="grid gap-4 md:grid-cols-[1fr_220px_auto] md:items-end">
           <div>
@@ -213,7 +217,7 @@ export default async function EspelhoPontoPage({
               searchPlaceholder="Pesquisar por matrícula ou nome..."
               options={servidores.map((servidor) => ({
                 value: servidor.id,
-                label: `${servidor.matricula} — ${servidor.usuario.nome}`,
+                label: `${servidor.matricula} — ${nomeServidor(servidor)}`,
               }))}
             />
           </div>
@@ -254,9 +258,46 @@ export default async function EspelhoPontoPage({
           </div>
         )}
       </Card>
+      )}
 
       {servidorSelecionado ? (
-        <EspelhoPontoMensal apuracoes={apuracoes} marcacoes={marcacoes} />
+        <EspelhoPontoMensal
+          apuracoes={apuracoes}
+          marcacoes={marcacoes}
+          controles={
+            perfilServidorAtivo ? (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-end">
+                <form className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                  <CompetenciaInput
+                    defaultValue={competenciaParaInput(
+                      anoReferencia,
+                      mesReferencia,
+                    )}
+                  />
+
+                  <button
+                    type="submit"
+                    className="h-10 rounded-md border px-4 text-sm font-semibold hover:bg-[var(--muted)]"
+                  >
+                    Filtrar
+                  </button>
+                </form>
+
+                <a
+                  href={montarHrefExportacaoEspelho({
+                    servidorId: servidorSelecionado.id,
+                    anoReferencia,
+                    mesReferencia,
+                  })}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold hover:bg-[var(--muted)]"
+                >
+                  <Download className="size-4" aria-hidden="true" />
+                  Exportar PDF
+                </a>
+              </div>
+            ) : undefined
+          }
+        />
       ) : (
         <Card className="p-8 text-center text-sm text-[var(--muted-foreground)]">
           Nenhum servidor ativo foi encontrado para exibição do espelho.

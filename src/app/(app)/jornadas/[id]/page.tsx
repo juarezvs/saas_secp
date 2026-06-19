@@ -7,6 +7,7 @@ import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/servic
 import { criarEscalaAction } from "@/modules/jornadas/application/actions/criar-escala.action";
 import { buscarJornadaPorId } from "@/modules/jornadas/infrastructure/repositories/jornada.repository";
 import { EscalaForm } from "@/modules/jornadas/presentation/components/escala-form";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 type JornadaDetalhePageProps = {
   params: Promise<{
@@ -255,7 +256,7 @@ export default async function JornadaDetalhePage({
               className="flex flex-col justify-between gap-3 p-5 md:flex-row md:items-center"
             >
               <div>
-                <p className="font-semibold">{vinculo.servidor.usuario.nome}</p>
+                <p className="font-semibold">{nomeServidor(vinculo.servidor)}</p>
                 <p className="text-sm text-[var(--muted-foreground)]">
                   Matrícula: {vinculo.servidor.matricula}
                 </p>

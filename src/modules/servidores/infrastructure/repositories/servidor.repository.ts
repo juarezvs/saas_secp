@@ -47,9 +47,19 @@ export function montarWhereServidores(params: ListarServidoresParams) {
 
     ...(params.nome
       ? {
-          usuario: {
-            nome: { contains: params.nome, mode: "insensitive" as const },
-          },
+          OR: [
+            {
+              nomeFuncional: {
+                contains: params.nome,
+                mode: "insensitive" as const,
+              },
+            },
+            {
+              usuario: {
+                nome: { contains: params.nome, mode: "insensitive" as const },
+              },
+            },
+          ],
         }
       : {}),
 
@@ -87,6 +97,12 @@ export function montarWhereServidores(params: ListarServidoresParams) {
           OR: [
             { matricula: { contains: busca, mode: "insensitive" as const } },
             { cpf: { contains: busca } },
+            {
+              nomeFuncional: {
+                contains: busca,
+                mode: "insensitive" as const,
+              },
+            },
             {
               usuario: {
                 nome: { contains: busca, mode: "insensitive" as const },
@@ -150,7 +166,7 @@ export async function listarServidoresPaginado(params: ListarServidoresParams) {
         },
         _count: { select: { lotacoes: true, gestores: true } },
       },
-      orderBy: [{ usuario: { nome: "asc" } }, { matricula: "asc" }],
+      orderBy: [{ nomeFuncional: "asc" }, { usuario: { nome: "asc" } }, { matricula: "asc" }],
       skip: (pagina - 1) * itensPorPagina,
       take: itensPorPagina,
     }),
@@ -180,7 +196,7 @@ export async function listarServidoresParaExportacao(
         take: 1,
       },
     },
-    orderBy: [{ usuario: { nome: "asc" } }, { matricula: "asc" }],
+    orderBy: [{ nomeFuncional: "asc" }, { usuario: { nome: "asc" } }, { matricula: "asc" }],
   });
 }
 

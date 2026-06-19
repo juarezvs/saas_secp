@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { PERMISSOES_ACESSO_REGISTRO_PONTO_SECP } from "@/modules/auth/domain/constants/perfis-sistema";
 import { obterRotuloTipoMarcacao } from "@/modules/marcacoes/application/services/classificar-marcacao.service";
 import { formatarDataHoraPtBr } from "@/modules/marcacoes/application/services/data-marcacao.service";
 import {
@@ -13,6 +14,7 @@ import {
 } from "@/modules/marcacoes/infrastructure/repositories/marcacao.repository";
 import { MarcacoesDiaCard } from "@/modules/marcacoes/presentation/components/marcacoes-dia-card";
 import { OrigemMarcacaoIcon } from "@/modules/marcacoes/presentation/components/origem-marcacao-icon";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 export default async function MarcacoesPage() {
   await exigirUmaDasPermissoesOuRedirecionar([
@@ -24,6 +26,9 @@ export default async function MarcacoesPage() {
   const session = await auth();
   const permissoes = session?.user.perfilAtivo?.permissoes ?? [];
   const podeConsultarGlobal = permissoes.includes("marcacoes:consultar:global");
+  const podeRegistrarPontoPeloSecp = PERMISSOES_ACESSO_REGISTRO_PONTO_SECP.some(
+    (permissao) => permissoes.includes(permissao),
+  );
 
   const { marcacoes } = session?.user
     ? await listarMarcacoesDoUsuarioNoDia(session.user.id)
@@ -45,13 +50,15 @@ export default async function MarcacoesPage() {
         regraTitulo="Marcação de entrada, saida e intervalo"
         regraDescricao="O sistema registra entrada, saida, saida para intervalo e retorno do intervalo, permitindo futura apuração da jornada diária e mensal."
         actions={
-          <Link
-            href="/marcacoes/registrar"
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950"
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            Registrar horário
-          </Link>
+          podeRegistrarPontoPeloSecp ? (
+            <Link
+              href="/marcacoes/registrar"
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950"
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              Registrar horário
+            </Link>
+          ) : null
         }
       />
 
@@ -89,7 +96,7 @@ export default async function MarcacoesPage() {
 
                       <td className="px-5 py-4">
                         <div className="font-semibold">
-                          {marcacao.servidor.usuario.nome}
+                          {nomeServidor(marcacao.servidor)}
                         </div>
                         <div className="mt-1 font-mono text-xs text-[var(--muted-foreground)]">
                           {marcacao.servidor.matricula}
