@@ -66,21 +66,21 @@ export function DashboardServidor({
 
       <section className="grid gap-3 xl:grid-cols-[minmax(18rem,0.8fr)_minmax(0,1.65fr)]">
         <NextActionCard {...dados.proximaAcao} />
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {dados.metricas.map((metrica) => (
-            <DashboardMetricCard key={metrica.titulo} {...metrica} />
-          ))}
+        <div className="grid gap-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {dados.metricas.map((metrica) => (
+              <DashboardMetricCard key={metrica.titulo} {...metrica} />
+            ))}
+          </div>
+          <AcessoRapidoGrid acessos={dados.acessos} />
         </div>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[0.82fr_1.38fr]">
+        <MarcacoesDoDiaTimeline marcacoes={dados.marcacoes} />
         <div className="grid gap-3">
-          <MarcacoesDoDiaTimeline marcacoes={dados.marcacoes} />
-          <AlertasEAvisosCard alertas={dados.alertas} />
-        </div>
-        <div className="grid gap-3">
-          <AcessoRapidoGrid acessos={dados.acessos} />
           <FrequenciaMesResumo resumo={dados.frequenciaMes} />
+          <AlertasEAvisosCard alertas={dados.alertas} />
         </div>
       </section>
 
