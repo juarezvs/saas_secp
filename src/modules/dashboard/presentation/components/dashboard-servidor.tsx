@@ -9,7 +9,11 @@ import { DashboardServidorRelogio } from "./dashboard-servidor-relogio";
 import { FrequenciaMesResumo } from "./frequencia-mes-resumo";
 import { MarcacoesDoDiaTimeline } from "./marcacoes-do-dia-timeline";
 import { NextActionCard } from "./next-action-card";
-import { dashboardServidorMock } from "../data/dashboard-servidor.mock";
+import {
+  dashboardServidorMock,
+  type MarcacaoDia,
+  type PrevisaoJornadaDia,
+} from "../data/dashboard-servidor.mock";
 import type { FrequenciaMesServidorResumo } from "../../application/frequencia-mes-servidor.service";
 
 type DashboardServidorProps = {
@@ -18,6 +22,8 @@ type DashboardServidorProps = {
   totalNotificacoes?: number;
   frequenciaMes?: FrequenciaMesServidorResumo;
   permissoesPerfil?: string[];
+  marcacoesDia?: MarcacaoDia[];
+  previsaoJornadaDia?: PrevisaoJornadaDia | null;
 };
 
 export function DashboardServidor({
@@ -26,6 +32,8 @@ export function DashboardServidor({
   totalNotificacoes = 0,
   frequenciaMes,
   permissoesPerfil = [],
+  marcacoesDia = [],
+  previsaoJornadaDia = null,
 }: DashboardServidorProps) {
   const podeRegistrarPontoPeloSecp = PERMISSOES_ACESSO_REGISTRO_PONTO_SECP.some(
     (permissao) => permissoesPerfil.includes(permissao),
@@ -40,6 +48,7 @@ export function DashboardServidor({
       ...cabecalho,
     },
     frequenciaMes: frequenciaMes ?? dashboardServidorMock.frequenciaMes,
+    marcacoes: marcacoesDia,
   };
   const acessos = podeRegistrarPontoPeloSecp
     ? dados.acessos
@@ -103,7 +112,10 @@ export function DashboardServidor({
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[0.82fr_1.38fr]">
-        <MarcacoesDoDiaTimeline marcacoes={dados.marcacoes} />
+        <MarcacoesDoDiaTimeline
+          marcacoes={dados.marcacoes}
+          previsao={previsaoJornadaDia}
+        />
         <div className="grid gap-3">
           <FrequenciaMesResumo resumo={dados.frequenciaMes} />
           <AlertasEAvisosCard alertas={dados.alertas} />

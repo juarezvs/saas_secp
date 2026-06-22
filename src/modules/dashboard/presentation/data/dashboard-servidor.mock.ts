@@ -14,6 +14,16 @@ export type MarcacaoDia = {
   status: "registrada" | "pendente";
 };
 
+export type PrevisaoJornadaDia = {
+  titulo: string;
+  horarios: Array<{
+    rotulo: string;
+    horario: string;
+  }>;
+  carga: string;
+  indicativo?: string;
+};
+
 export type AlertaServidor = {
   tipo: "warning" | "info" | "success";
   titulo: string;

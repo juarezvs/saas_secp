@@ -30,7 +30,11 @@ export async function buscarServidorPorUsuarioId(usuarioId: string) {
         },
         include: {
           jornada: true,
-          escala: true,
+          escala: {
+            include: {
+              dias: true,
+            },
+          },
         },
         orderBy: {
           dataInicio: "desc",
