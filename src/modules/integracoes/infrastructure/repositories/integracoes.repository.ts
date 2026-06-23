@@ -116,10 +116,8 @@ export async function listarIntegracoesSistemaParaExportacao(
 }
 
 export async function listarEquipamentosBiometricos() {
-  return prisma.equipamentoBiometrico.findMany({
-    orderBy: {
-      nome: "asc",
-    },
+  const equipamentos = await prisma.equipamentoBiometrico.findMany({
+    orderBy: [{ ativo: "desc" }, { nome: "asc" }],
     include: {
       unidade: true,
       integracao: true,
@@ -130,6 +128,48 @@ export async function listarEquipamentosBiometricos() {
       },
     },
   });
+
+  const totais = await prisma.marcacaoBruta.groupBy({
+    by: ["equipamentoId", "processada"],
+    where: {
+      equipamentoId: {
+        in: equipamentos.map((equipamento) => equipamento.id),
+      },
+    },
+    _count: {
+      _all: true,
+    },
+  });
+
+  const totaisPorEquipamento = new Map<
+    string,
+    { marcacoesBrutas: number; marcacoesPendentes: number }
+  >();
+
+  for (const total of totais) {
+    if (!total.equipamentoId) continue;
+
+    const atual =
+      totaisPorEquipamento.get(total.equipamentoId) ?? {
+        marcacoesBrutas: 0,
+        marcacoesPendentes: 0,
+      };
+    atual.marcacoesBrutas += total._count._all;
+
+    if (!total.processada) {
+      atual.marcacoesPendentes += total._count._all;
+    }
+
+    totaisPorEquipamento.set(total.equipamentoId, atual);
+  }
+
+  return equipamentos.map((equipamento) => ({
+    ...equipamento,
+    estatisticasMarcacoes: totaisPorEquipamento.get(equipamento.id) ?? {
+      marcacoesBrutas: 0,
+      marcacoesPendentes: 0,
+    },
+  }));
 }
 
 export async function listarLogsIntegracao(params?: { limite?: number }) {
@@ -196,6 +236,17 @@ export async function buscarEquipamentoPorCodigo(codigo: string) {
   return prisma.equipamentoBiometrico.findUnique({
     where: {
       codigo,
+    },
+    include: {
+      unidade: true,
+    },
+  });
+}
+
+export async function buscarEquipamentoBiometricoPorId(id: string) {
+  return prisma.equipamentoBiometrico.findUnique({
+    where: {
+      id,
     },
     include: {
       unidade: true,

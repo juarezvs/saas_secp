@@ -10,22 +10,33 @@ import { obterRotuloTipoMarcacao } from "@/modules/marcacoes/application/service
 import { formatarDataHoraPtBr } from "@/modules/marcacoes/application/services/data-marcacao.service";
 import {
   listarMarcacoesDoUsuarioNoDia,
+  listarServidoresParaFiltroMarcacoes,
   listarUltimasMarcacoes,
 } from "@/modules/marcacoes/infrastructure/repositories/marcacao.repository";
 import { MarcacoesDiaCard } from "@/modules/marcacoes/presentation/components/marcacoes-dia-card";
 import { OrigemMarcacaoIcon } from "@/modules/marcacoes/presentation/components/origem-marcacao-icon";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
-export default async function MarcacoesPage() {
+type MarcacoesPageProps = {
+  searchParams?: Promise<{
+    servidorId?: string;
+  }>;
+};
+
+export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps) {
   await exigirUmaDasPermissoesOuRedirecionar([
     "marcacoes:consultar:proprio",
     "marcacoes:visualizar:proprio",
     "marcacoes:consultar:global",
   ]);
 
+  const params = await searchParams;
   const session = await auth();
   const permissoes = session?.user.perfilAtivo?.permissoes ?? [];
+  const perfilCodigo = session?.user.perfilAtivo?.codigo;
   const podeConsultarGlobal = permissoes.includes("marcacoes:consultar:global");
+  const podeFiltrarServidor = podeConsultarGlobal && perfilCodigo !== "SERVIDOR";
+  const servidorIdFiltro = podeFiltrarServidor ? params?.servidorId || null : null;
   const podeRegistrarPontoPeloSecp = PERMISSOES_ACESSO_REGISTRO_PONTO_SECP.some(
     (permissao) => permissoes.includes(permissao),
   );
@@ -34,9 +45,12 @@ export default async function MarcacoesPage() {
     ? await listarMarcacoesDoUsuarioNoDia(session.user.id)
     : { marcacoes: [] };
 
-  const ultimasMarcacoes = podeConsultarGlobal
-    ? await listarUltimasMarcacoes({ limite: 30 })
-    : [];
+  const [ultimasMarcacoes, servidoresFiltro] = await Promise.all([
+    podeConsultarGlobal
+      ? listarUltimasMarcacoes({ limite: 30, servidorId: servidorIdFiltro })
+      : Promise.resolve([]),
+    podeFiltrarServidor ? listarServidoresParaFiltroMarcacoes() : Promise.resolve([]),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -47,8 +61,8 @@ export default async function MarcacoesPage() {
         titulo="Marcações de ponto"
         descricao="Consulte suas marcações do dia e registre novo horário."
         artigo="Art. 6"
-        regraTitulo="Marcação de entrada, saida e intervalo"
-        regraDescricao="O sistema registra entrada, saida, saida para intervalo e retorno do intervalo, permitindo futura apuração da jornada diária e mensal."
+        regraTitulo="Marcação de entrada, saída e intervalo"
+        regraDescricao="O sistema registra entrada, saída, saída para intervalo e retorno do intervalo, permitindo futura apuração da jornada diária e mensal."
         actions={
           podeRegistrarPontoPeloSecp ? (
             <Link
@@ -66,9 +80,38 @@ export default async function MarcacoesPage() {
 
       {podeConsultarGlobal && (
         <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
-          <div className="flex items-center gap-2 border-b p-5">
-            <Clock3 className="size-5 text-blue-900 dark:text-blue-300" />
-            <h2 className="text-lg font-bold">Ultimas marcações registradas</h2>
+          <div className="flex flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-2">
+              <Clock3 className="size-5 text-blue-900 dark:text-blue-300" />
+              <h2 className="text-lg font-bold">Últimas marcações registradas</h2>
+            </div>
+
+            {podeFiltrarServidor && (
+              <form className="flex flex-col gap-2 sm:flex-row sm:items-center" action="/marcacoes">
+                <label htmlFor="servidorId" className="text-sm font-semibold">
+                  Servidor
+                </label>
+                <select
+                  id="servidorId"
+                  name="servidorId"
+                  defaultValue={servidorIdFiltro ?? ""}
+                  className="h-10 min-w-72 rounded-md border bg-[var(--card)] px-3 text-sm"
+                >
+                  <option value="">Todos os servidores</option>
+                  {servidoresFiltro.map((servidor) => (
+                    <option key={servidor.id} value={servidor.id}>
+                      {nomeServidor(servidor) || servidor.matricula} - {servidor.matricula}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="submit"
+                  className="h-10 rounded-md bg-blue-900 px-4 text-sm font-semibold text-white hover:bg-blue-950"
+                >
+                  Filtrar
+                </button>
+              </form>
+            )}
           </div>
 
           <div className="overflow-x-auto">

@@ -154,6 +154,7 @@ export default async function IntegracoesPage() {
     conflitosPendentesSarh,
     itensComErroSarh,
     configuracaoLdapAd,
+    equipamentosBiometricos,
   ] = await Promise.all([
     prisma.integracaoSistema.findMany({
       orderBy: [{ tipo: "asc" }, { nome: "asc" }],
@@ -168,12 +169,27 @@ export default async function IntegracoesPage() {
       where: { status: "ERRO" },
     }),
     obterConfiguracaoLdapActiveDirectory(),
+    prisma.equipamentoBiometrico.findMany({
+      select: {
+        ativo: true,
+        ultimoHeartbeatEm: true,
+      },
+    }),
   ]);
 
   const sarh = integracoes.find((integracao) => integracao.tipo === "SARH");
   const ldap = integracoes.find((integracao) => integracao.tipo === "LDAP");
   const integracoesAtivas = integracoes.filter((integracao) => integracao.ativo).length;
   const integracoesComErro = integracoes.filter((integracao) => integracao.status === "ERRO").length;
+  const equipamentosAtivos = equipamentosBiometricos.filter(
+    (equipamento) => equipamento.ativo,
+  );
+  const limiteOnline = new Date();
+  limiteOnline.setMinutes(limiteOnline.getMinutes() - 5);
+  const equipamentosOnline = equipamentosAtivos.filter((equipamento) => {
+    if (!equipamento.ultimoHeartbeatEm) return false;
+    return equipamento.ultimoHeartbeatEm >= limiteOnline;
+  });
 
   const statusSarh: StatusVisual = !sarh
     ? "atencao"
@@ -286,17 +302,23 @@ export default async function IntegracoesPage() {
         />
 
         <IntegracaoCard
-          titulo="Equipamentos biométricos"
-          descricao="Integração com relógios, totens e dispositivos de identificação biometrica para ingestão de marcações e eventos operacionais."
-          status="planejado"
+          titulo="Equipamentos biometricos"
+          descricao="Integracao com relogios, totens e dispositivos de identificacao biometrica para ingestao de marcacoes e eventos operacionais."
+          href="/equipamentos"
+          status={
+            equipamentosAtivos.length === 0
+              ? "atencao"
+              : equipamentosOnline.length > 0
+                ? "disponivel"
+                : "atencao"
+          }
           icon={Fingerprint}
           detalhes={[
-            "Recebimento de marcações",
-            "Heartbeat e monitoramento dos equipamentos",
-            "Tratamento de falhas de comunicação",
+            `${equipamentosAtivos.length} equipamento(s) ativo(s)`,
+            `${equipamentosOnline.length} online nos ultimos 5 minutos`,
+            "Coleta por NSR, heartbeat e evento online Henry",
           ]}
         />
-
         <IntegracaoCard
           titulo="LDAP / Active Directory"
           descricao="Integração usada pelo login institucional do SECP para autenticar matrícula e senha contra a rede Windows, via API AD ou bind LDAP direto."

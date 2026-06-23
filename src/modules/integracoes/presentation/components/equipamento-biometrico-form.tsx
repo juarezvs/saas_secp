@@ -11,6 +11,21 @@ type UnidadeItem = {
   nome: string;
 };
 
+type EquipamentoFormItem = {
+  id: string;
+  codigo: string;
+  nome: string;
+  fabricante: string | null;
+  modelo: string | null;
+  numeroSerie: string | null;
+  localizacao: string | null;
+  ip: string | null;
+  porta: number | null;
+  ativo: boolean;
+  unidadeId?: string | null;
+  configuracao: unknown;
+};
+
 const estadoInicial: EquipamentoBiometricoFormState = {
   sucesso: false,
   mensagem: null,
@@ -20,22 +35,76 @@ function erro(estado: EquipamentoBiometricoFormState, campo: string) {
   return estado.erros?.[campo]?.[0];
 }
 
+function getConfiguracao(configuracao: unknown) {
+  return configuracao && typeof configuracao === "object"
+    ? (configuracao as Record<string, unknown>)
+    : {};
+}
+
+function valorCampo(
+  estado: EquipamentoBiometricoFormState,
+  campo: string,
+  fallback: unknown,
+) {
+  const valor = estado.campos?.[campo as never];
+
+  if (valor !== undefined) {
+    return typeof valor === "boolean" ? valor : String(valor ?? "");
+  }
+
+  return typeof fallback === "boolean" ? fallback : String(fallback ?? "");
+}
+
+function valorTextoCampo(
+  estado: EquipamentoBiometricoFormState,
+  campo: string,
+  fallback: unknown,
+) {
+  const valor = valorCampo(estado, campo, fallback);
+  return typeof valor === "boolean" ? String(valor) : valor;
+}
+
+function valorBooleanoCampo(
+  estado: EquipamentoBiometricoFormState,
+  campo: string,
+  fallback: boolean,
+) {
+  const valor = valorCampo(estado, campo, fallback);
+
+  if (typeof valor === "boolean") return valor;
+
+  return valor === "true" || valor === "on";
+}
+
 export function EquipamentoBiometricoForm({
   unidades,
+  equipamento,
+  compacto = false,
 }: {
   unidades: UnidadeItem[];
+  equipamento?: EquipamentoFormItem | null;
+  compacto?: boolean;
 }) {
   const [estado, formAction, pendente] = useActionState(
     registrarEquipamentoBiometricoAction,
     estadoInicial,
   );
+  const configuracao = getConfiguracao(equipamento?.configuracao);
+  const protocolo =
+    configuracao.protocolo === "HENRY" || equipamento?.fabricante === "HENRY"
+      ? "HENRY"
+      : "GENERIC";
 
   return (
     <form
       action={formAction}
       className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm"
     >
-      <h2 className="text-lg font-bold">Cadastrar equipamento biométrico</h2>
+      <input type="hidden" name="equipamentoId" value={equipamento?.id ?? ""} />
+
+      <h2 className="text-lg font-bold">
+        {equipamento ? "Editar equipamento biometrico" : "Cadastrar equipamento biometrico"}
+      </h2>
 
       {estado.mensagem && (
         <div
@@ -50,15 +119,22 @@ export function EquipamentoBiometricoForm({
         </div>
       )}
 
-      <div className="mt-5 grid gap-4 md:grid-cols-2">
+      <div className={`mt-5 grid gap-4 ${compacto ? "lg:grid-cols-3" : "md:grid-cols-2"}`}>
         <Campo
-          label="Código"
+          label="Codigo"
           name="codigo"
+          defaultValue={valorCampo(estado, "codigo", equipamento?.codigo)}
           erro={erro(estado, "codigo")}
           required
         />
 
-        <Campo label="Nome" name="nome" erro={erro(estado, "nome")} required />
+        <Campo
+          label="Nome"
+          name="nome"
+          defaultValue={valorCampo(estado, "nome", equipamento?.nome)}
+          erro={erro(estado, "nome")}
+          required
+        />
 
         <div className="space-y-2">
           <label htmlFor="unidadeId" className="text-sm font-semibold">
@@ -68,30 +144,143 @@ export function EquipamentoBiometricoForm({
           <select
             id="unidadeId"
             name="unidadeId"
+            defaultValue={valorTextoCampo(
+              estado,
+              "unidadeId",
+              equipamento?.unidadeId ?? "",
+            )}
             className="h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
           >
             <option value="">Sem unidade vinculada</option>
             {unidades.map((unidade) => (
               <option key={unidade.id} value={unidade.id}>
-                {unidade.sigla} — {unidade.nome}
+                {unidade.sigla} - {unidade.nome}
               </option>
             ))}
           </select>
         </div>
 
-        <Campo label="Fabricante" name="fabricante" />
-        <Campo label="Modelo" name="modelo" />
-        <Campo label="Número de série" name="numeroSerie" />
-        <Campo label="Localização" name="localizacao" />
-        <Campo label="IP" name="ip" />
-        <Campo label="Porta" name="porta" type="number" />
+        <Campo
+          label="Fabricante"
+          name="fabricante"
+          defaultValue={valorCampo(estado, "fabricante", equipamento?.fabricante)}
+        />
+        <Campo
+          label="Modelo"
+          name="modelo"
+          defaultValue={valorCampo(estado, "modelo", equipamento?.modelo)}
+        />
+        <Campo
+          label="Numero de serie"
+          name="numeroSerie"
+          defaultValue={valorCampo(estado, "numeroSerie", equipamento?.numeroSerie)}
+        />
+        <Campo
+          label="Localizacao"
+          name="localizacao"
+          defaultValue={valorCampo(estado, "localizacao", equipamento?.localizacao)}
+        />
+        <Campo
+          label="IP"
+          name="ip"
+          defaultValue={valorCampo(estado, "ip", equipamento?.ip)}
+        />
+        <Campo
+          label="Porta"
+          name="porta"
+          type="number"
+          defaultValue={valorCampo(estado, "porta", equipamento?.porta)}
+        />
+
+        <div className="space-y-2">
+          <label htmlFor="protocolo" className="text-sm font-semibold">
+            Protocolo de integracao
+          </label>
+
+          <select
+            id="protocolo"
+            name="protocolo"
+            defaultValue={valorTextoCampo(estado, "protocolo", protocolo)}
+            className="h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+          >
+            <option value="GENERIC">Generico / webhook</option>
+            <option value="HENRY">Henry - Linha ADV</option>
+          </select>
+        </div>
+
+        <Campo
+          label="Usuario padrao do relogio"
+          name="usuario"
+          defaultValue={valorCampo(estado, "usuario", configuracao.usuario)}
+        />
+        <Campo
+          label="Senha padrao do relogio"
+          name="senha"
+          type="password"
+          placeholder={equipamento ? "Manter senha atual" : undefined}
+        />
+        <Campo
+          label="Usuario para dados/coleta"
+          name="usuarioDados"
+          defaultValue={valorCampo(estado, "usuarioDados", configuracao.usuarioDados)}
+        />
+        <Campo
+          label="Senha para dados/coleta"
+          name="senhaDados"
+          type="password"
+          placeholder={equipamento ? "Manter senha atual" : undefined}
+        />
+        <Campo
+          label="Usuario para configuracao"
+          name="usuarioConfiguracao"
+          defaultValue={valorCampo(
+            estado,
+            "usuarioConfiguracao",
+            configuracao.usuarioConfiguracao,
+          )}
+        />
+        <Campo
+          label="Senha para configuracao"
+          name="senhaConfiguracao"
+          type="password"
+          placeholder={equipamento ? "Manter senha atual" : undefined}
+        />
+        <Campo
+          label="Timeout (ms)"
+          name="timeoutMs"
+          type="number"
+          defaultValue={valorCampo(estado, "timeoutMs", configuracao.timeoutMs)}
+        />
+        <Campo
+          label="Proximo NSR de coleta"
+          name="proximoNsrColeta"
+          type="number"
+          defaultValue={valorCampo(
+            estado,
+            "proximoNsrColeta",
+            configuracao.proximoNsrColeta,
+          )}
+        />
+        <Campo
+          label="Token webhook do equipamento"
+          name="webhookToken"
+          defaultValue={valorCampo(estado, "webhookToken", configuracao.webhookToken)}
+        />
 
         <label className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm">
-          <input type="checkbox" name="ativo" defaultChecked />
+          <input
+            type="checkbox"
+            name="ativo"
+            defaultChecked={valorBooleanoCampo(
+              estado,
+              "ativo",
+              equipamento?.ativo ?? true,
+            )}
+          />
           <span>
             <span className="block font-semibold">Equipamento ativo</span>
             <span className="text-xs text-[var(--muted-foreground)]">
-              Equipamentos inativos não devem gerar marcações.
+              Equipamentos inativos nao devem gerar marcacoes.
             </span>
           </span>
         </label>
@@ -108,7 +297,7 @@ export function EquipamentoBiometricoForm({
           ) : (
             <Save className="size-4" />
           )}
-          Salvar equipamento
+          {equipamento ? "Atualizar equipamento" : "Salvar equipamento"}
         </button>
       </div>
     </form>
@@ -121,12 +310,16 @@ function Campo({
   type = "text",
   erro,
   required,
+  defaultValue,
+  placeholder,
 }: {
   label: string;
   name: string;
   type?: string;
   erro?: string;
   required?: boolean;
+  defaultValue?: string | number | boolean;
+  placeholder?: string;
 }) {
   return (
     <div className="space-y-2">
@@ -139,6 +332,10 @@ function Campo({
         name={name}
         type={type}
         required={required}
+        defaultValue={
+          typeof defaultValue === "boolean" ? undefined : String(defaultValue ?? "")
+        }
+        placeholder={placeholder}
         className="h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
       />
 

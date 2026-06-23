@@ -11,6 +11,7 @@ import {
 
 function extrairDados(formData: FormData) {
   return {
+    equipamentoId: String(formData.get("equipamentoId") ?? "").trim(),
     codigo: String(formData.get("codigo") ?? "").trim(),
     nome: String(formData.get("nome") ?? "").trim(),
     unidadeId: String(formData.get("unidadeId") ?? ""),
@@ -20,8 +21,24 @@ function extrairDados(formData: FormData) {
     localizacao: String(formData.get("localizacao") ?? "").trim(),
     ip: String(formData.get("ip") ?? "").trim(),
     porta: String(formData.get("porta") ?? ""),
+    protocolo: String(formData.get("protocolo") ?? "GENERIC"),
+    usuario: String(formData.get("usuario") ?? "").trim(),
+    senha: String(formData.get("senha") ?? ""),
+    usuarioDados: String(formData.get("usuarioDados") ?? "").trim(),
+    senhaDados: String(formData.get("senhaDados") ?? ""),
+    usuarioConfiguracao: String(formData.get("usuarioConfiguracao") ?? "").trim(),
+    senhaConfiguracao: String(formData.get("senhaConfiguracao") ?? ""),
+    timeoutMs: String(formData.get("timeoutMs") ?? ""),
+    proximoNsrColeta: String(formData.get("proximoNsrColeta") ?? ""),
+    webhookToken: String(formData.get("webhookToken") ?? "").trim(),
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
   };
+}
+
+function configuracaoRecord(configuracao: unknown) {
+  return configuracao && typeof configuracao === "object"
+    ? (configuracao as Record<string, unknown>)
+    : {};
 }
 
 export async function registrarEquipamentoBiometricoAction(
@@ -33,7 +50,7 @@ export async function registrarEquipamentoBiometricoAction(
   if (!session?.user) {
     return {
       sucesso: false,
-      mensagem: "Sessão expirada. Faça login novamente.",
+      mensagem: "Sessao expirada. Faca login novamente.",
     };
   }
 
@@ -46,7 +63,7 @@ export async function registrarEquipamentoBiometricoAction(
   ) {
     return {
       sucesso: false,
-      mensagem: "Você não possui permissão para gerenciar integrações.",
+      mensagem: "Voce nao possui permissao para gerenciar integracoes.",
     };
   }
 
@@ -62,85 +79,154 @@ export async function registrarEquipamentoBiometricoAction(
     };
   }
 
+  const equipamentoId = dados.equipamentoId || null;
   const existente = await prisma.equipamentoBiometrico.findUnique({
     where: {
       codigo: parsed.data.codigo,
     },
   });
 
-  if (existente) {
+  if (existente && existente.id !== equipamentoId) {
     return {
       sucesso: false,
-      mensagem: "Já existe um equipamento com este código.",
+      mensagem: "Ja existe um equipamento com este codigo.",
       erros: {
-        codigo: ["Já existe um equipamento com este código."],
+        codigo: ["Ja existe um equipamento com este codigo."],
       },
       campos: dados,
     };
   }
 
-  await prisma.$transaction(async (tx) => {
-    const integracao = await tx.integracaoSistema.upsert({
-      where: {
-        id: "00000000-0000-0000-0000-000000000102",
-      },
-      update: {
-        nome: "Equipamentos biométricos",
-        tipo: "EQUIPAMENTO_BIOMETRICO",
-        direcao: "ENTRADA",
-        status: "ATIVA",
-        ativo: true,
-      },
-      create: {
-        id: "00000000-0000-0000-0000-000000000102",
-        nome: "Equipamentos biométricos",
-        tipo: "EQUIPAMENTO_BIOMETRICO",
-        direcao: "ENTRADA",
-        status: "ATIVA",
-        ativo: true,
-        descricao:
-          "Integração responsável por receber eventos de equipamentos biométricos.",
-      },
-    });
+  try {
+    await prisma.$transaction(async (tx) => {
+      const equipamentoAtual = equipamentoId
+        ? await tx.equipamentoBiometrico.findUnique({
+            where: {
+              id: equipamentoId,
+            },
+          })
+        : null;
 
-    const equipamento = await tx.equipamentoBiometrico.create({
-      data: {
+      if (equipamentoId && !equipamentoAtual) {
+        throw new Error("Equipamento biometrico nao encontrado para atualizacao.");
+      }
+
+      const configAtual = configuracaoRecord(equipamentoAtual?.configuracao);
+      const configEditada = Object.fromEntries(
+        Object.entries({
+          protocolo: parsed.data.protocolo,
+          usuario: parsed.data.usuario || undefined,
+          senha: parsed.data.senha || configAtual.senha || undefined,
+          usuarioDados: parsed.data.usuarioDados || undefined,
+          senhaDados: parsed.data.senhaDados || configAtual.senhaDados || undefined,
+          usuarioConfiguracao: parsed.data.usuarioConfiguracao || undefined,
+          senhaConfiguracao:
+            parsed.data.senhaConfiguracao ||
+            configAtual.senhaConfiguracao ||
+            undefined,
+          timeoutMs:
+            typeof parsed.data.timeoutMs === "number"
+              ? parsed.data.timeoutMs
+              : undefined,
+          proximoNsrColeta:
+            typeof parsed.data.proximoNsrColeta === "number"
+              ? parsed.data.proximoNsrColeta
+              : undefined,
+          webhookToken: parsed.data.webhookToken || undefined,
+        }).filter(([, valor]) => valor !== undefined),
+      );
+
+      const integracao = await tx.integracaoSistema.upsert({
+        where: {
+          id: "00000000-0000-0000-0000-000000000102",
+        },
+        update: {
+          nome: "Equipamentos biometricos",
+          tipo: "EQUIPAMENTO_BIOMETRICO",
+          direcao: "ENTRADA",
+          status: "ATIVA",
+          ativo: true,
+        },
+        create: {
+          id: "00000000-0000-0000-0000-000000000102",
+          nome: "Equipamentos biometricos",
+          tipo: "EQUIPAMENTO_BIOMETRICO",
+          direcao: "ENTRADA",
+          status: "ATIVA",
+          ativo: true,
+          descricao:
+            "Integracao responsavel por receber eventos de equipamentos biometricos.",
+        },
+      });
+
+      const dadosEquipamento = {
         integracaoId: integracao.id,
         codigo: parsed.data.codigo,
         nome: parsed.data.nome,
         unidadeId: parsed.data.unidadeId || null,
-        fabricante: parsed.data.fabricante || null,
+        fabricante:
+          parsed.data.protocolo === "HENRY"
+            ? "HENRY"
+            : parsed.data.fabricante || null,
         modelo: parsed.data.modelo || null,
         numeroSerie: parsed.data.numeroSerie || null,
         localizacao: parsed.data.localizacao || null,
         ip: parsed.data.ip || null,
         porta: typeof parsed.data.porta === "number" ? parsed.data.porta : null,
         ativo: parsed.data.ativo,
-      },
-    });
+        configuracao: {
+          ...configAtual,
+          ...configEditada,
+        } as never,
+      };
 
-    await tx.auditoriaEvento.create({
-      data: {
-        usuarioId: session.user.id,
-        entidade: "EquipamentoBiometrico",
-        entidadeId: equipamento.id,
-        acao: "EQUIPAMENTO_BIOMETRICO_CRIADO",
-        dadosDepois: {
-          id: equipamento.id,
-          codigo: equipamento.codigo,
-          nome: equipamento.nome,
-          unidadeId: equipamento.unidadeId,
-          ativo: equipamento.ativo,
+      const equipamento = equipamentoId
+        ? await tx.equipamentoBiometrico.update({
+            where: {
+              id: equipamentoId,
+            },
+            data: dadosEquipamento,
+          })
+        : await tx.equipamentoBiometrico.create({
+            data: dadosEquipamento,
+          });
+
+      await tx.auditoriaEvento.create({
+        data: {
+          usuarioId: session.user.id,
+          entidade: "EquipamentoBiometrico",
+          entidadeId: equipamento.id,
+          acao: equipamentoId
+            ? "EQUIPAMENTO_BIOMETRICO_ATUALIZADO"
+            : "EQUIPAMENTO_BIOMETRICO_CRIADO",
+          dadosDepois: {
+            id: equipamento.id,
+            codigo: equipamento.codigo,
+            nome: equipamento.nome,
+            unidadeId: equipamento.unidadeId,
+            ativo: equipamento.ativo,
+          },
         },
-      },
+      });
     });
-  });
+  } catch (error) {
+    return {
+      sucesso: false,
+      mensagem:
+        error instanceof Error
+          ? error.message
+          : "Nao foi possivel salvar o equipamento.",
+      campos: dados,
+    };
+  }
 
   revalidatePath("/integracoes");
   revalidatePath("/equipamentos");
 
   return {
     sucesso: true,
-    mensagem: "Equipamento biométrico cadastrado com sucesso.",
+    mensagem: equipamentoId
+      ? "Equipamento biometrico atualizado com sucesso."
+      : "Equipamento biometrico cadastrado com sucesso.",
   };
 }

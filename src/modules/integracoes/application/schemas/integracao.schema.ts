@@ -46,6 +46,27 @@ export const equipamentoBiometricoSchema = z.object({
   localizacao: z.string().trim().optional().or(z.literal("")),
   ip: z.string().trim().optional().or(z.literal("")),
   porta: z.coerce.number().int().positive().optional().or(z.literal("")),
+  protocolo: z.enum(["GENERIC", "HENRY"]).default("GENERIC"),
+  usuario: z.string().trim().optional().or(z.literal("")),
+  senha: z.string().optional().or(z.literal("")),
+  usuarioDados: z.string().trim().optional().or(z.literal("")),
+  senhaDados: z.string().optional().or(z.literal("")),
+  usuarioConfiguracao: z.string().trim().optional().or(z.literal("")),
+  senhaConfiguracao: z.string().optional().or(z.literal("")),
+  timeoutMs: z.coerce
+    .number()
+    .int("Informe um timeout inteiro.")
+    .min(1000, "O timeout minimo e 1000 ms.")
+    .max(60000, "O timeout maximo e 60000 ms.")
+    .optional()
+    .or(z.literal("")),
+  proximoNsrColeta: z.coerce
+    .number()
+    .int("Informe um NSR inteiro.")
+    .min(1, "O NSR minimo e 1.")
+    .optional()
+    .or(z.literal("")),
+  webhookToken: z.string().trim().optional().or(z.literal("")),
   ativo: z.coerce.boolean().default(true),
 });
 

@@ -3,12 +3,10 @@ import { Cpu } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import {
-  listarEquipamentosBiometricos,
-  listarUnidadesParaEquipamentos,
-} from "@/modules/integracoes/infrastructure/repositories/integracoes.repository";
-import { EquipamentoBiometricoForm } from "@/modules/integracoes/presentation/components/equipamento-biometrico-form";
-import { EquipamentosBiometricosTable } from "@/modules/integracoes/presentation/components/equipamentos-biometricos-table";
+import { listarColetasRelogioProgressivasAtivas } from "@/modules/integracoes/application/jobs/coleta-relogio-progressiva.jobs";
+import { obterStatusHenryOnlineWorker } from "@/modules/integracoes/application/workers/henry-online-worker-runtime";
+import { listarEquipamentosBiometricos } from "@/modules/integracoes/infrastructure/repositories/integracoes.repository";
+import { EquipamentosPageTabs } from "@/modules/integracoes/presentation/components/equipamentos-page-tabs";
 
 export default async function EquipamentosPage() {
   await exigirUmaDasPermissoesOuRedirecionar([
@@ -17,10 +15,11 @@ export default async function EquipamentosPage() {
     "afd:importar:global",
   ]);
 
-  const [equipamentos, unidades] = await Promise.all([
+  const [equipamentos, coletasAtivas] = await Promise.all([
     listarEquipamentosBiometricos(),
-    listarUnidadesParaEquipamentos(),
+    listarColetasRelogioProgressivasAtivas(),
   ]);
+  const statusListenerOnline = obterStatusHenryOnlineWorker();
 
   return (
     <div className="space-y-6">
@@ -40,8 +39,11 @@ export default async function EquipamentosPage() {
         regraDescricao="Ao importar AFD, o SECP tenta associar o arquivo ao equipamento cadastrado pelo código ou número de série, preservando a origem da marcação."
       />
 
-      <EquipamentoBiometricoForm unidades={unidades} />
-      <EquipamentosBiometricosTable equipamentos={equipamentos} />
+      <EquipamentosPageTabs
+        equipamentos={equipamentos}
+        coletasAtivas={coletasAtivas}
+        statusListenerOnline={statusListenerOnline}
+      />
     </div>
   );
 }

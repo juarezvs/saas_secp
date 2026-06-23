@@ -1,0 +1,558 @@
+import { prisma } from "@/shared/infrastructure/database/prisma";
+import { criarMarcacaoBrutaService } from "@/modules/marcacoes-brutas/application/services/criar-marcacao-bruta.service";
+import { processarMarcacaoBrutaService } from "@/modules/marcacoes-brutas/application/services/processar-marcacao-bruta.service";
+import type {
+  DadosConexaoRelogioPonto,
+  FabricanteRelogioPonto,
+  MarcacaoRelogioPonto,
+} from "@/modules/integracoes/domain/relogio-ponto.types";
+import { criarRelogioPontoProvider } from "./relogio-ponto-provider.service";
+
+type ConfiguracaoEquipamento = {
+  usuario?: unknown;
+  senha?: unknown;
+  usuarioDados?: unknown;
+  senhaDados?: unknown;
+  usuarioConfiguracao?: unknown;
+  senhaConfiguracao?: unknown;
+  timeoutMs?: unknown;
+  ultimoNsrColetado?: unknown;
+  proximoNsrColeta?: unknown;
+  webhookToken?: unknown;
+  eventosOnline?: unknown;
+};
+
+type RelogioPontoLocksGlobal = typeof globalThis & {
+  __secpRelogioPontoLocks?: Map<string, Promise<void>>;
+};
+
+function somenteDigitos(valor: string | null | undefined) {
+  return (valor ?? "").replace(/\D/g, "");
+}
+
+function aguardar(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function erroTransienteRelogio(error: unknown) {
+  if (!(error instanceof Error)) return false;
+
+  return (
+    error.message.includes("Tempo limite") ||
+    error.message.includes("Resposta RA do Henry") ||
+    error.message.includes("ocupado") ||
+    error.message.includes("Status Henry 017") ||
+    error.message.includes("Status Henry 050") ||
+    error.message.includes("Status Henry 102")
+  );
+}
+
+async function executarComLockEquipamento<T>(
+  equipamentoId: string,
+  operacao: () => Promise<T>,
+) {
+  const globalLocks = globalThis as RelogioPontoLocksGlobal;
+  globalLocks.__secpRelogioPontoLocks ??= new Map();
+  const locks = globalLocks.__secpRelogioPontoLocks;
+  const lockAnterior = locks.get(equipamentoId) ?? Promise.resolve();
+
+  let liberar!: () => void;
+  const lockAtual = new Promise<void>((resolve) => {
+    liberar = resolve;
+  });
+
+  const lockEncadeado = lockAnterior
+    .catch(() => undefined)
+    .then(() => lockAtual);
+  locks.set(equipamentoId, lockEncadeado);
+
+  await lockAnterior.catch(() => undefined);
+
+  try {
+    return await operacao();
+  } finally {
+    liberar();
+    if (locks.get(equipamentoId) === lockEncadeado) {
+      locks.delete(equipamentoId);
+    }
+  }
+}
+
+function lerConfiguracao(configuracao: unknown): ConfiguracaoEquipamento {
+  if (!configuracao || typeof configuracao !== "object") {
+    return {};
+  }
+
+  return configuracao as ConfiguracaoEquipamento;
+}
+
+function valorTexto(valor: unknown) {
+  return typeof valor === "string" && valor.trim() ? valor.trim() : null;
+}
+
+function valorNumero(valor: unknown) {
+  const numero = Number(valor);
+  return Number.isFinite(numero) ? numero : null;
+}
+
+function normalizarFabricante(valor: string | null): FabricanteRelogioPonto {
+  return valor?.trim().toUpperCase() === "HENRY" ? "HENRY" : "GENERIC";
+}
+
+async function obterConexaoEquipamento(
+  equipamentoId: string,
+  perfilCredencial: "dados" | "configuracao" = "dados",
+): Promise<DadosConexaoRelogioPonto> {
+  const equipamento = await prisma.equipamentoBiometrico.findUnique({
+    where: { id: equipamentoId },
+  });
+
+  if (!equipamento || !equipamento.ativo) {
+    throw new Error("Equipamento nao cadastrado ou inativo.");
+  }
+
+  if (!equipamento.ip) {
+    throw new Error("Equipamento sem IP configurado.");
+  }
+
+  const config = lerConfiguracao(equipamento.configuracao);
+
+  return {
+    equipamentoId: equipamento.id,
+    codigo: equipamento.codigo,
+    fabricante: normalizarFabricante(equipamento.fabricante),
+    modelo: equipamento.modelo,
+    ip: equipamento.ip,
+    porta: equipamento.porta ?? 3000,
+    usuario:
+      perfilCredencial === "configuracao"
+        ? (valorTexto(config.usuarioConfiguracao) ?? valorTexto(config.usuario))
+        : (valorTexto(config.usuarioDados) ?? valorTexto(config.usuario)),
+    senha:
+      perfilCredencial === "configuracao"
+        ? (valorTexto(config.senhaConfiguracao) ?? valorTexto(config.senha))
+        : (valorTexto(config.senhaDados) ?? valorTexto(config.senha)),
+    timeoutMs: valorNumero(config.timeoutMs),
+    configuracao: equipamento.configuracao,
+  };
+}
+
+export async function consultarSaudeRelogioPontoService(equipamentoId: string) {
+  const conexao = await obterConexaoEquipamento(equipamentoId);
+  const provider = criarRelogioPontoProvider(conexao);
+  const resultado = await provider.testarConexao();
+
+  await prisma.$transaction(async (tx) => {
+    await tx.equipamentoBiometrico.update({
+      where: { id: equipamentoId },
+      data: {
+        ultimoHeartbeatEm:
+          resultado.status === "ONLINE" ? resultado.dataHoraConsulta : undefined,
+      },
+    });
+
+    await tx.eventoEquipamentoBiometrico.create({
+      data: {
+        equipamentoId,
+        tipoEvento: resultado.status === "ONLINE" ? "HEARTBEAT" : "ERRO",
+        processado: true,
+        processadoEm: new Date(),
+        erro: resultado.status === "ONLINE" ? null : resultado.mensagem,
+        payload: resultado as never,
+      },
+    });
+  });
+
+  return resultado;
+}
+
+type ColetarMarcacoesRelogioPontoParams = {
+  equipamentoId: string;
+  nsrInicial?: string | number | null;
+  quantidade?: number | null;
+  usuarioIdAuditoria?: string | null;
+  atualizarCursor?: boolean;
+  filtroMarcacao?: (marcacao: MarcacaoRelogioPonto) => boolean;
+};
+
+async function coletarMarcacoesRelogioPontoSemLock(
+  params: ColetarMarcacoesRelogioPontoParams,
+) {
+  const conexao = await obterConexaoEquipamento(params.equipamentoId);
+  const equipamento = await prisma.equipamentoBiometrico.findUniqueOrThrow({
+    where: { id: params.equipamentoId },
+  });
+  const configuracao = lerConfiguracao(equipamento.configuracao);
+  const nsrInicial =
+    params.nsrInicial ??
+    valorNumero(configuracao.proximoNsrColeta) ??
+    valorNumero(configuracao.ultimoNsrColetado) ??
+    1;
+  const provider = criarRelogioPontoProvider(conexao);
+  const resultado = await provider.coletarMarcacoesDesdeNsr({
+    nsrInicial,
+    quantidade: params.quantidade ?? undefined,
+  });
+
+  let criadas = 0;
+  let processadas = 0;
+  let ignoradasPorFiltro = 0;
+
+  for (const marcacao of resultado.marcacoes) {
+    if (params.filtroMarcacao && !params.filtroMarcacao(marcacao)) {
+      ignoradasPorFiltro += 1;
+      continue;
+    }
+
+    const bruta = await criarMarcacaoBrutaService({
+      cpf: marcacao.cpf ? somenteDigitos(marcacao.cpf) : null,
+      matricula: marcacao.matricula ?? null,
+      dataHora: marcacao.dataHora,
+      equipamentoCodigo: equipamento.codigo,
+      equipamentoId: equipamento.id,
+      origem: "EQUIPAMENTO_BIOMETRICO",
+      nsr: marcacao.nsr ?? null,
+      codigoExterno: marcacao.codigoExterno ?? marcacao.nsr ?? null,
+      payloadOriginal: {
+        ...marcacao,
+        fonte: "HENRY_RR",
+      },
+    });
+
+    if (bruta.criada) {
+      criadas += 1;
+    }
+
+    const processamento = await processarMarcacaoBrutaService({
+      marcacaoBrutaId: bruta.marcacaoBruta.id,
+      usuarioIdAuditoria: params.usuarioIdAuditoria ?? undefined,
+    });
+
+    if (processamento.sucesso) {
+      processadas += 1;
+    }
+  }
+
+  const proximoNsr = resultado.proximoNsr ?? null;
+  const ultimaSincronizacaoEm = new Date();
+  const configuracaoAtualizada: Record<string, unknown> = {
+    ...((equipamento.configuracao as object | null) ?? {}),
+  };
+
+  if (params.atualizarCursor !== false && proximoNsr) {
+    configuracaoAtualizada.proximoNsrColeta = proximoNsr;
+    configuracaoAtualizada.ultimoNsrColetado = Number(proximoNsr) - 1;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.equipamentoBiometrico.update({
+      where: { id: equipamento.id },
+      data: {
+        ultimoHeartbeatEm: ultimaSincronizacaoEm,
+        ultimaSincronizacaoEm,
+        configuracao: configuracaoAtualizada as never,
+      },
+    });
+
+    await tx.logIntegracao.create({
+      data: {
+        integracaoId: equipamento.integracaoId,
+        tipo: "EQUIPAMENTO_BIOMETRICO",
+        direcao: "ENTRADA",
+        status: "SUCESSO",
+        entidade: "EquipamentoBiometrico",
+        entidadeId: equipamento.id,
+        mensagem: `${criadas} marcacao(oes) bruta(s) criada(s), ${processadas} processada(s).`,
+        payloadEntrada: {
+          comando: "RR",
+          nsrInicial,
+          quantidade: params.quantidade,
+          filtroAplicado: Boolean(params.filtroMarcacao),
+        } as never,
+        payloadSaida: resultado as never,
+        finalizadoEm: ultimaSincronizacaoEm,
+      },
+    });
+  });
+
+  return {
+    ...resultado,
+    criadas,
+    processadas,
+    ignoradasPorFiltro,
+  };
+}
+
+export async function coletarMarcacoesRelogioPontoService(
+  params: ColetarMarcacoesRelogioPontoParams,
+) {
+  return executarComLockEquipamento(params.equipamentoId, () =>
+    coletarMarcacoesRelogioPontoSemLock(params),
+  );
+}
+
+export async function reprocessarMarcacoesRelogioPontoService(params: {
+  equipamentoId: string;
+  limite?: number | null;
+  usuarioIdAuditoria?: string | null;
+}) {
+  const limite = Math.min(Math.max(Number(params.limite ?? 5000), 1), 50000);
+  const pendentes = await prisma.marcacaoBruta.findMany({
+    where: {
+      equipamentoId: params.equipamentoId,
+      origem: "EQUIPAMENTO_BIOMETRICO",
+      processada: false,
+    },
+    select: {
+      id: true,
+    },
+    orderBy: {
+      criadoEm: "asc",
+    },
+    take: limite,
+  });
+
+  let processadas = 0;
+  let aindaPendentes = 0;
+  let erros = 0;
+
+  for (const bruta of pendentes) {
+    try {
+      const resultado = await processarMarcacaoBrutaService({
+        marcacaoBrutaId: bruta.id,
+        usuarioIdAuditoria: params.usuarioIdAuditoria ?? undefined,
+      });
+
+      if (resultado.sucesso) {
+        processadas += 1;
+      } else {
+        aindaPendentes += 1;
+      }
+    } catch {
+      erros += 1;
+    }
+  }
+
+  const pendentesRestantes = await prisma.marcacaoBruta.count({
+    where: {
+      equipamentoId: params.equipamentoId,
+      origem: "EQUIPAMENTO_BIOMETRICO",
+      processada: false,
+    },
+  });
+
+  return {
+    analisadas: pendentes.length,
+    processadas,
+    aindaPendentes,
+    erros,
+    pendentesRestantes,
+  };
+}
+
+type CapturarTodasMarcacoesRelogioPontoParams = {
+  equipamentoId: string;
+  nsrInicial?: string | number | null;
+  quantidadePorLote?: number | null;
+  limiteLotes?: number | null;
+  reprocessarAoFinal?: boolean | null;
+  usuarioIdAuditoria?: string | null;
+  atualizarCursor?: boolean;
+  filtroMarcacao?: (marcacao: MarcacaoRelogioPonto) => boolean;
+  onProgress?: (progresso: {
+    lotesExecutados: number;
+    limiteLotes: number;
+    percentual: number;
+    nsrAtual: string | number;
+    proximoNsr: string | null;
+    recebidas: number;
+    criadas: number;
+    processadas: number;
+    ignoradasPorFiltro: number;
+    etapa: string;
+  }) => void | Promise<void>;
+};
+
+async function capturarTodasMarcacoesRelogioPontoSemLock(
+  params: CapturarTodasMarcacoesRelogioPontoParams,
+) {
+  const quantidadePorLote = Math.min(
+    Math.max(Number(params.quantidadePorLote ?? 100), 1),
+    500,
+  );
+  const limiteLotes = Math.min(Math.max(Number(params.limiteLotes ?? 100), 1), 500);
+  let nsrAtual = params.nsrInicial ?? 1;
+  let lotesExecutados = 0;
+  let recebidas = 0;
+  let criadas = 0;
+  let processadas = 0;
+  let ignoradasPorFiltro = 0;
+  let proximoNsr: string | null = null;
+
+  while (lotesExecutados < limiteLotes) {
+    let resultado: Awaited<ReturnType<typeof coletarMarcacoesRelogioPontoSemLock>>;
+
+    try {
+      resultado = await coletarMarcacoesRelogioPontoSemLock({
+        equipamentoId: params.equipamentoId,
+        nsrInicial: nsrAtual,
+        quantidade: quantidadePorLote,
+        usuarioIdAuditoria: params.usuarioIdAuditoria,
+        atualizarCursor: params.atualizarCursor,
+        filtroMarcacao: params.filtroMarcacao,
+      });
+    } catch (error) {
+      if (!erroTransienteRelogio(error)) {
+        throw error;
+      }
+
+      await params.onProgress?.({
+        lotesExecutados,
+        limiteLotes,
+        percentual: Math.min(Math.round((lotesExecutados / limiteLotes) * 100), 99),
+        nsrAtual,
+        proximoNsr,
+        recebidas,
+        criadas,
+        processadas,
+        ignoradasPorFiltro,
+        etapa: `Falha transitória no lote ${lotesExecutados + 1}. Tentando novamente.`,
+      });
+
+      await aguardar(1500);
+
+      resultado = await coletarMarcacoesRelogioPontoSemLock({
+        equipamentoId: params.equipamentoId,
+        nsrInicial: nsrAtual,
+        quantidade: quantidadePorLote,
+        usuarioIdAuditoria: params.usuarioIdAuditoria,
+        atualizarCursor: params.atualizarCursor,
+        filtroMarcacao: params.filtroMarcacao,
+      });
+    }
+
+    lotesExecutados += 1;
+    recebidas += resultado.marcacoes.length;
+    criadas += resultado.criadas;
+    processadas += resultado.processadas;
+    ignoradasPorFiltro += resultado.ignoradasPorFiltro;
+    proximoNsr = resultado.proximoNsr ?? null;
+
+    await params.onProgress?.({
+      lotesExecutados,
+      limiteLotes,
+      percentual: Math.min(Math.round((lotesExecutados / limiteLotes) * 100), 100),
+      nsrAtual,
+      proximoNsr,
+      recebidas,
+      criadas,
+      processadas,
+      ignoradasPorFiltro,
+      etapa: proximoNsr
+        ? `Lote ${lotesExecutados} concluido. Proximo NSR ${proximoNsr}.`
+        : "Coleta concluida pelo relogio.",
+    });
+
+    if (!proximoNsr || resultado.marcacoes.length === 0) {
+      break;
+    }
+
+    if (String(proximoNsr) === String(nsrAtual)) {
+      break;
+    }
+
+    nsrAtual = proximoNsr;
+  }
+
+  const reprocessamento = params.reprocessarAoFinal
+    ? await reprocessarMarcacoesRelogioPontoService({
+        equipamentoId: params.equipamentoId,
+        limite: Math.min(recebidas + criadas + 500, 50000),
+        usuarioIdAuditoria: params.usuarioIdAuditoria,
+      })
+    : null;
+
+  return {
+    lotesExecutados,
+    limiteLotes,
+    quantidadePorLote,
+    recebidas,
+    criadas,
+    processadas,
+    ignoradasPorFiltro,
+    proximoNsr,
+    limiteAtingido:
+      lotesExecutados >= limiteLotes && Boolean(proximoNsr) && recebidas > 0,
+    reprocessamento,
+  };
+}
+
+export async function capturarTodasMarcacoesRelogioPontoService(
+  params: CapturarTodasMarcacoesRelogioPontoParams,
+) {
+  return executarComLockEquipamento(params.equipamentoId, () =>
+    capturarTodasMarcacoesRelogioPontoSemLock(params),
+  );
+}
+
+export async function configurarEventosOnlineRelogioPontoService(params: {
+  equipamentoId: string;
+  habilitado: boolean;
+  ipServidor?: string | null;
+  portaServidor?: number | null;
+}) {
+  const conexao = await obterConexaoEquipamento(
+    params.equipamentoId,
+    "configuracao",
+  );
+  const equipamento = await prisma.equipamentoBiometrico.findUniqueOrThrow({
+    where: { id: params.equipamentoId },
+  });
+  const provider = criarRelogioPontoProvider(conexao);
+  const resultado = await provider.configurarEventosOnline(params);
+
+  await prisma.equipamentoBiometrico.update({
+    where: { id: params.equipamentoId },
+    data: {
+      configuracao: {
+        ...((equipamento.configuracao as object | null) ?? {}),
+        eventosOnline: {
+          habilitado: params.habilitado,
+          ipServidor: params.ipServidor ?? null,
+          portaServidor: params.portaServidor ?? null,
+          atualizadoEm: new Date().toISOString(),
+        },
+      } as never,
+    },
+  });
+
+  return resultado;
+}
+
+export async function enviarBiometriaRelogioPontoService(params: {
+  equipamentoId: string;
+  matricula: string;
+  cpf?: string | null;
+  nome?: string | null;
+  dedo?: string | number | null;
+  template: string;
+  formato?: "SUPREMA" | "FS_SWIPE_SINATRA" | "HENRY_RAW";
+}) {
+  const conexao = await obterConexaoEquipamento(params.equipamentoId);
+  const provider = criarRelogioPontoProvider(conexao);
+
+  return provider.enviarBiometrias([
+    {
+      matricula: params.matricula,
+      cpf: params.cpf ?? null,
+      nome: params.nome ?? null,
+      templates: [
+        {
+          dedo: params.dedo ?? 1,
+          template: params.template,
+          formato: params.formato ?? "SUPREMA",
+        },
+      ],
+    },
+  ]);
+}
