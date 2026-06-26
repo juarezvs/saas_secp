@@ -148,6 +148,33 @@ export async function atualizarFusoHorarioAction(
       },
       data: parsed.data,
     });
+    const valorAnterior = fusoAtual?.valor;
+    let orgaosAtualizados = 0;
+    let unidadesAtualizadas = 0;
+
+    if (valorAnterior && valorAnterior !== parsed.data.valor) {
+      const [orgaos, unidades] = await Promise.all([
+        tx.orgao.updateMany({
+          where: {
+            fusoHorario: valorAnterior,
+          },
+          data: {
+            fusoHorario: parsed.data.valor,
+          },
+        }),
+        tx.unidadeOrganizacional.updateMany({
+          where: {
+            fusoHorario: valorAnterior,
+          },
+          data: {
+            fusoHorario: parsed.data.valor,
+          },
+        }),
+      ]);
+
+      orgaosAtualizados = orgaos.count;
+      unidadesAtualizadas = unidades.count;
+    }
 
     await tx.auditoriaEvento.create({
       data: {
@@ -156,7 +183,13 @@ export async function atualizarFusoHorarioAction(
         entidadeId: fuso.id,
         acao: "FUSO_HORARIO_ATUALIZADO",
         dadosAntes: dadosAuditoriaFuso(fusoAtual),
-        dadosDepois: dadosAuditoriaFuso(fuso),
+        dadosDepois: {
+          ...dadosAuditoriaFuso(fuso),
+          reflexos: {
+            orgaosAtualizados,
+            unidadesAtualizadas,
+          },
+        },
       },
     });
   });

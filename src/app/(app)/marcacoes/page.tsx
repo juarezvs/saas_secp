@@ -30,6 +30,16 @@ type MarcacoesPageProps = {
   }>;
 };
 
+type UnidadeLotacaoArvore = {
+  id: string;
+  sigla: string;
+  nome: string;
+  orgao?: {
+    sigla?: string | null;
+  } | null;
+  unidadePai?: UnidadeLotacaoArvore | null;
+};
+
 const tiposMarcacaoManutencao = [
   "ENTRADA",
   "SAIDA_INTERVALO",
@@ -38,6 +48,74 @@ const tiposMarcacaoManutencao = [
   "MANUAL",
   "AJUSTE",
 ];
+
+function montarArvoreLotacao(unidade?: UnidadeLotacaoArvore | null) {
+  const arvore: UnidadeLotacaoArvore[] = [];
+  const visitados = new Set<string>();
+  let atual = unidade ?? null;
+
+  while (atual && !visitados.has(atual.id)) {
+    visitados.add(atual.id);
+    arvore.unshift(atual);
+    atual = atual.unidadePai ?? null;
+  }
+
+  return arvore;
+}
+
+function rotuloUnidadeLotacao(unidade: UnidadeLotacaoArvore) {
+  if (!unidade.nome || unidade.nome === unidade.sigla) {
+    return unidade.sigla;
+  }
+
+  return `${unidade.sigla} - ${unidade.nome}`;
+}
+
+function normalizarArvoreLotacaoPorOrgao(
+  orgaoSigla: string | null | undefined,
+  unidades: UnidadeLotacaoArvore[],
+) {
+  const siglaOrgao = orgaoSigla?.trim();
+
+  if (!siglaOrgao) {
+    return unidades;
+  }
+
+  const indiceUnidadeOrgao = unidades.findIndex(
+    (unidade) => unidade.sigla.trim() === siglaOrgao,
+  );
+
+  return indiceUnidadeOrgao >= 0 ? unidades.slice(indiceUnidadeOrgao) : unidades;
+}
+
+function montarSiglasLotacaoComOrgao(
+  orgaoSigla: string | null | undefined,
+  unidades: UnidadeLotacaoArvore[],
+) {
+  const unidadesNormalizadas = normalizarArvoreLotacaoPorOrgao(
+    orgaoSigla,
+    unidades,
+  );
+  const primeiraUnidade = unidadesNormalizadas[0]?.sigla.trim();
+  const siglaOrgao = orgaoSigla?.trim();
+  const siglas = [
+    primeiraUnidade === siglaOrgao ? null : siglaOrgao,
+    ...unidadesNormalizadas.map((unidade) => unidade.sigla),
+  ];
+  const partes: string[] = [];
+
+  for (const sigla of siglas) {
+    const valor = sigla?.trim();
+
+    if (!valor || partes.at(-1) === valor) {
+      continue;
+    }
+
+    partes.push(valor);
+  }
+
+  return partes.join(" / ");
+}
 
 function partesDataHoraLocal(data: Date, fusoHorario?: string | null) {
   const partes = new Intl.DateTimeFormat("en-CA", {
@@ -271,6 +349,11 @@ export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps
               <tbody>
                 {ultimasMarcacoes.map((marcacao) => {
                   const lotacaoAtual = marcacao.servidor.lotacoes[0];
+                  const arvoreLotacao = montarArvoreLotacao(lotacaoAtual?.unidade);
+                  const siglasLotacao = montarSiglasLotacaoComOrgao(
+                    lotacaoAtual?.unidade.orgao?.sigla,
+                    arvoreLotacao,
+                  );
                   const camposDataHora = partesDataHoraLocal(
                     marcacao.dataHora,
                     marcacao.fusoHorario,
@@ -295,7 +378,18 @@ export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps
                       </td>
 
                       <td className="px-5 py-4">
-                        {lotacaoAtual?.unidade.sigla ?? "-"}
+                        {lotacaoAtual?.unidade ? (
+                          <div className="max-w-[26rem]">
+                            <div className="font-semibold text-[var(--foreground)]">
+                              {rotuloUnidadeLotacao(lotacaoAtual.unidade)}
+                            </div>
+                            <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                              {siglasLotacao || lotacaoAtual.unidade.sigla}
+                            </div>
+                          </div>
+                        ) : (
+                          "-"
+                        )}
                       </td>
 
                       <td className="px-5 py-4">

@@ -5,9 +5,17 @@ import { PageHeader } from "@/components/layout/page-header";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { criarCalendarioInstitucionalAction } from "@/modules/calendario-institucional/application/actions/criar-calendario-institucional.action";
 import { CalendarioInstitucionalForm } from "@/modules/calendario-institucional/presentation/components/calendario-institucional-form";
+import {
+  listarOrgaosAtivos,
+  listarUnidadesParaSelecao,
+} from "@/modules/unidades/infrastructure/repositories/unidade.repository";
 
 export default async function NovoCalendarioInstitucionalPage() {
   await exigirPermissaoOuRedirecionar("configuracoes:gerenciar:global");
+  const [orgaos, unidades] = await Promise.all([
+    listarOrgaosAtivos(),
+    listarUnidadesParaSelecao(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -33,6 +41,8 @@ export default async function NovoCalendarioInstitucionalPage() {
 
       <CalendarioInstitucionalForm
         action={criarCalendarioInstitucionalAction}
+        orgaos={orgaos}
+        unidades={unidades}
         modo="criar"
       />
     </div>

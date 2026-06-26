@@ -39,6 +39,7 @@ export async function validarPendenciasHomologacaoServidor(params: {
     anoReferencia: params.anoReferencia,
     mesReferencia: params.mesReferencia,
     jornadas,
+    servidorId: params.servidorId,
   });
 
   const pendencias: PendenciaHomologacao[] = [];

@@ -27,6 +27,14 @@ enum TipoCalendarioInstitucional {
   SUSPENSAO_EXPEDIENTE
 }
 
+enum AbrangenciaCalendarioInstitucional {
+  NACIONAL
+  ESTADUAL
+  MUNICIPAL
+  ORGAO
+  UNIDADE
+}
+
 enum TipoUnidadeOrganizacional {
   ORGAO
   SECAO_JUDICIARIA
@@ -596,10 +604,11 @@ model Orgao {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  unidades           UnidadeOrganizacional[]
-  servidores         Servidor[]
-  regulamentacaoPonto RegulamentacaoPontoOrgao?
-  integracoes        IntegracaoSistema[]
+    unidades           UnidadeOrganizacional[]
+    servidores         Servidor[]
+    regulamentacaoPonto RegulamentacaoPontoOrgao?
+    integracoes        IntegracaoSistema[]
+    calendariosInstitucionais CalendarioInstitucional[]
 
   @@map("orgaos")
 }
@@ -655,9 +664,12 @@ model UnidadeOrganizacional {
   codigo String                    @db.VarChar(80)
   sigla  String                    @db.VarChar(50)
   nome   String                    @db.VarChar(250)
-  tipo   TipoUnidadeOrganizacional
-  ativo  Boolean                   @default(true)
-  fusoHorario String?              @map("fuso_horario") @db.VarChar(80)
+    tipo        TipoUnidadeOrganizacional
+    ativo       Boolean                   @default(true)
+    fusoHorario String?                   @map("fuso_horario") @db.VarChar(80)
+    uf          String?                   @db.Char(2)
+    municipio   String?                   @db.VarChar(120)
+    municipioIbge String?                 @map("municipio_ibge") @db.VarChar(7)
 
   codigoExternoSarh       Int?      @map("codigo_externo_sarh")
   codigoExternoPaiSarh    Int?      @map("codigo_externo_pai_sarh")
@@ -683,19 +695,22 @@ model UnidadeOrganizacional {
   gestores                GestorUnidade[]
   solicitacoes            Solicitacao[]             @relation("SolicitacoesPorUnidade")
   fechamentosMensais      FechamentoMensalUnidade[]
-  boletimFrequencias      BoletimFrequencia[]
-  equipamentosBiometricos EquipamentoBiometrico[]
-  convocacoesRecesso      ConvocacaoRecesso[]
+    boletimFrequencias      BoletimFrequencia[]
+    equipamentosBiometricos EquipamentoBiometrico[]
+    convocacoesRecesso      ConvocacaoRecesso[]
+    calendariosInstitucionais CalendarioInstitucional[]
 
   @@unique([orgaoId, codigo])
   @@unique([orgaoId, codigoExternoSarh])
   @@index([orgaoId])
   @@index([unidadePaiId])
   @@index([codigoExternoSarh])
-  @@index([codigoExternoPaiSarh])
-  @@index([origemSarh])
-  @@map("unidades_organizacionais")
-}
+    @@index([codigoExternoPaiSarh])
+    @@index([origemSarh])
+    @@index([uf])
+    @@index([municipioIbge])
+    @@map("unidades_organizacionais")
+  }
 
 model Cargo {
   id String @id @default(uuid()) @db.Uuid
@@ -1961,11 +1976,17 @@ model ArquivoAfd {
 }
 
 model CalendarioInstitucional {
-  id String @id @default(uuid()) @db.Uuid
-
-  dataReferencia DateTime                    @unique @map("data_referencia") @db.Date
-  descricao      String                      @db.VarChar(200)
-  tipo           TipoCalendarioInstitucional
+    id String @id @default(uuid()) @db.Uuid
+  
+    dataReferencia DateTime                    @map("data_referencia") @db.Date
+    descricao      String                      @db.VarChar(200)
+    tipo           TipoCalendarioInstitucional
+    abrangencia    AbrangenciaCalendarioInstitucional @default(NACIONAL)
+    uf             String?                     @db.Char(2)
+    municipio      String?                     @db.VarChar(120)
+    municipioIbge  String?                     @map("municipio_ibge") @db.VarChar(7)
+    orgaoId        String?                     @map("orgao_id") @db.Uuid
+    unidadeId      String?                     @map("unidade_id") @db.Uuid
 
   contaComoDiaUtil    Boolean @default(false) @map("conta_como_dia_util")
   geraApuracaoRegular Boolean @default(false) @map("gera_apuracao_regular")
@@ -1976,14 +1997,22 @@ model CalendarioInstitucional {
   observacao          String? @db.Text
   ativo               Boolean @default(true)
 
-  criadoEm     DateTime @default(now()) @map("criado_em")
-  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+    criadoEm     DateTime @default(now()) @map("criado_em")
+    atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  @@index([dataReferencia])
-  @@index([tipo])
-  @@index([ativo])
-  @@map("calendarios_institucionais")
-}
+    orgao   Orgao? @relation(fields: [orgaoId], references: [id], onDelete: SetNull)
+    unidade UnidadeOrganizacional? @relation(fields: [unidadeId], references: [id], onDelete: SetNull)
+  
+    @@index([dataReferencia])
+    @@index([tipo])
+    @@index([ativo])
+    @@index([abrangencia])
+    @@index([uf])
+    @@index([municipioIbge])
+    @@index([orgaoId])
+    @@index([unidadeId])
+    @@map("calendarios_institucionais")
+  }
 
 model RecessoForense {
   id  String @id @default(uuid()) @db.Uuid

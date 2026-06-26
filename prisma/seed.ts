@@ -2,6 +2,7 @@ import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { FUSOS_HORARIOS_CADASTRO_PADRAO } from "../src/modules/fusos-horarios/domain/fusos-horarios-oficiais";
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -776,26 +777,7 @@ async function criarPermissoes() {
 }
 
 async function criarFusosHorarios() {
-  const fusos = [
-    {
-      valor: "America/Manaus",
-      rotulo: "Manaus (UTC-04)",
-      descricao: "Fuso horario padrao da Secao Judiciaria do Amazonas.",
-    },
-    {
-      valor: "America/Eirunepe",
-      rotulo: "Tabatinga/Eirunepe (UTC-05)",
-      descricao:
-        "Fuso horario usado por localidades do Amazonas uma hora atras de Manaus.",
-    },
-    {
-      valor: "America/Rio_Branco",
-      rotulo: "Rio Branco (UTC-05)",
-      descricao: "Fuso horario equivalente para integracoes ou unidades no Acre.",
-    },
-  ];
-
-  for (const fuso of fusos) {
+  for (const fuso of FUSOS_HORARIOS_CADASTRO_PADRAO) {
     await prisma.fusoHorario.upsert({
       where: {
         valor: fuso.valor,

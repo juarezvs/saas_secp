@@ -6,6 +6,14 @@ export const tiposCalendarioInstitucional = [
   "SUSPENSAO_EXPEDIENTE",
 ] as const;
 
+export const abrangenciasCalendarioInstitucional = [
+  "NACIONAL",
+  "ESTADUAL",
+  "MUNICIPAL",
+  "ORGAO",
+  "UNIDADE",
+] as const;
+
 const HORA_REGEX = /^\d{2}:\d{2}$/;
 
 function validarDataIso(valor: string) {
@@ -40,6 +48,33 @@ export const calendarioInstitucionalSchema = z
     tipo: z.enum(tiposCalendarioInstitucional, {
       error: "Informe o tipo do evento institucional.",
     }),
+    abrangencia: z.enum(abrangenciasCalendarioInstitucional, {
+      error: "Informe a abrangencia do evento.",
+    }).default("NACIONAL"),
+    uf: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .optional()
+      .or(z.literal(""))
+      .refine((valor) => !valor || /^[A-Z]{2}$/.test(valor), {
+        message: "Informe a UF com duas letras.",
+      }),
+    municipio: z.string().trim().max(120).optional().or(z.literal("")),
+    municipioIbge: z
+      .string()
+      .trim()
+      .optional()
+      .or(z.literal(""))
+      .refine((valor) => !valor || /^\d{7}$/.test(valor), {
+        message: "Informe o codigo IBGE com 7 digitos.",
+      }),
+    orgaoId: z.string().uuid("Informe o orgao.").optional().or(z.literal("")),
+    unidadeId: z
+      .string()
+      .uuid("Informe a unidade.")
+      .optional()
+      .or(z.literal("")),
     contaComoDiaUtil: z.coerce.boolean().default(false),
     geraApuracaoRegular: z.coerce.boolean().default(false),
     janelaInicio: z.string().trim().optional().or(z.literal("")),
@@ -113,6 +148,94 @@ export const calendarioInstitucionalSchema = z
         code: "custom",
         path: ["dataOriginal"],
         message: "Informe a data original do feriado ou ponto substituido.",
+      });
+    }
+
+    if (dados.abrangencia === "ESTADUAL" && !dados.uf) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["uf"],
+        message: "Informe a UF para evento estadual.",
+      });
+    }
+
+    if (
+      dados.abrangencia === "NACIONAL" &&
+      (dados.uf ||
+        dados.municipio ||
+        dados.municipioIbge ||
+        dados.orgaoId ||
+        dados.unidadeId)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["abrangencia"],
+        message:
+          "Evento nacional nao deve ter UF, municipio, orgao ou unidade.",
+      });
+    }
+
+    if (dados.abrangencia === "MUNICIPAL") {
+      if (!dados.uf) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["uf"],
+          message: "Informe a UF para evento municipal.",
+        });
+      }
+
+      if (!dados.municipio) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["municipio"],
+          message: "Informe o municipio para evento municipal.",
+        });
+      }
+
+      if (dados.orgaoId || dados.unidadeId) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["abrangencia"],
+          message: "Evento municipal deve usar apenas UF e municipio.",
+        });
+      }
+    }
+
+    if (dados.abrangencia === "ORGAO" && !dados.orgaoId) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["orgaoId"],
+        message: "Informe o orgao.",
+      });
+    }
+
+    if (
+      dados.abrangencia === "ORGAO" &&
+      (dados.uf || dados.municipio || dados.municipioIbge || dados.unidadeId)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["abrangencia"],
+        message: "Evento de orgao deve usar apenas o orgao selecionado.",
+      });
+    }
+
+    if (dados.abrangencia === "UNIDADE" && !dados.unidadeId) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["unidadeId"],
+        message: "Informe a unidade.",
+      });
+    }
+
+    if (
+      dados.abrangencia === "UNIDADE" &&
+      (dados.uf || dados.municipio || dados.municipioIbge || dados.orgaoId)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["abrangencia"],
+        message: "Evento de unidade deve usar apenas a unidade selecionada.",
       });
     }
   });

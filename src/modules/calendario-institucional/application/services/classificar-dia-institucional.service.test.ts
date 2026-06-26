@@ -44,6 +44,12 @@ function eventoCalendario(params: {
     dataReferencia: params.dataReferencia,
     descricao: "Evento institucional",
     tipo: params.tipo ?? "FERIADO",
+    abrangencia: "NACIONAL" as const,
+    uf: null,
+    municipio: null,
+    municipioIbge: null,
+    orgaoId: null,
+    unidadeId: null,
     contaComoDiaUtil: params.contaComoDiaUtil ?? false,
     geraApuracaoRegular: params.geraApuracaoRegular ?? false,
     janelaInicio: params.janelaInicio ?? null,
@@ -145,7 +151,9 @@ describe("classificarDiaInstitucional", () => {
       fimExclusivo: new Date("2026-07-01T00:00:00.000Z"),
     });
 
-    expect(calendario.eventosPorData.get("2026-06-08")).toBe(eventoAtivo);
+    expect(calendario.eventosPorData.get("2026-06-08")).toEqual([
+      eventoAtivo,
+    ]);
     expect(listarEventosCalendarioInstitucionalNoPeriodo).toHaveBeenCalledWith(
       new Date("2026-06-01T00:00:00.000Z"),
       new Date("2026-07-01T00:00:00.000Z"),

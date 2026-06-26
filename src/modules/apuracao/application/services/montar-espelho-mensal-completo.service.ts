@@ -212,6 +212,7 @@ async function preencherDiasDaCompetencia(params: {
   mesReferencia: number;
   jornadas: JornadaEspelhoMensal[];
   calendario: CalendarioInstitucionalPrecarregado;
+  servidorId?: string | null;
 }) {
   const inicio = inicioCompetencia(params.anoReferencia, params.mesReferencia);
   const fim = fimCompetencia(params.anoReferencia, params.mesReferencia);
@@ -220,6 +221,7 @@ async function preencherDiasDaCompetencia(params: {
     mesReferencia: params.mesReferencia,
     jornadas: params.jornadas,
     calendario: params.calendario,
+    servidorId: params.servidorId,
   });
   const cargaPorData = new Map(
     cargaMensal.dias.map((dia) => [
@@ -242,6 +244,7 @@ async function preencherDiasDaCompetencia(params: {
     const classificacao = await classificarDiaInstitucional(
       dataReferencia,
       params.calendario,
+      params.servidorId,
     );
 
     dias.push({
@@ -282,6 +285,7 @@ export async function montarEspelhoMensalCompleto(params: {
   apuracoes: ApuracaoEspelhoMensal[];
   jornadas: JornadaEspelhoMensal[];
   calendario?: CalendarioInstitucionalPrecarregado;
+  servidorId?: string | null;
   hoje?: Date;
   fusoHorario?: string | null;
 }): Promise<ResultadoEspelhoMensalCompleto> {
@@ -300,6 +304,7 @@ export async function montarEspelhoMensalCompleto(params: {
       mesReferencia: params.mesReferencia,
       jornadas: params.jornadas,
       calendario,
+      servidorId: params.servidorId,
     });
   const apuracoesPorData = new Map(
     params.apuracoes.map((apuracao) => [

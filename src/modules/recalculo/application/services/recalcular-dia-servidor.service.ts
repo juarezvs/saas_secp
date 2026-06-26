@@ -226,7 +226,11 @@ export async function recalcularDiaServidorService(
           dadosSolicitados: true,
         },
       }),
-      classificarDiaInstitucional(dataNormalizada, params.calendario),
+      classificarDiaInstitucional(
+        dataNormalizada,
+        params.calendario,
+        servidorId,
+      ),
     ]);
 
   const expedienteUnidade = resolverExpedienteUnidade(

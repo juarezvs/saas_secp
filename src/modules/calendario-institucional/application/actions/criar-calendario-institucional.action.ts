@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
-import { buscarEventoCalendarioInstitucionalPorData } from "../../infrastructure/repositories/calendario-institucional.repository";
+import { buscarConflitoEventoCalendarioInstitucional } from "../../infrastructure/repositories/calendario-institucional.repository";
 import {
   calendarioInstitucionalSchema,
   type CalendarioInstitucionalFormState,
@@ -28,6 +28,18 @@ function normalizarTipoCalendarioInstitucional(
     : undefined;
 }
 
+function normalizarAbrangenciaCalendarioInstitucional(
+  valor: FormDataEntryValue | null,
+): CalendarioInstitucionalInput["abrangencia"] | undefined {
+  const abrangencia = String(valor ?? "NACIONAL").trim();
+
+  return ["NACIONAL", "ESTADUAL", "MUNICIPAL", "ORGAO", "UNIDADE"].includes(
+    abrangencia,
+  )
+    ? (abrangencia as CalendarioInstitucionalInput["abrangencia"])
+    : undefined;
+}
+
 function extrairDadosCalendario(
   formData: FormData,
 ): Partial<CalendarioInstitucionalInput> {
@@ -35,6 +47,16 @@ function extrairDadosCalendario(
     dataReferencia: String(formData.get("dataReferencia") ?? "").trim(),
     descricao: String(formData.get("descricao") ?? "").trim(),
     tipo: normalizarTipoCalendarioInstitucional(formData.get("tipo")),
+    abrangencia: normalizarAbrangenciaCalendarioInstitucional(
+      formData.get("abrangencia"),
+    ),
+    uf: String(formData.get("uf") ?? "")
+      .trim()
+      .toUpperCase(),
+    municipio: valorOpcionalString(formData.get("municipio")),
+    municipioIbge: valorOpcionalString(formData.get("municipioIbge")),
+    orgaoId: valorOpcionalString(formData.get("orgaoId")),
+    unidadeId: valorOpcionalString(formData.get("unidadeId")),
     contaComoDiaUtil:
       formData.get("contaComoDiaUtil") === "on" ||
       formData.get("contaComoDiaUtil") === "true",
@@ -87,9 +109,15 @@ export async function criarCalendarioInstitucionalAction(
   }
 
   const dataReferencia = dataIsoParaUtc(parsed.data.dataReferencia);
-  const existente = await buscarEventoCalendarioInstitucionalPorData(
+  const existente = await buscarConflitoEventoCalendarioInstitucional({
     dataReferencia,
-  );
+    abrangencia: parsed.data.abrangencia,
+    uf: parsed.data.uf,
+    municipio: parsed.data.municipio,
+    municipioIbge: parsed.data.municipioIbge,
+    orgaoId: parsed.data.orgaoId,
+    unidadeId: parsed.data.unidadeId,
+  });
 
   if (existente) {
     return {
@@ -110,6 +138,12 @@ export async function criarCalendarioInstitucionalAction(
         dataReferencia,
         descricao: parsed.data.descricao,
         tipo: parsed.data.tipo,
+        abrangencia: parsed.data.abrangencia,
+        uf: parsed.data.uf || null,
+        municipio: parsed.data.municipio || null,
+        municipioIbge: parsed.data.municipioIbge || null,
+        orgaoId: parsed.data.orgaoId || null,
+        unidadeId: parsed.data.unidadeId || null,
         contaComoDiaUtil: parsed.data.contaComoDiaUtil,
         geraApuracaoRegular: parsed.data.geraApuracaoRegular,
         janelaInicio: parsed.data.janelaInicio || null,

@@ -7,6 +7,14 @@ export type CalendarioInstitucionalReflexosJob = {
   calendarioId: string;
   datasReferencia: string[];
   usuarioIdAuditoria?: string | null;
+  calendarioEscopo?: {
+    abrangencia: string;
+    uf?: string | null;
+    municipio?: string | null;
+    municipioIbge?: string | null;
+    orgaoId?: string | null;
+    unidadeId?: string | null;
+  } | null;
 };
 
 export type CalendarioInstitucionalReflexosProgresso = {
@@ -58,6 +66,7 @@ export async function enfileirarReflexosCalendarioInstitucional(params: {
   calendarioId: string;
   datasReferencia: Date[];
   usuarioIdAuditoria?: string | null;
+  calendarioEscopo?: CalendarioInstitucionalReflexosJob["calendarioEscopo"];
 }) {
   const datasReferencia = normalizarDatas(params.datasReferencia);
 
@@ -71,6 +80,7 @@ export async function enfileirarReflexosCalendarioInstitucional(params: {
       calendarioId: params.calendarioId,
       datasReferencia,
       usuarioIdAuditoria: params.usuarioIdAuditoria ?? null,
+      calendarioEscopo: params.calendarioEscopo ?? null,
     },
     {
       jobId: `calendario-${params.calendarioId}-${Date.now()}`,

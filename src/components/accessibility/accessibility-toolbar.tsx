@@ -164,7 +164,12 @@ export function AccessibilityToolbar({
   }
 
   function abrirVLibras() {
-    window.__secpAbrirVLibras?.();
+    if (window.__secpAbrirVLibras) {
+      void window.__secpAbrirVLibras();
+      return;
+    }
+
+    window.dispatchEvent(new Event("secp:abrir-vlibras"));
   }
 
   return (

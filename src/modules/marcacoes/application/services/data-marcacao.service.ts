@@ -1,9 +1,9 @@
+import { FUSOS_HORARIOS_BRASIL_PADRAO } from "@/modules/fusos-horarios/domain/fusos-horarios-oficiais";
+
 export const FUSO_HORARIO_PADRAO = "America/Manaus";
-export const FUSOS_HORARIOS_OPCOES = [
-  { valor: "America/Manaus", rotulo: "Manaus (UTC-04)" },
-  { valor: "America/Eirunepe", rotulo: "Tabatinga/Eirunepé (UTC-05)" },
-  { valor: "America/Rio_Branco", rotulo: "Rio Branco (UTC-05)" },
-] as const;
+export const FUSOS_HORARIOS_OPCOES = FUSOS_HORARIOS_BRASIL_PADRAO.map(
+  ({ valor, rotulo }) => ({ valor, rotulo }),
+);
 
 export function normalizarFusoHorario(fusoHorario?: string | null) {
   const fuso = fusoHorario?.trim();

@@ -143,7 +143,51 @@ export async function listarUltimasMarcacoes(params?: {
               status: "ATIVO",
             },
             include: {
-              unidade: true,
+              unidade: {
+                include: {
+                  orgao: {
+                    select: {
+                      sigla: true,
+                    },
+                  },
+                  unidadePai: {
+                    include: {
+                      orgao: {
+                        select: {
+                          sigla: true,
+                        },
+                      },
+                      unidadePai: {
+                        include: {
+                          orgao: {
+                            select: {
+                              sigla: true,
+                            },
+                          },
+                          unidadePai: {
+                            include: {
+                              orgao: {
+                                select: {
+                                  sigla: true,
+                                },
+                              },
+                              unidadePai: {
+                                include: {
+                                  orgao: {
+                                    select: {
+                                      sigla: true,
+                                    },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
             },
             orderBy: {
               dataInicio: "desc",

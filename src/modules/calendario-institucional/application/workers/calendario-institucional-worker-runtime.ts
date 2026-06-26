@@ -25,6 +25,8 @@ async function processarReflexosCalendarioJob(
   console.log("[CALENDARIO] Processando reflexos:", job.id, job.data);
 
   const resultado = await recalcularReflexosCalendarioInstitucional({
+    calendarioId: job.data.calendarioId,
+    calendarioEscopo: job.data.calendarioEscopo ?? undefined,
     datasReferencia: job.data.datasReferencia.map(dataIsoParaUtc),
     usuarioIdAuditoria: job.data.usuarioIdAuditoria ?? undefined,
     atualizarProgresso: async (progresso) => {

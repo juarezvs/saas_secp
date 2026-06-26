@@ -88,16 +88,6 @@ type DiaInstitucionalEspelho = {
 type ApuracaoEspelhoPdfItem =
   EspelhoPontoPdfProps["dados"]["apuracoes"][number];
 
-const badgeSolicitacao = {
-  marginTop: 2,
-  padding: 2,
-  borderWidth: 1,
-  borderColor: "#a7f3d0",
-  backgroundColor: "#ecfdf5",
-  color: "#065f46",
-  fontSize: 6,
-};
-
 const badgeRemoto = {
   padding: 2,
   borderWidth: 1,
@@ -121,6 +111,12 @@ const badgeOcorrencia = {
   padding: 2,
   borderWidth: 1,
   fontSize: 6,
+};
+
+const observacaoMarcacoes = {
+  color: "#334155",
+  fontSize: 7,
+  fontWeight: 600,
 };
 
 const statusIndicadorBase = {
@@ -243,7 +239,7 @@ export function EspelhoPontoPdfDocument({ dados }: EspelhoPontoPdfProps) {
             titulo={
               indicePagina === 0
                 ? "Espelho mensal"
-                : "Espelho mensal - continuacao"
+                : "Espelho mensal - continuação"
             }
             apuracoes={apuracoesPagina}
             marcacoesPorDia={marcacoesPorDia}
@@ -262,7 +258,7 @@ export function EspelhoPontoPdfDocument({ dados }: EspelhoPontoPdfProps) {
             render={({ pageNumber, totalPages }) =>
               `Gerado pelo SECP em ${new Date().toLocaleString(
                 "pt-BR",
-              )}. Pagina ${pageNumber} de ${totalPages}.`
+              )}. Página ${pageNumber} de ${totalPages}.`
             }
           >
             Gerado pelo SECP.
@@ -303,13 +299,13 @@ function TotaisEspelhoPdf({
           </Text>
         </View>
         <View style={s.infoBox}>
-          <Text style={s.label}>Credito</Text>
+          <Text style={s.label}>Crédito</Text>
           <Text style={s.value}>
             {minutosParaHoraRelatorio(totais.credito)}
           </Text>
         </View>
         <View style={s.infoBox}>
-          <Text style={s.label}>Debito</Text>
+          <Text style={s.label}>Débito</Text>
           <Text style={s.value}>
             {minutosParaHoraRelatorio(totais.debito)}
           </Text>
@@ -317,7 +313,7 @@ function TotaisEspelhoPdf({
       </View>
       <View style={s.row}>
         <View style={s.infoBox}>
-          <Text style={s.label}>Ausencias</Text>
+          <Text style={s.label}>Ausências</Text>
           <Text style={s.value}>
             {resumoFuncional.ausencias} -{" "}
             {minutosParaHoraRelatorio(resumoFuncional.minutosAusencia)}
@@ -333,7 +329,7 @@ function TotaisEspelhoPdf({
           </Text>
         </View>
         <View style={s.infoBox}>
-          <Text style={s.label}>Viagens a servico</Text>
+          <Text style={s.label}>Viagens a serviço</Text>
           <Text style={s.value}>
             {resumoFuncional.viagensServico} -{" "}
             {minutosParaHoraRelatorio(resumoFuncional.minutosViagemServico)}
@@ -391,11 +387,11 @@ function TabelaEspelhoPdf({
               <View style={[s.td, { width: "39%" }]}>
                 {mesclarMarcacoesOcorrencias ? (
                   diaInstitucional ? (
-                    <Text style={badgeRemoto}>
+                    <Text style={observacaoMarcacoes}>
                       {rotuloDiaInstitucional(diaInstitucional)}
                     </Text>
                   ) : (
-                    <Text style={badgeSolicitacao}>
+                    <Text style={observacaoMarcacoes}>
                       {rotuloSolicitacaoEspelho(
                         justificativaAusenciaMesclada!.tipo,
                       )}
@@ -414,7 +410,7 @@ function TabelaEspelhoPdf({
                   <Text>{marcacoesDoDia.map(formatarMarcacaoPdf).join("  ")}</Text>
                 ) : diaInstitucional &&
                   !ehFimDeSemanaInstitucional(diaInstitucional) ? (
-                  <Text style={badgeRemoto}>
+                  <Text style={observacaoMarcacoes}>
                     {rotuloDiaInstitucional(diaInstitucional)}
                   </Text>
                 ) : (
@@ -461,7 +457,7 @@ function TabelaEspelhoPdf({
         {apuracoes.length === 0 && (
           <View style={s.tableRow}>
             <Text style={[s.td, { width: "100%" }]}>
-              Nenhuma apuracao calculada para o mes.
+              Nenhuma apuração calculada para o mês.
             </Text>
           </View>
         )}
@@ -473,13 +469,13 @@ function TabelaEspelhoPdf({
 function CabecalhoTabelaEspelhoPdf() {
   return (
     <View style={s.tableHeader}>
-      <Text style={[s.th, { width: "7%" }]}>Sit.</Text>
+      <Text style={[s.th, { width: "7%" }]} />
       <Text style={[s.th, { width: "14%" }]}>Data</Text>
-      <Text style={[s.th, { width: "39%" }]}>Marcacoes</Text>
+      <Text style={[s.th, { width: "39%" }]}>Marcações</Text>
       <Text style={[s.th, { width: "9%" }]}>Previsto</Text>
       <Text style={[s.th, { width: "11%" }]}>Trabalhado</Text>
-      <Text style={[s.th, { width: "10%" }]}>Credito</Text>
-      <Text style={[s.th, { width: "10%" }]}>Debito</Text>
+      <Text style={[s.th, { width: "10%" }]}>Crédito</Text>
+      <Text style={[s.th, { width: "10%" }]}>Débito</Text>
     </View>
   );
 }
@@ -535,13 +531,13 @@ function CabecalhoPremiumEspelho({
               letterSpacing: 0.8,
             }}
           >
-            Justica Federal
+            Justiça Federal
           </Text>
           <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: 700 }}>
             Espelho de Ponto
           </Text>
           <Text style={{ color: "#bfdbfe", fontSize: 8, marginTop: 1 }}>
-            SECP - Sistema Eletronico de Controle de Ponto
+            SECP - Sistema Eletrônico de Controle de Ponto
           </Text>
         </View>
 
@@ -561,7 +557,7 @@ function CabecalhoPremiumEspelho({
               textTransform: "uppercase",
             }}
           >
-            Competencia
+            Competência
           </Text>
           <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: 700 }}>
             {nomeMesReferencia(mes)} de {ano}
@@ -572,7 +568,7 @@ function CabecalhoPremiumEspelho({
       <View style={{ padding: 8, height: 65 }}>
         <View style={{ flexDirection: "row", marginBottom: 5 }}>
           <View style={{ borderWidth: 1, borderColor: "#e5e7eb", padding: 4, marginRight: 5, width: "18%" }}>
-            <Text style={s.label}>Matricula</Text>
+            <Text style={s.label}>Matrícula</Text>
             <Text style={s.value} wrap={false}>{servidor?.matricula ?? "-"}</Text>
           </View>
           <View style={{ borderWidth: 1, borderColor: "#e5e7eb", padding: 4, marginRight: 5, width: "54%" }}>
@@ -580,7 +576,7 @@ function CabecalhoPremiumEspelho({
             <Text style={s.value} wrap={false}>{nomeServidor(servidor) || "-"}</Text>
           </View>
           <View style={{ borderWidth: 1, borderColor: "#e5e7eb", padding: 4, width: "28%" }}>
-            <Text style={s.label}>Emissao</Text>
+            <Text style={s.label}>Emissão</Text>
             <Text style={s.value} wrap={false}>
               {new Intl.DateTimeFormat("pt-BR", {
                 dateStyle: "short",
@@ -591,7 +587,7 @@ function CabecalhoPremiumEspelho({
         </View>
         <View style={{ flexDirection: "row" }}>
           <View style={{ borderWidth: 1, borderColor: "#e5e7eb", padding: 4, marginRight: 5, width: "58%" }}>
-            <Text style={s.label}>Lotacao</Text>
+            <Text style={s.label}>Lotação</Text>
             <Text style={s.value} wrap={false}>{lotacao}</Text>
           </View>
           <View style={{ borderWidth: 1, borderColor: "#e5e7eb", padding: 4, width: "42%" }}>
@@ -691,13 +687,13 @@ function OcorrenciasDiaPdf({
         ]
       : []),
     ...(ausente
-      ? [{ chave: "ausencia", label: "Ausencia", tipo: "erro" as const }]
+      ? [{ chave: "ausencia", label: "Ausência", tipo: "erro" as const }]
       : []),
     ...(ausenciaParcial
       ? [
           {
             chave: "ausencia-parcial",
-            label: "Ausencia parcial",
+            label: "Ausência parcial",
             tipo: "alerta" as const,
           },
         ]
@@ -905,10 +901,10 @@ function extrairDiaInstitucional(
 
 function rotuloOcorrenciaEspelho(tipo: string) {
   const rotulos: Record<string, string> = {
-    MARCACAO_INCOMPLETA: "Marcacoes incompletas",
-    INTERVALO_INVALIDO: "Intervalo invalido",
-    CREDITO: "Credito",
-    DEBITO: "Debito",
+    MARCACAO_INCOMPLETA: "Marcações incompletas",
+    INTERVALO_INVALIDO: "Intervalo inválido",
+    CREDITO: "Crédito",
+    DEBITO: "Débito",
     FALTA: "Falta",
     SEM_JORNADA: "Sem jornada",
     HORA_NAO_AUTORIZADA: "Hora fora do expediente",
@@ -919,11 +915,11 @@ function rotuloOcorrenciaEspelho(tipo: string) {
 
 function rotuloTipoDiaInstitucional(tipo: string) {
   const rotulos: Record<string, string> = {
-    SABADO: "Sabado",
+    SABADO: "Sábado",
     DOMINGO: "Domingo",
     FERIADO: "Feriado institucional",
     PONTO_FACULTATIVO: "Ponto facultativo",
-    SUSPENSAO_EXPEDIENTE: "Suspensao de expediente",
+    SUSPENSAO_EXPEDIENTE: "Suspensão de expediente",
     RECESSO_FORENSE: "Recesso forense",
   };
 
@@ -944,9 +940,9 @@ function rotuloDiaInstitucional(dia: DiaInstitucionalEspelho) {
 
   if (
     dia.tipo === "SUSPENSAO_EXPEDIENTE" &&
-    dia.descricao !== "Suspensao de expediente"
+    dia.descricao !== "Suspensão de expediente"
   ) {
-    return `Suspensao: ${dia.descricao}`;
+    return `Suspensão: ${dia.descricao}`;
   }
 
   if (dia.tipo === "RECESSO_FORENSE") {

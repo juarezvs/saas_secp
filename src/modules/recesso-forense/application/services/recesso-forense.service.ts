@@ -30,6 +30,7 @@ export function obterMesReferenciaRecesso(data: Date) {
 export function formatarDataRecesso(data: Date | string) {
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
+    timeZone: "UTC",
   }).format(new Date(data));
 }
 

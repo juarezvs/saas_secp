@@ -23,6 +23,11 @@ function extrairDadosUnidade(formData: FormData) {
     nome: String(formData.get("nome") ?? "").trim(),
     tipo: String(formData.get("tipo") ?? ""),
     fusoHorario: String(formData.get("fusoHorario") ?? "").trim(),
+    uf: String(formData.get("uf") ?? "")
+      .trim()
+      .toUpperCase(),
+    municipio: String(formData.get("municipio") ?? "").trim(),
+    municipioIbge: String(formData.get("municipioIbge") ?? "").trim(),
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
   };
 }
@@ -73,6 +78,9 @@ export async function criarUnidadeAction(
         nome: parsed.data.nome,
         tipo: parsed.data.tipo,
         fusoHorario: parsed.data.fusoHorario || null,
+        uf: parsed.data.uf || null,
+        municipio: parsed.data.municipio || null,
+        municipioIbge: parsed.data.municipioIbge || null,
         ativo: parsed.data.ativo,
       },
     });
@@ -92,6 +100,9 @@ export async function criarUnidadeAction(
           nome: novaUnidade.nome,
           tipo: novaUnidade.tipo,
           fusoHorario: novaUnidade.fusoHorario,
+          uf: novaUnidade.uf,
+          municipio: novaUnidade.municipio,
+          municipioIbge: novaUnidade.municipioIbge,
           ativo: novaUnidade.ativo,
         },
       },

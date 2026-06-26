@@ -58,15 +58,15 @@ export default async function FusosHorariosPage({
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administracao", href: "/administracao" },
-          { label: "Fusos horarios" },
+          { label: "Administração", href: "/administracao" },
+          { label: "Fusos horários" },
         ]}
       />
 
       <PageHeader
         icon={Clock3}
-        titulo="Fusos horarios"
-        descricao="Gerencie os fusos que podem ser aplicados a orgaos e unidades organizacionais."
+        titulo="Fusos horários"
+        descricao="Gerencie os identificadores técnicos de fuso usados para data de referência, competência, cálculos, marcações e relatórios."
       />
 
       <div className="flex justify-end">
@@ -81,7 +81,7 @@ export default async function FusosHorariosPage({
 
       <DataTableShell
         title="Fusos cadastrados"
-        description="Apenas fusos ativos ficam disponiveis para selecao em orgaos e unidades."
+        description="O identificador é o valor gravado em órgãos e unidades. Rótulo e descrição são apenas apoio visual."
         total={todosFusos.length}
         pagina={pagina}
         totalPaginas={totalPaginas}
@@ -92,7 +92,7 @@ export default async function FusosHorariosPage({
             <input
               name="busca"
               defaultValue={params.busca ?? ""}
-              placeholder="Buscar por identificador, rotulo ou descricao"
+              placeholder="Buscar por identificador, rótulo ou descrição"
               className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
             />
             <select
@@ -118,8 +118,8 @@ export default async function FusosHorariosPage({
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
                 <th className="px-5 py-3">Identificador</th>
-                <th className="px-5 py-3">Rotulo</th>
-                <th className="px-5 py-3">Descricao</th>
+                <th className="px-5 py-3">Rótulo</th>
+                <th className="px-5 py-3">Descrição</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3 text-right">Acoes</th>
               </tr>
@@ -164,7 +164,7 @@ export default async function FusosHorariosPage({
                     colSpan={5}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
-                    Nenhum fuso horario encontrado.
+                    Nenhum fuso horário encontrado.
                   </td>
                 </tr>
               )}

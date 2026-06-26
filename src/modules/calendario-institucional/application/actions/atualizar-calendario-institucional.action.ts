@@ -7,7 +7,7 @@ import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/servic
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 import {
-  buscarEventoCalendarioInstitucionalPorData,
+  buscarConflitoEventoCalendarioInstitucional,
   buscarEventoCalendarioInstitucionalPorId,
 } from "../../infrastructure/repositories/calendario-institucional.repository";
 import {
@@ -31,6 +31,18 @@ function normalizarTipoCalendarioInstitucional(
     : undefined;
 }
 
+function normalizarAbrangenciaCalendarioInstitucional(
+  valor: FormDataEntryValue | null,
+): CalendarioInstitucionalInput["abrangencia"] | undefined {
+  const abrangencia = String(valor ?? "NACIONAL").trim();
+
+  return ["NACIONAL", "ESTADUAL", "MUNICIPAL", "ORGAO", "UNIDADE"].includes(
+    abrangencia,
+  )
+    ? (abrangencia as CalendarioInstitucionalInput["abrangencia"])
+    : undefined;
+}
+
 function extrairDadosCalendario(
   formData: FormData,
 ): Partial<CalendarioInstitucionalInput> {
@@ -38,6 +50,16 @@ function extrairDadosCalendario(
     dataReferencia: String(formData.get("dataReferencia") ?? "").trim(),
     descricao: String(formData.get("descricao") ?? "").trim(),
     tipo: normalizarTipoCalendarioInstitucional(formData.get("tipo")),
+    abrangencia: normalizarAbrangenciaCalendarioInstitucional(
+      formData.get("abrangencia"),
+    ),
+    uf: String(formData.get("uf") ?? "")
+      .trim()
+      .toUpperCase(),
+    municipio: valorOpcionalString(formData.get("municipio")),
+    municipioIbge: valorOpcionalString(formData.get("municipioIbge")),
+    orgaoId: valorOpcionalString(formData.get("orgaoId")),
+    unidadeId: valorOpcionalString(formData.get("unidadeId")),
     contaComoDiaUtil:
       formData.get("contaComoDiaUtil") === "on" ||
       formData.get("contaComoDiaUtil") === "true",
@@ -97,11 +119,18 @@ export async function atualizarCalendarioInstitucionalAction(
   }
 
   const dataReferencia = dataIsoParaUtc(parsed.data.dataReferencia);
-  const conflito = await buscarEventoCalendarioInstitucionalPorData(
+  const conflito = await buscarConflitoEventoCalendarioInstitucional({
     dataReferencia,
-  );
+    abrangencia: parsed.data.abrangencia,
+    uf: parsed.data.uf,
+    municipio: parsed.data.municipio,
+    municipioIbge: parsed.data.municipioIbge,
+    orgaoId: parsed.data.orgaoId,
+    unidadeId: parsed.data.unidadeId,
+    ignorarId: atual.id,
+  });
 
-  if (conflito && conflito.id !== atual.id) {
+  if (conflito) {
     return {
       sucesso: false,
       mensagem: "Já existe um evento institucional cadastrado para essa data.",
@@ -121,6 +150,12 @@ export async function atualizarCalendarioInstitucionalAction(
         dataReferencia,
         descricao: parsed.data.descricao,
         tipo: parsed.data.tipo,
+        abrangencia: parsed.data.abrangencia,
+        uf: parsed.data.uf || null,
+        municipio: parsed.data.municipio || null,
+        municipioIbge: parsed.data.municipioIbge || null,
+        orgaoId: parsed.data.orgaoId || null,
+        unidadeId: parsed.data.unidadeId || null,
         contaComoDiaUtil: parsed.data.contaComoDiaUtil,
         geraApuracaoRegular: parsed.data.geraApuracaoRegular,
         janelaInicio: parsed.data.janelaInicio || null,
@@ -152,11 +187,34 @@ export async function atualizarCalendarioInstitucionalAction(
     calendarioId: eventoAtualizado.id,
     datasReferencia: [
       atual.dataReferencia,
-      eventoAtualizado.dataReferencia,
       ...(atual.dataOriginal ? [atual.dataOriginal] : []),
+    ],
+    usuarioIdAuditoria: permissao.usuarioId,
+    calendarioEscopo: {
+      abrangencia: atual.abrangencia,
+      uf: atual.uf,
+      municipio: atual.municipio,
+      municipioIbge: atual.municipioIbge,
+      orgaoId: atual.orgaoId,
+      unidadeId: atual.unidadeId,
+    },
+  });
+
+  await enfileirarReflexosCalendarioInstitucional({
+    calendarioId: eventoAtualizado.id,
+    datasReferencia: [
+      eventoAtualizado.dataReferencia,
       ...(eventoAtualizado.dataOriginal ? [eventoAtualizado.dataOriginal] : []),
     ],
     usuarioIdAuditoria: permissao.usuarioId,
+    calendarioEscopo: {
+      abrangencia: eventoAtualizado.abrangencia,
+      uf: eventoAtualizado.uf,
+      municipio: eventoAtualizado.municipio,
+      municipioIbge: eventoAtualizado.municipioIbge,
+      orgaoId: eventoAtualizado.orgaoId,
+      unidadeId: eventoAtualizado.unidadeId,
+    },
   });
 
   revalidarRotasRelacionadas();

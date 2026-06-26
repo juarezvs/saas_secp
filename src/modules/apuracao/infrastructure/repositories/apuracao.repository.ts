@@ -169,6 +169,7 @@ export async function listarApuracoesDoServidorNoMes(params: {
     apuracoes,
     jornadas,
     fusoHorario,
+    servidorId: params.servidorId,
   });
 
   return espelho.itens;

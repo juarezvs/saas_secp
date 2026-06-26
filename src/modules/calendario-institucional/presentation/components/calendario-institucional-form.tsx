@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Loader2, Save } from "lucide-react";
 
+import { SearchableSelect } from "@/components/ui";
 import {
+  abrangenciasCalendarioInstitucional,
   tiposCalendarioInstitucional,
   type CalendarioInstitucionalFormState,
 } from "../../application/schemas/calendario-institucional.schema";
@@ -17,6 +19,12 @@ type CalendarioInstitucionalFormProps = {
     dataReferencia?: string;
     descricao?: string;
     tipo?: string;
+    abrangencia?: string;
+    uf?: string | null;
+    municipio?: string | null;
+    municipioIbge?: string | null;
+    orgaoId?: string | null;
+    unidadeId?: string | null;
     contaComoDiaUtil?: boolean;
     geraApuracaoRegular?: boolean;
     janelaInicio?: string | null;
@@ -26,6 +34,8 @@ type CalendarioInstitucionalFormProps = {
     observacao?: string | null;
     ativo?: boolean;
   };
+  orgaos?: Array<{ id: string; sigla: string; nome: string }>;
+  unidades?: Array<{ id: string; sigla: string; nome: string }>;
   modo: "criar" | "editar";
 };
 
@@ -40,6 +50,14 @@ const rotulosTipo: Record<string, string> = {
   SUSPENSAO_EXPEDIENTE: "Suspensao do expediente",
 };
 
+const rotulosAbrangencia: Record<string, string> = {
+  NACIONAL: "Nacional",
+  ESTADUAL: "Estadual",
+  MUNICIPAL: "Municipal",
+  ORGAO: "Orgao",
+  UNIDADE: "Unidade",
+};
+
 function erro(estado: CalendarioInstitucionalFormState, campo: string) {
   return estado.erros?.[campo]?.[0];
 }
@@ -47,10 +65,39 @@ function erro(estado: CalendarioInstitucionalFormState, campo: string) {
 export function CalendarioInstitucionalForm({
   action,
   valoresIniciais,
+  orgaos = [],
+  unidades = [],
   modo,
 }: CalendarioInstitucionalFormProps) {
   const [estado, formAction, pendente] = useActionState(action, estadoInicial);
   const campos = estado.campos ?? valoresIniciais;
+  const [abrangencia, setAbrangencia] = useState(
+    campos?.abrangencia ?? "NACIONAL",
+  );
+  const [uf, setUf] = useState(campos?.uf ?? "");
+  const [municipio, setMunicipio] = useState(campos?.municipio ?? "");
+  const [municipioIbge, setMunicipioIbge] = useState(
+    campos?.municipioIbge ?? "",
+  );
+  const ufDesabilitada =
+    abrangencia !== "ESTADUAL" && abrangencia !== "MUNICIPAL";
+  const municipioDesabilitado = abrangencia !== "MUNICIPAL";
+
+  function alterarAbrangencia(novaAbrangencia: string) {
+    setAbrangencia(novaAbrangencia);
+
+    if (novaAbrangencia !== "ESTADUAL" && novaAbrangencia !== "MUNICIPAL") {
+      setUf("");
+      setMunicipio("");
+      setMunicipioIbge("");
+      return;
+    }
+
+    if (novaAbrangencia === "ESTADUAL") {
+      setMunicipio("");
+      setMunicipioIbge("");
+    }
+  }
 
   return (
     <form action={formAction} className="space-y-6">
@@ -127,6 +174,167 @@ export function CalendarioInstitucionalForm({
             {erro(estado, "descricao") && (
               <p className="text-sm text-red-600">{erro(estado, "descricao")}</p>
             )}
+          </div>
+
+          <div className="rounded-lg border bg-[var(--muted)] p-4 md:col-span-2">
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold">Abrangencia</h3>
+              <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                Define quais servidores serao impactados no espelho de ponto e
+                no banco de horas.
+              </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="abrangencia" className="text-sm font-semibold">
+                  Aplicacao
+                </label>
+                <select
+                  id="abrangencia"
+                  name="abrangencia"
+                  value={abrangencia}
+                  onChange={(event) => alterarAbrangencia(event.target.value)}
+                  className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+                  required
+                >
+                  {abrangenciasCalendarioInstitucional.map((abrangencia) => (
+                    <option key={abrangencia} value={abrangencia}>
+                      {rotulosAbrangencia[abrangencia] ?? abrangencia}
+                    </option>
+                  ))}
+                </select>
+                {erro(estado, "abrangencia") && (
+                  <p className="text-sm text-red-600">
+                    {erro(estado, "abrangencia")}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-[100px_1fr]">
+                <div className="space-y-2">
+                  <label htmlFor="uf" className="text-sm font-semibold">
+                    UF
+                  </label>
+                  <input
+                    id="uf"
+                    name="uf"
+                    maxLength={2}
+                    value={uf}
+                    onChange={(event) =>
+                      setUf(event.target.value.toUpperCase())
+                    }
+                    disabled={ufDesabilitada}
+                    required={
+                      abrangencia === "ESTADUAL" ||
+                      abrangencia === "MUNICIPAL"
+                    }
+                    placeholder="AM"
+                    className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm uppercase outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  />
+                  {erro(estado, "uf") && (
+                    <p className="text-sm text-red-600">{erro(estado, "uf")}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="municipio" className="text-sm font-semibold">
+                    Municipio
+                  </label>
+                  <input
+                    id="municipio"
+                    name="municipio"
+                    value={municipio}
+                    onChange={(event) => setMunicipio(event.target.value)}
+                    disabled={municipioDesabilitado}
+                    required={abrangencia === "MUNICIPAL"}
+                    placeholder="Ex.: Tabatinga"
+                    className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  />
+                  {erro(estado, "municipio") && (
+                    <p className="text-sm text-red-600">
+                      {erro(estado, "municipio")}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="municipioIbge" className="text-sm font-semibold">
+                  Codigo IBGE do municipio
+                </label>
+                <input
+                  id="municipioIbge"
+                  name="municipioIbge"
+                  inputMode="numeric"
+                  maxLength={7}
+                  value={municipioIbge}
+                  onChange={(event) => setMunicipioIbge(event.target.value)}
+                  disabled={municipioDesabilitado}
+                  placeholder="1304062"
+                  className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20 disabled:cursor-not-allowed disabled:opacity-60"
+                />
+                {erro(estado, "municipioIbge") && (
+                  <p className="text-sm text-red-600">
+                    {erro(estado, "municipioIbge")}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="orgaoId" className="text-sm font-semibold">
+                  Orgao
+                </label>
+                <SearchableSelect
+                  id="orgaoId"
+                  name="orgaoId"
+                  defaultValue={campos?.orgaoId ?? ""}
+                  placeholder="Nao se aplica"
+                  searchPlaceholder="Pesquisar por sigla ou nome..."
+                  emptyMessage="Nenhum orgao encontrado."
+                  options={[
+                    { value: "", label: "Nao se aplica" },
+                    ...orgaos.map((orgao) => ({
+                      value: orgao.id,
+                      label: `${orgao.sigla} - ${orgao.nome}`,
+                      searchText: `${orgao.sigla} ${orgao.nome}`,
+                    })),
+                  ]}
+                />
+                {erro(estado, "orgaoId") && (
+                  <p className="text-sm text-red-600">
+                    {erro(estado, "orgaoId")}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <label htmlFor="unidadeId" className="text-sm font-semibold">
+                  Unidade
+                </label>
+                <SearchableSelect
+                  id="unidadeId"
+                  name="unidadeId"
+                  defaultValue={campos?.unidadeId ?? ""}
+                  placeholder="Nao se aplica"
+                  searchPlaceholder="Pesquisar por sigla ou nome..."
+                  emptyMessage="Nenhuma unidade encontrada."
+                  options={[
+                    { value: "", label: "Nao se aplica" },
+                    ...unidades.map((unidade) => ({
+                      value: unidade.id,
+                      label: `${unidade.sigla} - ${unidade.nome}`,
+                      searchText: `${unidade.sigla} ${unidade.nome}`,
+                    })),
+                  ]}
+                />
+                {erro(estado, "unidadeId") && (
+                  <p className="text-sm text-red-600">
+                    {erro(estado, "unidadeId")}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
 
           <label className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm">

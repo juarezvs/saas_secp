@@ -110,6 +110,16 @@ function itemPodeSerExibido(item: MenuItem, perfilAtivo: PerfilNavegacao) {
   );
 }
 
+function itemCorrespondeAoPath(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function obterHrefAtivo(pathname: string, itens: MenuItem[]) {
+  return itens
+    .filter((item) => itemCorrespondeAoPath(pathname, item.href))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+}
+
 function MenuPrincipal({
   recolhida,
   perfilAtivo,
@@ -123,6 +133,7 @@ function MenuPrincipal({
   const itensVisiveis = MENU_ITEMS.filter((item) =>
     itemPodeSerExibido(item, perfilAtivo),
   );
+  const hrefAtivo = obterHrefAtivo(pathname, itensVisiveis);
 
   return (
     <nav
@@ -132,8 +143,7 @@ function MenuPrincipal({
       <ul className="space-y-1">
         {itensVisiveis.map((item) => {
           const Icon = item.icon;
-          const ativo =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const ativo = item.href === hrefAtivo;
 
           return (
             <li key={item.href}>

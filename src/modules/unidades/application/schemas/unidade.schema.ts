@@ -63,6 +63,32 @@ export const unidadeSchema = z.object({
       "Informe um fuso horario IANA valido.",
     ),
 
+  uf: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .optional()
+    .or(z.literal(""))
+    .refine((valor) => !valor || /^[A-Z]{2}$/.test(valor), {
+      message: "Informe a UF com duas letras.",
+    }),
+
+  municipio: z
+    .string()
+    .trim()
+    .max(120, "O municipio deve ter no maximo 120 caracteres.")
+    .optional()
+    .or(z.literal("")),
+
+  municipioIbge: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal(""))
+    .refine((valor) => !valor || /^\d{7}$/.test(valor), {
+      message: "Informe o codigo IBGE com 7 digitos.",
+    }),
+
   ativo: z.coerce.boolean().default(true),
 });
 
@@ -80,6 +106,9 @@ export type UnidadeFormState = {
     nome?: string;
     tipo?: string;
     fusoHorario?: string | null;
+    uf?: string | null;
+    municipio?: string | null;
+    municipioIbge?: string | null;
     ativo?: boolean;
   };
 };

@@ -84,6 +84,9 @@ export default async function EditarUnidadePage({
           nome: unidade.nome,
           tipo: unidade.tipo,
           fusoHorario: unidade.fusoHorario,
+          uf: unidade.uf,
+          municipio: unidade.municipio,
+          municipioIbge: unidade.municipioIbge,
           ativo: unidade.ativo,
         }}
       />

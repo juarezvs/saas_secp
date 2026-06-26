@@ -30,16 +30,16 @@ export default async function EditarFusoHorarioPage({
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administracao", href: "/administracao" },
-          { label: "Fusos horarios", href: "/administracao/fusos-horarios" },
+          { label: "Administração", href: "/administracao" },
+          { label: "Fusos horários", href: "/administracao/fusos-horarios" },
           { label: "Editar" },
         ]}
       />
 
       <PageHeader
         icon={Clock3}
-        titulo="Editar fuso horario"
-        descricao="Atualize o rotulo, descricao e disponibilidade do fuso."
+        titulo="Editar fuso horário"
+        descricao="Atualize o identificador técnico, rótulo, descrição e disponibilidade do fuso."
       />
 
       <FusoHorarioForm

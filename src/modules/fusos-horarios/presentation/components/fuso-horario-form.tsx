@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { Loader2, Save } from "lucide-react";
 
+import { FUSOS_HORARIOS_CADASTRO_PADRAO } from "../../domain/fusos-horarios-oficiais";
 import type { FusoHorarioFormState } from "../../application/schemas/fuso-horario.schema";
 
 type FusoHorarioFormProps = {
@@ -60,11 +61,23 @@ export function FusoHorarioForm({
             <input
               id="valor"
               name="valor"
+              list="fusos-horarios-oficiais"
               defaultValue={campos?.valor ?? ""}
               placeholder="Ex.: America/Manaus"
               className="h-11 w-full rounded-md border bg-[var(--card)] px-3 font-mono text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
               required
             />
+            <datalist id="fusos-horarios-oficiais">
+              {FUSOS_HORARIOS_CADASTRO_PADRAO.map((fuso) => (
+                <option key={fuso.valor} value={fuso.valor}>
+                  {fuso.rotulo}
+                </option>
+              ))}
+            </datalist>
+            <p className="text-xs leading-5 text-[var(--muted-foreground)]">
+              Este valor técnico é o que o SECP usa em cálculos, competência,
+              marcações e relatórios. Use um identificador IANA válido.
+            </p>
             {erro(estado, "valor") && (
               <p className="text-sm text-red-600">{erro(estado, "valor")}</p>
             )}
@@ -72,7 +85,7 @@ export function FusoHorarioForm({
 
           <div className="space-y-2">
             <label htmlFor="rotulo" className="text-sm font-semibold">
-              Rotulo de exibicao
+              Rótulo de exibição
             </label>
             <input
               id="rotulo"
@@ -89,7 +102,7 @@ export function FusoHorarioForm({
 
           <div className="space-y-2 md:col-span-2">
             <label htmlFor="descricao" className="text-sm font-semibold">
-              Descricao
+              Descrição
             </label>
             <textarea
               id="descricao"
@@ -115,7 +128,7 @@ export function FusoHorarioForm({
             <span>
               <span className="block font-semibold">Fuso ativo</span>
               <span className="text-xs text-[var(--muted-foreground)]">
-                Apenas fusos ativos aparecem para selecao em orgaos e unidades.
+                Apenas fusos ativos aparecem para seleção em órgãos e unidades.
               </span>
             </span>
           </label>
@@ -133,7 +146,7 @@ export function FusoHorarioForm({
           ) : (
             <Save className="size-4" aria-hidden="true" />
           )}
-          {modo === "criar" ? "Criar fuso" : "Salvar alteracoes"}
+          {modo === "criar" ? "Criar fuso" : "Salvar alterações"}
         </button>
       </div>
     </form>

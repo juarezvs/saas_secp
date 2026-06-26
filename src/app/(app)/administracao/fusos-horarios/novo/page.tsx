@@ -13,16 +13,16 @@ export default async function NovoFusoHorarioPage() {
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administracao", href: "/administracao" },
-          { label: "Fusos horarios", href: "/administracao/fusos-horarios" },
+          { label: "Administração", href: "/administracao" },
+          { label: "Fusos horários", href: "/administracao/fusos-horarios" },
           { label: "Novo" },
         ]}
       />
 
       <PageHeader
         icon={Clock3}
-        titulo="Novo fuso horario"
-        descricao="Cadastre um fuso IANA para uso em orgaos e unidades."
+        titulo="Novo fuso horário"
+        descricao="Cadastre um identificador IANA. Esse valor será usado tecnicamente nos cálculos e visualizações do SECP."
       />
 
       <FusoHorarioForm action={criarFusoHorarioAction} modo="criar" />

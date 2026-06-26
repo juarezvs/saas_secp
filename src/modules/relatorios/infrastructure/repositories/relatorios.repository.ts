@@ -242,6 +242,7 @@ export async function buscarDadosEspelhoPontoPdf(params: {
     apuracoes: apuracoesCalculadas,
     jornadas,
     fusoHorario,
+    servidorId: params.servidorId,
   });
 
   const marcacoes = await prisma.marcacao.findMany({

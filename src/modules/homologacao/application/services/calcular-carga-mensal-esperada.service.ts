@@ -60,6 +60,7 @@ export async function calcularCargaMensalEsperada(params: {
   mesReferencia: number;
   jornadas: JornadaMensal[];
   calendario?: CalendarioInstitucionalPrecarregado;
+  servidorId?: string | null;
 }): Promise<ResultadoCargaMensalEsperada> {
   const inicio = inicioCompetencia(params.anoReferencia, params.mesReferencia);
   const fim = fimCompetencia(params.anoReferencia, params.mesReferencia);
@@ -79,6 +80,7 @@ export async function calcularCargaMensalEsperada(params: {
     const classificacao = await classificarDiaInstitucional(
       dataReferencia,
       calendario,
+      params.servidorId,
     );
 
     if (classificacao.contaComoDiaUtil && classificacao.geraApuracaoRegular) {

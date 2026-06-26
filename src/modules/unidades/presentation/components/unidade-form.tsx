@@ -42,6 +42,9 @@ type UnidadeFormProps = {
     nome?: string;
     tipo?: string;
     fusoHorario?: string | null;
+    uf?: string | null;
+    municipio?: string | null;
+    municipioIbge?: string | null;
     ativo?: boolean;
   };
   unidadeAtualId?: string;
@@ -287,6 +290,75 @@ export function UnidadeForm({
                 {obterErro(estado.erros, "fusoHorario")}
               </p>
             )}
+          </div>
+
+          <div className="rounded-lg border bg-[var(--muted)] p-4 md:col-span-2">
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold">Localidade</h3>
+              <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                Informe a sede da unidade. Se ficar em branco, o calendario usa
+                a localidade da unidade superior.
+              </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-[120px_1fr_180px]">
+              <div className="space-y-2">
+                <label htmlFor="uf" className="text-sm font-semibold">
+                  UF
+                </label>
+                <input
+                  id="uf"
+                  name="uf"
+                  maxLength={2}
+                  defaultValue={campos?.uf ?? ""}
+                  placeholder="AM"
+                  className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm uppercase outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+                />
+                {obterErro(estado.erros, "uf") && (
+                  <p className="text-sm text-red-600">
+                    {obterErro(estado.erros, "uf")}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="municipio" className="text-sm font-semibold">
+                  Municipio
+                </label>
+                <input
+                  id="municipio"
+                  name="municipio"
+                  defaultValue={campos?.municipio ?? ""}
+                  placeholder="Ex.: Tabatinga"
+                  className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+                />
+                {obterErro(estado.erros, "municipio") && (
+                  <p className="text-sm text-red-600">
+                    {obterErro(estado.erros, "municipio")}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="municipioIbge" className="text-sm font-semibold">
+                  Codigo IBGE
+                </label>
+                <input
+                  id="municipioIbge"
+                  name="municipioIbge"
+                  inputMode="numeric"
+                  maxLength={7}
+                  defaultValue={campos?.municipioIbge ?? ""}
+                  placeholder="1304062"
+                  className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+                />
+                {obterErro(estado.erros, "municipioIbge") && (
+                  <p className="text-sm text-red-600">
+                    {obterErro(estado.erros, "municipioIbge")}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
 
           <label className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm">

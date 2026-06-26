@@ -113,7 +113,7 @@ export function EspelhoPontoMensal({
           destaque="debito"
         />
         <Resumo
-          label="Ausencias"
+          label="Ausências"
           value={String(resumoFuncional.ausencias)}
           detalhe={minutosParaTexto(resumoFuncional.minutosAusencia)}
           destaque={resumoFuncional.ausencias > 0 ? "debito" : undefined}
@@ -346,9 +346,9 @@ function OcorrenciasDia({
       ? [
           {
             chave: "ausencia",
-            label: "Ausencia",
+            label: "Ausência",
             classe: "erro" as const,
-            title: "Ausencia integral.",
+            title: "Ausência integral.",
           },
         ]
       : []),
@@ -356,9 +356,9 @@ function OcorrenciasDia({
       ? [
           {
             chave: "ausencia-parcial",
-            label: "Ausencia parcial",
+            label: "Ausência parcial",
             classe: "alerta" as const,
-            title: "Ausencia parcial.",
+            title: "Ausência parcial.",
           },
         ]
       : []),
@@ -551,10 +551,10 @@ function extrairDiaInstitucional(
 function rotuloResultadoEspelho(resultado: string) {
   const rotulos: Record<string, string> = {
     REGULAR: "Regular",
-    CREDITO: "Credito",
-    DEBITO: "Debito",
+    CREDITO: "Crédito",
+    DEBITO: "Débito",
     FALTA: "Falta",
-    INCOMPLETA: "Marcacoes incompletas",
+    INCOMPLETA: "Marcações incompletas",
     SEM_JORNADA: "Sem jornada",
     SEM_EXPEDIENTE: "Sem expediente",
     PENDENTE: "Pendente",
@@ -565,10 +565,10 @@ function rotuloResultadoEspelho(resultado: string) {
 
 function rotuloOcorrenciaEspelho(tipo: string) {
   const rotulos: Record<string, string> = {
-    MARCACAO_INCOMPLETA: "Marcacoes incompletas",
-    INTERVALO_INVALIDO: "Intervalo invalido",
-    CREDITO: "Credito",
-    DEBITO: "Debito",
+    MARCACAO_INCOMPLETA: "Marcações incompletas",
+    INTERVALO_INVALIDO: "Intervalo inválido",
+    CREDITO: "Crédito",
+    DEBITO: "Débito",
     FALTA: "Falta",
     SEM_JORNADA: "Sem jornada",
     HORA_NAO_AUTORIZADA: "Hora fora do expediente",
@@ -579,11 +579,11 @@ function rotuloOcorrenciaEspelho(tipo: string) {
 
 function rotuloTipoDiaInstitucional(tipo: string) {
   const rotulos: Record<string, string> = {
-    SABADO: "Sabado",
+    SABADO: "Sábado",
     DOMINGO: "Domingo",
     FERIADO: "Feriado institucional",
     PONTO_FACULTATIVO: "Ponto facultativo",
-    SUSPENSAO_EXPEDIENTE: "Suspensao de expediente",
+    SUSPENSAO_EXPEDIENTE: "Suspensão de expediente",
     RECESSO_FORENSE: "Recesso forense",
   };
 
@@ -604,9 +604,9 @@ function rotuloDiaInstitucional(dia: DiaInstitucionalEspelho) {
 
   if (
     dia.tipo === "SUSPENSAO_EXPEDIENTE" &&
-    dia.descricao !== "Suspensao de expediente"
+    dia.descricao !== "Suspensão de expediente"
   ) {
-    return `Suspensao: ${dia.descricao}`;
+    return `Suspensão: ${dia.descricao}`;
   }
 
   if (dia.tipo === "RECESSO_FORENSE") {
@@ -629,7 +629,7 @@ function montarDicaSemaforo({
 }) {
   const linhas = [
     `Resultado: ${rotuloResultadoEspelho(item.resultado)}`,
-    `Conferencia: ${conferencia.rotulo}`,
+    `Conferência: ${conferencia.rotulo}`,
     conferencia.descricao,
   ];
 

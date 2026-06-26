@@ -71,6 +71,7 @@ async function buscarCaminhoUnidade(unidadeInicial: UnidadeCaminho) {
         fusoHorario: true,
         orgao: {
           select: {
+            sigla: true,
             fusoHorario: true,
           },
         },
@@ -96,14 +97,38 @@ function montarUnidadeComPais(unidades: UnidadeCaminho[]) {
   return unidadeComPai;
 }
 
+function normalizarCaminhoUnidadePorOrgao(
+  orgaoSigla: string | null | undefined,
+  unidades: UnidadeCaminho[],
+) {
+  const siglaOrgao = orgaoSigla?.trim();
+
+  if (!siglaOrgao) {
+    return unidades;
+  }
+
+  const indiceUnidadeOrgao = unidades.findIndex(
+    (unidade) => unidade.sigla.trim() === siglaOrgao,
+  );
+
+  return indiceUnidadeOrgao >= 0 ? unidades.slice(indiceUnidadeOrgao) : unidades;
+}
+
 function montarArvoreLotacao(
   orgaoSigla: string | null | undefined,
   unidades: UnidadeCaminho[],
 ) {
+  const unidadesNormalizadas = normalizarCaminhoUnidadePorOrgao(
+    orgaoSigla,
+    unidades,
+  );
+  const primeiraUnidade = unidadesNormalizadas[0]?.sigla.trim();
+  const siglaOrgao = orgaoSigla?.trim();
   const partes: string[] = [];
-  const siglasHierarquia = unidades.length > 0
-    ? unidades.map((unidade) => unidade.sigla)
-    : [orgaoSigla];
+  const siglasHierarquia = [
+    primeiraUnidade === siglaOrgao ? null : siglaOrgao,
+    ...unidadesNormalizadas.map((unidade) => unidade.sigla),
+  ];
 
   for (const sigla of siglasHierarquia) {
     const valor = sigla?.trim();
