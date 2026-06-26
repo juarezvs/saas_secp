@@ -34,6 +34,10 @@ function eventoCalendario(params: {
   tipo?: "FERIADO" | "PONTO_FACULTATIVO" | "SUSPENSAO_EXPEDIENTE";
   contaComoDiaUtil?: boolean;
   geraApuracaoRegular?: boolean;
+  janelaInicio?: string | null;
+  janelaFim?: string | null;
+  dataOriginal?: Date | null;
+  dataSubstituida?: boolean;
 }) {
   return {
     id: params.id ?? "evento-1",
@@ -42,6 +46,10 @@ function eventoCalendario(params: {
     tipo: params.tipo ?? "FERIADO",
     contaComoDiaUtil: params.contaComoDiaUtil ?? false,
     geraApuracaoRegular: params.geraApuracaoRegular ?? false,
+    janelaInicio: params.janelaInicio ?? null,
+    janelaFim: params.janelaFim ?? null,
+    dataOriginal: params.dataOriginal ?? null,
+    dataSubstituida: params.dataSubstituida ?? false,
     observacao: null,
     ativo: params.ativo ?? true,
     criadoEm: new Date("2026-01-01T00:00:00.000Z"),

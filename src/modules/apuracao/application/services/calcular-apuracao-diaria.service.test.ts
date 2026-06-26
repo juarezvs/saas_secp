@@ -314,6 +314,31 @@ describe("calcularApuracaoDiaria", () => {
     expect(resultado.minutosForaExpediente).toBe(60);
   });
 
+  it("limita carga prevista e janela em expediente parcial institucional", () => {
+    const resultado = calcularApuracaoDiaria({
+      jornada: jornada7h,
+      marcacoes: [marcacao("ENTRADA", "12:00"), marcacao("SAIDA", "18:00")],
+      diaInstitucional: {
+        tipo: "PONTO_FACULTATIVO",
+        contaComoDiaUtil: true,
+        geraApuracaoRegular: true,
+        descricao: "Expediente parcial",
+        janelaInicio: "12:00",
+        janelaFim: "18:00",
+      },
+    });
+
+    expect(resultado.cargaPrevistaMinutos).toBe(360);
+    expect(resultado.minutosTrabalhados).toBe(360);
+    expect(resultado.minutosDebito).toBe(0);
+    expect(resultado.resultado).toBe("REGULAR");
+    expect(resultado.janelaExpediente).toEqual({
+      inicio: "12:00",
+      fim: "18:00",
+      diferenciada: false,
+    });
+  });
+
   it("transforma todo o tempo trabalhado em credito quando ha marcacoes em dia sem expediente", () => {
     const resultado = calcularApuracaoDiaria({
       jornada: jornada7h,

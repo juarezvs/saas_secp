@@ -1,3 +1,5 @@
+import type { PreferenciasAcessibilidade } from "../../application/services/preferencias-acessibilidade.service";
+
 export type PerfilSessao = {
     id: string;
     codigo: string;
@@ -11,6 +13,7 @@ export type PerfilSessao = {
     nome: string;
     email: string | null;
     tipo: string;
+    preferenciasAcessibilidade: PreferenciasAcessibilidade;
     perfis: PerfilSessao[];
     perfilAtivo: PerfilSessao | null;
   };

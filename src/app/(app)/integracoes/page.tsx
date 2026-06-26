@@ -18,6 +18,7 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { obterConfiguracaoLdapActiveDirectory } from "@/modules/integracoes/application/services/ldap-active-directory-config.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { listarIntegracoesSistemaPaginado } from "@/modules/integracoes/infrastructure/repositories/integracoes.repository";
 import { IntegracoesListagemControles } from "@/modules/integracoes/presentation/components/integracoes-listagem-controles";
@@ -200,6 +201,8 @@ export default async function IntegracoesPage({
     ultimaExecucaoSarh,
     conflitosPendentesSarh,
     itensComErroSarh,
+    configuracaoLdapAd,
+    equipamentosBiometricos,
   ] = await Promise.all([
     listarIntegracoesSistemaPaginado({
       busca: params.busca ?? "",
@@ -222,15 +225,34 @@ export default async function IntegracoesPage({
     prisma.integracaoSarhItem.count({
       where: { status: "ERRO" },
     }),
+    obterConfiguracaoLdapActiveDirectory(),
+    prisma.equipamentoBiometrico.findMany({
+      select: {
+        ativo: true,
+        ultimoHeartbeatEm: true,
+      },
+    }),
   ]);
 
   const sarh = integracoesResumo.find((integracao) => integracao.tipo === "SARH");
+  const ldap = integracoesResumo.find(
+    (integracao) => integracao.tipo === "LDAP",
+  );
   const integracoesAtivas = integracoesResumo.filter(
     (integracao) => integracao.ativo,
   ).length;
   const integracoesComErro = integracoesResumo.filter(
     (integracao) => integracao.status === "ERRO",
   ).length;
+  const equipamentosAtivos = equipamentosBiometricos.filter(
+    (equipamento) => equipamento.ativo,
+  );
+  const limiteOnline = new Date();
+  limiteOnline.setMinutes(limiteOnline.getMinutes() - 5);
+  const equipamentosOnline = equipamentosAtivos.filter((equipamento) => {
+    if (!equipamento.ultimoHeartbeatEm) return false;
+    return equipamento.ultimoHeartbeatEm >= limiteOnline;
+  });
 
   const statusSarh: StatusVisual = !sarh
     ? "atencao"
@@ -239,6 +261,17 @@ export default async function IntegracoesPage({
       : sarh.status === "ERRO"
         ? "atencao"
         : "inativo";
+  const statusLdap: StatusVisual = !configuracaoLdapAd.ativo
+    ? "inativo"
+    : ldap?.status === "ERRO"
+      ? "atencao"
+      : configuracaoLdapAd.authUrl || configuracaoLdapAd.ldapUrl
+        ? "disponivel"
+        : "atencao";
+  const destinoLdap =
+    configuracaoLdapAd.modoAutenticacao === "LDAP_BIND"
+      ? configuracaoLdapAd.ldapUrl
+      : configuracaoLdapAd.authUrl;
 
   const exportParams = new URLSearchParams();
 
@@ -348,24 +381,35 @@ export default async function IntegracoesPage({
           titulo="Equipamentos biométricos"
           descricao="Integração com relógios, totens e dispositivos biométricos para ingestão de marcações e eventos operacionais."
           href="/equipamentos"
-          status="disponivel"
+          status={
+            equipamentosAtivos.length === 0
+              ? "atencao"
+              : equipamentosOnline.length > 0
+                ? "disponivel"
+                : "atencao"
+          }
           icon={Fingerprint}
           detalhes={[
-            "Cadastro de equipamentos",
-            "Vínculo por código ou número de série",
-            "Associacao automatica na importação AFD",
+            `${equipamentosAtivos.length} equipamento(s) ativo(s)`,
+            `${equipamentosOnline.length} online nos ultimos 5 minutos`,
+            "Coleta por NSR, heartbeat e evento online Henry",
           ]}
         />
 
         <IntegracaoCard
           titulo="LDAP / Active Directory"
           descricao="Integração com a rede Windows institucional para autenticação, identificação por matrícula e grupos administrativos."
-          status="planejado"
+          href="/administracao/integracoes/ldap"
+          status={statusLdap}
           icon={KeyRound}
           detalhes={[
-            "Login com matrícula e senha de rede",
-            "Mapeamento de grupos para perfis",
-            "Suporte futuro a multiplos provedores",
+            `Modo: ${
+              configuracaoLdapAd.modoAutenticacao === "LDAP_BIND"
+                ? "Bind LDAP/AD"
+                : "API HTTP AD"
+            }`,
+            `Destino: ${destinoLdap || "pendente de configuracao"}`,
+            "Fallback local: senha cadastrada no SECP",
           ]}
         />
       </section>

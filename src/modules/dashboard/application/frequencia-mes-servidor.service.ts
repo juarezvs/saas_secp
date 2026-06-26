@@ -1,4 +1,5 @@
 import { listarApuracoesDoServidorNoMes } from "@/modules/apuracao/infrastructure/repositories/apuracao.repository";
+import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 export type FrequenciaMesServidorResumo = {
@@ -11,9 +12,9 @@ export type FrequenciaMesServidorResumo = {
   aguardando: number;
 };
 
-function competenciaAtualManaus() {
+function competenciaAtualNoFuso(fusoHorario: string) {
   const partes = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Manaus",
+    timeZone: fusoHorario,
     year: "numeric",
     month: "2-digit",
   }).formatToParts(new Date());
@@ -87,7 +88,10 @@ export async function buscarFrequenciaMesServidorPorUsuarioId(
     return null;
   }
 
-  const competencia = competenciaAtualManaus();
+  const fusoHorario = await resolverFusoHorarioServidorNoBanco({
+    servidorId: servidor.id,
+  });
+  const competencia = competenciaAtualNoFuso(fusoHorario);
   const itens = await listarApuracoesDoServidorNoMes({
     servidorId: servidor.id,
     ano: competencia.ano,

@@ -8,6 +8,7 @@ export type ListarOrgaosParams = {
   nome?: string;
   codigoExternoSarh?: string;
   status?: string;
+  fusoHorario?: string;
 };
 
 export function montarWhereOrgaos(params: ListarOrgaosParams = {}) {
@@ -20,6 +21,8 @@ export function montarWhereOrgaos(params: ListarOrgaosParams = {}) {
       : params.status === "inativo"
         ? { ativo: false }
         : {}),
+
+    ...(params.fusoHorario ? { fusoHorario: params.fusoHorario } : {}),
 
     ...(params.sigla
       ? {

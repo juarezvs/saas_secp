@@ -46,7 +46,9 @@ export const equipamentoBiometricoSchema = z.object({
   localizacao: z.string().trim().optional().or(z.literal("")),
   ip: z.string().trim().optional().or(z.literal("")),
   porta: z.coerce.number().int().positive().optional().or(z.literal("")),
-  protocolo: z.enum(["GENERIC", "HENRY"]).default("GENERIC"),
+  protocolo: z
+    .enum(["GENERIC", "HENRY", "HENRY_LUMEN_BALCAO", "DIMEP_SMART_PRINT"])
+    .default("GENERIC"),
   usuario: z.string().trim().optional().or(z.literal("")),
   senha: z.string().optional().or(z.literal("")),
   usuarioDados: z.string().trim().optional().or(z.literal("")),
@@ -134,6 +136,7 @@ export const modosAutenticacaoLdapAd = ["HTTP_AD_API", "LDAP_BIND"] as const;
 
 export const ldapActiveDirectorySchema = z
   .object({
+    orgaoId: z.string().uuid("Informe um órgão válido.").optional().or(z.literal("")),
     modoAutenticacao: z.enum(modosAutenticacaoLdapAd, {
       error: "Informe o modo de autenticaÃ§Ã£o.",
     }),

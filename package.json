@@ -13,6 +13,7 @@
     "worker:henry-coleta": "tsx workers/henry-coleta.worker.ts",
     "worker:henry-online": "tsx workers/henry-online.worker.ts",
     "worker:reprocessamento-global": "tsx workers/reprocessamento-global.worker.ts",
+    "worker:calendario-institucional": "tsx workers/calendario-institucional.worker.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",

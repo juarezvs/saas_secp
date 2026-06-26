@@ -9,6 +9,8 @@ import {
   type CalendarioInstitucionalPrecarregado,
 } from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
 import { normalizarMarcacoesSemIntervaloService } from "@/modules/marcacoes/application/services/normalizar-marcacoes-sem-intervalo.service";
+import { buscarRegulamentacaoPontoOrgao } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
+import { resolverFusoHorarioUnidade } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { aplicarSolicitacoesDeferidasApuracao } from "@/modules/solicitacoes/application/services/aplicar-solicitacoes-deferidas-apuracao.service";
 import { TIPOS_SOLICITACAO_COM_EFEITO_APURACAO } from "@/modules/solicitacoes/application/services/periodo-solicitacao.service";
 
@@ -111,6 +113,29 @@ export async function recalcularDiaServidorService(
         include: {
           unidade: {
             include: {
+              orgao: {
+                select: {
+                  fusoHorario: true,
+                },
+              },
+              unidadePai: {
+                include: {
+                  orgao: {
+                    select: {
+                      fusoHorario: true,
+                    },
+                  },
+                  unidadePai: {
+                    include: {
+                      orgao: {
+                        select: {
+                          fusoHorario: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
               equipamentosBiometricos: {
                 where: {
                   ativo: true,
@@ -131,6 +156,7 @@ export async function recalcularDiaServidorService(
           id: servidorId,
         },
         select: {
+          orgaoId: true,
           cargo: {
             select: {
               descricao: true,
@@ -206,6 +232,10 @@ export async function recalcularDiaServidorService(
   const expedienteUnidade = resolverExpedienteUnidade(
     lotacaoVigente?.unidade ?? null,
   );
+  const fusoHorario = resolverFusoHorarioUnidade(lotacaoVigente?.unidade);
+  const regulamentacao = await buscarRegulamentacaoPontoOrgao(
+    servidor?.orgaoId,
+  );
   const dispensaPontoEletronico = resolverDispensaPontoEletronico({
     cargoDescricao: servidor?.cargo?.descricao,
     quantidadeEquipamentosAtivosUnidade:
@@ -246,6 +276,8 @@ export async function recalcularDiaServidorService(
         }
       : null,
     diaInstitucional,
+    fusoHorario,
+    regulamentacao,
     dispensaPontoEletronico: dispensaPontoEletronico.dispensado
       ? {
           ativa: true,
@@ -275,6 +307,7 @@ export async function recalcularDiaServidorService(
         dadosSolicitados: unknown;
       }>,
       marcacoes: marcacoesNormalizadas,
+      fusoHorario,
     });
 
   const apuracao = await prisma.$transaction(async (tx) => {
@@ -308,9 +341,21 @@ export async function recalcularDiaServidorService(
           contaComoDiaUtil: diaInstitucional.contaComoDiaUtil,
           geraApuracaoRegular: diaInstitucional.geraApuracaoRegular,
           eventoCalendarioId: diaInstitucional.eventoCalendarioId ?? null,
+          janelaInstitucional:
+            diaInstitucional.janelaInicio && diaInstitucional.janelaFim
+              ? {
+                  inicio: diaInstitucional.janelaInicio,
+                  fim: diaInstitucional.janelaFim,
+                }
+              : null,
+          dataOriginalEventoCalendario: diaInstitucional.dataOriginal ?? null,
+          dataSubstituidaEventoCalendario:
+            diaInstitucional.dataSubstituida ?? false,
           recessoForenseId: diaInstitucional.recessoForenseId ?? null,
           janelaExpediente: calculo.janelaExpediente,
           expedienteUnidade,
+          fusoHorario,
+          regulamentacaoPonto: regulamentacao,
           minutosForaExpediente: calculo.minutosForaExpediente,
           dispensaPontoEletronico: calculo.dispensaPontoEletronico,
           dispensaPontoAdministrativa: dispensaAdministrativa,
@@ -344,9 +389,21 @@ export async function recalcularDiaServidorService(
           contaComoDiaUtil: diaInstitucional.contaComoDiaUtil,
           geraApuracaoRegular: diaInstitucional.geraApuracaoRegular,
           eventoCalendarioId: diaInstitucional.eventoCalendarioId ?? null,
+          janelaInstitucional:
+            diaInstitucional.janelaInicio && diaInstitucional.janelaFim
+              ? {
+                  inicio: diaInstitucional.janelaInicio,
+                  fim: diaInstitucional.janelaFim,
+                }
+              : null,
+          dataOriginalEventoCalendario: diaInstitucional.dataOriginal ?? null,
+          dataSubstituidaEventoCalendario:
+            diaInstitucional.dataSubstituida ?? false,
           recessoForenseId: diaInstitucional.recessoForenseId ?? null,
           janelaExpediente: calculo.janelaExpediente,
           expedienteUnidade,
+          fusoHorario,
+          regulamentacaoPonto: regulamentacao,
           minutosForaExpediente: calculo.minutosForaExpediente,
           dispensaPontoEletronico: calculo.dispensaPontoEletronico,
           dispensaPontoAdministrativa: dispensaAdministrativa,
@@ -399,6 +456,7 @@ export async function recalcularDiaServidorService(
             trabalhoRemoto: calculo.trabalhoRemoto,
             frequenciaManual: calculo.frequenciaManual,
             origem,
+            regulamentacaoPonto: regulamentacao,
           },
         },
       });

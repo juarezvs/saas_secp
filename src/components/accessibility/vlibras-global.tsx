@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 const VLIBRAS_SCRIPT_ID = "vlibras-plugin";
 const VLIBRAS_SCRIPT_SRC = "https://vlibras.gov.br/app/vlibras-plugin.js";
@@ -11,15 +12,26 @@ function aguardar(ms: number) {
 }
 
 export function VlibrasGlobal() {
+  const pathname = usePathname();
+
   useEffect(() => {
     let desmontado = false;
+    let refreshTimer: number | null = null;
 
-    function inicializarWidget() {
+    function widgetTemDomAtivo() {
+      return Boolean(
+        document.querySelector("[vw-access-button]") &&
+          document.querySelector("[vw-plugin-wrapper]") &&
+          document.querySelector(".vw-plugin-top-wrapper"),
+      );
+    }
+
+    function inicializarWidget(forcar = false) {
       if (!window.VLibras?.Widget) {
         return false;
       }
 
-      if (window.__secpVLibrasWidget) {
+      if (!forcar && window.__secpVLibrasWidget && widgetTemDomAtivo()) {
         return true;
       }
 
@@ -65,13 +77,20 @@ export function VlibrasGlobal() {
 
     function abrirPeloDom() {
       const botao = document.querySelector<HTMLElement>(
-        "[vw-access-button], .vw-access-button",
+        "[vw-access-button]",
       );
 
       if (botao) {
-        botao.click();
+        botao.dispatchEvent(
+          new MouseEvent("click", {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+          }),
+        );
       }
 
+      const container = document.querySelector<HTMLElement>("[vw]");
       const wrapper = document.querySelector<HTMLElement>(
         "[vw-plugin-wrapper]",
       );
@@ -79,13 +98,15 @@ export function VlibrasGlobal() {
         ".vw-plugin-top-wrapper",
       );
 
+      container?.classList.add("enabled");
+      container?.classList.add("active");
       wrapper?.classList.add("active");
       topWrapper?.classList.add("active");
 
       return Boolean(botao || wrapper);
     }
 
-    async function prepararWidget() {
+    async function prepararWidget(forcar = false) {
       await carregarScript();
 
       for (let tentativa = 0; tentativa < 12; tentativa += 1) {
@@ -93,7 +114,7 @@ export function VlibrasGlobal() {
           return false;
         }
 
-        if (inicializarWidget()) {
+        if (inicializarWidget(forcar && tentativa === 0)) {
           await aguardar(150);
           return true;
         }
@@ -120,21 +141,48 @@ export function VlibrasGlobal() {
       }
     }
 
+    function agendarRefresh(forcar = false) {
+      if (refreshTimer) {
+        window.clearTimeout(refreshTimer);
+      }
+
+      refreshTimer = window.setTimeout(() => {
+        refreshTimer = null;
+        void prepararWidget(forcar);
+      }, 150);
+    }
+
+    function aoVoltarParaPagina() {
+      agendarRefresh(false);
+    }
+
     window.__secpAbrirVLibras = () => {
       void abrir();
     };
     void prepararWidget();
 
+    window.addEventListener("pageshow", aoVoltarParaPagina);
+    window.addEventListener("focus", aoVoltarParaPagina);
+    document.addEventListener("visibilitychange", aoVoltarParaPagina);
+
+    agendarRefresh(true);
+
     return () => {
       desmontado = true;
+      if (refreshTimer) {
+        window.clearTimeout(refreshTimer);
+      }
+      window.removeEventListener("pageshow", aoVoltarParaPagina);
+      window.removeEventListener("focus", aoVoltarParaPagina);
+      document.removeEventListener("visibilitychange", aoVoltarParaPagina);
       delete window.__secpAbrirVLibras;
     };
-  }, []);
+  }, [pathname]);
 
   return (
-    <div vw="" className="enabled">
-      <div vw-access-button="" className="active" />
-      <div vw-plugin-wrapper="">
+    <div vw="true" className="enabled">
+      <div vw-access-button="true" className="active" />
+      <div vw-plugin-wrapper="true">
         <div className="vw-plugin-top-wrapper" />
       </div>
     </div>

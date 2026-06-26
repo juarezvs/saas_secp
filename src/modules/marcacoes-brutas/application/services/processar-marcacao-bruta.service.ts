@@ -1,9 +1,10 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { obterDataReferencia } from "@/modules/marcacoes/application/services/data-marcacao.service";
 import { classificarProximaMarcacao } from "@/modules/marcacoes/application/services/classificar-marcacao.service";
-import { recalcularDiaServidorService } from "@/modules/recalculo/application/services/recalcular-dia-servidor.service";
+import { recalcularDiaEBancoHorasServidorService } from "@/modules/recalculo/application/services/recalcular-dia-e-banco-horas-servidor.service";
 import { normalizarMarcacoesSemIntervaloService } from "@/modules/marcacoes/application/services/normalizar-marcacoes-sem-intervalo.service";
 import { verificarPeriodoHomologado } from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
+import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import {
   ampliarVigenciaJornadaPadraoAutomaticaService,
   garantirJornadaPadraoServidorService,
@@ -13,6 +14,7 @@ import { resolverServidorMarcacaoBrutaService } from "./resolver-servidor-marcac
 export async function processarMarcacaoBrutaService(params: {
   marcacaoBrutaId: string;
   usuarioIdAuditoria?: string;
+  recalcularImpactos?: boolean;
 }) {
   const bruta = await prisma.marcacaoBruta.findUnique({
     where: {
@@ -89,7 +91,15 @@ export async function processarMarcacaoBrutaService(params: {
     });
   }
 
-  const dataReferencia = obterDataReferencia(bruta.dataHora);
+  let fusoHorario = await resolverFusoHorarioServidorNoBanco({
+    servidorId: servidor.id,
+  });
+  let dataReferencia = obterDataReferencia(bruta.dataHora, fusoHorario);
+  fusoHorario = await resolverFusoHorarioServidorNoBanco({
+    servidorId: servidor.id,
+    dataReferencia,
+  });
+  dataReferencia = obterDataReferencia(bruta.dataHora, fusoHorario);
 
   await verificarPeriodoHomologado({
     servidorId: servidor.id,
@@ -256,6 +266,7 @@ export async function processarMarcacaoBrutaService(params: {
         jornadaServidorId: jornadaServidor.id,
         dataHora: bruta.dataHora,
         dataReferencia,
+        fusoHorario,
         tipo: classificacao.tipo,
         fonte:
           bruta.origem === "EQUIPAMENTO_BIOMETRICO" ||
@@ -313,16 +324,22 @@ export async function processarMarcacaoBrutaService(params: {
     return novaMarcacao;
   });
 
-  await recalcularDiaServidorService({
-    servidorId: servidor.id,
-    dataReferencia,
-    usuarioIdAuditoria: params.usuarioIdAuditoria,
-    origem: "RECALCULO_APOS_PROCESSAMENTO_MARCACAO_BRUTA",
-  });
+  const recalculo =
+    params.recalcularImpactos === false
+      ? null
+      : await recalcularDiaEBancoHorasServidorService({
+          servidorId: servidor.id,
+          dataReferencia,
+          usuarioIdAuditoria: params.usuarioIdAuditoria,
+          origem: "RECALCULO_APOS_PROCESSAMENTO_MARCACAO_BRUTA",
+        });
 
   return {
     sucesso: true,
     mensagem: "Marcação bruta processada com sucesso.",
     marcacaoId: marcacao.id,
+    servidorId: servidor.id,
+    dataReferencia,
+    bancoHoras: recalculo?.bancoHoras ?? null,
   };
 }

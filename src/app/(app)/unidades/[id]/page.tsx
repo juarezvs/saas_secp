@@ -6,6 +6,7 @@ import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { resolverExpedienteUnidade } from "@/modules/apuracao/application/services/expediente.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
+import { resolverFusoHorarioUnidade } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { buscarUnidadePorId } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
 import { UnidadeHierarquiaCard } from "@/modules/unidades/presentation/components/unidade-hierarquia-card";
 
@@ -28,6 +29,7 @@ export default async function UnidadeDetalhePage({
   }
 
   const expedienteUnidade = resolverExpedienteUnidade(unidade);
+  const fusoHorario = resolverFusoHorarioUnidade(unidade);
 
   return (
     <div className="space-y-6">
@@ -102,7 +104,7 @@ export default async function UnidadeDetalhePage({
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-5">
         <div className="rounded-xl border bg-(--card) p-5 shadow-sm">
           <p className="text-sm text-(--muted-foreground)">Órgão</p>
           <h2 className="mt-2 text-2xl font-bold">{unidade.orgao.sigla}</h2>
@@ -123,6 +125,14 @@ export default async function UnidadeDetalhePage({
           <h2 className="mt-2 text-2xl font-bold">
             {unidade.ativo ? "Ativa" : "Inativa"}
           </h2>
+        </div>
+
+        <div className="rounded-xl border bg-(--card) p-5 shadow-sm">
+          <p className="text-sm text-(--muted-foreground)">Fuso</p>
+          <h2 className="mt-2 text-sm font-bold">{fusoHorario}</h2>
+          {!unidade.fusoHorario && (
+            <p className="mt-1 text-xs text-(--muted-foreground)">Herdado</p>
+          )}
         </div>
       </section>
 

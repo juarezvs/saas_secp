@@ -1,5 +1,14 @@
 import type { PrismaClient } from "@/generated/prisma/client";
-import { obterDataReferencia } from "@/modules/marcacoes/application/services/data-marcacao.service";
+import { normalizarDataReferencia } from "@/modules/apuracao/application/services/calcular-tempo.service";
+import { calcularCargaPrevistaComJanela } from "@/modules/apuracao/application/services/expediente.service";
+import { classificarDiaInstitucional } from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
+import {
+  dataHoraLocalParaUtc,
+  obterDataReferencia,
+} from "@/modules/marcacoes/application/services/data-marcacao.service";
+import { resolverFusoHorarioUnidade } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
+
+import { listarDatasImpactadasSolicitacao } from "./periodo-solicitacao.service";
 
 type Tx = Parameters<Parameters<PrismaClient["$transaction"]>[0]>[0];
 
@@ -43,14 +52,95 @@ function extrairDadosAutorizacao(dados: unknown) {
   const minutosSolicitados = Number(obj.minutosSolicitados);
   const tipoCompensacao = String(obj.tipoCompensacao ?? "");
 
-  if (!Number.isInteger(minutosSolicitados) || minutosSolicitados <= 0) {
-    return null;
-  }
-
   return {
-    minutosSolicitados,
+    minutosSolicitados:
+      Number.isInteger(minutosSolicitados) && minutosSolicitados > 0
+        ? minutosSolicitados
+        : null,
     tipoCompensacao,
   };
+}
+
+async function calcularMinutosPendentesCompensacao(params: {
+  tx: Tx;
+  servidorId: string;
+  dataInicio: Date;
+  dataFim: Date;
+}) {
+  const apuracoes = await params.tx.apuracaoDiaria.findMany({
+    where: {
+      servidorId: params.servidorId,
+      dataReferencia: {
+        gte: normalizarDataReferencia(params.dataInicio),
+        lt: normalizarDataReferencia(params.dataFim),
+      },
+      minutosDebito: {
+        gt: 0,
+      },
+    },
+    select: {
+      minutosDebito: true,
+    },
+  });
+
+  return apuracoes.reduce(
+    (total, apuracao) => total + apuracao.minutosDebito,
+    0,
+  );
+}
+
+async function calcularMinutosFolgaBancoHoras(params: {
+  tx: Tx;
+  servidorId: string;
+  dataInicio: Date;
+  dataFim: Date;
+}) {
+  const datas = listarDatasImpactadasSolicitacao({
+    dataInicio: params.dataInicio,
+    dataFim: params.dataFim,
+  });
+  let total = 0;
+
+  for (const dataReferencia of datas) {
+    const classificacao = await classificarDiaInstitucional(dataReferencia);
+
+    if (!classificacao.contaComoDiaUtil || !classificacao.geraApuracaoRegular) {
+      continue;
+    }
+
+    const jornada = await params.tx.jornadaServidor.findFirst({
+      where: {
+        servidorId: params.servidorId,
+        ativo: true,
+        dataInicio: {
+          lte: dataReferencia,
+        },
+        OR: [{ dataFim: null }, { dataFim: { gte: dataReferencia } }],
+      },
+      include: {
+        jornada: true,
+      },
+      orderBy: {
+        dataInicio: "desc",
+      },
+    });
+
+    if (!jornada) {
+      continue;
+    }
+
+    total += calcularCargaPrevistaComJanela(
+      jornada.jornada.cargaDiariaMinutos,
+      classificacao.janelaInicio && classificacao.janelaFim
+        ? {
+            inicio: classificacao.janelaInicio,
+            fim: classificacao.janelaFim,
+          }
+        : null,
+    );
+  }
+
+  return total;
 }
 
 export async function aplicarEfeitosSolicitacaoDeferida(params: {
@@ -66,29 +156,58 @@ export async function aplicarEfeitosSolicitacaoDeferida(params: {
     justificativaAnalise,
   } = params;
 
-  if (["HORA_CREDITO_PREVIA", "COMPENSACAO"].includes(solicitacao.tipo)) {
+  if (
+    ["HORA_CREDITO_PREVIA", "COMPENSACAO", "FOLGA_BANCO_HORAS"].includes(
+      solicitacao.tipo,
+    )
+  ) {
     const dadosAutorizacao = extrairDadosAutorizacao(
       solicitacao.dadosSolicitados,
     );
 
-    if (
-      !solicitacao.dataInicio ||
-      !solicitacao.dataFim ||
-      !dadosAutorizacao
-    ) {
+    if (!solicitacao.dataInicio || !solicitacao.dataFim || !dadosAutorizacao) {
       return {
         efeitosAplicados: false,
         mensagem:
-          "Solicitação sem período ou quantidade válidos para autorização do banco de horas.",
+          "Solicitação sem período válido para autorização do banco de horas.",
       };
     }
 
     const tipo =
       solicitacao.tipo === "HORA_CREDITO_PREVIA"
         ? "CREDITO"
-        : dadosAutorizacao.tipoCompensacao === "COMPENSAR_DEBITO"
+        : solicitacao.tipo === "FOLGA_BANCO_HORAS"
+          ? "COMPENSACAO_CREDITO"
+          : dadosAutorizacao.tipoCompensacao === "COMPENSAR_DEBITO"
           ? "COMPENSACAO_DEBITO"
           : "COMPENSACAO_CREDITO";
+    const minutosAutorizados =
+      dadosAutorizacao.minutosSolicitados ??
+      (solicitacao.tipo === "FOLGA_BANCO_HORAS"
+        ? await calcularMinutosFolgaBancoHoras({
+            tx,
+            servidorId: solicitacao.servidorId,
+            dataInicio: solicitacao.dataInicio,
+            dataFim: solicitacao.dataFim,
+          })
+        : solicitacao.tipo === "COMPENSACAO"
+          ? await calcularMinutosPendentesCompensacao({
+              tx,
+              servidorId: solicitacao.servidorId,
+              dataInicio: solicitacao.dataInicio,
+              dataFim: solicitacao.dataFim,
+            })
+          : 0);
+
+    if (minutosAutorizados <= 0) {
+      return {
+        efeitosAplicados: false,
+        mensagem:
+          solicitacao.tipo === "FOLGA_BANCO_HORAS"
+            ? "Não foram encontrados dias úteis com jornada vigente para autorizar a folga."
+            : "Não foram encontrados minutos pendentes no período informado.",
+      };
+    }
 
     const autorizacao = await tx.autorizacaoBancoHoras.upsert({
       where: {
@@ -99,7 +218,7 @@ export async function aplicarEfeitosSolicitacaoDeferida(params: {
         status: "AUTORIZADA",
         dataInicio: solicitacao.dataInicio,
         dataFim: solicitacao.dataFim,
-        minutosAutorizados: dadosAutorizacao.minutosSolicitados,
+        minutosAutorizados,
         autorizadoPorUsuarioId: usuarioAnaliseId,
         justificativa: justificativaAnalise,
         autorizadoEm: new Date(),
@@ -112,7 +231,7 @@ export async function aplicarEfeitosSolicitacaoDeferida(params: {
         status: "AUTORIZADA",
         dataInicio: solicitacao.dataInicio,
         dataFim: solicitacao.dataFim,
-        minutosAutorizados: dadosAutorizacao.minutosSolicitados,
+        minutosAutorizados,
         justificativa: justificativaAnalise,
       },
     });
@@ -141,7 +260,9 @@ export async function aplicarEfeitosSolicitacaoDeferida(params: {
       mensagem:
         solicitacao.tipo === "HORA_CREDITO_PREVIA"
           ? "Crédito previamente autorizado pela chefia."
-          : "Compensação previamente autorizada pela chefia.",
+          : solicitacao.tipo === "FOLGA_BANCO_HORAS"
+            ? "Folga com banco de horas autorizada pela chefia."
+            : "Compensação previamente autorizada pela chefia.",
       dadosResultado: {
         autorizacaoBancoHorasId: autorizacao.id,
         tipo: autorizacao.tipo,
@@ -179,9 +300,58 @@ export async function aplicarEfeitosSolicitacaoDeferida(params: {
     };
   }
 
-  const dataIso = solicitacao.dataReferencia.toISOString().slice(0, 10);
-  const dataHoraAjuste = new Date(`${dataIso}T${dadosAjuste.horaAjuste}:00`);
-  const dataReferencia = obterDataReferencia(dataHoraAjuste);
+  const lotacao = await tx.lotacao.findFirst({
+    where: {
+      servidorId: solicitacao.servidorId,
+      status: "ATIVO",
+      dataInicio: {
+        lte: solicitacao.dataReferencia,
+      },
+      OR: [
+        { dataFim: null },
+        { dataFim: { gte: solicitacao.dataReferencia } },
+      ],
+    },
+    include: {
+      unidade: {
+        include: {
+          orgao: {
+            select: {
+              fusoHorario: true,
+            },
+          },
+          unidadePai: {
+            include: {
+              orgao: {
+                select: {
+                  fusoHorario: true,
+                },
+              },
+              unidadePai: {
+                include: {
+                  orgao: {
+                    select: {
+                      fusoHorario: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      dataInicio: "desc",
+    },
+  });
+  const fusoHorario = resolverFusoHorarioUnidade(lotacao?.unidade);
+  const dataHoraAjuste = dataHoraLocalParaUtc({
+    dataReferencia: solicitacao.dataReferencia,
+    hora: dadosAjuste.horaAjuste,
+    fusoHorario,
+  });
+  const dataReferencia = obterDataReferencia(dataHoraAjuste, fusoHorario);
 
   const jornadaServidor = await tx.jornadaServidor.findFirst({
     where: {
@@ -212,6 +382,7 @@ export async function aplicarEfeitosSolicitacaoDeferida(params: {
       jornadaServidorId: jornadaServidor?.id ?? null,
       dataHora: dataHoraAjuste,
       dataReferencia,
+      fusoHorario,
       tipo: dadosAjuste.tipoMarcacao as never,
       fonte: "MANUAL_ADMINISTRATIVO",
       status: "AJUSTADA",

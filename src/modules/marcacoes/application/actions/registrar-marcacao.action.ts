@@ -13,8 +13,9 @@ import {
   validarAutorizacaoBiometricaMarcacao,
 } from "@/modules/biometria/application/services/autorizacao-biometrica-marcacao.service";
 import { resolverJornadaVigenteDoServidor } from "@/modules/jornadas/application/services/resolver-jornada.service";
-import { recalcularDiaServidorService } from "@/modules/recalculo/application/services/recalcular-dia-servidor.service";
+import { recalcularDiaEBancoHorasServidorService } from "@/modules/recalculo/application/services/recalcular-dia-e-banco-horas-servidor.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { resolverFusoHorarioServidor } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 
 import {
   buscarServidorPorUsuarioId,
@@ -105,6 +106,7 @@ export async function registrarMarcacaoAction(
   );
 
   const agora = new Date();
+  const fusoHorario = resolverFusoHorarioServidor(servidor);
   const jornadaVigente = await resolverJornadaVigenteDoServidor(
     servidor.id,
     agora,
@@ -143,6 +145,7 @@ export async function registrarMarcacaoAction(
   const marcacoesDoDia = await listarMarcacoesDoServidorNoDia({
     servidorId: servidor.id,
     dataHora: agora,
+    fusoHorario,
   });
 
   let classificacao;
@@ -174,7 +177,7 @@ export async function registrarMarcacaoAction(
 
   const userAgent = requestHeaders.get("user-agent");
 
-  const dataReferencia = obterDataReferencia(agora);
+  const dataReferencia = obterDataReferencia(agora, fusoHorario);
 
   try {
     await verificarPeriodoHomologado({
@@ -200,6 +203,7 @@ export async function registrarMarcacaoAction(
         jornadaServidorId: jornadaVigente.jornadaServidorId,
         dataHora: agora,
         dataReferencia,
+        fusoHorario,
         tipo: classificacao.tipo,
         fonte: "WEB",
         status: "VALIDA",
@@ -256,7 +260,7 @@ export async function registrarMarcacaoAction(
     return novaMarcacao;
   });
 
-  await recalcularDiaServidorService({
+  await recalcularDiaEBancoHorasServidorService({
     servidorId: servidor.id,
     dataReferencia,
     usuarioIdAuditoria: session.user.id,
@@ -272,6 +276,6 @@ export async function registrarMarcacaoAction(
     sucesso: true,
     mensagem: `${classificacao.descricao} registrada com sucesso.`,
     tipoMarcacao: classificacao.tipo,
-    dataHora: formatarDataHoraPtBr(marcacao.dataHora),
+    dataHora: formatarDataHoraPtBr(marcacao.dataHora, fusoHorario),
   };
 }

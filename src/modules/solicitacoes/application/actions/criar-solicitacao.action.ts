@@ -9,6 +9,8 @@ import {
   verificarPeriodoHomologado,
 } from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
 import { resolverChefiaResponsavelDaUnidade } from "@/modules/chefias/application/services/resolver-chefia.service";
+import { dataHoraLocalParaUtc } from "@/modules/marcacoes/application/services/data-marcacao.service";
+import { resolverFusoHorarioServidor } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 import { buscarServidorSolicitantePorUsuarioId } from "../../infrastructure/repositories/solicitacao.repository";
@@ -31,10 +33,52 @@ function valorOpcionalData(valor: string | undefined) {
   return new Date(`${valor}T00:00:00`);
 }
 
-function valorOpcionalDateTime(valor: string | undefined) {
+function dataReferenciaFormulario(valor: string) {
+  return new Date(`${valor}T00:00:00.000Z`);
+}
+
+function proximaDataReferenciaFormulario(valor: string) {
+  const data = dataReferenciaFormulario(valor);
+  data.setUTCDate(data.getUTCDate() + 1);
+  return data;
+}
+
+function valorOpcionalDateTime(
+  valor: string | undefined,
+  fusoHorario?: string | null,
+) {
   if (!valor) return null;
 
-  return new Date(valor);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+    return dataHoraLocalParaUtc({
+      dataReferencia: dataReferenciaFormulario(valor),
+      hora: "00:00",
+      fusoHorario,
+    });
+  }
+
+  const [data, hora = "00:00"] = valor.split("T");
+
+  return dataHoraLocalParaUtc({
+    dataReferencia: dataReferenciaFormulario(data),
+    hora,
+    fusoHorario,
+  });
+}
+
+function valorOpcionalFimPeriodo(
+  valor: string | undefined,
+  fusoHorario?: string | null,
+) {
+  if (valor && /^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+    return dataHoraLocalParaUtc({
+      dataReferencia: proximaDataReferenciaFormulario(valor),
+      hora: "00:00",
+      fusoHorario,
+    });
+  }
+
+  return valorOpcionalDateTime(valor, fusoHorario);
 }
 
 function normalizarTipoSolicitacao(
@@ -134,6 +178,7 @@ export async function criarSolicitacaoAction(
   const chefiaResolvida = await resolverChefiaResponsavelDaUnidade(
     lotacaoAtual.unidadeId,
   );
+  const fusoHorario = resolverFusoHorarioServidor(servidor);
 
   if (parsed.data.tipo === "AJUSTE_PONTO" && parsed.data.dataReferencia) {
     const dataReferenciaAjuste = valorOpcionalData(parsed.data.dataReferencia);
@@ -183,8 +228,8 @@ export async function criarSolicitacaoAction(
         titulo: parsed.data.titulo,
         descricao: parsed.data.descricao,
         dataReferencia: valorOpcionalData(parsed.data.dataReferencia),
-        dataInicio: valorOpcionalDateTime(parsed.data.dataInicio),
-        dataFim: valorOpcionalDateTime(parsed.data.dataFim),
+        dataInicio: valorOpcionalDateTime(parsed.data.dataInicio, fusoHorario),
+        dataFim: valorOpcionalFimPeriodo(parsed.data.dataFim, fusoHorario),
         dadosSolicitados: {
           tipoMarcacao: parsed.data.tipoMarcacao || null,
           horaAjuste: parsed.data.horaAjuste || null,

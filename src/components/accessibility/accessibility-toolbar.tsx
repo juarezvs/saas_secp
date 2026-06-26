@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Accessibility,
   BookOpenText,
@@ -8,75 +8,20 @@ import {
   Moon,
   Sun,
 } from "lucide-react";
-
-type Tema = "light" | "dark";
-const TAMANHOS_FONTE = ["13", "14", "16", "18", "20", "24", "30"] as const;
-type TamanhoFonte = (typeof TAMANHOS_FONTE)[number];
+import {
+  PREFERENCIAS_ACESSIBILIDADE_PADRAO,
+  TAMANHOS_FONTE_ACESSIBILIDADE,
+  type PreferenciasAcessibilidade,
+  type TamanhoFonteAcessibilidade,
+  type TemaAcessibilidade,
+} from "@/modules/auth/application/services/preferencias-acessibilidade.service";
 
 const STORAGE_TEMA = "secp-tema";
 const STORAGE_TAMANHO_FONTE = "secp-tamanho-fonte";
 const STORAGE_FONTE_DISLEXIA = "secp-fonte-dislexia";
 const STORAGE_ALTO_CONTRASTE = "secp-alto-contraste";
 
-function normalizarTema(valor: string | null): Tema {
-  return valor === "dark" || valor === "light" ? valor : "light";
-}
-
-function normalizarTamanhoFonte(valor: string | null): TamanhoFonte {
-  if (valor === "normal") {
-    return "16";
-  }
-
-  if (valor === "large") {
-    return "18";
-  }
-
-  if (valor === "xlarge") {
-    return "20";
-  }
-
-  if (TAMANHOS_FONTE.includes(valor as TamanhoFonte)) {
-    return valor as TamanhoFonte;
-  }
-
-  return "16";
-}
-
-function lerTemaInicial(): Tema {
-  if (typeof window === "undefined") {
-    return "light";
-  }
-
-  return normalizarTema(window.localStorage.getItem(STORAGE_TEMA));
-}
-
-function lerTamanhoFonteInicial(): TamanhoFonte {
-  if (typeof window === "undefined") {
-    return "16";
-  }
-
-  return normalizarTamanhoFonte(
-    window.localStorage.getItem(STORAGE_TAMANHO_FONTE),
-  );
-}
-
-function lerFonteDislexiaInicial(): boolean {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  return window.localStorage.getItem(STORAGE_FONTE_DISLEXIA) === "true";
-}
-
-function lerAltoContrasteInicial(): boolean {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  return window.localStorage.getItem(STORAGE_ALTO_CONTRASTE) === "true";
-}
-
-function aplicarTema(tema: Tema) {
+function aplicarTema(tema: TemaAcessibilidade) {
   const root = document.documentElement;
 
   if (tema === "dark") {
@@ -88,7 +33,7 @@ function aplicarTema(tema: Tema) {
   window.localStorage.setItem(STORAGE_TEMA, tema);
 }
 
-function aplicarTamanhoFonte(tamanho: TamanhoFonte) {
+function aplicarTamanhoFonte(tamanho: TamanhoFonteAcessibilidade) {
   document.documentElement.dataset.fontSize = tamanho;
   window.localStorage.setItem(STORAGE_TAMANHO_FONTE, tamanho);
 }
@@ -111,7 +56,11 @@ function obterClasseBotao(ativo: boolean) {
   }`;
 }
 
-function IndicadorTamanhoFonte({ tamanho }: { tamanho: TamanhoFonte }) {
+function IndicadorTamanhoFonte({
+  tamanho,
+}: {
+  tamanho: TamanhoFonteAcessibilidade;
+}) {
   if (tamanho === "16") {
     return null;
   }
@@ -126,16 +75,23 @@ function IndicadorTamanhoFonte({ tamanho }: { tamanho: TamanhoFonte }) {
   );
 }
 
-export function AccessibilityToolbar() {
-  const [tema, setTema] = useState<Tema>(lerTemaInicial);
-  const [tamanhoFonte, setTamanhoFonte] = useState<TamanhoFonte>(
-    lerTamanhoFonteInicial,
+export function AccessibilityToolbar({
+  preferenciasIniciais = PREFERENCIAS_ACESSIBILIDADE_PADRAO,
+}: {
+  preferenciasIniciais?: PreferenciasAcessibilidade;
+}) {
+  const primeiraPersistencia = useRef(true);
+  const [tema, setTema] = useState<TemaAcessibilidade>(
+    preferenciasIniciais.tema,
+  );
+  const [tamanhoFonte, setTamanhoFonte] = useState<TamanhoFonteAcessibilidade>(
+    preferenciasIniciais.tamanhoFonte,
   );
   const [fonteDislexia, setFonteDislexia] = useState<boolean>(
-    lerFonteDislexiaInicial,
+    preferenciasIniciais.fonteDislexia,
   );
   const [altoContraste, setAltoContraste] = useState<boolean>(
-    lerAltoContrasteInicial,
+    preferenciasIniciais.altoContraste,
   );
 
   useEffect(() => {
@@ -154,21 +110,52 @@ export function AccessibilityToolbar() {
     aplicarAltoContraste(altoContraste);
   }, [altoContraste]);
 
+  useEffect(() => {
+    if (primeiraPersistencia.current) {
+      primeiraPersistencia.current = false;
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => {
+      void fetch("/api/sessao/acessibilidade", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tema,
+          tamanhoFonte,
+          fonteDislexia,
+          altoContraste,
+        }),
+        signal: controller.signal,
+      }).catch(() => undefined);
+    }, 300);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [tema, tamanhoFonte, fonteDislexia, altoContraste]);
+
   function alternarTema() {
     setTema((temaAtual) => (temaAtual === "dark" ? "light" : "dark"));
   }
 
   function aumentarFonte() {
     setTamanhoFonte((tamanhoAtual) => {
-      const indiceAtual = TAMANHOS_FONTE.indexOf(tamanhoAtual);
-      return TAMANHOS_FONTE[Math.min(indiceAtual + 1, TAMANHOS_FONTE.length - 1)];
+      const indiceAtual = TAMANHOS_FONTE_ACESSIBILIDADE.indexOf(tamanhoAtual);
+      return TAMANHOS_FONTE_ACESSIBILIDADE[
+        Math.min(indiceAtual + 1, TAMANHOS_FONTE_ACESSIBILIDADE.length - 1)
+      ];
     });
   }
 
   function diminuirFonte() {
     setTamanhoFonte((tamanhoAtual) => {
-      const indiceAtual = TAMANHOS_FONTE.indexOf(tamanhoAtual);
-      return TAMANHOS_FONTE[Math.max(indiceAtual - 1, 0)];
+      const indiceAtual = TAMANHOS_FONTE_ACESSIBILIDADE.indexOf(tamanhoAtual);
+      return TAMANHOS_FONTE_ACESSIBILIDADE[Math.max(indiceAtual - 1, 0)];
     });
   }
 

@@ -4,11 +4,7 @@ import {
   PERFIL_ATIVO_COOKIE,
   PERFIL_ATIVO_COOKIE_MAX_AGE_SEGUNDOS,
 } from "@/modules/auth/domain/constants/perfil-ativo-cookie";
-import type { PerfilSessao } from "@/modules/auth/domain/entities/usuario-autenticado";
-
-type UsuarioSessaoComPerfis = {
-  perfis?: PerfilSessao[];
-};
+import { buscarUsuarioParaLoginPorMatricula } from "@/modules/auth/infrastructure/repositories/usuario-auth.repository";
 
 type TrocarPerfilAtivoPayload = {
   perfilCodigo?: string;
@@ -32,8 +28,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const usuarioSessao = session.user as UsuarioSessaoComPerfis;
-  const perfis = usuarioSessao.perfis ?? [];
+  const usuarioAtual = await buscarUsuarioParaLoginPorMatricula(
+    session.user.matricula,
+  );
+  const perfis = usuarioAtual?.perfis ?? [];
   const perfilAtivo = perfis.find(
     (perfil) => perfil.codigo === payload.perfilCodigo,
   );

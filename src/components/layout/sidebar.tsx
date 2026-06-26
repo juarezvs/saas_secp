@@ -26,6 +26,7 @@ import {
   Settings,
   ShieldAlert,
   ShieldCheck,
+  SlidersHorizontal,
   Upload,
   UserCog,
   Users,
@@ -63,7 +64,7 @@ export const MENU_ITEMS: MenuItem[] = [
   { label: "Homologação", href: "/homologacao", icon: ShieldCheck, permissoes: ["homologacao:gerenciar:chefia", "homologacao:consultar:global", "homologacao:gerenciar:global"] },
   { label: "Boletim de frequência", href: "/boletim-frequencia", icon: FileSpreadsheet, permissoes: ["boletim-frequencia:gerar:chefia", "boletim-frequencia:encaminhar:chefia", "boletim-frequencia:receber:global", "boletim-frequencia:consultar:global"] },
   { label: "Recesso forense", href: "/recesso-forense", icon: CalendarRange, permissoes: ["recesso:consultar:proprio", "recesso:consultar:global", "recesso:gerenciar:global", "recesso:homologar:chefia", "recesso:aceitar:secad"] },
-  { label: "Relatórios", href: "/relatorios", icon: BarChart3, permissoes: ["relatorios:consultar:proprio", "relatorios:consultar:global"] },
+  { label: "Relatórios", href: "/relatorios", icon: BarChart3, permissoes: ["relatorios:consultar:proprio", "relatorios:consultar:global", "relatorios-gerenciais:consultar:proprio", "relatorios-gerenciais:consultar:chefia", "relatorios-gerenciais:consultar:global"] },
   { label: "Biometria", href: "/biometria", icon: ScanFace, permissoes: ["biometria:consultar:proprio", "biometria:cadastrar:proprio", "biometria:gerenciar:global"] },
   { label: "Equipamentos", href: "/equipamentos", icon: Cpu, permissoes: ["integracoes:consultar:global", "integracoes:gerenciar:global", "afd:importar:global"] },
   { label: "Apuração", href: "/apuracao", icon: FileCheck2, permissoes: ["apuracao:consultar:global", "apuracao:recalcular:global"] },
@@ -77,6 +78,8 @@ export const MENU_ITEMS: MenuItem[] = [
   { label: "Chefias", href: "/chefias", icon: Network, permissoes: ["chefias:gerenciar:global"] },
   { label: "Integrações", href: "/integracoes", icon: Cable, permissoes: ["integracoes:consultar:global", "integracoes:gerenciar:global"] },
   { label: "Administração", href: "/administracao", icon: Settings, permissoes: ["configuracoes:gerenciar:global"] },
+  { label: "Regulamentação", href: "/administracao/regulamentacao-ponto", icon: SlidersHorizontal, permissoes: ["regulamentacao-ponto:gerenciar:global"] },
+  { label: "Fusos horarios", href: "/administracao/fusos-horarios", icon: Clock, permissoes: ["fusos-horarios:gerenciar:global"] },
   { label: "Auditoria", href: "/auditoria", icon: ScrollText, permissoes: ["auditoria:consultar:global", "auditoria:detalhar:global"] },
 ];
 

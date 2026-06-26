@@ -10,6 +10,9 @@ import {
 import { RecalcularMesForm } from "@/modules/recalculo/presentation/components/recalcular-mes-form";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import {
+  resolverFusoHorarioServidorNoBanco,
+} from "@/modules/servidores/application/services/fuso-horario-servidor.service";
+import {
   buscarServidorComUsuarioPorUsuarioId,
   listarApuracoesDoServidorNoMes,
   listarMarcacoesDoServidorNoMes,
@@ -69,9 +72,9 @@ function competenciaParaInput(anoReferencia: number, mesReferencia: number) {
   return `${anoReferencia}-${String(mesReferencia).padStart(2, "0")}`;
 }
 
-function obterCompetenciaAtualManaus() {
+function obterCompetenciaAtual(fusoHorario: string) {
   const partes = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Manaus",
+    timeZone: fusoHorario,
     year: "numeric",
     month: "2-digit",
   }).formatToParts(new Date());
@@ -159,8 +162,13 @@ export default async function EspelhoPontoPage({
     null;
 
   if (!paramsPossuemCompetencia(params)) {
+    const fusoHorario = servidorSelecionado
+      ? await resolverFusoHorarioServidorNoBanco({
+          servidorId: servidorSelecionado.id,
+        })
+      : "America/Manaus";
     const query = new URLSearchParams({
-      competencia: obterCompetenciaAtualManaus(),
+      competencia: obterCompetenciaAtual(fusoHorario),
     });
 
     if (servidorSelecionado) {

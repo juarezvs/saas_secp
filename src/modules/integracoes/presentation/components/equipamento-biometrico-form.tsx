@@ -91,9 +91,14 @@ export function EquipamentoBiometricoForm({
   );
   const configuracao = getConfiguracao(equipamento?.configuracao);
   const protocolo =
-    configuracao.protocolo === "HENRY" || equipamento?.fabricante === "HENRY"
-      ? "HENRY"
-      : "GENERIC";
+    configuracao.protocolo === "HENRY_LUMEN_BALCAO"
+      ? "HENRY_LUMEN_BALCAO"
+      : configuracao.protocolo === "DIMEP_SMART_PRINT"
+        ? "DIMEP_SMART_PRINT"
+      : configuracao.protocolo === "HENRY" ||
+          equipamento?.fabricante === "HENRY"
+        ? "HENRY"
+        : "GENERIC";
 
   return (
     <form
@@ -205,6 +210,12 @@ export function EquipamentoBiometricoForm({
           >
             <option value="GENERIC">Generico / webhook</option>
             <option value="HENRY">Henry - Linha ADV</option>
+            <option value="HENRY_LUMEN_BALCAO">
+              Henry Lumen Balcao LT - Primme Acesso 8X
+            </option>
+            <option value="DIMEP_SMART_PRINT">
+              Dimep Smart Print / Smart Print-Pro
+            </option>
           </select>
         </div>
 

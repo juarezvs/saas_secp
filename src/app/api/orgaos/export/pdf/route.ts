@@ -43,6 +43,7 @@ export async function GET(request: Request) {
     nome: url.searchParams.get("nome") ?? "",
     codigoExternoSarh: url.searchParams.get("codigoExternoSarh") ?? "",
     status: url.searchParams.get("status") ?? "",
+    fusoHorario: url.searchParams.get("fusoHorario") ?? "",
   });
 
   const documento = React.createElement(OrgaosPdfDocument, {
@@ -84,6 +85,7 @@ function OrgaosPdfDocument({ orgaos }: { orgaos: OrgaoExportacao[] }) {
           React.createElement(Text, { style: styles.cellCodigo }, "SARH"),
           React.createElement(Text, { style: styles.cellContador }, "Unid."),
           React.createElement(Text, { style: styles.cellContador }, "Serv."),
+          React.createElement(Text, { style: styles.cellFuso }, "Fuso"),
           React.createElement(Text, { style: styles.cellData }, "Ult. sync"),
           React.createElement(Text, { style: styles.cellStatus }, "Status"),
         ),
@@ -107,6 +109,11 @@ function OrgaosPdfDocument({ orgaos }: { orgaos: OrgaoExportacao[] }) {
               Text,
               { style: styles.cellContador },
               String(orgao._count.servidores),
+            ),
+            React.createElement(
+              Text,
+              { style: styles.cellFuso },
+              orgao.fusoHorario ?? "-",
             ),
             React.createElement(
               Text,
@@ -138,9 +145,10 @@ const styles = StyleSheet.create({
   },
   header: { backgroundColor: "#f3f4f6", fontWeight: 700 },
   cellSigla: { width: "12%", padding: 5 },
-  cellNome: { width: "36%", padding: 5 },
-  cellCodigo: { width: "12%", padding: 5 },
-  cellContador: { width: "8%", padding: 5 },
+  cellNome: { width: "20%", padding: 5 },
+  cellCodigo: { width: "10%", padding: 5 },
+  cellContador: { width: "7%", padding: 5 },
+  cellFuso: { width: "18%", padding: 5 },
   cellData: { width: "16%", padding: 5 },
-  cellStatus: { width: "8%", padding: 5 },
+  cellStatus: { width: "10%", padding: 5 },
 });

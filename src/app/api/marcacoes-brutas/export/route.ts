@@ -1,17 +1,21 @@
 import { auth } from "@/auth";
 import { listarMarcacoesBrutasParaExportacao } from "@/modules/marcacoes-brutas/infrastructure/repositories/marcacao-bruta.repository";
+import { normalizarFusoHorario } from "@/modules/marcacoes/application/services/data-marcacao.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 export const runtime = "nodejs";
 
-function formatarDataHora(valor: Date | string | null | undefined) {
+function formatarDataHora(
+  valor: Date | string | null | undefined,
+  fusoHorario?: string | null,
+) {
   if (!valor) return "";
   const data = valor instanceof Date ? valor : new Date(valor);
   if (Number.isNaN(data.getTime())) return "";
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeStyle: "medium",
-    timeZone: "America/Manaus",
+    timeZone: normalizarFusoHorario(fusoHorario),
   }).format(data);
 }
 
@@ -48,7 +52,7 @@ export async function GET(request: Request) {
       "Marcacao",
     ],
     ...marcacoes.map((item) => [
-      formatarDataHora(item.dataHora),
+      formatarDataHora(item.dataHora, item.marcacao?.fusoHorario),
       item.origem,
       item.cpf ?? "",
       item.matricula ?? "",

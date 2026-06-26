@@ -22,6 +22,7 @@ function extrairDadosUnidade(formData: FormData) {
       .toUpperCase(),
     nome: String(formData.get("nome") ?? "").trim(),
     tipo: String(formData.get("tipo") ?? ""),
+    fusoHorario: String(formData.get("fusoHorario") ?? "").trim(),
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
   };
 }
@@ -71,6 +72,7 @@ export async function criarUnidadeAction(
         sigla: parsed.data.sigla,
         nome: parsed.data.nome,
         tipo: parsed.data.tipo,
+        fusoHorario: parsed.data.fusoHorario || null,
         ativo: parsed.data.ativo,
       },
     });
@@ -89,6 +91,7 @@ export async function criarUnidadeAction(
           sigla: novaUnidade.sigla,
           nome: novaUnidade.nome,
           tipo: novaUnidade.tipo,
+          fusoHorario: novaUnidade.fusoHorario,
           ativo: novaUnidade.ativo,
         },
       },

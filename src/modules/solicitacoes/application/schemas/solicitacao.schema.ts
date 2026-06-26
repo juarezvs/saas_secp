@@ -9,6 +9,7 @@ export const tiposSolicitacao = [
   "CAPACITACAO",
   "DISPENSA_PONTO",
   "HORA_CREDITO_PREVIA",
+  "FOLGA_BANCO_HORAS",
 ] as const;
 
 export const tiposMarcacaoAjuste = [
@@ -114,13 +115,14 @@ export const criarSolicitacaoSchema = z
         "VIAGEM_SERVICO",
         "CAPACITACAO",
         "DISPENSA_PONTO",
+        "FOLGA_BANCO_HORAS",
       ].includes(data.tipo)
     ) {
       if (!data.dataInicio) {
         ctx.addIssue({
           code: "custom",
           path: ["dataInicio"],
-          message: "Informe a data/hora inicial.",
+          message: "Informe a data inicial.",
         });
       }
 
@@ -128,24 +130,27 @@ export const criarSolicitacaoSchema = z
         ctx.addIssue({
           code: "custom",
           path: ["dataFim"],
-          message: "Informe a data/hora final.",
+          message: "Informe a data final.",
         });
       }
 
       if (
         data.dataInicio &&
         data.dataFim &&
-        new Date(data.dataFim) <= new Date(data.dataInicio)
+        (/^\d{4}-\d{2}-\d{2}$/.test(data.dataInicio) &&
+        /^\d{4}-\d{2}-\d{2}$/.test(data.dataFim)
+          ? new Date(data.dataFim) < new Date(data.dataInicio)
+          : new Date(data.dataFim) <= new Date(data.dataInicio))
       ) {
         ctx.addIssue({
           code: "custom",
           path: ["dataFim"],
-          message: "A data/hora final deve ser posterior a inicial.",
+          message: "A data final deve ser posterior a inicial.",
         });
       }
     }
 
-    if (["COMPENSACAO", "HORA_CREDITO_PREVIA"].includes(data.tipo)) {
+    if (data.tipo === "HORA_CREDITO_PREVIA") {
       if (!data.horasSolicitadas) {
         ctx.addIssue({
           code: "custom",

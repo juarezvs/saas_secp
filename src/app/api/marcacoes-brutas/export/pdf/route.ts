@@ -10,6 +10,7 @@ import {
 } from "@react-pdf/renderer";
 import { auth } from "@/auth";
 import { listarMarcacoesBrutasParaExportacao } from "@/modules/marcacoes-brutas/infrastructure/repositories/marcacao-bruta.repository";
+import { normalizarFusoHorario } from "@/modules/marcacoes/application/services/data-marcacao.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 export const runtime = "nodejs";
@@ -18,14 +19,17 @@ type MarcacaoBrutaExportacao = Awaited<
   ReturnType<typeof listarMarcacoesBrutasParaExportacao>
 >[number];
 
-function formatarDataHora(valor: Date | string | null | undefined) {
+function formatarDataHora(
+  valor: Date | string | null | undefined,
+  fusoHorario?: string | null,
+) {
   if (!valor) return "";
   const data = valor instanceof Date ? valor : new Date(valor);
   if (Number.isNaN(data.getTime())) return "";
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeStyle: "medium",
-    timeZone: "America/Manaus",
+    timeZone: normalizarFusoHorario(fusoHorario),
   }).format(data);
 }
 
@@ -100,7 +104,7 @@ function MarcacoesBrutasPdfDocument({
             React.createElement(
               Text,
               { style: styles.cellData },
-              formatarDataHora(item.dataHora),
+              formatarDataHora(item.dataHora, item.marcacao?.fusoHorario),
             ),
             React.createElement(Text, { style: styles.cellOrigem }, item.origem),
             React.createElement(

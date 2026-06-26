@@ -1,4 +1,8 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import {
+  resolverFusoHorarioServidor,
+  resolverFusoHorarioServidorNoBanco,
+} from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { obterDataReferencia } from "../../application/services/data-marcacao.service";
 
 export async function buscarServidorPorUsuarioId(usuarioId: string) {
@@ -17,7 +21,33 @@ export async function buscarServidorPorUsuarioId(usuarioId: string) {
           status: "ATIVO",
         },
         include: {
-          unidade: true,
+          unidade: {
+            include: {
+              orgao: {
+                select: {
+                  fusoHorario: true,
+                },
+              },
+              unidadePai: {
+                include: {
+                  orgao: {
+                    select: {
+                      fusoHorario: true,
+                    },
+                  },
+                  unidadePai: {
+                    include: {
+                      orgao: {
+                        select: {
+                          fusoHorario: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
         orderBy: {
           dataInicio: "desc",
@@ -48,8 +78,12 @@ export async function buscarServidorPorUsuarioId(usuarioId: string) {
 export async function listarMarcacoesDoServidorNoDia(params: {
   servidorId: string;
   dataHora: Date;
+  fusoHorario?: string | null;
 }) {
-  const dataReferencia = obterDataReferencia(params.dataHora);
+  const fusoHorario =
+    params.fusoHorario ??
+    (await resolverFusoHorarioServidorNoBanco({ servidorId: params.servidorId }));
+  const dataReferencia = obterDataReferencia(params.dataHora, fusoHorario);
 
   return prisma.marcacao.findMany({
     where: {
@@ -79,6 +113,7 @@ export async function listarMarcacoesDoUsuarioNoDia(usuarioId: string) {
   const marcacoes = await listarMarcacoesDoServidorNoDia({
     servidorId: servidor.id,
     dataHora: agora,
+    fusoHorario: resolverFusoHorarioServidor(servidor),
   });
 
   return {

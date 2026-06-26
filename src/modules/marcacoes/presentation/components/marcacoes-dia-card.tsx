@@ -10,6 +10,7 @@ type MarcacaoDiaItem = {
   fonte: string;
   status: string;
   observacao: string | null;
+  fusoHorario?: string | null;
 };
 
 export function MarcacoesDiaCard({
@@ -36,7 +37,9 @@ export function MarcacoesDiaCard({
               </p>
 
               <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-(--muted-foreground)">
-                <span>{formatarHoraPtBr(marcacao.dataHora)}</span>
+                <span>
+                  {formatarHoraPtBr(marcacao.dataHora, marcacao.fusoHorario)}
+                </span>
                 <OrigemMarcacaoIcon origem={marcacao.fonte} />
               </div>
 

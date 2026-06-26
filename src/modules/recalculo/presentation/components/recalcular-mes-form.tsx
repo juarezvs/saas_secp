@@ -20,6 +20,7 @@ export function RecalcularMesForm({
   const [pendente, iniciarTransicao] = useTransition();
   const [iniciado, setIniciado] = useState(false);
   const [concluido, setConcluido] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
   const [progresso, setProgresso] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -41,6 +42,7 @@ export function RecalcularMesForm({
   function recalcular() {
     setIniciado(true);
     setConcluido(false);
+    setErro(null);
     setProgresso(5);
 
     const formData = new FormData();
@@ -49,10 +51,19 @@ export function RecalcularMesForm({
     formData.set("mesReferencia", String(mesReferencia));
 
     iniciarTransicao(async () => {
-      await recalcularMesServidorAction(formData);
-      setProgresso(100);
-      setConcluido(true);
-      router.refresh();
+      try {
+        await recalcularMesServidorAction(formData);
+        setProgresso(100);
+        setConcluido(true);
+        router.refresh();
+      } catch (error) {
+        setErro(
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel concluir o recalculo.",
+        );
+        setConcluido(false);
+      }
     });
   }
 
@@ -106,6 +117,7 @@ export function RecalcularMesForm({
             As horas trabalhadas, os créditos e os débitos foram atualizados.
           </p>
         )}
+        {erro && <p className="mt-2 text-xs font-semibold text-red-600">{erro}</p>}
       </div>
     </div>
   );

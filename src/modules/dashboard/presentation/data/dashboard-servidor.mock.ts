@@ -53,6 +53,7 @@ export const dashboardServidorMock = {
     unidade: "SJAM > SECAD > NUTEC",
     dataExtenso: "Segunda-feira, 01 de junho de 2026",
     horaReferencia: "08:02",
+    fusoHorario: "America/Manaus",
   },
   proximaAcao: {
     titulo: "Registre sua entrada por reconhecimento facial.",

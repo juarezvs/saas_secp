@@ -15,6 +15,7 @@ import {
   type CalendarioInstitucionalFormState,
   type CalendarioInstitucionalInput,
 } from "../schemas/calendario-institucional.schema";
+import { enfileirarReflexosCalendarioInstitucional } from "../queues/calendario-institucional-queue";
 
 function valorOpcionalString(valor: FormDataEntryValue | null) {
   return String(valor ?? "").trim();
@@ -43,6 +44,12 @@ function extrairDadosCalendario(
     geraApuracaoRegular:
       formData.get("geraApuracaoRegular") === "on" ||
       formData.get("geraApuracaoRegular") === "true",
+    janelaInicio: valorOpcionalString(formData.get("janelaInicio")),
+    janelaFim: valorOpcionalString(formData.get("janelaFim")),
+    dataOriginal: valorOpcionalString(formData.get("dataOriginal")),
+    dataSubstituida:
+      formData.get("dataSubstituida") === "on" ||
+      formData.get("dataSubstituida") === "true",
     observacao: valorOpcionalString(formData.get("observacao")),
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
   };
@@ -57,6 +64,9 @@ function revalidarRotasRelacionadas() {
   revalidatePath("/administracao/calendario");
   revalidatePath("/homologacao");
   revalidatePath("/boletim-frequencia");
+  revalidatePath("/espelho-ponto");
+  revalidatePath("/banco-horas");
+  revalidatePath("/relatorios");
 }
 
 export async function atualizarCalendarioInstitucionalAction(
@@ -104,7 +114,7 @@ export async function atualizarCalendarioInstitucionalAction(
     };
   }
 
-  await prisma.$transaction(async (tx) => {
+  const eventoAtualizado = await prisma.$transaction(async (tx) => {
     const eventoAtualizado = await tx.calendarioInstitucional.update({
       where: { id: atual.id },
       data: {
@@ -113,6 +123,12 @@ export async function atualizarCalendarioInstitucionalAction(
         tipo: parsed.data.tipo,
         contaComoDiaUtil: parsed.data.contaComoDiaUtil,
         geraApuracaoRegular: parsed.data.geraApuracaoRegular,
+        janelaInicio: parsed.data.janelaInicio || null,
+        janelaFim: parsed.data.janelaFim || null,
+        dataOriginal: parsed.data.dataOriginal
+          ? dataIsoParaUtc(parsed.data.dataOriginal)
+          : null,
+        dataSubstituida: parsed.data.dataSubstituida,
         observacao: parsed.data.observacao || null,
         ativo: parsed.data.ativo,
       },
@@ -128,6 +144,19 @@ export async function atualizarCalendarioInstitucionalAction(
         dadosDepois: eventoAtualizado,
       },
     });
+
+    return eventoAtualizado;
+  });
+
+  await enfileirarReflexosCalendarioInstitucional({
+    calendarioId: eventoAtualizado.id,
+    datasReferencia: [
+      atual.dataReferencia,
+      eventoAtualizado.dataReferencia,
+      ...(atual.dataOriginal ? [atual.dataOriginal] : []),
+      ...(eventoAtualizado.dataOriginal ? [eventoAtualizado.dataOriginal] : []),
+    ],
+    usuarioIdAuditoria: permissao.usuarioId,
   });
 
   revalidarRotasRelacionadas();

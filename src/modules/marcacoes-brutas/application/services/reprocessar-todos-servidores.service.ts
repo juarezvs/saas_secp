@@ -30,6 +30,7 @@ export async function reprocessarTodosServidoresService(params: {
   let processadas = 0;
   let erros = 0;
   let periodosHomologados = 0;
+  const competenciasAfetadas = new Map<string, CompetenciaServidor>();
 
   await params.atualizarProgresso({
     percentual: 2,
@@ -59,9 +60,25 @@ export async function reprocessarTodosServidoresService(params: {
         const resultado = await processarMarcacaoBrutaService({
           marcacaoBrutaId: bruta.id,
           usuarioIdAuditoria: params.usuarioId,
+          recalcularImpactos: false,
         });
 
-        if (resultado.sucesso) processadas++;
+        if (resultado.sucesso) {
+          processadas++;
+
+          if (resultado.servidorId && resultado.dataReferencia) {
+            const competencia = {
+              servidorId: resultado.servidorId,
+              ano: resultado.dataReferencia.getUTCFullYear(),
+              mes: resultado.dataReferencia.getUTCMonth() + 1,
+            };
+
+            competenciasAfetadas.set(
+              `${competencia.servidorId}:${competencia.ano}:${competencia.mes}`,
+              competencia,
+            );
+          }
+        }
       } catch (error) {
         if (error instanceof PeriodoHomologadoError) {
           periodosHomologados++;
@@ -93,16 +110,9 @@ export async function reprocessarTodosServidoresService(params: {
     });
   }
 
-  const competencias = await prisma.$queryRaw<CompetenciaServidor[]>`
-    SELECT DISTINCT
-      mb.servidor_id AS "servidorId",
-      EXTRACT(YEAR FROM m.data_referencia)::int AS ano,
-      EXTRACT(MONTH FROM m.data_referencia)::int AS mes
-    FROM marcacoes_brutas mb
-    INNER JOIN marcacoes m ON m.id = mb.marcacao_id
-    WHERE mb.servidor_id IS NOT NULL
-    ORDER BY mb.servidor_id, ano, mes
-  `;
+  const competencias = [...competenciasAfetadas.values()].sort((a, b) =>
+    a.servidorId.localeCompare(b.servidorId) || a.ano - b.ano || a.mes - b.mes,
+  );
 
   let competenciasRecalculadas = 0;
   let competenciasAnalisadas = 0;

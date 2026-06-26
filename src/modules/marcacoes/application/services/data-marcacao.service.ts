@@ -1,6 +1,32 @@
-export function obterDataReferencia(dataHora: Date) {
+export const FUSO_HORARIO_PADRAO = "America/Manaus";
+export const FUSOS_HORARIOS_OPCOES = [
+  { valor: "America/Manaus", rotulo: "Manaus (UTC-04)" },
+  { valor: "America/Eirunepe", rotulo: "Tabatinga/Eirunepé (UTC-05)" },
+  { valor: "America/Rio_Branco", rotulo: "Rio Branco (UTC-05)" },
+] as const;
+
+export function normalizarFusoHorario(fusoHorario?: string | null) {
+  const fuso = fusoHorario?.trim();
+
+  if (!fuso) {
+    return FUSO_HORARIO_PADRAO;
+  }
+
+  try {
+    Intl.DateTimeFormat("pt-BR", { timeZone: fuso }).format(new Date());
+    return fuso;
+  } catch {
+    return FUSO_HORARIO_PADRAO;
+  }
+}
+
+export function obterDataReferencia(
+  dataHora: Date,
+  fusoHorario?: string | null,
+) {
+  const timeZone = normalizarFusoHorario(fusoHorario);
   const partes = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Manaus",
+    timeZone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -12,19 +38,73 @@ export function obterDataReferencia(dataHora: Date) {
   return new Date(Date.UTC(ano, mes - 1, dia));
 }
 
-export function formatarDataHoraPtBr(data: Date) {
+export function dataHoraLocalParaUtc(params: {
+  dataReferencia: Date;
+  hora: string;
+  fusoHorario?: string | null;
+}) {
+  const timeZone = normalizarFusoHorario(params.fusoHorario);
+  const dataIso = params.dataReferencia.toISOString().slice(0, 10);
+  const [anoAlvo, mesAlvo, diaAlvo] = dataIso.split("-").map(Number);
+  const [horaAlvo, minutoAlvo] = params.hora.split(":").map(Number);
+  const localAlvoComoUtc = Date.UTC(
+    anoAlvo,
+    mesAlvo - 1,
+    diaAlvo,
+    horaAlvo,
+    minutoAlvo,
+    0,
+  );
+  let dataUtc = new Date(`${dataIso}T${params.hora}:00.000Z`);
+
+  for (let tentativa = 0; tentativa < 3; tentativa += 1) {
+    const partes = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(dataUtc);
+
+    const valor = (tipo: string) =>
+      Number(partes.find((parte) => parte.type === tipo)?.value);
+
+    const localComoUtc = Date.UTC(
+      valor("year"),
+      valor("month") - 1,
+      valor("day"),
+      valor("hour"),
+      valor("minute"),
+      valor("second"),
+    );
+    const diferenca = localComoUtc - localAlvoComoUtc;
+
+    if (diferenca === 0) {
+      break;
+    }
+
+    dataUtc = new Date(dataUtc.getTime() - diferenca);
+  }
+
+  return dataUtc;
+}
+
+export function formatarDataHoraPtBr(data: Date, fusoHorario?: string | null) {
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeStyle: "medium",
-    timeZone: "America/Manaus",
+    timeZone: normalizarFusoHorario(fusoHorario),
   }).format(data);
 }
 
-export function formatarHoraPtBr(data: Date) {
+export function formatarHoraPtBr(data: Date, fusoHorario?: string | null) {
   return new Intl.DateTimeFormat("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-    timeZone: "America/Manaus",
+    timeZone: normalizarFusoHorario(fusoHorario),
   }).format(data);
 }

@@ -8,6 +8,7 @@ import type {
 import { obterRotuloTipoMarcacao } from "@/modules/marcacoes/application/services/classificar-marcacao.service";
 import { listarMarcacoesDoUsuarioNoDia } from "@/modules/marcacoes/infrastructure/repositories/marcacao.repository";
 import { contarNotificacoesUsuario } from "@/modules/notificacoes/application/notificacoes.service";
+import { resolverFusoHorarioServidor } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { buscarNomeServidorPorUsuarioId } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
 
@@ -36,11 +37,11 @@ const DIA_SEMANA_PRISMA: Record<string, string> = {
   sat: "SABADO",
 };
 
-function formatarHoraMarcacao(dataHora: Date) {
+function formatarHoraMarcacao(dataHora: Date, fusoHorario?: string | null) {
   return new Intl.DateTimeFormat("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "America/Manaus",
+    timeZone: fusoHorario ?? "America/Manaus",
   }).format(dataHora);
 }
 
@@ -88,10 +89,10 @@ function minutosParaTexto(minutos: number) {
   return `${minutosRestantes}min`;
 }
 
-function diaSemanaManaus(data = new Date()) {
+function diaSemanaLocal(data = new Date(), fusoHorario?: string | null) {
   const dia = new Intl.DateTimeFormat("en-US", {
     weekday: "short",
-    timeZone: "America/Manaus",
+    timeZone: fusoHorario ?? "America/Manaus",
   })
     .format(data)
     .toLowerCase();
@@ -99,12 +100,12 @@ function diaSemanaManaus(data = new Date()) {
   return DIA_SEMANA_PRISMA[dia] ?? null;
 }
 
-function minutosDoDiaManaus(data: Date) {
+function minutosDoDiaLocal(data: Date, fusoHorario?: string | null) {
   const partes = new Intl.DateTimeFormat("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
-    timeZone: "America/Manaus",
+    timeZone: fusoHorario ?? "America/Manaus",
   }).formatToParts(data);
   const horas = Number(partes.find((parte) => parte.type === "hour")?.value);
   const minutos = Number(
@@ -123,12 +124,13 @@ function montarPrevisaoJornadaDia(
   >["marcacoes"],
 ): PrevisaoJornadaDia | null {
   const vinculoJornada = servidor.jornadas[0];
+  const fusoHorario = resolverFusoHorarioServidor(servidor);
 
   if (!vinculoJornada) {
     return null;
   }
 
-  const diaSemana = diaSemanaManaus();
+  const diaSemana = diaSemanaLocal(new Date(), fusoHorario);
   const jornada = vinculoJornada.jornada;
   const escalaDia = vinculoJornada.escala?.dias.find(
     (dia) => dia.diaSemana === diaSemana,
@@ -186,11 +188,14 @@ function montarPrevisaoJornadaDia(
   let indicativo: string | undefined;
 
   if (entradaRegistrada && !saidaRegistrada) {
-    const entradaMinutos = minutosDoDiaManaus(entradaRegistrada.dataHora);
+    const entradaMinutos = minutosDoDiaLocal(
+      entradaRegistrada.dataHora,
+      fusoHorario,
+    );
     const intervaloRegistrado =
       saidaIntervalo && retornoIntervalo
-        ? minutosDoDiaManaus(retornoIntervalo.dataHora) -
-          minutosDoDiaManaus(saidaIntervalo.dataHora)
+        ? minutosDoDiaLocal(retornoIntervalo.dataHora, fusoHorario) -
+          minutosDoDiaLocal(saidaIntervalo.dataHora, fusoHorario)
         : null;
     const intervaloPrevisto =
       horaParaMinutos(intervaloFim) !== null &&
@@ -206,6 +211,7 @@ function montarPrevisaoJornadaDia(
 
     indicativo = `Com entrada às ${formatarHoraMarcacao(
       entradaRegistrada.dataHora,
+      fusoHorario,
     )}, a saída estimada para cumprir ${minutosParaTexto(
       cargaPrevista,
     )} é ${saidaSugerida}.`;
@@ -234,6 +240,7 @@ async function buscarMarcacoesDashboard(usuarioId: string): Promise<{
 
   const exigeIntervalo = servidor.jornadas[0]?.jornada.exigeIntervalo ?? true;
   const slots = exigeIntervalo ? SLOTS_COM_INTERVALO : SLOTS_SEM_INTERVALO;
+  const fusoHorario = resolverFusoHorarioServidor(servidor);
 
   return {
     marcacoes: slots.map((tipo) => {
@@ -241,7 +248,9 @@ async function buscarMarcacoesDashboard(usuarioId: string): Promise<{
 
       return {
         rotulo: obterRotuloTipoMarcacao(tipo),
-        horario: marcacao ? formatarHoraMarcacao(marcacao.dataHora) : "--:--",
+        horario: marcacao
+          ? formatarHoraMarcacao(marcacao.dataHora, fusoHorario)
+          : "--:--",
         status: marcacao?.status === "VALIDA" ? "registrada" : "pendente",
       };
     }),

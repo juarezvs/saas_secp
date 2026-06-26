@@ -16,6 +16,7 @@ import {
   RadioTower,
   RotateCcw,
   Settings2,
+  UsersRound,
   XCircle,
   type LucideIcon,
 } from "lucide-react";
@@ -24,7 +25,9 @@ import {
   configurarEventosOnlineRelogioPontoAction,
   consultarSaudeRelogioPontoAction,
   enviarBiometriaRelogioPontoAction,
+  listarCadastrosBiometricosEquipamentoAction,
   reprocessarMarcacoesRelogioPontoAction,
+  sincronizarBiometriasEquipamentosOrgaoAction,
   type RelogioPontoActionState,
 } from "../../application/actions/relogio-ponto.actions";
 
@@ -201,6 +204,11 @@ function proximoNsr(configuracao: unknown) {
   return "1";
 }
 
+function equipamentoOperacionalSuportado(equipamento: EquipamentoOperacional) {
+  const fabricante = equipamento.fabricante?.toUpperCase();
+  return fabricante === "HENRY" || fabricante === "DIMEP";
+}
+
 export function RelogioPontoAdminPanel({
   equipamentos,
   coletasAtivas,
@@ -213,9 +221,7 @@ export function RelogioPontoAdminPanel({
   const [aba, setAba] = useState<AbaOperacional>("resumo");
   const relogios = useMemo(
     () =>
-      equipamentos.filter(
-        (equipamento) => equipamento.fabricante?.toUpperCase() === "HENRY",
-      ),
+      equipamentos.filter(equipamentoOperacionalSuportado),
     [equipamentos],
   );
   const coletasPorEquipamento = useMemo(
@@ -260,8 +266,8 @@ export function RelogioPontoAdminPanel({
       <div className="p-5">
         {relogios.length === 0 ? (
           <div className="rounded-lg border border-dashed p-8 text-center text-sm text-[var(--muted-foreground)]">
-            Nenhum relogio Henry cadastrado. Cadastre o equipamento com
-            protocolo Henry - Linha ADV para habilitar coleta e monitoramento.
+            Nenhum equipamento de ponto suportado cadastrado. Cadastre Henry ou
+            Dimep Smart Print para habilitar operacoes e monitoramento.
           </div>
         ) : (
           <>
@@ -929,6 +935,12 @@ function BiometriaRelogioCard({
     enviarBiometriaRelogioPontoAction,
     estadoInicial,
   );
+  const [estadoLeitura, actionLeitura, pendenteLeitura] = useActionState(
+    listarCadastrosBiometricosEquipamentoAction,
+    estadoInicial,
+  );
+  const [estadoSincronizacao, actionSincronizacao, pendenteSincronizacao] =
+    useActionState(sincronizarBiometriasEquipamentosOrgaoAction, estadoInicial);
 
   return (
     <article className="rounded-lg border p-4">
@@ -938,7 +950,89 @@ function BiometriaRelogioCard({
         listenerOnlineAtivo={listenerOnlineAtivo}
       />
 
-      <form action={actionBiometria} className="mt-4 rounded-md border bg-[var(--muted)] p-3">
+      <div className="mt-4 grid gap-3">
+        <form action={actionLeitura} className="rounded-md border bg-[var(--muted)] p-3">
+          <input type="hidden" name="equipamentoId" value={equipamento.id} />
+          <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+            <input
+              name="indiceInicialCadastros"
+              placeholder="Indice inicial"
+              defaultValue="0"
+              className="h-9 rounded-md border bg-[var(--card)] px-2 text-sm"
+            />
+            <input
+              name="quantidadeCadastros"
+              placeholder="Quantidade"
+              type="number"
+              defaultValue="25"
+              className="h-9 rounded-md border bg-[var(--card)] px-2 text-sm"
+            />
+            <label className="flex items-center gap-2 rounded-md border bg-[var(--card)] px-2 text-xs font-semibold">
+              <input type="checkbox" name="incluirTemplates" />
+              Ler templates
+            </label>
+          </div>
+          <BotaoOperacao
+            disabled={pendenteLeitura || !equipamento.ativo}
+            icon={UsersRound}
+            label={pendenteLeitura ? "Lendo..." : "Ler cadastros"}
+          />
+          <MensagemAction estado={estadoLeitura} />
+          {estadoLeitura.cadastros && estadoLeitura.cadastros.length > 0 && (
+            <TabelaCadastrosBiometricos cadastros={estadoLeitura.cadastros} />
+          )}
+        </form>
+
+        <form
+          action={actionSincronizacao}
+          className="rounded-md border bg-[var(--muted)] p-3"
+        >
+          <input type="hidden" name="equipamentoId" value={equipamento.id} />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input
+              name="indiceInicialSincronizacao"
+              placeholder="Indice inicial"
+              defaultValue="0"
+              className="h-9 rounded-md border bg-[var(--card)] px-2 text-sm"
+            />
+            <input
+              name="quantidadeSincronizacao"
+              placeholder="Quantidade"
+              type="number"
+              defaultValue="100"
+              className="h-9 rounded-md border bg-[var(--card)] px-2 text-sm"
+            />
+          </div>
+          <label className="mt-2 flex items-start gap-2 rounded-md border bg-[var(--card)] p-2 text-xs">
+            <input
+              className="mt-0.5"
+              type="checkbox"
+              name="confirmarSincronizacaoBiometria"
+            />
+            <span>
+              Confirmo que este equipamento sera a origem e que a sincronizacao
+              deve atingir apenas equipamentos Henry vinculados ao mesmo orgao.
+            </span>
+          </label>
+          <BotaoOperacao
+            disabled={pendenteSincronizacao || !equipamento.ativo}
+            icon={DatabaseBackup}
+            label={
+              pendenteSincronizacao
+                ? "Sincronizando..."
+                : "Sincronizar biometrias no orgao"
+            }
+          />
+          <MensagemAction estado={estadoSincronizacao} />
+          {estadoSincronizacao.sincronizacao && (
+            <ResumoSincronizacaoBiometria
+              sincronizacao={estadoSincronizacao.sincronizacao}
+            />
+          )}
+        </form>
+      </div>
+
+      <form action={actionBiometria} className="mt-3 rounded-md border bg-[var(--muted)] p-3">
         <input type="hidden" name="equipamentoId" value={equipamento.id} />
         <div className="grid grid-cols-[1fr_72px] gap-2">
           <input
@@ -961,6 +1055,9 @@ function BiometriaRelogioCard({
           <option value="SUPREMA">Suprema</option>
           <option value="FS_SWIPE_SINATRA">FS/SWIPE/SINATRA</option>
           <option value="HENRY_RAW">Henry raw</option>
+          <option value="DIMEP_RAW">Dimep raw</option>
+          <option value="ISO_19794_2">ISO 19794-2</option>
+          <option value="ANSI_378">ANSI 378</option>
         </select>
         <textarea
           name="template"
@@ -976,6 +1073,81 @@ function BiometriaRelogioCard({
         <MensagemAction estado={estadoBiometria} />
       </form>
     </article>
+  );
+}
+
+function TabelaCadastrosBiometricos({
+  cadastros,
+}: {
+  cadastros: NonNullable<RelogioPontoActionState["cadastros"]>;
+}) {
+  return (
+    <div className="mt-3 overflow-x-auto rounded-md border bg-[var(--card)]">
+      <table className="w-full min-w-[640px] text-left text-xs">
+        <thead className="border-b bg-[var(--muted)] text-[var(--muted-foreground)]">
+          <tr>
+            <th className="px-3 py-2">Codigo</th>
+            <th className="px-3 py-2">CPF</th>
+            <th className="px-3 py-2">Nome</th>
+            <th className="px-3 py-2">Matricula</th>
+            <th className="px-3 py-2">Cartoes</th>
+            <th className="px-3 py-2">Templates</th>
+          </tr>
+        </thead>
+        <tbody>
+          {cadastros.map((cadastro) => (
+            <tr key={`${cadastro.matricula}-${cadastro.codigo}`} className="border-b last:border-b-0">
+              <td className="px-3 py-2 font-mono">{cadastro.codigo ?? "-"}</td>
+              <td className="px-3 py-2 font-mono">{cadastro.cpf ?? "-"}</td>
+              <td className="px-3 py-2">{cadastro.nome ?? "-"}</td>
+              <td className="px-3 py-2 font-mono">{cadastro.matricula}</td>
+              <td className="px-3 py-2 font-mono">
+                {cadastro.cartoes?.length ? cadastro.cartoes.join(", ") : "-"}
+              </td>
+              <td className="px-3 py-2">{cadastro.templates ?? 0}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ResumoSincronizacaoBiometria({
+  sincronizacao,
+}: {
+  sincronizacao: NonNullable<RelogioPontoActionState["sincronizacao"]>;
+}) {
+  return (
+    <div className="mt-3 rounded-md border bg-[var(--card)] p-3 text-xs">
+      <div className="grid gap-2 sm:grid-cols-3">
+        <span>Lidos: {sincronizacao.lidos}</span>
+        <span>Com template: {sincronizacao.comTemplate}</span>
+        <span>Ignorados: {sincronizacao.ignoradosSemTemplate}</span>
+      </div>
+      <div className="mt-3 space-y-2">
+        {sincronizacao.destinos.length === 0 ? (
+          <p className="text-[var(--muted-foreground)]">
+            Nenhum equipamento destino encontrado no mesmo orgao.
+          </p>
+        ) : (
+          sincronizacao.destinos.map((destino) => (
+            <div
+              key={destino.codigo}
+              className="rounded-md border p-2"
+            >
+              <div className="font-semibold">
+                {destino.nome} ({destino.codigo})
+              </div>
+              <div className="mt-1 text-[var(--muted-foreground)]">
+                {destino.mensagem} Enviados: {destino.enviados}. Rejeitados:{" "}
+                {destino.rejeitados}.
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
   );
 }
 

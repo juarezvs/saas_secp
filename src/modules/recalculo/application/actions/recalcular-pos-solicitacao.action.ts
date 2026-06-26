@@ -12,8 +12,8 @@ function revalidarCompetenciasDoEspelho(params: {
   const competencias = new Map<string, string>();
 
   for (const data of params.datasImpactadas ?? []) {
-    const ano = data.getFullYear();
-    const mes = data.getMonth() + 1;
+    const ano = data.getUTCFullYear();
+    const mes = data.getUTCMonth() + 1;
     competencias.set(`${ano}-${mes}`, `${ano}-${String(mes).padStart(2, "0")}`);
   }
 

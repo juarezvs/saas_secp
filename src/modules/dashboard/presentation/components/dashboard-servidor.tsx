@@ -75,6 +75,7 @@ export function DashboardServidor({
           <DashboardServidorRelogio
             dataExtenso={dados.servidor.dataExtenso}
             horaReferencia={dados.servidor.horaReferencia}
+            fusoHorario={dados.servidor.fusoHorario}
             unidade={dados.servidor.unidade}
           />
         </div>

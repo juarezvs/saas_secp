@@ -3,6 +3,7 @@ import { Building2 } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { listarFusosHorariosAtivos } from "@/modules/fusos-horarios/infrastructure/repositories/fuso-horario.repository";
 import { criarUnidadeAction } from "@/modules/unidades/application/actions/criar-unidade.action";
 import {
   listarOrgaosAtivos,
@@ -13,9 +14,10 @@ import { UnidadeForm } from "@/modules/unidades/presentation/components/unidade-
 export default async function NovaUnidadePage() {
   await exigirPermissaoOuRedirecionar("unidades:gerenciar:global");
 
-  const [orgaos, unidades] = await Promise.all([
+  const [orgaos, unidades, fusosHorarios] = await Promise.all([
     listarOrgaosAtivos(),
     listarUnidadesParaSelecao(),
+    listarFusosHorariosAtivos(),
   ]);
 
   return (
@@ -41,6 +43,7 @@ export default async function NovaUnidadePage() {
         action={criarUnidadeAction}
         orgaos={orgaos}
         unidades={unidades}
+        fusosHorarios={fusosHorarios}
         modo="criar"
         valoresIniciais={{
           ativo: true,

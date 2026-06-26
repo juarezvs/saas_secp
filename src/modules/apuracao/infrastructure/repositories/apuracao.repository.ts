@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { montarEspelhoMensalCompleto } from "../../application/services/montar-espelho-mensal-completo.service";
 
 export async function buscarServidorComUsuarioPorUsuarioId(usuarioId: string) {
@@ -159,11 +160,15 @@ export async function listarApuracoesDoServidorNoMes(params: {
     }),
   ]);
 
+  const fusoHorario = await resolverFusoHorarioServidorNoBanco({
+    servidorId: params.servidorId,
+  });
   const espelho = await montarEspelhoMensalCompleto({
     anoReferencia: params.ano,
     mesReferencia: params.mes,
     apuracoes,
     jornadas,
+    fusoHorario,
   });
 
   return espelho.itens;
@@ -256,7 +261,7 @@ export async function listarMarcacoesDoServidorNoMes(params: {
     where: {
       servidorId: params.servidorId,
 
-      dataHora: {
+      dataReferencia: {
         gte: inicio,
         lt: fim,
       },

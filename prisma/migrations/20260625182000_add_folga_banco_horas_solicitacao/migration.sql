@@ -1,0 +1,1 @@
+ALTER TYPE "TipoSolicitacao" ADD VALUE 'FOLGA_BANCO_HORAS';

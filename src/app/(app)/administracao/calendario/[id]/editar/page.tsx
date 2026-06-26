@@ -60,6 +60,12 @@ export default async function EditarCalendarioInstitucionalPage({
           tipo: evento.tipo,
           contaComoDiaUtil: evento.contaComoDiaUtil,
           geraApuracaoRegular: evento.geraApuracaoRegular,
+          janelaInicio: evento.janelaInicio,
+          janelaFim: evento.janelaFim,
+          dataOriginal: evento.dataOriginal
+            ? dataParaInput(evento.dataOriginal)
+            : "",
+          dataSubstituida: evento.dataSubstituida,
           observacao: evento.observacao,
           ativo: evento.ativo,
         }}

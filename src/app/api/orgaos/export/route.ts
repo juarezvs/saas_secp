@@ -29,6 +29,7 @@ export async function GET(request: Request) {
     nome: url.searchParams.get("nome") ?? "",
     codigoExternoSarh: url.searchParams.get("codigoExternoSarh") ?? "",
     status: url.searchParams.get("status") ?? "",
+    fusoHorario: url.searchParams.get("fusoHorario") ?? "",
   });
 
   const linhas = [
@@ -38,6 +39,7 @@ export async function GET(request: Request) {
       "Codigo SARH",
       "Unidades",
       "Servidores",
+      "Fuso",
       "Ultima sincronizacao SARH",
       "Status",
     ],
@@ -47,6 +49,7 @@ export async function GET(request: Request) {
       orgao.codigoExternoSarh ?? "",
       orgao._count.unidades,
       orgao._count.servidores,
+      orgao.fusoHorario ?? "",
       formatarData(orgao.ultimaSincronizacaoSarh),
       orgao.ativo ? "Ativo" : "Inativo",
     ]),

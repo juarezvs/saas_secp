@@ -16,6 +16,11 @@ type LdapActiveDirectoryFormProps = {
   valoresIniciais: LdapActiveDirectoryInput & {
     possuiBindPassword: boolean;
   };
+  orgaos: Array<{
+    id: string;
+    sigla: string;
+    nome: string;
+  }>;
 };
 
 const estadoInicial: LdapActiveDirectoryFormState = {
@@ -46,6 +51,7 @@ function FieldError({
 export function LdapActiveDirectoryForm({
   action,
   valoresIniciais,
+  orgaos,
 }: LdapActiveDirectoryFormProps) {
   const [estado, formAction, pendente] = useActionState(action, estadoInicial);
   const campos = estado.campos ?? valoresIniciais;
@@ -69,6 +75,31 @@ export function LdapActiveDirectoryForm({
         <h2 className="text-lg font-bold">Parâmetros de autenticação</h2>
 
         <div className="mt-5 grid gap-5 md:grid-cols-2">
+          <div className="space-y-2 md:col-span-2">
+            <label htmlFor="orgaoId" className="text-sm font-semibold">
+              Órgão autenticador
+            </label>
+            <select
+              id="orgaoId"
+              name="orgaoId"
+              defaultValue={String(campos.orgaoId ?? "")}
+              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            >
+              <option value="">Padrão do sistema</option>
+              {orgaos.map((orgao) => (
+                <option key={orgao.id} value={orgao.id}>
+                  {orgao.sigla} - {orgao.nome}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-[var(--muted-foreground)]">
+              Ao autenticar um servidor desse órgão, o SECP usará este
+              controlador de domínio. Se não houver configuração específica,
+              usará o padrão do sistema.
+            </p>
+            <FieldError estado={estado} campo="orgaoId" />
+          </div>
+
           <div className="space-y-2">
             <label htmlFor="nome" className="text-sm font-semibold">
               Nome da integração

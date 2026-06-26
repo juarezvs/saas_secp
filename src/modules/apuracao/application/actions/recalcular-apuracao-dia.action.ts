@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { normalizarDataReferencia } from "../services/calcular-tempo.service";
-import { recalcularDiaServidorService } from "@/modules/recalculo/application/services/recalcular-dia-servidor.service";
+import { recalcularDiaEBancoHorasServidorService } from "@/modules/recalculo/application/services/recalcular-dia-e-banco-horas-servidor.service";
 
 export async function recalcularApuracaoDiaAction(formData: FormData) {
   const session = await auth();
@@ -31,7 +31,7 @@ export async function recalcularApuracaoDiaAction(formData: FormData) {
 
   const dataReferencia = normalizarDataReferencia(new Date(`${data}T00:00:00`));
 
-  await recalcularDiaServidorService({
+  await recalcularDiaEBancoHorasServidorService({
     servidorId,
     dataReferencia,
     usuarioIdAuditoria: session.user.id,
@@ -41,4 +41,5 @@ export async function recalcularApuracaoDiaAction(formData: FormData) {
   revalidatePath("/apuracao");
   revalidatePath("/espelho-ponto");
   revalidatePath("/marcacoes");
+  revalidatePath("/banco-horas");
 }

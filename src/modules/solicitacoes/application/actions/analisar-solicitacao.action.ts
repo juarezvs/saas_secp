@@ -8,6 +8,7 @@ import {
   verificarPeriodoHomologado,
 } from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
 import { recalcularPosSolicitacaoService } from "@/modules/recalculo/application/services/recalcular-pos-solicitacao.service";
+import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 import { buscarSolicitacaoPorId } from "../../infrastructure/repositories/solicitacao.repository";
@@ -67,6 +68,7 @@ function extrairDados(formData: FormData): Partial<AnalisarSolicitacaoInput> {
 }
 
 function possuiDadosAutorizacaoBancoHoras(solicitacao: {
+  tipo: string;
   dataInicio: Date | null;
   dataFim: Date | null;
   dadosSolicitados: unknown;
@@ -81,8 +83,11 @@ function possuiDadosAutorizacaoBancoHoras(solicitacao: {
   }
 
   const dados = solicitacao.dadosSolicitados as Record<string, unknown>;
-  const minutosSolicitados = Number(dados.minutosSolicitados);
+  if (["COMPENSACAO", "FOLGA_BANCO_HORAS"].includes(solicitacao.tipo)) {
+    return true;
+  }
 
+  const minutosSolicitados = Number(dados.minutosSolicitados);
   return Number.isInteger(minutosSolicitados) && minutosSolicitados > 0;
 }
 
@@ -108,7 +113,19 @@ async function validarPeriodosImpactadosAbertos(solicitacao: {
   }
 
   try {
-    for (const dataReferencia of listarDatasImpactadasSolicitacao(solicitacao)) {
+    const fusoHorario = await resolverFusoHorarioServidorNoBanco({
+      servidorId: solicitacao.servidorId,
+      dataReferencia:
+        solicitacao.dataReferencia ??
+        solicitacao.dataInicio ??
+        solicitacao.dataFim ??
+        undefined,
+    });
+
+    for (const dataReferencia of listarDatasImpactadasSolicitacao(
+      solicitacao,
+      fusoHorario,
+    )) {
       await verificarPeriodoHomologado({
         servidorId: solicitacao.servidorId,
         dataReferencia,
@@ -136,8 +153,8 @@ function revalidarCompetenciasDoEspelho(params: {
   const competencias = new Map<string, string>();
 
   for (const data of params.datasImpactadas ?? []) {
-    const ano = data.getFullYear();
-    const mes = data.getMonth() + 1;
+    const ano = data.getUTCFullYear();
+    const mes = data.getUTCMonth() + 1;
     competencias.set(`${ano}-${mes}`, `${ano}-${String(mes).padStart(2, "0")}`);
   }
 
@@ -215,7 +232,9 @@ export async function analisarSolicitacaoAction(
 
   if (
     novoStatus === "DEFERIDA" &&
-    ["HORA_CREDITO_PREVIA", "COMPENSACAO"].includes(solicitacaoAtual.tipo) &&
+    ["HORA_CREDITO_PREVIA", "COMPENSACAO", "FOLGA_BANCO_HORAS"].includes(
+      solicitacaoAtual.tipo,
+    ) &&
     !possuiDadosAutorizacaoBancoHoras(solicitacaoAtual)
   ) {
     return {

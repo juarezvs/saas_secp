@@ -84,6 +84,41 @@ describe("classificar espelho mensal", () => {
     );
   });
 
+  it("nao trata dispensa eletronica automatica como dispensa de ponto administrativa", () => {
+    const metadados = {
+      dispensaPontoEletronico: {
+        ativa: true,
+        motivos: ["Unidade de lotacao sem equipamento biometrico ativo."],
+        exigeFrequenciaManual: true,
+      },
+    };
+
+    expect(
+      classificarDiaEspelho({
+        resultado: "REGULAR",
+        minutosDebito: 0,
+        metadados,
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        dispensaPonto: false,
+      }),
+    );
+
+    expect(
+      conferenciaEspelho("INCONSISTENTE", {
+        resultado: "FALTA",
+        minutosDebito: 420,
+        metadados,
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        rotulo: "Requer analise",
+        tom: "alerta",
+      }),
+    );
+  });
+
   it("classifica falta e debito como ausencia no espelho", () => {
     expect(
       classificarDiaEspelho({

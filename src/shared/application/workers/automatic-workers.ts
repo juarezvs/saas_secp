@@ -34,6 +34,11 @@ export async function iniciarWorkersAutomaticos() {
     ).then(({ garantirHenryOnlineWorkerAutomatico }) =>
       garantirHenryOnlineWorkerAutomatico(),
     ),
+    import(
+      "@/modules/calendario-institucional/application/workers/calendario-institucional-worker-runtime"
+    ).then(({ garantirCalendarioInstitucionalWorkerAutomatico }) =>
+      garantirCalendarioInstitucionalWorkerAutomatico(),
+    ),
   ]);
 
   resultados.forEach((resultado) => {

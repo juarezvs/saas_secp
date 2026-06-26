@@ -6,6 +6,7 @@ import {
   FileClock,
   FileX2,
   Filter,
+  Search,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -13,6 +14,8 @@ import {
   rotuloStatusSolicitacao,
   rotuloTipoSolicitacao,
 } from "../../application/services/fluxo-solicitacao.service";
+import { dataPeriodoSolicitacaoParaExibicao } from "../../application/services/periodo-solicitacao.service";
+import { resolverFusoHorarioUnidade } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 type SolicitacaoItem = {
@@ -33,16 +36,28 @@ type SolicitacaoItem = {
   };
   unidade: {
     sigla: string;
+    codigo?: string | null;
+    nome?: string | null;
+    fusoHorario?: string | null;
   } | null;
 };
 
-function formatarData(data: Date | null) {
+type ServidorFiltroItem = {
+  id: string;
+  matricula: string;
+  nomeFuncional?: string | null;
+  usuario: {
+    nome: string;
+  };
+};
+
+function formatarData(data: Date | null, fusoHorario?: string | null) {
   if (!data) {
     return null;
   }
 
   return new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "UTC",
+    timeZone: fusoHorario ?? "UTC",
   }).format(data);
 }
 
@@ -51,8 +66,23 @@ function formatarPeriodo(solicitacao: SolicitacaoItem) {
     return formatarData(solicitacao.dataReferencia);
   }
 
-  const inicio = formatarData(solicitacao.dataInicio);
-  const fim = formatarData(solicitacao.dataFim);
+  const fusoHorario = resolverFusoHorarioUnidade(solicitacao.unidade);
+  const inicio = formatarData(
+    dataPeriodoSolicitacaoParaExibicao(
+      solicitacao.tipo,
+      solicitacao.dataInicio,
+      "inicio",
+    ),
+    fusoHorario,
+  );
+  const fim = formatarData(
+    dataPeriodoSolicitacaoParaExibicao(
+      solicitacao.tipo,
+      solicitacao.dataFim,
+      "fim",
+    ),
+    fusoHorario,
+  );
 
   if (inicio && fim) {
     return inicio === fim ? inicio : `${inicio} a ${fim}`;
@@ -112,10 +142,17 @@ function ResumoItem({
 export function SolicitacoesTable({
   solicitacoes,
   tipoSelecionado,
+  servidorFiltro,
+  servidoresFiltro,
+  mostrarFiltroServidor,
 }: {
   solicitacoes: SolicitacaoItem[];
   tipoSelecionado?: string;
+  servidorFiltro?: string;
+  servidoresFiltro?: ServidorFiltroItem[];
+  mostrarFiltroServidor?: boolean;
 }) {
+  const servidorAtivo = servidorFiltro?.trim() || "";
   const tipoAtivo = solicitacoes.some(
     (solicitacao) => solicitacao.tipo === tipoSelecionado,
   )
@@ -129,6 +166,12 @@ export function SolicitacoesTable({
   const tipos = Array.from(contagemPorTipo.keys()).sort((a, b) =>
     rotuloTipoSolicitacao(a).localeCompare(rotuloTipoSolicitacao(b), "pt-BR"),
   );
+  const exibirFiltroServidor = mostrarFiltroServidor !== false;
+  const hrefTodosTipos = servidorAtivo && exibirFiltroServidor
+    ? `/solicitacoes?${new URLSearchParams({
+        servidor: servidorAtivo,
+      }).toString()}`
+    : "/solicitacoes";
 
   return (
     <section className="space-y-4">
@@ -149,46 +192,104 @@ export function SolicitacoesTable({
             <h2 className="text-lg font-bold">Solicitacoes registradas</h2>
             {tipoAtivo ? (
               <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                Filtrando por {rotuloTipoSolicitacao(tipoAtivo)}.
+                Filtrando por {rotuloTipoSolicitacao(tipoAtivo)}
+                {servidorAtivo && exibirFiltroServidor
+                  ? ` e servidor: ${servidorAtivo}`
+                  : ""}
+              </p>
+            ) : servidorAtivo && exibirFiltroServidor ? (
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                Filtrando por servidor: {servidorAtivo}.
               </p>
             ) : null}
           </div>
 
-          <details className="relative self-start">
-            <summary className="inline-flex h-10 cursor-pointer list-none items-center gap-2 rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)] [&::-webkit-details-marker]:hidden">
-              <Filter className="size-4" aria-hidden="true" />
-              Filtrar tipo
-            </summary>
-
-            <div className="absolute right-0 z-20 mt-2 w-80 rounded-md border bg-[var(--card)] p-2 shadow-lg">
-              <Link
-                href="/solicitacoes"
-                className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-semibold hover:bg-[var(--muted)]"
+          <div className="flex flex-col gap-2 md:items-end">
+            {exibirFiltroServidor ? (
+              <form
+                className="flex flex-col gap-2 sm:flex-row"
+                action="/solicitacoes"
               >
-                <span>Todos os tipos</span>
-                {!tipoAtivo ? <Check className="size-4" aria-hidden="true" /> : null}
-              </Link>
+                {tipoAtivo ? (
+                  <input type="hidden" name="tipo" value={tipoAtivo} />
+                ) : null}
+                <label className="sr-only" htmlFor="servidor">
+                  Filtrar por servidor
+                </label>
+                <input
+                  id="servidor"
+                  name="servidor"
+                  list="solicitacoes-servidores"
+                  defaultValue={servidorAtivo}
+                  placeholder="Pesquise por nome ou matricula"
+                  className="h-10 w-full min-w-[300px] rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+                />
+                <datalist id="solicitacoes-servidores">
+                  {(servidoresFiltro ?? []).map((servidor) => {
+                    const nome = nomeServidor(servidor);
 
-              {tipos.map((tipo) => {
-                const ativo = tipoAtivo === tipo;
-                const query = new URLSearchParams({ tipo });
+                    return (
+                      <option
+                        key={servidor.id}
+                        value={`${servidor.matricula} - ${nome}`}
+                      />
+                    );
+                  })}
+                </datalist>
+                <button
+                  type="submit"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-blue-900 px-4 text-sm font-semibold text-white transition hover:bg-blue-950"
+                >
+                  <Search className="size-4" aria-hidden="true" />
+                  Filtrar
+                </button>
+              </form>
+            ) : null}
 
-                return (
-                  <Link
-                    key={tipo}
-                    href={`/solicitacoes?${query.toString()}`}
-                    className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm hover:bg-[var(--muted)]"
-                  >
-                    <span>{rotuloTipoSolicitacao(tipo)}</span>
-                    <span className="flex items-center gap-2 text-xs font-semibold text-[var(--muted-foreground)]">
-                      {contagemPorTipo.get(tipo) ?? 0}
-                      {ativo ? <Check className="size-4" aria-hidden="true" /> : null}
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          </details>
+            <details className="relative self-start md:self-end">
+              <summary className="inline-flex h-10 cursor-pointer list-none items-center gap-2 rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)] [&::-webkit-details-marker]:hidden">
+                <Filter className="size-4" aria-hidden="true" />
+                Filtrar tipo
+              </summary>
+
+              <div className="absolute right-0 z-20 mt-2 w-80 rounded-md border bg-[var(--card)] p-2 shadow-lg">
+                <Link
+                  href={hrefTodosTipos}
+                  className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-semibold hover:bg-[var(--muted)]"
+                >
+                  <span>Todos os tipos</span>
+                  {!tipoAtivo ? (
+                    <Check className="size-4" aria-hidden="true" />
+                  ) : null}
+                </Link>
+
+                {tipos.map((tipo) => {
+                  const ativo = tipoAtivo === tipo;
+                  const query = new URLSearchParams({ tipo });
+
+                  if (servidorAtivo && exibirFiltroServidor) {
+                    query.set("servidor", servidorAtivo);
+                  }
+
+                  return (
+                    <Link
+                      key={tipo}
+                      href={`/solicitacoes?${query.toString()}`}
+                      className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm hover:bg-[var(--muted)]"
+                    >
+                      <span>{rotuloTipoSolicitacao(tipo)}</span>
+                      <span className="flex items-center gap-2 text-xs font-semibold text-[var(--muted-foreground)]">
+                        {contagemPorTipo.get(tipo) ?? 0}
+                        {ativo ? (
+                          <Check className="size-4" aria-hidden="true" />
+                        ) : null}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </details>
+          </div>
         </div>
 
         <div className="overflow-x-auto">

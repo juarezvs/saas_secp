@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { listarFusosHorariosAtivos } from "@/modules/fusos-horarios/infrastructure/repositories/fuso-horario.repository";
 import { atualizarUnidadeAction } from "@/modules/unidades/application/actions/atualizar-unidade.action";
 import {
   buscarUnidadePorId,
@@ -23,10 +24,11 @@ export default async function EditarUnidadePage({
 
   const { id } = await params;
 
-  const [unidade, orgaos, unidades] = await Promise.all([
+  const [unidade, orgaos, unidades, fusosHorarios] = await Promise.all([
     buscarUnidadePorId(id),
     listarOrgaosAtivos(),
     listarUnidadesParaSelecao(),
+    listarFusosHorariosAtivos(),
   ]);
 
   if (!unidade) {
@@ -71,6 +73,7 @@ export default async function EditarUnidadePage({
         action={action}
         orgaos={orgaos}
         unidades={unidades}
+        fusosHorarios={fusosHorarios}
         unidadeAtualId={unidade.id}
         modo="editar"
         valoresIniciais={{
@@ -80,6 +83,7 @@ export default async function EditarUnidadePage({
           sigla: unidade.sigla,
           nome: unidade.nome,
           tipo: unidade.tipo,
+          fusoHorario: unidade.fusoHorario,
           ativo: unidade.ativo,
         }}
       />

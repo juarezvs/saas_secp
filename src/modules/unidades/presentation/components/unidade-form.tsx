@@ -30,6 +30,10 @@ type UnidadeFormProps = {
   ) => Promise<UnidadeFormState>;
   orgaos: OrgaoItem[];
   unidades: UnidadeSelecaoItem[];
+  fusosHorarios?: {
+    valor: string;
+    rotulo: string;
+  }[];
   valoresIniciais?: {
     orgaoId?: string;
     unidadePaiId?: string | null;
@@ -37,6 +41,7 @@ type UnidadeFormProps = {
     sigla?: string;
     nome?: string;
     tipo?: string;
+    fusoHorario?: string | null;
     ativo?: boolean;
   };
   unidadeAtualId?: string;
@@ -76,6 +81,7 @@ export function UnidadeForm({
   action,
   orgaos,
   unidades,
+  fusosHorarios = [],
   valoresIniciais,
   unidadeAtualId,
   modo,
@@ -83,6 +89,10 @@ export function UnidadeForm({
   const [estado, formAction, pendente] = useActionState(action, estadoInicial);
 
   const campos = estado.campos ?? valoresIniciais;
+  const opcoesFuso =
+    fusosHorarios.length > 0
+      ? fusosHorarios
+      : [{ valor: "America/Manaus", rotulo: "Manaus (UTC-04)" }];
 
   const unidadesDisponiveis = unidades.filter(
     (unidade) => unidade.id !== unidadeAtualId
@@ -248,6 +258,33 @@ export function UnidadeForm({
             {obterErro(estado.erros, "tipo") && (
               <p className="text-sm text-red-600">
                 {obterErro(estado.erros, "tipo")}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="fusoHorario" className="text-sm font-semibold">
+              Fuso horÃ¡rio
+            </label>
+
+            <select
+              id="fusoHorario"
+              name="fusoHorario"
+              defaultValue={campos?.fusoHorario ?? ""}
+              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            >
+              <option value="">Herdar da unidade superior ou Ã³rgÃ£o</option>
+
+              {opcoesFuso.map((fuso) => (
+                <option key={fuso.valor} value={fuso.valor}>
+                  {fuso.rotulo}
+                </option>
+              ))}
+            </select>
+
+            {obterErro(estado.erros, "fusoHorario") && (
+              <p className="text-sm text-red-600">
+                {obterErro(estado.erros, "fusoHorario")}
               </p>
             )}
           </div>

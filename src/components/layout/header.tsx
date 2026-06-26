@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { AccessibilityToolbar } from "@/components/accessibility/accessibility-toolbar";
 import type { PerfilNavegacao } from "@/components/layout/sidebar";
+import type { PreferenciasAcessibilidade } from "@/modules/auth/application/services/preferencias-acessibilidade.service";
 
 type HeaderProps = {
   nomeUsuario: string;
@@ -28,6 +29,7 @@ type HeaderProps = {
   sidebarRecolhida: boolean;
   drawerAberto: boolean;
   totalNotificacoes: number;
+  preferenciasAcessibilidade: PreferenciasAcessibilidade;
 };
 
 export function Header({
@@ -43,6 +45,7 @@ export function Header({
   sidebarRecolhida,
   drawerAberto,
   totalNotificacoes,
+  preferenciasAcessibilidade,
 }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -111,7 +114,10 @@ export function Header({
         });
 
         if (response.ok) {
-          onPerfilAtivoChange(novoPerfil);
+          const payload = (await response.json()) as {
+            perfilAtivo?: PerfilNavegacao;
+          };
+          onPerfilAtivoChange(payload.perfilAtivo ?? novoPerfil);
           router.refresh();
           buscarTotalNotificacoes().then(setTotalNotificacoesAtual);
         }
@@ -183,7 +189,7 @@ export function Header({
             </select>
           </label>
 
-          <AccessibilityToolbar />
+          <AccessibilityToolbar preferenciasIniciais={preferenciasAcessibilidade} />
 
           <Link
             href="/notificacoes"

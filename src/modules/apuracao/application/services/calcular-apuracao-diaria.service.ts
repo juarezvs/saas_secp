@@ -1,10 +1,15 @@
 import { diferencaEmMinutos } from "./calcular-tempo.service";
 import {
+  calcularCargaPrevistaComJanela,
   calcularMinutosNoExpediente,
   resolverExpedienteInstitucional,
   resolverJanelaExpediente,
   type JanelaExpediente,
 } from "./expediente.service";
+import {
+  REGULAMENTACAO_PONTO_PADRAO,
+  type RegulamentacaoPonto,
+} from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 
 type MarcacaoCalculo = {
   id: string;
@@ -29,6 +34,8 @@ type DiaInstitucionalCalculo = {
   descricao?: string | null;
   contaComoDiaUtil: boolean;
   geraApuracaoRegular: boolean;
+  janelaInicio?: string | null;
+  janelaFim?: string | null;
 };
 
 type DispensaPontoEletronicoCalculo = {
@@ -91,12 +98,9 @@ export type ResultadoCalculoApuracaoDiaria = {
   ocorrencias: OcorrenciaCalculada[];
 };
 
-const CARGA_MINIMA_CREDITO_JORNADA_SETE_HORAS = 8 * 60;
-const INTERVALO_MINIMO_CREDITO_JORNADA_SETE_HORAS = 60;
 const TIPOS_OCORRENCIA_INCONSISTENTE = [
   "MARCACAO_INCOMPLETA",
   "INTERVALO_INVALIDO",
-  "HORA_NAO_AUTORIZADA",
   "FALTA",
   "DEBITO",
 ] as const;
@@ -135,13 +139,18 @@ export function calcularApuracaoDiaria(params: {
   jornada: JornadaCalculo | null;
   diaInstitucional?: DiaInstitucionalCalculo | null;
   dispensaPontoEletronico?: DispensaPontoEletronicoCalculo | null;
+  fusoHorario?: string | null;
+  regulamentacao?: RegulamentacaoPonto | null;
 }): ResultadoCalculoApuracaoDiaria {
   const {
     marcacoes,
     jornada,
     diaInstitucional = null,
     dispensaPontoEletronico = null,
+    fusoHorario = null,
+    regulamentacao = REGULAMENTACAO_PONTO_PADRAO,
   } = params;
+  const regras = regulamentacao ?? REGULAMENTACAO_PONTO_PADRAO;
   const expedienteInstitucional =
     resolverExpedienteInstitucional(diaInstitucional);
   const diaSemExpediente =
@@ -182,10 +191,27 @@ export function calcularApuracaoDiaria(params: {
     };
   }
 
+  const cargaPrevistaDia = diaSemExpediente
+    ? 0
+    : calcularCargaPrevistaComJanela(
+        jornada.cargaDiariaMinutos,
+        expedienteInstitucional.janelaPadrao,
+      );
+  const janelaInstitucionalEspecial =
+    diaInstitucional?.janelaInicio && diaInstitucional.janelaFim
+      ? {
+          inicio: diaInstitucional.janelaInicio,
+          fim: diaInstitucional.janelaFim,
+        }
+      : null;
+  const janelaExpedienteDia = diaSemExpediente
+    ? null
+    : resolverJanelaExpediente(jornada, janelaInstitucionalEspecial);
+
   if (dispensaPontoEletronico?.ativa) {
     return {
-      cargaPrevistaMinutos: jornada.cargaDiariaMinutos,
-      minutosTrabalhados: jornada.cargaDiariaMinutos,
+      cargaPrevistaMinutos: cargaPrevistaDia,
+      minutosTrabalhados: cargaPrevistaDia,
       minutosIntervalo: 0,
       minutosCredito: 0,
       minutosDebito: 0,
@@ -195,7 +221,7 @@ export function calcularApuracaoDiaria(params: {
       saidaIntervalo: null,
       retornoIntervalo: null,
       ultimaSaida: null,
-      janelaExpediente: resolverJanelaExpediente(jornada),
+      janelaExpediente: janelaExpedienteDia,
       minutosForaExpediente: 0,
       dispensaPontoEletronico,
       trabalhoRemoto: null,
@@ -225,7 +251,7 @@ export function calcularApuracaoDiaria(params: {
   const saida = encontrarMarcacao(ordenadas, "SAIDA");
 
   const ocorrencias: OcorrenciaCalculada[] = [];
-  const janelaExpediente = resolverJanelaExpediente(jornada);
+  const janelaExpediente = janelaExpedienteDia;
 
   if (ordenadas.length === 0) {
     if (diaSemExpediente && diaInstitucional) {
@@ -240,15 +266,15 @@ export function calcularApuracaoDiaria(params: {
       Boolean(dispensaPontoEletronico?.exigeFrequenciaManual);
 
     return {
-      cargaPrevistaMinutos: jornada.cargaDiariaMinutos,
+      cargaPrevistaMinutos: cargaPrevistaDia,
       minutosTrabalhados: dispensaPontoEletronico?.ativa
-        ? jornada.cargaDiariaMinutos
+        ? cargaPrevistaDia
         : 0,
       minutosIntervalo: 0,
       minutosCredito: 0,
       minutosDebito: dispensaPontoEletronico?.ativa
         ? 0
-        : jornada.cargaDiariaMinutos,
+        : cargaPrevistaDia,
       resultado: dispensaPontoEletronico?.ativa ? "REGULAR" : "FALTA",
       status: dispensaPontoEletronico?.ativa && !exigeFrequenciaManual
         ? "CALCULADA"
@@ -285,7 +311,7 @@ export function calcularApuracaoDiaria(params: {
               tipo: "FALTA",
               descricao:
                 "Ausencia integral durante o expediente, sem autorizacao da chefia.",
-              minutos: jornada.cargaDiariaMinutos,
+              minutos: cargaPrevistaDia,
             },
           ],
     };
@@ -300,11 +326,11 @@ export function calcularApuracaoDiaria(params: {
     });
 
     return {
-      cargaPrevistaMinutos: jornada.cargaDiariaMinutos,
+      cargaPrevistaMinutos: cargaPrevistaDia,
       minutosTrabalhados: 0,
       minutosIntervalo: 0,
       minutosCredito: 0,
-      minutosDebito: jornada.cargaDiariaMinutos,
+      minutosDebito: cargaPrevistaDia,
       resultado: "INCOMPLETA",
       status: "INCONSISTENTE",
       primeiraEntrada: entrada,
@@ -334,11 +360,11 @@ export function calcularApuracaoDiaria(params: {
       });
 
       return {
-        cargaPrevistaMinutos: jornada.cargaDiariaMinutos,
+        cargaPrevistaMinutos: cargaPrevistaDia,
         minutosTrabalhados: 0,
         minutosIntervalo: 0,
         minutosCredito: 0,
-        minutosDebito: jornada.cargaDiariaMinutos,
+        minutosDebito: cargaPrevistaDia,
         resultado: "INCOMPLETA",
         status: "INCONSISTENTE",
         primeiraEntrada: entrada,
@@ -434,10 +460,15 @@ export function calcularApuracaoDiaria(params: {
     };
   }
 
+  if (!janelaExpediente) {
+    throw new Error("Janela de expediente nao resolvida para dia util.");
+  }
+
   const minutosBrutosNoExpediente = calcularMinutosNoExpediente({
     inicio: entrada,
     fim: saida,
     janela: janelaExpediente,
+    fusoHorario,
   });
   const minutosIntervaloNoExpediente =
     saidaIntervalo && retornoIntervalo
@@ -445,6 +476,7 @@ export function calcularApuracaoDiaria(params: {
           inicio: saidaIntervalo,
           fim: retornoIntervalo,
           janela: janelaExpediente,
+          fusoHorario,
         })
       : 0;
   const minutosTrabalhadosNoExpediente = Math.max(
@@ -473,34 +505,45 @@ export function calcularApuracaoDiaria(params: {
       minutos: minutosForaExpediente,
     });
   }
-  const saldo = minutosTrabalhados - jornada.cargaDiariaMinutos;
+  const saldo = minutosTrabalhados - cargaPrevistaDia;
 
   let minutosCredito = saldo > 0 ? saldo : 0;
   let minutosDebito = saldo < 0 ? Math.abs(saldo) : 0;
 
+  if (minutosCredito > 0 && minutosCredito <= regras.toleranciaCreditoMinutos) {
+    minutosCredito = 0;
+  }
+
+  if (minutosDebito > 0 && minutosDebito <= regras.toleranciaDebitoMinutos) {
+    minutosDebito = 0;
+  }
+
   if (
     jornada.cargaDiariaMinutos === 7 * 60 &&
     !jornada.exigeIntervalo &&
-    minutosTrabalhados > jornada.cargaDiariaMinutos
+    minutosTrabalhados > cargaPrevistaDia
   ) {
     const intervaloCumprido =
       saidaIntervalo &&
       retornoIntervalo &&
-      minutosIntervalo >= INTERVALO_MINIMO_CREDITO_JORNADA_SETE_HORAS;
+      minutosIntervalo >= regras.jornada7hIntervaloMinimoMinutos;
 
     minutosCredito = intervaloCumprido
-      ? Math.max(0, minutosTrabalhados - CARGA_MINIMA_CREDITO_JORNADA_SETE_HORAS)
+      ? Math.max(0, minutosTrabalhados - regras.jornada7hCreditoMinimoMinutos)
       : 0;
     minutosDebito = 0;
 
     if (
-      minutosTrabalhados >= CARGA_MINIMA_CREDITO_JORNADA_SETE_HORAS &&
+      minutosTrabalhados >= regras.jornada7hCreditoMinimoMinutos &&
       !intervaloCumprido
     ) {
       ocorrencias.push({
         tipo: "INTERVALO_INVALIDO",
-        descricao:
-          "A jornada de 7 horas somente gera credito apos 8 horas efetivas e com intervalo minimo de 60 minutos.",
+        descricao: `A jornada de 7 horas somente gera credito apos ${Math.floor(
+          regras.jornada7hCreditoMinimoMinutos / 60,
+        )} horas efetivas e com intervalo minimo de ${
+          regras.jornada7hIntervaloMinimoMinutos
+        } minutos.`,
         minutos: minutosIntervalo,
       });
     }
@@ -527,16 +570,19 @@ export function calcularApuracaoDiaria(params: {
     });
   }
 
-  const status = ocorrencias.some((o) =>
-    TIPOS_OCORRENCIA_INCONSISTENTE.includes(
-      o.tipo as (typeof TIPOS_OCORRENCIA_INCONSISTENTE)[number],
-    ),
+  const status = ocorrencias.some(
+    (o) =>
+      TIPOS_OCORRENCIA_INCONSISTENTE.includes(
+        o.tipo as (typeof TIPOS_OCORRENCIA_INCONSISTENTE)[number],
+      ) ||
+      (o.tipo === "HORA_NAO_AUTORIZADA" &&
+        regras.horasForaExpedienteInconsistente),
   )
     ? "INCONSISTENTE"
     : "CALCULADA";
 
   return {
-    cargaPrevistaMinutos: jornada.cargaDiariaMinutos,
+    cargaPrevistaMinutos: cargaPrevistaDia,
     minutosTrabalhados,
     minutosIntervalo,
     minutosCredito,

@@ -1,5 +1,6 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { normalizarDataReferencia } from "@/modules/apuracao/application/services/calcular-tempo.service";
+import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { recalcularDiaServidorService } from "./recalcular-dia-servidor.service";
 import { regerarBancoHorasMesService } from "./regerar-banco-horas-mes.service";
 import {
@@ -63,12 +64,16 @@ export async function recalcularPosSolicitacaoService({
   }
 
   const dataImpactada = obterDataImpactada(solicitacao);
+  const fusoHorario = await resolverFusoHorarioServidorNoBanco({
+    servidorId: solicitacao.servidorId,
+    dataReferencia: dataImpactada,
+  });
   const deveRecalcularApuracao =
     TIPOS_SOLICITACAO_COM_RECALCULO_APOS_DEFERIMENTO.includes(
       solicitacao.tipo as (typeof TIPOS_SOLICITACAO_COM_RECALCULO_APOS_DEFERIMENTO)[number],
     );
   const datasImpactadas = deveRecalcularApuracao
-    ? listarDatasImpactadasSolicitacao(solicitacao)
+    ? listarDatasImpactadasSolicitacao(solicitacao, fusoHorario)
     : [];
   const resultadosDias: Array<
     Awaited<ReturnType<typeof recalcularDiaServidorService>>
@@ -86,24 +91,26 @@ export async function recalcularPosSolicitacaoService({
   }
 
   const resultadoDia = resultadosDias.length === 1 ? resultadosDias[0] : null;
-  const inicioPeriodo = solicitacao.dataInicio ?? dataImpactada;
-  const fimPeriodo = solicitacao.dataFim ?? inicioPeriodo;
+  const inicioPeriodo = normalizarDataReferencia(
+    solicitacao.dataInicio ?? dataImpactada,
+  );
+  const fimPeriodo = normalizarDataReferencia(solicitacao.dataFim ?? inicioPeriodo);
   const meses = new Map<string, { anoReferencia: number; mesReferencia: number }>();
   const cursor = new Date(
-    inicioPeriodo.getFullYear(),
-    inicioPeriodo.getMonth(),
-    1,
+    Date.UTC(inicioPeriodo.getUTCFullYear(), inicioPeriodo.getUTCMonth(), 1),
   );
-  const limite = new Date(fimPeriodo.getFullYear(), fimPeriodo.getMonth(), 1);
+  const limite = new Date(
+    Date.UTC(fimPeriodo.getUTCFullYear(), fimPeriodo.getUTCMonth(), 1),
+  );
 
   while (cursor <= limite) {
-    const anoReferencia = cursor.getFullYear();
-    const mesReferencia = cursor.getMonth() + 1;
+    const anoReferencia = cursor.getUTCFullYear();
+    const mesReferencia = cursor.getUTCMonth() + 1;
     meses.set(`${anoReferencia}-${mesReferencia}`, {
       anoReferencia,
       mesReferencia,
     });
-    cursor.setMonth(cursor.getMonth() + 1);
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
   }
 
   const resultadosBanco: Array<{

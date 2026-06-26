@@ -8,10 +8,13 @@ export type ResultadoLimiteCreditoMensal = {
 export function aplicarLimiteCreditoMensal(params: {
   creditoDoDiaMinutos: number;
   creditoJaComputadoNoMesMinutos: number;
+  limiteCreditoMensalMinutos?: number | null;
 }): ResultadoLimiteCreditoMensal {
+  const limiteCreditoMensalMinutos =
+    params.limiteCreditoMensalMinutos ?? LIMITE_CREDITO_MENSAL_MINUTOS;
   const restante = Math.max(
     0,
-    LIMITE_CREDITO_MENSAL_MINUTOS - params.creditoJaComputadoNoMesMinutos,
+    limiteCreditoMensalMinutos - params.creditoJaComputadoNoMesMinutos,
   );
 
   const minutosComputaveis = Math.min(params.creditoDoDiaMinutos, restante);
@@ -29,6 +32,7 @@ export function aplicarLimiteCreditoMensal(params: {
 export function calcularDataExpiracaoCompensacao(params: {
   anoReferencia: number;
   mesReferencia: number;
+  mesesExpiracaoCompensacao?: number | null;
 }) {
   /*
    * Regra inicial: expira ao final do 3º mês posterior ao mês de referência.
@@ -36,7 +40,7 @@ export function calcularDataExpiracaoCompensacao(params: {
    */
   const primeiroDiaMesPosteriorAoPrazo = new Date(
     params.anoReferencia,
-    params.mesReferencia + 3,
+    params.mesReferencia + (params.mesesExpiracaoCompensacao ?? 3),
     1,
   );
 

@@ -99,4 +99,17 @@ describe("criarSolicitacaoSchema", () => {
 
     expect(resultado.success).toBe(true);
   });
+
+  it("aceita viagem a servico apenas com periodo em datas", () => {
+    const resultado = criarSolicitacaoSchema.safeParse({
+      ...dadosBase,
+      tipo: "VIAGEM_SERVICO",
+      titulo: "Viagem a servico",
+      descricao: "Deslocamento autorizado para cumprimento de atividade externa.",
+      dataInicio: "2026-06-15",
+      dataFim: "2026-06-17",
+    });
+
+    expect(resultado.success).toBe(true);
+  });
 });

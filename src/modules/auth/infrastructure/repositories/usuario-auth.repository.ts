@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { normalizarPreferenciasAcessibilidade } from "../../application/services/preferencias-acessibilidade.service";
 import { aplicarExcecoesRegistroPontoAoPerfilServidor } from "../../application/services/perfil-excecao-registro-ponto.service";
 import { escolherPerfilInicial } from "../../application/services/perfil-servidor-prioritario.service";
 import { perfilEhAdministradorSistema } from "../../domain/constants/perfis-sistema";
@@ -12,6 +13,7 @@ export async function buscarUsuarioParaLoginPorMatricula(
 ): Promise<
   | (UsuarioAutenticado & {
       senhaHash: string | null;
+      orgaoId: string | null;
     })
   | null
 > {
@@ -37,6 +39,11 @@ export async function buscarUsuarioParaLoginPorMatricula(
               },
             },
           },
+        },
+      },
+      servidor: {
+        select: {
+          orgaoId: true,
         },
       },
     },
@@ -100,7 +107,11 @@ export async function buscarUsuarioParaLoginPorMatricula(
     nome: usuario.nome,
     email: usuario.email,
     tipo: usuario.tipo,
+    preferenciasAcessibilidade: normalizarPreferenciasAcessibilidade(
+      usuario.preferenciasAcessibilidade,
+    ),
     senhaHash: usuario.senhaHash,
+    orgaoId: usuario.servidor?.orgaoId ?? null,
     perfis,
     perfilAtivo,
   };

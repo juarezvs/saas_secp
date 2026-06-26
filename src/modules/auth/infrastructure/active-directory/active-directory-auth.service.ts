@@ -222,12 +222,13 @@ async function autenticarViaLdapBind(params: {
 export async function autenticarNoActiveDirectory(
   matricula: string,
   senha: string,
+  orgaoId?: string | null,
 ): Promise<boolean> {
   if (!matricula || !senha) {
     return false;
   }
 
-  const configuracao = await obterConfiguracaoLdapActiveDirectory();
+  const configuracao = await obterConfiguracaoLdapActiveDirectory(orgaoId);
 
   if (!configuracao.ativo) {
     return false;

@@ -1,5 +1,8 @@
 import type { DefaultSession } from "next-auth";
-import type { PerfilSessao } from "@/modules/auth/domain/entities/usuario-autenticado";
+import type {
+  PerfilSessao,
+  UsuarioAutenticado,
+} from "@/modules/auth/domain/entities/usuario-autenticado";
 
 declare module "next-auth" {
   interface Session {
@@ -8,6 +11,7 @@ declare module "next-auth" {
       matricula: string;
       nome: string;
       tipo: string;
+      preferenciasAcessibilidade: UsuarioAutenticado["preferenciasAcessibilidade"];
       perfis: PerfilSessao[];
       perfilAtivo: PerfilSessao | null;
     } & DefaultSession["user"];
@@ -17,6 +21,7 @@ declare module "next-auth" {
     matricula?: string;
     nome?: string;
     tipo?: string;
+    preferenciasAcessibilidade?: UsuarioAutenticado["preferenciasAcessibilidade"];
     perfis?: PerfilSessao[];
     perfilAtivo?: PerfilSessao | null;
   }
@@ -28,6 +33,7 @@ declare module "next-auth/jwt" {
     matricula?: string;
     nome?: string;
     tipo?: string;
+    preferenciasAcessibilidade?: UsuarioAutenticado["preferenciasAcessibilidade"];
     perfis?: PerfilSessao[];
     perfilAtivo?: PerfilSessao | null;
   }

@@ -49,7 +49,7 @@ export function conferenciaEspelho(
   status: string,
   item?: ItemEspelhoMensalClassificacao,
 ): ConferenciaEspelho {
-  if (item && possuiDispensaPontoEspelho(item.metadados)) {
+  if (item && possuiDispensaPontoAdministrativaEspelho(item.metadados)) {
     return {
       rotulo: "Calculada",
       descricao:
@@ -221,26 +221,22 @@ export function rotuloSolicitacaoEspelho(tipo: string) {
     DISPENSA_PONTO: "Dispensa de ponto",
     HORA_CREDITO_PREVIA: "Hora-credito previa",
     COMPENSACAO: "Compensacao deferida",
+    FOLGA_BANCO_HORAS: "Folga por banco de horas",
   };
 
   return rotulos[tipo] ?? tipo;
 }
 
-function possuiDispensaPontoEspelho(metadados: unknown) {
+function possuiDispensaPontoAdministrativaEspelho(metadados: unknown) {
   if (!metadados || typeof metadados !== "object") {
     return false;
   }
 
   const dados = metadados as Record<string, unknown>;
   const dispensaAdministrativa = dados.dispensaPontoAdministrativa;
-  const dispensaEletronica = dados.dispensaPontoEletronico;
 
   if (dispensaAdministrativa && typeof dispensaAdministrativa === "object") {
     return true;
-  }
-
-  if (dispensaEletronica && typeof dispensaEletronica === "object") {
-    return (dispensaEletronica as { ativa?: unknown }).ativa === true;
   }
 
   return false;
@@ -260,7 +256,7 @@ export function classificarDiaEspelho(
     (solicitacao) => solicitacao.tipo === "VIAGEM_SERVICO",
   );
   const dispensaPonto =
-    possuiDispensaPontoEspelho(item.metadados) ||
+    possuiDispensaPontoAdministrativaEspelho(item.metadados) ||
     solicitacoesAplicadas.some(
       (solicitacao) => solicitacao.tipo === "DISPENSA_PONTO",
     );

@@ -26,7 +26,8 @@ type SolicitacaoDeferidaApuracao = {
     | "VIAGEM_SERVICO"
     | "CAPACITACAO"
     | "DISPENSA_PONTO"
-    | "HORA_CREDITO_PREVIA";
+    | "HORA_CREDITO_PREVIA"
+    | "FOLGA_BANCO_HORAS";
   titulo: string;
   descricao: string;
   dataReferencia: Date | null;
@@ -113,6 +114,7 @@ export function aplicarSolicitacoesDeferidasApuracao(params: {
   jornada: JornadaApuracao | null;
   solicitacoes: SolicitacaoDeferidaApuracao[];
   marcacoes?: MarcacaoApuracao[];
+  fusoHorario?: string | null;
 }): {
   calculo: ResultadoCalculoApuracaoDiaria;
   solicitacoesAplicadas: SolicitacaoAplicada[];
@@ -123,6 +125,7 @@ export function aplicarSolicitacoesDeferidasApuracao(params: {
     jornada,
     solicitacoes,
     marcacoes = [],
+    fusoHorario,
   } = params;
 
   if (calculo.resultado === "SEM_EXPEDIENTE") {
@@ -157,6 +160,7 @@ export function aplicarSolicitacoesDeferidasApuracao(params: {
     const minutosCobertos = calcularMinutosCoberturaSolicitacaoNoDia(
       solicitacao,
       dataReferencia,
+      fusoHorario,
     );
 
     if (minutosCobertos <= 0) {
@@ -167,6 +171,21 @@ export function aplicarSolicitacoesDeferidasApuracao(params: {
       servicoExtraordinarioRemotoAutorizado = true;
       solicitacoesAplicadas.push(
         buildSolicitacaoAplicada(solicitacao, minutosCobertos, false),
+      );
+      continue;
+    }
+
+    if (solicitacao.tipo === "FOLGA_BANCO_HORAS") {
+      if (calculo.minutosTrabalhados > 0) {
+        continue;
+      }
+
+      solicitacoesAplicadas.push(
+        buildSolicitacaoAplicada(
+          solicitacao,
+          jornada.cargaDiariaMinutos,
+          true,
+        ),
       );
       continue;
     }

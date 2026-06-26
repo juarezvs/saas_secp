@@ -62,6 +62,7 @@ export async function sincronizarSarhAction(formData: FormData): Promise<Sincron
       iniciadoPorUsuarioId: permissao.usuarioId ?? null,
     });
 
+    revalidatePath("/integracoes");
     revalidatePath("/administracao/integracoes/sarh");
 
     return {

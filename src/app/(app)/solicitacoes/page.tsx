@@ -9,12 +9,16 @@ import {
   listarSolicitacoesDoUsuario,
   listarSolicitacoesGlobais,
   listarSolicitacoesParaChefia,
+  listarServidoresFiltroSolicitacoesDoUsuario,
+  listarServidoresFiltroSolicitacoesGlobais,
+  listarServidoresFiltroSolicitacoesParaChefia,
 } from "@/modules/solicitacoes/infrastructure/repositories/solicitacao.repository";
 import { SolicitacoesTable } from "@/modules/solicitacoes/presentation/components/solicitacoes-table";
 
 type SolicitacoesPageProps = {
   searchParams: Promise<{
     tipo?: string;
+    servidor?: string;
   }>;
 };
 
@@ -37,14 +41,29 @@ export default async function SolicitacoesPage({
   const podeAnalisarChefia = permissoes.includes(
     "solicitacoes:analisar:chefia",
   );
+  const perfilAtivoServidor =
+    session?.user.perfilAtivo?.codigo?.toUpperCase() === "SERVIDOR";
+  const servidorFiltro = perfilAtivoServidor ? undefined : params.servidor;
 
   const solicitacoes = session?.user
     ? podeConsultarGlobal
-      ? await listarSolicitacoesGlobais()
+      ? await listarSolicitacoesGlobais({ servidor: servidorFiltro })
       : podeAnalisarChefia
-        ? await listarSolicitacoesParaChefia(session.user.id)
-        : await listarSolicitacoesDoUsuario(session.user.id)
+        ? await listarSolicitacoesParaChefia(session.user.id, {
+            servidor: servidorFiltro,
+          })
+        : await listarSolicitacoesDoUsuario(session.user.id, {
+            servidor: servidorFiltro,
+          })
     : [];
+  const servidoresFiltro =
+    session?.user && !perfilAtivoServidor
+      ? podeConsultarGlobal
+        ? await listarServidoresFiltroSolicitacoesGlobais()
+        : podeAnalisarChefia
+          ? await listarServidoresFiltroSolicitacoesParaChefia(session.user.id)
+          : await listarServidoresFiltroSolicitacoesDoUsuario(session.user.id)
+      : [];
 
   return (
     <div className="space-y-6">
@@ -71,6 +90,9 @@ export default async function SolicitacoesPage({
       <SolicitacoesTable
         solicitacoes={solicitacoes}
         tipoSelecionado={params.tipo}
+        servidorFiltro={servidorFiltro}
+        servidoresFiltro={servidoresFiltro}
+        mostrarFiltroServidor={!perfilAtivoServidor}
       />
     </div>
   );

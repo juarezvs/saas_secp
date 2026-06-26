@@ -1,5 +1,6 @@
 import { OrigemMarcacaoIcon } from "@/modules/marcacoes/presentation/components/origem-marcacao-icon";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
+import { normalizarFusoHorario } from "@/modules/marcacoes/application/services/data-marcacao.service";
 
 type MarcacaoBrutaItem = {
   id: string;
@@ -12,6 +13,7 @@ type MarcacaoBrutaItem = {
   codigoExterno: string | null;
   processada: boolean;
   processadaEm: Date | null;
+  payloadOriginal?: unknown;
   arquivoAfd?: {
     nomeOriginal: string;
   } | null;
@@ -30,10 +32,14 @@ type MarcacaoBrutaItem = {
   marcacao: {
     tipo: string;
     status: string;
+    fusoHorario?: string | null;
   } | null;
 };
 
-function formatarDataHoraSegura(valor: Date | string | null | undefined) {
+function formatarDataHoraSegura(
+  valor: Date | string | null | undefined,
+  fusoHorario?: string | null,
+) {
   if (!valor) {
     return "-";
   }
@@ -47,8 +53,78 @@ function formatarDataHoraSegura(valor: Date | string | null | undefined) {
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeStyle: "medium",
-    timeZone: "America/Manaus",
+    timeZone: normalizarFusoHorario(fusoHorario),
   }).format(data);
+}
+
+function normalizarCpf(valor: string | null | undefined) {
+  const digitos = (valor ?? "").replace(/\D/g, "");
+
+  if (digitos.length === 12 && digitos.startsWith("0")) {
+    return digitos.slice(1);
+  }
+
+  return digitos.length === 11 ? digitos : null;
+}
+
+function extrairCpfDePayload(valor: unknown): string | null {
+  if (!valor) {
+    return null;
+  }
+
+  if (typeof valor === "string") {
+    const cpfAfdTipo3 =
+      valor.length >= 46 && valor.slice(9, 10) === "3"
+        ? normalizarCpf(valor.slice(34, 46))
+        : null;
+
+    if (cpfAfdTipo3) {
+      return cpfAfdTipo3;
+    }
+
+    const candidato = valor.match(/(^|\D)(0?\d{11})(\D|$)/)?.[2];
+    return normalizarCpf(candidato);
+  }
+
+  if (Array.isArray(valor)) {
+    for (const item of valor) {
+      const cpf = extrairCpfDePayload(item);
+
+      if (cpf) {
+        return cpf;
+      }
+    }
+
+    return null;
+  }
+
+  if (typeof valor === "object") {
+    const objeto = valor as Record<string, unknown>;
+
+    for (const [chave, item] of Object.entries(objeto)) {
+      if (chave.toLocaleLowerCase("pt-BR") === "cpf") {
+        const cpf = normalizarCpf(String(item ?? ""));
+
+        if (cpf) {
+          return cpf;
+        }
+      }
+    }
+
+    for (const item of Object.values(objeto)) {
+      const cpf = extrairCpfDePayload(item);
+
+      if (cpf) {
+        return cpf;
+      }
+    }
+  }
+
+  return null;
+}
+
+function cpfExibicao(item: MarcacaoBrutaItem) {
+  return normalizarCpf(item.cpf) ?? extrairCpfDePayload(item.payloadOriginal);
 }
 
 export function MarcacoesBrutasTable({
@@ -81,10 +157,16 @@ export function MarcacoesBrutasTable({
           </thead>
 
           <tbody>
-            {marcacoes.map((item) => (
+            {marcacoes.map((item) => {
+              const cpf = cpfExibicao(item);
+
+              return (
               <tr key={item.id} className="border-b last:border-b-0">
                 <td className="px-5 py-4">
-                  {formatarDataHoraSegura(item.dataHora)}
+                  {formatarDataHoraSegura(
+                    item.dataHora,
+                    item.marcacao?.fusoHorario,
+                  )}
                 </td>
 
                 <td className="px-5 py-4">
@@ -97,7 +179,7 @@ export function MarcacoesBrutasTable({
                 </td>
 
                 <td className="px-5 py-4 font-mono text-xs">
-                  <div>CPF: {item.cpf ?? "-"}</div>
+                  <div>CPF: {cpf ?? "-"}</div>
                   <div>Matrícula: {item.matricula ?? "-"}</div>
                 </td>
 
@@ -166,7 +248,8 @@ export function MarcacoesBrutasTable({
                   )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
 
             {marcacoes.length === 0 && (
               <tr>

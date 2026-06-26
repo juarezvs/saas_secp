@@ -6,11 +6,16 @@ import {
 type OrgaosListagemControlesProps = {
   exportCsvHref: string;
   exportPdfHref: string;
+  fusosHorarios?: {
+    valor: string;
+    rotulo: string;
+  }[];
 };
 
 export function OrgaosListagemControles({
   exportCsvHref,
   exportPdfHref,
+  fusosHorarios = [],
 }: OrgaosListagemControlesProps) {
   const filtros: DataTableFiltro[] = [
     {
@@ -36,6 +41,18 @@ export function OrgaosListagemControles({
         { value: "", label: "Todos" },
         { value: "ativo", label: "Ativos" },
         { value: "inativo", label: "Inativos" },
+      ],
+    },
+    {
+      tipo: "select",
+      nome: "fusoHorario",
+      label: "Fuso",
+      options: [
+        { value: "", label: "Todos" },
+        ...fusosHorarios.map((fuso) => ({
+          value: fuso.valor,
+          label: fuso.rotulo,
+        })),
       ],
     },
   ];

@@ -2,8 +2,10 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 import { criarMarcacaoBrutaService } from "@/modules/marcacoes-brutas/application/services/criar-marcacao-bruta.service";
 import { processarMarcacaoBrutaService } from "@/modules/marcacoes-brutas/application/services/processar-marcacao-bruta.service";
 import type {
+  CadastroBiometricoEquipamento,
   DadosConexaoRelogioPonto,
   FabricanteRelogioPonto,
+  FormatoTemplateBiometricoRelogio,
   MarcacaoRelogioPonto,
 } from "@/modules/integracoes/domain/relogio-ponto.types";
 import { criarRelogioPontoProvider } from "./relogio-ponto-provider.service";
@@ -20,6 +22,26 @@ type ConfiguracaoEquipamento = {
   proximoNsrColeta?: unknown;
   webhookToken?: unknown;
   eventosOnline?: unknown;
+};
+
+type ResultadoSincronizacaoBiometria = {
+  origem: {
+    equipamentoId: string;
+    codigo: string;
+    nome: string;
+  };
+  destinos: Array<{
+    equipamentoId: string;
+    codigo: string;
+    nome: string;
+    sucesso: boolean;
+    mensagem: string;
+    enviados: number;
+    rejeitados: number;
+  }>;
+  lidos: number;
+  comTemplate: number;
+  ignoradosSemTemplate: number;
 };
 
 type RelogioPontoLocksGlobal = typeof globalThis & {
@@ -96,7 +118,17 @@ function valorNumero(valor: unknown) {
 }
 
 function normalizarFabricante(valor: string | null): FabricanteRelogioPonto {
-  return valor?.trim().toUpperCase() === "HENRY" ? "HENRY" : "GENERIC";
+  const fabricante = valor?.trim().toUpperCase();
+
+  if (fabricante === "HENRY") {
+    return "HENRY";
+  }
+
+  if (fabricante === "DIMEP") {
+    return "DIMEP";
+  }
+
+  return "GENERIC";
 }
 
 async function obterConexaoEquipamento(
@@ -164,6 +196,30 @@ export async function consultarSaudeRelogioPontoService(equipamentoId: string) {
   });
 
   return resultado;
+}
+
+export async function listarCadastrosBiometricosEquipamentoService(params: {
+  equipamentoId: string;
+  quantidade?: number | null;
+  indiceInicial?: string | number | null;
+  incluirTemplates?: boolean;
+}) {
+  return executarComLockEquipamento(params.equipamentoId, async () => {
+    const conexao = await obterConexaoEquipamento(params.equipamentoId);
+    const provider = criarRelogioPontoProvider(conexao);
+
+    if (!provider.listarCadastrosBiometricos) {
+      throw new Error(
+        "Este protocolo ainda nao possui leitura de cadastros biometricos.",
+      );
+    }
+
+    return provider.listarCadastrosBiometricos({
+      quantidade: params.quantidade ?? undefined,
+      indiceInicial: params.indiceInicial ?? undefined,
+      incluirTemplates: params.incluirTemplates,
+    });
+  });
 }
 
 type ColetarMarcacoesRelogioPontoParams = {
@@ -536,7 +592,7 @@ export async function enviarBiometriaRelogioPontoService(params: {
   nome?: string | null;
   dedo?: string | number | null;
   template: string;
-  formato?: "SUPREMA" | "FS_SWIPE_SINATRA" | "HENRY_RAW";
+  formato?: FormatoTemplateBiometricoRelogio;
 }) {
   const conexao = await obterConexaoEquipamento(params.equipamentoId);
   const provider = criarRelogioPontoProvider(conexao);
@@ -555,4 +611,200 @@ export async function enviarBiometriaRelogioPontoService(params: {
       ],
     },
   ]);
+}
+
+function cadastroParaBiometriaServidor(
+  cadastro: CadastroBiometricoEquipamento,
+) {
+  return {
+    matricula: cadastro.matricula,
+    cpf: cadastro.cpf ?? null,
+    nome: cadastro.nome ?? null,
+    templates: cadastro.templates ?? [],
+  };
+}
+
+function formatosBiometricosSuportados(conexao: DadosConexaoRelogioPonto) {
+  const configuracao =
+    conexao.configuracao && typeof conexao.configuracao === "object"
+      ? (conexao.configuracao as Record<string, unknown>)
+      : {};
+  const formatosConfigurados = Array.isArray(configuracao.formatosBiometricos)
+    ? configuracao.formatosBiometricos
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.toUpperCase() as FormatoTemplateBiometricoRelogio)
+    : [];
+
+  if (formatosConfigurados.length > 0) {
+    return new Set(formatosConfigurados);
+  }
+
+  if (conexao.fabricante === "HENRY") {
+    return new Set<FormatoTemplateBiometricoRelogio>([
+      "SUPREMA",
+      "FS_SWIPE_SINATRA",
+      "HENRY_RAW",
+    ]);
+  }
+
+  if (conexao.fabricante === "DIMEP") {
+    return new Set<FormatoTemplateBiometricoRelogio>([
+      "DIMEP_RAW",
+      "ISO_19794_2",
+      "ANSI_378",
+    ]);
+  }
+
+  return new Set<FormatoTemplateBiometricoRelogio>();
+}
+
+function filtrarServidoresPorFormatosCompativeis(
+  servidores: ReturnType<typeof cadastroParaBiometriaServidor>[],
+  formatos: Set<FormatoTemplateBiometricoRelogio>,
+) {
+  return servidores
+    .map((servidor) => ({
+      ...servidor,
+      templates: servidor.templates.filter((template) => {
+        const formato = template.formato ?? "SUPREMA";
+        return formatos.has(formato);
+      }),
+    }))
+    .filter((servidor) => servidor.templates.length > 0);
+}
+
+export async function sincronizarBiometriasEquipamentosOrgaoService(params: {
+  equipamentoOrigemId: string;
+  quantidade?: number | null;
+  indiceInicial?: string | number | null;
+}): Promise<ResultadoSincronizacaoBiometria> {
+  const origem = await prisma.equipamentoBiometrico.findUnique({
+    where: { id: params.equipamentoOrigemId },
+    include: {
+      unidade: {
+        select: {
+          orgaoId: true,
+        },
+      },
+    },
+  });
+
+  if (!origem || !origem.ativo) {
+    throw new Error("Equipamento de origem nao cadastrado ou inativo.");
+  }
+
+  const orgaoId = origem.unidade?.orgaoId;
+
+  if (!orgaoId) {
+    throw new Error(
+      "Vincule o equipamento de origem a uma unidade do orgao antes de sincronizar.",
+    );
+  }
+
+  const leitura = await listarCadastrosBiometricosEquipamentoService({
+    equipamentoId: origem.id,
+    quantidade: params.quantidade ?? 100,
+    indiceInicial: params.indiceInicial ?? 0,
+    incluirTemplates: true,
+  });
+  const cadastrosComTemplate = leitura.cadastros.filter(
+    (cadastro) => (cadastro.templates?.length ?? 0) > 0,
+  );
+  const servidores = cadastrosComTemplate.map(cadastroParaBiometriaServidor);
+  const destinos = await prisma.equipamentoBiometrico.findMany({
+    where: {
+      id: {
+        not: origem.id,
+      },
+      ativo: true,
+      fabricante: {
+        equals: "HENRY",
+        mode: "insensitive",
+      },
+      unidade: {
+        orgaoId,
+      },
+    },
+    orderBy: {
+      nome: "asc",
+    },
+  });
+  const resultados: ResultadoSincronizacaoBiometria["destinos"] = [];
+
+  for (const destino of destinos) {
+    const destinoResultado = await executarComLockEquipamento(
+      destino.id,
+      async () => {
+        const conexao = await obterConexaoEquipamento(destino.id, "dados");
+        const formatos = formatosBiometricosSuportados(conexao);
+        const servidoresCompativeis = filtrarServidoresPorFormatosCompativeis(
+          servidores,
+          formatos,
+        );
+
+        if (servidoresCompativeis.length === 0) {
+          return {
+            sucesso: false,
+            mensagem:
+              "Nenhum template compativel com o fabricante/formato do equipamento destino.",
+            enviados: 0,
+            rejeitados: servidores.length,
+            detalhes: {
+              formatosSuportados: Array.from(formatos),
+            },
+          };
+        }
+
+        const provider = criarRelogioPontoProvider(conexao);
+        return provider.enviarBiometrias(servidoresCompativeis);
+      },
+    );
+
+    resultados.push({
+      equipamentoId: destino.id,
+      codigo: destino.codigo,
+      nome: destino.nome,
+      sucesso: destinoResultado.sucesso,
+      mensagem: destinoResultado.mensagem,
+      enviados: destinoResultado.enviados,
+      rejeitados: destinoResultado.rejeitados,
+    });
+  }
+
+  await prisma.logIntegracao.create({
+    data: {
+      integracaoId: origem.integracaoId,
+      tipo: "EQUIPAMENTO_BIOMETRICO",
+      direcao: "SAIDA",
+      status: resultados.every((resultado) => resultado.sucesso)
+        ? "SUCESSO"
+        : "ERRO",
+      entidade: "EquipamentoBiometrico",
+      entidadeId: origem.id,
+      mensagem: `Sincronizacao de biometria: ${cadastrosComTemplate.length} cadastro(s) com template, ${destinos.length} destino(s).`,
+      payloadEntrada: {
+        equipamentoOrigemId: origem.id,
+        orgaoId,
+        quantidade: params.quantidade,
+        indiceInicial: params.indiceInicial,
+      } as never,
+      payloadSaida: {
+        leitura: leitura.payload,
+        destinos: resultados,
+      } as never,
+      finalizadoEm: new Date(),
+    },
+  });
+
+  return {
+    origem: {
+      equipamentoId: origem.id,
+      codigo: origem.codigo,
+      nome: origem.nome,
+    },
+    destinos: resultados,
+    lidos: leitura.cadastros.length,
+    comTemplate: cadastrosComTemplate.length,
+    ignoradosSemTemplate: leitura.cadastros.length - cadastrosComTemplate.length,
+  };
 }

@@ -5,6 +5,8 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 import { PeriodoHomologadoError } from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
 import { recalcularMesServidorService } from "@/modules/recalculo/application/services/recalcular-mes-servidor.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { normalizarDataReferencia } from "@/modules/apuracao/application/services/calcular-tempo.service";
+import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import {
   dispensaPontoServidorSchema,
   encerrarDispensaPontoServidorSchema,
@@ -16,9 +18,9 @@ function normalizarDataFormulario(valor: string) {
   return new Date(`${valor}T00:00:00`);
 }
 
-function dataAtualFormulario() {
+function dataAtualFormulario(fusoHorario: string) {
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Manaus",
+    timeZone: fusoHorario,
   }).format(new Date());
 }
 
@@ -74,29 +76,40 @@ async function existeDispensaSobreposta(params: {
   });
 }
 
-function listarCompetenciasPeriodo(dataInicio: Date, dataFim: Date | null) {
-  const hoje = normalizarDataFormulario(dataAtualFormulario());
-  const fimEfetivo = dataFim ?? (hoje > dataInicio ? hoje : dataInicio);
+function listarCompetenciasPeriodo(
+  dataInicio: Date,
+  dataFim: Date | null,
+  fusoHorario: string,
+) {
+  const hoje = normalizarDataFormulario(dataAtualFormulario(fusoHorario));
+  const inicioNormalizado = normalizarDataReferencia(dataInicio);
+  const fimEfetivo = normalizarDataReferencia(
+    dataFim ?? (hoje > dataInicio ? hoje : dataInicio),
+  );
   const competencias = new Map<
     string,
     { anoReferencia: number; mesReferencia: number }
   >();
-  const cursor = new Date(dataInicio.getFullYear(), dataInicio.getMonth(), 1);
+  const cursor = new Date(
+    Date.UTC(
+      inicioNormalizado.getUTCFullYear(),
+      inicioNormalizado.getUTCMonth(),
+      1,
+    ),
+  );
   const limite = new Date(
-    fimEfetivo.getFullYear(),
-    fimEfetivo.getMonth(),
-    1,
+    Date.UTC(fimEfetivo.getUTCFullYear(), fimEfetivo.getUTCMonth(), 1),
   );
 
   while (cursor <= limite) {
-    const anoReferencia = cursor.getFullYear();
-    const mesReferencia = cursor.getMonth() + 1;
+    const anoReferencia = cursor.getUTCFullYear();
+    const mesReferencia = cursor.getUTCMonth() + 1;
 
     competencias.set(`${anoReferencia}-${mesReferencia}`, {
       anoReferencia,
       mesReferencia,
     });
-    cursor.setMonth(cursor.getMonth() + 1);
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
   }
 
   return [...competencias.values()];
@@ -108,12 +121,14 @@ async function recalcularDispensaNoEspelho(params: {
   dataFim: Date | null;
   usuarioIdAuditoria: string;
   origem: string;
+  fusoHorario: string;
 }) {
   let periodosHomologadosIgnorados = 0;
 
   for (const competencia of listarCompetenciasPeriodo(
     params.dataInicio,
     params.dataFim,
+    params.fusoHorario,
   )) {
     try {
       await recalcularMesServidorService({
@@ -155,6 +170,9 @@ export async function criarDispensaPontoServidorAction(
     "servidores:gerenciar:global",
   );
   const usuarioId = permissao.usuarioId;
+  const fusoHorario = await resolverFusoHorarioServidorNoBanco({
+    servidorId,
+  });
 
   if (!usuarioId) {
     return {
@@ -250,6 +268,7 @@ export async function criarDispensaPontoServidorAction(
     dataFim,
     usuarioIdAuditoria: usuarioId,
     origem: "DISPENSA_PONTO_SERVIDOR_CRIADA",
+    fusoHorario,
   });
 
   revalidarRotasImpactadas(servidorId);
@@ -282,8 +301,12 @@ export async function encerrarDispensaPontoServidorAction(
   }
 
   const dados = {
-    dataFim: String(formData.get("dataFim") ?? dataAtualFormulario()),
+    dataFim: String(formData.get("dataFim") ?? ""),
   };
+  const fusoHorario = await resolverFusoHorarioServidorNoBanco({
+    servidorId,
+  });
+  dados.dataFim ||= dataAtualFormulario(fusoHorario);
   const parsed = encerrarDispensaPontoServidorSchema.safeParse(dados);
 
   if (!parsed.success) {
@@ -359,6 +382,7 @@ export async function encerrarDispensaPontoServidorAction(
     dataFim,
     usuarioIdAuditoria: usuarioId,
     origem: "DISPENSA_PONTO_SERVIDOR_ENCERRADA",
+    fusoHorario,
   });
 
   revalidarRotasImpactadas(servidorId);

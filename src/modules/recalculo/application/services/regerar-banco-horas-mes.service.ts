@@ -3,6 +3,9 @@ import {
   calcularDataExpiracaoCompensacao,
 } from "@/modules/banco-horas/application/services/aplicar-limites-banco-horas.service";
 import { calcularSaldoBancoHoras } from "@/modules/banco-horas/application/services/calcular-banco-horas.service";
+import { normalizarFusoHorario } from "@/modules/marcacoes/application/services/data-marcacao.service";
+import { buscarRegulamentacaoPontoServidor } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
+import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 export type RegerarBancoHorasMesParams = {
@@ -48,9 +51,9 @@ function minutosDisponiveis(autorizacao: AutorizacaoDisponivel) {
   return Math.max(0, autorizacao.minutosAutorizados - utilizados);
 }
 
-function hojeManaus() {
+function hojeNoFuso(fusoHorario?: string | null) {
   const partes = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Manaus",
+    timeZone: normalizarFusoHorario(fusoHorario),
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -66,10 +69,11 @@ function hojeManaus() {
 function dataLimiteMovimentos(params: {
   anoReferencia: number;
   mesReferencia: number;
+  fusoHorario?: string | null;
 }) {
   const inicio = new Date(Date.UTC(params.anoReferencia, params.mesReferencia - 1, 1));
   const fim = new Date(Date.UTC(params.anoReferencia, params.mesReferencia, 1));
-  const hoje = hojeManaus();
+  const hoje = hojeNoFuso(params.fusoHorario);
 
   if (hoje < inicio) {
     return new Date(inicio.getTime() - 1);
@@ -127,9 +131,14 @@ export async function regerarBancoHorasMesService({
 }: RegerarBancoHorasMesParams) {
   const inicio = new Date(Date.UTC(anoReferencia, mesReferencia - 1, 1));
   const fim = new Date(Date.UTC(anoReferencia, mesReferencia, 1));
+  const fusoHorario = await resolverFusoHorarioServidorNoBanco({
+    servidorId,
+  });
+  const regulamentacao = await buscarRegulamentacaoPontoServidor(servidorId);
   const limiteMovimentos = dataLimiteMovimentos({
     anoReferencia,
     mesReferencia,
+    fusoHorario,
   });
 
   const apuracoes = await prisma.apuracaoDiaria.findMany({
@@ -263,6 +272,8 @@ export async function regerarBancoHorasMesService({
     const expiraEm = calcularDataExpiracaoCompensacao({
       anoReferencia,
       mesReferencia,
+      mesesExpiracaoCompensacao:
+        regulamentacao.mesesExpiracaoCompensacao,
     });
 
     for (const apuracao of apuracoes) {
@@ -289,6 +300,8 @@ export async function regerarBancoHorasMesService({
           const limite = aplicarLimiteCreditoMensal({
             creditoDoDiaMinutos: alocacao.minutos,
             creditoJaComputadoNoMesMinutos: creditoComputadoNoMes,
+            limiteCreditoMensalMinutos:
+              regulamentacao.limiteCreditoMensalMinutos,
           });
 
           if (limite.minutosComputaveis > 0) {
@@ -320,6 +333,7 @@ export async function regerarBancoHorasMesService({
                   autorizacaoBancoHorasId: alocacao.autorizacao.id,
                   resultadoApuracao: apuracao.resultado,
                   statusApuracao: apuracao.status,
+                  regulamentacaoPonto: regulamentacao,
                 },
               },
             });
@@ -349,7 +363,9 @@ export async function regerarBancoHorasMesService({
                 metadados: {
                   origem,
                   autorizacaoBancoHorasId: alocacao.autorizacao.id,
-                  limiteMensalMinutos: 16 * 60,
+                  limiteMensalMinutos:
+                    regulamentacao.limiteCreditoMensalMinutos,
+                  regulamentacaoPonto: regulamentacao,
                 },
               },
             });
@@ -375,6 +391,7 @@ export async function regerarBancoHorasMesService({
               metadados: {
                 origem,
                 motivo: "AUSENCIA_AUTORIZACAO_PREVIA",
+                regulamentacaoPonto: regulamentacao,
               },
             },
           });
@@ -414,6 +431,7 @@ export async function regerarBancoHorasMesService({
                 origem,
                 autorizacaoBancoHorasId: alocacao.autorizacao.id,
                 resultadoApuracao: apuracao.resultado,
+                regulamentacaoPonto: regulamentacao,
               },
             },
           });
@@ -440,6 +458,7 @@ export async function regerarBancoHorasMesService({
                 origem,
                 resultadoApuracao: apuracao.resultado,
                 statusApuracao: apuracao.status,
+                regulamentacaoPonto: regulamentacao,
               },
             },
           });
@@ -506,6 +525,7 @@ export async function regerarBancoHorasMesService({
             movimentosCriados,
             saldo,
             origem,
+            regulamentacaoPonto: regulamentacao,
           },
         },
       });

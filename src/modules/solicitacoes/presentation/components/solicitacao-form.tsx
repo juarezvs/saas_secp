@@ -96,6 +96,16 @@ function isTipoPeriodo(tipo: string) {
     "VIAGEM_SERVICO",
     "CAPACITACAO",
     "DISPENSA_PONTO",
+    "FOLGA_BANCO_HORAS",
+  ].includes(tipo);
+}
+
+function usaPeriodoPorData(tipo: string) {
+  return [
+    "COMPENSACAO",
+    "ABONO_JUSTIFICATIVA",
+    "VIAGEM_SERVICO",
+    "FOLGA_BANCO_HORAS",
   ].includes(tipo);
 }
 
@@ -128,6 +138,12 @@ function obterConfiguracaoTipo(tipo: string) {
     HORA_CREDITO_PREVIA: {
       resumo:
         "Use para solicitar autorizacao previa de horas que poderao gerar credito.",
+      periodo: "INTERVALO",
+      detalhes: "BANCO_HORAS",
+    },
+    FOLGA_BANCO_HORAS: {
+      resumo:
+        "Use para solicitar folga futura com base no saldo de banco de horas.",
       periodo: "INTERVALO",
       detalhes: "BANCO_HORAS",
     },
@@ -190,7 +206,7 @@ function validarEtapaFormulario(etapa: number, formData: FormData) {
       }
     }
 
-    if (["COMPENSACAO", "HORA_CREDITO_PREVIA"].includes(tipo)) {
+    if (tipo === "HORA_CREDITO_PREVIA") {
       if (!formData.get("horasSolicitadas")) {
         falhas.push("Informe a quantidade de horas.");
       }
@@ -521,12 +537,18 @@ export function SolicitacaoForm() {
             <>
               <div className="space-y-2">
                 <label htmlFor="dataInicio" className="text-sm font-semibold">
-                  Data/hora inicial
+                  {usaPeriodoPorData(tipoSelecionado)
+                    ? "Data inicial"
+                    : "Data/hora inicial"}
                 </label>
                 <input
                   id="dataInicio"
                   name="dataInicio"
-                  type="datetime-local"
+                  type={
+                    usaPeriodoPorData(tipoSelecionado)
+                      ? "date"
+                      : "datetime-local"
+                  }
                   defaultValue={campos?.dataInicio ?? ""}
                   className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
                   aria-required={exigePeriodo}
@@ -540,12 +562,18 @@ export function SolicitacaoForm() {
 
               <div className="space-y-2">
                 <label htmlFor="dataFim" className="text-sm font-semibold">
-                  Data/hora final
+                  {usaPeriodoPorData(tipoSelecionado)
+                    ? "Data final"
+                    : "Data/hora final"}
                 </label>
                 <input
                   id="dataFim"
                   name="dataFim"
-                  type="datetime-local"
+                  type={
+                    usaPeriodoPorData(tipoSelecionado)
+                      ? "date"
+                      : "datetime-local"
+                  }
                   defaultValue={campos?.dataFim ?? ""}
                   className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
                   aria-required={exigePeriodo}
@@ -649,26 +677,36 @@ export function SolicitacaoForm() {
                 </div>
               )}
 
-              <div className="space-y-2">
-                <label htmlFor="horasSolicitadas" className="text-sm font-semibold">
-                  Quantidade de horas
-                </label>
-                <input
-                  id="horasSolicitadas"
-                  name="horasSolicitadas"
-                  type="number"
-                  min="0.25"
-                  max="16"
-                  step="0.25"
-                  defaultValue={campos?.horasSolicitadas ?? ""}
-                  className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-                />
-                {erro(estado, "horasSolicitadas") && (
-                  <p className="text-sm text-red-600">
-                    {erro(estado, "horasSolicitadas")}
-                  </p>
-                )}
-              </div>
+              {tipoSelecionado === "HORA_CREDITO_PREVIA" ? (
+                <div className="space-y-2">
+                  <label
+                    htmlFor="horasSolicitadas"
+                    className="text-sm font-semibold"
+                  >
+                    Quantidade de horas
+                  </label>
+                  <input
+                    id="horasSolicitadas"
+                    name="horasSolicitadas"
+                    type="number"
+                    min="0.25"
+                    max="16"
+                    step="0.25"
+                    defaultValue={campos?.horasSolicitadas ?? ""}
+                    className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+                  />
+                  {erro(estado, "horasSolicitadas") && (
+                    <p className="text-sm text-red-600">
+                      {erro(estado, "horasSolicitadas")}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-lg border bg-[var(--muted)] p-4 text-sm leading-6 text-[var(--muted-foreground)] md:col-span-2">
+                  O sistema calculara os minutos aplicaveis a partir do periodo
+                  informado e das pendencias/reflexos da apuracao.
+                </div>
+              )}
             </>
           )}
 

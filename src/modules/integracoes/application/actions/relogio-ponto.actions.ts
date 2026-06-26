@@ -3,18 +3,42 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { usuarioPossuiPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
+import { prisma } from "@/shared/infrastructure/database/prisma";
 import {
   capturarTodasMarcacoesRelogioPontoService,
   coletarMarcacoesRelogioPontoService,
   configurarEventosOnlineRelogioPontoService,
   consultarSaudeRelogioPontoService,
   enviarBiometriaRelogioPontoService,
+  listarCadastrosBiometricosEquipamentoService,
   reprocessarMarcacoesRelogioPontoService,
+  sincronizarBiometriasEquipamentosOrgaoService,
 } from "../services/relogios-ponto/relogio-ponto-operacoes.service";
 
 export type RelogioPontoActionState = {
   sucesso: boolean;
   mensagem: string | null;
+  cadastros?: Array<{
+    codigo?: string | null;
+    cpf?: string | null;
+    nome?: string | null;
+    matricula: string;
+    cartoes?: string[];
+    templates?: number;
+  }>;
+  sincronizacao?: {
+    lidos: number;
+    comTemplate: number;
+    ignoradosSemTemplate: number;
+    destinos: Array<{
+      codigo: string;
+      nome: string;
+      sucesso: boolean;
+      mensagem: string;
+      enviados: number;
+      rejeitados: number;
+    }>;
+  };
 };
 
 async function podeGerenciarIntegracoes() {
@@ -41,6 +65,67 @@ async function podeGerenciarIntegracoes() {
       : "Voce nao possui permissao para gerenciar equipamentos.",
     usuarioId: session.user.id,
   };
+}
+
+function variantesMatricula(valor: string) {
+  const limpo = valor.trim();
+  const semZeros = limpo.replace(/^0+(?=\d)/, "");
+  return Array.from(new Set([limpo, semZeros].filter(Boolean)));
+}
+
+async function enriquecerCadastrosComServidores(
+  cadastros: NonNullable<RelogioPontoActionState["cadastros"]>,
+) {
+  const matriculas = Array.from(
+    new Set(cadastros.flatMap((cadastro) => variantesMatricula(cadastro.matricula))),
+  );
+
+  if (matriculas.length === 0) {
+    return cadastros;
+  }
+
+  const servidores = await prisma.servidor.findMany({
+    where: {
+      matricula: {
+        in: matriculas,
+      },
+    },
+    select: {
+      matricula: true,
+      cpf: true,
+      nomeFuncional: true,
+      nomeCompletoSarh: true,
+      usuario: {
+        select: {
+          nome: true,
+        },
+      },
+    },
+  });
+  const servidoresPorMatricula = new Map(
+    servidores.map((servidor) => [servidor.matricula, servidor]),
+  );
+
+  return cadastros.map((cadastro) => {
+    const servidor = variantesMatricula(cadastro.matricula)
+      .map((matricula) => servidoresPorMatricula.get(matricula))
+      .find(Boolean);
+
+    if (!servidor) {
+      return cadastro;
+    }
+
+    return {
+      ...cadastro,
+      cpf: cadastro.cpf ?? servidor.cpf ?? null,
+      nome:
+        cadastro.nome ??
+        servidor.nomeFuncional ??
+        servidor.nomeCompletoSarh ??
+        servidor.usuario.nome,
+      matricula: servidor.matricula || cadastro.matricula,
+    };
+  });
 }
 
 export async function consultarSaudeRelogioPontoAction(
@@ -257,7 +342,10 @@ export async function enviarBiometriaRelogioPontoAction(
     const formato = String(formData.get("formato") ?? "SUPREMA") as
       | "SUPREMA"
       | "FS_SWIPE_SINATRA"
-      | "HENRY_RAW";
+      | "HENRY_RAW"
+      | "DIMEP_RAW"
+      | "ISO_19794_2"
+      | "ANSI_378";
 
     if (!matricula || !template) {
       return {
@@ -287,6 +375,114 @@ export async function enviarBiometriaRelogioPontoAction(
         error instanceof Error
           ? error.message
           : "Nao foi possivel enviar biometria ao equipamento.",
+    };
+  }
+}
+
+export async function listarCadastrosBiometricosEquipamentoAction(
+  _estado: RelogioPontoActionState,
+  formData: FormData,
+): Promise<RelogioPontoActionState> {
+  const permissao = await podeGerenciarIntegracoes();
+  if (!permissao.autorizado) {
+    return { sucesso: false, mensagem: permissao.mensagem };
+  }
+
+  try {
+    const equipamentoId = String(formData.get("equipamentoId") ?? "");
+    const quantidade = Number(formData.get("quantidadeCadastros") ?? 25);
+    const indiceInicial =
+      String(formData.get("indiceInicialCadastros") ?? "").trim() || 0;
+    const incluirTemplates = formData.get("incluirTemplates") === "on";
+    const resultado = await listarCadastrosBiometricosEquipamentoService({
+      equipamentoId,
+      quantidade,
+      indiceInicial,
+      incluirTemplates,
+    });
+
+    const cadastros = await enriquecerCadastrosComServidores(
+      resultado.cadastros.map((cadastro) => ({
+        codigo: cadastro.codigo ?? null,
+        cpf: cadastro.cpf ?? null,
+        nome: cadastro.nome ?? null,
+        matricula: cadastro.matricula,
+        cartoes: cadastro.cartoes ?? [],
+        templates: cadastro.templates?.length ?? 0,
+      })),
+    );
+
+    return {
+      sucesso: true,
+      mensagem: resultado.mensagem,
+      cadastros,
+    };
+  } catch (error) {
+    return {
+      sucesso: false,
+      mensagem:
+        error instanceof Error
+          ? error.message
+          : "Nao foi possivel ler os cadastros do equipamento.",
+    };
+  }
+}
+
+export async function sincronizarBiometriasEquipamentosOrgaoAction(
+  _estado: RelogioPontoActionState,
+  formData: FormData,
+): Promise<RelogioPontoActionState> {
+  const permissao = await podeGerenciarIntegracoes();
+  if (!permissao.autorizado) {
+    return { sucesso: false, mensagem: permissao.mensagem };
+  }
+
+  try {
+    const confirmado = formData.get("confirmarSincronizacaoBiometria") === "on";
+
+    if (!confirmado) {
+      return {
+        sucesso: false,
+        mensagem: "Confirme a sincronizacao antes de executar.",
+      };
+    }
+
+    const equipamentoId = String(formData.get("equipamentoId") ?? "");
+    const quantidade = Number(formData.get("quantidadeSincronizacao") ?? 100);
+    const indiceInicial =
+      String(formData.get("indiceInicialSincronizacao") ?? "").trim() || 0;
+    const resultado = await sincronizarBiometriasEquipamentosOrgaoService({
+      equipamentoOrigemId: equipamentoId,
+      quantidade,
+      indiceInicial,
+    });
+
+    revalidatePath("/equipamentos");
+
+    return {
+      sucesso: resultado.destinos.every((destino) => destino.sucesso),
+      mensagem: `${resultado.comTemplate} cadastro(s) com biometria sincronizavel(is); ${resultado.destinos.length} equipamento(s) destino no orgao.`,
+      sincronizacao: {
+        lidos: resultado.lidos,
+        comTemplate: resultado.comTemplate,
+        ignoradosSemTemplate: resultado.ignoradosSemTemplate,
+        destinos: resultado.destinos.map((destino) => ({
+          codigo: destino.codigo,
+          nome: destino.nome,
+          sucesso: destino.sucesso,
+          mensagem: destino.mensagem,
+          enviados: destino.enviados,
+          rejeitados: destino.rejeitados,
+        })),
+      },
+    };
+  } catch (error) {
+    return {
+      sucesso: false,
+      mensagem:
+        error instanceof Error
+          ? error.message
+          : "Nao foi possivel sincronizar biometrias entre equipamentos.",
     };
   }
 }

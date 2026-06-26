@@ -36,6 +36,7 @@ export async function AppShell({ children }: AppShellProps) {
       session.user.name ||
       "Usuario SECP",
     matricula: session.user.matricula,
+    preferenciasAcessibilidade: session.user.preferenciasAcessibilidade,
     unidade:
       lotacaoAtual?.unidade.nome ??
       lotacaoAtual?.unidade.sigla ??
@@ -53,10 +54,15 @@ export async function AppShell({ children }: AppShellProps) {
       permissoes: perfil.permissoes,
     })),
   };
+  const chavePerfilAtivo = [
+    session.user.id,
+    perfilAtivo.codigo,
+    ...perfilAtivo.permissoes,
+  ].join("-");
 
   return (
     <AppShellClient
-      key={`${session.user.id}-${perfilAtivo.codigo}`}
+      key={chavePerfilAtivo}
       usuario={usuario}
       totalNotificacoes={totalNotificacoes}
       onLogout={logoutAction}

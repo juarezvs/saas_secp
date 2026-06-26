@@ -1,4 +1,5 @@
 import { normalizarDataReferencia } from "@/modules/apuracao/application/services/calcular-tempo.service";
+import { calcularCargaPrevistaComJanela } from "@/modules/apuracao/application/services/expediente.service";
 import {
   carregarCalendarioInstitucionalPeriodo,
   classificarDiaInstitucional,
@@ -90,7 +91,15 @@ export async function calcularCargaMensalEsperada(params: {
           dias.push({
             dataReferencia,
             jornadaServidorId: jornada.id,
-            cargaPrevistaMinutos: jornada.jornada.cargaDiariaMinutos,
+            cargaPrevistaMinutos: calcularCargaPrevistaComJanela(
+              jornada.jornada.cargaDiariaMinutos,
+              classificacao.janelaInicio && classificacao.janelaFim
+                ? {
+                    inicio: classificacao.janelaInicio,
+                    fim: classificacao.janelaFim,
+                  }
+                : null,
+            ),
           });
           datasCalculadas.add(chave);
         }

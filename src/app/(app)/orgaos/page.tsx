@@ -1,8 +1,10 @@
-import { Landmark } from "lucide-react";
+import Link from "next/link";
+import { Edit, Landmark, Plus } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { listarFusosHorariosAtivos } from "@/modules/fusos-horarios/infrastructure/repositories/fuso-horario.repository";
 import { listarOrgaosPaginado } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
 import { OrgaosListagemControles } from "@/modules/orgaos/presentation/components/orgaos-listagem-controles";
 
@@ -13,6 +15,7 @@ type OrgaosPageProps = {
     nome?: string;
     codigoExternoSarh?: string;
     status?: string;
+    fusoHorario?: string;
     pagina?: string;
     itensPorPagina?: string;
   }>;
@@ -25,15 +28,19 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
 
-  const resultado = await listarOrgaosPaginado({
-    busca: params.busca ?? "",
-    sigla: params.sigla ?? "",
-    nome: params.nome ?? "",
-    codigoExternoSarh: params.codigoExternoSarh ?? "",
-    status: params.status ?? "",
-    pagina,
-    itensPorPagina,
-  });
+  const [resultado, fusosHorarios] = await Promise.all([
+    listarOrgaosPaginado({
+      busca: params.busca ?? "",
+      sigla: params.sigla ?? "",
+      nome: params.nome ?? "",
+      codigoExternoSarh: params.codigoExternoSarh ?? "",
+      status: params.status ?? "",
+      fusoHorario: params.fusoHorario ?? "",
+      pagina,
+      itensPorPagina,
+    }),
+    listarFusosHorariosAtivos(),
+  ]);
 
   const exportParams = new URLSearchParams();
 
@@ -43,6 +50,7 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
     "nome",
     "codigoExternoSarh",
     "status",
+    "fusoHorario",
   ] as const) {
     if (params[chave]) {
       exportParams.set(chave, params[chave]!);
@@ -76,6 +84,16 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
         regraDescricao="A estrutura de órgãos organiza a abrangência administrativa do SECP e sustenta cadastros funcionais, unidades organizacionais e sincronizações externas."
       />
 
+      <div className="flex justify-end">
+        <Link
+          href="/orgaos/novo"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-blue-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-950"
+        >
+          <Plus className="size-4" aria-hidden="true" />
+          Novo orgao
+        </Link>
+      </div>
+
       <DataTableShell
         title="Órgãos cadastrados"
         description="Use a pesquisa geral ou filtre por sigla, nome, código SARH e status."
@@ -88,11 +106,12 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
           <OrgaosListagemControles
             exportCsvHref={`/api/orgaos/export?${exportParams.toString()}`}
             exportPdfHref={`/api/orgaos/export/pdf?${exportParams.toString()}`}
+            fusosHorarios={fusosHorarios}
           />
         }
       >
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[880px] text-left text-sm">
+          <table className="w-full min-w-[980px] text-left text-sm">
             <caption className="sr-only">
               Listagem de órgãos com sigla, nome, código SARH, unidades,
               servidores, status e datas de sincronização.
@@ -104,8 +123,10 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
                 <th className="px-5 py-3">Código SARH</th>
                 <th className="px-5 py-3">Unidades</th>
                 <th className="px-5 py-3">Servidores</th>
+                <th className="px-5 py-3">Fuso</th>
                 <th className="px-5 py-3">Última sincronização</th>
                 <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3 text-right">Acoes</th>
               </tr>
             </thead>
 
@@ -123,6 +144,7 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
                   </td>
                   <td className="px-5 py-4">{orgao._count.unidades}</td>
                   <td className="px-5 py-4">{orgao._count.servidores}</td>
+                  <td className="px-5 py-4">{orgao.fusoHorario ?? "-"}</td>
                   <td className="px-5 py-4">
                     {orgao.ultimaSincronizacaoSarh
                       ? new Intl.DateTimeFormat("pt-BR", {
@@ -142,13 +164,22 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
                       {orgao.ativo ? "Ativo" : "Inativo"}
                     </span>
                   </td>
+                  <td className="px-5 py-4 text-right">
+                    <Link
+                      href={`/orgaos/${orgao.id}/editar`}
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-blue-900 hover:underline dark:text-blue-300"
+                    >
+                      <Edit className="size-4" aria-hidden="true" />
+                      Editar
+                    </Link>
+                  </td>
                 </tr>
               ))}
 
               {resultado.orgaos.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={9}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
                     Nenhum órgão encontrado para os filtros informados.

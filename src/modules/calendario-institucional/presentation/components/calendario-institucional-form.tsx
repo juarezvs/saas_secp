@@ -19,6 +19,10 @@ type CalendarioInstitucionalFormProps = {
     tipo?: string;
     contaComoDiaUtil?: boolean;
     geraApuracaoRegular?: boolean;
+    janelaInicio?: string | null;
+    janelaFim?: string | null;
+    dataOriginal?: string | null;
+    dataSubstituida?: boolean;
     observacao?: string | null;
     ativo?: boolean;
   };
@@ -33,7 +37,7 @@ const estadoInicial: CalendarioInstitucionalFormState = {
 const rotulosTipo: Record<string, string> = {
   FERIADO: "Feriado",
   PONTO_FACULTATIVO: "Ponto facultativo",
-  SUSPENSAO_EXPEDIENTE: "Suspensão do expediente",
+  SUSPENSAO_EXPEDIENTE: "Suspensao do expediente",
 };
 
 function erro(estado: CalendarioInstitucionalFormState, campo: string) {
@@ -61,13 +65,15 @@ export function CalendarioInstitucionalForm({
 
       <section className="rounded-xl border bg-[var(--card)] p-6 text-[var(--card-foreground)] shadow-sm">
         <h2 className="text-lg font-bold">
-          {modo === "criar" ? "Novo evento institucional" : "Editar evento institucional"}
+          {modo === "criar"
+            ? "Novo evento institucional"
+            : "Editar evento institucional"}
         </h2>
 
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <div className="space-y-2">
             <label htmlFor="dataReferencia" className="text-sm font-semibold">
-              Data
+              Data de efeito
             </label>
             <input
               id="dataReferencia"
@@ -108,14 +114,14 @@ export function CalendarioInstitucionalForm({
 
           <div className="space-y-2 md:col-span-2">
             <label htmlFor="descricao" className="text-sm font-semibold">
-              Descrição
+              Descricao
             </label>
             <input
               id="descricao"
               name="descricao"
               defaultValue={campos?.descricao ?? ""}
               className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
-              placeholder="Ex.: Corpus Christi"
+              placeholder="Ex.: Quarta-feira de cinzas"
               required
             />
             {erro(estado, "descricao") && (
@@ -131,9 +137,9 @@ export function CalendarioInstitucionalForm({
               className="size-4 rounded border-slate-300"
             />
             <span>
-              <span className="block font-semibold">Conta como dia útil</span>
+              <span className="block font-semibold">Conta como dia util</span>
               <span className="text-xs text-[var(--muted-foreground)]">
-                Afeta os prazos regulatórios de homologação e boletim.
+                Afeta os prazos regulatorios de homologacao e boletim.
               </span>
             </span>
           </label>
@@ -146,16 +152,107 @@ export function CalendarioInstitucionalForm({
               className="size-4 rounded border-slate-300"
             />
             <span>
-              <span className="block font-semibold">Gera apuração regular</span>
+              <span className="block font-semibold">Gera apuracao regular</span>
               <span className="text-xs text-[var(--muted-foreground)]">
-                Mantém a apuração ordinária do ponto no dia cadastrado.
+                Mantem apuracao ordinaria no dia cadastrado.
               </span>
             </span>
           </label>
+          {erro(estado, "geraApuracaoRegular") && (
+            <p className="text-sm text-red-600 md:col-span-2">
+              {erro(estado, "geraApuracaoRegular")}
+            </p>
+          )}
+
+          <div className="rounded-lg border bg-[var(--muted)] p-4 md:col-span-2">
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold">
+                Janela especial de expediente
+              </h3>
+              <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                Use para expediente parcial, como dias em que o expediente
+                comeca apenas no meio do dia.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="janelaInicio" className="text-sm font-semibold">
+                  Inicio
+                </label>
+                <input
+                  id="janelaInicio"
+                  name="janelaInicio"
+                  type="time"
+                  defaultValue={campos?.janelaInicio ?? ""}
+                  className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+                />
+                {erro(estado, "janelaInicio") && (
+                  <p className="text-sm text-red-600">
+                    {erro(estado, "janelaInicio")}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="janelaFim" className="text-sm font-semibold">
+                  Fim
+                </label>
+                <input
+                  id="janelaFim"
+                  name="janelaFim"
+                  type="time"
+                  defaultValue={campos?.janelaFim ?? ""}
+                  className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+                />
+                {erro(estado, "janelaFim") && (
+                  <p className="text-sm text-red-600">
+                    {erro(estado, "janelaFim")}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg border bg-[var(--muted)] p-4 md:col-span-2">
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                name="dataSubstituida"
+                defaultChecked={campos?.dataSubstituida ?? false}
+                className="size-4 rounded border-slate-300"
+              />
+              <span>
+                <span className="block font-semibold">
+                  Evento transferido de outra data
+                </span>
+                <span className="text-xs text-[var(--muted-foreground)]">
+                  Registra a data original para auditoria e replicacao anual.
+                </span>
+              </span>
+            </label>
+
+            <div className="mt-4 space-y-2">
+              <label htmlFor="dataOriginal" className="text-sm font-semibold">
+                Data original
+              </label>
+              <input
+                id="dataOriginal"
+                name="dataOriginal"
+                type="date"
+                defaultValue={campos?.dataOriginal ?? ""}
+                className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              />
+              {erro(estado, "dataOriginal") && (
+                <p className="text-sm text-red-600">
+                  {erro(estado, "dataOriginal")}
+                </p>
+              )}
+            </div>
+          </div>
 
           <div className="space-y-2 md:col-span-2">
             <label htmlFor="observacao" className="text-sm font-semibold">
-              Observação
+              Observacao
             </label>
             <textarea
               id="observacao"
@@ -163,7 +260,7 @@ export function CalendarioInstitucionalForm({
               defaultValue={campos?.observacao ?? ""}
               rows={4}
               className="w-full rounded-md border bg-[var(--card)] px-3 py-2 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
-              placeholder="Base normativa, ato administrativo ou observações operacionais."
+              placeholder="Base normativa, ato administrativo ou observacoes operacionais."
             />
             {erro(estado, "observacao") && (
               <p className="text-sm text-red-600">{erro(estado, "observacao")}</p>
@@ -180,7 +277,8 @@ export function CalendarioInstitucionalForm({
             <span>
               <span className="block font-semibold">Evento ativo</span>
               <span className="text-xs text-[var(--muted-foreground)]">
-                Eventos inativos permanecem no histórico, mas deixam de produzir efeito.
+                Eventos inativos permanecem no historico, mas deixam de produzir
+                efeito.
               </span>
             </span>
           </label>
@@ -198,7 +296,7 @@ export function CalendarioInstitucionalForm({
           ) : (
             <Save className="size-4" />
           )}
-          {modo === "criar" ? "Criar evento" : "Salvar alterações"}
+          {modo === "criar" ? "Criar evento" : "Salvar alteracoes"}
         </button>
       </div>
     </form>

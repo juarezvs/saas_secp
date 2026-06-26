@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { Sidebar, type PerfilNavegacao } from "@/components/layout/sidebar";
+import type { PreferenciasAcessibilidade } from "@/modules/auth/application/services/preferencias-acessibilidade.service";
 
 type UsuarioNavegacao = {
   nome: string;
@@ -10,6 +11,7 @@ type UsuarioNavegacao = {
   unidade: string;
   perfis: PerfilNavegacao[];
   perfilAtivo: PerfilNavegacao;
+  preferenciasAcessibilidade: PreferenciasAcessibilidade;
 };
 
 type AppShellClientProps = {
@@ -59,6 +61,7 @@ export function AppShellClient({
             sidebarRecolhida={sidebarRecolhida}
             drawerAberto={drawerAberto}
             totalNotificacoes={totalNotificacoes}
+            preferenciasAcessibilidade={usuario.preferenciasAcessibilidade}
           />
 
           <main

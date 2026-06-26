@@ -47,6 +47,7 @@ type RegistroPontoPageProps = {
   marcacoes: Array<{
     id: string;
     dataHora: string;
+    fusoHorario?: string | null;
     tipo: string;
     fonte: string;
     status: string;
@@ -223,7 +224,9 @@ export function RegistroPontoPage({
                         {obterRotuloTipoMarcacao(marcacao.tipo)}
                       </p>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                        <span>{formatarHora(marcacao.dataHora)}</span>
+                        <span>
+                          {formatarHora(marcacao.dataHora, marcacao.fusoHorario)}
+                        </span>
                         <OrigemMarcacaoIcon origem={marcacao.fonte} />
                       </div>
                     </div>
@@ -283,12 +286,12 @@ export function RegistroPontoPage({
   );
 }
 
-function formatarHora(dataHora: string) {
+function formatarHora(dataHora: string, fusoHorario?: string | null) {
   return new Intl.DateTimeFormat("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-    timeZone: "America/Manaus",
+    timeZone: fusoHorario ?? "America/Manaus",
   }).format(new Date(dataHora));
 }
 

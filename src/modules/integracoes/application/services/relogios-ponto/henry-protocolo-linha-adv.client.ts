@@ -3,6 +3,7 @@ import net from "node:net";
 import { parseLinhaAfd } from "@/modules/afd/application/services/parse-afd.service";
 import type {
   BiometriaServidorRelogioPonto,
+  CadastroBiometricoEquipamento,
   DadosConexaoRelogioPonto,
   MarcacaoRelogioPonto,
   RelogioPontoProvider,
@@ -306,6 +307,113 @@ function parseMarcacoesColetadas(dados: string) {
     linhasRecebidas: linhas.length,
     marcacoes,
     proximoNsr: maiorNsr === null ? null : String(maiorNsr + 1),
+  };
+}
+
+function separarQuantidadeRegistrosHenry(dados: string) {
+  const inicio = dados.match(/^(\d+)[+\]](.+)$/);
+
+  return {
+    quantidade: inicio ? Number(inicio[1]) : null,
+    registrosTexto: inicio ? inicio[2] : dados,
+  };
+}
+
+function parseUsuarioHenry(registro: string): CadastroBiometricoEquipamento | null {
+  const campos = registro.split("[");
+
+  if (campos.length < 2) {
+    return null;
+  }
+
+  const [
+    operacaoOuIndice,
+    indiceOuNome,
+    nomeOuReservado,
+    ,
+    qtdReferencias,
+    cartoesTexto,
+  ] = campos;
+  const operacoes = new Set(["I", "A", "E", "L"]);
+  const matricula = operacoes.has(operacaoOuIndice)
+    ? indiceOuNome
+    : operacaoOuIndice;
+  const nome = operacoes.has(operacaoOuIndice) ? nomeOuReservado : indiceOuNome;
+  const cartoes = String(cartoesTexto ?? "")
+    .split("}")
+    .map((cartao) => cartao.trim())
+    .filter(Boolean);
+
+  if (!matricula) {
+    return null;
+  }
+
+  const { cpf } = normalizarIdentificacaoHenry(matricula);
+
+  return {
+    codigo: matricula,
+    cpf,
+    matricula,
+    nome: nome || null,
+    cartoes,
+    payload: {
+      registro,
+      qtdReferencias: qtdReferencias || null,
+    },
+  };
+}
+
+function parseUsuariosHenry(dados: string) {
+  const { quantidade, registrosTexto } = separarQuantidadeRegistrosHenry(dados);
+  const registros = registrosTexto
+    .split(/\](?=[IAE]\[|\d+\[)/)
+    .map((registro) => registro.trim())
+    .filter(Boolean);
+  const cadastros = registros
+    .map(parseUsuarioHenry)
+    .filter((cadastro): cadastro is CadastroBiometricoEquipamento =>
+      Boolean(cadastro),
+    );
+
+  return {
+    quantidade,
+    registrosLidos: registros.length,
+    cadastros,
+  };
+}
+
+function parseListaBiometriasHenry(dados: string) {
+  const { registrosTexto } = separarQuantidadeRegistrosHenry(dados);
+
+  return registrosTexto
+    .split(/[}\]\[]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .filter((item) => /^\d+$/.test(item));
+}
+
+function parseTemplatesBiometriaHenry(dados: string) {
+  const [, corpo = dados] = dados.split("]");
+  const [matricula, restante = ""] = corpo.split("}");
+  const partes = restante.split("{").filter(Boolean);
+  const templates: NonNullable<CadastroBiometricoEquipamento["templates"]> = [];
+
+  for (let index = 0; index < partes.length; index += 2) {
+    const dedo = partes[index];
+    const template = partes[index + 1];
+
+    if (template) {
+      templates.push({
+        dedo,
+        template,
+        formato: "HENRY_RAW",
+      });
+    }
+  }
+
+  return {
+    matricula: matricula || null,
+    templates,
   };
 }
 
@@ -636,6 +744,97 @@ export class HenryProtocoloLinhaAdvClient implements RelogioPontoProvider {
           quantidadeLida: resultado.quantidadeLida,
           linhasRecebidas: resultado.linhasRecebidas,
           resposta: resposta.dados,
+        },
+      };
+    } finally {
+      this.encerrar();
+    }
+  }
+
+  async listarCadastrosBiometricos(params?: {
+    indiceInicial?: string | number;
+    quantidade?: number;
+    incluirTemplates?: boolean;
+  }) {
+    try {
+      const quantidade = Math.min(Math.max(Number(params?.quantidade ?? 25), 1), 500);
+      const indiceInicial = params?.indiceInicial ?? 0;
+      const timeoutLeituraMs = Math.min(
+        Math.max(this.timeoutMs, quantidade * 350),
+        120000,
+      );
+      const respostaUsuarios = await this.enviarComando(
+        "RU",
+        `${quantidade}]${indiceInicial}`,
+        true,
+        timeoutLeituraMs,
+      );
+      const resultadoUsuarios = parseUsuariosHenry(respostaUsuarios.dados);
+      let cadastros = resultadoUsuarios.cadastros;
+      let matriculasComBiometria: string[] = [];
+
+      if (params?.incluirTemplates) {
+        const respostaLista = await this.enviarComando(
+          "RD",
+          `L]${quantidade}}${indiceInicial}`,
+          true,
+          timeoutLeituraMs,
+        ).catch(() => null);
+        matriculasComBiometria = respostaLista
+          ? parseListaBiometriasHenry(respostaLista.dados)
+          : [];
+
+        const cadastrosPorMatricula = new Map(
+          cadastros.map((cadastro) => [cadastro.matricula, cadastro]),
+        );
+        const matriculasParaLer = Array.from(
+          new Set([
+            ...cadastros.map((cadastro) => cadastro.matricula),
+            ...matriculasComBiometria,
+          ]),
+        );
+
+        for (const matricula of matriculasParaLer) {
+          const respostaTemplate = await this.enviarComando(
+            "RD",
+            `D]${matricula}`,
+            true,
+            this.timeoutMs,
+          ).catch(() => null);
+
+          if (!respostaTemplate) {
+            continue;
+          }
+
+          const biometria = parseTemplatesBiometriaHenry(respostaTemplate.dados);
+          const matriculaCadastro = biometria.matricula ?? matricula;
+          const existente = cadastrosPorMatricula.get(matriculaCadastro) ??
+            cadastrosPorMatricula.get(matricula);
+
+          cadastrosPorMatricula.set(matriculaCadastro, {
+            codigo: existente?.codigo ?? matriculaCadastro,
+            cpf: existente?.cpf ?? null,
+            matricula: matriculaCadastro,
+            nome: existente?.nome ?? null,
+            cartoes: existente?.cartoes ?? [],
+            templates: biometria.templates,
+            payload: existente?.payload,
+          });
+        }
+
+        cadastros = Array.from(cadastrosPorMatricula.values());
+      }
+
+      return {
+        cadastros,
+        mensagem: `${cadastros.length} cadastro(s) lido(s) do relogio Henry.`,
+        payload: {
+          protocolo: "HENRY_LINHA_ADV",
+          quantidadeSolicitada: quantidade,
+          indiceInicial,
+          quantidadeInformada: resultadoUsuarios.quantidade,
+          registrosLidos: resultadoUsuarios.registrosLidos,
+          matriculasComBiometria,
         },
       };
     } finally {

@@ -12,6 +12,7 @@ import {
   type CalendarioInstitucionalFormState,
   type CalendarioInstitucionalInput,
 } from "../schemas/calendario-institucional.schema";
+import { enfileirarReflexosCalendarioInstitucional } from "../queues/calendario-institucional-queue";
 
 function valorOpcionalString(valor: FormDataEntryValue | null) {
   return String(valor ?? "").trim();
@@ -40,6 +41,12 @@ function extrairDadosCalendario(
     geraApuracaoRegular:
       formData.get("geraApuracaoRegular") === "on" ||
       formData.get("geraApuracaoRegular") === "true",
+    janelaInicio: valorOpcionalString(formData.get("janelaInicio")),
+    janelaFim: valorOpcionalString(formData.get("janelaFim")),
+    dataOriginal: valorOpcionalString(formData.get("dataOriginal")),
+    dataSubstituida:
+      formData.get("dataSubstituida") === "on" ||
+      formData.get("dataSubstituida") === "true",
     observacao: valorOpcionalString(formData.get("observacao")),
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
   };
@@ -54,6 +61,9 @@ function revalidarRotasRelacionadas() {
   revalidatePath("/administracao/calendario");
   revalidatePath("/homologacao");
   revalidatePath("/boletim-frequencia");
+  revalidatePath("/espelho-ponto");
+  revalidatePath("/banco-horas");
+  revalidatePath("/relatorios");
 }
 
 export async function criarCalendarioInstitucionalAction(
@@ -102,6 +112,12 @@ export async function criarCalendarioInstitucionalAction(
         tipo: parsed.data.tipo,
         contaComoDiaUtil: parsed.data.contaComoDiaUtil,
         geraApuracaoRegular: parsed.data.geraApuracaoRegular,
+        janelaInicio: parsed.data.janelaInicio || null,
+        janelaFim: parsed.data.janelaFim || null,
+        dataOriginal: parsed.data.dataOriginal
+          ? dataIsoParaUtc(parsed.data.dataOriginal)
+          : null,
+        dataSubstituida: parsed.data.dataSubstituida,
         observacao: parsed.data.observacao || null,
         ativo: parsed.data.ativo,
       },
@@ -118,6 +134,15 @@ export async function criarCalendarioInstitucionalAction(
     });
 
     return novoEvento;
+  });
+
+  await enfileirarReflexosCalendarioInstitucional({
+    calendarioId: evento.id,
+    datasReferencia: [
+      evento.dataReferencia,
+      ...(evento.dataOriginal ? [evento.dataOriginal] : []),
+    ],
+    usuarioIdAuditoria: permissao.usuarioId,
   });
 
   revalidarRotasRelacionadas();

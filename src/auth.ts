@@ -4,9 +4,14 @@ import { cookies } from "next/headers";
 
 import { PERFIL_ATIVO_COOKIE } from "@/modules/auth/domain/constants/perfil-ativo-cookie";
 import { loginSchema } from "@/modules/auth/application/schemas/login.schema";
+import {
+  PREFERENCIAS_ACESSIBILIDADE_PADRAO,
+  normalizarPreferenciasAcessibilidade,
+} from "@/modules/auth/application/services/preferencias-acessibilidade.service";
 import { aplicarExcecoesRegistroPontoAoPerfilServidor } from "@/modules/auth/application/services/perfil-excecao-registro-ponto.service";
 import { autenticarUsuarioPorCredenciais } from "@/modules/auth/application/services/autenticar-usuario.service";
 import { escolherPerfilInicial } from "@/modules/auth/application/services/perfil-servidor-prioritario.service";
+import { buscarUsuarioParaLoginPorMatricula } from "@/modules/auth/infrastructure/repositories/usuario-auth.repository";
 import type { UsuarioAutenticado } from "@/modules/auth/domain/entities/usuario-autenticado";
 
 type PerfilSessao = UsuarioAutenticado["perfis"][number];
@@ -101,6 +106,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           email: usuario.email,
           matricula: usuario.matricula,
           tipo: usuario.tipo,
+          preferenciasAcessibilidade: usuario.preferenciasAcessibilidade,
           perfis: usuario.perfis,
           perfilAtivo: usuario.perfilAtivo,
         };
@@ -119,6 +125,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.matricula = usuario.matricula;
         token.nome = usuario.nome ?? usuario.name ?? "";
         token.tipo = usuario.tipo;
+        token.preferenciasAcessibilidade = usuario.preferenciasAcessibilidade;
         token.perfis = usuario.perfis;
         token.perfilAtivo = usuario.perfilAtivo;
       }
@@ -127,8 +134,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
 
     async session({ session, token }) {
-      const perfis = normalizarPerfisSessao(token.perfis);
-      const perfilAtivoToken = normalizarPerfilAtivoSessao(token.perfilAtivo);
+      const usuarioAtual = await buscarUsuarioParaLoginPorMatricula(
+        String(token.matricula),
+      );
+      const perfis = usuarioAtual
+        ? usuarioAtual.perfis
+        : normalizarPerfisSessao(token.perfis);
+      const perfilAtivoToken = usuarioAtual
+        ? usuarioAtual.perfilAtivo
+        : normalizarPerfilAtivoSessao(token.perfilAtivo);
       const perfilAtivoCookie = await obterCodigoPerfilAtivoCookie();
       const perfilAtivoTokenVisivel = perfilAtivoToken
         ? (perfis.find((perfil) => perfil.codigo === perfilAtivoToken.codigo) ??
@@ -138,15 +152,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         perfis.find((perfil) => perfil.codigo === perfilAtivoCookie) ??
         perfilAtivoTokenVisivel;
       const perfilAtivo = escolherPerfilInicial({
-        tipoUsuario: String(token.tipo),
+        tipoUsuario: usuarioAtual?.tipo ?? String(token.tipo),
         perfis,
         perfilPreferido: perfilAtivoPreferido,
       });
 
-      session.user.id = String(token.id);
-      session.user.matricula = String(token.matricula);
-      session.user.nome = String(token.nome);
-      session.user.tipo = String(token.tipo);
+      session.user.id = usuarioAtual?.id ?? String(token.id);
+      session.user.matricula = usuarioAtual?.matricula ?? String(token.matricula);
+      session.user.nome = usuarioAtual?.nome ?? String(token.nome);
+      session.user.tipo = usuarioAtual?.tipo ?? String(token.tipo);
+      session.user.preferenciasAcessibilidade =
+        usuarioAtual?.preferenciasAcessibilidade ??
+        normalizarPreferenciasAcessibilidade(
+          token.preferenciasAcessibilidade ??
+            PREFERENCIAS_ACESSIBILIDADE_PADRAO,
+        );
       session.user.perfis = perfis;
       session.user.perfilAtivo = perfilAtivo;
 

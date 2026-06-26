@@ -1,16 +1,22 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
-
-const TIME_ZONE_MANAUS = "America/Manaus";
+import { FUSO_HORARIO_PADRAO } from "@/modules/marcacoes/application/services/data-marcacao.service";
+import { resolverFusoHorarioUnidade } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 
 type UnidadeCaminho = {
   id: string;
   sigla: string;
   unidadePaiId: string | null;
+  fusoHorario?: string | null;
+  orgao?: {
+    sigla?: string | null;
+    fusoHorario?: string | null;
+  } | null;
 };
 
 export type DashboardServidorContexto = {
   dataExtenso: string;
   horaReferencia: string;
+  fusoHorario: string;
   unidade: string;
 };
 
@@ -18,23 +24,26 @@ function capitalizarPrimeiraLetra(valor: string) {
   return valor.charAt(0).toLocaleUpperCase("pt-BR") + valor.slice(1);
 }
 
-function formatarDataExtenso(referencia: Date) {
+function formatarDataExtenso(referencia: Date, fusoHorario = FUSO_HORARIO_PADRAO) {
   const data = new Intl.DateTimeFormat("pt-BR", {
     weekday: "long",
     day: "2-digit",
     month: "long",
     year: "numeric",
-    timeZone: TIME_ZONE_MANAUS,
+    timeZone: fusoHorario,
   }).format(referencia);
 
   return capitalizarPrimeiraLetra(data);
 }
 
-function formatarHoraReferencia(referencia: Date) {
+function formatarHoraReferencia(
+  referencia: Date,
+  fusoHorario = FUSO_HORARIO_PADRAO,
+) {
   return new Intl.DateTimeFormat("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: TIME_ZONE_MANAUS,
+    timeZone: fusoHorario,
   }).format(referencia);
 }
 
@@ -59,11 +68,32 @@ async function buscarCaminhoUnidade(unidadeInicial: UnidadeCaminho) {
         id: true,
         sigla: true,
         unidadePaiId: true,
+        fusoHorario: true,
+        orgao: {
+          select: {
+            fusoHorario: true,
+          },
+        },
       },
     });
   }
 
   return caminho;
+}
+
+function montarUnidadeComPais(unidades: UnidadeCaminho[]) {
+  let unidadeComPai: (UnidadeCaminho & {
+    unidadePai?: UnidadeCaminho | null;
+  }) | null = null;
+
+  for (const unidade of unidades) {
+    unidadeComPai = {
+      ...unidade,
+      unidadePai: unidadeComPai,
+    };
+  }
+
+  return unidadeComPai;
 }
 
 function montarArvoreLotacao(
@@ -92,12 +122,6 @@ export async function buscarContextoDashboardServidor(
   usuarioId: string,
   referencia = new Date(),
 ): Promise<DashboardServidorContexto> {
-  const contextoBase = {
-    dataExtenso: formatarDataExtenso(referencia),
-    horaReferencia: formatarHoraReferencia(referencia),
-    unidade: "Lotacao nao informada",
-  };
-
   const servidor = await prisma.servidor.findUnique({
     where: {
       usuarioId,
@@ -122,9 +146,11 @@ export async function buscarContextoDashboardServidor(
               id: true,
               sigla: true,
               unidadePaiId: true,
+              fusoHorario: true,
               orgao: {
                 select: {
                   sigla: true,
+                  fusoHorario: true,
                 },
               },
             },
@@ -135,12 +161,20 @@ export async function buscarContextoDashboardServidor(
   });
 
   const unidadeAtual = servidor?.lotacoes[0]?.unidade;
+  const caminhoUnidade = unidadeAtual ? await buscarCaminhoUnidade(unidadeAtual) : [];
+  const fusoHorario = resolverFusoHorarioUnidade(
+    montarUnidadeComPais(caminhoUnidade) ?? unidadeAtual,
+  );
+  const contextoBase = {
+    dataExtenso: formatarDataExtenso(referencia, fusoHorario),
+    horaReferencia: formatarHoraReferencia(referencia, fusoHorario),
+    fusoHorario,
+    unidade: "Lotacao nao informada",
+  };
 
   if (!unidadeAtual) {
     return contextoBase;
   }
-
-  const caminhoUnidade = await buscarCaminhoUnidade(unidadeAtual);
 
   return {
     ...contextoBase,

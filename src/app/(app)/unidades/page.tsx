@@ -4,6 +4,7 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { resolverFusoHorarioUnidade } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
 import { listarUnidadesOrganizacionaisPaginado } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
 import { UnidadesListagemControles } from "@/modules/unidades/presentation/components/unidades-listagem-controles";
@@ -113,7 +114,7 @@ export default async function UnidadesPage({
         }
       >
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] text-left text-sm">
+          <table className="w-full min-w-[1080px] text-left text-sm">
             <caption className="sr-only">
               Listagem de unidades com sigla, nome, tipo, órgão, unidade
               superior, contadores, status e ações.
@@ -125,6 +126,7 @@ export default async function UnidadesPage({
                 <th className="px-5 py-3">Tipo</th>
                 <th className="px-5 py-3">Órgão</th>
                 <th className="px-5 py-3">Superior</th>
+                <th className="px-5 py-3">Fuso</th>
                 <th className="px-5 py-3">Subunidades</th>
                 <th className="px-5 py-3">Lotados</th>
                 <th className="px-5 py-3">Status</th>
@@ -150,6 +152,16 @@ export default async function UnidadesPage({
                   <td className="px-5 py-4">{unidade.orgao.sigla}</td>
                   <td className="px-5 py-4">
                     {unidade.unidadePai ? unidade.unidadePai.sigla : "-"}
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="font-mono text-xs">
+                      {resolverFusoHorarioUnidade(unidade)}
+                    </div>
+                    {!unidade.fusoHorario && (
+                      <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                        Herdado
+                      </div>
+                    )}
                   </td>
                   <td className="px-5 py-4">{unidade._count.unidadesFilhas}</td>
                   <td className="px-5 py-4">{unidade._count.lotacoes}</td>
@@ -178,7 +190,7 @@ export default async function UnidadesPage({
               {resultado.unidades.length === 0 && (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
                     Nenhuma unidade encontrada para os filtros informados.

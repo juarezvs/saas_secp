@@ -2,6 +2,8 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 import { recalcularDiaServidorService } from "./recalcular-dia-servidor.service";
 import { regerarBancoHorasMesService } from "./regerar-banco-horas-mes.service";
 import { carregarCalendarioInstitucionalPeriodo } from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
+import { normalizarFusoHorario } from "@/modules/marcacoes/application/services/data-marcacao.service";
+import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import {
   listarDatasImpactadasSolicitacao,
   TIPOS_SOLICITACAO_COM_EFEITO_APURACAO,
@@ -48,6 +50,80 @@ function adicionarDatasNoIntervalo(
   }
 }
 
+function hojeNoFuso(fusoHorario?: string | null) {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: normalizarFusoHorario(fusoHorario),
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const ano = Number(partes.find((parte) => parte.type === "year")?.value);
+  const mes = Number(partes.find((parte) => parte.type === "month")?.value);
+  const dia = Number(partes.find((parte) => parte.type === "day")?.value);
+
+  return new Date(Date.UTC(ano, mes - 1, dia));
+}
+
+function fimExclusivoRecalculo(params: {
+  inicio: Date;
+  fim: Date;
+  fusoHorario?: string | null;
+}) {
+  const hoje = hojeNoFuso(params.fusoHorario);
+
+  if (hoje < params.inicio) {
+    return params.inicio;
+  }
+
+  if (hoje >= params.fim) {
+    return params.fim;
+  }
+
+  const fimHoje = clonarData(hoje);
+  fimHoje.setUTCDate(fimHoje.getUTCDate() + 1);
+  return fimHoje;
+}
+
+async function removerApuracoesFuturasSemMarcacao(params: {
+  servidorId: string;
+  inicioExclusivo: Date;
+  fim: Date;
+}) {
+  if (params.inicioExclusivo >= params.fim) {
+    return 0;
+  }
+
+  const marcacoesFuturas = await prisma.marcacao.findMany({
+    where: {
+      servidorId: params.servidorId,
+      dataReferencia: {
+        gte: params.inicioExclusivo,
+        lt: params.fim,
+      },
+    },
+    select: {
+      dataReferencia: true,
+    },
+    distinct: ["dataReferencia"],
+  });
+  const datasComMarcacao = marcacoesFuturas.map(
+    (marcacao) => marcacao.dataReferencia,
+  );
+  const resultado = await prisma.apuracaoDiaria.deleteMany({
+    where: {
+      servidorId: params.servidorId,
+      dataReferencia: {
+        gte: params.inicioExclusivo,
+        lt: params.fim,
+        ...(datasComMarcacao.length > 0 ? { notIn: datasComMarcacao } : {}),
+      },
+    },
+  });
+
+  return resultado.count;
+}
+
 export async function recalcularMesServidorService({
   servidorId,
   anoReferencia,
@@ -57,6 +133,15 @@ export async function recalcularMesServidorService({
 }: RecalcularMesServidorParams) {
   const inicio = new Date(Date.UTC(anoReferencia, mesReferencia - 1, 1));
   const fim = new Date(Date.UTC(anoReferencia, mesReferencia, 1));
+  const fusoHorario = await resolverFusoHorarioServidorNoBanco({
+    servidorId,
+    dataReferencia: inicio,
+  });
+  const fimRecalculo = fimExclusivoRecalculo({
+    inicio,
+    fim,
+    fusoHorario,
+  });
   const [
     marcacoes,
     apuracoesExistentes,
@@ -178,7 +263,7 @@ export async function recalcularMesServidorService({
   for (const jornada of jornadasVigentes) {
     const inicioJornada =
       jornada.dataInicio > inicio ? jornada.dataInicio : inicio;
-    const fimJornada = clonarData(fim);
+    const fimJornada = clonarData(fimRecalculo);
 
     if (jornada.dataFim && jornada.dataFim < fimJornada) {
       fimJornada.setTime(jornada.dataFim.getTime());
@@ -191,18 +276,26 @@ export async function recalcularMesServidorService({
   }
 
   for (const marcacao of marcacoes) {
-    datas.set(chaveData(marcacao.dataReferencia), marcacao.dataReferencia);
+    if (marcacao.dataReferencia < fimRecalculo) {
+      datas.set(chaveData(marcacao.dataReferencia), marcacao.dataReferencia);
+    }
   }
 
   for (const apuracao of apuracoesExistentes) {
-    if (quantidadeMarcacoesMetadados(apuracao.metadados) !== null) {
+    if (
+      apuracao.dataReferencia < fimRecalculo &&
+      quantidadeMarcacoesMetadados(apuracao.metadados) !== null
+    ) {
       datas.set(chaveData(apuracao.dataReferencia), apuracao.dataReferencia);
     }
   }
 
   for (const solicitacao of solicitacoesDeferidas) {
-    for (const dataImpactada of listarDatasImpactadasSolicitacao(solicitacao)) {
-      if (dataImpactada >= inicio && dataImpactada < fim) {
+    for (const dataImpactada of listarDatasImpactadasSolicitacao(
+      solicitacao,
+      fusoHorario,
+    )) {
+      if (dataImpactada >= inicio && dataImpactada < fimRecalculo) {
         datas.set(chaveData(dataImpactada), dataImpactada);
       }
     }
@@ -211,7 +304,7 @@ export async function recalcularMesServidorService({
   for (const dispensa of dispensasPonto) {
     const inicioDispensa =
       dispensa.dataInicio > inicio ? dispensa.dataInicio : inicio;
-    const fimDispensa = clonarData(fim);
+    const fimDispensa = clonarData(fimRecalculo);
 
     if (dispensa.dataFim && dispensa.dataFim < fimDispensa) {
       fimDispensa.setTime(dispensa.dataFim.getTime());
@@ -224,6 +317,12 @@ export async function recalcularMesServidorService({
   }
 
   if (datas.size === 0) {
+    const apuracoesAutomaticasRemovidas =
+      await removerApuracoesFuturasSemMarcacao({
+        servidorId,
+        inicioExclusivo: fimRecalculo,
+        fim,
+      });
     const bancoHoras = await regerarBancoHorasMesService({
       servidorId,
       anoReferencia,
@@ -234,7 +333,7 @@ export async function recalcularMesServidorService({
 
     return {
       diasRecalculados: 0,
-      apuracoesAutomaticasRemovidas: 0,
+      apuracoesAutomaticasRemovidas,
       bancoHoras,
     };
   }
@@ -260,10 +359,16 @@ export async function recalcularMesServidorService({
     usuarioIdAuditoria,
     origem,
   });
+  const apuracoesAutomaticasRemovidas =
+    await removerApuracoesFuturasSemMarcacao({
+      servidorId,
+      inicioExclusivo: fimRecalculo,
+      fim,
+    });
 
   return {
     diasRecalculados: resultadosDias.length,
-    apuracoesAutomaticasRemovidas: 0,
+    apuracoesAutomaticasRemovidas,
     bancoHoras,
   };
 }

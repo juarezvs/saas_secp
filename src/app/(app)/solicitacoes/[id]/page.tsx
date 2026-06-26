@@ -4,18 +4,25 @@ import { auth } from "@/auth";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { perfilEhAdministradorSistema } from "@/modules/auth/domain/constants/perfis-sistema";
 import { recalcularPosSolicitacaoAction } from "@/modules/recalculo/application/actions/recalcular-pos-solicitacao.action";
 import { analisarSolicitacaoAction } from "@/modules/solicitacoes/application/actions/analisar-solicitacao.action";
+import { excluirSolicitacaoAction } from "@/modules/solicitacoes/application/actions/excluir-solicitacao.action";
 import {
   classeStatusSolicitacao,
   rotuloStatusSolicitacao,
   rotuloTipoSolicitacao,
   solicitacaoPodeSerAnalisada,
 } from "@/modules/solicitacoes/application/services/fluxo-solicitacao.service";
+import {
+  dataPeriodoSolicitacaoParaExibicao,
+  solicitacaoUsaPeriodoDiaInteiro,
+} from "@/modules/solicitacoes/application/services/periodo-solicitacao.service";
 import { buscarSolicitacaoPorId } from "@/modules/solicitacoes/infrastructure/repositories/solicitacao.repository";
 import { AnalisarSolicitacaoForm } from "@/modules/solicitacoes/presentation/components/analisar-solicitacao-form";
 import { SolicitacaoStepper } from "@/modules/solicitacoes/presentation/components/solicitacao-stepper";
 import { SolicitacaoTimeline } from "@/modules/solicitacoes/presentation/components/solicitacao-timeline";
+import { resolverFusoHorarioUnidade } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 type SolicitacaoDetalhePageProps = {
@@ -59,6 +66,36 @@ function formatarDataReferencia(data: Date | null) {
   }).format(data);
 }
 
+function formatarDataPeriodoSolicitacao(params: {
+  tipo: string;
+  data: Date | null;
+  parte: "inicio" | "fim";
+  fusoHorario?: string | null;
+}) {
+  const dataExibicao = dataPeriodoSolicitacaoParaExibicao(
+    params.tipo,
+    params.data,
+    params.parte,
+  );
+
+  if (!dataExibicao) {
+    return "-";
+  }
+
+  if (solicitacaoUsaPeriodoDiaInteiro(params.tipo)) {
+    return new Intl.DateTimeFormat("pt-BR", {
+      dateStyle: "short",
+      timeZone: params.fusoHorario ?? "UTC",
+    }).format(dataExibicao);
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    ...(params.fusoHorario ? { timeZone: params.fusoHorario } : {}),
+  }).format(dataExibicao);
+}
+
 export default async function SolicitacaoDetalhePage({
   params,
 }: SolicitacaoDetalhePageProps) {
@@ -82,8 +119,11 @@ export default async function SolicitacaoDetalhePage({
     solicitacaoPodeSerAnalisada(solicitacao.status) &&
     (permissoes.includes("solicitacoes:analisar:chefia") ||
       permissoes.includes("solicitacoes:consultar:global"));
+  const podeExcluir = perfilEhAdministradorSistema(session?.user.perfilAtivo);
   const action = analisarSolicitacaoAction.bind(null, solicitacao.id);
+  const excluirAction = excluirSolicitacaoAction.bind(null, solicitacao.id);
   const dadosBancoHoras = obterDadosBancoHoras(solicitacao.dadosSolicitados);
+  const fusoHorario = resolverFusoHorarioUnidade(solicitacao.unidade);
 
   return (
     <div className="space-y-6">
@@ -145,19 +185,23 @@ export default async function SolicitacaoDetalhePage({
           {solicitacao.dataInicio && (
             <Info
               label="Início do período"
-              value={new Intl.DateTimeFormat("pt-BR", {
-                dateStyle: "short",
-                timeStyle: "short",
-              }).format(solicitacao.dataInicio)}
+              value={formatarDataPeriodoSolicitacao({
+                tipo: solicitacao.tipo,
+                data: solicitacao.dataInicio,
+                parte: "inicio",
+                fusoHorario,
+              })}
             />
           )}
           {solicitacao.dataFim && (
             <Info
               label="Fim do período"
-              value={new Intl.DateTimeFormat("pt-BR", {
-                dateStyle: "short",
-                timeStyle: "short",
-              }).format(solicitacao.dataFim)}
+              value={formatarDataPeriodoSolicitacao({
+                tipo: solicitacao.tipo,
+                data: solicitacao.dataFim,
+                parte: "fim",
+                fusoHorario,
+              })}
             />
           )}
           {dadosBancoHoras && (
@@ -213,6 +257,25 @@ export default async function SolicitacaoDetalhePage({
       </section>
 
       {podeAnalisar && <AnalisarSolicitacaoForm action={action} />}
+
+      {podeExcluir && (
+        <section className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-950 shadow-sm dark:border-red-900 dark:bg-red-950 dark:text-red-100">
+          <h2 className="text-lg font-bold">Excluir solicitação</h2>
+          <p className="mt-1 text-sm leading-6">
+            A exclusão remove a solicitação e seus efeitos automáticos. Depois
+            disso, o sistema recalcula os dias afetados e regenera o banco de
+            horas das competências correspondentes.
+          </p>
+          <form action={excluirAction} className="mt-4">
+            <button
+              type="submit"
+              className="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-800"
+            >
+              Excluir solicitação e recalcular efeitos
+            </button>
+          </form>
+        </section>
+      )}
 
       {solicitacao.status === "DEFERIDA" &&
         ["AJUSTE_PONTO", "HORA_CREDITO_PREVIA", "COMPENSACAO"].includes(

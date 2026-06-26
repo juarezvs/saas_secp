@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { exigirPermissao } from "@/modules/auth/application/services/permissao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import type { StatusIntegracao } from "@/generated/prisma/client";
 
 import {
   LDAP_ACTIVE_DIRECTORY_INTEGRACAO_ID,
@@ -16,6 +17,7 @@ import {
 
 function extrairDados(formData: FormData) {
   return {
+    orgaoId: String(formData.get("orgaoId") ?? "").trim(),
     modoAutenticacao: String(formData.get("modoAutenticacao") ?? "").trim(),
     nome: String(formData.get("nome") ?? "").trim(),
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
@@ -42,17 +44,18 @@ export async function atualizarLdapActiveDirectoryAction(
   if (!parsed.success) {
     return {
       sucesso: false,
-      mensagem: "Verifique os parÃ¢metros de autenticaÃ§Ã£o.",
+      mensagem: "Verifique os parâmetros de autenticação.",
       erros: parsed.error.flatten().fieldErrors,
       campos: dados,
     };
   }
 
-  const atual = await obterConfiguracaoLdapActiveDirectory();
+  const orgaoId = parsed.data.orgaoId || null;
+  const atual = await obterConfiguracaoLdapActiveDirectory(orgaoId);
   const novaSenhaBind = parsed.data.bindPassword ?? "";
   const bindPassword =
     novaSenhaBind.trim().length > 0 ? novaSenhaBind : atual.bindPassword;
-  const status = parsed.data.ativo
+  const status: StatusIntegracao = parsed.data.ativo
     ? parsed.data.modoAutenticacao === "HTTP_AD_API"
       ? parsed.data.authUrl
         ? "ATIVA"
@@ -66,54 +69,50 @@ export async function atualizarLdapActiveDirectoryAction(
       ? parsed.data.authUrl
       : parsed.data.ldapUrl;
 
-  const integracao = await prisma.integracaoSistema.upsert({
-    where: { id: LDAP_ACTIVE_DIRECTORY_INTEGRACAO_ID },
-    update: {
-      nome: parsed.data.nome,
-      tipo: "LDAP",
-      direcao: "ENTRADA",
-      status,
-      baseUrl: baseUrl || null,
-      ativo: parsed.data.ativo,
-      descricao:
-        "IntegraÃ§Ã£o usada pelo login institucional do SECP para autenticaÃ§Ã£o por LDAP/Active Directory.",
-      configuracao: {
-        modoAutenticacao: parsed.data.modoAutenticacao,
-        authUrl: parsed.data.authUrl,
-        ldapUrl: parsed.data.ldapUrl,
-        baseDn: parsed.data.baseDn,
-        dominio: parsed.data.dominio,
-        bindDn: parsed.data.bindDn,
-        bindPassword,
-        userDnPattern: parsed.data.userDnPattern,
-        searchFilter: parsed.data.searchFilter,
-        timeoutMs: parsed.data.timeoutMs,
-      },
+  const existente = orgaoId
+    ? await prisma.integracaoSistema.findFirst({
+        where: { tipo: "LDAP", orgaoId },
+        select: { id: true },
+      })
+    : await prisma.integracaoSistema.findUnique({
+        where: { id: LDAP_ACTIVE_DIRECTORY_INTEGRACAO_ID },
+        select: { id: true },
+      });
+  const dadosIntegracao = {
+    orgaoId,
+    nome: parsed.data.nome,
+    tipo: "LDAP" as const,
+    direcao: "ENTRADA" as const,
+    status,
+    baseUrl: baseUrl || null,
+    ativo: parsed.data.ativo,
+    descricao:
+      "Integração usada pelo login institucional do SECP para autenticação por LDAP/Active Directory.",
+    configuracao: {
+      modoAutenticacao: parsed.data.modoAutenticacao,
+      authUrl: parsed.data.authUrl,
+      ldapUrl: parsed.data.ldapUrl,
+      baseDn: parsed.data.baseDn,
+      dominio: parsed.data.dominio,
+      bindDn: parsed.data.bindDn,
+      bindPassword,
+      userDnPattern: parsed.data.userDnPattern,
+      searchFilter: parsed.data.searchFilter,
+      timeoutMs: parsed.data.timeoutMs,
     },
-    create: {
-      id: LDAP_ACTIVE_DIRECTORY_INTEGRACAO_ID,
-      nome: parsed.data.nome,
-      tipo: "LDAP",
-      direcao: "ENTRADA",
-      status,
-      baseUrl: baseUrl || null,
-      ativo: parsed.data.ativo,
-      descricao:
-        "IntegraÃ§Ã£o usada pelo login institucional do SECP para autenticaÃ§Ã£o por LDAP/Active Directory.",
-      configuracao: {
-        modoAutenticacao: parsed.data.modoAutenticacao,
-        authUrl: parsed.data.authUrl,
-        ldapUrl: parsed.data.ldapUrl,
-        baseDn: parsed.data.baseDn,
-        dominio: parsed.data.dominio,
-        bindDn: parsed.data.bindDn,
-        bindPassword,
-        userDnPattern: parsed.data.userDnPattern,
-        searchFilter: parsed.data.searchFilter,
-        timeoutMs: parsed.data.timeoutMs,
-      },
-    },
-  });
+  };
+
+  const integracao = existente
+    ? await prisma.integracaoSistema.update({
+        where: { id: existente.id },
+        data: dadosIntegracao,
+      })
+    : await prisma.integracaoSistema.create({
+        data: {
+          id: orgaoId ? undefined : LDAP_ACTIVE_DIRECTORY_INTEGRACAO_ID,
+          ...dadosIntegracao,
+        },
+      });
 
   await prisma.auditoriaEvento.create({
     data: {
@@ -123,6 +122,7 @@ export async function atualizarLdapActiveDirectoryAction(
       acao: "LDAP_ACTIVE_DIRECTORY_CONFIGURADO",
       dadosDepois: {
         id: integracao.id,
+        orgaoId: integracao.orgaoId,
         nome: integracao.nome,
         tipo: integracao.tipo,
         status: integracao.status,
@@ -136,11 +136,11 @@ export async function atualizarLdapActiveDirectoryAction(
     },
   });
 
-  revalidatePath("/administracao/integracoes");
+  revalidatePath("/integracoes");
   revalidatePath("/administracao/integracoes/ldap");
 
   return {
     sucesso: true,
-    mensagem: "ParÃ¢metros de LDAP/Active Directory atualizados com sucesso.",
+    mensagem: "Parâmetros de LDAP/Active Directory atualizados com sucesso.",
   };
 }

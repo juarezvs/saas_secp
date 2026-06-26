@@ -25,6 +25,7 @@ type DispensaPontoItem = {
 
 type DispensaPontoServidorCardProps = {
   dispensas: DispensaPontoItem[];
+  fusoHorario: string;
   action: (
     state: DispensaPontoServidorFormState,
     formData: FormData,
@@ -51,9 +52,9 @@ function formatarData(data: string | null) {
   }).format(new Date(data));
 }
 
-function dataHojeFormulario() {
+function dataHojeFormulario(fusoHorario: string) {
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Manaus",
+    timeZone: fusoHorario,
   }).format(new Date());
 }
 
@@ -66,8 +67,10 @@ function erro(
 
 function EncerrarDispensaForm({
   action,
+  fusoHorario,
 }: {
   action: DispensaPontoItem["encerrarAction"];
+  fusoHorario: string;
 }) {
   const [estado, formAction, pendente] = useActionState(
     action,
@@ -79,7 +82,7 @@ function EncerrarDispensaForm({
       <input
         type="date"
         name="dataFim"
-        defaultValue={estado.campos?.dataFim ?? dataHojeFormulario()}
+        defaultValue={estado.campos?.dataFim ?? dataHojeFormulario(fusoHorario)}
         className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
         aria-label="Data de encerramento"
         required
@@ -113,6 +116,7 @@ function EncerrarDispensaForm({
 
 export function DispensaPontoServidorCard({
   dispensas,
+  fusoHorario,
   action,
 }: DispensaPontoServidorCardProps) {
   const [estado, formAction, pendente] = useActionState(action, estadoInicial);
@@ -177,7 +181,10 @@ export function DispensaPontoServidorCard({
 
               {dispensa.status === "ATIVO" && (
                 <div className="mt-4">
-                  <EncerrarDispensaForm action={dispensa.encerrarAction} />
+              <EncerrarDispensaForm
+                action={dispensa.encerrarAction}
+                fusoHorario={fusoHorario}
+              />
                 </div>
               )}
             </div>
@@ -238,7 +245,9 @@ export function DispensaPontoServidorCard({
                 id="dataInicioDispensaPonto"
                 name="dataInicio"
                 type="date"
-                defaultValue={estado.campos?.dataInicio ?? dataHojeFormulario()}
+                defaultValue={
+                  estado.campos?.dataInicio ?? dataHojeFormulario(fusoHorario)
+                }
                 className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
                 required
               />

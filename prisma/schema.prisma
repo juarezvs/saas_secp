@@ -190,6 +190,7 @@ enum TipoSolicitacao {
   CAPACITACAO
   DISPENSA_PONTO
   HORA_CREDITO_PREVIA
+  FOLGA_BANCO_HORAS
 }
 
 enum StatusSolicitacao {
@@ -462,6 +463,7 @@ model Usuario {
   senhaHash String?     @map("senha_hash") @db.VarChar(255)
   tipo      TipoUsuario @default(SERVIDOR)
   ativo     Boolean     @default(true)
+  preferenciasAcessibilidade Json? @map("preferencias_acessibilidade")
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
@@ -579,10 +581,11 @@ model PerfilPermissao {
 }
 
 model Orgao {
-  id    String  @id @default(uuid()) @db.Uuid
-  sigla String  @unique @db.VarChar(30)
-  nome  String  @db.VarChar(200)
-  ativo Boolean @default(true)
+  id          String  @id @default(uuid()) @db.Uuid
+  sigla       String  @unique @db.VarChar(30)
+  nome        String  @db.VarChar(200)
+  ativo       Boolean @default(true)
+  fusoHorario String? @map("fuso_horario") @db.VarChar(80)
 
   codigoExternoSarh       Int?      @unique @map("codigo_externo_sarh")
   dataInicioSarh          DateTime? @map("data_inicio_sarh") @db.Date
@@ -593,10 +596,55 @@ model Orgao {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  unidades   UnidadeOrganizacional[]
-  servidores Servidor[]
+  unidades           UnidadeOrganizacional[]
+  servidores         Servidor[]
+  regulamentacaoPonto RegulamentacaoPontoOrgao?
+  integracoes        IntegracaoSistema[]
 
   @@map("orgaos")
+}
+
+model FusoHorario {
+  id String @id @default(uuid()) @db.Uuid
+
+  valor     String  @unique @db.VarChar(80)
+  rotulo    String  @db.VarChar(120)
+  descricao String? @db.Text
+  ativo     Boolean @default(true)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  @@index([ativo])
+  @@map("fusos_horarios")
+}
+
+model RegulamentacaoPontoOrgao {
+  id String @id @default(uuid()) @db.Uuid
+
+  orgaoId String @unique @map("orgao_id") @db.Uuid
+
+  numeroPortaria String? @map("numero_portaria") @db.VarChar(120)
+  descricao      String? @db.Text
+
+  limiteCreditoMensalMinutos       Int     @default(960) @map("limite_credito_mensal_minutos")
+  mesesExpiracaoCompensacao        Int     @default(3) @map("meses_expiracao_compensacao")
+  toleranciaCreditoMinutos         Int     @default(0) @map("tolerancia_credito_minutos")
+  toleranciaDebitoMinutos          Int     @default(0) @map("tolerancia_debito_minutos")
+  jornada7hCreditoMinimoMinutos    Int     @default(480) @map("jornada_7h_credito_minimo_minutos")
+  jornada7hIntervaloMinimoMinutos  Int     @default(60) @map("jornada_7h_intervalo_minimo_minutos")
+  exigeAutorizacaoPreviaCredito    Boolean @default(true) @map("exige_autorizacao_previa_credito")
+  horasForaExpedienteInconsistente Boolean @default(true) @map("horas_fora_expediente_inconsistente")
+  ativo                            Boolean @default(true)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  orgao Orgao @relation(fields: [orgaoId], references: [id], onDelete: Cascade)
+
+  @@index([orgaoId])
+  @@index([ativo])
+  @@map("regulamentacoes_ponto_orgaos")
 }
 
 model UnidadeOrganizacional {
@@ -609,6 +657,7 @@ model UnidadeOrganizacional {
   nome   String                    @db.VarChar(250)
   tipo   TipoUnidadeOrganizacional
   ativo  Boolean                   @default(true)
+  fusoHorario String?              @map("fuso_horario") @db.VarChar(80)
 
   codigoExternoSarh       Int?      @map("codigo_externo_sarh")
   codigoExternoPaiSarh    Int?      @map("codigo_externo_pai_sarh")
@@ -955,6 +1004,7 @@ model Marcacao {
 
   dataHora       DateTime @map("data_hora")
   dataReferencia DateTime @map("data_referencia") @db.Date
+  fusoHorario    String   @default("America/Manaus") @map("fuso_horario") @db.VarChar(80)
 
   tipo   TipoMarcacao
   fonte  FonteMarcacao  @default(WEB)
@@ -1392,6 +1442,8 @@ model BoletimFrequenciaServidor {
 model IntegracaoSistema {
   id String @id @default(uuid()) @db.Uuid
 
+  orgaoId String? @map("orgao_id") @db.Uuid
+
   nome    String            @db.VarChar(160)
   tipo    TipoIntegracao
   status  StatusIntegracao  @default(NAO_CONFIGURADA)
@@ -1409,12 +1461,14 @@ model IntegracaoSistema {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
+  orgao               Orgao? @relation(fields: [orgaoId], references: [id], onDelete: SetNull)
   logs                LogIntegracao[]
   equipamentos        EquipamentoBiometrico[]
   execucoesSarh       IntegracaoSarhExecucao[]
   mapeamentosExternos MapeamentoExterno[]
 
   @@index([tipo])
+  @@index([orgaoId])
   @@index([status])
   @@index([ativo])
   @@map("integracoes_sistemas")
@@ -1915,6 +1969,10 @@ model CalendarioInstitucional {
 
   contaComoDiaUtil    Boolean @default(false) @map("conta_como_dia_util")
   geraApuracaoRegular Boolean @default(false) @map("gera_apuracao_regular")
+  janelaInicio        String? @map("janela_inicio") @db.VarChar(5)
+  janelaFim           String? @map("janela_fim") @db.VarChar(5)
+  dataOriginal        DateTime? @map("data_original") @db.Date
+  dataSubstituida     Boolean @default(false) @map("data_substituida")
   observacao          String? @db.Text
   ativo               Boolean @default(true)
 

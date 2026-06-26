@@ -23,6 +23,7 @@ export async function autenticarUsuarioPorCredenciais({
   const senhaAdValida = await autenticarNoActiveDirectory(
     usuario.matricula,
     senha,
+    usuario.orgaoId,
   );
   const senhaLocalValida =
     !senhaAdValida &&
@@ -39,6 +40,7 @@ export async function autenticarUsuarioPorCredenciais({
     nome: usuario.nome,
     email: usuario.email,
     tipo: usuario.tipo,
+    preferenciasAcessibilidade: usuario.preferenciasAcessibilidade,
     perfis: usuario.perfis,
     perfilAtivo: usuario.perfilAtivo,
   };

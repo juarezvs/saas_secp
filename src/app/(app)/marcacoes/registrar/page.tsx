@@ -52,6 +52,7 @@ export default async function RegistrarMarcacaoPage() {
       marcacoes={marcacoes.map((marcacao) => ({
         id: marcacao.id,
         dataHora: marcacao.dataHora.toISOString(),
+        fusoHorario: marcacao.fusoHorario,
         tipo: marcacao.tipo,
         fonte: marcacao.fonte,
         status: marcacao.status,

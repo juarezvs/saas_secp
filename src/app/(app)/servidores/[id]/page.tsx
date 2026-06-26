@@ -13,6 +13,7 @@ import {
   criarDispensaPontoServidorAction,
   encerrarDispensaPontoServidorAction,
 } from "@/modules/servidores/application/actions/dispensa-ponto-servidor.action";
+import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { vincularLotacaoAction } from "@/modules/servidores/application/actions/vincular-lotacao.action";
 import { DispensaPontoServidorCard } from "@/modules/servidores/presentation/components/dispensa-ponto-servidor-card";
 import { LotacaoForm } from "@/modules/servidores/presentation/components/lotacao-form";
@@ -56,6 +57,9 @@ export default async function ServidorDetalhePage({
   }
 
   const actionLotacao = vincularLotacaoAction.bind(null, servidor.id);
+  const fusoHorario = await resolverFusoHorarioServidorNoBanco({
+    servidorId: servidor.id,
+  });
   const nomeFuncional = nomeServidor(servidor);
   const actionDispensaPonto = criarDispensaPontoServidorAction.bind(
     null,
@@ -293,6 +297,7 @@ export default async function ServidorDetalhePage({
 
       <DispensaPontoServidorCard
         dispensas={dispensasPonto}
+        fusoHorario={fusoHorario}
         action={actionDispensaPonto}
       />
 

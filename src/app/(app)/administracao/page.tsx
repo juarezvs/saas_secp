@@ -7,6 +7,7 @@ import {
   Settings,
   ShieldAlert,
   ShieldCheck,
+  SlidersHorizontal,
   UsersRound,
 } from "lucide-react";
 
@@ -49,6 +50,14 @@ export default async function AdministracaoPage() {
       icon: Settings,
     },
     {
+      titulo: "Regulamentação do ponto",
+      descricao:
+        "Customize limites, prazos, tolerâncias e regras de crédito do ponto por órgão.",
+      href: "/administracao/regulamentacao-ponto",
+      icon: SlidersHorizontal,
+      permissao: "regulamentacao-ponto:gerenciar:global",
+    },
+    {
       titulo: "Calendário institucional",
       descricao:
         "Cadastre feriados, pontos facultativos e suspensões que impactam prazos e a apuração do ponto.",
@@ -58,7 +67,7 @@ export default async function AdministracaoPage() {
     {
       titulo: "Credenciais e integracoes",
       descricao: "Configure integracoes futuras com SARH, SEI, LDAP e biometria.",
-      href: "/administracao/integracoes",
+      href: "/integracoes",
       icon: KeyRound,
     },
     {

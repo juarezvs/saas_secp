@@ -3,6 +3,8 @@ import { ArrowLeft, CircleAlert, ClockAlert, Copy } from "lucide-react";
 import { notFound } from "next/navigation";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { normalizarFusoHorario } from "@/modules/marcacoes/application/services/data-marcacao.service";
+import { resolverFusoHorarioServidor } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
@@ -35,11 +37,11 @@ function normalizarTipo(valor: string | undefined): TipoProblemaAfd {
   return valor === "pendentes" || valor === "duplicadas" ? valor : "erros";
 }
 
-function formatarDataHora(data: Date) {
+function formatarDataHora(data: Date, fusoHorario?: string | null) {
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeStyle: "medium",
-    timeZone: "America/Manaus",
+    timeZone: normalizarFusoHorario(fusoHorario),
   }).format(data);
 }
 
@@ -104,12 +106,37 @@ export default async function ProblemasImportacaoAfdPage({
                 : []),
             ],
           },
-          select: {
-            id: true,
-            cpf: true,
-            matricula: true,
-            nomeFuncional: true,
+          include: {
             usuario: { select: { nome: true } },
+            lotacoes: {
+              where: {
+                status: "ATIVO",
+              },
+              include: {
+                unidade: {
+                  include: {
+                    orgao: {
+                      select: {
+                        fusoHorario: true,
+                      },
+                    },
+                    unidadePai: {
+                      include: {
+                        orgao: {
+                          select: {
+                            fusoHorario: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              orderBy: {
+                dataInicio: "desc",
+              },
+              take: 1,
+            },
           },
         })
       : [];
@@ -226,7 +253,10 @@ export default async function ProblemasImportacaoAfdPage({
                         {item.arquivoAfd?.nomeOriginal ?? "-"}
                       </td>
                       <td className="px-5 py-4">
-                        {formatarDataHora(item.dataHora)}
+                        {formatarDataHora(
+                          item.dataHora,
+                          resolverFusoHorarioServidor(servidor),
+                        )}
                       </td>
                       <td className="px-5 py-4 font-mono text-xs">
                         <div>CPF: {item.cpf ?? "-"}</div>

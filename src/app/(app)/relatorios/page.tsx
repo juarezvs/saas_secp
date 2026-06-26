@@ -10,6 +10,7 @@ import {
   listarBoletinsParaRelatorio,
   listarServidoresParaRelatorio,
 } from "@/modules/relatorios/infrastructure/repositories/relatorios.repository";
+import { listarServidoresParaRelatorioGerencial } from "@/modules/relatorios/infrastructure/repositories/relatorios-gerenciais.repository";
 import { FiltrosRelatoriosCard } from "@/modules/relatorios/presentation/components/filtros-relatorios-card";
 import { RelatoriosListCard } from "@/modules/relatorios/presentation/components/relatorios-list-card";
 
@@ -57,6 +58,9 @@ export default async function RelatoriosPage({
   await exigirUmaDasPermissoesOuRedirecionar([
     "relatorios:consultar:proprio",
     "relatorios:consultar:global",
+    "relatorios-gerenciais:consultar:proprio",
+    "relatorios-gerenciais:consultar:chefia",
+    "relatorios-gerenciais:consultar:global",
   ]);
 
   const session = await auth();
@@ -64,6 +68,22 @@ export default async function RelatoriosPage({
   const podeConsultarGlobal = permissoes.includes(
     "relatorios:consultar:global",
   );
+  const podeConsultarGerencialGlobal = permissoes.includes(
+    "relatorios-gerenciais:consultar:global",
+  );
+  const podeConsultarGerencialChefia = permissoes.includes(
+    "relatorios-gerenciais:consultar:chefia",
+  );
+  const podeConsultarGerencialProprio = permissoes.includes(
+    "relatorios-gerenciais:consultar:proprio",
+  );
+  const podeVerGerenciais =
+    podeConsultarGerencialGlobal ||
+    podeConsultarGerencialChefia ||
+    podeConsultarGerencialProprio;
+  const podeConsultarTodosServidores =
+    podeConsultarGerencialGlobal ||
+    (podeConsultarGlobal && !podeConsultarGerencialChefia);
   const perfilServidorAtivo =
     session?.user.perfilAtivo?.codigo?.toUpperCase() === "SERVIDOR";
 
@@ -74,16 +94,39 @@ export default async function RelatoriosPage({
     ? await buscarServidorRelatorioPorUsuarioId(session.user.id)
     : null;
 
-  const servidores = podeConsultarGlobal
+  const servidoresRelatoriosIndividuais = podeConsultarTodosServidores
     ? await listarServidoresParaRelatorio()
-    : servidorProprio
-      ? [servidorProprio]
-      : [];
+    : [];
+
+  const servidoresGerenciais = session?.user
+    ? await listarServidoresParaRelatorioGerencial({
+        usuarioId: session.user.id,
+        permissoes,
+      })
+    : [];
+
+  const servidores = podeConsultarTodosServidores
+    ? servidoresRelatoriosIndividuais
+    : servidoresGerenciais.length > 0
+      ? servidoresGerenciais
+      : servidorProprio
+        ? [servidorProprio]
+        : [];
+  const idsServidoresPermitidos = new Set(servidores.map((item) => item.id));
+  const podeSelecionarServidor =
+    !perfilServidorAtivo &&
+    (podeConsultarTodosServidores ||
+      podeConsultarGerencialGlobal ||
+      podeConsultarGerencialChefia);
 
   const servidorId =
-    params.servidorId && podeConsultarGlobal && !perfilServidorAtivo
+    params.servidorId &&
+    podeSelecionarServidor &&
+    idsServidoresPermitidos.has(params.servidorId)
       ? params.servidorId
-      : (servidorProprio?.id ?? null);
+      : perfilServidorAtivo
+        ? (servidorProprio?.id ?? null)
+        : null;
 
   const boletins = await listarBoletinsParaRelatorio();
 
@@ -104,7 +147,7 @@ export default async function RelatoriosPage({
         <FiltrosRelatoriosCard
           servidores={servidores}
           servidorProprioId={servidorProprio?.id ?? null}
-          podeConsultarGlobal={podeConsultarGlobal}
+          podeSelecionarServidor={podeSelecionarServidor}
           servidorSelecionadoId={servidorId}
           competencia={`${ano}-${String(mes).padStart(2, "0")}`}
         />
@@ -115,6 +158,10 @@ export default async function RelatoriosPage({
         ano={ano}
         mes={mes}
         boletins={boletins}
+        mostrarGerenciais={podeVerGerenciais}
+        mostrarLotacoesChefias={
+          podeConsultarGerencialGlobal || podeConsultarGerencialChefia
+        }
         controles={
           perfilServidorAtivo ? (
             <form

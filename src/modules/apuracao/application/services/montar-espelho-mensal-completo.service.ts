@@ -4,6 +4,7 @@ import {
   type CalendarioInstitucionalPrecarregado,
 } from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
 import { calcularCargaMensalEsperada } from "@/modules/homologacao/application/services/calcular-carga-mensal-esperada.service";
+import { normalizarFusoHorario } from "@/modules/marcacoes/application/services/data-marcacao.service";
 
 import { normalizarDataReferencia } from "./calcular-tempo.service";
 
@@ -77,9 +78,9 @@ function chaveData(data: Date) {
   return normalizarDataReferencia(data).toISOString().slice(0, 10);
 }
 
-function hojeManaus() {
+function hojeNoFuso(fusoHorario?: string | null) {
   const partes = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Manaus",
+    timeZone: normalizarFusoHorario(fusoHorario),
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -96,10 +97,13 @@ function dataLimiteSaldos(params: {
   anoReferencia: number;
   mesReferencia: number;
   hoje?: Date;
+  fusoHorario?: string | null;
 }) {
   const inicio = inicioCompetencia(params.anoReferencia, params.mesReferencia);
   const fim = fimCompetencia(params.anoReferencia, params.mesReferencia);
-  const hoje = normalizarDataReferencia(params.hoje ?? hojeManaus());
+  const hoje = normalizarDataReferencia(
+    params.hoje ?? hojeNoFuso(params.fusoHorario),
+  );
 
   if (hoje < inicio) {
     return new Date(inicio.getTime() - 1);
@@ -258,6 +262,20 @@ async function preencherDiasDaCompetencia(params: {
   };
 }
 
+function metadadosDiaInstitucional(dia: {
+  tipoDiaInstitucional: string;
+  descricaoDiaInstitucional: string | null;
+  contaComoDiaUtil: boolean;
+  geraApuracaoRegular: boolean;
+}) {
+  return {
+    tipoDiaInstitucional: dia.tipoDiaInstitucional,
+    descricaoDiaInstitucional: dia.descricaoDiaInstitucional,
+    contaComoDiaUtil: dia.contaComoDiaUtil,
+    geraApuracaoRegular: dia.geraApuracaoRegular,
+  };
+}
+
 export async function montarEspelhoMensalCompleto(params: {
   anoReferencia: number;
   mesReferencia: number;
@@ -265,6 +283,7 @@ export async function montarEspelhoMensalCompleto(params: {
   jornadas: JornadaEspelhoMensal[];
   calendario?: CalendarioInstitucionalPrecarregado;
   hoje?: Date;
+  fusoHorario?: string | null;
 }): Promise<ResultadoEspelhoMensalCompleto> {
   const inicio = inicioCompetencia(params.anoReferencia, params.mesReferencia);
   const fim = fimCompetencia(params.anoReferencia, params.mesReferencia);
@@ -297,6 +316,10 @@ export async function montarEspelhoMensalCompleto(params: {
     if (apuracao) {
       return {
         ...apuracao,
+        metadados: {
+          ...metadadosDiaInstitucional(dia),
+          ...metadadosComoObjeto(apuracao.metadados),
+        },
         contabilizarSaldos,
       };
     }
@@ -313,10 +336,7 @@ export async function montarEspelhoMensalCompleto(params: {
       status: dia.geraApuracaoRegular ? "PENDENTE" : "CALCULADA",
       metadados: {
         origem: "ESPELHO_COMPETENCIA_COMPLETA",
-        tipoDiaInstitucional: dia.tipoDiaInstitucional,
-        descricaoDiaInstitucional: dia.descricaoDiaInstitucional,
-        contaComoDiaUtil: dia.contaComoDiaUtil,
-        geraApuracaoRegular: dia.geraApuracaoRegular,
+        ...metadadosDiaInstitucional(dia),
       },
       ocorrencias: [],
       contabilizarSaldos,

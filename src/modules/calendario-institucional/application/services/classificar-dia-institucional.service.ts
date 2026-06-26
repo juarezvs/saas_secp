@@ -29,6 +29,10 @@ export type ClassificacaoDiaInstitucional = {
   fonte: "PADRAO" | "CALENDARIO_INSTITUCIONAL" | "RECESSO_FORENSE";
   contaComoDiaUtil: boolean;
   geraApuracaoRegular: boolean;
+  janelaInicio?: string | null;
+  janelaFim?: string | null;
+  dataOriginal?: Date | null;
+  dataSubstituida?: boolean;
   eventoCalendarioId?: string;
   recessoForenseId?: string;
 };
@@ -97,6 +101,10 @@ function classificarPorEvento(
     fonte: "CALENDARIO_INSTITUCIONAL",
     contaComoDiaUtil: evento.contaComoDiaUtil,
     geraApuracaoRegular: evento.geraApuracaoRegular,
+    janelaInicio: evento.janelaInicio,
+    janelaFim: evento.janelaFim,
+    dataOriginal: evento.dataOriginal,
+    dataSubstituida: evento.dataSubstituida,
     eventoCalendarioId: evento.id,
   };
 }

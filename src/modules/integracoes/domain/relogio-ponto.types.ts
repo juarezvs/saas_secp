@@ -1,4 +1,12 @@
-export type FabricanteRelogioPonto = "HENRY" | "GENERIC";
+export type FabricanteRelogioPonto = "HENRY" | "DIMEP" | "GENERIC";
+
+export type FormatoTemplateBiometricoRelogio =
+  | "SUPREMA"
+  | "FS_SWIPE_SINATRA"
+  | "HENRY_RAW"
+  | "DIMEP_RAW"
+  | "ISO_19794_2"
+  | "ANSI_378";
 
 export type StatusOperacionalRelogio =
   | "ONLINE"
@@ -38,8 +46,22 @@ export type BiometriaServidorRelogioPonto = {
   templates: Array<{
     dedo?: number | string | null;
     template: string;
-    formato?: "SUPREMA" | "FS_SWIPE_SINATRA" | "HENRY_RAW";
+    formato?: FormatoTemplateBiometricoRelogio;
   }>;
+};
+
+export type CadastroBiometricoEquipamento = {
+  codigo?: string | null;
+  matricula: string;
+  cpf?: string | null;
+  nome?: string | null;
+  cartoes?: string[];
+  templates?: Array<{
+    dedo?: number | string | null;
+    template: string;
+    formato?: FormatoTemplateBiometricoRelogio;
+  }>;
+  payload?: unknown;
 };
 
 export type ResultadoSaudeRelogioPonto = {
@@ -67,6 +89,12 @@ export type ResultadoEnvioBiometriaRelogioPonto = {
   detalhes?: unknown;
 };
 
+export type ResultadoLeituraCadastrosBiometricos = {
+  cadastros: CadastroBiometricoEquipamento[];
+  mensagem: string;
+  payload?: unknown;
+};
+
 export interface RelogioPontoProvider {
   testarConexao(): Promise<ResultadoSaudeRelogioPonto>;
   coletarMarcacoesDesdeNsr(params: {
@@ -76,6 +104,11 @@ export interface RelogioPontoProvider {
   enviarBiometrias(
     servidores: BiometriaServidorRelogioPonto[],
   ): Promise<ResultadoEnvioBiometriaRelogioPonto>;
+  listarCadastrosBiometricos?(params?: {
+    indiceInicial?: string | number;
+    quantidade?: number;
+    incluirTemplates?: boolean;
+  }): Promise<ResultadoLeituraCadastrosBiometricos>;
   configurarEventosOnline(params: {
     habilitado: boolean;
     ipServidor?: string | null;

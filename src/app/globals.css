@@ -154,7 +154,7 @@ button:disabled,
 .secp-status-bloqueado { background: var(--status-bloqueado-bg); color: var(--status-bloqueado-fg); }
 
 .vw-access-button {
-  z-index: 80 !important;
+  z-index: 999999 !important;
 }
 
 html[data-font-size="13"] {
@@ -199,6 +199,16 @@ html[data-font-size="30"] {
 /* VLibras */
 [vw-access-button] {
   z-index: 999999 !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+[vw-plugin-wrapper] {
+  z-index: 999998 !important;
+}
+
+[vw].active [vw-plugin-wrapper],
+[vw-plugin-wrapper].active {
+  opacity: 1 !important;
+  visibility: visible !important;
 }

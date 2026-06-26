@@ -1,5 +1,6 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { montarEspelhoMensalCompleto } from "@/modules/apuracao/application/services/montar-espelho-mensal-completo.service";
+import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 
 export async function buscarServidorRelatorioPorUsuarioId(usuarioId: string) {
   return prisma.servidor.findFirst({
@@ -232,17 +233,21 @@ export async function buscarDadosEspelhoPontoPdf(params: {
       },
     }),
   ]);
+  const fusoHorario = await resolverFusoHorarioServidorNoBanco({
+    servidorId: params.servidorId,
+  });
   const espelho = await montarEspelhoMensalCompleto({
     anoReferencia: params.ano,
     mesReferencia: params.mes,
     apuracoes: apuracoesCalculadas,
     jornadas,
+    fusoHorario,
   });
 
   const marcacoes = await prisma.marcacao.findMany({
     where: {
       servidorId: params.servidorId,
-      dataHora: {
+      dataReferencia: {
         gte: inicioMarcacoes,
         lt: fimMarcacoes,
       },

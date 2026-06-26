@@ -1,13 +1,12 @@
 import Link from "next/link";
-import { CalendarDays, Edit } from "lucide-react";
+import { CalendarDays, Edit, Plus } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import { criarCalendarioInstitucionalAction } from "@/modules/calendario-institucional/application/actions/criar-calendario-institucional.action";
 import { listarCalendarioInstitucionalPaginado } from "@/modules/calendario-institucional/infrastructure/repositories/calendario-institucional.repository";
-import { CalendarioInstitucionalForm } from "@/modules/calendario-institucional/presentation/components/calendario-institucional-form";
+import { ReplicarCalendarioInstitucionalForm } from "@/modules/calendario-institucional/presentation/components/replicar-calendario-institucional-form";
 
 type CalendarioInstitucionalPageProps = {
   searchParams?: Promise<{
@@ -31,6 +30,17 @@ function formatarDataUtc(data: Date) {
   return new Intl.DateTimeFormat("pt-BR", {
     timeZone: "UTC",
   }).format(data);
+}
+
+function formatarJanela(evento: {
+  janelaInicio?: string | null;
+  janelaFim?: string | null;
+}) {
+  if (!evento.janelaInicio || !evento.janelaFim) {
+    return "Dia inteiro";
+  }
+
+  return `${evento.janelaInicio} - ${evento.janelaFim}`;
 }
 
 export default async function CalendarioInstitucionalPage({
@@ -92,9 +102,18 @@ export default async function CalendarioInstitucionalPage({
         regraDescricao="Feriados, pontos facultativos, suspensões de expediente e recesso forense precisam refletir corretamente nos prazos de homologação, boletim e na apuração do ponto."
       />
 
-      <CalendarioInstitucionalForm
-        action={criarCalendarioInstitucionalAction}
-        modo="criar"
+      <div className="flex justify-end">
+        <Link
+          href="/administracao/calendario/novo"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-blue-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-950"
+        >
+          <Plus className="size-4" aria-hidden="true" />
+          Novo evento
+        </Link>
+      </div>
+
+      <ReplicarCalendarioInstitucionalForm
+        anoAtual={Number(params.ano) || new Date().getFullYear()}
       />
 
       <DataTableShell
@@ -169,7 +188,7 @@ export default async function CalendarioInstitucionalPage({
         }
       >
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] text-left text-sm">
+          <table className="w-full min-w-[1120px] text-left text-sm">
             <caption className="sr-only">
               Listagem de eventos do calendário institucional com data, tipo,
               descrição, parâmetros de prazo, apuração e ações.
@@ -181,6 +200,7 @@ export default async function CalendarioInstitucionalPage({
                 <th className="px-5 py-3">Descrição</th>
                 <th className="px-5 py-3">Dia útil</th>
                 <th className="px-5 py-3">Apuração regular</th>
+                <th className="px-5 py-3">Expediente</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3 text-right">Ações</th>
               </tr>
@@ -202,6 +222,11 @@ export default async function CalendarioInstitucionalPage({
                         {evento.observacao}
                       </div>
                     )}
+                    {evento.dataSubstituida && evento.dataOriginal && (
+                      <div className="mt-1 text-xs font-medium text-blue-800 dark:text-blue-300">
+                        Transferido de {formatarDataUtc(evento.dataOriginal)}
+                      </div>
+                    )}
                   </td>
                   <td className="px-5 py-4">
                     {evento.contaComoDiaUtil ? "Sim" : "Não"}
@@ -209,6 +234,7 @@ export default async function CalendarioInstitucionalPage({
                   <td className="px-5 py-4">
                     {evento.geraApuracaoRegular ? "Sim" : "Não"}
                   </td>
+                  <td className="px-5 py-4">{formatarJanela(evento)}</td>
                   <td className="px-5 py-4">
                     <span
                       className={`rounded-full px-2 py-1 text-xs font-semibold ${
@@ -235,7 +261,7 @@ export default async function CalendarioInstitucionalPage({
               {resultado.eventos.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
                     Nenhum evento institucional encontrado para os filtros informados.

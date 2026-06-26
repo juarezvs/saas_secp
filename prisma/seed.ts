@@ -62,6 +62,19 @@ const permissoesIniciais = [
     escopo: "global",
     descricao: "Gerenciar parâmetros gerais do SECP.",
   },
+  {
+    recurso: "regulamentacao-ponto",
+    acao: "gerenciar",
+    escopo: "global",
+    descricao: "Gerenciar regras de regulamentação do ponto por órgão.",
+  },
+
+  {
+    recurso: "fusos-horarios",
+    acao: "gerenciar",
+    escopo: "global",
+    descricao: "Gerenciar fusos horarios disponiveis para orgaos e unidades.",
+  },
 
   // Dashboard
   {
@@ -304,6 +317,45 @@ const permissoesIniciais = [
     acao: "exportar",
     escopo: "global",
     descricao: "Exportar relatórios globais em PDF.",
+  },
+
+  {
+    recurso: "relatorios-gerenciais",
+    acao: "consultar",
+    escopo: "proprio",
+    descricao: "Consultar relatorios gerenciais com dados do proprio servidor.",
+  },
+  {
+    recurso: "relatorios-gerenciais",
+    acao: "consultar",
+    escopo: "chefia",
+    descricao:
+      "Consultar relatorios gerenciais da equipe e unidades subordinadas.",
+  },
+  {
+    recurso: "relatorios-gerenciais",
+    acao: "consultar",
+    escopo: "global",
+    descricao: "Consultar relatorios gerenciais de todos os servidores.",
+  },
+  {
+    recurso: "relatorios-gerenciais",
+    acao: "exportar",
+    escopo: "proprio",
+    descricao: "Exportar relatorios gerenciais com dados do proprio servidor.",
+  },
+  {
+    recurso: "relatorios-gerenciais",
+    acao: "exportar",
+    escopo: "chefia",
+    descricao:
+      "Exportar relatorios gerenciais da equipe e unidades subordinadas.",
+  },
+  {
+    recurso: "relatorios-gerenciais",
+    acao: "exportar",
+    escopo: "global",
+    descricao: "Exportar relatorios gerenciais de todos os servidores.",
   },
 
   // Auditoria
@@ -549,6 +601,8 @@ const codigosPermissoesServidor = [
   "boletim-frequencia:visualizar:proprio",
   "relatorios:consultar:proprio",
   "relatorios:exportar:proprio",
+  "relatorios-gerenciais:consultar:proprio",
+  "relatorios-gerenciais:exportar:proprio",
   "jornada:visualizar:proprio",
   "biometria:consultar:proprio",
   "biometria:cadastrar:proprio",
@@ -573,6 +627,8 @@ const codigosPermissoesChefia = [
   "boletim-frequencia:consultar:global",
   "relatorios:consultar:global",
   "relatorios:exportar:global",
+  "relatorios-gerenciais:consultar:chefia",
+  "relatorios-gerenciais:exportar:chefia",
   "recesso:homologar:chefia",
   "recesso:consultar:global",
 ];
@@ -598,6 +654,8 @@ const codigosPermissoesSecap = [
   "boletim-frequencia:consultar:global",
   "relatorios:consultar:global",
   "relatorios:exportar:global",
+  "relatorios-gerenciais:consultar:global",
+  "relatorios-gerenciais:exportar:global",
   "recesso:consultar:global",
   "recesso:relatorio:secap",
 ];
@@ -611,6 +669,8 @@ const codigosPermissoesSecad = [
   "recesso:aceitar:secad",
   "relatorios:consultar:global",
   "relatorios:exportar:global",
+  "relatorios-gerenciais:consultar:global",
+  "relatorios-gerenciais:exportar:global",
   "boletim-frequencia:consultar:global",
 ];
 
@@ -624,6 +684,8 @@ const codigosPermissoesDiref = [
   "boletim-frequencia:consultar:global",
   "relatorios:consultar:global",
   "relatorios:exportar:global",
+  "relatorios-gerenciais:consultar:global",
+  "relatorios-gerenciais:exportar:global",
   "recesso:consultar:global",
   "auditoria:consultar:global",
 ];
@@ -651,6 +713,10 @@ const codigosPermissoesSuporte = [
   "auditoria:detalhar:global",
   "usuarios:consultar:global",
   "servidores:consultar:global",
+  "relatorios:consultar:global",
+  "relatorios:exportar:global",
+  "relatorios-gerenciais:consultar:global",
+  "relatorios-gerenciais:exportar:global",
 ];
 
 const codigosPermissoesExcecaoRegistroWeb = [
@@ -707,6 +773,44 @@ async function criarPermissoes() {
   }
 
   return permissoes;
+}
+
+async function criarFusosHorarios() {
+  const fusos = [
+    {
+      valor: "America/Manaus",
+      rotulo: "Manaus (UTC-04)",
+      descricao: "Fuso horario padrao da Secao Judiciaria do Amazonas.",
+    },
+    {
+      valor: "America/Eirunepe",
+      rotulo: "Tabatinga/Eirunepe (UTC-05)",
+      descricao:
+        "Fuso horario usado por localidades do Amazonas uma hora atras de Manaus.",
+    },
+    {
+      valor: "America/Rio_Branco",
+      rotulo: "Rio Branco (UTC-05)",
+      descricao: "Fuso horario equivalente para integracoes ou unidades no Acre.",
+    },
+  ];
+
+  for (const fuso of fusos) {
+    await prisma.fusoHorario.upsert({
+      where: {
+        valor: fuso.valor,
+      },
+      update: {
+        rotulo: fuso.rotulo,
+        descricao: fuso.descricao,
+        ativo: true,
+      },
+      create: {
+        ...fuso,
+        ativo: true,
+      },
+    });
+  }
 }
 
 async function criarPerfilAdministrador() {
@@ -1292,6 +1396,7 @@ async function main() {
   console.log("Iniciando seed do SECP...");
 
   const permissoes = await criarPermissoes();
+  await criarFusosHorarios();
 
   const perfilAdmin = await criarPerfilAdministrador();
   const perfilServidor = await criarPerfilServidor();

@@ -18,22 +18,23 @@ type ServidorRelatorioItem = {
 export function FiltrosRelatoriosCard({
   servidores,
   servidorProprioId,
-  podeConsultarGlobal,
+  podeSelecionarServidor,
   servidorSelecionadoId,
   competencia,
 }: {
   servidores: ServidorRelatorioItem[];
   servidorProprioId: string | null;
-  podeConsultarGlobal: boolean;
+  podeSelecionarServidor: boolean;
   servidorSelecionadoId: string | null;
   competencia: string;
 }) {
   return (
     <section className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
-      <h2 className="text-lg font-bold">Exportar relatórios do servidor</h2>
+      <h2 className="text-lg font-bold">Filtros dos relatorios</h2>
 
       <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-        Gere PDFs de espelho de ponto e banco de horas por mês de referência.
+        Escolha a competencia e, quando necessario, restrinja a emissao a um
+        servidor.
       </p>
 
       <form
@@ -50,22 +51,27 @@ export function FiltrosRelatoriosCard({
           <SearchableSelect
             id="relatorios-servidorId"
             name="servidorId"
-            defaultValue={servidorSelecionadoId ?? servidorProprioId ?? ""}
-            disabled={!podeConsultarGlobal}
+            defaultValue={servidorSelecionadoId ?? ""}
+            disabled={!podeSelecionarServidor}
             className="mt-2"
-            searchPlaceholder="Pesquisar por matrícula, nome ou lotação..."
-            options={servidores.map((servidor) => ({
-              value: servidor.id,
-              label: `${servidor.matricula} — ${nomeServidor(servidor)}${
-                servidor.lotacoes[0]
-                  ? ` (${servidor.lotacoes[0].unidade.sigla})`
-                  : ""
-              }`,
-            }))}
+            searchPlaceholder="Pesquisar por matricula, nome ou lotacao..."
+            options={[
+              ...(podeSelecionarServidor
+                ? [{ value: "", label: "Todos no escopo permitido" }]
+                : []),
+              ...servidores.map((servidor) => ({
+                value: servidor.id,
+                label: `${servidor.matricula} - ${nomeServidor(servidor)}${
+                  servidor.lotacoes[0]
+                    ? ` (${servidor.lotacoes[0].unidade.sigla})`
+                    : ""
+                }`,
+              })),
+            ]}
           />
         </div>
 
-        {!podeConsultarGlobal && servidorProprioId && (
+        {!podeSelecionarServidor && servidorProprioId && (
           <input type="hidden" name="servidorId" value={servidorProprioId} />
         )}
 
