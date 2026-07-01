@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 export type TipoRelatorioGerencial =
@@ -65,51 +66,6 @@ async function buscarServidorProprio(usuarioId: string) {
   });
 }
 
-export async function listarIdsUnidadesSubordinadas(usuarioId: string) {
-  const gestores = await prisma.gestorUnidade.findMany({
-    where: {
-      ativo: true,
-      dataFim: null,
-      servidor: {
-        usuarioId,
-        ativo: true,
-      },
-    },
-    select: {
-      unidadeId: true,
-    },
-  });
-
-  const visitadas = new Set(gestores.map((gestor) => gestor.unidadeId));
-  let fronteira = Array.from(visitadas);
-
-  while (fronteira.length > 0) {
-    const filhas = await prisma.unidadeOrganizacional.findMany({
-      where: {
-        unidadePaiId: {
-          in: fronteira,
-        },
-        ativo: true,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    const novas = filhas
-      .map((unidade) => unidade.id)
-      .filter((id) => !visitadas.has(id));
-
-    for (const id of novas) {
-      visitadas.add(id);
-    }
-
-    fronteira = novas;
-  }
-
-  return Array.from(visitadas);
-}
-
 export type LinhaLotacaoComChefia = {
   id: string;
   orgao: string;
@@ -138,7 +94,7 @@ export async function listarLotacoesComChefiasRegistradas(params: {
 
   const unidadesPermitidas = podeGlobal
     ? null
-    : await listarIdsUnidadesSubordinadas(params.usuarioId);
+    : await listarIdsUnidadesSubordinadasPorUsuario(params.usuarioId);
 
   if (unidadesPermitidas && unidadesPermitidas.length === 0) {
     return [];
@@ -256,7 +212,9 @@ async function resolverIdsServidoresPermitidos(params: EscopoRelatorioParams) {
   const idsPermitidos = new Set<string>();
 
   if (podeChefia) {
-    const unidades = await listarIdsUnidadesSubordinadas(params.usuarioId);
+    const unidades = await listarIdsUnidadesSubordinadasPorUsuario(
+      params.usuarioId,
+    );
 
     if (unidades.length > 0) {
       const servidores = await prisma.servidor.findMany({

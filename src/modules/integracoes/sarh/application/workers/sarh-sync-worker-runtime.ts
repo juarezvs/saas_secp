@@ -10,7 +10,10 @@ import { SincronizarSarhUseCase } from "../use-cases/sincronizar-sarh.use-case";
 
 type SarhSyncWorkerGlobal = typeof globalThis & {
   __secpSarhSyncWorker?: Worker<SarhSyncJob>;
+  __secpSarhSyncWorkerVersion?: string;
 };
+
+const SARH_SYNC_WORKER_VERSION = "2026-07-01-chefias-sql";
 
 function workerEstaAtivo(worker: Worker<SarhSyncJob>) {
   return !worker.closing;
@@ -58,7 +61,7 @@ export function criarSarhSyncWorker() {
   return worker;
 }
 
-export function garantirSarhSyncWorkerAutomatico() {
+export async function garantirSarhSyncWorkerAutomatico() {
   if (process.env.SARH_SYNC_AUTO_WORKER === "false") {
     return null;
   }
@@ -67,12 +70,21 @@ export function garantirSarhSyncWorkerAutomatico() {
 
   if (
     globalWorker.__secpSarhSyncWorker &&
-    workerEstaAtivo(globalWorker.__secpSarhSyncWorker)
+    workerEstaAtivo(globalWorker.__secpSarhSyncWorker) &&
+    globalWorker.__secpSarhSyncWorkerVersion === SARH_SYNC_WORKER_VERSION
   ) {
     return globalWorker.__secpSarhSyncWorker;
   }
 
+  if (
+    globalWorker.__secpSarhSyncWorker &&
+    workerEstaAtivo(globalWorker.__secpSarhSyncWorker)
+  ) {
+    await globalWorker.__secpSarhSyncWorker.close();
+  }
+
   globalWorker.__secpSarhSyncWorker = criarSarhSyncWorker();
+  globalWorker.__secpSarhSyncWorkerVersion = SARH_SYNC_WORKER_VERSION;
 
   return globalWorker.__secpSarhSyncWorker;
 }

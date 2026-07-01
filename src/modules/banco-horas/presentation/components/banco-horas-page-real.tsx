@@ -92,7 +92,7 @@ type BancoHorasPageRealProps = {
   autorizacoes: AutorizacaoBancoHoras[];
   anoReferencia: number;
   mesReferencia: number;
-  podeConsultarGlobal: boolean;
+  podeSelecionarServidor: boolean;
   podeGerenciar: boolean;
   perfilAtivoCodigo?: string;
   extratoSelecionado?: string;
@@ -309,14 +309,14 @@ function FiltrosBancoHoras({
   servidorSelecionado,
   anoReferencia,
   mesReferencia,
-  podeConsultarGlobal,
+  podeSelecionarServidor,
   compacto = false,
 }: {
   servidores: ServidorBancoHoras[];
   servidorSelecionado: ServidorBancoHoras | null;
   anoReferencia: number;
   mesReferencia: number;
-  podeConsultarGlobal: boolean;
+  podeSelecionarServidor: boolean;
   compacto?: boolean;
 }) {
   return (
@@ -339,7 +339,9 @@ function FiltrosBancoHoras({
             : "grid gap-4 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-end"
         }
       >
-        <div className={compacto && !podeConsultarGlobal ? "hidden" : undefined}>
+        <div
+          className={compacto && !podeSelecionarServidor ? "hidden" : undefined}
+        >
           <label htmlFor="servidorId" className="text-sm font-semibold">
             Servidor
           </label>
@@ -347,7 +349,7 @@ function FiltrosBancoHoras({
             id="servidorId"
             name="servidorId"
             defaultValue={servidorSelecionado?.id ?? ""}
-            disabled={!podeConsultarGlobal}
+            disabled={!podeSelecionarServidor}
             className="mt-2"
             searchPlaceholder="Pesquisar por matrícula ou nome..."
             options={servidores.map((servidor) => ({
@@ -831,7 +833,7 @@ export function BancoHorasPageReal({
   autorizacoes,
   anoReferencia,
   mesReferencia,
-  podeConsultarGlobal,
+  podeSelecionarServidor,
   podeGerenciar,
   perfilAtivoCodigo,
   extratoSelecionado,
@@ -884,7 +886,7 @@ export function BancoHorasPageReal({
               id="servidorId"
               name="servidorId"
               defaultValue={servidorSelecionado?.id ?? ""}
-              disabled={!podeConsultarGlobal}
+              disabled={!podeSelecionarServidor}
               className="mt-2"
               searchPlaceholder="Pesquisar por matrícula ou nome..."
               options={servidores.map((servidor) => ({
@@ -930,7 +932,7 @@ export function BancoHorasPageReal({
                   servidorSelecionado={servidorSelecionado}
                   anoReferencia={anoReferencia}
                   mesReferencia={mesReferencia}
-                  podeConsultarGlobal={podeConsultarGlobal}
+                  podeSelecionarServidor={podeSelecionarServidor}
                   compacto
                 />
               ) : null}

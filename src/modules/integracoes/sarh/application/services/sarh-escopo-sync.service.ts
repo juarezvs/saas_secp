@@ -114,8 +114,11 @@ export async function resolverEscopoSincronizacaoSarh(params: {
     );
   }
 
+  const orgaoIdsSincronizacao = orgaoIdSelecionado
+    ? [orgaoIdSelecionado]
+    : params.escopo.orgaoIds;
   const codigosPermitidos = await obterCodigosUnidadesSarhPermitidos(
-    params.escopo.orgaoIds,
+    orgaoIdsSincronizacao,
   );
 
   if (codigosPermitidos.length === 0) {
@@ -132,7 +135,7 @@ export async function resolverEscopoSincronizacaoSarh(params: {
 
   return {
     global: false,
-    orgaoIds: params.escopo.orgaoIds,
+    orgaoIds: orgaoIdsSincronizacao,
     codigoUnidadeSarh,
     codigosUnidadesSarhPermitidos: codigoUnidadeSarh
       ? [codigoUnidadeSarh]

@@ -162,6 +162,12 @@ export async function POST(request: Request) {
   const { enfileirarSincronizacaoSarh, progressoSarhAgendado } = await import(
     "@/modules/integracoes/sarh/application/queues/sarh-sync-queue"
   );
+  const { garantirSarhSyncWorkerAutomatico } = await import(
+    "@/modules/integracoes/sarh/application/workers/sarh-sync-worker-runtime"
+  );
+
+  await garantirSarhSyncWorkerAutomatico();
+
   const modo = payload.modo ?? "simulacao";
   const matricula = payload.matricula?.trim() || undefined;
   const endpoints = normalizarEndpoints(payload.endpoints, matricula);

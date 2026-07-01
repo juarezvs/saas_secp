@@ -98,6 +98,7 @@ export const MENU_ITEMS: MenuItem[] = [
     permissoes: [
       "banco-horas:visualizar:proprio",
       "banco-horas:consultar:proprio",
+      "banco-horas:consultar:chefia",
       "banco-horas:consultar:global",
     ],
   },

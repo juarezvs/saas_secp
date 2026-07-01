@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 
 function periodoCompetencia(anoReferencia: number, mesReferencia: number) {
   return {
@@ -236,12 +237,73 @@ export async function somarCreditoValidadoNoMes(params: {
 export async function listarServidoresComBancoHoras(params: {
   anoReferencia: number;
   mesReferencia: number;
+  orgaoIdsPermitidos?: string[];
 }) {
   return prisma.servidor.findMany({
     where: {
       ativo: true,
       usuario: {
         ativo: true,
+      },
+      ...(params.orgaoIdsPermitidos
+        ? {
+            orgaoId: {
+              in: params.orgaoIdsPermitidos,
+            },
+          }
+        : {}),
+    },
+    include: {
+      usuario: true,
+      bancoHorasSaldo: true,
+      lotacoes: {
+        where: filtroLotacaoNaCompetencia(
+          params.anoReferencia,
+          params.mesReferencia,
+        ),
+        include: {
+          unidade: true,
+        },
+        orderBy: {
+          dataInicio: "desc",
+        },
+      },
+    },
+    orderBy: {
+      matricula: "asc",
+    },
+  });
+}
+
+export async function listarServidoresSubordinadosComBancoHoras(params: {
+  usuarioId: string;
+  anoReferencia: number;
+  mesReferencia: number;
+}) {
+  const unidadesSubordinadas = await listarIdsUnidadesSubordinadasPorUsuario(
+    params.usuarioId,
+  );
+
+  if (unidadesSubordinadas.length === 0) {
+    return [];
+  }
+
+  return prisma.servidor.findMany({
+    where: {
+      ativo: true,
+      usuario: {
+        ativo: true,
+      },
+      usuarioId: {
+        not: params.usuarioId,
+      },
+      lotacoes: {
+        some: {
+          status: "ATIVO",
+          unidadeId: {
+            in: unidadesSubordinadas,
+          },
+        },
       },
     },
     include: {

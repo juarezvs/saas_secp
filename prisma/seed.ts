@@ -192,6 +192,12 @@ const permissoesIniciais = [
   {
     recurso: "banco-horas",
     acao: "consultar",
+    escopo: "chefia",
+    descricao: "Consultar banco de horas de servidores subordinados.",
+  },
+  {
+    recurso: "banco-horas",
+    acao: "consultar",
     escopo: "global",
     descricao: "Consultar banco de horas de todos os servidores.",
   },
@@ -640,7 +646,7 @@ const codigosPermissoesChefia = [
   "servidores:consultar:global",
   "marcacoes:consultar:global",
   "apuracao:consultar:global",
-  "banco-horas:consultar:global",
+  "banco-horas:consultar:chefia",
   "solicitacoes:analisar:chefia",
   "solicitacoes:consultar:global",
   "homologacao:gerenciar:chefia",

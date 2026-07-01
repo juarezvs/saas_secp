@@ -1,6 +1,8 @@
 import React, { type ReactElement } from "react";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import { auth } from "@/auth";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
+import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 import { buscarDadosBancoHorasPdf } from "@/modules/relatorios/infrastructure/repositories/relatorios.repository";
 import { BancoHorasPdfDocument } from "@/modules/relatorios/presentation/pdf/banco-horas-pdf.document";
 
@@ -22,13 +24,22 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   const permissoes = session.user.perfilAtivo?.permissoes ?? [];
+  const perfilCodigo = session.user.perfilAtivo?.codigo?.toUpperCase();
+  const perfilChefiaAtivo = perfilCodigo === "CHEFIA";
 
-  const podeExportarGlobal = permissoes.includes("relatorios:exportar:global");
+  const podeExportarGlobal =
+    !perfilChefiaAtivo &&
+    (permissoes.includes("relatorios:exportar:global") ||
+      permissoes.includes("banco-horas:consultar:global"));
+  const podeExportarChefia =
+    perfilChefiaAtivo ||
+    permissoes.includes("banco-horas:consultar:chefia") ||
+    permissoes.includes("relatorios-gerenciais:exportar:chefia");
   const podeExportarProprio = permissoes.includes(
     "relatorios:exportar:proprio",
-  );
+  ) || permissoes.includes("banco-horas:consultar:proprio");
 
-  if (!podeExportarGlobal && !podeExportarProprio) {
+  if (!podeExportarGlobal && !podeExportarChefia && !podeExportarProprio) {
     return new Response("Acesso negado.", {
       status: 403,
     });
@@ -67,7 +78,30 @@ export async function GET(request: Request, context: RouteContext) {
     });
   }
 
-  if (!podeExportarGlobal && dados.servidor.usuarioId !== session.user.id) {
+  const escopoOrgao = podeExportarGlobal
+    ? await obterEscopoOrgaoDaSessao()
+    : null;
+  const servidorDentroDoEscopoGlobal =
+    podeExportarGlobal &&
+    (escopoOrgao?.global ||
+      escopoOrgao?.orgaoIds.includes(dados.servidor.orgaoId));
+  const servidorDentroDoEscopoChefia = podeExportarChefia
+    ? (
+        await listarIdsUnidadesSubordinadasPorUsuario(session.user.id)
+      ).some((unidadeId) =>
+        dados.servidor?.lotacoes.some(
+          (lotacao) => lotacao.unidadeId === unidadeId,
+        ),
+      )
+    : false;
+  const servidorProprio =
+    podeExportarProprio && dados.servidor.usuarioId === session.user.id;
+
+  if (
+    !servidorDentroDoEscopoGlobal &&
+    !servidorDentroDoEscopoChefia &&
+    !servidorProprio
+  ) {
     return new Response("Acesso negado ao servidor informado.", {
       status: 403,
     });

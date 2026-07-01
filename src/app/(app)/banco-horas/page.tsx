@@ -2,12 +2,14 @@ import {
   exigirUmaDasPermissoesOuRedirecionar,
   usuarioPossuiPermissaoNoPerfil,
 } from "@/modules/auth/application/services/permissao.service";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import {
   buscarServidorBancoHorasPorUsuarioId,
   listarAutorizacoesBancoHorasMes,
   listarMovimentosComposicaoSaldoBancoHoras,
   listarMovimentosBancoHorasMes,
   listarServidoresComBancoHoras,
+  listarServidoresSubordinadosComBancoHoras,
 } from "@/modules/banco-horas/infrastructure/repositories/banco-horas.repository";
 import { BancoHorasPageReal } from "@/modules/banco-horas/presentation/components/banco-horas-page-real";
 
@@ -48,6 +50,7 @@ export default async function BancoHorasPage({ searchParams }: BancoHorasPagePro
   const permissao = await exigirUmaDasPermissoesOuRedirecionar([
     "banco-horas:visualizar:proprio",
     "banco-horas:consultar:proprio",
+    "banco-horas:consultar:chefia",
     "banco-horas:consultar:global",
   ]);
 
@@ -58,30 +61,49 @@ export default async function BancoHorasPage({ searchParams }: BancoHorasPagePro
     permissao.perfilAtivoCodigo,
     permissao.permissoes,
     "banco-horas:consultar:global",
-  );
+  ) && permissao.perfilAtivoCodigo?.toUpperCase() !== "CHEFIA";
+  const podeConsultarChefia =
+    permissao.perfilAtivoCodigo?.toUpperCase() === "CHEFIA" ||
+    usuarioPossuiPermissaoNoPerfil(
+      permissao.perfilAtivoCodigo,
+      permissao.permissoes,
+      "banco-horas:consultar:chefia",
+    );
+  const podeSelecionarServidor = podeConsultarGlobal || podeConsultarChefia;
   const podeGerenciar = usuarioPossuiPermissaoNoPerfil(
     permissao.perfilAtivoCodigo,
     permissao.permissoes,
     "banco-horas:gerenciar:global",
   );
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
 
   const servidorEhValido = (
     servidor: Awaited<ReturnType<typeof buscarServidorBancoHorasPorUsuarioId>>,
   ): servidor is ServidorBancoHoras => Boolean(servidor);
 
-  const servidores = podeConsultarGlobal
-    ? await listarServidoresComBancoHoras({
-        anoReferencia,
-        mesReferencia,
-      })
-    : permissao.usuarioId
-      ? [
-          await buscarServidorBancoHorasPorUsuarioId(permissao.usuarioId, {
+  const servidores =
+    podeConsultarGlobal
+      ? await listarServidoresComBancoHoras({
+          anoReferencia,
+          mesReferencia,
+          orgaoIdsPermitidos: escopoOrgao.global
+            ? undefined
+            : escopoOrgao.orgaoIds,
+        })
+      : podeConsultarChefia && permissao.usuarioId
+        ? await listarServidoresSubordinadosComBancoHoras({
+            usuarioId: permissao.usuarioId,
             anoReferencia,
             mesReferencia,
-          }),
-        ].filter(servidorEhValido)
-      : [];
+          })
+        : permissao.usuarioId
+          ? [
+              await buscarServidorBancoHorasPorUsuarioId(permissao.usuarioId, {
+                anoReferencia,
+                mesReferencia,
+              }),
+            ].filter(servidorEhValido)
+          : [];
 
   const servidorSelecionado =
     servidores.find((servidor) => servidor?.id === params.servidorId) ??
@@ -119,7 +141,7 @@ export default async function BancoHorasPage({ searchParams }: BancoHorasPagePro
       autorizacoes={autorizacoes}
       anoReferencia={anoReferencia}
       mesReferencia={mesReferencia}
-      podeConsultarGlobal={podeConsultarGlobal}
+      podeSelecionarServidor={podeSelecionarServidor}
       podeGerenciar={podeGerenciar}
       perfilAtivoCodigo={permissao.perfilAtivoCodigo}
       extratoSelecionado={params.extrato}

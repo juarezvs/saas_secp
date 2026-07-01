@@ -544,7 +544,8 @@ export class SarhOracleClient {
          or exists (
            select 1
            from sarh.rh_movimentacao_funcional mf_lot
-           where mf_lot.mvfu_lota_cod_lotacao = l.lota_cod_lotacao
+           where upper(mf_lot.mvfu_func_sigla_secao_exerce) = upper(l.lota_sigla_lotacao)
+             and upper(mf_lot.mvfu_func_sigla_secao_exerce) like upper(:siglaLocalidade) || '%'
              and upper(mf_lot.mvfu_matricula_folha) like upper(:siglaLocalidade) || '%'
          )
       order by l.lota_sigla_lotacao, hifc.hifc_fcon_categ_func_conf desc, f.nfun_dsc_funcao
