@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+docker/oracle/instantclient-basiclite-linuxx64.zip
 /.pnp
 .pnp.*
 .yarn/*
