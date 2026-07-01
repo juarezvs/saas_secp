@@ -20,6 +20,11 @@ export const metadata: Metadata = {
   },
   description:
     "Sistema Eletrônico de Controle de Ponto da Justiça Federal do Amazonas.",
+  icons: {
+    icon: "/secp-symbol.png",
+    shortcut: "/secp-symbol.png",
+    apple: "/secp-symbol.png",
+  },
 };
 
 export default function RootLayout({

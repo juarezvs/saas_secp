@@ -38,7 +38,7 @@ const etapas = [
   },
   {
     id: "periodo",
-    titulo: "Periodo",
+    titulo: "Período",
     descricao: "Data e horarios",
     icon: CalendarDays,
     campos: ["dataReferencia", "dataInicio", "dataFim"],
@@ -506,7 +506,7 @@ export function SolicitacaoForm() {
         }`}
       >
         <div className="max-w-3xl space-y-2">
-          <h2 className="text-lg font-bold">Periodo de incidencia</h2>
+          <h2 className="text-lg font-bold">Período de incidência</h2>
           <p className="text-sm leading-6 text-[var(--muted-foreground)]">
             Para ajuste pontual, informe a data de referencia; para eventos por
             periodo, informe inicio e fim.
@@ -845,7 +845,7 @@ export function SolicitacaoForm() {
         <div className="mt-5 grid gap-5">
           <div className="space-y-2">
             <label htmlFor="titulo" className="text-sm font-semibold">
-              Titulo
+              Título
             </label>
             <input
               id="titulo"

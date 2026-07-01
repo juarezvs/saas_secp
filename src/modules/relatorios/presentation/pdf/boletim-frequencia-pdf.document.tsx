@@ -71,7 +71,7 @@ function dataOuPendente(data: Date | null) {
 export function BoletimFrequenciaPdfDocument({ boletim }: BoletimPdfProps) {
   return (
     <Document
-      title={`Boletim de Frequencia ${boletim.unidade.sigla} ${boletim.mesReferencia}/${boletim.anoReferencia}`}
+      title={`Boletim de Frequência ${boletim.unidade.sigla} ${boletim.mesReferencia}/${boletim.anoReferencia}`}
       author="SECP"
       subject="Boletim de Frequência"
       creator="SECP"

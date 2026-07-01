@@ -2,10 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import {
+  obterEscopoOrgaoDaSessao,
+} from "@/modules/auth/application/services/escopo-orgao.service";
+import {
   obterPermissoesDaSessao,
   usuarioPossuiAlgumaPermissaoNoPerfil,
 } from "@/modules/auth/application/services/permissao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import {
+  SarhEscopoSincronizacaoError,
+  resolverEscopoSincronizacaoSarh,
+} from "../../application/services/sarh-escopo-sync.service";
 import { SincronizarSarhUseCase } from "../../application/use-cases/sincronizar-sarh.use-case";
 import type { SarhEndpointKey } from "../../domain/sarh.types";
 
@@ -23,6 +30,35 @@ const PERMISSOES_SINCRONIZAR_SARH = [
   "integracoes:sincronizar:global",
   "integracoes:gerenciar:global",
 ];
+
+const ENDPOINTS_COMPATIVEIS_MATRICULA = new Set<SarhEndpointKey>([
+  "servidores",
+  "lotacoesServidores",
+  "afastamentos",
+  "chefias",
+]);
+
+const ENDPOINTS_PADRAO_MATRICULA: SarhEndpointKey[] = [
+  "servidores",
+  "lotacoesServidores",
+  "afastamentos",
+  "chefias",
+];
+
+function normalizarEndpointsPorMatricula(
+  endpoints: SarhEndpointKey[],
+  matricula?: string,
+) {
+  if (!matricula) {
+    return endpoints.length ? endpoints : undefined;
+  }
+
+  const compativeis = endpoints.filter((endpoint) =>
+    ENDPOINTS_COMPATIVEIS_MATRICULA.has(endpoint),
+  );
+
+  return compativeis.length ? compativeis : ENDPOINTS_PADRAO_MATRICULA;
+}
 
 export async function sincronizarSarhAction(formData: FormData): Promise<SincronizarSarhActionState> {
   const permissao = await obterPermissoesDaSessao();
@@ -49,7 +85,33 @@ export async function sincronizarSarhAction(formData: FormData): Promise<Sincron
 
   const modo = String(formData.get("modo") ?? "simulacao");
   const matricula = String(formData.get("matricula") ?? "").trim() || undefined;
+  const codigoUnidadeSarh =
+    Number(String(formData.get("codigoUnidadeSarh") ?? "")) || undefined;
+  const orgaoId = String(formData.get("orgaoId") ?? "").trim() || null;
   const endpoints = formData.getAll("endpoints").map(String) as SarhEndpointKey[];
+  const endpointsNormalizados = normalizarEndpointsPorMatricula(
+    endpoints,
+    matricula,
+  );
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  let escopoSincronizacao;
+
+  try {
+    escopoSincronizacao = await resolverEscopoSincronizacaoSarh({
+      escopo: escopoOrgao,
+      orgaoId,
+      codigoUnidadeSarh,
+    });
+  } catch (error) {
+    if (error instanceof SarhEscopoSincronizacaoError) {
+      return {
+        ok: false,
+        mensagem: error.message,
+      };
+    }
+
+    throw error;
+  }
 
   const useCase = new SincronizarSarhUseCase(prisma);
 
@@ -57,8 +119,12 @@ export async function sincronizarSarhAction(formData: FormData): Promise<Sincron
     const resultado = await useCase.execute({
       tipo: modo === "aplicar" ? "SINCRONIZACAO_COMPLETA" : "SIMULACAO",
       modoSimulacao: modo !== "aplicar",
-      endpoints: endpoints.length ? endpoints : undefined,
+      orgaoId: escopoSincronizacao.orgaoIds[0] ?? null,
+      endpoints: endpointsNormalizados,
       matricula,
+      codigoUnidadeSarh: escopoSincronizacao.codigoUnidadeSarh,
+      codigosUnidadesSarhPermitidos:
+        escopoSincronizacao.codigosUnidadesSarhPermitidos,
       iniciadoPorUsuarioId: permissao.usuarioId ?? null,
     });
 

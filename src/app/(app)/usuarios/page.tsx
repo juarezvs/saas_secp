@@ -3,6 +3,10 @@ import { Plus, UserCog } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
+import {
+  aplicarEscopoOrgaoId,
+  obterEscopoOrgaoDaSessao,
+} from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarUsuariosPaginado } from "@/modules/usuarios/infrastructure/repositories/usuario.repository";
 import { UsuariosListagemControles } from "@/modules/usuarios/presentation/components/usuarios-listagem-controles";
@@ -26,21 +30,27 @@ export default async function UsuariosPage({ searchParams }: UsuariosPageProps) 
   await exigirPermissaoOuRedirecionar("usuarios:gerenciar:global");
 
   const params = searchParams ? await searchParams : {};
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
 
-  const resultado = await listarUsuariosPaginado({
-    busca: params.busca ?? "",
-    matricula: params.matricula ?? "",
-    nome: params.nome ?? "",
-    email: params.email ?? "",
-    tipo: params.tipo ?? "",
-    lotacao: params.lotacao ?? "",
-    perfil: params.perfil ?? "",
-    status: params.status ?? "",
-    pagina,
-    itensPorPagina,
-  });
+  const resultado = await listarUsuariosPaginado(
+    aplicarEscopoOrgaoId(
+      {
+        busca: params.busca ?? "",
+        matricula: params.matricula ?? "",
+        nome: params.nome ?? "",
+        email: params.email ?? "",
+        tipo: params.tipo ?? "",
+        lotacao: params.lotacao ?? "",
+        perfil: params.perfil ?? "",
+        status: params.status ?? "",
+        pagina,
+        itensPorPagina,
+      },
+      escopoOrgao,
+    ),
+  );
 
   const exportParams = new URLSearchParams();
 

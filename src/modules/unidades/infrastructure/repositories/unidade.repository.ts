@@ -8,6 +8,7 @@ export type ListarUnidadesParams = {
   nome?: string;
   tipo?: string;
   orgaoId?: string;
+  orgaoIdsPermitidos?: string[];
   superior?: string;
   status?: string;
 };
@@ -42,9 +43,64 @@ function ehUuid(valor?: string | null): valor is string {
   );
 }
 
+function hojeReferenciaLotacao() {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  return hoje;
+}
+
+function whereLotacaoAtivaAtual() {
+  const hoje = hojeReferenciaLotacao();
+
+  return {
+    status: "ATIVO" as const,
+    dataInicio: {
+      lte: hoje,
+    },
+    OR: [
+      {
+        dataFim: null,
+      },
+      {
+        dataFim: {
+          gte: hoje,
+        },
+      },
+    ],
+    servidor: {
+      ativo: true,
+    },
+  };
+}
+
+function whereGestorAtivoAtual() {
+  const hoje = hojeReferenciaLotacao();
+
+  return {
+    ativo: true,
+    dataInicio: {
+      lte: hoje,
+    },
+    OR: [
+      {
+        dataFim: null,
+      },
+      {
+        dataFim: {
+          gte: hoje,
+        },
+      },
+    ],
+    servidor: {
+      ativo: true,
+    },
+  };
+}
+
 export function montarWhereUnidades(params: ListarUnidadesParams) {
   const busca = params.busca?.trim();
   const orgaoId = params.orgaoId?.trim();
+  const orgaoIdsPermitidos = params.orgaoIdsPermitidos?.filter(ehUuid);
 
   return {
     ...(params.status === "ativa"
@@ -63,7 +119,11 @@ export function montarWhereUnidades(params: ListarUnidadesParams) {
 
     ...(params.tipo ? { tipo: params.tipo as never } : {}),
 
-    ...(orgaoId && ehUuid(orgaoId) ? { orgaoId } : {}),
+    ...(orgaoId && ehUuid(orgaoId)
+      ? { orgaoId }
+      : orgaoIdsPermitidos?.length
+        ? { orgaoId: { in: orgaoIdsPermitidos } }
+        : {}),
 
     ...(params.superior
       ? {
@@ -127,7 +187,7 @@ export async function listarUnidadesOrganizacionaisPaginado(
         _count: {
           select: {
             unidadesFilhas: true,
-            lotacoes: true,
+            lotacoes: { where: whereLotacaoAtivaAtual() },
           },
         },
       },
@@ -157,7 +217,7 @@ export async function listarUnidadesOrganizacionaisParaExportacao(
       _count: {
         select: {
           unidadesFilhas: true,
-          lotacoes: true,
+          lotacoes: { where: whereLotacaoAtivaAtual() },
         },
       },
     },
@@ -253,6 +313,7 @@ export async function buscarUnidadePorId(id: string) {
         ],
       },
       lotacoes: {
+        where: whereLotacaoAtivaAtual(),
         include: {
           servidor: {
             include: {
@@ -262,6 +323,7 @@ export async function buscarUnidadePorId(id: string) {
         },
       },
       gestores: {
+        where: whereGestorAtivoAtual(),
         include: {
           servidor: {
             include: {
@@ -273,8 +335,8 @@ export async function buscarUnidadePorId(id: string) {
       _count: {
         select: {
           unidadesFilhas: true,
-          lotacoes: true,
-          gestores: true,
+          lotacoes: { where: whereLotacaoAtivaAtual() },
+          gestores: { where: whereGestorAtivoAtual() },
         },
       },
     },

@@ -166,9 +166,9 @@ export function DispensaPontoServidorCard({
                   </span>
                 </p>
                 <p>
-                  Frequencia manual:{" "}
+                  Frequência manual:{" "}
                   <span className="font-semibold text-[var(--foreground)]">
-                    {dispensa.exigeFrequenciaManual ? "Obrigatoria" : "Nao"}
+                    {dispensa.exigeFrequenciaManual ? "Obrigatória" : "Não"}
                   </span>
                 </p>
               </div>
@@ -239,7 +239,7 @@ export function DispensaPontoServidorCard({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label htmlFor="dataInicioDispensaPonto" className="text-sm font-semibold">
-                Inicio
+                Início
               </label>
               <input
                 id="dataInicioDispensaPonto"

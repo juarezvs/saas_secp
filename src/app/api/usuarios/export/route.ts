@@ -1,4 +1,8 @@
 import { auth } from "@/auth";
+import {
+  aplicarEscopoOrgaoId,
+  obterEscopoOrgaoDaSessao,
+} from "@/modules/auth/application/services/escopo-orgao.service";
 import { listarUsuariosParaExportacao } from "@/modules/usuarios/infrastructure/repositories/usuario.repository";
 
 export const runtime = "nodejs";
@@ -16,16 +20,22 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
 
-  const usuarios = await listarUsuariosParaExportacao({
-    busca: url.searchParams.get("busca") ?? "",
-    matricula: url.searchParams.get("matricula") ?? "",
-    nome: url.searchParams.get("nome") ?? "",
-    email: url.searchParams.get("email") ?? "",
-    tipo: url.searchParams.get("tipo") ?? "",
-    lotacao: url.searchParams.get("lotacao") ?? "",
-    perfil: url.searchParams.get("perfil") ?? "",
-    status: url.searchParams.get("status") ?? "",
-  });
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const usuarios = await listarUsuariosParaExportacao(
+    aplicarEscopoOrgaoId(
+      {
+        busca: url.searchParams.get("busca") ?? "",
+        matricula: url.searchParams.get("matricula") ?? "",
+        nome: url.searchParams.get("nome") ?? "",
+        email: url.searchParams.get("email") ?? "",
+        tipo: url.searchParams.get("tipo") ?? "",
+        lotacao: url.searchParams.get("lotacao") ?? "",
+        perfil: url.searchParams.get("perfil") ?? "",
+        status: url.searchParams.get("status") ?? "",
+      },
+      escopoOrgao,
+    ),
+  );
 
   const linhas = [
     [

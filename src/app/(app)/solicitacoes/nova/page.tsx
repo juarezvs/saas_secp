@@ -12,7 +12,7 @@ export default async function NovaSolicitacaoPage() {
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Solicitacoes", href: "/solicitacoes" },
+          { label: "Solicitações", href: "/solicitacoes" },
           { label: "Nova solicitacao" },
         ]}
       />
@@ -22,7 +22,7 @@ export default async function NovaSolicitacaoPage() {
         titulo="Nova solicitacao"
         descricao="Registre pedidos de ajuste, abono, atividade externa, capacitacao, viagem, dispensa de ponto, teletrabalho ou autorizacao previa de horas."
         artigo="Arts. 8, 9, 10, 13, 14, 16 e 18"
-        regraTitulo="Solicitacao e analise pela chefia"
+        regraTitulo="Solicitação e análise pela chefia"
         regraDescricao="Pedidos que impactam a frequencia devem registrar periodo, justificativa, decisao da chefia e efeitos na apuracao."
       />
 

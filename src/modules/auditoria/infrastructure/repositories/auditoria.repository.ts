@@ -10,6 +10,7 @@ export type ListarAuditoriaParams = {
   usuarioId?: string;
   dataInicio?: string;
   dataFim?: string;
+  orgaoIdsPermitidos?: string[];
 };
 
 function criarFiltroData(dataInicio?: string, dataFim?: string) {
@@ -38,33 +39,68 @@ function criarFiltroData(dataInicio?: string, dataFim?: string) {
 export function montarWhereAuditoria(params: ListarAuditoriaParams) {
   const busca = params.busca?.trim();
   const filtroData = criarFiltroData(params.dataInicio, params.dataFim);
-
-  return {
+  const filtrosAnd: object[] = [];
+  const escopo =
+    params.orgaoIdsPermitidos === undefined
+      ? null
+      : {
+          OR: [
+            {
+              usuario: {
+                servidor: {
+                  orgaoId: {
+                    in: params.orgaoIdsPermitidos,
+                  },
+                },
+              },
+            },
+            {
+              usuario: {
+                perfis: {
+                  some: {
+                    orgaoId: {
+                      in: params.orgaoIdsPermitidos,
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        };
+  const filtros = {
     ...(params.entidade ? { entidade: params.entidade } : {}),
     ...(params.acao
       ? { acao: { contains: params.acao, mode: "insensitive" as const } }
       : {}),
     ...(params.usuarioId ? { usuarioId: params.usuarioId } : {}),
     ...(filtroData ? { criadoEm: filtroData } : {}),
-    ...(busca
-      ? {
-          OR: [
-            { entidade: { contains: busca, mode: "insensitive" as const } },
-            { entidadeId: { contains: busca, mode: "insensitive" as const } },
-            { acao: { contains: busca, mode: "insensitive" as const } },
-            {
-              usuario: {
-                nome: { contains: busca, mode: "insensitive" as const },
-              },
+  };
+  const filtroBusca = busca
+    ? {
+        OR: [
+          { entidade: { contains: busca, mode: "insensitive" as const } },
+          { entidadeId: { contains: busca, mode: "insensitive" as const } },
+          { acao: { contains: busca, mode: "insensitive" as const } },
+          {
+            usuario: {
+              nome: { contains: busca, mode: "insensitive" as const },
             },
-            {
-              usuario: {
-                matricula: { contains: busca, mode: "insensitive" as const },
-              },
+          },
+          {
+            usuario: {
+              matricula: { contains: busca, mode: "insensitive" as const },
             },
-          ],
-        }
-      : {}),
+          },
+        ],
+      }
+    : null;
+
+  if (escopo) filtrosAnd.push(escopo);
+  if (filtroBusca) filtrosAnd.push(filtroBusca);
+
+  return {
+    ...filtros,
+    ...(filtrosAnd.length ? { AND: filtrosAnd } : {}),
   };
 }
 
@@ -118,10 +154,33 @@ export async function listarEventosAuditoriaParaExportacao(
   });
 }
 
-export async function buscarEventoAuditoriaPorId(id: string) {
-  return prisma.auditoriaEvento.findUnique({
+export async function buscarEventoAuditoriaPorId(
+  id: string,
+  params?: { orgaoIdsPermitidos?: string[] },
+) {
+  return prisma.auditoriaEvento.findFirst({
     where: {
       id,
+      ...(params?.orgaoIdsPermitidos === undefined
+        ? {}
+        : {
+            OR: [
+              {
+                usuario: {
+                  servidor: {
+                    orgaoId: { in: params.orgaoIdsPermitidos },
+                  },
+                },
+              },
+              {
+                usuario: {
+                  perfis: {
+                    some: { orgaoId: { in: params.orgaoIdsPermitidos } },
+                  },
+                },
+              },
+            ],
+          }),
     },
     include: {
       usuario: true,
@@ -129,9 +188,23 @@ export async function buscarEventoAuditoriaPorId(id: string) {
   });
 }
 
-export async function listarUsuariosParaFiltroAuditoria() {
+export async function listarUsuariosParaFiltroAuditoria(params?: {
+  orgaoIdsPermitidos?: string[];
+}) {
   return prisma.usuario.findMany({
     where: {
+      ...(params?.orgaoIdsPermitidos
+        ? {
+            OR: [
+              { servidor: { orgaoId: { in: params.orgaoIdsPermitidos } } },
+              {
+                perfis: {
+                  some: { orgaoId: { in: params.orgaoIdsPermitidos } },
+                },
+              },
+            ],
+          }
+        : {}),
       auditorias: {
         some: {},
       },
@@ -147,8 +220,31 @@ export async function listarUsuariosParaFiltroAuditoria() {
   });
 }
 
-export async function listarEntidadesAuditoria() {
+export async function listarEntidadesAuditoria(params?: {
+  orgaoIdsPermitidos?: string[];
+}) {
   const entidades = await prisma.auditoriaEvento.findMany({
+    where:
+      params?.orgaoIdsPermitidos === undefined
+        ? undefined
+        : {
+            OR: [
+              {
+                usuario: {
+                  servidor: {
+                    orgaoId: { in: params.orgaoIdsPermitidos },
+                  },
+                },
+              },
+              {
+                usuario: {
+                  perfis: {
+                    some: { orgaoId: { in: params.orgaoIdsPermitidos } },
+                  },
+                },
+              },
+            ],
+          },
     distinct: ["entidade"],
     select: {
       entidade: true,

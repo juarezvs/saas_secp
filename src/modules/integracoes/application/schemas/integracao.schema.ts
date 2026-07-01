@@ -138,13 +138,13 @@ export const ldapActiveDirectorySchema = z
   .object({
     orgaoId: z.string().uuid("Informe um órgão válido.").optional().or(z.literal("")),
     modoAutenticacao: z.enum(modosAutenticacaoLdapAd, {
-      error: "Informe o modo de autenticaÃ§Ã£o.",
+      error: "Informe o modo de autenticação.",
     }),
     nome: z
       .string()
       .trim()
-      .min(3, "Informe o nome da integraÃ§Ã£o.")
-      .max(160, "O nome deve ter no mÃ¡ximo 160 caracteres."),
+      .min(3, "Informe o nome da integração.")
+      .max(160, "O nome deve ter no máximo 160 caracteres."),
     ativo: z.coerce.boolean().default(true),
     authUrl: z.string().trim().optional().or(z.literal("")),
     ldapUrl: z.string().trim().optional().or(z.literal("")),
@@ -157,15 +157,15 @@ export const ldapActiveDirectorySchema = z
     timeoutMs: z.coerce
       .number()
       .int("Informe um tempo limite inteiro.")
-      .min(1000, "O tempo limite mÃ­nimo Ã© 1000 ms.")
-      .max(60000, "O tempo limite mÃ¡ximo Ã© 60000 ms."),
+      .min(1000, "O tempo limite mínimo é 1000 ms.")
+      .max(60000, "O tempo limite máximo é 60000 ms."),
   })
   .superRefine((dados, ctx) => {
     if (dados.modoAutenticacao === "HTTP_AD_API" && !dados.authUrl) {
       ctx.addIssue({
         code: "custom",
         path: ["authUrl"],
-        message: "Informe a URL da API de autenticaÃ§Ã£o do AD.",
+        message: "Informe a URL da API de autenticação do AD.",
       });
     }
 
@@ -183,7 +183,7 @@ export const ldapActiveDirectorySchema = z
           code: "custom",
           path: ["dominio"],
           message:
-            "Informe o domÃ­nio, um padrÃ£o de DN do usuÃ¡rio ou uma base DN para busca.",
+            "Informe o domínio, um padrão de DN do usuário ou uma base DN para busca.",
         });
       }
 
@@ -191,7 +191,7 @@ export const ldapActiveDirectorySchema = z
         ctx.addIssue({
           code: "custom",
           path: ["baseDn"],
-          message: "Informe a base DN para busca quando usar bind tÃ©cnico.",
+          message: "Informe a base DN para busca quando usar bind técnico.",
         });
       }
     }
@@ -206,4 +206,35 @@ export type LdapActiveDirectoryFormState = {
   mensagem: string | null;
   erros?: Record<string, string[]>;
   campos?: Partial<Record<keyof LdapActiveDirectoryInput, string | boolean>>;
+};
+
+export const sarhOracleSchema = z.object({
+  orgaoId: z.string().uuid("Informe um órgão válido.").optional().or(z.literal("")),
+  nome: z
+    .string()
+    .trim()
+    .min(3, "Informe o nome da integração.")
+    .max(160, "O nome deve ter no máximo 160 caracteres."),
+  ativo: z.coerce.boolean().default(true),
+  username: z.string().trim().min(1, "Informe o usuário Oracle."),
+  password: z.string().optional().or(z.literal("")),
+  connectString: z
+    .string()
+    .trim()
+    .min(1, "Informe a string/TNS de conexão Oracle."),
+  oracleHome: z.string().trim().optional().or(z.literal("")),
+  siglaLocalidade: z
+    .string()
+    .trim()
+    .min(2, "Informe a sigla local usada no filtro do SARH.")
+    .max(10, "A sigla local deve ter no máximo 10 caracteres."),
+});
+
+export type SarhOracleInput = z.infer<typeof sarhOracleSchema>;
+
+export type SarhOracleFormState = {
+  sucesso: boolean;
+  mensagem: string | null;
+  erros?: Record<string, string[]>;
+  campos?: Partial<Record<keyof SarhOracleInput, string | boolean>>;
 };

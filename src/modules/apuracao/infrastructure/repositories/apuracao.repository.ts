@@ -278,13 +278,147 @@ export async function listarMarcacoesDoServidorNoMes(params: {
   });
 }
 
-export async function listarServidoresParaEspelhoPonto() {
+type ListarServidoresParaEspelhoPontoParams = {
+  usuarioId?: string;
+  anoReferencia?: number;
+  mesReferencia?: number;
+  escopo?: "global" | "chefia";
+};
+
+function intervaloReferencia(params: {
+  anoReferencia?: number;
+  mesReferencia?: number;
+}) {
+  const hoje = new Date();
+  const ano = Number.isInteger(params.anoReferencia)
+    ? params.anoReferencia!
+    : hoje.getFullYear();
+  const mes =
+    Number.isInteger(params.mesReferencia) &&
+    params.mesReferencia! >= 1 &&
+    params.mesReferencia! <= 12
+      ? params.mesReferencia!
+      : hoje.getMonth() + 1;
+
+  return {
+    inicio: new Date(ano, mes - 1, 1),
+    fim: new Date(ano, mes, 1),
+  };
+}
+
+async function listarIdsUnidadesSubordinadasParaEspelho(params: {
+  usuarioId: string;
+  anoReferencia: number;
+  mesReferencia: number;
+}) {
+  const { inicio, fim } = intervaloReferencia(params);
+  const gestores = await prisma.gestorUnidade.findMany({
+    where: {
+      ativo: true,
+      dataInicio: {
+        lt: fim,
+      },
+      OR: [
+        {
+          dataFim: null,
+        },
+        {
+          dataFim: {
+            gte: inicio,
+          },
+        },
+      ],
+      servidor: {
+        usuarioId: params.usuarioId,
+        ativo: true,
+      },
+    },
+    select: {
+      unidadeId: true,
+    },
+  });
+
+  const visitadas = new Set(gestores.map((gestor) => gestor.unidadeId));
+  let fronteira = Array.from(visitadas);
+
+  while (fronteira.length > 0) {
+    const filhas = await prisma.unidadeOrganizacional.findMany({
+      where: {
+        ativo: true,
+        unidadePaiId: {
+          in: fronteira,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    const novas = filhas
+      .map((unidade) => unidade.id)
+      .filter((id) => !visitadas.has(id));
+
+    for (const id of novas) {
+      visitadas.add(id);
+    }
+
+    fronteira = novas;
+  }
+
+  return Array.from(visitadas);
+}
+
+export async function listarServidoresParaEspelhoPonto(
+  params: ListarServidoresParaEspelhoPontoParams = {},
+) {
+  const { inicio, fim } = intervaloReferencia({
+    anoReferencia: params.anoReferencia,
+    mesReferencia: params.mesReferencia,
+  });
+  const unidadesSubordinadas =
+    params.escopo === "chefia" && params.usuarioId
+      ? await listarIdsUnidadesSubordinadasParaEspelho({
+          usuarioId: params.usuarioId,
+          anoReferencia: params.anoReferencia ?? inicio.getFullYear(),
+          mesReferencia: params.mesReferencia ?? inicio.getMonth() + 1,
+        })
+      : null;
+
+  if (params.escopo === "chefia" && unidadesSubordinadas?.length === 0) {
+    return [];
+  }
+
   return prisma.servidor.findMany({
     where: {
       ativo: true,
       usuario: {
         ativo: true,
       },
+      ...(unidadesSubordinadas
+        ? {
+            lotacoes: {
+              some: {
+                status: "ATIVO",
+                unidadeId: {
+                  in: unidadesSubordinadas,
+                },
+                dataInicio: {
+                  lt: fim,
+                },
+                OR: [
+                  {
+                    dataFim: null,
+                  },
+                  {
+                    dataFim: {
+                      gte: inicio,
+                    },
+                  },
+                ],
+              },
+            },
+          }
+        : {}),
     },
     include: {
       usuario: true,

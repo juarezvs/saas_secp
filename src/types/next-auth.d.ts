@@ -34,7 +34,5 @@ declare module "next-auth/jwt" {
     nome?: string;
     tipo?: string;
     preferenciasAcessibilidade?: UsuarioAutenticado["preferenciasAcessibilidade"];
-    perfis?: PerfilSessao[];
-    perfilAtivo?: PerfilSessao | null;
   }
 }

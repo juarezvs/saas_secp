@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { exigirPermissao } from "@/modules/auth/application/services/permissao.service";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import type { StatusIntegracao } from "@/generated/prisma/client";
 
@@ -51,6 +52,16 @@ export async function atualizarLdapActiveDirectoryAction(
   }
 
   const orgaoId = parsed.data.orgaoId || null;
+  const escopo = await obterEscopoOrgaoDaSessao();
+
+  if (!escopo.global && (!orgaoId || !escopo.orgaoIds.includes(orgaoId))) {
+    return {
+      sucesso: false,
+      mensagem: "Seccional fora do escopo do perfil ativo.",
+      campos: dados,
+    };
+  }
+
   const atual = await obterConfiguracaoLdapActiveDirectory(orgaoId);
   const novaSenhaBind = parsed.data.bindPassword ?? "";
   const bindPassword =

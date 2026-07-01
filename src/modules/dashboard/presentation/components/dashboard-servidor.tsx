@@ -1,6 +1,7 @@
 import { Bell } from "lucide-react";
 
 import { Badge } from "@/components/ui";
+import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao-utils";
 import { PERMISSOES_ACESSO_REGISTRO_PONTO_SECP } from "@/modules/auth/domain/constants/perfis-sistema";
 import { AcessoRapidoGrid } from "./acesso-rapido-grid";
 import { AlertasEAvisosCard } from "./alertas-e-avisos-card";
@@ -21,6 +22,7 @@ type DashboardServidorProps = {
   cabecalho?: Partial<typeof dashboardServidorMock.servidor>;
   totalNotificacoes?: number;
   frequenciaMes?: FrequenciaMesServidorResumo;
+  perfilAtivoCodigo?: string | null;
   permissoesPerfil?: string[];
   marcacoesDia?: MarcacaoDia[];
   previsaoJornadaDia?: PrevisaoJornadaDia | null;
@@ -31,15 +33,20 @@ export function DashboardServidor({
   cabecalho,
   totalNotificacoes = 0,
   frequenciaMes,
+  perfilAtivoCodigo,
   permissoesPerfil = [],
   marcacoesDia = [],
   previsaoJornadaDia = null,
 }: DashboardServidorProps) {
-  const podeRegistrarPontoPeloSecp = PERMISSOES_ACESSO_REGISTRO_PONTO_SECP.some(
-    (permissao) => permissoesPerfil.includes(permissao),
+  const podeRegistrarPontoPeloSecp = usuarioPossuiAlgumaPermissaoNoPerfil(
+    perfilAtivoCodigo,
+    permissoesPerfil,
+    PERMISSOES_ACESSO_REGISTRO_PONTO_SECP,
   );
-  const podeRegistrarPontoFacial = permissoesPerfil.includes(
-    "marcacoes:registrar-facial:proprio",
+  const podeRegistrarPontoFacial = usuarioPossuiAlgumaPermissaoNoPerfil(
+    perfilAtivoCodigo,
+    permissoesPerfil,
+    ["marcacoes:registrar-facial:proprio"],
   );
   const dados = {
     ...dashboardServidorMock,
@@ -50,9 +57,17 @@ export function DashboardServidor({
     frequenciaMes: frequenciaMes ?? dashboardServidorMock.frequenciaMes,
     marcacoes: marcacoesDia,
   };
-  const acessos = podeRegistrarPontoPeloSecp
-    ? dados.acessos
-    : dados.acessos.filter((acesso) => acesso.href !== "/marcacoes/registrar");
+  const acessos = dados.acessos.filter((acesso) => {
+    if (!acesso.permissoes || acesso.permissoes.length === 0) {
+      return true;
+    }
+
+    return usuarioPossuiAlgumaPermissaoNoPerfil(
+      perfilAtivoCodigo,
+      permissoesPerfil,
+      acesso.permissoes,
+    );
+  });
   const proximaAcao = podeRegistrarPontoFacial
     ? dados.proximaAcao
     : {

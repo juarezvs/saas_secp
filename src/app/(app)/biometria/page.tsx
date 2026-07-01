@@ -84,7 +84,7 @@ export default async function BiometriaPage() {
             <h2 className="text-lg font-bold">Cadastro facial necessário</h2>
 
             <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-              Voce ainda não possui biometria facial ativa.
+              Você ainda não possui biometria facial ativa.
             </p>
 
             <Link

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { normalizarDataReferencia } from "@/modules/apuracao/application/services/calcular-tempo.service";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { recalcularDiaServidorService } from "@/modules/recalculo/application/services/recalcular-dia-servidor.service";
 import { regerarBancoHorasMesService } from "@/modules/recalculo/application/services/regerar-banco-horas-mes.service";
@@ -177,6 +178,11 @@ export async function salvarRegulamentacaoPontoAction(formData: FormData) {
 
   const { recalcularCompetencia, anoReferencia, mesReferencia, ...dados } =
     parsed.data;
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+
+  if (!escopoOrgao.global && !escopoOrgao.orgaoIds.includes(dados.orgaoId)) {
+    throw new Error("Seccional fora do escopo do perfil ativo.");
+  }
 
   const antes = await prisma.regulamentacaoPontoOrgao.findUnique({
     where: { orgaoId: dados.orgaoId },

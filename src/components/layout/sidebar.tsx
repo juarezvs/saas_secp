@@ -9,10 +9,10 @@ import {
   CalendarDays,
   CalendarClock,
   CalendarRange,
+  CalendarX,
   Cable,
   ClipboardList,
   Clock,
-  Cpu,
   DatabaseZap,
   FileCheck2,
   FileSpreadsheet,
@@ -34,9 +34,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import {
-  usuarioPossuiAlgumaPermissaoNoPerfil,
-} from "@/modules/auth/application/services/permissao-utils";
+import { SecpLogo } from "@/components/brand/secp-logo";
+import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao-utils";
 import { PERMISSOES_ACESSO_REGISTRO_PONTO_SECP } from "@/modules/auth/domain/constants/perfis-sistema";
 
 export type PerfilNavegacao = {
@@ -54,33 +53,221 @@ export type MenuItem = {
 };
 
 export const MENU_ITEMS: MenuItem[] = [
-  { label: "Inicio", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Registrar ponto", href: "/marcacoes/registrar", icon: Fingerprint, permissoes: PERMISSOES_ACESSO_REGISTRO_PONTO_SECP },
-  { label: "Marcações", href: "/marcacoes", icon: Clock, permissoes: ["marcacoes:consultar:global"] },
-  { label: "Marcações brutas", href: "/marcacoes-brutas", icon: DatabaseZap, permissoes: ["marcacoes:gerenciar:global", "afd:importar:global"] },
-  { label: "Espelho de ponto", href: "/espelho-ponto", icon: CalendarDays, permissoes: ["espelho-ponto:visualizar:proprio", "apuracao:consultar:proprio", "apuracao:consultar:global"] },
-  { label: "Banco de horas", href: "/banco-horas", icon: Hourglass, permissoes: ["banco-horas:visualizar:proprio", "banco-horas:consultar:proprio", "banco-horas:consultar:global"] },
-  { label: "Solicitações", href: "/solicitacoes", icon: ClipboardList, permissoes: ["solicitacoes:criar:proprio", "solicitacoes:consultar:proprio", "solicitacoes:analisar:chefia", "solicitacoes:consultar:global"] },
-  { label: "Homologação", href: "/homologacao", icon: ShieldCheck, permissoes: ["homologacao:gerenciar:chefia", "homologacao:consultar:global", "homologacao:gerenciar:global"] },
-  { label: "Boletim de frequência", href: "/boletim-frequencia", icon: FileSpreadsheet, permissoes: ["boletim-frequencia:gerar:chefia", "boletim-frequencia:encaminhar:chefia", "boletim-frequencia:receber:global", "boletim-frequencia:consultar:global"] },
-  { label: "Recesso forense", href: "/recesso-forense", icon: CalendarRange, permissoes: ["recesso:consultar:proprio", "recesso:consultar:global", "recesso:gerenciar:global", "recesso:homologar:chefia", "recesso:aceitar:secad"] },
-  { label: "Relatórios", href: "/relatorios", icon: BarChart3, permissoes: ["relatorios:consultar:proprio", "relatorios:consultar:global", "relatorios-gerenciais:consultar:proprio", "relatorios-gerenciais:consultar:chefia", "relatorios-gerenciais:consultar:global"] },
-  { label: "Biometria", href: "/biometria", icon: ScanFace, permissoes: ["biometria:consultar:proprio", "biometria:cadastrar:proprio", "biometria:gerenciar:global"] },
-  { label: "Equipamentos", href: "/equipamentos", icon: Cpu, permissoes: ["integracoes:consultar:global", "integracoes:gerenciar:global", "afd:importar:global"] },
-  { label: "Apuração", href: "/apuracao", icon: FileCheck2, permissoes: ["apuracao:consultar:global", "apuracao:recalcular:global"] },
-  { label: "AFD", href: "/afd", icon: Upload, permissoes: ["afd:importar:global"] },
-  { label: "Servidores", href: "/servidores", icon: Users, permissoes: ["servidores:gerenciar:global", "servidores:consultar:global"] },
-  { label: "Usuários", href: "/usuarios", icon: UserCog, permissoes: ["usuarios:gerenciar:global", "usuarios:consultar:global"] },
-  { label: "Perfis", href: "/perfis", icon: ShieldAlert, permissoes: ["perfis:gerenciar:global"] },
-  { label: "Unidades", href: "/unidades", icon: Building2, permissoes: ["unidades:gerenciar:global"] },
-  { label: "Órgãos", href: "/orgaos", icon: Landmark, permissoes: ["unidades:gerenciar:global"] },
-  { label: "Jornadas", href: "/jornadas", icon: CalendarClock, permissoes: ["jornadas:gerenciar:global"] },
-  { label: "Chefias", href: "/chefias", icon: Network, permissoes: ["chefias:gerenciar:global"] },
-  { label: "Integrações", href: "/integracoes", icon: Cable, permissoes: ["integracoes:consultar:global", "integracoes:gerenciar:global"] },
-  { label: "Administração", href: "/administracao", icon: Settings, permissoes: ["configuracoes:gerenciar:global"] },
-  { label: "Regulamentação", href: "/administracao/regulamentacao-ponto", icon: SlidersHorizontal, permissoes: ["regulamentacao-ponto:gerenciar:global"] },
-  { label: "Fusos horarios", href: "/administracao/fusos-horarios", icon: Clock, permissoes: ["fusos-horarios:gerenciar:global"] },
-  { label: "Auditoria", href: "/auditoria", icon: ScrollText, permissoes: ["auditoria:consultar:global", "auditoria:detalhar:global"] },
+  { label: "Início", href: "/dashboard", icon: LayoutDashboard },
+  {
+    label: "Registrar ponto",
+    href: "/marcacoes/registrar",
+    icon: Fingerprint,
+    permissoes: PERMISSOES_ACESSO_REGISTRO_PONTO_SECP,
+  },
+  {
+    label: "Marcações",
+    href: "/marcacoes",
+    icon: Clock,
+    permissoes: [
+      "marcacoes:consultar:proprio",
+      "marcacoes:visualizar:proprio",
+      "marcacoes:consultar:global",
+    ],
+  },
+  {
+    label: "Marcações brutas",
+    href: "/marcacoes-brutas",
+    icon: DatabaseZap,
+    permissoes: ["marcacoes:gerenciar:global", "afd:importar:global"],
+  },
+  {
+    label: "Espelho de ponto",
+    href: "/espelho-ponto",
+    icon: CalendarDays,
+    permissoes: [
+      "espelho-ponto:visualizar:proprio",
+      "apuracao:consultar:global",
+    ],
+  },
+  {
+    label: "Meus afastamentos",
+    href: "/meus-afastamentos",
+    icon: CalendarX,
+    permissoes: ["afastamentos:consultar:proprio"],
+  },
+  {
+    label: "Banco de horas",
+    href: "/banco-horas",
+    icon: Hourglass,
+    permissoes: [
+      "banco-horas:visualizar:proprio",
+      "banco-horas:consultar:proprio",
+      "banco-horas:consultar:global",
+    ],
+  },
+  {
+    label: "Solicitações",
+    href: "/solicitacoes",
+    icon: ClipboardList,
+    permissoes: [
+      "solicitacoes:criar:proprio",
+      "solicitacoes:consultar:proprio",
+      "solicitacoes:analisar:chefia",
+      "solicitacoes:consultar:global",
+    ],
+  },
+  {
+    label: "Homologação",
+    href: "/homologacao",
+    icon: ShieldCheck,
+    permissoes: [
+      "homologacao:gerenciar:chefia",
+      "homologacao:consultar:global",
+      "homologacao:gerenciar:global",
+    ],
+  },
+  {
+    label: "Boletim de frequência",
+    href: "/boletim-frequencia",
+    icon: FileSpreadsheet,
+    permissoes: [
+      "boletim-frequencia:gerar:chefia",
+      "boletim-frequencia:encaminhar:chefia",
+      "boletim-frequencia:receber:global",
+      "boletim-frequencia:consultar:global",
+    ],
+  },
+  {
+    label: "Recesso forense",
+    href: "/recesso-forense",
+    icon: CalendarRange,
+    permissoes: [
+      "recesso:consultar:proprio",
+      "recesso:consultar:global",
+      "recesso:gerenciar:global",
+      "recesso:homologar:chefia",
+      "recesso:aceitar:secad",
+    ],
+  },
+  {
+    label: "Relatórios",
+    href: "/relatorios",
+    icon: BarChart3,
+    permissoes: [
+      "relatorios:consultar:proprio",
+      "relatorios:consultar:global",
+      "relatorios-gerenciais:consultar:proprio",
+      "relatorios-gerenciais:consultar:chefia",
+      "relatorios-gerenciais:consultar:global",
+    ],
+  },
+  {
+    label: "Biometria",
+    href: "/biometria",
+    icon: ScanFace,
+    permissoes: [
+      "biometria:consultar:proprio",
+      "biometria:cadastrar:proprio",
+      "biometria:gerenciar:global",
+    ],
+  },
+  {
+    label: "Apuração",
+    href: "/apuracao",
+    icon: FileCheck2,
+    permissoes: ["apuracao:consultar:global", "apuracao:recalcular:global"],
+  },
+  {
+    label: "AFD",
+    href: "/afd",
+    icon: Upload,
+    permissoes: ["afd:importar:global"],
+  },
+  {
+    label: "Servidores",
+    href: "/servidores",
+    icon: Users,
+    permissoes: ["servidores:gerenciar:global", "servidores:consultar:global"],
+  },
+  {
+    label: "Usuários",
+    href: "/usuarios",
+    icon: UserCog,
+    permissoes: ["usuarios:gerenciar:global", "usuarios:consultar:global"],
+  },
+  {
+    label: "Perfis",
+    href: "/perfis",
+    icon: ShieldAlert,
+    permissoes: ["perfis:gerenciar:global"],
+  },
+  {
+    label: "Unidades",
+    href: "/unidades",
+    icon: Building2,
+    permissoes: ["unidades:gerenciar:global"],
+  },
+  {
+    label: "Órgãos",
+    href: "/orgaos",
+    icon: Landmark,
+    permissoes: ["unidades:gerenciar:global"],
+  },
+  {
+    label: "Jornadas",
+    href: "/jornadas",
+    icon: CalendarClock,
+    permissoes: ["jornadas:gerenciar:global"],
+  },
+  {
+    label: "Chefias",
+    href: "/chefias",
+    icon: Network,
+    permissoes: ["chefias:gerenciar:global"],
+  },
+  {
+    label: "Integrações",
+    href: "/integracoes",
+    icon: Cable,
+    permissoes: [
+      "integracoes:consultar:global",
+      "integracoes:gerenciar:global",
+    ],
+  },
+  {
+    label: "Administração",
+    href: "/administracao",
+    icon: Settings,
+    permissoes: [
+      "configuracoes:gerenciar:global",
+      "usuarios:gerenciar:global",
+      "usuarios:consultar:global",
+      "perfis:gerenciar:global",
+      "unidades:gerenciar:global",
+      "jornadas:gerenciar:global",
+      "chefias:gerenciar:global",
+      "integracoes:consultar:global",
+      "integracoes:gerenciar:global",
+      "regulamentacao-ponto:gerenciar:global",
+      "fusos-horarios:gerenciar:global",
+      "auditoria:consultar:global",
+      "auditoria:detalhar:global",
+    ],
+  },
+  {
+    label: "Regulamentação",
+    href: "/administracao/regulamentacao-ponto",
+    icon: SlidersHorizontal,
+    permissoes: ["regulamentacao-ponto:gerenciar:global"],
+  },
+  {
+    label: "Fusos horários",
+    href: "/administracao/fusos-horarios",
+    icon: Clock,
+    permissoes: ["fusos-horarios:gerenciar:global"],
+  },
+  {
+    label: "Auditoria",
+    href: "/auditoria",
+    icon: ScrollText,
+    permissoes: ["auditoria:consultar:global", "auditoria:detalhar:global"],
+  },
 ];
 
 type SidebarProps = {
@@ -215,16 +402,27 @@ export function Sidebar({
         aria-label="Menu principal"
       >
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex h-16 items-center gap-3 border-b border-border px-4">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-secp-blue-900 text-sm font-black text-white">
-              SE
-            </div>
+          <div
+            className={[
+              "flex h-[4.5rem] items-center border-b border-border/80 bg-gradient-to-b from-card to-muted/30 px-4",
+              recolhida ? "justify-center" : "gap-3",
+            ].join(" ")}
+          >
+            <SecpLogo
+              variant="mark"
+              className="size-11 shrink-0 rounded-md bg-white p-1 shadow-sm ring-1 ring-secp-blue-900/10"
+            />
             {!recolhida && (
               <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-foreground">SECP</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  Perfil {perfilAtivo.nome}
+                <p className="truncate text-[11px] font-black uppercase text-secp-blue-800 dark:text-blue-200">
+                  Justiça Federal
                 </p>
+                <p className="truncate text-xl font-black leading-6 tracking-normal text-foreground">
+                  SECP
+                </p>
+                <span className="mt-1 inline-flex max-w-full rounded bg-secp-blue-900/10 px-2 py-0.5 text-[11px] font-semibold text-secp-blue-900 dark:bg-white/10 dark:text-blue-200">
+                  <span className="truncate">{perfilAtivo.nome}</span>
+                </span>
               </div>
             )}
           </div>
@@ -248,16 +446,22 @@ export function Sidebar({
             onClick={onFecharDrawer}
           />
           <aside className="relative flex h-full w-[min(20rem,88vw)] flex-col bg-card text-card-foreground shadow-floating">
-            <div className="flex h-16 items-center justify-between border-b border-border px-4">
+            <div className="flex h-[4.5rem] items-center justify-between border-b border-border/80 bg-gradient-to-b from-card to-muted/30 px-4">
               <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-md bg-secp-blue-900 text-sm font-black text-white">
-                  SE
-                </div>
-                <div>
-                  <p className="text-sm font-bold">SECP</p>
-                  <p className="text-xs text-muted-foreground">
-                    Perfil {perfilAtivo.nome}
+                <SecpLogo
+                  variant="mark"
+                  className="size-11 shrink-0 rounded-md bg-white p-1 shadow-sm ring-1 ring-secp-blue-900/10"
+                />
+                <div className="min-w-0">
+                  <p className="truncate text-[11px] font-black uppercase text-secp-blue-800 dark:text-blue-200">
+                    Justiça Federal
                   </p>
+                  <p className="text-xl font-black leading-6 tracking-normal">
+                    SECP
+                  </p>
+                  <span className="mt-1 inline-flex max-w-44 rounded bg-secp-blue-900/10 px-2 py-0.5 text-[11px] font-semibold text-secp-blue-900 dark:bg-white/10 dark:text-blue-200">
+                    <span className="truncate">{perfilAtivo.nome}</span>
+                  </span>
                 </div>
               </div>
               <button

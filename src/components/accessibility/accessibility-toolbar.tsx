@@ -6,6 +6,7 @@ import {
   BookOpenText,
   Contrast,
   Moon,
+  RotateCcw,
   Sun,
 } from "lucide-react";
 import {
@@ -49,10 +50,10 @@ function aplicarAltoContraste(ativo: boolean) {
 }
 
 function obterClasseBotao(ativo: boolean) {
-  return `relative inline-flex size-10 shrink-0 items-center justify-center rounded-lg border text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
+  return `relative inline-flex size-10 shrink-0 items-center justify-center rounded-md border text-sm shadow-sm backdrop-blur transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-45 ${
     ativo
-      ? "border-blue-700 bg-blue-900 text-white"
-      : "bg-card text-foreground hover:bg-muted"
+      ? "border-cyan-200/70 bg-secp-blue-950/75 text-white shadow-cyan-950/20 ring-1 ring-cyan-100/30"
+      : "border-white/20 bg-white/10 text-white hover:border-white/35 hover:bg-white/18"
   }`;
 }
 
@@ -159,6 +160,10 @@ export function AccessibilityToolbar({
     });
   }
 
+  function restaurarFontePadrao() {
+    setTamanhoFonte("16");
+  }
+
   function alternarFonteDislexia() {
     setFonteDislexia((ativoAtual) => !ativoAtual);
   }
@@ -206,8 +211,22 @@ export function AccessibilityToolbar({
         disabled={tamanhoFonte === "30"}
         suppressHydrationWarning
       >
-        <span aria-hidden="true" className="font-bold">A+</span>
+        <span aria-hidden="true" className="font-bold">
+          A+
+        </span>
         <IndicadorTamanhoFonte tamanho={tamanhoFonte} />
+      </button>
+
+      <button
+        type="button"
+        onClick={restaurarFontePadrao}
+        className={obterClasseBotao(tamanhoFonte !== "16")}
+        aria-label={`Restaurar fonte padrão. Tamanho atual: ${tamanhoFonte}px`}
+        title="Fonte padrão"
+        disabled={tamanhoFonte === "16"}
+        suppressHydrationWarning
+      >
+        <RotateCcw className="size-4" aria-hidden="true" />
       </button>
 
       <button
@@ -219,7 +238,9 @@ export function AccessibilityToolbar({
         disabled={tamanhoFonte === "13"}
         suppressHydrationWarning
       >
-        <span aria-hidden="true" className="font-bold">A-</span>
+        <span aria-hidden="true" className="font-bold">
+          A-
+        </span>
         <IndicadorTamanhoFonte tamanho={tamanhoFonte} />
       </button>
 

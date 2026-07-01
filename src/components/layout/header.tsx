@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -9,6 +10,7 @@ import {
   LogOut,
   Menu,
   PanelLeftClose,
+  PanelLeftOpen,
   ShieldCheck,
   UserRound,
 } from "lucide-react";
@@ -19,6 +21,8 @@ import type { PreferenciasAcessibilidade } from "@/modules/auth/application/serv
 type HeaderProps = {
   nomeUsuario: string;
   matricula: string;
+  funcaoOuCargo?: string | null;
+  fotoUrl?: string | null;
   unidadeAtual: string;
   perfis: PerfilNavegacao[];
   perfilAtivo: PerfilNavegacao;
@@ -35,6 +39,8 @@ type HeaderProps = {
 export function Header({
   nomeUsuario,
   matricula,
+  funcaoOuCargo,
+  fotoUrl,
   unidadeAtual,
   perfis,
   perfilAtivo,
@@ -118,6 +124,7 @@ export function Header({
             perfilAtivo?: PerfilNavegacao;
           };
           onPerfilAtivoChange(payload.perfilAtivo ?? novoPerfil);
+          router.push("/dashboard");
           router.refresh();
           buscarTotalNotificacoes().then(setTotalNotificacoesAtual);
         }
@@ -126,13 +133,13 @@ export function Header({
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 secp-institutional-gradient text-white shadow-sm">
-      <div className="flex min-h-16 items-center justify-between gap-3 px-4 lg:px-6">
-        <div className="flex min-w-0 items-center gap-3">
+    <header className="sticky top-0 z-40 border-b border-white/15 secp-institutional-gradient text-white shadow-lg shadow-slate-950/20 backdrop-blur">
+      <div className="flex min-h-[4.5rem] items-center justify-between gap-3 px-4 ring-1 ring-white/5 lg:px-6">
+        <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             onClick={onOpenMobileMenu}
-            className="inline-flex size-10 items-center justify-center rounded-md border border-white/20 bg-white/10 transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:hidden"
+            className="inline-flex size-10 items-center justify-center rounded-md border border-white/20 bg-white/10 shadow-sm backdrop-blur transition hover:border-white/35 hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:hidden"
             aria-label="Abrir menu principal"
             aria-controls="secp-sidebar-mobile"
             aria-expanded={drawerAberto}
@@ -143,36 +150,50 @@ export function Header({
           <button
             type="button"
             onClick={onToggleSidebar}
-            className="hidden size-10 items-center justify-center rounded-md border border-white/20 bg-white/10 transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:inline-flex"
-            aria-label="Recolher ou expandir menu lateral"
+            className="hidden size-10 items-center justify-center rounded-md border border-white/20 bg-white/10 shadow-sm backdrop-blur transition hover:border-white/35 hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:inline-flex"
+            aria-label={
+              sidebarRecolhida
+                ? "Expandir menu lateral"
+                : "Recolher menu lateral"
+            }
+            title={
+              sidebarRecolhida
+                ? "Expandir menu lateral"
+                : "Recolher menu lateral"
+            }
             aria-controls="secp-sidebar-desktop"
             aria-expanded={!sidebarRecolhida}
           >
-            <PanelLeftClose className="size-5" aria-hidden="true" />
+            {sidebarRecolhida ? (
+              <PanelLeftOpen className="size-5" aria-hidden="true" />
+            ) : (
+              <PanelLeftClose className="size-5" aria-hidden="true" />
+            )}
           </button>
 
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-white text-sm font-black text-secp-blue-900">
-            SE
-          </div>
-
-          <div className="min-w-0">
-            <p className="truncate text-xs font-semibold uppercase text-white/75">
-              Sistema Eletrônico de Controle de Ponto
-            </p>
-            <h1 className="truncate text-base font-bold">SECP</h1>
-          </div>
+          <Link href="/dashboard" className="sr-only">
+            Ir para a dashboard
+          </Link>
         </div>
 
-        <div className="flex min-w-0 items-center gap-2 overflow-x-auto py-2">
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2 py-2">
           {unidadeAtual && (
-            <div className="hidden min-w-0 items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-sm xl:flex">
-              <Building2 className="size-4 shrink-0" aria-hidden="true" />
-              <span className="max-w-56 truncate">{unidadeAtual}</span>
+            <div className="mr-auto hidden min-w-0 items-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 py-2 text-sm shadow-sm backdrop-blur xl:flex">
+              <Building2
+                className="size-4 shrink-0 text-white/85"
+                aria-hidden="true"
+              />
+              <span className="max-w-72 truncate text-white/90">
+                {unidadeAtual}
+              </span>
             </div>
           )}
 
-          <label className="hidden min-w-44 items-center gap-2 rounded-md bg-white/10 px-3 py-2 lg:flex">
-            <ShieldCheck className="size-4 shrink-0" aria-hidden="true" />
+          <label className="hidden min-w-48 items-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 py-2 shadow-sm backdrop-blur transition focus-within:border-white/40 lg:flex">
+            <ShieldCheck
+              className="size-4 shrink-0 text-white/85"
+              aria-hidden="true"
+            />
             <span className="sr-only">Perfil ativo</span>
             <select
               value={perfilAtivo.codigo}
@@ -189,11 +210,13 @@ export function Header({
             </select>
           </label>
 
-          <AccessibilityToolbar preferenciasIniciais={preferenciasAcessibilidade} />
+          <AccessibilityToolbar
+            preferenciasIniciais={preferenciasAcessibilidade}
+          />
 
           <Link
             href="/notificacoes"
-            className="relative hidden size-10 items-center justify-center rounded-md border border-white/20 bg-white/10 transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:inline-flex"
+            className="relative hidden size-10 items-center justify-center rounded-md border border-white/20 bg-white/10 shadow-sm backdrop-blur transition hover:border-white/35 hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:inline-flex"
             aria-label={`Ver notificações${totalNotificacoesAtual > 0 ? `: ${totalNotificacoesAtual} não lida(s)` : ""}`}
           >
             <Bell className="size-5" aria-hidden="true" />
@@ -204,22 +227,38 @@ export function Header({
             )}
           </Link>
 
-          <div className="hidden min-w-0 items-center gap-3 rounded-md bg-white/10 px-3 py-2 md:flex">
-            <span className="flex size-8 items-center justify-center rounded-full bg-white text-secp-blue-900">
-              <UserRound className="size-4" aria-hidden="true" />
-            </span>
-            <div className="min-w-0">
-              <p className="max-w-40 truncate text-sm font-semibold">
-                {nomeUsuario}
+          <div className="hidden min-w-0 items-center gap-3 rounded-md border border-white/15 bg-white/10 px-3 py-2 shadow-sm backdrop-blur md:flex">
+            {fotoUrl ? (
+              <Image
+                src={fotoUrl}
+                alt=""
+                width={40}
+                height={40}
+                unoptimized
+                className="size-10 rounded-full border-2 border-white bg-white object-cover shadow-sm ring-2 ring-white/25"
+              />
+            ) : (
+              <span className="flex size-10 items-center justify-center rounded-full border-2 border-white bg-white text-secp-blue-900 shadow-sm ring-2 ring-white/25">
+                <UserRound className="size-4" aria-hidden="true" />
+              </span>
+            )}
+            <div className="min-w-0 max-w-80">
+              <div className="flex min-w-0 items-center gap-2">
+                <p className="truncate text-sm font-semibold">{nomeUsuario}</p>
+                <span className="shrink-0 rounded bg-white/15 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-white/85">
+                  {matricula}
+                </span>
+              </div>
+              <p className="mt-0.5 truncate text-xs text-white/75">
+                {funcaoOuCargo || perfilAtivo.nome}
               </p>
-              <p className="truncate text-xs text-white/75">{matricula}</p>
             </div>
           </div>
 
           <form action={onLogout}>
             <button
               type="submit"
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-white/20 bg-white/10 px-3 text-sm font-semibold transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-white/20 bg-white/10 px-3 text-sm font-semibold shadow-sm backdrop-blur transition hover:border-white/35 hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               aria-label="Sair do sistema"
             >
               <LogOut className="size-4" aria-hidden="true" />

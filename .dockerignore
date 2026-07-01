@@ -11,6 +11,9 @@ npm-debug.log
 coverage
 dist
 tmp
+backups
+import
+files_afd
 .DS_Store
 
 Dockerfile

@@ -3,6 +3,7 @@ import { Plus, ShieldAlert } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarPerfisPaginado } from "@/modules/perfis/infrastructure/repositories/perfil.repository";
 import { PerfisListagemControles } from "@/modules/perfis/presentation/components/perfis-listagem-controles";
@@ -23,6 +24,7 @@ export default async function PerfisPage({ searchParams }: PerfisPageProps) {
   await exigirPermissaoOuRedirecionar("perfis:gerenciar:global");
 
   const params = searchParams ? await searchParams : {};
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
 
@@ -32,6 +34,7 @@ export default async function PerfisPage({ searchParams }: PerfisPageProps) {
     nome: params.nome ?? "",
     permissao: params.permissao ?? "",
     status: params.status ?? "",
+    orgaoIdsPermitidos: escopoOrgao.global ? undefined : escopoOrgao.orgaoIds,
     pagina,
     itensPorPagina,
   });

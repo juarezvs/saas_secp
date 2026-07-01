@@ -1,4 +1,8 @@
 import { auth } from "@/auth";
+import {
+  aplicarEscopoOrgaoId,
+  obterEscopoOrgaoDaSessao,
+} from "@/modules/auth/application/services/escopo-orgao.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { listarServidoresParaExportacao } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
 import {
@@ -78,16 +82,22 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
 
-  const servidores = await listarServidoresParaExportacao({
-    busca: url.searchParams.get("busca") ?? "",
-    matricula: url.searchParams.get("matricula") ?? "",
-    cpf: url.searchParams.get("cpf") ?? "",
-    nome: url.searchParams.get("nome") ?? "",
-    orgaoId: url.searchParams.get("orgaoId") ?? "",
-    vinculo: url.searchParams.get("vinculo") ?? "",
-    lotacao: url.searchParams.get("lotacao") ?? "",
-    status: url.searchParams.get("status") ?? "",
-  });
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const servidores = await listarServidoresParaExportacao(
+    aplicarEscopoOrgaoId(
+      {
+        busca: url.searchParams.get("busca") ?? "",
+        matricula: url.searchParams.get("matricula") ?? "",
+        cpf: url.searchParams.get("cpf") ?? "",
+        nome: url.searchParams.get("nome") ?? "",
+        orgaoId: url.searchParams.get("orgaoId") ?? "",
+        vinculo: url.searchParams.get("vinculo") ?? "",
+        lotacao: url.searchParams.get("lotacao") ?? "",
+        status: url.searchParams.get("status") ?? "",
+      },
+      escopoOrgao,
+    ),
+  );
 
   const documento = criarElementoPdf(PdfListagemDocument<ServidorExportacao>, {
     title: "Servidores",

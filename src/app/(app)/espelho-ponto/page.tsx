@@ -123,12 +123,35 @@ function montarHrefExportacaoEspelho(params: {
   return `/api/relatorios/espelho/${params.servidorId}/pdf?${query.toString()}`;
 }
 
+function perfilAtivoEhChefia(params: {
+  perfilAtivoCodigo?: string | null;
+  permissoes: string[];
+}) {
+  const codigo = params.perfilAtivoCodigo?.toUpperCase() ?? "";
+
+  if (
+    ["CHEFIA", "GESTOR", "GESTOR_UNIDADE", "DELEGADO_CHEFIA"].includes(codigo)
+  ) {
+    return true;
+  }
+
+  if (
+    ["ADMIN", "MASTER", "SUPORTE", "SUPORTE_TECNICO", "NUTEC"].includes(codigo)
+  ) {
+    return false;
+  }
+
+  return (
+    params.permissoes.includes("homologacao:gerenciar:chefia") ||
+    params.permissoes.includes("boletim-frequencia:gerar:chefia")
+  );
+}
+
 export default async function EspelhoPontoPage({
   searchParams,
 }: EspelhoPontoPageProps) {
   const permissao = await exigirUmaDasPermissoesOuRedirecionar([
     "espelho-ponto:visualizar:proprio",
-    "apuracao:consultar:proprio",
     "apuracao:consultar:global",
   ]);
 
@@ -140,6 +163,12 @@ export default async function EspelhoPontoPage({
     permissao.permissoes,
     "apuracao:consultar:global",
   );
+  const perfilChefiaAtivo = perfilAtivoEhChefia({
+    perfilAtivoCodigo: permissao.perfilAtivoCodigo,
+    permissoes: permissao.permissoes,
+  });
+  const podeConsultarTodosServidores =
+    podeConsultarGlobal && !perfilChefiaAtivo;
   const podeRecalcular = usuarioPossuiPermissaoNoPerfil(
     permissao.perfilAtivoCodigo,
     permissao.permissoes,
@@ -148,13 +177,26 @@ export default async function EspelhoPontoPage({
   const perfilServidorAtivo =
     permissao.perfilAtivoCodigo?.toUpperCase() === "SERVIDOR";
 
-  const servidores = podeConsultarGlobal
-    ? await listarServidoresParaEspelhoPonto()
+  const servidores = podeConsultarTodosServidores
+    ? await listarServidoresParaEspelhoPonto({
+        anoReferencia,
+        mesReferencia,
+        escopo: "global",
+      })
+    : perfilChefiaAtivo && permissao.usuarioId
+      ? await listarServidoresParaEspelhoPonto({
+          usuarioId: permissao.usuarioId,
+          anoReferencia,
+          mesReferencia,
+          escopo: "chefia",
+        })
     : permissao.usuarioId
       ? servidorProprioParaLista(
           await buscarServidorComUsuarioPorUsuarioId(permissao.usuarioId),
         )
       : [];
+  const podeSelecionarServidor =
+    !perfilServidorAtivo && (podeConsultarTodosServidores || perfilChefiaAtivo);
 
   const servidorSelecionado =
     servidores.find((servidor) => servidor.id === params.servidorId) ??
@@ -220,7 +262,7 @@ export default async function EspelhoPontoPage({
               id="servidorId"
               name="servidorId"
               defaultValue={servidorSelecionado?.id ?? ""}
-              disabled={!podeConsultarGlobal}
+              disabled={!podeSelecionarServidor}
               className="mt-2"
               searchPlaceholder="Pesquisar por matrícula ou nome..."
               options={servidores.map((servidor) => ({

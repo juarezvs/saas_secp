@@ -19,6 +19,14 @@
 
 # production
 /build
+/dist
+
+# local artifacts and runtime data
+/.tmp
+/tmp
+/backups
+/import
+/files_afd
 
 # misc
 .DS_Store

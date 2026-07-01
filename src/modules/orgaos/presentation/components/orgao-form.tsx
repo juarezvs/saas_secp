@@ -77,7 +77,7 @@ export function OrgaoForm({
 
           <div className="space-y-2">
             <label htmlFor="codigoExternoSarh" className="text-sm font-semibold">
-              Codigo SARH
+              Código SARH
             </label>
             <input
               id="codigoExternoSarh"
@@ -111,7 +111,7 @@ export function OrgaoForm({
 
           <div className="space-y-2">
             <label htmlFor="fusoHorario" className="text-sm font-semibold">
-              Fuso horario
+              Fuso horário
             </label>
             <select
               id="fusoHorario"
@@ -140,9 +140,9 @@ export function OrgaoForm({
               className="size-4 rounded border-slate-300"
             />
             <span>
-              <span className="block font-semibold">Orgao ativo</span>
+              <span className="block font-semibold">Órgão ativo</span>
               <span className="text-xs text-[var(--muted-foreground)]">
-                Orgaos inativos deixam de aparecer em novas vinculacoes.
+                Órgãos inativos deixam de aparecer em novas vinculações.
               </span>
             </span>
           </label>
@@ -160,7 +160,7 @@ export function OrgaoForm({
           ) : (
             <Save className="size-4" aria-hidden="true" />
           )}
-          {modo === "criar" ? "Criar orgao" : "Salvar alteracoes"}
+          {modo === "criar" ? "Criar órgão" : "Salvar alterações"}
         </button>
       </div>
     </form>

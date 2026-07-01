@@ -8,6 +8,7 @@ export type ListarServidoresParams = {
   cpf?: string;
   nome?: string;
   orgaoId?: string;
+  orgaoIdsPermitidos?: string[];
   vinculo?: string;
   lotacao?: string;
   status?: string;
@@ -26,6 +27,7 @@ function ehUuid(valor?: string | null): valor is string {
 export function montarWhereServidores(params: ListarServidoresParams) {
   const busca = params.busca?.trim();
   const orgaoId = params.orgaoId?.trim();
+  const orgaoIdsPermitidos = params.orgaoIdsPermitidos?.filter(ehUuid);
 
   return {
     ...(params.status === "ativo"
@@ -63,7 +65,11 @@ export function montarWhereServidores(params: ListarServidoresParams) {
         }
       : {}),
 
-    ...(orgaoId && ehUuid(orgaoId) ? { orgaoId } : {}),
+    ...(orgaoId && ehUuid(orgaoId)
+      ? { orgaoId }
+      : orgaoIdsPermitidos?.length
+        ? { orgaoId: { in: orgaoIdsPermitidos } }
+        : {}),
 
     ...(params.vinculo ? { vinculo: params.vinculo as never } : {}),
 
@@ -71,6 +77,7 @@ export function montarWhereServidores(params: ListarServidoresParams) {
       ? {
           lotacoes: {
             some: {
+              status: "ATIVO" as const,
               unidade: {
                 OR: [
                   {
@@ -121,6 +128,7 @@ export function montarWhereServidores(params: ListarServidoresParams) {
             {
               lotacoes: {
                 some: {
+                  status: "ATIVO" as const,
                   unidade: {
                     OR: [
                       {
@@ -158,15 +166,25 @@ export async function listarServidoresPaginado(params: ListarServidoresParams) {
       include: {
         usuario: true,
         orgao: true,
+        cargo: true,
         lotacoes: {
           where: { status: "ATIVO" },
-          include: { unidade: true },
+          include: { cargo: true, unidade: true },
           orderBy: { dataInicio: "desc" },
           take: 1,
         },
-        _count: { select: { lotacoes: true, gestores: true } },
+        _count: {
+          select: {
+            lotacoes: { where: { status: "ATIVO" } },
+            gestores: true,
+          },
+        },
       },
-      orderBy: [{ nomeFuncional: "asc" }, { usuario: { nome: "asc" } }, { matricula: "asc" }],
+      orderBy: [
+        { nomeFuncional: "asc" },
+        { usuario: { nome: "asc" } },
+        { matricula: "asc" },
+      ],
       skip: (pagina - 1) * itensPorPagina,
       take: itensPorPagina,
     }),
@@ -189,14 +207,19 @@ export async function listarServidoresParaExportacao(
     include: {
       usuario: true,
       orgao: true,
+      cargo: true,
       lotacoes: {
         where: { status: "ATIVO" },
-        include: { unidade: true },
+        include: { cargo: true, unidade: true },
         orderBy: { dataInicio: "desc" },
         take: 1,
       },
     },
-    orderBy: [{ nomeFuncional: "asc" }, { usuario: { nome: "asc" } }, { matricula: "asc" }],
+    orderBy: [
+      { nomeFuncional: "asc" },
+      { usuario: { nome: "asc" } },
+      { matricula: "asc" },
+    ],
   });
 }
 
@@ -220,8 +243,11 @@ export async function buscarServidorPorId(id: string) {
         },
       },
       orgao: true,
+      cargo: true,
       lotacoes: {
+        where: { status: "ATIVO" },
         include: {
+          cargo: true,
           unidade: true,
         },
         orderBy: {
@@ -257,6 +283,174 @@ export async function buscarServidorPorId(id: string) {
       },
     },
   });
+}
+
+export async function listarAfastamentosServidorSarh(servidorId: string) {
+  if (!ehUuid(servidorId)) {
+    return [];
+  }
+
+  return prisma.afastamentoSarh.findMany({
+    where: {
+      servidorId,
+    },
+    include: {
+      tipoAfastamento: true,
+    },
+    orderBy: [
+      {
+        dataInicio: "desc",
+      },
+      {
+        criadoEm: "desc",
+      },
+    ],
+  });
+}
+
+export async function listarAfastamentosServidorSarhPaginado(
+  servidorId: string,
+  params: {
+    pagina?: number;
+    itensPorPagina?: number;
+  } = {},
+) {
+  const pagina = Math.max(Number(params.pagina ?? 1), 1);
+  const itensPorPagina = Math.min(
+    Math.max(Number(params.itensPorPagina ?? 8), 5),
+    50,
+  );
+
+  if (!ehUuid(servidorId)) {
+    return {
+      afastamentos: [],
+      total: 0,
+      vigentes: 0,
+      futuros: 0,
+      pagina,
+      itensPorPagina,
+      totalPaginas: 1,
+    };
+  }
+
+  const where = { servidorId };
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  const [total, vigentes, futuros] = await Promise.all([
+    prisma.afastamentoSarh.count({ where }),
+    prisma.afastamentoSarh.count({
+      where: {
+        servidorId,
+        ativo: true,
+        dataInicio: {
+          lte: hoje,
+        },
+        OR: [
+          {
+            dataFim: null,
+          },
+          {
+            dataFim: {
+              gte: hoje,
+            },
+          },
+        ],
+      },
+    }),
+    prisma.afastamentoSarh.count({
+      where: {
+        servidorId,
+        ativo: true,
+        dataInicio: {
+          gt: hoje,
+        },
+      },
+    }),
+  ]);
+  const totalPaginas = Math.max(Math.ceil(total / itensPorPagina), 1);
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const afastamentos = await prisma.afastamentoSarh.findMany({
+    where,
+    include: {
+      tipoAfastamento: true,
+    },
+    orderBy: [
+      {
+        dataInicio: "desc",
+      },
+      {
+        criadoEm: "desc",
+      },
+    ],
+    skip: (paginaAtual - 1) * itensPorPagina,
+    take: itensPorPagina,
+  });
+
+  return {
+    afastamentos,
+    total,
+    vigentes,
+    futuros,
+    pagina: paginaAtual,
+    itensPorPagina,
+    totalPaginas,
+  };
+}
+
+export async function contarAfastamentosServidorSarh(servidorId: string) {
+  if (!ehUuid(servidorId)) {
+    return {
+      total: 0,
+      ativos: 0,
+      futuros: 0,
+    };
+  }
+
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  const [total, ativos, futuros] = await Promise.all([
+    prisma.afastamentoSarh.count({
+      where: {
+        servidorId,
+      },
+    }),
+    prisma.afastamentoSarh.count({
+      where: {
+        servidorId,
+        ativo: true,
+        dataInicio: {
+          lte: hoje,
+        },
+        OR: [
+          {
+            dataFim: null,
+          },
+          {
+            dataFim: {
+              gte: hoje,
+            },
+          },
+        ],
+      },
+    }),
+    prisma.afastamentoSarh.count({
+      where: {
+        servidorId,
+        ativo: true,
+        dataInicio: {
+          gt: hoje,
+        },
+      },
+    }),
+  ]);
+
+  return {
+    total,
+    ativos,
+    futuros,
+  };
 }
 
 export async function buscarNomeServidorPorUsuarioId(usuarioId: string) {

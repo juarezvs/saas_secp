@@ -1,11 +1,18 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { CalendarClock, Edit, ShieldCheck, UserRound } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { buscarFotoServidorDataUrl } from "@/modules/servidores/application/services/foto-servidor.service";
+import {
+  descricaoCargoServidor,
+  descricaoFuncaoServidor,
+} from "@/modules/servidores/application/services/funcao-cargo-servidor.service";
 import {
   buscarServidorPorId,
+  listarAfastamentosServidorSarhPaginado,
   listarUnidadesAtivasParaLotacao,
 } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
@@ -16,12 +23,16 @@ import {
 import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { vincularLotacaoAction } from "@/modules/servidores/application/actions/vincular-lotacao.action";
 import { DispensaPontoServidorCard } from "@/modules/servidores/presentation/components/dispensa-ponto-servidor-card";
+import { AfastamentosServidorCard } from "@/modules/servidores/presentation/components/afastamentos-servidor-card";
 import { LotacaoForm } from "@/modules/servidores/presentation/components/lotacao-form";
 import { ServidorLotacoesCard } from "@/modules/servidores/presentation/components/servidor-lotacoes-card";
 
 type ServidorDetalhePageProps = {
   params: Promise<{
     id: string;
+  }>;
+  searchParams?: Promise<{
+    paginaAfastamentos?: string;
   }>;
 };
 
@@ -42,28 +53,39 @@ function formatarCarga(minutos: number) {
 
 export default async function ServidorDetalhePage({
   params,
+  searchParams,
 }: ServidorDetalhePageProps) {
   await exigirPermissaoOuRedirecionar("servidores:gerenciar:global");
 
   const { id } = await params;
+  const query = searchParams ? await searchParams : {};
+  const paginaAfastamentos = Number(query.paginaAfastamentos ?? 1);
 
-  const [servidor, unidades] = await Promise.all([
+  const [servidor, unidades, afastamentosResultado] = await Promise.all([
     buscarServidorPorId(id),
     listarUnidadesAtivasParaLotacao(),
+    listarAfastamentosServidorSarhPaginado(id, {
+      pagina: paginaAfastamentos,
+    }),
   ]);
 
   if (!servidor) {
-    notFound();
+    return notFound();
   }
 
-  const actionLotacao = vincularLotacaoAction.bind(null, servidor.id);
+  const servidorId = servidor.id;
+  const actionLotacao = vincularLotacaoAction.bind(null, servidorId);
   const fusoHorario = await resolverFusoHorarioServidorNoBanco({
-    servidorId: servidor.id,
+    servidorId,
   });
   const nomeFuncional = nomeServidor(servidor);
+  const fotoCpf = servidor.cpf ?? servidor.usuario.cpf;
+  const fotoSrc = await buscarFotoServidorDataUrl(fotoCpf);
+  const cargo = descricaoCargoServidor(servidor);
+  const funcao = descricaoFuncaoServidor(servidor);
   const actionDispensaPonto = criarDispensaPontoServidorAction.bind(
     null,
-    servidor.id,
+    servidorId,
   );
   const dispensasPonto = servidor.dispensasPonto.map((dispensa) => ({
     id: dispensa.id,
@@ -77,10 +99,16 @@ export default async function ServidorDetalhePage({
     dataFim: dispensa.dataFim?.toISOString() ?? null,
     encerrarAction: encerrarDispensaPontoServidorAction.bind(
       null,
-      servidor.id,
+      servidorId,
       dispensa.id,
     ),
   }));
+
+  function montarHrefPaginaAfastamentos(novaPagina: number) {
+    const params = new URLSearchParams();
+    params.set("paginaAfastamentos", String(novaPagina));
+    return `/servidores/${servidorId}?${params.toString()}`;
+  }
 
   return (
     <div className="space-y-6">
@@ -93,18 +121,48 @@ export default async function ServidorDetalhePage({
       />
 
       <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-            Servidor
-          </p>
+        <div className="flex items-center gap-5">
+          {fotoSrc ? (
+            <Image
+              src={fotoSrc}
+              alt=""
+              width={88}
+              height={88}
+              unoptimized
+              className="size-[5.5rem] rounded-full border-4 border-white bg-slate-100 object-cover shadow-md ring-2 ring-blue-100 dark:border-slate-950 dark:bg-slate-800 dark:ring-blue-900/60"
+              priority
+            />
+          ) : (
+            <span className="flex size-[5.5rem] items-center justify-center rounded-full border-4 border-white bg-slate-100 text-xl font-bold text-slate-600 shadow-md ring-2 ring-blue-100 dark:border-slate-950 dark:bg-slate-800 dark:text-slate-300 dark:ring-blue-900/60">
+              {servidor.matricula.slice(0, 2).toUpperCase()}
+            </span>
+          )}
 
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">
-            {nomeFuncional}
-          </h1>
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
+              Servidor
+            </p>
 
-          <p className="mt-2 font-mono text-sm text-[var(--muted-foreground)]">
-            Matrícula: {servidor.matricula}
-          </p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight">
+              {nomeFuncional}
+            </h1>
+
+            {cargo && (
+              <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+                {cargo}
+              </p>
+            )}
+
+            {funcao && (
+              <p className="mt-1 text-sm font-semibold text-blue-900 dark:text-blue-300">
+                {funcao}
+              </p>
+            )}
+
+            <p className="mt-2 font-mono text-sm text-[var(--muted-foreground)]">
+              Matrícula: {servidor.matricula}
+            </p>
+          </div>
         </div>
 
         <Link
@@ -271,7 +329,9 @@ export default async function ServidorDetalhePage({
                   <p>
                     Carga:{" "}
                     <span className="font-semibold text-[var(--foreground)]">
-                      {formatarCarga(jornadaServidor.jornada.cargaDiariaMinutos)}
+                      {formatarCarga(
+                        jornadaServidor.jornada.cargaDiariaMinutos,
+                      )}
                     </span>
                   </p>
                   <p>
@@ -294,6 +354,24 @@ export default async function ServidorDetalhePage({
       </section>
 
       <ServidorLotacoesCard lotacoes={servidor.lotacoes} />
+
+      <AfastamentosServidorCard
+        afastamentos={afastamentosResultado.afastamentos}
+        titulo="Afastamentos do servidor"
+        descricao="Licenças, férias e demais afastamentos importados do SARH para este servidor."
+        resumo={{
+          total: afastamentosResultado.total,
+          vigentes: afastamentosResultado.vigentes,
+          futuros: afastamentosResultado.futuros,
+        }}
+        paginacao={{
+          total: afastamentosResultado.total,
+          pagina: afastamentosResultado.pagina,
+          totalPaginas: afastamentosResultado.totalPaginas,
+          itensPorPagina: afastamentosResultado.itensPorPagina,
+          montarHrefPagina: montarHrefPaginaAfastamentos,
+        }}
+      />
 
       <DispensaPontoServidorCard
         dispensas={dispensasPonto}

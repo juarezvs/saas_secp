@@ -4,12 +4,15 @@ import { garantirJornadaPadraoServidorService } from "@/modules/jornadas/applica
 import type {
   OperacaoRegistroSarhDb,
   ResultadoItemSarh,
+  SarhAfastamentoDto,
   SarhCargoDto,
+  SarhChefiaDto,
   SarhEmpresaDto,
   SarhEndpointKey,
   SarhLotacaoDto,
   SarhLotacaoServidorDto,
   SarhServidorDto,
+  SarhTipoAfastamentoDto,
   TipoEndpointSarhDb,
   TipoExecucaoSarh,
   TipoRegistroSarhDb,
@@ -19,6 +22,8 @@ import {
   gerarHashRegistro,
   isLotacaoServidorDesligado,
   limparTexto,
+  normalizarCpf,
+  normalizarDataSarh,
   normalizarMatricula,
   obterChaveExterna,
   tipoRegistroDbFromEndpoint,
@@ -53,11 +58,7 @@ type ContadoresExecucao = {
 };
 
 type JsonInputValue =
-  | string
-  | number
-  | boolean
-  | JsonInputObject
-  | JsonInputArray;
+  string | number | boolean | JsonInputObject | JsonInputArray;
 
 type JsonInputObject = {
   [key: string]: JsonInputValue | null;
@@ -116,15 +117,51 @@ function gerarCodigoUnidadeSarhAlternativo(
   return `${codigoBase.slice(0, 80 - sufixo.length)}${sufixo}`;
 }
 
+function normalizarBooleanoSarh(valor: string | boolean | null | undefined) {
+  if (typeof valor === "boolean") {
+    return valor;
+  }
+
+  if (valor === null || valor === undefined) {
+    return null;
+  }
+
+  const texto = String(valor).trim().toUpperCase();
+
+  if (["S", "SIM", "1", "TRUE"].includes(texto)) {
+    return true;
+  }
+
+  if (["N", "NAO", "NÃO", "0", "FALSE"].includes(texto)) {
+    return false;
+  }
+
+  return null;
+}
+
+function fimAfastamentoParaConsulta(dataFim: Date | null) {
+  if (!dataFim) {
+    return null;
+  }
+
+  const fim = new Date(dataFim);
+  fim.setUTCDate(fim.getUTCDate() + 1);
+  return fim;
+}
+
 export class SarhPrismaRepository {
-  constructor(private readonly prisma: PrismaLike) {}
+  constructor(
+    private readonly prisma: PrismaLike,
+    private readonly orgaoId?: string | null,
+  ) {}
 
   async obterOuCriarIntegracaoSarh() {
     const existente = await this.prisma.integracaoSistema.findFirst({
       where: {
         tipo: "SARH",
-        nome: "SARH - Sistema de Gestão de Recursos Humanos",
+        orgaoId: this.orgaoId ?? null,
       },
+      orderBy: { atualizadoEm: "desc" },
     });
 
     if (existente) return existente;
@@ -132,11 +169,11 @@ export class SarhPrismaRepository {
     return this.prisma.integracaoSistema.create({
       data: {
         nome: "SARH - Sistema de Gestão de Recursos Humanos",
+        orgaoId: this.orgaoId ?? null,
         tipo: "SARH",
-        status: "ATIVA",
+        status: "NAO_CONFIGURADA",
         direcao: "ENTRADA",
-        baseUrl:
-          process.env.SARH_BASE_URL ?? "http://sarh.integracao.am.trf1.gov.br",
+        baseUrl: null,
         ativo: true,
         descricao:
           "Integração para sincronizar empresas, lotações, cargos, servidores e vínculos de lotação do SARH.",
@@ -147,8 +184,14 @@ export class SarhPrismaRepository {
             cargos: "/cargos",
             servidores: "/servidores/",
             lotacoesServidores: "/lotacao-servidor/",
+            tiposAfastamento: "/tipo-afastamento/",
+            afastamentos: "/afastamentos/",
           },
-          timeoutMs: Number(process.env.SARH_TIMEOUT_MS ?? 30000),
+          provider: "oracle",
+          siglaLocalidade:
+            process.env.SARH_SIGLA_LOCALIDADE ??
+            process.env.SIGLA_LOCALIDADE ??
+            "AM",
         },
       },
     });
@@ -297,6 +340,514 @@ export class SarhPrismaRepository {
         metadados: jsonObject(item.metadados),
       },
     });
+  }
+
+  async processarTipoAfastamento(params: {
+    execucaoId: string;
+    payload: SarhTipoAfastamentoDto;
+    modoSimulacao: boolean;
+    registroBrutoId?: string | null;
+  }) {
+    const endpoint: TipoEndpointSarhDb = "TIPOS_AFASTAMENTO";
+    const chaveExterna = String(params.payload.codigo);
+    const existente = await this.prisma.tipoAfastamentoSarh.findUnique({
+      where: { codigoExternoSarh: params.payload.codigo },
+    });
+    const data = {
+      codigoExternoSarh: params.payload.codigo,
+      descricao:
+        limparTexto(params.payload.descricao) ??
+        `Tipo de afastamento SARH ${params.payload.codigo}`,
+      categoria: limparTexto(params.payload.categoria) ?? "OUTRO",
+      remunerada: normalizarBooleanoSarh(params.payload.remunerada),
+      aplicavelServidor: normalizarBooleanoSarh(params.payload.servidor),
+      aplicavelJuiz: normalizarBooleanoSarh(params.payload.juiz),
+      dataInicioVigencia: normalizarDataSarh(params.payload.dataInicioVigencia),
+      dataFimVigencia: normalizarDataSarh(params.payload.dataFimVigencia),
+      origemSarh: true,
+      payloadSarh: toJsonInput(params.payload),
+      ultimaSincronizacaoSarh: new Date(),
+    };
+    const operacao: OperacaoRegistroSarhDb = existente ? "ATUALIZAR" : "CRIAR";
+
+    if (params.modoSimulacao) {
+      await this.registrarItem(
+        params.execucaoId,
+        endpoint,
+        {
+          tipoRegistro: "TIPO_AFASTAMENTO",
+          chaveExterna,
+          operacao,
+          status: "PROCESSADO",
+          entidadeInterna: "TipoAfastamentoSarh",
+          entidadeInternaId: existente?.id,
+          mensagem: `Simulação: tipo de afastamento ${chaveExterna} seria ${
+            existente ? "atualizado" : "criado"
+          }.`,
+          dadosAntes: existente,
+          dadosDepois: data,
+          metadados: { modoSimulacao: true },
+        },
+        params.registroBrutoId,
+      );
+
+      return operacao;
+    }
+
+    const salvo = existente
+      ? await this.prisma.tipoAfastamentoSarh.update({
+          where: { id: existente.id },
+          data,
+        })
+      : await this.prisma.tipoAfastamentoSarh.create({ data });
+
+    await this.upsertMapeamento(
+      "TIPO_AFASTAMENTO",
+      chaveExterna,
+      "TipoAfastamentoSarh",
+      salvo.id,
+      gerarHashRegistro(params.payload),
+    );
+
+    await this.registrarItem(
+      params.execucaoId,
+      endpoint,
+      {
+        tipoRegistro: "TIPO_AFASTAMENTO",
+        chaveExterna,
+        operacao,
+        status: "PROCESSADO",
+        entidadeInterna: "TipoAfastamentoSarh",
+        entidadeInternaId: salvo.id,
+        dadosAntes: existente,
+        dadosDepois: salvo,
+      },
+      params.registroBrutoId,
+    );
+
+    return operacao;
+  }
+
+  async processarAfastamento(params: {
+    execucaoId: string;
+    payload: SarhAfastamentoDto;
+    modoSimulacao: boolean;
+    registroBrutoId?: string | null;
+  }) {
+    const endpoint: TipoEndpointSarhDb = "AFASTAMENTOS";
+    const chaveExterna = String(params.payload.id);
+    const dataInicio = normalizarDataSarh(params.payload.dataInicio);
+
+    if (!dataInicio) {
+      await this.registrarItem(
+        params.execucaoId,
+        endpoint,
+        {
+          tipoRegistro: "AFASTAMENTO",
+          chaveExterna,
+          operacao: "IGNORAR",
+          status: "IGNORADO",
+          mensagem: "Afastamento SARH sem data inicial.",
+          dadosDepois: params.payload,
+        },
+        params.registroBrutoId,
+      );
+
+      return "IGNORAR" as OperacaoRegistroSarhDb;
+    }
+
+    const matricula = params.payload.matricula
+      ? normalizarMatricula(params.payload.matricula)
+      : null;
+    const cpf = normalizarCpf(params.payload.cpf);
+    const filtrosServidor = [
+      ...(matricula ? [{ matricula }] : []),
+      ...(cpf ? [{ cpf }] : []),
+    ];
+    const servidor = filtrosServidor.length
+      ? await this.prisma.servidor.findFirst({
+          where: { OR: filtrosServidor },
+          select: { id: true },
+        })
+      : null;
+    const tipoCodigo = params.payload.tipoCodigo
+      ? String(params.payload.tipoCodigo)
+      : null;
+    const tipoAfastamento = tipoCodigo
+      ? await this.prisma.tipoAfastamentoSarh.findUnique({
+          where: { codigoExternoSarh: Number(tipoCodigo) || -1 },
+          select: { id: true },
+        })
+      : null;
+    const existente = await this.prisma.afastamentoSarh.findUnique({
+      where: { codigoExternoSarh: chaveExterna },
+    });
+    const dataFim = normalizarDataSarh(params.payload.dataFim);
+    const fimConsulta = fimAfastamentoParaConsulta(dataFim);
+    const data = {
+      codigoExternoSarh: chaveExterna,
+      servidorId: servidor?.id ?? null,
+      tipoAfastamentoId: tipoAfastamento?.id ?? null,
+      categoria: limparTexto(params.payload.categoria) ?? "OUTRO",
+      tipoCodigo,
+      tipoDescricao: limparTexto(params.payload.tipoDescricao),
+      matricula,
+      cpf,
+      nome: limparTexto(params.payload.nome),
+      dataInicio,
+      dataFim,
+      dias: params.payload.dias,
+      exercicio: params.payload.exercicio,
+      processo: limparTexto(params.payload.processo),
+      observacao: limparTexto(params.payload.observacao),
+      origemTabela: limparTexto(params.payload.origemTabela) ?? "SARH",
+      ativo: fimConsulta === null || fimConsulta >= new Date(),
+      origemSarh: true,
+      payloadSarh: toJsonInput(params.payload),
+      ultimaSincronizacaoSarh: new Date(),
+    };
+    const operacao: OperacaoRegistroSarhDb = existente ? "ATUALIZAR" : "CRIAR";
+
+    if (params.modoSimulacao) {
+      await this.registrarItem(
+        params.execucaoId,
+        endpoint,
+        {
+          tipoRegistro: "AFASTAMENTO",
+          chaveExterna,
+          operacao,
+          status: "PROCESSADO",
+          entidadeInterna: "AfastamentoSarh",
+          entidadeInternaId: existente?.id,
+          mensagem: `Simulação: afastamento ${chaveExterna} seria ${
+            existente ? "atualizado" : "criado"
+          }.`,
+          dadosAntes: existente,
+          dadosDepois: data,
+          metadados: {
+            modoSimulacao: true,
+            servidorEncontrado: Boolean(servidor),
+            tipoEncontrado: Boolean(tipoAfastamento),
+          },
+        },
+        params.registroBrutoId,
+      );
+
+      return operacao;
+    }
+
+    const salvo = existente
+      ? await this.prisma.afastamentoSarh.update({
+          where: { id: existente.id },
+          data,
+        })
+      : await this.prisma.afastamentoSarh.create({ data });
+
+    await this.upsertMapeamento(
+      "AFASTAMENTO",
+      chaveExterna,
+      "AfastamentoSarh",
+      salvo.id,
+      gerarHashRegistro(params.payload),
+    );
+
+    await this.registrarItem(
+      params.execucaoId,
+      endpoint,
+      {
+        tipoRegistro: "AFASTAMENTO",
+        chaveExterna,
+        operacao,
+        status: "PROCESSADO",
+        entidadeInterna: "AfastamentoSarh",
+        entidadeInternaId: salvo.id,
+        dadosAntes: existente,
+        dadosDepois: salvo,
+        metadados: {
+          servidorEncontrado: Boolean(servidor),
+          tipoEncontrado: Boolean(tipoAfastamento),
+        },
+      },
+      params.registroBrutoId,
+    );
+
+    return operacao;
+  }
+
+  async processarChefia(params: {
+    execucaoId: string;
+    payload: SarhChefiaDto;
+    modoSimulacao: boolean;
+    registroBrutoId?: string | null;
+  }) {
+    const endpoint: TipoEndpointSarhDb = "CHEFIAS";
+    const chaveExterna = `${params.payload.lotacaoId}:${params.payload.idFuncaoLotacao}`;
+    const unidade = await this.prisma.unidadeOrganizacional.findFirst({
+      where: { codigoExternoSarh: params.payload.lotacaoId },
+      select: { id: true, sigla: true },
+    });
+
+    if (!unidade) {
+      await this.registrarItem(
+        params.execucaoId,
+        endpoint,
+        {
+          tipoRegistro: "CHEFIA",
+          chaveExterna,
+          operacao: "ERRO",
+          status: "ERRO",
+          erro: `Unidade SARH ${params.payload.lotacaoId} nÃ£o encontrada para vincular chefia.`,
+          dadosDepois: params.payload,
+        },
+        params.registroBrutoId,
+      );
+
+      return "ERRO" as OperacaoRegistroSarhDb;
+    }
+
+    const matricula = params.payload.matricula
+      ? normalizarMatricula(params.payload.matricula)
+      : null;
+    const flagAtiva = normalizarBooleanoSarh(params.payload.flagAtiva);
+    const flagOcupado = normalizarBooleanoSarh(params.payload.flagOcupado);
+    const situacao = limparTexto(params.payload.situacao)?.toUpperCase() ?? "";
+    const chefiaVigente =
+      Boolean(matricula) &&
+      flagAtiva !== false &&
+      flagOcupado !== false &&
+      (!situacao || situacao.includes("TITULAR"));
+    const gestorTitularAtual = await this.prisma.gestorUnidade.findFirst({
+      where: {
+        unidadeId: unidade.id,
+        papel: "GESTOR_TITULAR",
+        ativo: true,
+      },
+      include: { servidor: { select: { matricula: true } } },
+    });
+
+    if (!chefiaVigente || !matricula) {
+      const operacao: OperacaoRegistroSarhDb = gestorTitularAtual
+        ? "INATIVAR"
+        : "IGNORAR";
+
+      if (!params.modoSimulacao && gestorTitularAtual) {
+        await this.prisma.gestorUnidade.update({
+          where: { id: gestorTitularAtual.id },
+          data: { ativo: false, dataFim: new Date() },
+        });
+      }
+
+      await this.registrarItem(
+        params.execucaoId,
+        endpoint,
+        {
+          tipoRegistro: "CHEFIA",
+          chaveExterna,
+          operacao,
+          status: operacao === "IGNORAR" ? "IGNORADO" : "PROCESSADO",
+          entidadeInterna: "GestorUnidade",
+          entidadeInternaId: gestorTitularAtual?.id,
+          mensagem: gestorTitularAtual
+            ? `Chefia titular da unidade ${unidade.sigla} seria encerrada por ausencia de titular vigente no SARH.`
+            : `Chefia SARH ${chaveExterna} ignorada por ausencia de titular vigente.`,
+          dadosAntes: gestorTitularAtual,
+          dadosDepois: params.payload,
+          metadados: { modoSimulacao: params.modoSimulacao },
+        },
+        params.registroBrutoId,
+      );
+
+      return operacao;
+    }
+
+    const servidor = await this.prisma.servidor.findUnique({
+      where: { matricula },
+      select: { id: true, matricula: true },
+    });
+
+    if (!servidor) {
+      await this.registrarItem(
+        params.execucaoId,
+        endpoint,
+        {
+          tipoRegistro: "CHEFIA",
+          chaveExterna,
+          operacao: "ERRO",
+          status: "ERRO",
+          erro: `Servidor ${matricula} nÃ£o encontrado para vincular chefia da unidade ${unidade.sigla}.`,
+          dadosDepois: params.payload,
+        },
+        params.registroBrutoId,
+      );
+
+      return "ERRO" as OperacaoRegistroSarhDb;
+    }
+
+    const mesmaChefia = gestorTitularAtual?.servidorId === servidor.id;
+    const operacao: OperacaoRegistroSarhDb = gestorTitularAtual
+      ? "ATUALIZAR"
+      : "CRIAR";
+    const dataInicio =
+      normalizarDataSarh(params.payload.dataInicio) ?? new Date();
+
+    if (params.modoSimulacao) {
+      await this.registrarItem(
+        params.execucaoId,
+        endpoint,
+        {
+          tipoRegistro: "CHEFIA",
+          chaveExterna,
+          operacao,
+          status: "PROCESSADO",
+          entidadeInterna: "GestorUnidade",
+          entidadeInternaId: gestorTitularAtual?.id,
+          mensagem: mesmaChefia
+            ? `SimulaÃ§Ã£o: chefia titular de ${unidade.sigla} seria conferida/atualizada.`
+            : `SimulaÃ§Ã£o: chefia titular de ${unidade.sigla} seria definida para ${matricula}.`,
+          dadosAntes: gestorTitularAtual,
+          dadosDepois: {
+            unidadeId: unidade.id,
+            servidorId: servidor.id,
+            papel: "GESTOR_TITULAR",
+            dataInicio,
+          },
+          metadados: { modoSimulacao: true, mesmaChefia },
+        },
+        params.registroBrutoId,
+      );
+
+      return operacao;
+    }
+
+    if (gestorTitularAtual && !mesmaChefia) {
+      await this.prisma.gestorUnidade.update({
+        where: { id: gestorTitularAtual.id },
+        data: { ativo: false, dataFim: new Date() },
+      });
+    }
+
+    const gestorExistenteDoServidor = await this.prisma.gestorUnidade.findFirst({
+      where: {
+        unidadeId: unidade.id,
+        servidorId: servidor.id,
+        papel: "GESTOR_TITULAR",
+      },
+      orderBy: { criadoEm: "desc" },
+    });
+    const gestor = gestorExistenteDoServidor
+      ? await this.prisma.gestorUnidade.update({
+          where: { id: gestorExistenteDoServidor.id },
+          data: {
+            ativo: true,
+            dataInicio,
+            dataFim: null,
+          },
+        })
+      : await this.prisma.gestorUnidade.create({
+          data: {
+            unidadeId: unidade.id,
+            servidorId: servidor.id,
+            papel: "GESTOR_TITULAR",
+            ativo: true,
+            dataInicio,
+          },
+        });
+
+    await this.upsertMapeamento(
+      "CHEFIA",
+      chaveExterna,
+      "GestorUnidade",
+      gestor.id,
+      gerarHashRegistro(params.payload),
+    );
+
+    await this.registrarItem(
+      params.execucaoId,
+      endpoint,
+      {
+        tipoRegistro: "CHEFIA",
+        chaveExterna,
+        operacao,
+        status: "PROCESSADO",
+        entidadeInterna: "GestorUnidade",
+        entidadeInternaId: gestor.id,
+        dadosAntes: gestorTitularAtual,
+        dadosDepois: gestor,
+        metadados: {
+          mesmaChefia,
+          funcao: params.payload.funcaoDescricao,
+          categoria: params.payload.funcaoCategoria,
+        },
+      },
+      params.registroBrutoId,
+    );
+
+    return operacao;
+  }
+
+  async encerrarChefiasAusentesServidorSarh(params: {
+    execucaoId: string;
+    matricula: string;
+    lotacoesVigentesSarh: number[];
+    modoSimulacao: boolean;
+  }) {
+    const matricula = normalizarMatricula(params.matricula);
+    const servidor = await this.prisma.servidor.findUnique({
+      where: { matricula },
+      select: { id: true },
+    });
+
+    if (!servidor) {
+      return [] as OperacaoRegistroSarhDb[];
+    }
+
+    const gestoresAtivos = await this.prisma.gestorUnidade.findMany({
+      where: {
+        servidorId: servidor.id,
+        papel: "GESTOR_TITULAR",
+        ativo: true,
+        unidade: { codigoExternoSarh: { not: null } },
+      },
+      include: { unidade: true },
+    });
+    const codigosVigentes = new Set(params.lotacoesVigentesSarh);
+    const operacoes: OperacaoRegistroSarhDb[] = [];
+
+    for (const gestor of gestoresAtivos) {
+      if (
+        gestor.unidade.codigoExternoSarh &&
+        codigosVigentes.has(gestor.unidade.codigoExternoSarh)
+      ) {
+        continue;
+      }
+
+      if (!params.modoSimulacao) {
+        await this.prisma.gestorUnidade.update({
+          where: { id: gestor.id },
+          data: { ativo: false, dataFim: new Date() },
+        });
+      }
+
+      await this.registrarItem(
+        params.execucaoId,
+        "CHEFIAS",
+        {
+          tipoRegistro: "CHEFIA",
+          chaveExterna: `${gestor.unidade.codigoExternoSarh ?? gestor.unidadeId}:ausente:${matricula}`,
+          operacao: "INATIVAR",
+          status: "PROCESSADO",
+          entidadeInterna: "GestorUnidade",
+          entidadeInternaId: gestor.id,
+          mensagem: `Chefia titular de ${matricula} encerrada porque nÃ£o consta mais como vigente no SARH.`,
+          dadosAntes: gestor,
+          metadados: { modoSimulacao: params.modoSimulacao },
+        },
+        null,
+      );
+      operacoes.push("INATIVAR");
+    }
+
+    return operacoes;
   }
 
   async processarCargo(params: {
@@ -711,7 +1262,9 @@ export class SarhPrismaRepository {
     );
 
     const servidorUpdateData = Object.fromEntries(
-      Object.entries(servidorData).filter(([campo]) => campo !== "nomeFuncional"),
+      Object.entries(servidorData).filter(
+        ([campo]) => campo !== "nomeFuncional",
+      ),
     ) as Omit<typeof servidorData, "nomeFuncional">;
 
     const servidor = servidorExistente
@@ -725,9 +1278,7 @@ export class SarhPrismaRepository {
           data: {
             ...servidorData,
             nomeFuncional: usuario.nome,
-          } as Parameters<
-            typeof this.prisma.servidor.create
-          >[0]["data"],
+          } as Parameters<typeof this.prisma.servidor.create>[0]["data"],
         });
 
     await this.vincularPerfilServidor(usuario.id);
@@ -1027,6 +1578,16 @@ export class SarhPrismaRepository {
   }
 
   private async obterOrgaoPadrao() {
+    if (this.orgaoId) {
+      const orgaoEscopo = await this.prisma.orgao.findUnique({
+        where: { id: this.orgaoId },
+      });
+
+      if (orgaoEscopo) {
+        return orgaoEscopo;
+      }
+    }
+
     const codigoSarh = Number(process.env.SARH_ORGAO_CODIGO_EXTERNO ?? 4);
     const sigla = process.env.SARH_ORGAO_SIGLA ?? "SJAM";
 
@@ -1098,23 +1659,40 @@ export class SarhPrismaRepository {
   }
 
   private async vincularPerfilServidor(usuarioId: string) {
-    const perfil = await this.prisma.perfil.findUnique({
-      where: { codigo: "SERVIDOR" },
-    });
+    const [perfil, servidor] = await Promise.all([
+      this.prisma.perfil.findUnique({
+        where: { codigo: "SERVIDOR" },
+      }),
+      this.prisma.servidor.findUnique({
+        where: { usuarioId },
+        select: { orgaoId: true },
+      }),
+    ]);
 
     if (!perfil) return;
 
-    await this.prisma.usuarioPerfil.upsert({
+    const orgaoId = servidor?.orgaoId ?? null;
+    const usuarioPerfil = await this.prisma.usuarioPerfil.findFirst({
       where: {
-        usuarioId_perfilId: {
-          usuarioId,
-          perfilId: perfil.id,
-        },
-      },
-      update: { ativo: true },
-      create: {
         usuarioId,
         perfilId: perfil.id,
+        orgaoId,
+      },
+    });
+
+    if (usuarioPerfil) {
+      await this.prisma.usuarioPerfil.update({
+        where: { id: usuarioPerfil.id },
+        data: { ativo: true, orgaoId },
+      });
+      return;
+    }
+
+    await this.prisma.usuarioPerfil.create({
+      data: {
+        usuarioId,
+        perfilId: perfil.id,
+        orgaoId,
         ativo: true,
       },
     });

@@ -10,10 +10,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      PGDATA: /var/lib/postgresql/18/docker
       TZ: America/Manaus
 
     volumes:
-      - secp_postgres_data:/var/lib/postgresql
+      - secp_postgres_data:/var/lib/postgresql/18/docker
       - ./backups:/backups
 
     networks:
@@ -118,9 +119,17 @@ services:
       NODE_ENV: production
       PORT: 3000
       HOSTNAME: 0.0.0.0
+      AUTH_TRUST_HOST: "true"
 
     ports:
+      # Acesso direto por DNS apontando para o Ubuntu: http://secp.am.trf1.jus.br
+      - "80:3000"
+      # Acesso via IIS/ARR no srvponto-am: encaminhar para http://172.19.5.244:3000
       - "3000:3000"
+      - "3001:3001"
+
+    volumes:
+      - secp_uploads_data:/app/import/_upload/afd
 
     depends_on:
       postgres:
@@ -130,6 +139,13 @@ services:
 
     networks:
       - secp-network
+
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
 
   pgadmin:
     image: dpage/pgadmin4:9.8
@@ -162,6 +178,7 @@ volumes:
   secp_postgres_data:
   secp_redis_data:
   secp_pgadmin_data:
+  secp_uploads_data:
 
 networks:
   secp-network:

@@ -69,7 +69,7 @@ export function RegulamentacaoPontoForm({
       <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <label className="space-y-2 md:col-span-2">
           <span className="text-sm font-semibold">
-            Referencia normativa
+            Referência normativa
           </span>
           <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
             Informe a portaria, ato, resolucao ou norma que fundamenta estas

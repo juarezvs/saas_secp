@@ -43,6 +43,7 @@ export default async function DashboardPage() {
         <DashboardServidor
           usuarioId={session.user.id}
           nomeFallback={session.user.nome || session.user.name || "Servidor"}
+          perfilAtivoCodigo={session.user.perfilAtivo?.codigo}
           permissoesPerfil={session.user.perfilAtivo?.permissoes ?? []}
         />
       );

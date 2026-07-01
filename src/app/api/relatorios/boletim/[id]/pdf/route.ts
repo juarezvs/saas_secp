@@ -73,6 +73,9 @@ export async function GET(_request: Request, context: RouteContext) {
         include: {
           usuario: true,
           lotacoes: {
+            where: {
+              status: "ATIVO",
+            },
             include: {
               unidade: {
                 select: {

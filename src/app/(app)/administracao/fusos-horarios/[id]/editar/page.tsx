@@ -3,6 +3,7 @@ import { Clock3 } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { atualizarFusoHorarioAction } from "@/modules/fusos-horarios/application/actions/salvar-fuso-horario.action";
 import { buscarFusoHorarioPorId } from "@/modules/fusos-horarios/infrastructure/repositories/fuso-horario.repository";
@@ -18,6 +19,11 @@ export default async function EditarFusoHorarioPage({
   params,
 }: EditarFusoHorarioPageProps) {
   await exigirPermissaoOuRedirecionar("fusos-horarios:gerenciar:global");
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+
+  if (!escopoOrgao.global) {
+    notFound();
+  }
 
   const { id } = await params;
   const fuso = await buscarFusoHorarioPorId(id);

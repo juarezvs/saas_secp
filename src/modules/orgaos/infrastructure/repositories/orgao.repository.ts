@@ -9,13 +9,33 @@ export type ListarOrgaosParams = {
   codigoExternoSarh?: string;
   status?: string;
   fusoHorario?: string;
+  orgaoId?: string;
+  orgaoIdsPermitidos?: string[];
 };
+
+function ehUuid(valor?: string | null): valor is string {
+  if (!valor) {
+    return false;
+  }
+
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i.test(
+    valor,
+  );
+}
 
 export function montarWhereOrgaos(params: ListarOrgaosParams = {}) {
   const busca = params.busca?.trim();
   const codigoExternoSarh = Number(params.codigoExternoSarh);
+  const orgaoId = params.orgaoId?.trim();
+  const orgaoIdsPermitidos = params.orgaoIdsPermitidos?.filter(ehUuid);
 
   return {
+    ...(orgaoId && ehUuid(orgaoId)
+      ? { id: orgaoId }
+      : orgaoIdsPermitidos?.length
+        ? { id: { in: orgaoIdsPermitidos } }
+        : {}),
+
     ...(params.status === "ativo"
       ? { ativo: true }
       : params.status === "inativo"
@@ -66,9 +86,10 @@ const includeOrgaoListagem = {
   },
 };
 
-export async function listarOrgaosAtivos() {
+export async function listarOrgaosAtivos(params: ListarOrgaosParams = {}) {
   return prisma.orgao.findMany({
     where: {
+      ...montarWhereOrgaos(params),
       ativo: true,
     },
 

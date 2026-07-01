@@ -168,7 +168,7 @@ function renderHeader(tipo: TipoRelatorioGerencial) {
   if (tipo === "HORAS_EXTRAS_BANCO_HORAS") {
     return (
       <>
-        <Text style={[s.th, { width: "10%" }]}>Matricula</Text>
+        <Text style={[s.th, { width: "10%" }]}>Matrícula</Text>
         <Text style={[s.th, { width: "22%" }]}>Servidor</Text>
         <Text style={[s.th, { width: "26%" }]}>Unidade</Text>
         <Text style={[s.th, { width: "10%" }]}>Creditos</Text>
@@ -182,7 +182,7 @@ function renderHeader(tipo: TipoRelatorioGerencial) {
   if (tipo === "ABSENTEISMO") {
     return (
       <>
-        <Text style={[s.th, { width: "10%" }]}>Matricula</Text>
+        <Text style={[s.th, { width: "10%" }]}>Matrícula</Text>
         <Text style={[s.th, { width: "24%" }]}>Servidor</Text>
         <Text style={[s.th, { width: "28%" }]}>Unidade</Text>
         <Text style={[s.th, { width: "9%" }]}>Faltas</Text>
@@ -195,7 +195,7 @@ function renderHeader(tipo: TipoRelatorioGerencial) {
 
   return (
     <>
-      <Text style={[s.th, { width: "10%" }]}>Matricula</Text>
+      <Text style={[s.th, { width: "10%" }]}>Matrícula</Text>
       <Text style={[s.th, { width: "24%" }]}>Servidor</Text>
       <Text style={[s.th, { width: "26%" }]}>Unidade</Text>
       <Text style={[s.th, { width: "10%" }]}>Previsto</Text>

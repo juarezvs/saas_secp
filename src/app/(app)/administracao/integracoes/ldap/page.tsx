@@ -2,6 +2,7 @@ import { KeyRound } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { atualizarLdapActiveDirectoryAction } from "@/modules/integracoes/application/actions/atualizar-ldap-active-directory.action";
 import { obterConfiguracaoLdapActiveDirectory } from "@/modules/integracoes/application/services/ldap-active-directory-config.service";
@@ -20,27 +21,37 @@ export default async function IntegracaoLdapActiveDirectoryPage({
   await exigirPermissaoOuRedirecionar("integracoes:gerenciar:global");
 
   const params = searchParams ? await searchParams : {};
-  const orgaos = await prisma.orgao.findMany({
-    where: { ativo: true },
-    select: {
-      id: true,
-      sigla: true,
-      nome: true,
-    },
-    orderBy: [{ sigla: "asc" }, { nome: "asc" }],
-  });
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const orgaos = escopoOrgao.global
+    ? await prisma.orgao.findMany({
+        where: { ativo: true },
+        select: {
+          id: true,
+          sigla: true,
+          nome: true,
+        },
+        orderBy: [{ sigla: "asc" }, { nome: "asc" }],
+      })
+    : escopoOrgao.orgaos;
   const orgaoSelecionado = orgaos.some((orgao) => orgao.id === params.orgaoId)
     ? params.orgaoId
-    : null;
+    : escopoOrgao.global
+      ? null
+      : (orgaos[0]?.id ?? null);
   const configuracao =
     await obterConfiguracaoLdapActiveDirectory(orgaoSelecionado);
+  const integracoesHref = orgaoSelecionado
+    ? `/administracao/integracoes?${new URLSearchParams({
+        orgaoId: orgaoSelecionado,
+      }).toString()}`
+    : "/administracao/integracoes";
 
   return (
     <main className="space-y-6 p-6">
       <Breadcrumb
         items={[
           { label: "Administração", href: "/administracao" },
-          { label: "Integrações", href: "/integracoes" },
+          { label: "Integrações por seccional", href: integracoesHref },
           { label: "LDAP / Active Directory" },
         ]}
       />

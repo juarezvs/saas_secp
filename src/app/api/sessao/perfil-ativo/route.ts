@@ -10,6 +10,16 @@ type TrocarPerfilAtivoPayload = {
   perfilCodigo?: string;
 };
 
+function cookieSeguroEmProducao() {
+  const urlPublica = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? "";
+
+  try {
+    return new URL(urlPublica).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: Request) {
   const session = await auth();
 
@@ -49,7 +59,7 @@ export async function POST(request: Request) {
     name: PERFIL_ATIVO_COOKIE,
     value: perfilAtivo.codigo,
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: cookieSeguroEmProducao(),
     sameSite: "lax",
     path: "/",
     maxAge: PERFIL_ATIVO_COOKIE_MAX_AGE_SEGUNDOS,

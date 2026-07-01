@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissao } from "@/modules/auth/application/services/permissao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
@@ -28,6 +29,20 @@ function revalidarFusos() {
   revalidatePath("/orgaos/novo");
   revalidatePath("/unidades");
   revalidatePath("/unidades/nova");
+}
+
+async function validarEscopoGlobalFuso(): Promise<FusoHorarioFormState | null> {
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+
+  if (escopoOrgao.global) {
+    return null;
+  }
+
+  return {
+    sucesso: false,
+    mensagem:
+      "Cadastro de fusos horarios e global e nao pode ser alterado por perfil restrito a seccional.",
+  };
 }
 
 function dadosAuditoriaFuso(
@@ -61,6 +76,12 @@ export async function criarFusoHorarioAction(
   formData: FormData,
 ): Promise<FusoHorarioFormState> {
   const permissao = await exigirPermissao("fusos-horarios:gerenciar:global");
+  const erroEscopo = await validarEscopoGlobalFuso();
+
+  if (erroEscopo) {
+    return erroEscopo;
+  }
+
   const dados = extrairDados(formData);
   const parsed = fusoHorarioSchema.safeParse(dados);
 
@@ -112,6 +133,12 @@ export async function atualizarFusoHorarioAction(
   formData: FormData,
 ): Promise<FusoHorarioFormState> {
   const permissao = await exigirPermissao("fusos-horarios:gerenciar:global");
+  const erroEscopo = await validarEscopoGlobalFuso();
+
+  if (erroEscopo) {
+    return erroEscopo;
+  }
+
   const dados = extrairDados(formData);
   const parsed = fusoHorarioSchema.safeParse(dados);
 

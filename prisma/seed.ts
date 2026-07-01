@@ -585,6 +585,27 @@ const permissoesIniciais = [
     escopo: "secap",
     descricao: "Gerar relatorio de folgas do recesso para SECAP.",
   },
+
+  // Afastamentos SARH
+  {
+    recurso: "afastamentos",
+    acao: "consultar",
+    escopo: "proprio",
+    descricao: "Consultar os próprios afastamentos importados do SARH.",
+  },
+  {
+    recurso: "afastamentos",
+    acao: "consultar",
+    escopo: "chefia",
+    descricao:
+      "Consultar afastamentos de servidores subordinados à chefia ou delegação vigente.",
+  },
+  {
+    recurso: "afastamentos",
+    acao: "consultar",
+    escopo: "global",
+    descricao: "Consultar afastamentos importados do SARH em âmbito global.",
+  },
 ];
 
 const codigosPermissoesServidor = [
@@ -609,6 +630,7 @@ const codigosPermissoesServidor = [
   "biometria:cadastrar:proprio",
   "biometriafacial:cadastrar:proprio",
   "biometriafacial:recadastrar:proprio",
+  "afastamentos:consultar:proprio",
   "recesso:consultar:proprio",
   "recesso:fechar:proprio",
 ];
@@ -630,6 +652,7 @@ const codigosPermissoesChefia = [
   "relatorios:exportar:global",
   "relatorios-gerenciais:consultar:chefia",
   "relatorios-gerenciais:exportar:chefia",
+  "afastamentos:consultar:chefia",
   "recesso:homologar:chefia",
   "recesso:consultar:global",
 ];
@@ -657,6 +680,7 @@ const codigosPermissoesSecap = [
   "relatorios:exportar:global",
   "relatorios-gerenciais:consultar:global",
   "relatorios-gerenciais:exportar:global",
+  "afastamentos:consultar:global",
   "recesso:consultar:global",
   "recesso:relatorio:secap",
 ];
@@ -672,6 +696,7 @@ const codigosPermissoesSecad = [
   "relatorios:exportar:global",
   "relatorios-gerenciais:consultar:global",
   "relatorios-gerenciais:exportar:global",
+  "afastamentos:consultar:global",
   "boletim-frequencia:consultar:global",
 ];
 
@@ -687,6 +712,7 @@ const codigosPermissoesDiref = [
   "relatorios:exportar:global",
   "relatorios-gerenciais:consultar:global",
   "relatorios-gerenciais:exportar:global",
+  "afastamentos:consultar:global",
   "recesso:consultar:global",
   "auditoria:consultar:global",
 ];
@@ -714,6 +740,7 @@ const codigosPermissoesSuporte = [
   "auditoria:detalhar:global",
   "usuarios:consultar:global",
   "servidores:consultar:global",
+  "afastamentos:consultar:global",
   "relatorios:consultar:global",
   "relatorios:exportar:global",
   "relatorios-gerenciais:consultar:global",
@@ -810,6 +837,27 @@ async function criarPerfilAdministrador() {
       nome: "Administrador do Sistema",
       descricao:
         "Perfil com acesso integral às configurações iniciais do SECP.",
+      sistema: true,
+      ativo: true,
+    },
+  });
+}
+
+async function criarPerfilMaster() {
+  return prisma.perfil.upsert({
+    where: { codigo: "MASTER" },
+    update: {
+      nome: "MASTER",
+      descricao:
+        "Perfil raiz com acesso global a todas as seccionais e configurações do SECP.",
+      sistema: true,
+      ativo: true,
+    },
+    create: {
+      codigo: "MASTER",
+      nome: "MASTER",
+      descricao:
+        "Perfil raiz com acesso global a todas as seccionais e configurações do SECP.",
       sistema: true,
       ativo: true,
     },
@@ -1079,7 +1127,7 @@ async function criarUsuarioInicial(perfilId: string) {
     where: { matricula },
     update: {
       nome,
-      
+
       email,
       senhaHash,
       ativo: true,
@@ -1095,22 +1143,34 @@ async function criarUsuarioInicial(perfilId: string) {
     },
   });
 
-  await prisma.usuarioPerfil.upsert({
+  const perfilGlobalExistente = await prisma.usuarioPerfil.findFirst({
     where: {
-      usuarioId_perfilId: {
-        usuarioId: usuario.id,
-        perfilId,
-      },
-    },
-    update: {
-      ativo: true,
-    },
-    create: {
       usuarioId: usuario.id,
       perfilId,
-      ativo: true,
+      orgaoId: null,
     },
   });
+
+  if (perfilGlobalExistente) {
+    await prisma.usuarioPerfil.update({
+      where: {
+        id: perfilGlobalExistente.id,
+      },
+      data: {
+        ativo: true,
+        orgaoId: null,
+      },
+    });
+  } else {
+    await prisma.usuarioPerfil.create({
+      data: {
+        usuarioId: usuario.id,
+        perfilId,
+        orgaoId: null,
+        ativo: true,
+      },
+    });
+  }
 
   return usuario;
 }
@@ -1317,7 +1377,6 @@ async function criarJornadasPadrao() {
   return [jornada7h, jornada8h];
 }
 
-
 async function criarIntegracaoSarh() {
   const baseUrl =
     process.env.SARH_BASE_URL ?? "http://sarh.integracao.am.trf1.gov.br";
@@ -1380,6 +1439,7 @@ async function main() {
   const permissoes = await criarPermissoes();
   await criarFusosHorarios();
 
+  const perfilMaster = await criarPerfilMaster();
   const perfilAdmin = await criarPerfilAdministrador();
   const perfilServidor = await criarPerfilServidor();
   const perfilChefia = await criarPerfilChefia();
@@ -1391,6 +1451,7 @@ async function main() {
   const perfilExcecaoRegistroWeb = await criarPerfilExcecaoRegistroWeb();
   const perfilExcecaoRegistroFacial = await criarPerfilExcecaoRegistroFacial();
 
+  await vincularPermissoesAoPerfil(perfilMaster.id, permissoes);
   await vincularPermissoesAoPerfil(perfilAdmin.id, permissoes);
   await vincularPermissoesPorCodigoAoPerfil(
     perfilServidor.id,
@@ -1429,7 +1490,7 @@ async function main() {
     codigosPermissoesExcecaoRegistroFacial,
   );
 
-  const usuarioInicial = await criarUsuarioInicial(perfilAdmin.id);
+  const usuarioInicial = await criarUsuarioInicial(perfilMaster.id);
 
   await criarEstruturaInicial();
   await criarJornadasPadrao();
@@ -1445,6 +1506,7 @@ async function main() {
         usuarioInicial: usuarioInicial.matricula,
         perfis: [
           "ADMIN",
+          "MASTER",
           "SERVIDOR",
           "CHEFIA",
           "SECAP",

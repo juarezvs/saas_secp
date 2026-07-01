@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
 } from "lucide-react";
+import { SecpLogo } from "@/components/brand/secp-logo";
 
 const modulos = [
   {
@@ -71,14 +72,16 @@ export default function HomePage() {
         <header className="relative z-10 border-b border-white/15">
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-5">
             <Link href="/" className="flex items-center gap-3">
-              <div className="flex size-11 items-center justify-center rounded-md bg-white text-sm font-black text-blue-950">
-                SE
-              </div>
+              <SecpLogo
+                variant="mark"
+                tone="light"
+                className="size-14 rounded-md bg-white/95 p-1.5 shadow-sm ring-1 ring-white/30"
+              />
               <div>
                 <p className="text-xs font-black uppercase text-cyan-100">
                   Justiça Federal
                 </p>
-                <p className="text-xl font-black">SECP</p>
+                <p className="text-xl font-black tracking-normal">SECP</p>
               </div>
             </Link>
 
@@ -86,7 +89,10 @@ export default function HomePage() {
               <a href="#modulos" className="transition hover:text-cyan-200">
                 Módulos
               </a>
-              <a href="#multi-orgaos" className="transition hover:text-cyan-200">
+              <a
+                href="#multi-orgaos"
+                className="transition hover:text-cyan-200"
+              >
                 Multi-órgãos
               </a>
               <a href="#governanca" className="transition hover:text-cyan-200">
@@ -110,9 +116,22 @@ export default function HomePage() {
               Sistema Eletrônico de Controle de Ponto
             </div>
 
-            <h1 className="mt-7 max-w-3xl text-5xl font-black tracking-normal text-white md:text-7xl">
-              SECP
-            </h1>
+            <h1 className="sr-only">SECP</h1>
+            <div className="mt-7 flex items-center gap-5">
+              <SecpLogo
+                variant="mark"
+                tone="light"
+                className="size-24 rounded-xl bg-white/95 p-2.5 shadow-sm ring-1 ring-white/30 md:size-28"
+              />
+              <div>
+                <p className="text-5xl font-black tracking-normal text-white md:text-7xl">
+                  SECP
+                </p>
+                <p className="mt-2 text-sm font-bold uppercase tracking-normal text-cyan-100 md:text-base">
+                  Justiça Federal do Amazonas
+                </p>
+              </div>
+            </div>
             <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-100 md:text-xl">
               Plataforma institucional para frequência funcional, construída
               para operar com segurança, acessibilidade, fuso correto e regras

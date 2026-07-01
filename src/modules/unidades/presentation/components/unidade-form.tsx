@@ -267,7 +267,7 @@ export function UnidadeForm({
 
           <div className="space-y-2">
             <label htmlFor="fusoHorario" className="text-sm font-semibold">
-              Fuso horÃ¡rio
+              Fuso horário
             </label>
 
             <select
@@ -276,7 +276,7 @@ export function UnidadeForm({
               defaultValue={campos?.fusoHorario ?? ""}
               className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
             >
-              <option value="">Herdar da unidade superior ou Ã³rgÃ£o</option>
+              <option value="">Herdar da unidade superior ou órgão</option>
 
               {opcoesFuso.map((fuso) => (
                 <option key={fuso.valor} value={fuso.valor}>
@@ -341,7 +341,7 @@ export function UnidadeForm({
 
               <div className="space-y-2">
                 <label htmlFor="municipioIbge" className="text-sm font-semibold">
-                  Codigo IBGE
+                  Código IBGE
                 </label>
                 <input
                   id="municipioIbge"

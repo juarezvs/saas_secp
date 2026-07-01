@@ -4,6 +4,10 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import {
+  aplicarEscopoOrgaoId,
+  obterEscopoOrgaoDaSessao,
+} from "@/modules/auth/application/services/escopo-orgao.service";
 import { resolverFusoHorarioUnidade } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
 import { listarUnidadesOrganizacionaisPaginado } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
@@ -29,10 +33,9 @@ export default async function UnidadesPage({
   await exigirPermissaoOuRedirecionar("unidades:gerenciar:global");
 
   const params = searchParams ? await searchParams : {};
-
-  const [orgaos, resultado] = await Promise.all([
-    listarOrgaosAtivos(),
-    listarUnidadesOrganizacionaisPaginado({
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const filtrosEscopados = aplicarEscopoOrgaoId(
+    {
       busca: params.busca ?? "",
       sigla: params.sigla ?? "",
       nome: params.nome ?? "",
@@ -42,7 +45,15 @@ export default async function UnidadesPage({
       status: params.status ?? "",
       pagina: Number(params.pagina ?? 1),
       itensPorPagina: Number(params.itensPorPagina ?? 10),
-    }),
+    },
+    escopoOrgao,
+  );
+
+  const [orgaos, resultado] = await Promise.all([
+    listarOrgaosAtivos(
+      aplicarEscopoOrgaoId({ orgaoId: "" }, escopoOrgao),
+    ),
+    listarUnidadesOrganizacionaisPaginado(filtrosEscopados),
   ]);
 
   const exportParams = new URLSearchParams();

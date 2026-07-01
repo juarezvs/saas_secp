@@ -37,14 +37,14 @@ export async function DashboardSuporte() {
 
   return (
     <DashboardPerfilShell
-      eyebrow="Suporte tecnico"
+      eyebrow="Suporte técnico"
       title="Dashboard suporte"
-      description="Painel operacional para acompanhar integracoes, importacoes, filas de processamento e pontos de atencao tecnica do SECP."
+      description="Painel operacional para acompanhar integrações, importações, filas de processamento e pontos de atenção técnica do SECP."
       icon={HeartPulse}
     >
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <DashboardRoleCard
-          titulo="Integracoes com erro"
+          titulo="Integrações com erro"
           valor={integracoesComErro}
           descricao="Conectores institucionais marcados com falha."
           icon={ShieldAlert}
@@ -52,29 +52,29 @@ export async function DashboardSuporte() {
         <DashboardRoleCard
           titulo="Logs pendentes/erro"
           valor={logsIntegracaoPendentes}
-          descricao="Eventos de integracao que exigem verificacao."
+          descricao="Eventos de integração que exigem verificação."
           icon={Network}
         />
         <DashboardRoleCard
-          titulo="Importacoes AFD abertas"
+          titulo="Importações AFD abertas"
           valor={importacoesAfdAbertas}
           descricao="Lotes recebidos, em processamento ou com erro."
           icon={HardDriveUpload}
         />
         <DashboardRoleCard
-          titulo="Marcacoes pendentes"
+          titulo="Marcações pendentes"
           valor={marcacoesBrutasPendentes}
-          descricao="Registros brutos ainda nao processados."
+          descricao="Registros brutos ainda não processados."
           icon={DatabaseZap}
         />
         <DashboardRoleCard
-          titulo="Execucoes SARH com falha"
+          titulo="Execuções SARH com falha"
           valor={execucoesSarhProblematicas}
-          descricao="Sincronizacoes concluidas com erros ou falhadas."
+          descricao="Sincronizações concluídas com erros ou falhadas."
           icon={Activity}
         />
         <DashboardRoleCard
-          titulo="Sessoes faciais problematicas"
+          titulo="Sessões faciais problemáticas"
           valor={sessoesFaciaisProblematicas}
           descricao="Cadastros faciais expirados, reprovados ou cancelados."
           icon={HeartPulse}
@@ -82,11 +82,11 @@ export async function DashboardSuporte() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
-        <DashboardAtalho href="/administracao" titulo="Administracao" />
-        <DashboardAtalho href="/integracoes" titulo="Integracoes" />
+        <DashboardAtalho href="/administracao" titulo="Administração" />
+        <DashboardAtalho href="/integracoes" titulo="Integrações" />
         <DashboardAtalho href="/administracao/integracoes/sarh" titulo="SARH" />
-        <DashboardAtalho href="/afd" titulo="Importacoes AFD" />
-        <DashboardAtalho href="/marcacoes-brutas" titulo="Marcacoes brutas" />
+        <DashboardAtalho href="/afd" titulo="Importações AFD" />
+        <DashboardAtalho href="/marcacoes-brutas" titulo="Marcações brutas" />
         <DashboardAtalho href="/auditoria" titulo="Auditoria" />
       </section>
     </DashboardPerfilShell>

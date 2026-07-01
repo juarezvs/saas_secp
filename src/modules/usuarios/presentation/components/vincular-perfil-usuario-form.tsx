@@ -11,6 +11,12 @@ type PerfilItem = {
   nome: string;
 };
 
+type OrgaoItem = {
+  id: string;
+  sigla: string;
+  nome: string;
+};
+
 const estadoInicial: VincularPerfilUsuarioFormState = {
   sucesso: false,
   mensagem: null,
@@ -19,9 +25,11 @@ const estadoInicial: VincularPerfilUsuarioFormState = {
 export function VincularPerfilUsuarioForm({
   usuarioId,
   perfis,
+  orgaos,
 }: {
   usuarioId: string;
   perfis: PerfilItem[];
+  orgaos: OrgaoItem[];
 }) {
   const [estado, formAction, pendente] = useActionState(
     vincularPerfilUsuarioAction,
@@ -62,6 +70,19 @@ export function VincularPerfilUsuarioForm({
           {perfis.map((perfil) => (
             <option key={perfil.id} value={perfil.id}>
               {perfil.codigo} — {perfil.nome}
+            </option>
+          ))}
+        </select>
+
+        <select
+          name="orgaoId"
+          defaultValue=""
+          className="h-10 flex-1 rounded-md border bg-[var(--card)] px-3 text-sm"
+        >
+          <option value="">Global (somente MASTER)</option>
+          {orgaos.map((orgao) => (
+            <option key={orgao.id} value={orgao.id}>
+              {orgao.sigla} - {orgao.nome}
             </option>
           ))}
         </select>

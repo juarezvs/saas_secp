@@ -8,6 +8,10 @@ import {
   listarOrgaosAtivosParaServidor,
 } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
 import { ServidorForm } from "@/modules/servidores/presentation/components/servidor-form";
+import {
+  descricaoCargoServidor,
+  descricaoFuncaoServidor,
+} from "@/modules/servidores/application/services/funcao-cargo-servidor.service";
 
 type EditarServidorPageProps = {
   params: Promise<{
@@ -76,6 +80,10 @@ export default async function EditarServidorPage({
           email: servidor.usuario.email,
           nomeFuncional: servidor.nomeFuncional,
           vinculo: servidor.vinculo,
+          cargoDescricao: descricaoCargoServidor(servidor),
+          funcaoDescricao: descricaoFuncaoServidor(servidor),
+          descricaoProvimentoSarh: servidor.descricaoProvimentoSarh,
+          descricaoSituacaoSarh: servidor.descricaoSituacaoSarh,
           ativo: servidor.ativo,
         }}
       />

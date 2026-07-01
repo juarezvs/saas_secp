@@ -8,6 +8,8 @@ import type { PreferenciasAcessibilidade } from "@/modules/auth/application/serv
 type UsuarioNavegacao = {
   nome: string;
   matricula: string;
+  funcaoOuCargo?: string | null;
+  fotoUrl?: string | null;
   unidade: string;
   perfis: PerfilNavegacao[];
   perfilAtivo: PerfilNavegacao;
@@ -51,6 +53,8 @@ export function AppShellClient({
           <Header
             nomeUsuario={usuario.nome}
             matricula={usuario.matricula}
+            funcaoOuCargo={usuario.funcaoOuCargo}
+            fotoUrl={usuario.fotoUrl}
             unidadeAtual={usuario.unidade}
             perfis={usuario.perfis}
             perfilAtivo={perfilAtivo}

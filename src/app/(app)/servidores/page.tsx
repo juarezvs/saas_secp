@@ -1,10 +1,23 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Plus, Users } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import {
+  aplicarEscopoOrgaoId,
+  obterEscopoOrgaoDaSessao,
+} from "@/modules/auth/application/services/escopo-orgao.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
+import {
+  buscarFotosServidoresDataUrl,
+  normalizarCpfFoto,
+} from "@/modules/servidores/application/services/foto-servidor.service";
+import {
+  descricaoCargoServidor,
+  descricaoFuncaoServidor,
+} from "@/modules/servidores/application/services/funcao-cargo-servidor.service";
 import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
 import { listarServidoresPaginado } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
 import { ServidoresListagemControles } from "@/modules/servidores/presentation/components/servidores-listagem-controles";
@@ -30,12 +43,11 @@ export default async function ServidoresPage({
   await exigirPermissaoOuRedirecionar("servidores:gerenciar:global");
 
   const params = searchParams ? await searchParams : {};
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
-
-  const [orgaos, resultado] = await Promise.all([
-    listarOrgaosAtivos(),
-    listarServidoresPaginado({
+  const filtrosEscopados = aplicarEscopoOrgaoId(
+    {
       busca: params.busca ?? "",
       matricula: params.matricula ?? "",
       cpf: params.cpf ?? "",
@@ -46,8 +58,21 @@ export default async function ServidoresPage({
       status: params.status ?? "",
       pagina,
       itensPorPagina,
-    }),
+    },
+    escopoOrgao,
+  );
+
+  const [orgaos, resultado] = await Promise.all([
+    listarOrgaosAtivos(
+      aplicarEscopoOrgaoId({ orgaoId: "" }, escopoOrgao),
+    ),
+    listarServidoresPaginado(filtrosEscopados),
   ]);
+  const fotosServidores = await buscarFotosServidoresDataUrl(
+    resultado.servidores.map(
+      (servidor) => servidor.cpf ?? servidor.usuario.cpf,
+    ),
+  );
 
   const exportParams = new URLSearchParams();
 
@@ -135,7 +160,7 @@ export default async function ServidoresPage({
               <tr>
                 <th className="px-5 py-3">Matrícula</th>
                 <th className="px-5 py-3">CPF</th>
-                <th className="px-5 py-3">Nome</th>
+                <th className="px-5 py-3">Servidor</th>
                 <th className="px-5 py-3">Órgão</th>
                 <th className="px-5 py-3">Vínculo</th>
                 <th className="px-5 py-3">Lotação atual</th>
@@ -149,6 +174,12 @@ export default async function ServidoresPage({
             <tbody>
               {resultado.servidores.map((servidor) => {
                 const lotacaoAtual = servidor.lotacoes[0];
+                const fotoCpf = servidor.cpf ?? servidor.usuario.cpf;
+                const fotoSrc = fotoCpf
+                  ? fotosServidores.get(normalizarCpfFoto(fotoCpf) ?? "")
+                  : null;
+                const cargo = descricaoCargoServidor(servidor);
+                const funcao = descricaoFuncaoServidor(servidor);
 
                 return (
                   <tr key={servidor.id} className="border-b last:border-b-0">
@@ -159,18 +190,46 @@ export default async function ServidoresPage({
                       {servidor.cpf ?? servidor.usuario.cpf ?? "-"}
                     </td>
                     <td className="px-5 py-4">
-                      <div className="font-semibold">
-                        {nomeServidor(servidor)}
-                      </div>
-                      {servidor.usuario.email && (
-                        <div className="mt-1 text-xs text-[var(--muted-foreground)]">
-                          {servidor.usuario.email}
+                      <div className="flex items-center gap-3">
+                        {fotoSrc ? (
+                          <Image
+                            src={fotoSrc}
+                            alt=""
+                            width={64}
+                            height={64}
+                            unoptimized
+                            className="size-16 rounded-full border-2 border-white bg-slate-100 object-cover shadow-sm ring-2 ring-blue-100 dark:border-slate-950 dark:bg-slate-800 dark:ring-blue-900/60"
+                          />
+                        ) : (
+                          <span className="flex size-16 items-center justify-center rounded-full border-2 border-white bg-slate-100 text-sm font-bold text-slate-600 shadow-sm ring-2 ring-blue-100 dark:border-slate-950 dark:bg-slate-800 dark:text-slate-300 dark:ring-blue-900/60">
+                            {servidor.matricula.slice(0, 2).toUpperCase()}
+                          </span>
+                        )}
+                        <div className="min-w-0">
+                          <div className="font-semibold">
+                            {nomeServidor(servidor)}
+                          </div>
+                          {cargo && (
+                            <div className="mt-1 max-w-72 truncate text-xs text-[var(--muted-foreground)]">
+                              {cargo}
+                            </div>
+                          )}
+                          {funcao && (
+                            <div className="mt-1 max-w-72 truncate text-xs font-semibold text-blue-900 dark:text-blue-300">
+                              {funcao}
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
                     </td>
                     <td className="px-5 py-4">{servidor.orgao.sigla}</td>
                     <td className="px-5 py-4 text-xs font-semibold uppercase text-[var(--muted-foreground)]">
-                      {servidor.vinculo}
+                      <div>{servidor.vinculo}</div>
+                      {servidor.descricaoProvimentoSarh && (
+                        <div className="mt-1 max-w-32 truncate text-[10px] normal-case text-[var(--muted-foreground)]">
+                          {servidor.descricaoProvimentoSarh}
+                        </div>
+                      )}
                     </td>
                     <td className="px-5 py-4">
                       {lotacaoAtual ? lotacaoAtual.unidade.sigla : "-"}

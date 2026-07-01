@@ -4,6 +4,10 @@ import { alterarStatusPerfilUsuarioAction } from "../../application/actions/alte
 type UsuarioPerfilItem = {
   id: string;
   ativo: boolean;
+  orgao?: {
+    sigla: string;
+    nome: string;
+  } | null;
   perfil: {
     id: string;
     codigo: string;
@@ -51,6 +55,12 @@ export function PerfisUsuarioCard({
                 <code className="mt-1 block text-xs text-[var(--muted-foreground)]">
                   {usuarioPerfil.perfil.codigo}
                 </code>
+                <p className="mt-2 text-xs font-semibold text-blue-900 dark:text-blue-300">
+                  Escopo:{" "}
+                  {usuarioPerfil.orgao
+                    ? `${usuarioPerfil.orgao.sigla} - ${usuarioPerfil.orgao.nome}`
+                    : "Global"}
+                </p>
 
                 {usuarioPerfil.perfil.descricao && (
                   <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">

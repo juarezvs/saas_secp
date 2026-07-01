@@ -1,10 +1,13 @@
 import type {
   SarhCargoDto,
   SarhEmpresaDto,
+  SarhAfastamentoDto,
+  SarhChefiaDto,
   SarhLotacaoDto,
   SarhLotacaoServidorDto,
   SarhPayloadCompleto,
   SarhServidorDto,
+  SarhTipoAfastamentoDto,
 } from "../../domain/sarh.types";
 
 export type SarhHttpClientOptions = {
@@ -19,8 +22,13 @@ export class SarhHttpClient {
   private readonly headers?: HeadersInit;
 
   constructor(options: SarhHttpClientOptions = {}) {
-    this.baseUrl = (options.baseUrl ?? process.env.SARH_BASE_URL ?? "http://sarh.integracao.am.trf1.gov.br").replace(/\/$/, "");
-    this.timeoutMs = options.timeoutMs ?? Number(process.env.SARH_TIMEOUT_MS ?? 30000);
+    this.baseUrl = (
+      options.baseUrl ??
+      process.env.SARH_BASE_URL ??
+      "http://sarh.integracao.am.trf1.gov.br"
+    ).replace(/\/$/, "");
+    this.timeoutMs =
+      options.timeoutMs ?? Number(process.env.SARH_TIMEOUT_MS ?? 30000);
     this.headers = options.headers;
   }
 
@@ -44,16 +52,49 @@ export class SarhHttpClient {
     return this.getJson<SarhLotacaoServidorDto[]>("/lotacao-servidor/");
   }
 
+  async buscarTiposAfastamento(): Promise<SarhTipoAfastamentoDto[]> {
+    return this.getJson<SarhTipoAfastamentoDto[]>("/tipo-afastamento/");
+  }
+
+  async buscarAfastamentos(): Promise<SarhAfastamentoDto[]> {
+    return this.getJson<SarhAfastamentoDto[]>("/afastamentos/");
+  }
+
+  async buscarChefias(): Promise<SarhChefiaDto[]> {
+    return this.getJson<SarhChefiaDto[]>("/chefias/");
+  }
+
   async buscarTudo(): Promise<SarhPayloadCompleto> {
-    const [empresas, lotacoes, cargos, servidores, lotacoesServidores] = await Promise.all([
+    const [
+      empresas,
+      lotacoes,
+      cargos,
+      servidores,
+      lotacoesServidores,
+      tiposAfastamento,
+      afastamentos,
+      chefias,
+    ] = await Promise.all([
       this.buscarEmpresas(),
       this.buscarLotacoes(),
       this.buscarCargos(),
       this.buscarServidores(),
       this.buscarLotacoesServidores(),
+      this.buscarTiposAfastamento(),
+      this.buscarAfastamentos(),
+      this.buscarChefias(),
     ]);
 
-    return { empresas, lotacoes, cargos, servidores, lotacoesServidores };
+    return {
+      empresas,
+      lotacoes,
+      cargos,
+      servidores,
+      lotacoesServidores,
+      tiposAfastamento,
+      afastamentos,
+      chefias,
+    };
   }
 
   private async getJson<T>(path: string): Promise<T> {
@@ -70,7 +111,9 @@ export class SarhHttpClient {
 
       if (!response.ok) {
         const body = await response.text().catch(() => "");
-        throw new Error(`SARH respondeu ${response.status} ${response.statusText} em ${path}. ${body}`.trim());
+        throw new Error(
+          `SARH respondeu ${response.status} ${response.statusText} em ${path}. ${body}`.trim(),
+        );
       }
 
       return (await response.json()) as T;

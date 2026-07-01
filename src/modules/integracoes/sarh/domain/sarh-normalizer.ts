@@ -1,11 +1,14 @@
 import { createHash } from "node:crypto";
 import type {
   SarhCargoDto,
+  SarhAfastamentoDto,
+  SarhChefiaDto,
   SarhEmpresaDto,
   SarhEndpointKey,
   SarhLotacaoDto,
   SarhLotacaoServidorDto,
   SarhServidorDto,
+  SarhTipoAfastamentoDto,
   TipoEndpointSarhDb,
   TipoRegistroSarhDb,
 } from "./sarh.types";
@@ -20,20 +23,18 @@ export function normalizarMatricula(matricula: string): string {
   return limparTexto(matricula)?.toUpperCase() ?? "";
 }
 
-export function normalizarCpf(cpf: string | number | null | undefined): string | null {
+export function normalizarCpf(
+  cpf: string | number | null | undefined,
+): string | null {
   if (cpf === null || cpf === undefined) return null;
   const somenteDigitos = String(cpf).replace(/\D/g, "");
   if (!somenteDigitos) return null;
   return somenteDigitos.padStart(11, "0").slice(-11);
 }
 
-export function obterCpfServidorSarh(
-  payload: SarhServidorDto,
-): string | null {
+export function obterCpfServidorSarh(payload: SarhServidorDto): string | null {
   return normalizarCpf(
-    payload.cpf ??
-      payload.cpfServidor?.cpf ??
-      payload.cpfServidor?.dados?.cpf,
+    payload.cpf ?? payload.cpfServidor?.cpf ?? payload.cpfServidor?.dados?.cpf,
   );
 }
 
@@ -45,17 +46,23 @@ export function obterDataNascimentoServidorSarh(
   );
 }
 
-export function normalizarDataSarh(data: string | null | undefined): Date | null {
+export function normalizarDataSarh(
+  data: string | null | undefined,
+): Date | null {
   if (!data) return null;
   const date = new Date(data);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export function normalizarCodigoLotacaoServidor(payload: SarhServidorDto): number | null {
+export function normalizarCodigoLotacaoServidor(
+  payload: SarhServidorDto,
+): number | null {
   return payload.locatacaoId ?? payload.lotacaoId ?? null;
 }
 
-export function normalizarCodigoLotacaoPaiServidor(payload: SarhServidorDto): number | null {
+export function normalizarCodigoLotacaoPaiServidor(
+  payload: SarhServidorDto,
+): number | null {
   return payload.locatacaoPai ?? payload.lotacaoPai ?? null;
 }
 
@@ -78,29 +85,42 @@ function ordenarObjeto(valor: unknown): unknown {
   return valor;
 }
 
-export function endpointDbFromKey(endpoint: SarhEndpointKey): TipoEndpointSarhDb {
+export function endpointDbFromKey(
+  endpoint: SarhEndpointKey,
+): TipoEndpointSarhDb {
   const mapa: Record<SarhEndpointKey, TipoEndpointSarhDb> = {
     empresas: "EMPRESAS",
     lotacoes: "LOTACOES",
     cargos: "CARGOS",
     servidores: "SERVIDORES",
     lotacoesServidores: "LOTACOES_SERVIDORES",
+    tiposAfastamento: "TIPOS_AFASTAMENTO",
+    afastamentos: "AFASTAMENTOS",
+    chefias: "CHEFIAS",
   };
   return mapa[endpoint];
 }
 
-export function tipoRegistroDbFromEndpoint(endpoint: SarhEndpointKey): TipoRegistroSarhDb {
+export function tipoRegistroDbFromEndpoint(
+  endpoint: SarhEndpointKey,
+): TipoRegistroSarhDb {
   const mapa: Record<SarhEndpointKey, TipoRegistroSarhDb> = {
     empresas: "EMPRESA",
     lotacoes: "LOTACAO",
     cargos: "CARGO",
     servidores: "SERVIDOR",
     lotacoesServidores: "LOTACAO_SERVIDOR",
+    tiposAfastamento: "TIPO_AFASTAMENTO",
+    afastamentos: "AFASTAMENTO",
+    chefias: "CHEFIA",
   };
   return mapa[endpoint];
 }
 
-export function obterChaveExterna(endpoint: SarhEndpointKey, payload: unknown): string {
+export function obterChaveExterna(
+  endpoint: SarhEndpointKey,
+  payload: unknown,
+): string {
   if (endpoint === "servidores") {
     return normalizarMatricula((payload as SarhServidorDto).matricula);
   }
@@ -114,11 +134,27 @@ export function obterChaveExterna(endpoint: SarhEndpointKey, payload: unknown): 
     return String((payload as SarhCargoDto).id);
   }
 
+  if (endpoint === "tiposAfastamento") {
+    return String((payload as SarhTipoAfastamentoDto).codigo);
+  }
+
+  if (endpoint === "afastamentos") {
+    return String((payload as SarhAfastamentoDto).id);
+  }
+
+  if (endpoint === "chefias") {
+    const chefia = payload as SarhChefiaDto;
+    return `${chefia.lotacaoId}:${chefia.idFuncaoLotacao}`;
+  }
+
   return String((payload as SarhEmpresaDto | SarhLotacaoDto).id);
 }
 
-export function isLotacaoServidorDesligado(payload: SarhLotacaoServidorDto): boolean {
-  const descricao = limparTexto(payload.lotacao?.descricao)?.toUpperCase() ?? "";
+export function isLotacaoServidorDesligado(
+  payload: SarhLotacaoServidorDto,
+): boolean {
+  const descricao =
+    limparTexto(payload.lotacao?.descricao)?.toUpperCase() ?? "";
   const sigla = limparTexto(payload.lotacao?.sigla)?.toUpperCase() ?? "";
   const tipo = limparTexto(payload.lotacao?.tipo?.nome)?.toUpperCase() ?? "";
 
@@ -129,7 +165,9 @@ export function isLotacaoServidorDesligado(payload: SarhLotacaoServidorDto): boo
   );
 }
 
-export function mapearTipoUnidadeSarhParaSecp(tipoNome: string | null | undefined): string {
+export function mapearTipoUnidadeSarhParaSecp(
+  tipoNome: string | null | undefined,
+): string {
   const tipo = limparTexto(tipoNome)?.toUpperCase() ?? "";
 
   if (tipo.includes("SEÇÃO JUDICI")) return "SECAO_JUDICIARIA";

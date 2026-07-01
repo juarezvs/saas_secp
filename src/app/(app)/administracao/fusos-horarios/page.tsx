@@ -4,8 +4,10 @@ import { Clock3, Edit, Plus } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarFusosHorarios } from "@/modules/fusos-horarios/infrastructure/repositories/fuso-horario.repository";
+import { prisma } from "@/shared/infrastructure/database/prisma";
 
 type FusosHorariosPageProps = {
   searchParams?: Promise<{
@@ -27,10 +29,35 @@ export default async function FusosHorariosPage({
     Math.max(Number(params.itensPorPagina ?? 10), 5),
     100,
   );
-  const todosFusos = await listarFusosHorarios({
-    busca: params.busca ?? "",
-    status: params.status ?? "",
-  });
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const [fusosCadastrados, orgaosEscopo, unidadesEscopo] = await Promise.all([
+    listarFusosHorarios({
+      busca: params.busca ?? "",
+      status: params.status ?? "",
+    }),
+    escopoOrgao.global
+      ? Promise.resolve([])
+      : prisma.orgao.findMany({
+          where: { id: { in: escopoOrgao.orgaoIds } },
+          select: { fusoHorario: true },
+        }),
+    escopoOrgao.global
+      ? Promise.resolve([])
+      : prisma.unidadeOrganizacional.findMany({
+          where: { orgaoId: { in: escopoOrgao.orgaoIds } },
+          select: { fusoHorario: true },
+        }),
+  ]);
+  const fusosPermitidos = escopoOrgao.global
+    ? null
+    : new Set(
+        [...orgaosEscopo, ...unidadesEscopo]
+          .map((item) => item.fusoHorario)
+          .filter((valor): valor is string => Boolean(valor)),
+      );
+  const todosFusos = fusosPermitidos
+    ? fusosCadastrados.filter((fuso) => fusosPermitidos.has(fuso.valor))
+    : fusosCadastrados;
   const totalPaginas = Math.max(Math.ceil(todosFusos.length / itensPorPagina), 1);
   const fusos = todosFusos.slice(
     (pagina - 1) * itensPorPagina,
@@ -69,15 +96,17 @@ export default async function FusosHorariosPage({
         descricao="Gerencie os identificadores técnicos de fuso usados para data de referência, competência, cálculos, marcações e relatórios."
       />
 
-      <div className="flex justify-end">
-        <Link
-          href="/administracao/fusos-horarios/novo"
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-blue-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-950"
-        >
-          <Plus className="size-4" aria-hidden="true" />
-          Novo fuso
-        </Link>
-      </div>
+      {escopoOrgao.global && (
+        <div className="flex justify-end">
+          <Link
+            href="/administracao/fusos-horarios/novo"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-blue-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-950"
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            Novo fuso
+          </Link>
+        </div>
+      )}
 
       <DataTableShell
         title="Fusos cadastrados"
@@ -121,7 +150,7 @@ export default async function FusosHorariosPage({
                 <th className="px-5 py-3">Rótulo</th>
                 <th className="px-5 py-3">Descrição</th>
                 <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Acoes</th>
+                <th className="px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
 

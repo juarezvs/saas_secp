@@ -1,3 +1,5 @@
+import { SarhOracleClient } from "@/modules/integracoes/sarh/infrastructure/oracle/sarh-oracle-client";
+
 export type SarhServidorDto = {
   matricula: string;
   nome: string;
@@ -32,34 +34,17 @@ export async function buscarServidoresSarh(): Promise<SarhServidorDto[]> {
     return mockServidoresSarh();
   }
 
-  const baseUrl = process.env.SARH_API_BASE_URL;
-  const token = process.env.SARH_API_TOKEN;
+  const client = new SarhOracleClient();
+  const servidores = await client.buscarServidores();
 
-  if (!baseUrl) {
-    throw new Error("SARH_API_BASE_URL não configurada.");
-  }
-
-  const response = await fetch(`${baseUrl.replace(/\/$/, "")}/servidores`, {
-    headers: {
-      Accept: "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(`Falha ao consultar SARH. HTTP ${response.status}.`);
-  }
-
-  const data = await response.json();
-
-  if (Array.isArray(data)) {
-    return data as SarhServidorDto[];
-  }
-
-  if (Array.isArray(data.servidores)) {
-    return data.servidores as SarhServidorDto[];
-  }
-
-  throw new Error("Resposta do SARH em formato não reconhecido.");
+  return servidores.map((servidor) => ({
+    matricula: servidor.matricula,
+    nome: servidor.nome,
+    cpf: servidor.cpf ? String(servidor.cpf) : null,
+    cargo: servidor.cargoDescricao,
+    unidadeSigla: servidor.lotacaoSigla,
+    unidadeNome: servidor.lotacaoDescricao,
+    situacao: servidor.ativo ? "ATIVO" : "INATIVO",
+    dataAdmissao: null,
+  }));
 }

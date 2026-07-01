@@ -1,4 +1,14 @@
-import { Document, Page, Path, Svg, Text, View } from "@react-pdf/renderer";
+import {
+  Document,
+  Image,
+  Page,
+  Path,
+  Svg,
+  Text,
+  View,
+} from "@react-pdf/renderer";
+import type { ReactNode } from "react";
+import { readFileSync } from "node:fs";
 import { pdfStyles as s } from "./pdf-styles";
 import {
   minutosParaHoraRelatorio,
@@ -17,7 +27,11 @@ type EspelhoPontoPdfProps = {
   dados: {
     servidor: {
       matricula: string;
+      cpf?: string | null;
       nomeFuncional?: string | null;
+      cargo?: {
+        descricao: string;
+      } | null;
       usuario: {
         nome: string;
       };
@@ -26,6 +40,9 @@ type EspelhoPontoPdfProps = {
           sigla: string;
           nome: string;
         };
+        cargo?: {
+          descricao: string;
+        } | null;
       }[];
       jornadas: {
         jornada: {
@@ -161,8 +178,8 @@ function paginarApuracoesEspelho(apuracoes: ApuracaoEspelhoPdfItem[]) {
     return [[]] as ApuracaoEspelhoPdfItem[][];
   }
 
-  const capacidadePrimeiraPagina = 22;
-  const capacidadeDemaisPaginas = 27;
+  const capacidadePrimeiraPagina = 16;
+  const capacidadeDemaisPaginas = 16;
   const paginas: ApuracaoEspelhoPdfItem[][] = [];
   let paginaAtual: ApuracaoEspelhoPdfItem[] = [];
   let pesoAtual = 0;
@@ -231,9 +248,13 @@ export function EspelhoPontoPdfDocument({ dados }: EspelhoPontoPdfProps) {
           key={`pagina-${indicePagina}`}
           size="A4"
           orientation="portrait"
-          style={[s.page, { paddingTop: 154, paddingBottom: 42 }]}
+          style={[s.page, { paddingTop: 328, paddingBottom: 42 }]}
         >
-          <CabecalhoPremiumEspelho servidor={servidor} ano={dados.ano} mes={dados.mes} />
+          <CabecalhoPremiumEspelho
+            servidor={servidor}
+            ano={dados.ano}
+            mes={dados.mes}
+          />
 
           <TabelaEspelhoPdf
             titulo={
@@ -306,9 +327,7 @@ function TotaisEspelhoPdf({
         </View>
         <View style={s.infoBox}>
           <Text style={s.label}>Débito</Text>
-          <Text style={s.value}>
-            {minutosParaHoraRelatorio(totais.debito)}
-          </Text>
+          <Text style={s.value}>{minutosParaHoraRelatorio(totais.debito)}</Text>
         </View>
       </View>
       <View style={s.row}>
@@ -323,9 +342,7 @@ function TotaisEspelhoPdf({
           <Text style={s.label}>Atividades externas</Text>
           <Text style={s.value}>
             {resumoFuncional.atividadesExternas} -{" "}
-            {minutosParaHoraRelatorio(
-              resumoFuncional.minutosAtividadeExterna,
-            )}
+            {minutosParaHoraRelatorio(resumoFuncional.minutosAtividadeExterna)}
           </Text>
         </View>
         <View style={s.infoBox}>
@@ -407,7 +424,9 @@ function TabelaEspelhoPdf({
                       : "Trabalho remoto"}
                   </Text>
                 ) : marcacoesDoDia.length > 0 ? (
-                  <Text>{marcacoesDoDia.map(formatarMarcacaoPdf).join("  ")}</Text>
+                  <Text>
+                    {marcacoesDoDia.map(formatarMarcacaoPdf).join("  ")}
+                  </Text>
                 ) : diaInstitucional &&
                   !ehFimDeSemanaInstitucional(diaInstitucional) ? (
                   <Text style={observacaoMarcacoes}>
@@ -445,8 +464,7 @@ function TabelaEspelhoPdf({
                 <Text>{minutosParaHoraRelatorio(item.minutosDebito)}</Text>
                 {minutosDebitoCompensado > 0 && (
                   <Text style={{ marginTop: 2, fontSize: 6 }}>
-                    Comp.{" "}
-                    {minutosParaHoraRelatorio(minutosDebitoCompensado)}
+                    Comp. {minutosParaHoraRelatorio(minutosDebitoCompensado)}
                   </Text>
                 )}
               </View>
@@ -495,111 +513,163 @@ function CabecalhoPremiumEspelho({
   const jornada = servidor?.jornadas[0]
     ? `${servidor.jornadas[0].jornada.codigo} - ${servidor.jornadas[0].jornada.nome}`
     : "-";
+  const cargo =
+    servidor?.cargo?.descricao ??
+    servidor?.lotacoes.find((lotacao) => lotacao.cargo?.descricao)?.cargo
+      ?.descricao ??
+    null;
+  const competencia = `${nomeMesReferencia(mes)} de ${ano}`;
+  const emissao = new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date());
+  const brasaoRepublica = `data:image/png;base64,${readFileSync(
+    `${process.cwd()}/public/brasao-republica.png`,
+  ).toString("base64")}`;
 
   return (
     <View
       fixed
       style={{
         position: "absolute",
-        top: 24,
-        left: 32,
-        right: 32,
-        height: 112,
+        top: 58,
+        left: 40,
+        right: 40,
+        height: 246,
         borderWidth: 1,
-        borderColor: "#cbd5e1",
+        borderColor: "#d6d6d6",
+        borderRadius: 3,
         backgroundColor: "#ffffff",
         overflow: "hidden",
       }}
     >
       <View
         style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          backgroundColor: "#0f2f5f",
-          paddingHorizontal: 14,
-          paddingVertical: 7,
-          height: 45,
+          borderBottomWidth: 1,
+          borderBottomColor: "#d6d6d6",
+          paddingHorizontal: 12,
+          paddingVertical: 9,
         }}
       >
-        <View>
-          <Text
-            style={{
-              color: "#dbeafe",
-              fontSize: 7,
-              textTransform: "uppercase",
-              letterSpacing: 0.8,
-            }}
-          >
-            Justiça Federal
-          </Text>
-          <Text style={{ color: "#ffffff", fontSize: 14, fontWeight: 700 }}>
-            Espelho de Ponto
-          </Text>
-          <Text style={{ color: "#bfdbfe", fontSize: 8, marginTop: 1 }}>
-            SECP - Sistema Eletrônico de Controle de Ponto
-          </Text>
+        <Text style={{ fontSize: 12 }}>
+          Espelho de ponto referente a{" "}
+          <Text style={{ fontWeight: 700 }}>{competencia}</Text>
+        </Text>
+      </View>
+
+      <View style={{ paddingHorizontal: 12, paddingTop: 10 }}>
+        <View
+          style={{
+            borderTopWidth: 1,
+            borderTopColor: "#d6d6d6",
+            flexDirection: "row",
+            alignItems: "center",
+            minHeight: 92,
+            paddingTop: 8,
+            paddingBottom: 8,
+          }}
+        >
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
+          <Image
+            src={brasaoRepublica}
+            style={{ width: 84, height: 96, objectFit: "contain" }}
+          />
+          <View style={{ marginLeft: 10 }}>
+            <Text style={{ fontSize: 12, marginBottom: 5 }}>
+              PODER JUDICIÁRIO
+            </Text>
+            <Text style={{ fontSize: 12, marginBottom: 5 }}>
+              Tribunal Regional Federal da 1ª Região
+            </Text>
+            <Text style={{ fontSize: 12 }}>Espelho de Ponto</Text>
+          </View>
         </View>
 
         <View
           style={{
             borderWidth: 1,
-            borderColor: "#60a5fa",
-            paddingHorizontal: 10,
-            paddingVertical: 5,
-            minWidth: 120,
+            borderColor: "#d6d6d6",
+            borderRadius: 3,
+            overflow: "hidden",
           }}
         >
-          <Text
-            style={{
-              color: "#bfdbfe",
-              fontSize: 7,
-              textTransform: "uppercase",
-            }}
-          >
-            Competência
-          </Text>
-          <Text style={{ color: "#ffffff", fontSize: 12, fontWeight: 700 }}>
-            {nomeMesReferencia(mes)} de {ano}
-          </Text>
-        </View>
-      </View>
-
-      <View style={{ padding: 8, height: 65 }}>
-        <View style={{ flexDirection: "row", marginBottom: 5 }}>
-          <View style={{ borderWidth: 1, borderColor: "#e5e7eb", padding: 4, marginRight: 5, width: "18%" }}>
-            <Text style={s.label}>Matrícula</Text>
-            <Text style={s.value} wrap={false}>{servidor?.matricula ?? "-"}</Text>
-          </View>
-          <View style={{ borderWidth: 1, borderColor: "#e5e7eb", padding: 4, marginRight: 5, width: "54%" }}>
-            <Text style={s.label}>Servidor</Text>
-            <Text style={s.value} wrap={false}>{nomeServidor(servidor) || "-"}</Text>
-          </View>
-          <View style={{ borderWidth: 1, borderColor: "#e5e7eb", padding: 4, width: "28%" }}>
-            <Text style={s.label}>Emissão</Text>
-            <Text style={s.value} wrap={false}>
-              {new Intl.DateTimeFormat("pt-BR", {
-                dateStyle: "short",
-                timeStyle: "short",
-              }).format(new Date())}
+          <LinhaCabecalhoEspelho>
+            <Text>
+              Servidor:{" "}
+              <Text style={{ fontWeight: 700 }}>
+                {nomeServidor(servidor) || "-"} ({servidor?.matricula ?? "-"})
+              </Text>{" "}
+              CPF:{" "}
+              <Text style={{ fontWeight: 700 }}>
+                {formatarCpfEspelho(servidor?.cpf)}
+              </Text>
             </Text>
-          </View>
-        </View>
-        <View style={{ flexDirection: "row" }}>
-          <View style={{ borderWidth: 1, borderColor: "#e5e7eb", padding: 4, marginRight: 5, width: "58%" }}>
-            <Text style={s.label}>Lotação</Text>
-            <Text style={s.value} wrap={false}>{lotacao}</Text>
-          </View>
-          <View style={{ borderWidth: 1, borderColor: "#e5e7eb", padding: 4, width: "42%" }}>
-            <Text style={s.label}>Jornada</Text>
-            <Text style={s.value} wrap={false}>{jornada}</Text>
-          </View>
+          </LinhaCabecalhoEspelho>
+
+          <LinhaCabecalhoEspelho>
+            <Text>
+              Cargo: <Text style={{ fontWeight: 700 }}>{cargo ?? "-"}</Text>
+            </Text>
+          </LinhaCabecalhoEspelho>
+
+          <LinhaCabecalhoEspelho>
+            <Text>
+              Lotação: <Text style={{ fontWeight: 700 }}>{lotacao}</Text>
+            </Text>
+          </LinhaCabecalhoEspelho>
+
+          <LinhaCabecalhoEspelho>
+            <Text>
+              Jornada: <Text style={{ fontWeight: 700 }}>{jornada}</Text>
+            </Text>
+          </LinhaCabecalhoEspelho>
+
+          <LinhaCabecalhoEspelho ultima>
+            <Text>
+              Competência:{" "}
+              <Text style={{ fontWeight: 700 }}>{competencia}</Text> Emissão:{" "}
+              <Text style={{ fontWeight: 700 }}>{emissao}</Text>
+            </Text>
+          </LinhaCabecalhoEspelho>
         </View>
       </View>
     </View>
   );
 }
 
+function LinhaCabecalhoEspelho({
+  children,
+  ultima = false,
+}: {
+  children: ReactNode;
+  ultima?: boolean;
+}) {
+  return (
+    <View
+      style={{
+        borderBottomWidth: ultima ? 0 : 1,
+        borderBottomColor: "#d6d6d6",
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+      }}
+    >
+      <Text style={{ fontSize: 10, lineHeight: 1.25 }}>{children}</Text>
+    </View>
+  );
+}
+
+function formatarCpfEspelho(cpf?: string | null) {
+  const digitos = cpf?.replace(/\D/g, "") ?? "";
+
+  if (digitos.length !== 11) {
+    return "-";
+  }
+
+  return `${digitos.slice(0, 3)}.${digitos.slice(3, 6)}.${digitos.slice(
+    6,
+    9,
+  )}-${digitos.slice(9)}`;
+}
 function StatusIndicadorPdf({
   conferencia,
 }: {
@@ -713,25 +783,22 @@ function OcorrenciasDiaPdf({
           !["FALTA", "DEBITO"].includes(ocorrencia.tipo) &&
           !(
             diaInstitucional &&
-            ["SEM_EXPEDIENTE", diaInstitucional.tipo].includes(
-              ocorrencia.tipo,
-            )
+            ["SEM_EXPEDIENTE", diaInstitucional.tipo].includes(ocorrencia.tipo)
           ),
       )
       .map((ocorrencia, index) => ({
         chave: `ocorrencia-${index}-${ocorrencia.tipo}`,
-        label: rotuloOcorrenciaEspelho(ocorrencia.tipo),
+        label: rotuloOcorrenciaEspelho(ocorrencia),
         tipo:
-          ocorrencia.tipo === "CREDITO"
-            ? ("ok" as const)
-            : ("alerta" as const),
+          ocorrencia.tipo === "CREDITO" ? ("ok" as const) : ("alerta" as const),
       })),
     ...solicitacoes
-      .filter((solicitacao) =>
-        ["ATIVIDADE_EXTERNA", "VIAGEM_SERVICO", "COMPENSACAO"].includes(
-          solicitacao.tipo,
-        ) ||
-        (solicitacao.tipo === "DISPENSA_PONTO" && !dispensaPonto),
+      .filter(
+        (solicitacao) =>
+          ["ATIVIDADE_EXTERNA", "VIAGEM_SERVICO", "COMPENSACAO"].includes(
+            solicitacao.tipo,
+          ) ||
+          (solicitacao.tipo === "DISPENSA_PONTO" && !dispensaPonto),
       )
       .map((solicitacao) => ({
         chave: solicitacao.id,
@@ -773,11 +840,11 @@ function OcorrenciasDiaPdf({
                       backgroundColor: "#eff6ff",
                       color: "#1e40af",
                     }
-                : {
-                    borderColor: "#a7f3d0",
-                    backgroundColor: "#ecfdf5",
-                    color: "#065f46",
-                  },
+                  : {
+                      borderColor: "#a7f3d0",
+                      backgroundColor: "#ecfdf5",
+                      color: "#065f46",
+                    },
           ]}
         >
           {item.label}
@@ -899,7 +966,14 @@ function extrairDiaInstitucional(
   };
 }
 
-function rotuloOcorrenciaEspelho(tipo: string) {
+function rotuloOcorrenciaEspelho(ocorrencia: {
+  tipo: string;
+  descricao?: string | null;
+}) {
+  if (ocorrencia.tipo === "AFASTAMENTO") {
+    return rotuloAfastamentoEspelho(ocorrencia.descricao);
+  }
+
   const rotulos: Record<string, string> = {
     MARCACAO_INCOMPLETA: "Marcações incompletas",
     INTERVALO_INVALIDO: "Intervalo inválido",
@@ -910,7 +984,21 @@ function rotuloOcorrenciaEspelho(tipo: string) {
     HORA_NAO_AUTORIZADA: "Hora fora do expediente",
   };
 
-  return rotulos[tipo] ?? tipo.replaceAll("_", " ");
+  return rotulos[ocorrencia.tipo] ?? ocorrencia.tipo.replaceAll("_", " ");
+}
+
+function rotuloAfastamentoEspelho(descricao?: string | null) {
+  const texto = descricao?.trim();
+
+  if (!texto) {
+    return "Afastamento";
+  }
+
+  return texto
+    .replace(/^Afastamento SARH:\s*/i, "")
+    .replace(/\s*Processo\/SEI:.*$/i, "")
+    .replace(/\.$/, "")
+    .trim();
 }
 
 function rotuloTipoDiaInstitucional(tipo: string) {

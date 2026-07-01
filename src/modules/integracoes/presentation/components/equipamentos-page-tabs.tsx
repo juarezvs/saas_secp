@@ -17,13 +17,18 @@ export function EquipamentosPageTabs({
   equipamentos,
   coletasAtivas,
   statusListenerOnline,
+  orgaoId,
 }: {
   equipamentos: EquipamentoItem[];
   coletasAtivas: ColetaAtivaItem[];
   statusListenerOnline: StatusListenerOnline;
+  orgaoId?: string | null;
 }) {
   const [aba, setAba] = useState<"listagem" | "operacoes">("listagem");
   const router = useRouter();
+  const novoEquipamentoHref = orgaoId
+    ? `/equipamentos/novo?${new URLSearchParams({ orgaoId }).toString()}`
+    : "/equipamentos/novo";
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -66,7 +71,7 @@ export function EquipamentosPageTabs({
         <div className="space-y-6">
           <div className="flex justify-end">
             <Link
-              href="/equipamentos/novo"
+              href={novoEquipamentoHref}
               className="inline-flex items-center justify-center rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-950"
             >
               Novo equipamento
@@ -76,6 +81,7 @@ export function EquipamentosPageTabs({
             equipamentos={equipamentos}
             coletasAtivas={coletasAtivas}
             statusListenerOnline={statusListenerOnline}
+            orgaoId={orgaoId}
           />
         </div>
       ) : (

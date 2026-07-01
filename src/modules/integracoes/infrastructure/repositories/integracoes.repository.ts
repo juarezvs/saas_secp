@@ -115,8 +115,27 @@ export async function listarIntegracoesSistemaParaExportacao(
   });
 }
 
-export async function listarEquipamentosBiometricos() {
+export async function listarEquipamentosBiometricos(params?: {
+  orgaoId?: string | null;
+  orgaoIdsPermitidos?: string[];
+}) {
+  const orgaoIds =
+    params?.orgaoId
+      ? [params.orgaoId]
+      : params?.orgaoIdsPermitidos
+        ? params.orgaoIdsPermitidos
+        : null;
+
   const equipamentos = await prisma.equipamentoBiometrico.findMany({
+    where: orgaoIds
+      ? {
+          unidade: {
+            orgaoId: {
+              in: orgaoIds,
+            },
+          },
+        }
+      : undefined,
     orderBy: [{ ativo: "desc" }, { nome: "asc" }],
     include: {
       unidade: true,
@@ -184,10 +203,21 @@ export async function listarLogsIntegracao(params?: { limite?: number }) {
   });
 }
 
-export async function listarUnidadesParaEquipamentos() {
+export async function listarUnidadesParaEquipamentos(params?: {
+  orgaoId?: string | null;
+  orgaoIdsPermitidos?: string[];
+}) {
+  const orgaoIds =
+    params?.orgaoId
+      ? [params.orgaoId]
+      : params?.orgaoIdsPermitidos
+        ? params.orgaoIdsPermitidos
+        : null;
+
   return prisma.unidadeOrganizacional.findMany({
     where: {
       ativo: true,
+      ...(orgaoIds ? { orgaoId: { in: orgaoIds } } : {}),
     },
     orderBy: [
       {
@@ -205,7 +235,74 @@ export async function listarUnidadesParaEquipamentos() {
   });
 }
 
+export async function garantirUnidadeRaizParaEquipamentos(orgaoId?: string | null) {
+  if (!orgaoId) {
+    return null;
+  }
+
+  const existente = await prisma.unidadeOrganizacional.findFirst({
+    where: {
+      orgaoId,
+      ativo: true,
+    },
+    select: {
+      id: true,
+    },
+    orderBy: [{ unidadePaiId: "asc" }, { sigla: "asc" }],
+  });
+
+  if (existente) {
+    return existente;
+  }
+
+  const orgao = await prisma.orgao.findUnique({
+    where: { id: orgaoId },
+    select: {
+      id: true,
+      sigla: true,
+      nome: true,
+      fusoHorario: true,
+    },
+  });
+
+  if (!orgao) {
+    return null;
+  }
+
+  return prisma.unidadeOrganizacional.upsert({
+    where: {
+      orgaoId_codigo: {
+        orgaoId: orgao.id,
+        codigo: orgao.sigla,
+      },
+    },
+    update: {
+      ativo: true,
+      sigla: orgao.sigla,
+      nome: orgao.nome,
+      tipo: "SECAO_JUDICIARIA",
+      fusoHorario: orgao.fusoHorario,
+    },
+    create: {
+      orgaoId: orgao.id,
+      codigo: orgao.sigla,
+      sigla: orgao.sigla,
+      nome: orgao.nome,
+      tipo: "SECAO_JUDICIARIA",
+      ativo: true,
+      fusoHorario: orgao.fusoHorario,
+    },
+    select: {
+      id: true,
+    },
+  });
+}
+
 export async function buscarOuCriarIntegracaoSarh() {
+  const sarhConfigurado = Boolean(
+    process.env.SARH_DB_TNS_ALIAS ?? process.env.DB_TNS_ALIAS,
+  );
+
   return prisma.integracaoSistema.upsert({
     where: {
       id: "00000000-0000-0000-0000-000000000101",
@@ -214,8 +311,8 @@ export async function buscarOuCriarIntegracaoSarh() {
       nome: "SARH",
       tipo: "SARH",
       direcao: "ENTRADA",
-      baseUrl: process.env.SARH_API_BASE_URL || null,
-      status: process.env.SARH_API_BASE_URL ? "ATIVA" : "NAO_CONFIGURADA",
+      baseUrl: sarhConfigurado ? "oracle://SARH" : null,
+      status: sarhConfigurado ? "ATIVA" : "NAO_CONFIGURADA",
       ativo: true,
     },
     create: {
@@ -223,8 +320,8 @@ export async function buscarOuCriarIntegracaoSarh() {
       nome: "SARH",
       tipo: "SARH",
       direcao: "ENTRADA",
-      baseUrl: process.env.SARH_API_BASE_URL || null,
-      status: process.env.SARH_API_BASE_URL ? "ATIVA" : "NAO_CONFIGURADA",
+      baseUrl: sarhConfigurado ? "oracle://SARH" : null,
+      status: sarhConfigurado ? "ATIVA" : "NAO_CONFIGURADA",
       ativo: true,
       descricao:
         "Integração para sincronização inicial e periódica de servidores, lotações e dados funcionais.",

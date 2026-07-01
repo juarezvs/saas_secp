@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { Edit3, Fingerprint } from "lucide-react";
 
+import { excluirEquipamentoBiometricoAction } from "../../application/actions/excluir-equipamento-biometrico.action";
+import { ExcluirEquipamentoButton } from "./excluir-equipamento-button";
+
 type ColetaAtivaItem = {
   id: string;
   status: "AGUARDANDO" | "PROCESSANDO" | "CONCLUIDO" | "ERRO" | "CANCELADO";
@@ -184,14 +187,22 @@ export function EquipamentosBiometricosTable({
   equipamentos,
   coletasAtivas,
   statusListenerOnline,
+  orgaoId,
 }: {
   equipamentos: EquipamentoItem[];
   coletasAtivas: ColetaAtivaItem[];
   statusListenerOnline: StatusListenerOnline;
+  orgaoId?: string | null;
 }) {
   const coletasPorEquipamento = new Map(
     coletasAtivas.map((coleta) => [coleta.equipamentoId, coleta]),
   );
+  const montarHrefEditar = (id: string) =>
+    orgaoId
+      ? `/equipamentos/${id}/editar?${new URLSearchParams({
+          orgaoId,
+        }).toString()}`
+      : `/equipamentos/${id}/editar`;
 
   return (
     <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
@@ -312,13 +323,26 @@ export function EquipamentosBiometricosTable({
                   </td>
 
                   <td className="px-5 py-4">
-                    <Link
-                      href={`/equipamentos/${equipamento.id}/editar`}
-                      className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-semibold hover:bg-[var(--muted)]"
-                    >
-                      <Edit3 className="size-3.5" />
-                      Editar
-                    </Link>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        href={montarHrefEditar(equipamento.id)}
+                        className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-semibold hover:bg-[var(--muted)]"
+                      >
+                        <Edit3 className="size-3.5" />
+                        Editar
+                      </Link>
+                      <form action={excluirEquipamentoBiometricoAction}>
+                        <input
+                          type="hidden"
+                          name="equipamentoId"
+                          value={equipamento.id}
+                        />
+                        {orgaoId && (
+                          <input type="hidden" name="orgaoId" value={orgaoId} />
+                        )}
+                        <ExcluirEquipamentoButton nome={equipamento.nome} />
+                      </form>
+                    </div>
                   </td>
                 </tr>
               );

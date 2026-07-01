@@ -9,6 +9,10 @@ import {
   type DocumentProps,
 } from "@react-pdf/renderer";
 import { auth } from "@/auth";
+import {
+  aplicarEscopoOrgaoId,
+  obterEscopoOrgaoDaSessao,
+} from "@/modules/auth/application/services/escopo-orgao.service";
 import { listarOrgaosParaExportacao } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
 
 export const runtime = "nodejs";
@@ -37,14 +41,20 @@ export async function GET(request: Request) {
   }
 
   const url = new URL(request.url);
-  const orgaos = await listarOrgaosParaExportacao({
-    busca: url.searchParams.get("busca") ?? "",
-    sigla: url.searchParams.get("sigla") ?? "",
-    nome: url.searchParams.get("nome") ?? "",
-    codigoExternoSarh: url.searchParams.get("codigoExternoSarh") ?? "",
-    status: url.searchParams.get("status") ?? "",
-    fusoHorario: url.searchParams.get("fusoHorario") ?? "",
-  });
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const orgaos = await listarOrgaosParaExportacao(
+    aplicarEscopoOrgaoId(
+      {
+        busca: url.searchParams.get("busca") ?? "",
+        sigla: url.searchParams.get("sigla") ?? "",
+        nome: url.searchParams.get("nome") ?? "",
+        codigoExternoSarh: url.searchParams.get("codigoExternoSarh") ?? "",
+        status: url.searchParams.get("status") ?? "",
+        fusoHorario: url.searchParams.get("fusoHorario") ?? "",
+      },
+      escopoOrgao,
+    ),
+  );
 
   const documento = React.createElement(OrgaosPdfDocument, {
     orgaos,

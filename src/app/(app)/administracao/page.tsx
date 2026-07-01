@@ -13,10 +13,19 @@ import {
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 
 export default async function AdministracaoPage() {
   await exigirPermissaoOuRedirecionar("configuracoes:gerenciar:global");
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const orgaoIdPadrao = escopoOrgao.global
+    ? null
+    : (escopoOrgao.orgaoIds[0] ?? null);
+  const hrefComOrgao = (href: string) =>
+    orgaoIdPadrao
+      ? `${href}?${new URLSearchParams({ orgaoId: orgaoIdPadrao }).toString()}`
+      : href;
 
   const cards = [
     {
@@ -28,19 +37,19 @@ export default async function AdministracaoPage() {
     {
       titulo: "Usuários",
       descricao: "Gerencie usuários internos, externos e contas técnicas.",
-      href: "/usuarios",
+      href: hrefComOrgao("/usuarios"),
       icon: UsersRound,
     },
     {
       titulo: "Órgãos",
       descricao: "Consulte órgãos institucionais usados por unidades e SARH.",
-      href: "/orgaos",
+      href: hrefComOrgao("/orgaos"),
       icon: Building2,
     },
     {
       titulo: "Unidades",
       descricao: "Gerencie a estrutura organizacional da JFAM.",
-      href: "/unidades",
+      href: hrefComOrgao("/unidades"),
       icon: Building2,
     },
     {
@@ -53,7 +62,7 @@ export default async function AdministracaoPage() {
       titulo: "Regulamentação do ponto",
       descricao:
         "Customize limites, prazos, tolerâncias e regras de crédito do ponto por órgão.",
-      href: "/administracao/regulamentacao-ponto",
+      href: hrefComOrgao("/administracao/regulamentacao-ponto"),
       icon: SlidersHorizontal,
       permissao: "regulamentacao-ponto:gerenciar:global",
     },
@@ -66,15 +75,15 @@ export default async function AdministracaoPage() {
     },
     {
       titulo: "Credenciais e integracoes",
-      descricao: "Configure integracoes futuras com SARH, SEI, LDAP e biometria.",
-      href: "/integracoes",
+      descricao: "Configure SARH, Active Directory e relógios por seccional.",
+      href: hrefComOrgao("/administracao/integracoes"),
       icon: KeyRound,
     },
     {
       titulo: "Equipamentos biométricos",
       descricao:
         "Cadastre relógios de ponto, REP, totens e dispositivos usados na importação AFD e nas marcações biometricas.",
-      href: "/equipamentos",
+      href: hrefComOrgao("/equipamentos"),
       icon: Cpu,
     },
     {

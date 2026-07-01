@@ -5,6 +5,14 @@ export function escolherPerfilInicial(params: {
   perfis: PerfilSessao[];
   perfilPreferido?: PerfilSessao | null;
 }) {
+  const perfilMaster = params.perfis.find(
+    (perfil) => perfil.codigo.toUpperCase() === "MASTER",
+  );
+
+  if (!params.perfilPreferido && perfilMaster) {
+    return perfilMaster;
+  }
+
   const perfilServidor = params.perfis.find(
     (perfil) => perfil.codigo.toUpperCase() === "SERVIDOR",
   );

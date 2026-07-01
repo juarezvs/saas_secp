@@ -3,6 +3,7 @@ import { SlidersHorizontal } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { REGULAMENTACAO_PONTO_PADRAO } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 import { RegulamentacaoPontoForm } from "@/modules/regulamentacao-ponto/presentation/components/regulamentacao-ponto-form";
@@ -26,6 +27,12 @@ export default async function RegulamentacaoPontoOrgaoPage({
   );
 
   const { orgaoId } = await params;
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+
+  if (!escopoOrgao.global && !escopoOrgao.orgaoIds.includes(orgaoId)) {
+    notFound();
+  }
+
   const orgao = await prisma.orgao.findUnique({
     where: { id: orgaoId },
     include: {
@@ -48,7 +55,7 @@ export default async function RegulamentacaoPontoOrgaoPage({
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administracao", href: "/administracao" },
+          { label: "Administração", href: "/administracao" },
           {
             label: "Regulamentacao do ponto",
             href: "/administracao/regulamentacao-ponto",

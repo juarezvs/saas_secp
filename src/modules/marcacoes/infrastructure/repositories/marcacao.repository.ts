@@ -5,14 +5,28 @@ import {
 } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { obterDataReferencia } from "../../application/services/data-marcacao.service";
 
-export async function buscarServidorPorUsuarioId(usuarioId: string) {
+export async function buscarServidorPorUsuarioId(
+  usuarioId: string,
+  matricula?: string | null,
+) {
+  const matriculaNormalizada = matricula?.trim();
+
   return prisma.servidor.findFirst({
     where: {
-      usuarioId,
+      OR: [
+        { usuarioId },
+        ...(matriculaNormalizada
+          ? [
+              {
+                matricula: {
+                  equals: matriculaNormalizada,
+                  mode: "insensitive" as const,
+                },
+              },
+            ]
+          : []),
+      ],
       ativo: true,
-      usuario: {
-        ativo: true,
-      },
     },
     include: {
       usuario: true,
@@ -21,6 +35,7 @@ export async function buscarServidorPorUsuarioId(usuarioId: string) {
           status: "ATIVO",
         },
         include: {
+          cargo: true,
           unidade: {
             include: {
               orgao: {
@@ -53,6 +68,7 @@ export async function buscarServidorPorUsuarioId(usuarioId: string) {
           dataInicio: "desc",
         },
       },
+      cargo: true,
       jornadas: {
         where: {
           ativo: true,
@@ -82,7 +98,9 @@ export async function listarMarcacoesDoServidorNoDia(params: {
 }) {
   const fusoHorario =
     params.fusoHorario ??
-    (await resolverFusoHorarioServidorNoBanco({ servidorId: params.servidorId }));
+    (await resolverFusoHorarioServidorNoBanco({
+      servidorId: params.servidorId,
+    }));
   const dataReferencia = obterDataReferencia(params.dataHora, fusoHorario);
 
   return prisma.marcacao.findMany({

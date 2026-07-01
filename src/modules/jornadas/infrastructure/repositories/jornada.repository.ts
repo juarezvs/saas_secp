@@ -8,6 +8,7 @@ export type ListarJornadasParams = {
   nome?: string;
   tipo?: string;
   status?: string;
+  orgaoIdsPermitidos?: string[];
 };
 
 function ehTipoJornada(valor?: string | null) {
@@ -57,7 +58,28 @@ export function montarWhereJornadas(params: ListarJornadasParams) {
   };
 }
 
-const includeJornadaListagem = {
+function includeJornadaListagem(params?: { orgaoIdsPermitidos?: string[] }) {
+  const filtroServidor = params?.orgaoIdsPermitidos
+    ? {
+        servidor: {
+          orgaoId: {
+            in: params.orgaoIdsPermitidos,
+          },
+        },
+      }
+    : undefined;
+
+  return {
+    _count: {
+      select: {
+        escalas: true,
+        servidores: filtroServidor ? { where: filtroServidor } : true,
+      },
+    },
+  };
+}
+
+const includeJornadaListagemGlobal = {
   _count: {
     select: {
       escalas: true,
@@ -71,7 +93,7 @@ export async function listarJornadas() {
     orderBy: {
       codigo: "asc",
     },
-    include: includeJornadaListagem,
+    include: includeJornadaListagemGlobal,
   });
 }
 
@@ -88,7 +110,7 @@ export async function listarJornadasPaginado(params: ListarJornadasParams) {
     prisma.jornada.findMany({
       where,
       orderBy: [{ codigo: "asc" }, { nome: "asc" }],
-      include: includeJornadaListagem,
+      include: includeJornadaListagem(params),
       skip: (pagina - 1) * itensPorPagina,
       take: itensPorPagina,
     }),
@@ -109,7 +131,7 @@ export async function listarJornadasParaExportacao(
   return prisma.jornada.findMany({
     where: montarWhereJornadas(params),
     orderBy: [{ codigo: "asc" }, { nome: "asc" }],
-    include: includeJornadaListagem,
+    include: includeJornadaListagem(params),
   });
 }
 
@@ -169,10 +191,15 @@ export async function codigoJornadaExiste(codigo: string, ignorarId?: string) {
   return true;
 }
 
-export async function listarServidoresAtivosParaJornada() {
+export async function listarServidoresAtivosParaJornada(params?: {
+  orgaoIdsPermitidos?: string[];
+}) {
   return prisma.servidor.findMany({
     where: {
       ativo: true,
+      ...(params?.orgaoIdsPermitidos
+        ? { orgaoId: { in: params.orgaoIdsPermitidos } }
+        : {}),
       usuario: {
         ativo: true,
       },

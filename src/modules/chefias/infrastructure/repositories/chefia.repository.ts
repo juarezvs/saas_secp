@@ -1,9 +1,14 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
-export async function listarServidoresAtivosParaGestao() {
+export async function listarServidoresAtivosParaGestao(params?: {
+  orgaoIdsPermitidos?: string[];
+}) {
   return prisma.servidor.findMany({
     where: {
       ativo: true,
+      ...(params?.orgaoIdsPermitidos
+        ? { orgaoId: { in: params.orgaoIdsPermitidos } }
+        : {}),
       usuario: {
         ativo: true,
       },
@@ -28,10 +33,15 @@ export async function listarServidoresAtivosParaGestao() {
   });
 }
 
-export async function listarUnidadesAtivasParaGestao() {
+export async function listarUnidadesAtivasParaGestao(params?: {
+  orgaoIdsPermitidos?: string[];
+}) {
   return prisma.unidadeOrganizacional.findMany({
     where: {
       ativo: true,
+      ...(params?.orgaoIdsPermitidos
+        ? { orgaoId: { in: params.orgaoIdsPermitidos } }
+        : {}),
     },
     orderBy: [
       {
@@ -91,8 +101,15 @@ export async function buscarUnidadeComGestores(unidadeId: string) {
   });
 }
 
-export async function listarUnidadesComGestores() {
+export async function listarUnidadesComGestores(params?: {
+  orgaoIdsPermitidos?: string[];
+}) {
   return prisma.unidadeOrganizacional.findMany({
+    where: {
+      ...(params?.orgaoIdsPermitidos
+        ? { orgaoId: { in: params.orgaoIdsPermitidos } }
+        : {}),
+    },
     orderBy: [
       {
         sigla: "asc",
@@ -121,7 +138,11 @@ export async function listarUnidadesComGestores() {
       },
       _count: {
         select: {
-          lotacoes: true,
+          lotacoes: {
+            where: {
+              status: "ATIVO",
+            },
+          },
           unidadesFilhas: true,
         },
       },

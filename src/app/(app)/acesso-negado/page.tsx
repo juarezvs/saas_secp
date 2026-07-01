@@ -40,7 +40,7 @@ export default async function AcessoNegadoPage({
             </p>
 
             <h2 className="mt-2 text-2xl font-bold">
-              Voce não possui permissão para acessar este recurso.
+              Você não possui permissão para acessar este recurso.
             </h2>
 
             <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">

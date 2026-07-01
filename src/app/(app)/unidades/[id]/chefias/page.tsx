@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   buscarUnidadeComGestores,
@@ -24,15 +25,22 @@ export default async function UnidadeChefiasPage({
   await exigirPermissaoOuRedirecionar("chefias:gerenciar:global");
 
   const { id } = await params;
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const orgaoIdsPermitidos = escopoOrgao.global
+    ? undefined
+    : escopoOrgao.orgaoIds;
 
   const [unidade, unidades, servidores, chefiaResolvida] = await Promise.all([
     buscarUnidadeComGestores(id),
-    listarUnidadesAtivasParaGestao(),
-    listarServidoresAtivosParaGestao(),
+    listarUnidadesAtivasParaGestao({ orgaoIdsPermitidos }),
+    listarServidoresAtivosParaGestao({ orgaoIdsPermitidos }),
     resolverChefiaResponsavelDaUnidade(id),
   ]);
 
-  if (!unidade) {
+  if (
+    !unidade ||
+    (!escopoOrgao.global && !escopoOrgao.orgaoIds.includes(unidade.orgaoId))
+  ) {
     notFound();
   }
 

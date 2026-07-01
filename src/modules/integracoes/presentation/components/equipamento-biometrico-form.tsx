@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-import { Loader2, Save } from "lucide-react";
+import { useActionState, useState } from "react";
+import { Eye, EyeOff, Loader2, Save } from "lucide-react";
 import { registrarEquipamentoBiometricoAction } from "../../application/actions/registrar-equipamento-biometrico.action";
 import type { EquipamentoBiometricoFormState } from "../../application/schemas/integracao.schema";
 
@@ -126,7 +126,7 @@ export function EquipamentoBiometricoForm({
 
       <div className={`mt-5 grid gap-4 ${compacto ? "lg:grid-cols-3" : "md:grid-cols-2"}`}>
         <Campo
-          label="Codigo"
+          label="Código"
           name="codigo"
           defaultValue={valorCampo(estado, "codigo", equipamento?.codigo)}
           erro={erro(estado, "codigo")}
@@ -220,29 +220,35 @@ export function EquipamentoBiometricoForm({
         </div>
 
         <Campo
-          label="Usuario padrao do relogio"
+          label="Usuário padrão do relógio"
           name="usuario"
           defaultValue={valorCampo(estado, "usuario", configuracao.usuario)}
         />
         <Campo
           label="Senha padrao do relogio"
           name="senha"
-          type="password"
-          placeholder={equipamento ? "Manter senha atual" : undefined}
+          defaultValue={valorTextoCampo(estado, "senha", configuracao.senha)}
+          placeholder={equipamento ? "Senha atual carregada" : undefined}
+          senha
         />
         <Campo
-          label="Usuario para dados/coleta"
+          label="Usuário para dados/coleta"
           name="usuarioDados"
           defaultValue={valorCampo(estado, "usuarioDados", configuracao.usuarioDados)}
         />
         <Campo
           label="Senha para dados/coleta"
           name="senhaDados"
-          type="password"
-          placeholder={equipamento ? "Manter senha atual" : undefined}
+          defaultValue={valorTextoCampo(
+            estado,
+            "senhaDados",
+            configuracao.senhaDados,
+          )}
+          placeholder={equipamento ? "Senha atual carregada" : undefined}
+          senha
         />
         <Campo
-          label="Usuario para configuracao"
+          label="Usuário para configuração"
           name="usuarioConfiguracao"
           defaultValue={valorCampo(
             estado,
@@ -253,8 +259,13 @@ export function EquipamentoBiometricoForm({
         <Campo
           label="Senha para configuracao"
           name="senhaConfiguracao"
-          type="password"
-          placeholder={equipamento ? "Manter senha atual" : undefined}
+          defaultValue={valorTextoCampo(
+            estado,
+            "senhaConfiguracao",
+            configuracao.senhaConfiguracao,
+          )}
+          placeholder={equipamento ? "Senha atual carregada" : undefined}
+          senha
         />
         <Campo
           label="Timeout (ms)"
@@ -323,6 +334,7 @@ function Campo({
   required,
   defaultValue,
   placeholder,
+  senha = false,
 }: {
   label: string;
   name: string;
@@ -331,24 +343,50 @@ function Campo({
   required?: boolean;
   defaultValue?: string | number | boolean;
   placeholder?: string;
+  senha?: boolean;
 }) {
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const inputType = senha ? (mostrarSenha ? "text" : "password") : type;
+
   return (
     <div className="space-y-2">
       <label htmlFor={name} className="text-sm font-semibold">
         {label}
       </label>
 
-      <input
-        id={name}
-        name={name}
-        type={type}
-        required={required}
-        defaultValue={
-          typeof defaultValue === "boolean" ? undefined : String(defaultValue ?? "")
-        }
-        placeholder={placeholder}
-        className="h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-      />
+      <div className="relative">
+        <input
+          id={name}
+          name={name}
+          type={inputType}
+          required={required}
+          defaultValue={
+            typeof defaultValue === "boolean"
+              ? undefined
+              : String(defaultValue ?? "")
+          }
+          placeholder={placeholder}
+          className={`h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm ${
+            senha ? "pr-10" : ""
+          }`}
+        />
+
+        {senha && (
+          <button
+            type="button"
+            onClick={() => setMostrarSenha((valor) => !valor)}
+            className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+            aria-label={mostrarSenha ? "Esconder senha" : "Mostrar senha"}
+            title={mostrarSenha ? "Esconder senha" : "Mostrar senha"}
+          >
+            {mostrarSenha ? (
+              <EyeOff className="size-4" aria-hidden="true" />
+            ) : (
+              <Eye className="size-4" aria-hidden="true" />
+            )}
+          </button>
+        )}
+      </div>
 
       {erro && <p className="text-sm text-red-600">{erro}</p>}
     </div>

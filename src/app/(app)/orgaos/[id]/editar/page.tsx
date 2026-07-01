@@ -32,8 +32,8 @@ export default async function EditarOrgaoPage({ params }: EditarOrgaoPageProps) 
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administracao", href: "/administracao" },
-          { label: "Orgaos", href: "/orgaos" },
+          { label: "Administração", href: "/administracao" },
+          { label: "Órgãos", href: "/orgaos" },
           { label: "Editar" },
         ]}
       />

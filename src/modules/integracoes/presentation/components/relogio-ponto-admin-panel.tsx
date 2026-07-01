@@ -589,7 +589,7 @@ function ColetaProgressivaForm({
       );
 
       if (!response.ok) {
-        setErro("Nao foi possivel consultar o progresso da coleta.");
+        setErro("Não foi possível consultar o progresso da coleta.");
         clearInterval(timer);
         return;
       }
@@ -637,7 +637,7 @@ function ColetaProgressivaForm({
     const body = await response.json();
 
     if (!response.ok) {
-      setErro(body?.mensagem ?? "Nao foi possivel iniciar a coleta.");
+      setErro(body?.mensagem ?? "Não foi possível iniciar a coleta.");
       return;
     }
 
@@ -667,7 +667,7 @@ function ColetaProgressivaForm({
 
     if (!response.ok) {
       setCancelando(false);
-      setErro(body?.mensagem ?? "Nao foi possivel cancelar a coleta.");
+      setErro(body?.mensagem ?? "Não foi possível cancelar a coleta.");
       return;
     }
 
@@ -1037,7 +1037,7 @@ function BiometriaRelogioCard({
         <div className="grid grid-cols-[1fr_72px] gap-2">
           <input
             name="matricula"
-            placeholder="Matricula"
+            placeholder="Matrícula"
             className="h-9 rounded-md border bg-[var(--card)] px-2 text-sm"
           />
           <input
@@ -1086,10 +1086,10 @@ function TabelaCadastrosBiometricos({
       <table className="w-full min-w-[640px] text-left text-xs">
         <thead className="border-b bg-[var(--muted)] text-[var(--muted-foreground)]">
           <tr>
-            <th className="px-3 py-2">Codigo</th>
+            <th className="px-3 py-2">Código</th>
             <th className="px-3 py-2">CPF</th>
             <th className="px-3 py-2">Nome</th>
-            <th className="px-3 py-2">Matricula</th>
+            <th className="px-3 py-2">Matrícula</th>
             <th className="px-3 py-2">Cartoes</th>
             <th className="px-3 py-2">Templates</th>
           </tr>

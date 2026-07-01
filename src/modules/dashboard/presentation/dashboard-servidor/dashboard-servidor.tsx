@@ -15,6 +15,7 @@ import { buscarNomeServidorPorUsuarioId } from "@/modules/servidores/infrastruct
 type DashboardServidorProps = {
   usuarioId: string;
   nomeFallback: string;
+  perfilAtivoCodigo?: string | null;
   permissoesPerfil?: string[];
 };
 
@@ -261,6 +262,7 @@ async function buscarMarcacoesDashboard(usuarioId: string): Promise<{
 export async function DashboardServidor({
   usuarioId,
   nomeFallback,
+  perfilAtivoCodigo,
   permissoesPerfil = [],
 }: DashboardServidorProps) {
   const [
@@ -286,6 +288,7 @@ export async function DashboardServidor({
       cabecalho={contexto}
       totalNotificacoes={totalNotificacoes}
       frequenciaMes={frequenciaMes ?? undefined}
+      perfilAtivoCodigo={perfilAtivoCodigo}
       permissoesPerfil={permissoesPerfil}
       marcacoesDia={marcacoesDashboard.marcacoes}
       previsaoJornadaDia={marcacoesDashboard.previsao}

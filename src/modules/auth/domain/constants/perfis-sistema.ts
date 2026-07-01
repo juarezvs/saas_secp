@@ -1,4 +1,5 @@
-export const CODIGOS_PERFIL_ADMINISTRADOR_SISTEMA = ["ADMIN", "MASTER"];
+export const CODIGOS_PERFIL_ADMINISTRADOR_SISTEMA = ["MASTER"];
+export const CODIGO_PERFIL_ADMINISTRADOR_SECCIONAL = "ADMIN";
 export const CODIGOS_PERFIL_EXCECAO_REGISTRO_PONTO = [
   "EXCECAO_REGISTRO_WEB",
   "EXCECAO_REGISTRO_FACIAL",
@@ -33,6 +34,14 @@ type PerfilComCodigo = {
 export function perfilEhAdministradorSistema(perfil?: PerfilComCodigo | null) {
   return CODIGOS_PERFIL_ADMINISTRADOR_SISTEMA.includes(
     perfil?.codigo?.toUpperCase() ?? "",
+  );
+}
+
+export function perfilEhAdministradorSeccional(
+  perfil?: PerfilComCodigo | null,
+) {
+  return (
+    perfil?.codigo?.toUpperCase() === CODIGO_PERFIL_ADMINISTRADOR_SECCIONAL
   );
 }
 

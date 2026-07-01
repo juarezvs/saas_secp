@@ -71,7 +71,9 @@ function dataLimiteMovimentos(params: {
   mesReferencia: number;
   fusoHorario?: string | null;
 }) {
-  const inicio = new Date(Date.UTC(params.anoReferencia, params.mesReferencia - 1, 1));
+  const inicio = new Date(
+    Date.UTC(params.anoReferencia, params.mesReferencia - 1, 1),
+  );
   const fim = new Date(Date.UTC(params.anoReferencia, params.mesReferencia, 1));
   const hoje = hojeNoFuso(params.fusoHorario);
 
@@ -84,6 +86,23 @@ function dataLimiteMovimentos(params: {
   }
 
   return hoje;
+}
+
+function dataNormalizada(data: Date) {
+  const normalizada = new Date(data);
+  normalizada.setUTCHours(0, 0, 0, 0);
+  return normalizada;
+}
+
+function afastamentoAbrangeData(
+  afastamento: { dataInicio: Date; dataFim: Date | null },
+  dataReferencia: Date,
+) {
+  const data = dataNormalizada(dataReferencia);
+  const inicio = dataNormalizada(afastamento.dataInicio);
+  const fim = afastamento.dataFim ? dataNormalizada(afastamento.dataFim) : null;
+
+  return data >= inicio && (!fim || data <= fim);
 }
 
 function alocarAutorizacoes(params: {
@@ -167,6 +186,17 @@ export async function regerarBancoHorasMesService({
     },
     orderBy: {
       dataReferencia: "asc",
+    },
+  });
+  const afastamentosSarh = await prisma.afastamentoSarh.findMany({
+    where: {
+      servidorId,
+      dataInicio: { lt: fim },
+      OR: [{ dataFim: null }, { dataFim: { gte: inicio } }],
+    },
+    select: {
+      dataInicio: true,
+      dataFim: true,
     },
   });
 
@@ -272,11 +302,18 @@ export async function regerarBancoHorasMesService({
     const expiraEm = calcularDataExpiracaoCompensacao({
       anoReferencia,
       mesReferencia,
-      mesesExpiracaoCompensacao:
-        regulamentacao.mesesExpiracaoCompensacao,
+      mesesExpiracaoCompensacao: regulamentacao.mesesExpiracaoCompensacao,
     });
 
     for (const apuracao of apuracoes) {
+      if (
+        afastamentosSarh.some((afastamento) =>
+          afastamentoAbrangeData(afastamento, apuracao.dataReferencia),
+        )
+      ) {
+        continue;
+      }
+
       const minutosCreditoPendentes = Math.max(
         0,
         apuracao.minutosCredito -

@@ -4,6 +4,7 @@ import { Edit, UserRound } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
 import {
   buscarUsuarioPorId,
   listarPerfisAtivosParaUsuario,
@@ -24,9 +25,10 @@ export default async function UsuarioDetalhePage({
 
   const { id } = await params;
 
-  const [usuario, perfisAtivos] = await Promise.all([
+  const [usuario, perfisAtivos, orgaos] = await Promise.all([
     buscarUsuarioPorId(id),
     listarPerfisAtivosParaUsuario(),
+    listarOrgaosAtivos(),
   ]);
 
   if (!usuario) {
@@ -121,6 +123,7 @@ export default async function UsuarioDetalhePage({
       <VincularPerfilUsuarioForm
         usuarioId={usuario.id}
         perfis={perfisAtivos}
+        orgaos={orgaos}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { AlertTriangle, CheckCircle2, Clock3 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, PartyPopper } from "lucide-react";
 
 import { minutosParaTexto } from "../../application/services/calcular-tempo.service";
 import {
@@ -9,6 +9,7 @@ import {
   rotuloSolicitacaoEspelho,
   type SolicitacaoAplicadaEspelho,
 } from "../../application/services/classificar-espelho-mensal.service";
+import { AfastamentoTipoIcone } from "@/modules/servidores/presentation/components/afastamento-tipo-icone";
 
 type ApuracaoMensalItem = {
   id: string;
@@ -158,13 +159,15 @@ export function EspelhoPontoMensal({
               const classificacao = classificarDiaEspelho(item);
               const diaInstitucional = extrairDiaInstitucional(item.metadados);
               const dispensaPonto = classificacao.dispensaPonto;
-              const solicitacoesAplicadas =
-                classificacao.solicitacoesAplicadas;
+              const solicitacoesAplicadas = classificacao.solicitacoesAplicadas;
               const justificativaAusenciaMesclada =
                 encontrarJustificativaAusenciaMesclada(solicitacoesAplicadas);
               const conferencia = conferenciaEspelho(item.status, item);
               const possuiMarcacaoAjustada =
                 marcacoesDoDia.some(marcacaoPossuiAjuste);
+              const possuiAfastamento = (item.ocorrencias ?? []).some(
+                (ocorrencia) => ocorrencia.tipo === "AFASTAMENTO",
+              );
               const dicaSemaforo = montarDicaSemaforo({
                 item,
                 conferencia,
@@ -241,12 +244,12 @@ export function EspelhoPontoMensal({
                     ) : diaInstitucional &&
                       !ehFimDeSemanaInstitucional(diaInstitucional) ? (
                       <BadgeDiaInstitucional dia={diaInstitucional} />
-                    ) : (
+                    ) : possuiAfastamento ? null : (
                       <span className="text-[var(--muted-foreground)]">-</span>
                     )}
 
                     {!mesclarMarcacoesOcorrencias && (
-                      <div className="mt-2">
+                      <div className={possuiAfastamento ? undefined : "mt-2"}>
                         <OcorrenciasDia
                           ocultarVazio
                           ocultarDispensaPonto={dispensaPonto}
@@ -335,6 +338,7 @@ function OcorrenciasDia({
           {
             chave: `dia-institucional-${diaInstitucional.tipo}`,
             label: rotuloDiaInstitucional(diaInstitucional),
+            iconeLazer: ehDiaInstitucionalLazer(diaInstitucional),
             classe: diaInstitucional.geraApuracaoRegular
               ? ("alerta" as const)
               : ("neutro" as const),
@@ -378,26 +382,27 @@ function OcorrenciasDia({
           !["FALTA", "DEBITO"].includes(ocorrencia.tipo) &&
           !(
             diaInstitucional &&
-            ["SEM_EXPEDIENTE", diaInstitucional.tipo].includes(
-              ocorrencia.tipo,
-            )
+            ["SEM_EXPEDIENTE", diaInstitucional.tipo].includes(ocorrencia.tipo)
           ),
       )
       .map((ocorrencia, index) => ({
         chave: `ocorrencia-${index}-${ocorrencia.tipo}`,
-        label: rotuloOcorrenciaEspelho(ocorrencia.tipo),
+        label: rotuloOcorrenciaEspelho(ocorrencia),
         classe:
-          ocorrencia.tipo === "CREDITO"
-            ? ("ok" as const)
-            : ("alerta" as const),
+          ocorrencia.tipo === "CREDITO" ? ("ok" as const) : ("alerta" as const),
+        descricaoAfastamento:
+          ocorrencia.tipo === "AFASTAMENTO"
+            ? rotuloOcorrenciaEspelho(ocorrencia)
+            : null,
         title: ocorrencia.descricao,
       })),
     ...solicitacoes
-      .filter((solicitacao) =>
-        ["ATIVIDADE_EXTERNA", "VIAGEM_SERVICO", "COMPENSACAO"].includes(
-          solicitacao.tipo,
-        ) ||
-        (solicitacao.tipo === "DISPENSA_PONTO" && !dispensaPonto),
+      .filter(
+        (solicitacao) =>
+          ["ATIVIDADE_EXTERNA", "VIAGEM_SERVICO", "COMPENSACAO"].includes(
+            solicitacao.tipo,
+          ) ||
+          (solicitacao.tipo === "DISPENSA_PONTO" && !dispensaPonto),
       )
       .map((solicitacao) => ({
         chave: solicitacao.id,
@@ -427,10 +432,19 @@ function OcorrenciasDia({
                 ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
                 : item.classe === "neutro"
                   ? "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300"
-                : "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
           }`}
           title={item.title}
         >
+          {"descricaoAfastamento" in item && item.descricaoAfastamento && (
+            <AfastamentoTipoIcone
+              descricao={item.descricaoAfastamento}
+              className="mr-1 size-3.5"
+            />
+          )}
+          {"iconeLazer" in item && item.iconeLazer && (
+            <PartyPopper className="mr-1 size-3.5" aria-hidden="true" />
+          )}
           {item.label}
         </span>
       ))}
@@ -444,6 +458,9 @@ function BadgeDiaInstitucional({ dia }: { dia: DiaInstitucionalEspelho }) {
       className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300"
       title={dia.descricao}
     >
+      {ehDiaInstitucionalLazer(dia) && (
+        <PartyPopper className="mr-1 size-3.5" aria-hidden="true" />
+      )}
       {rotuloDiaInstitucional(dia)}
     </span>
   );
@@ -490,6 +507,10 @@ function encontrarJustificativaAusenciaMesclada(
 
 function ehFimDeSemanaInstitucional(dia: DiaInstitucionalEspelho | null) {
   return dia?.tipo === "SABADO" || dia?.tipo === "DOMINGO";
+}
+
+function ehDiaInstitucionalLazer(dia: DiaInstitucionalEspelho | null) {
+  return dia?.tipo === "FERIADO" || dia?.tipo === "PONTO_FACULTATIVO";
 }
 
 function marcacaoPossuiAjuste(marcacao: MarcacaoItem) {
@@ -563,7 +584,14 @@ function rotuloResultadoEspelho(resultado: string) {
   return rotulos[resultado] ?? resultado.replaceAll("_", " ");
 }
 
-function rotuloOcorrenciaEspelho(tipo: string) {
+function rotuloOcorrenciaEspelho(ocorrencia: {
+  tipo: string;
+  descricao?: string | null;
+}) {
+  if (ocorrencia.tipo === "AFASTAMENTO") {
+    return rotuloAfastamentoEspelho(ocorrencia.descricao);
+  }
+
   const rotulos: Record<string, string> = {
     MARCACAO_INCOMPLETA: "Marcações incompletas",
     INTERVALO_INVALIDO: "Intervalo inválido",
@@ -574,7 +602,21 @@ function rotuloOcorrenciaEspelho(tipo: string) {
     HORA_NAO_AUTORIZADA: "Hora fora do expediente",
   };
 
-  return rotulos[tipo] ?? tipo.replaceAll("_", " ");
+  return rotulos[ocorrencia.tipo] ?? ocorrencia.tipo.replaceAll("_", " ");
+}
+
+function rotuloAfastamentoEspelho(descricao?: string | null) {
+  const texto = descricao?.trim();
+
+  if (!texto) {
+    return "Afastamento";
+  }
+
+  return texto
+    .replace(/^Afastamento SARH:\s*/i, "")
+    .replace(/\s*Processo\/SEI:.*$/i, "")
+    .replace(/\.$/, "")
+    .trim();
 }
 
 function rotuloTipoDiaInstitucional(tipo: string) {
@@ -662,11 +704,7 @@ function IconeSemaforo({
 }) {
   if (tom === "ok") {
     return (
-      <span
-        className="inline-flex"
-        aria-label={ariaLabel}
-        title={title}
-      >
+      <span className="inline-flex" aria-label={ariaLabel} title={title}>
         <CheckCircle2
           className="size-5 text-emerald-600 dark:text-emerald-400"
           aria-hidden="true"
@@ -677,11 +715,7 @@ function IconeSemaforo({
 
   if (tom === "alerta") {
     return (
-      <span
-        className="inline-flex"
-        aria-label={ariaLabel}
-        title={title}
-      >
+      <span className="inline-flex" aria-label={ariaLabel} title={title}>
         <AlertTriangle
           className="size-5 text-red-600 dark:text-red-400"
           aria-hidden="true"
@@ -691,11 +725,7 @@ function IconeSemaforo({
   }
 
   return (
-    <span
-      className="inline-flex"
-      aria-label={ariaLabel}
-      title={title}
-    >
+    <span className="inline-flex" aria-label={ariaLabel} title={title}>
       <Clock3
         className="size-5 text-amber-600 dark:text-amber-300"
         aria-hidden="true"
@@ -752,7 +782,7 @@ function Resumo({
             ? "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
             : destaque === "neutro"
               ? "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300"
-            : "bg-[var(--muted)]"
+              : "bg-[var(--muted)]"
       }`}
     >
       <p className="text-xs font-semibold uppercase opacity-80">{label}</p>

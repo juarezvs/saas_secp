@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
 import { atualizarUsuarioAction } from "@/modules/usuarios/application/actions/atualizar-usuario.action";
 import {
   buscarUsuarioPorId,
@@ -22,9 +23,10 @@ export default async function EditarUsuarioPage({
 
   const { id } = await params;
 
-  const [usuario, perfis] = await Promise.all([
+  const [usuario, perfis, orgaos] = await Promise.all([
     buscarUsuarioPorId(id),
     listarPerfisAtivosParaUsuario(),
+    listarOrgaosAtivos(),
   ]);
 
   if (!usuario) {
@@ -67,6 +69,7 @@ export default async function EditarUsuarioPage({
       <UsuarioForm
         action={action}
         perfis={perfis}
+        orgaos={orgaos}
         modo="editar"
         valoresIniciais={{
           matricula: usuario.matricula,
@@ -77,6 +80,11 @@ export default async function EditarUsuarioPage({
           perfis: usuario.perfis
             .filter((item) => item.ativo)
             .map((item) => item.perfilId),
+          perfisEscopos: Object.fromEntries(
+            usuario.perfis
+              .filter((item) => item.ativo && item.orgaoId)
+              .map((item) => [item.perfilId, item.orgaoId ?? ""]),
+          ),
         }}
       />
     </div>

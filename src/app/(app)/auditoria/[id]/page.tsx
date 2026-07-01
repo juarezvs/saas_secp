@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { buscarEventoAuditoriaPorId } from "@/modules/auditoria/infrastructure/repositories/auditoria.repository";
 import { AuditoriaDetalheCard } from "@/modules/auditoria/presentation/components/auditoria-detalhe-card";
@@ -21,7 +22,10 @@ export default async function AuditoriaDetalhePage({
   ]);
 
   const { id } = await params;
-  const evento = await buscarEventoAuditoriaPorId(id);
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const evento = await buscarEventoAuditoriaPorId(id, {
+    orgaoIdsPermitidos: escopoOrgao.global ? undefined : escopoOrgao.orgaoIds,
+  });
 
   if (!evento) {
     notFound();

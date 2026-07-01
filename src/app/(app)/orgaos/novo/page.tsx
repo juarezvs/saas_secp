@@ -15,8 +15,8 @@ export default async function NovoOrgaoPage() {
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administracao", href: "/administracao" },
-          { label: "Orgaos", href: "/orgaos" },
+          { label: "Administração", href: "/administracao" },
+          { label: "Órgãos", href: "/orgaos" },
           { label: "Novo" },
         ]}
       />

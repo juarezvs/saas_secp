@@ -5,6 +5,12 @@ export type PerfilSessao = {
     codigo: string;
     nome: string;
     permissoes: string[];
+    escopoGlobal?: boolean;
+    orgaos?: Array<{
+      id: string;
+      sigla: string;
+      nome: string;
+    }>;
   };
   
   export type UsuarioAutenticado = {

@@ -8,50 +8,11 @@ import {
   PREFERENCIAS_ACESSIBILIDADE_PADRAO,
   normalizarPreferenciasAcessibilidade,
 } from "@/modules/auth/application/services/preferencias-acessibilidade.service";
-import { aplicarExcecoesRegistroPontoAoPerfilServidor } from "@/modules/auth/application/services/perfil-excecao-registro-ponto.service";
 import { autenticarUsuarioPorCredenciais } from "@/modules/auth/application/services/autenticar-usuario.service";
 import { escolherPerfilInicial } from "@/modules/auth/application/services/perfil-servidor-prioritario.service";
 import { buscarUsuarioParaLoginPorMatricula } from "@/modules/auth/infrastructure/repositories/usuario-auth.repository";
+import { enfileirarAtualizacaoSarhLogin } from "@/modules/integracoes/sarh/application/queues/sarh-login-sync-queue";
 import type { UsuarioAutenticado } from "@/modules/auth/domain/entities/usuario-autenticado";
-
-type PerfilSessao = UsuarioAutenticado["perfis"][number];
-
-function isRecord(valor: unknown): valor is Record<string, unknown> {
-  return typeof valor === "object" && valor !== null;
-}
-
-function isStringArray(valor: unknown): valor is string[] {
-  return (
-    Array.isArray(valor) && valor.every((item) => typeof item === "string")
-  );
-}
-
-function isPerfilSessao(valor: unknown): valor is PerfilSessao {
-  if (!isRecord(valor)) {
-    return false;
-  }
-
-  return (
-    typeof valor.id === "string" &&
-    typeof valor.codigo === "string" &&
-    typeof valor.nome === "string" &&
-    isStringArray(valor.permissoes)
-  );
-}
-
-function normalizarPerfisSessao(valor: unknown): PerfilSessao[] {
-  if (!Array.isArray(valor)) {
-    return [];
-  }
-
-  return aplicarExcecoesRegistroPontoAoPerfilServidor(
-    valor.filter(isPerfilSessao),
-  );
-}
-
-function normalizarPerfilAtivoSessao(valor: unknown): PerfilSessao | null {
-  return isPerfilSessao(valor) ? valor : null;
-}
 
 async function obterCodigoPerfilAtivoCookie() {
   try {
@@ -100,6 +61,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
+        enfileirarAtualizacaoSarhLogin({
+          matricula: usuario.matricula,
+          usuarioId: usuario.id,
+        }).catch((error) => {
+          console.error(
+            "[SARH LOGIN] Falha ao enfileirar atualizacao SARH:",
+            error,
+          );
+        });
+
         return {
           id: usuario.id,
           name: usuario.nome,
@@ -107,8 +78,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           matricula: usuario.matricula,
           tipo: usuario.tipo,
           preferenciasAcessibilidade: usuario.preferenciasAcessibilidade,
-          perfis: usuario.perfis,
-          perfilAtivo: usuario.perfilAtivo,
         };
       },
     }),
@@ -126,8 +95,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.nome = usuario.nome ?? usuario.name ?? "";
         token.tipo = usuario.tipo;
         token.preferenciasAcessibilidade = usuario.preferenciasAcessibilidade;
-        token.perfis = usuario.perfis;
-        token.perfilAtivo = usuario.perfilAtivo;
       }
 
       return token;
@@ -137,12 +104,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       const usuarioAtual = await buscarUsuarioParaLoginPorMatricula(
         String(token.matricula),
       );
-      const perfis = usuarioAtual
-        ? usuarioAtual.perfis
-        : normalizarPerfisSessao(token.perfis);
-      const perfilAtivoToken = usuarioAtual
-        ? usuarioAtual.perfilAtivo
-        : normalizarPerfilAtivoSessao(token.perfilAtivo);
+      const perfis = usuarioAtual?.perfis ?? [];
+      const perfilAtivoToken = usuarioAtual?.perfilAtivo ?? null;
       const perfilAtivoCookie = await obterCodigoPerfilAtivoCookie();
       const perfilAtivoTokenVisivel = perfilAtivoToken
         ? (perfis.find((perfil) => perfil.codigo === perfilAtivoToken.codigo) ??

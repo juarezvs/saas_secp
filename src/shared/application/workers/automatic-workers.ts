@@ -5,6 +5,13 @@ function deveIniciarWorkersAutomaticos() {
     return false;
   }
 
+  if (
+    process.env.NEXT_PHASE === "phase-production-build" ||
+    process.env.npm_lifecycle_event === "build"
+  ) {
+    return false;
+  }
+
   return process.env.SECP_AUTO_WORKERS !== "false";
 }
 
@@ -38,6 +45,16 @@ export async function iniciarWorkersAutomaticos() {
       "@/modules/calendario-institucional/application/workers/calendario-institucional-worker-runtime"
     ).then(({ garantirCalendarioInstitucionalWorkerAutomatico }) =>
       garantirCalendarioInstitucionalWorkerAutomatico(),
+    ),
+    import(
+      "@/modules/integracoes/sarh/application/workers/sarh-login-sync-worker-runtime"
+    ).then(({ garantirSarhLoginSyncWorkerAutomatico }) =>
+      garantirSarhLoginSyncWorkerAutomatico(),
+    ),
+    import(
+      "@/modules/integracoes/sarh/application/workers/sarh-sync-worker-runtime"
+    ).then(({ garantirSarhSyncWorkerAutomatico }) =>
+      garantirSarhSyncWorkerAutomatico(),
     ),
   ]);
 

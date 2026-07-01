@@ -10,8 +10,20 @@ export type ListarUsuariosParams = {
   tipo?: string;
   lotacao?: string;
   perfil?: string;
+  orgaoId?: string;
+  orgaoIdsPermitidos?: string[];
   status?: string;
 };
+
+function ehUuid(valor?: string | null): valor is string {
+  if (!valor) {
+    return false;
+  }
+
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    valor,
+  );
+}
 
 function ehTipoUsuario(valor?: string | null) {
   return [
@@ -27,8 +39,22 @@ function ehTipoUsuario(valor?: string | null) {
 export function montarWhereUsuarios(params: ListarUsuariosParams) {
   const busca = params.busca?.trim();
   const tipo = params.tipo?.trim();
+  const orgaoId = params.orgaoId?.trim();
+  const orgaoIdsPermitidos = params.orgaoIdsPermitidos?.filter(ehUuid);
+  const whereEscopoOrgao =
+    orgaoId && ehUuid(orgaoId)
+      ? [
+          { servidor: { orgaoId } },
+          { perfis: { some: { orgaoId } } },
+        ]
+      : orgaoIdsPermitidos?.length
+        ? [
+            { servidor: { orgaoId: { in: orgaoIdsPermitidos } } },
+            { perfis: { some: { orgaoId: { in: orgaoIdsPermitidos } } } },
+          ]
+        : [];
 
-  return {
+  const where = {
     ...(params.status === "ativo"
       ? { ativo: true }
       : params.status === "inativo"
@@ -69,6 +95,7 @@ export function montarWhereUsuarios(params: ListarUsuariosParams) {
           servidor: {
             lotacoes: {
               some: {
+                status: "ATIVO" as const,
                 unidade: {
                   OR: [
                     {
@@ -127,6 +154,7 @@ export function montarWhereUsuarios(params: ListarUsuariosParams) {
               servidor: {
                 lotacoes: {
                   some: {
+                    status: "ATIVO" as const,
                     unidade: {
                       OR: [
                         {
@@ -173,6 +201,10 @@ export function montarWhereUsuarios(params: ListarUsuariosParams) {
         }
       : {}),
   };
+
+  return whereEscopoOrgao.length
+    ? { AND: [where, { OR: whereEscopoOrgao }] }
+    : where;
 }
 
 const includeUsuarioListagem = {
@@ -194,6 +226,7 @@ const includeUsuarioListagem = {
   },
   perfis: {
     include: {
+      orgao: true,
       perfil: true,
     },
     orderBy: {
@@ -283,6 +316,9 @@ export async function buscarUsuarioPorId(id: string) {
         include: {
           orgao: true,
           lotacoes: {
+            where: {
+              status: "ATIVO",
+            },
             include: {
               unidade: true,
             },
@@ -303,6 +339,7 @@ export async function buscarUsuarioPorId(id: string) {
       },
       perfis: {
         include: {
+          orgao: true,
           perfil: {
             include: {
               permissoes: {
@@ -381,11 +418,13 @@ export async function emailUsuarioExiste(
 export async function buscarUsuarioPerfil(params: {
   usuarioId: string;
   perfilId: string;
+  orgaoId?: string | null;
 }) {
   return prisma.usuarioPerfil.findFirst({
     where: {
       usuarioId: params.usuarioId,
       perfilId: params.perfilId,
+      orgaoId: params.orgaoId ?? null,
     },
   });
 }

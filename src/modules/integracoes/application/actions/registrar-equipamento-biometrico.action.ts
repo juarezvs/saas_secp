@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { usuarioPossuiPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import {
@@ -97,6 +98,8 @@ export async function registrarEquipamentoBiometricoAction(
     };
   }
 
+  const escopo = await obterEscopoOrgaoDaSessao();
+
   try {
     await prisma.$transaction(async (tx) => {
       const equipamentoAtual = equipamentoId
@@ -112,6 +115,27 @@ export async function registrarEquipamentoBiometricoAction(
       }
 
       const configAtual = configuracaoRecord(equipamentoAtual?.configuracao);
+      const unidade = parsed.data.unidadeId
+        ? await tx.unidadeOrganizacional.findUnique({
+            where: { id: parsed.data.unidadeId },
+            select: { id: true, orgaoId: true },
+          })
+        : null;
+
+      if (parsed.data.unidadeId && !unidade) {
+        throw new Error("Unidade do equipamento nao encontrada.");
+      }
+
+      if (!unidade) {
+        throw new Error(
+          "Vincule o equipamento a uma unidade da seccional antes de salvar.",
+        );
+      }
+
+      if (!escopo.global && !escopo.orgaoIds.includes(unidade.orgaoId)) {
+        throw new Error("Unidade fora do escopo do perfil ativo.");
+      }
+
       const configEditada = Object.fromEntries(
         Object.entries({
           protocolo: parsed.data.protocolo,
@@ -136,34 +160,48 @@ export async function registrarEquipamentoBiometricoAction(
         }).filter(([, valor]) => valor !== undefined),
       );
 
-      const integracao = await tx.integracaoSistema.upsert({
+      const integracaoAtual = await tx.integracaoSistema.findFirst({
         where: {
-          id: "00000000-0000-0000-0000-000000000102",
-        },
-        update: {
-          nome: "Equipamentos biometricos",
           tipo: "EQUIPAMENTO_BIOMETRICO",
-          direcao: "ENTRADA",
-          status: "ATIVA",
-          ativo: true,
+          orgaoId: unidade.orgaoId,
         },
-        create: {
-          id: "00000000-0000-0000-0000-000000000102",
-          nome: "Equipamentos biometricos",
-          tipo: "EQUIPAMENTO_BIOMETRICO",
-          direcao: "ENTRADA",
-          status: "ATIVA",
-          ativo: true,
-          descricao:
-            "Integracao responsavel por receber eventos de equipamentos biometricos.",
-        },
+        select: { id: true },
       });
+      const dadosIntegracao = {
+        orgaoId: unidade.orgaoId,
+        nome: "Equipamentos biometricos",
+        tipo: "EQUIPAMENTO_BIOMETRICO" as const,
+        direcao: "ENTRADA" as const,
+        status: "ATIVA" as const,
+        ativo: true,
+        descricao:
+          "Integracao responsavel por receber eventos de equipamentos biometricos da seccional.",
+      };
+      const integracao = integracaoAtual
+        ? await tx.integracaoSistema.update({
+            where: { id: integracaoAtual.id },
+            data: {
+              nome: dadosIntegracao.nome,
+              tipo: dadosIntegracao.tipo,
+              direcao: dadosIntegracao.direcao,
+              status: dadosIntegracao.status,
+              ativo: dadosIntegracao.ativo,
+              orgaoId: dadosIntegracao.orgaoId,
+            },
+          })
+        : await tx.integracaoSistema.create({
+            data: dadosIntegracao,
+          });
+
+      if (!integracao) {
+        throw new Error("Nao foi possivel preparar a integracao do equipamento.");
+      }
 
       const dadosEquipamento = {
         integracaoId: integracao.id,
         codigo: parsed.data.codigo,
         nome: parsed.data.nome,
-        unidadeId: parsed.data.unidadeId || null,
+        unidadeId: unidade.id,
         fabricante:
           parsed.data.protocolo === "HENRY" ||
           parsed.data.protocolo === "HENRY_LUMEN_BALCAO"
@@ -207,6 +245,8 @@ export async function registrarEquipamentoBiometricoAction(
             codigo: equipamento.codigo,
             nome: equipamento.nome,
             unidadeId: equipamento.unidadeId,
+            integracaoId: equipamento.integracaoId,
+            orgaoId: unidade.orgaoId,
             ativo: equipamento.ativo,
           },
         },

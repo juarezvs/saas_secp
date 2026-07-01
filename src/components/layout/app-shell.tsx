@@ -4,6 +4,8 @@ import { auth } from "@/auth";
 import { logoutAction } from "@/modules/auth/application/actions/logout.action";
 import { buscarServidorPorUsuarioId } from "@/modules/marcacoes/infrastructure/repositories/marcacao.repository";
 import { contarNotificacoesUsuario } from "@/modules/notificacoes/application/notificacoes.service";
+import { buscarFotoServidorDataUrl } from "@/modules/servidores/application/services/foto-servidor.service";
+import { descricaoFuncaoOuCargoServidor } from "@/modules/servidores/application/services/funcao-cargo-servidor.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { AppShellClient } from "./app-shell-client";
 
@@ -19,7 +21,7 @@ export async function AppShell({ children }: AppShellProps) {
   }
 
   const [servidor, totalNotificacoes] = await Promise.all([
-    buscarServidorPorUsuarioId(session.user.id),
+    buscarServidorPorUsuarioId(session.user.id, session.user.matricula),
     contarNotificacoesUsuario(session.user.id),
   ]);
   const lotacaoAtual = servidor?.lotacoes[0];
@@ -29,28 +31,29 @@ export async function AppShell({ children }: AppShellProps) {
     redirect("/acesso-negado?motivo=sem-perfil");
   }
 
+  const fotoCpf = servidor?.cpf;
+  const fotoUrl = await buscarFotoServidorDataUrl(fotoCpf);
   const usuario = {
     nome:
       nomeServidor(servidor) ||
       session.user.nome ||
       session.user.name ||
-      "Usuario SECP",
+      "Usuário SECP",
     matricula: session.user.matricula,
+    funcaoOuCargo: descricaoFuncaoOuCargoServidor(servidor),
+    fotoUrl,
     preferenciasAcessibilidade: session.user.preferenciasAcessibilidade,
-    unidade:
-      lotacaoAtual?.unidade.nome ??
-      lotacaoAtual?.unidade.sigla ??
-      "",
+    unidade: lotacaoAtual?.unidade.nome ?? lotacaoAtual?.unidade.sigla ?? "",
     perfilAtivo: {
       codigo: perfilAtivo.codigo,
       nome: perfilAtivo.nome,
-      descricao: `${perfilAtivo.permissoes.length} permissao(oes) vinculada(s)`,
+      descricao: `${perfilAtivo.permissoes.length} permissão(ões) vinculada(s)`,
       permissoes: perfilAtivo.permissoes,
     },
     perfis: session.user.perfis.map((perfil) => ({
       codigo: perfil.codigo,
       nome: perfil.nome,
-      descricao: `${perfil.permissoes.length} permissao(oes) vinculada(s)`,
+      descricao: `${perfil.permissoes.length} permissão(ões) vinculada(s)`,
       permissoes: perfil.permissoes,
     })),
   };
@@ -71,4 +74,3 @@ export async function AppShell({ children }: AppShellProps) {
     </AppShellClient>
   );
 }
-

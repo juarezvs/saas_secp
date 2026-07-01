@@ -12,7 +12,7 @@ type BreadcrumbProps = {
 
 export function Breadcrumb({ items }: BreadcrumbProps) {
   return (
-    <nav aria-label="Trilha de navegacao" className="flex items-center text-sm">
+    <nav aria-label="Trilha de navegação" className="flex items-center text-sm">
       <ol className="flex flex-wrap items-center gap-1 text-muted-foreground">
         <li>
           <Link
@@ -20,7 +20,7 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
             className="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <Home className="size-4" aria-hidden="true" />
-            <span>Inicio</span>
+            <span>Início</span>
           </Link>
         </li>
 

@@ -1,5 +1,7 @@
 import {
+  CalendarDays,
   CalendarRange,
+  CalendarX,
   ClipboardCheck,
   ClipboardList,
   Clock,
@@ -36,6 +38,7 @@ export type AcessoRapido = {
   descricao: string;
   href: string;
   icon: LucideIcon;
+  permissoes?: string[];
 };
 
 export type MetricaServidor = {
@@ -62,10 +65,34 @@ export const dashboardServidorMock = {
     regra: "Regra aplicada: registro eletrônico/biométrico de frequência.",
   },
   metricas: [
-    { titulo: "Jornada hoje", valor: "7h00", descricao: "Jornada prevista", icon: Clock, variante: "info" },
-    { titulo: "Trabalhado hoje", valor: "00h00", descricao: "Horas registradas", icon: Clock, variante: "success" },
-    { titulo: "Banco de horas", valor: "+08h20", descricao: "Saldo atual", icon: Hourglass, variante: "success" },
-    { titulo: "Pendências", valor: "1", descricao: "Ajuste pendente", icon: ClipboardList, variante: "warning" },
+    {
+      titulo: "Jornada hoje",
+      valor: "7h00",
+      descricao: "Jornada prevista",
+      icon: Clock,
+      variante: "info",
+    },
+    {
+      titulo: "Trabalhado hoje",
+      valor: "00h00",
+      descricao: "Horas registradas",
+      icon: Clock,
+      variante: "success",
+    },
+    {
+      titulo: "Banco de horas",
+      valor: "+08h20",
+      descricao: "Saldo atual",
+      icon: Hourglass,
+      variante: "success",
+    },
+    {
+      titulo: "Pendências",
+      valor: "1",
+      descricao: "Ajuste pendente",
+      icon: ClipboardList,
+      variante: "warning",
+    },
   ] satisfies MetricaServidor[],
   marcacoes: [
     { rotulo: "Entrada", horario: "--:--", status: "pendente" },
@@ -101,11 +128,88 @@ export const dashboardServidorMock = {
     aguardando: 1,
   },
   acessos: [
-    { titulo: "Registrar ponto", descricao: "Entrada, saída ou intervalo.", href: "/marcacoes/registrar", icon: Clock },
-    { titulo: "Solicitar ajuste", descricao: "Corrija falhas de marcação.", href: "/solicitacoes/nova", icon: ClipboardCheck },
-    { titulo: "Compensação", descricao: "Solicite compensação de horas.", href: "/banco-horas", icon: Hourglass },
-    { titulo: "Recesso forense", descricao: "Acompanhe convocações.", href: "/recesso-forense", icon: CalendarRange },
-    { titulo: "Comprovantes", descricao: "Gere comprovantes.", href: "/relatorios", icon: FileText },
+    {
+      titulo: "Registrar ponto",
+      descricao: "Entrada, saída ou intervalo.",
+      href: "/marcacoes/registrar",
+      icon: Clock,
+      permissoes: [
+        "marcacoes:registrar-web:proprio",
+        "marcacoes:registrar-facial:proprio",
+      ],
+    },
+    {
+      titulo: "Espelho de ponto",
+      descricao: "Consulte sua frequência mensal.",
+      href: "/espelho-ponto",
+      icon: CalendarDays,
+      permissoes: [
+        "espelho-ponto:visualizar:proprio",
+        "apuracao:consultar:global",
+      ],
+    },
+    {
+      titulo: "Marcações",
+      descricao: "Consulte suas marcações do dia.",
+      href: "/marcacoes",
+      icon: Clock,
+      permissoes: [
+        "marcacoes:consultar:proprio",
+        "marcacoes:visualizar:proprio",
+        "marcacoes:consultar:global",
+      ],
+    },
+    {
+      titulo: "Meus afastamentos",
+      descricao: "Consulte férias, licenças e demais afastamentos.",
+      href: "/meus-afastamentos",
+      icon: CalendarX,
+      permissoes: ["afastamentos:consultar:proprio"],
+    },
+    {
+      titulo: "Solicitar ajuste",
+      descricao: "Corrija falhas de marcação.",
+      href: "/solicitacoes/nova",
+      icon: ClipboardCheck,
+      permissoes: ["solicitacoes:criar:proprio"],
+    },
+    {
+      titulo: "Compensação",
+      descricao: "Solicite compensação de horas.",
+      href: "/banco-horas",
+      icon: Hourglass,
+      permissoes: [
+        "banco-horas:visualizar:proprio",
+        "banco-horas:consultar:proprio",
+        "banco-horas:consultar:global",
+      ],
+    },
+    {
+      titulo: "Recesso forense",
+      descricao: "Acompanhe convocações.",
+      href: "/recesso-forense",
+      icon: CalendarRange,
+      permissoes: [
+        "recesso:consultar:proprio",
+        "recesso:consultar:global",
+        "recesso:gerenciar:global",
+        "recesso:homologar:chefia",
+        "recesso:aceitar:secad",
+      ],
+    },
+    {
+      titulo: "Comprovantes",
+      descricao: "Gere comprovantes.",
+      href: "/relatorios",
+      icon: FileText,
+      permissoes: [
+        "relatorios:consultar:proprio",
+        "relatorios:consultar:global",
+        "relatorios-gerenciais:consultar:proprio",
+        "relatorios-gerenciais:consultar:chefia",
+        "relatorios-gerenciais:consultar:global",
+      ],
+    },
   ] satisfies AcessoRapido[],
   regras: [
     "Registro eletrônico/biométrico de frequência.",

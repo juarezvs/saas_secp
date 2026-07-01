@@ -8,12 +8,31 @@ export type ListarPerfisParams = {
   nome?: string;
   permissao?: string;
   status?: string;
+  orgaoIdsPermitidos?: string[];
 };
 
 export function montarWherePerfis(params: ListarPerfisParams) {
   const busca = params.busca?.trim();
 
   return {
+    ...(params.orgaoIdsPermitidos
+      ? {
+          usuarios: {
+            some: {
+              OR: [
+                { orgaoId: { in: params.orgaoIdsPermitidos } },
+                {
+                  usuario: {
+                    servidor: {
+                      orgaoId: { in: params.orgaoIdsPermitidos },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        }
+      : {}),
     ...(params.status === "ativo"
       ? { ativo: true }
       : params.status === "inativo"
@@ -103,18 +122,35 @@ export function montarWherePerfis(params: ListarPerfisParams) {
   };
 }
 
-const includePerfilListagem = {
-  permissoes: {
-    include: {
-      permissao: true,
+function includePerfilListagem(params?: { orgaoIdsPermitidos?: string[] }) {
+  const filtroUsuario = params?.orgaoIdsPermitidos
+    ? {
+        OR: [
+          { orgaoId: { in: params.orgaoIdsPermitidos } },
+          {
+            usuario: {
+              servidor: {
+                orgaoId: { in: params.orgaoIdsPermitidos },
+              },
+            },
+          },
+        ],
+      }
+    : undefined;
+
+  return {
+    permissoes: {
+      include: {
+        permissao: true,
+      },
     },
-  },
-  _count: {
-    select: {
-      usuarios: true,
+    _count: {
+      select: {
+        usuarios: filtroUsuario ? { where: filtroUsuario } : true,
+      },
     },
-  },
-};
+  };
+}
 
 export async function listarPerfisPaginado(params: ListarPerfisParams) {
   const pagina = Math.max(Number(params.pagina ?? 1), 1);
@@ -129,7 +165,7 @@ export async function listarPerfisPaginado(params: ListarPerfisParams) {
     prisma.perfil.findMany({
       where,
       orderBy: [{ nome: "asc" }, { codigo: "asc" }],
-      include: includePerfilListagem,
+      include: includePerfilListagem(params),
       skip: (pagina - 1) * itensPorPagina,
       take: itensPorPagina,
     }),
@@ -148,7 +184,7 @@ export async function listarPerfisParaExportacao(params: ListarPerfisParams) {
   return prisma.perfil.findMany({
     where: montarWherePerfis(params),
     orderBy: [{ nome: "asc" }, { codigo: "asc" }],
-    include: includePerfilListagem,
+    include: includePerfilListagem(params),
   });
 }
 

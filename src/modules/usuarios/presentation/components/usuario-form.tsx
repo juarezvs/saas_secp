@@ -14,12 +14,19 @@ type PerfilItem = {
   descricao: string | null;
 };
 
+type OrgaoItem = {
+  id: string;
+  sigla: string;
+  nome: string;
+};
+
 type UsuarioFormProps = {
   action: (
     state: UsuarioFormState,
     formData: FormData
   ) => Promise<UsuarioFormState>;
   perfis: PerfilItem[];
+  orgaos: OrgaoItem[];
   valoresIniciais?: {
     matricula?: string;
     nome?: string;
@@ -27,6 +34,7 @@ type UsuarioFormProps = {
     tipo?: string;
     ativo?: boolean;
     perfis?: string[];
+    perfisEscopos?: Record<string, string>;
   };
   modo: "criar" | "editar";
 };
@@ -55,6 +63,7 @@ function obterErro(
 export function UsuarioForm({
   action,
   perfis,
+  orgaos,
   valoresIniciais,
   modo,
 }: UsuarioFormProps) {
@@ -239,10 +248,38 @@ export function UsuarioForm({
                     {perfil.descricao}
                   </span>
                 )}
+
+                <span className="mt-3 block">
+                  <span className="mb-1 block text-xs font-semibold text-[var(--muted-foreground)]">
+                    Escopo de atuação
+                  </span>
+                  <select
+                    name={`perfilOrgao:${perfil.id}`}
+                    defaultValue={campos?.perfisEscopos?.[perfil.id] ?? ""}
+                    className="h-10 w-full rounded-md border bg-[var(--card)] px-3 text-xs outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+                  >
+                    <option value="">
+                      {perfil.codigo === "MASTER"
+                        ? "Global - todas as seccionais"
+                        : "Selecione a seccional"}
+                    </option>
+                    {orgaos.map((orgao) => (
+                      <option key={orgao.id} value={orgao.id}>
+                        {orgao.sigla} - {orgao.nome}
+                      </option>
+                    ))}
+                  </select>
+                </span>
               </span>
             </label>
           ))}
         </div>
+
+        <p className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs leading-5 text-blue-950 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-100">
+          MASTER atua em todo o SECP. Os demais perfis devem ser vinculados a
+          uma seccional, por exemplo SJAM ou SJTO, para limitar dados,
+          configurações e rotinas administrativas.
+        </p>
       </section>
 
       <div className="flex justify-end">

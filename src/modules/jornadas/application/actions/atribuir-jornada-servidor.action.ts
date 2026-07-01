@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   jornadaServidorSchema,
@@ -47,6 +48,7 @@ export async function atribuirJornadaServidorAction(
   const dataFim = parsed.data.dataFim
     ? new Date(`${parsed.data.dataFim}T00:00:00`)
     : null;
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
 
   if (dataFim && dataFim < dataInicio) {
     return {
@@ -70,6 +72,7 @@ export async function atribuirJornadaServidorAction(
     prisma.servidor.findUnique({
       where: { id: parsed.data.servidorId },
       select: {
+        orgaoId: true,
         cargo: {
           select: {
             descricao: true,
@@ -105,6 +108,13 @@ export async function atribuirJornadaServidorAction(
     return {
       sucesso: false,
       mensagem: "Servidor nao encontrado.",
+    };
+  }
+
+  if (!escopoOrgao.global && !escopoOrgao.orgaoIds.includes(servidor.orgaoId)) {
+    return {
+      sucesso: false,
+      mensagem: "Servidor fora do escopo da seccional vinculada ao perfil ativo.",
     };
   }
 

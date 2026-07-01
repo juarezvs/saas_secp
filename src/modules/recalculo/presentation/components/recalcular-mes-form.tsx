@@ -60,7 +60,7 @@ export function RecalcularMesForm({
         setErro(
           error instanceof Error
             ? error.message
-            : "Nao foi possivel concluir o recalculo.",
+            : "Não foi possível concluir o recálculo.",
         );
         setConcluido(false);
       }

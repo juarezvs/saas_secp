@@ -110,7 +110,7 @@ function carregarScriptVlibras() {
       window.clearTimeout(timeout);
       script.remove();
       window.__secpVLibrasScriptPromise = undefined;
-      reject(new Error("Nao foi possivel carregar o VLibras."));
+      reject(new Error("Não foi possível carregar o VLibras."));
     };
 
     document.body.appendChild(script);

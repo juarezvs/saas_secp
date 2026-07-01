@@ -1,4 +1,9 @@
-import type { SarhCargoDto, SarhLotacaoDto, SarhServidorDto, SarhUnidadeBaseDto } from "../domain/sarh.types";
+import type {
+  SarhCargoDto,
+  SarhLotacaoDto,
+  SarhServidorDto,
+  SarhUnidadeBaseDto,
+} from "../domain/sarh.types";
 import {
   limparTexto,
   mapearTipoUnidadeSarhParaSecp,
@@ -13,7 +18,8 @@ import {
 export function mapearCargoSarh(payload: SarhCargoDto) {
   return {
     codigoExternoSarh: payload.id,
-    descricao: limparTexto(payload.cargoDescricao) ?? `Cargo SARH ${payload.id}`,
+    descricao:
+      limparTexto(payload.cargoDescricao) ?? `Cargo SARH ${payload.id}`,
     ativo: true,
     origemSarh: true,
     payloadSarh: payload,
@@ -36,7 +42,11 @@ export function mapearOrgaoSarh(payload: SarhUnidadeBaseDto) {
   };
 }
 
-export function mapearUnidadeSarh(payload: SarhLotacaoDto, orgaoId: string, unidadePaiId?: string | null) {
+export function mapearUnidadeSarh(
+  payload: SarhLotacaoDto,
+  orgaoId: string,
+  unidadePaiId?: string | null,
+) {
   const dataFim = normalizarDataSarh(payload.dataFim);
   const sigla = limparTexto(payload.sigla) ?? `SARH-${payload.id}`;
 
@@ -64,7 +74,10 @@ export function mapearUnidadeSarh(payload: SarhLotacaoDto, orgaoId: string, unid
 
 export function mapearUsuarioServidorSarh(payload: SarhServidorDto) {
   const cpf = obterCpfServidorSarh(payload);
-  const nome = limparTexto(payload.nomeSocial) ?? limparTexto(payload.nome) ?? normalizarMatricula(payload.matricula);
+  const nome =
+    limparTexto(payload.nomeSocial) ??
+    limparTexto(payload.nome) ??
+    normalizarMatricula(payload.matricula);
 
   return {
     matricula: normalizarMatricula(payload.matricula),
@@ -75,14 +88,44 @@ export function mapearUsuarioServidorSarh(payload: SarhServidorDto) {
   };
 }
 
-export function mapearServidorSarh(payload: SarhServidorDto, usuarioId: string, orgaoId: string, cargoId?: string | null) {
+function mapearVinculoServidorSarh(payload: SarhServidorDto) {
+  const texto = [
+    payload.descricaoProvimento,
+    payload.descricaoSituacao,
+    payload.perfilTipo,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toUpperCase();
+
+  if (texto.includes("REQUISI")) return "REQUISITADO";
+  if (texto.includes("REDISTRIBUI")) return "REDISTRIBUIDO";
+  if (
+    texto.includes("EXERCICIO PROVISORIO") ||
+    texto.includes("EXERC PROVISORIO")
+  ) {
+    return "EXERCICIO_PROVISORIO";
+  }
+  if (texto.includes("REMOCAO") || texto.includes("REMOVIDO"))
+    return "REMOVIDO";
+  if (texto.includes("CEDIDO")) return "CEDIDO";
+
+  return "EFETIVO";
+}
+
+export function mapearServidorSarh(
+  payload: SarhServidorDto,
+  usuarioId: string,
+  orgaoId: string,
+  cargoId?: string | null,
+) {
   return {
     usuarioId,
     orgaoId,
     matricula: normalizarMatricula(payload.matricula),
     cpf: obterCpfServidorSarh(payload),
     nomeFuncional: limparTexto(payload.nomeSocial) ?? limparTexto(payload.nome),
-    vinculo: "EFETIVO",
+    vinculo: mapearVinculoServidorSarh(payload),
     ativo: payload.ativo,
     cargoId: cargoId ?? null,
     dataNascimento: obterDataNascimentoServidorSarh(payload),
@@ -90,6 +133,18 @@ export function mapearServidorSarh(payload: SarhServidorDto, usuarioId: string, 
     nomeSocialSarh: limparTexto(payload.nomeSocial),
     codigoLotacaoSarh: normalizarCodigoLotacaoServidor(payload),
     codigoLotacaoPaiSarh: normalizarCodigoLotacaoPaiServidor(payload),
+    codigoFuncionarioSarh: payload.codigoFuncionario ?? null,
+    codigoProvimentoSarh: payload.codigoProvimento ?? null,
+    descricaoProvimentoSarh: limparTexto(payload.descricaoProvimento),
+    codigoSituacaoSarh: payload.codigoSituacao ?? null,
+    descricaoSituacaoSarh: limparTexto(payload.descricaoSituacao),
+    perfilTipoSarh: limparTexto(payload.perfilTipo),
+    funcaoAtualGrupoSarh: limparTexto(payload.funcaoAtualGrupo),
+    funcaoAtualCategoriaSarh: limparTexto(payload.funcaoAtualCategoria),
+    funcaoAtualCodigoSarh: limparTexto(payload.funcaoAtualCodigo),
+    funcaoAtualDescricao: limparTexto(payload.funcaoAtualDescricao),
+    funcaoAtualSituacaoSarh: limparTexto(payload.funcaoAtualSituacao),
+    funcaoAtualInicioSarh: normalizarDataSarh(payload.funcaoAtualInicio),
     origemSarh: true,
     ultimaSincronizacaoSarh: new Date(),
     payloadSarh: payload,

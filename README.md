@@ -87,14 +87,19 @@ APP_TIMEZONE="America/Manaus"
 
 # Integração com SARH
 
-SARH_API_BASE_URL=
-SARH_API_TOKEN=
+SARH_MOCK=true
+SARH_ORGAO_SIGLA="SJAM"
+SARH_ORGAO_CODIGO_EXTERNO="4"
+SARH_SIGLA_LOCALIDADE="AM"
+SARH_DB_USERNAME=""
+SARH_DB_PASSWORD=""
+SARH_DB_TNS_ALIAS=""
+SARH_ORACLE_HOME=""
 
 # para teste local, manter SARH_MOCK = true
 
-# para produção, SARH_MOCK = false, SARH_API_BASE_URL = https://endereco-real-do-sarh
 
-SARH_MOCK=true
+# O SECP consulta o Oracle do SARH diretamente. Nao depende da aplicacao sahr_novo.
 
 # Integração com Equipamento externo
 

@@ -1,6 +1,8 @@
-import { createClient, type Client } from "ldapjs";
+import ldapjs, { type Client } from "ldapjs";
 
 import { obterConfiguracaoLdapActiveDirectory } from "@/modules/integracoes/application/services/ldap-active-directory-config.service";
+
+const { createClient } = ldapjs;
 
 type ActiveDirectoryLoginResponse = {
   username?: unknown;

@@ -3,6 +3,7 @@ import { UserCog } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
 import { criarUsuarioAction } from "@/modules/usuarios/application/actions/criar-usuario.action";
 import { listarPerfisAtivosParaUsuario } from "@/modules/usuarios/infrastructure/repositories/usuario.repository";
 import { UsuarioForm } from "@/modules/usuarios/presentation/components/usuario-form";
@@ -10,7 +11,10 @@ import { UsuarioForm } from "@/modules/usuarios/presentation/components/usuario-
 export default async function NovoUsuarioPage() {
   await exigirPermissaoOuRedirecionar("usuarios:gerenciar:global");
 
-  const perfis = await listarPerfisAtivosParaUsuario();
+  const [perfis, orgaos] = await Promise.all([
+    listarPerfisAtivosParaUsuario(),
+    listarOrgaosAtivos(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -34,6 +38,7 @@ export default async function NovoUsuarioPage() {
       <UsuarioForm
         action={criarUsuarioAction}
         perfis={perfis}
+        orgaos={orgaos}
         modo="criar"
         valoresIniciais={{
           tipo: "SERVIDOR",

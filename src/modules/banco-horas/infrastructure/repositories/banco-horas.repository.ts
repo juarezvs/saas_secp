@@ -14,6 +14,7 @@ function filtroLotacaoNaCompetencia(
   const { inicio, fim } = periodoCompetencia(anoReferencia, mesReferencia);
 
   return {
+    status: "ATIVO" as const,
     dataInicio: { lt: fim },
     OR: [{ dataFim: null }, { dataFim: { gte: inicio } }],
   };

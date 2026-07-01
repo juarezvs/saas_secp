@@ -9,6 +9,7 @@ import {
   type DocumentProps,
 } from "@react-pdf/renderer";
 import { auth } from "@/auth";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { listarEventosAuditoriaParaExportacao } from "@/modules/auditoria/infrastructure/repositories/auditoria.repository";
 import { formatarDataHoraAuditoria } from "@/modules/auditoria/application/services/formatar-auditoria.service";
 
@@ -30,6 +31,7 @@ export async function GET(request: Request) {
   }
 
   const url = new URL(request.url);
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
   const eventos = await listarEventosAuditoriaParaExportacao({
     busca: url.searchParams.get("busca") ?? "",
     entidade: url.searchParams.get("entidade") ?? "",
@@ -37,6 +39,7 @@ export async function GET(request: Request) {
     usuarioId: url.searchParams.get("usuarioId") ?? "",
     dataInicio: url.searchParams.get("dataInicio") ?? "",
     dataFim: url.searchParams.get("dataFim") ?? "",
+    orgaoIdsPermitidos: escopoOrgao.global ? undefined : escopoOrgao.orgaoIds,
   });
 
   const documento = React.createElement(AuditoriaPdfDocument, {

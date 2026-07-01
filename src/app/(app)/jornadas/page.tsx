@@ -3,6 +3,7 @@ import { CalendarClock, Plus } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   listarJornadasAtivas,
@@ -37,6 +38,10 @@ export default async function JornadasPage({
   await exigirPermissaoOuRedirecionar("jornadas:gerenciar:global");
 
   const params = searchParams ? await searchParams : {};
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const orgaoIdsPermitidos = escopoOrgao.global
+    ? undefined
+    : escopoOrgao.orgaoIds;
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
 
@@ -47,11 +52,12 @@ export default async function JornadasPage({
       nome: params.nome ?? "",
       tipo: params.tipo ?? "",
       status: params.status ?? "",
+      orgaoIdsPermitidos,
       pagina,
       itensPorPagina,
     }),
     listarJornadasAtivas(),
-    listarServidoresAtivosParaJornada(),
+    listarServidoresAtivosParaJornada({ orgaoIdsPermitidos }),
   ]);
 
   const exportParams = new URLSearchParams();

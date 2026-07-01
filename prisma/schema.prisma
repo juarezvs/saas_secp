@@ -321,6 +321,9 @@ enum TipoEndpointSarh {
   CARGOS
   SERVIDORES
   LOTACOES_SERVIDORES
+  TIPOS_AFASTAMENTO
+  AFASTAMENTOS
+  CHEFIAS
 }
 
 enum TipoRegistroSarh {
@@ -329,6 +332,9 @@ enum TipoRegistroSarh {
   CARGO
   SERVIDOR
   LOTACAO_SERVIDOR
+  TIPO_AFASTAMENTO
+  AFASTAMENTO
+  CHEFIA
 }
 
 enum OperacaoRegistroSarh {
@@ -463,15 +469,15 @@ enum StatusHomologacaoRecesso {
 }
 
 model Usuario {
-  id        String      @id @default(uuid()) @db.Uuid
-  matricula String      @unique @db.VarChar(50)
-  cpf       String?     @unique @db.VarChar(11)
-  nome      String      @db.VarChar(200)
-  email     String?     @unique @db.VarChar(200)
-  senhaHash String?     @map("senha_hash") @db.VarChar(255)
-  tipo      TipoUsuario @default(SERVIDOR)
-  ativo     Boolean     @default(true)
-  preferenciasAcessibilidade Json? @map("preferencias_acessibilidade")
+  id                         String      @id @default(uuid()) @db.Uuid
+  matricula                  String      @unique @db.VarChar(50)
+  cpf                        String?     @unique @db.VarChar(11)
+  nome                       String      @db.VarChar(200)
+  email                      String?     @unique @db.VarChar(200)
+  senhaHash                  String?     @map("senha_hash") @db.VarChar(255)
+  tipo                       TipoUsuario @default(SERVIDOR)
+  ativo                      Boolean     @default(true)
+  preferenciasAcessibilidade Json?       @map("preferencias_acessibilidade")
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
@@ -558,16 +564,19 @@ model UsuarioPerfil {
 
   usuarioId String @map("usuario_id") @db.Uuid
   perfilId  String @map("perfil_id") @db.Uuid
+  orgaoId   String? @map("orgao_id") @db.Uuid
 
   ativo    Boolean  @default(true)
   criadoEm DateTime @default(now()) @map("criado_em")
 
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   perfil  Perfil  @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+  orgao   Orgao?  @relation(fields: [orgaoId], references: [id], onDelete: Cascade)
 
-  @@unique([usuarioId, perfilId])
+  @@index([usuarioId, perfilId, orgaoId])
   @@index([usuarioId])
   @@index([perfilId])
+  @@index([orgaoId])
   @@map("usuarios_perfis")
 }
 
@@ -604,11 +613,12 @@ model Orgao {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-    unidades           UnidadeOrganizacional[]
-    servidores         Servidor[]
-    regulamentacaoPonto RegulamentacaoPontoOrgao?
-    integracoes        IntegracaoSistema[]
-    calendariosInstitucionais CalendarioInstitucional[]
+  unidades                  UnidadeOrganizacional[]
+  servidores                Servidor[]
+  regulamentacaoPonto       RegulamentacaoPontoOrgao?
+  integracoes               IntegracaoSistema[]
+  calendariosInstitucionais CalendarioInstitucional[]
+  usuariosPerfis            UsuarioPerfil[]
 
   @@map("orgaos")
 }
@@ -661,15 +671,15 @@ model UnidadeOrganizacional {
   orgaoId      String  @map("orgao_id") @db.Uuid
   unidadePaiId String? @map("unidade_pai_id") @db.Uuid
 
-  codigo String                    @db.VarChar(80)
-  sigla  String                    @db.VarChar(50)
-  nome   String                    @db.VarChar(250)
-    tipo        TipoUnidadeOrganizacional
-    ativo       Boolean                   @default(true)
-    fusoHorario String?                   @map("fuso_horario") @db.VarChar(80)
-    uf          String?                   @db.Char(2)
-    municipio   String?                   @db.VarChar(120)
-    municipioIbge String?                 @map("municipio_ibge") @db.VarChar(7)
+  codigo        String                    @db.VarChar(80)
+  sigla         String                    @db.VarChar(50)
+  nome          String                    @db.VarChar(250)
+  tipo          TipoUnidadeOrganizacional
+  ativo         Boolean                   @default(true)
+  fusoHorario   String?                   @map("fuso_horario") @db.VarChar(80)
+  uf            String?                   @db.Char(2)
+  municipio     String?                   @db.VarChar(120)
+  municipioIbge String?                   @map("municipio_ibge") @db.VarChar(7)
 
   codigoExternoSarh       Int?      @map("codigo_externo_sarh")
   codigoExternoPaiSarh    Int?      @map("codigo_externo_pai_sarh")
@@ -691,26 +701,26 @@ model UnidadeOrganizacional {
   unidadePai     UnidadeOrganizacional?  @relation("HierarquiaUnidades", fields: [unidadePaiId], references: [id], onDelete: Restrict)
   unidadesFilhas UnidadeOrganizacional[] @relation("HierarquiaUnidades")
 
-  lotacoes                Lotacao[]
-  gestores                GestorUnidade[]
-  solicitacoes            Solicitacao[]             @relation("SolicitacoesPorUnidade")
-  fechamentosMensais      FechamentoMensalUnidade[]
-    boletimFrequencias      BoletimFrequencia[]
-    equipamentosBiometricos EquipamentoBiometrico[]
-    convocacoesRecesso      ConvocacaoRecesso[]
-    calendariosInstitucionais CalendarioInstitucional[]
+  lotacoes                  Lotacao[]
+  gestores                  GestorUnidade[]
+  solicitacoes              Solicitacao[]             @relation("SolicitacoesPorUnidade")
+  fechamentosMensais        FechamentoMensalUnidade[]
+  boletimFrequencias        BoletimFrequencia[]
+  equipamentosBiometricos   EquipamentoBiometrico[]
+  convocacoesRecesso        ConvocacaoRecesso[]
+  calendariosInstitucionais CalendarioInstitucional[]
 
   @@unique([orgaoId, codigo])
   @@unique([orgaoId, codigoExternoSarh])
   @@index([orgaoId])
   @@index([unidadePaiId])
   @@index([codigoExternoSarh])
-    @@index([codigoExternoPaiSarh])
-    @@index([origemSarh])
-    @@index([uf])
-    @@index([municipioIbge])
-    @@map("unidades_organizacionais")
-  }
+  @@index([codigoExternoPaiSarh])
+  @@index([origemSarh])
+  @@index([uf])
+  @@index([municipioIbge])
+  @@map("unidades_organizacionais")
+}
 
 model Cargo {
   id String @id @default(uuid()) @db.Uuid
@@ -745,15 +755,27 @@ model Servidor {
   vinculo       TipoVinculoServidor @default(EFETIVO)
   ativo         Boolean             @default(true)
 
-  cargoId                 String?   @map("cargo_id") @db.Uuid
-  dataNascimento          DateTime? @map("data_nascimento") @db.Date
-  nomeCompletoSarh        String?   @map("nome_completo_sarh") @db.VarChar(200)
-  nomeSocialSarh          String?   @map("nome_social_sarh") @db.VarChar(200)
-  codigoLotacaoSarh       Int?      @map("codigo_lotacao_sarh")
-  codigoLotacaoPaiSarh    Int?      @map("codigo_lotacao_pai_sarh")
-  origemSarh              Boolean   @default(false) @map("origem_sarh")
-  ultimaSincronizacaoSarh DateTime? @map("ultima_sincronizacao_sarh")
-  payloadSarh             Json?     @map("payload_sarh")
+  cargoId                  String?   @map("cargo_id") @db.Uuid
+  dataNascimento           DateTime? @map("data_nascimento") @db.Date
+  nomeCompletoSarh         String?   @map("nome_completo_sarh") @db.VarChar(200)
+  nomeSocialSarh           String?   @map("nome_social_sarh") @db.VarChar(200)
+  codigoLotacaoSarh        Int?      @map("codigo_lotacao_sarh")
+  codigoLotacaoPaiSarh     Int?      @map("codigo_lotacao_pai_sarh")
+  codigoFuncionarioSarh    Int?      @map("codigo_funcionario_sarh")
+  codigoProvimentoSarh     Int?      @map("codigo_provimento_sarh")
+  descricaoProvimentoSarh  String?   @map("descricao_provimento_sarh") @db.VarChar(200)
+  codigoSituacaoSarh       Int?      @map("codigo_situacao_sarh")
+  descricaoSituacaoSarh    String?   @map("descricao_situacao_sarh") @db.VarChar(250)
+  perfilTipoSarh           String?   @map("perfil_tipo_sarh") @db.VarChar(20)
+  funcaoAtualGrupoSarh     String?   @map("funcao_atual_grupo_sarh") @db.VarChar(20)
+  funcaoAtualCategoriaSarh String?   @map("funcao_atual_categoria_sarh") @db.VarChar(30)
+  funcaoAtualCodigoSarh    String?   @map("funcao_atual_codigo_sarh") @db.VarChar(50)
+  funcaoAtualDescricao     String?   @map("funcao_atual_descricao") @db.VarChar(250)
+  funcaoAtualSituacaoSarh  String?   @map("funcao_atual_situacao_sarh") @db.VarChar(100)
+  funcaoAtualInicioSarh    DateTime? @map("funcao_atual_inicio_sarh") @db.Date
+  origemSarh               Boolean   @default(false) @map("origem_sarh")
+  ultimaSincronizacaoSarh  DateTime? @map("ultima_sincronizacao_sarh")
+  payloadSarh              Json?     @map("payload_sarh")
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
@@ -780,6 +802,7 @@ model Servidor {
   autorizacaoesBiometricasMarcacaos AutorizacaoBiometricaMarcacao[]
   marcacoesBrutas                   MarcacaoBruta[]
   dispensasPonto                    DispensaPontoServidor[]
+  afastamentosSarh                  AfastamentoSarh[]
   convocacoesRecessoChefia          ConvocacaoRecesso[]             @relation("ConvocacoesRecessoPorChefia")
   convocadosRecesso                 ConvocadoRecesso[]
   espelhosRecesso                   EspelhoRecesso[]
@@ -855,6 +878,72 @@ model DispensaPontoServidor {
   @@index([status])
   @@index([dataInicio, dataFim])
   @@map("dispensas_ponto_servidores")
+}
+
+model TipoAfastamentoSarh {
+  id                 String    @id @default(uuid()) @db.Uuid
+  codigoExternoSarh  Int       @unique @map("codigo_externo_sarh")
+  descricao          String    @db.VarChar(250)
+  categoria          String    @db.VarChar(80)
+  remunerada         Boolean?  @map("remunerada")
+  aplicavelServidor  Boolean?  @map("aplicavel_servidor")
+  aplicavelJuiz      Boolean?  @map("aplicavel_juiz")
+  dataInicioVigencia DateTime? @map("data_inicio_vigencia") @db.Date
+  dataFimVigencia    DateTime? @map("data_fim_vigencia") @db.Date
+
+  origemSarh              Boolean   @default(true) @map("origem_sarh")
+  payloadSarh             Json?     @map("payload_sarh")
+  ultimaSincronizacaoSarh DateTime? @map("ultima_sincronizacao_sarh")
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  afastamentos AfastamentoSarh[]
+
+  @@index([categoria])
+  @@index([origemSarh])
+  @@map("tipos_afastamento_sarh")
+}
+
+model AfastamentoSarh {
+  id                String  @id @default(uuid()) @db.Uuid
+  codigoExternoSarh String  @unique @map("codigo_externo_sarh") @db.VarChar(250)
+  servidorId        String? @map("servidor_id") @db.Uuid
+  tipoAfastamentoId String? @map("tipo_afastamento_id") @db.Uuid
+
+  categoria     String  @db.VarChar(80)
+  tipoCodigo    String? @map("tipo_codigo") @db.VarChar(80)
+  tipoDescricao String? @map("tipo_descricao") @db.VarChar(250)
+  matricula     String? @db.VarChar(50)
+  cpf           String? @db.VarChar(11)
+  nome          String? @db.VarChar(200)
+
+  dataInicio   DateTime  @map("data_inicio") @db.Date
+  dataFim      DateTime? @map("data_fim") @db.Date
+  dias         Int?
+  exercicio    Int?
+  processo     String?   @db.VarChar(120)
+  observacao   String?   @db.Text
+  origemTabela String    @map("origem_tabela") @db.VarChar(120)
+
+  ativo                   Boolean   @default(true)
+  origemSarh              Boolean   @default(true) @map("origem_sarh")
+  payloadSarh             Json?     @map("payload_sarh")
+  ultimaSincronizacaoSarh DateTime? @map("ultima_sincronizacao_sarh")
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  servidor        Servidor?            @relation(fields: [servidorId], references: [id], onDelete: SetNull)
+  tipoAfastamento TipoAfastamentoSarh? @relation(fields: [tipoAfastamentoId], references: [id], onDelete: SetNull)
+
+  @@index([servidorId])
+  @@index([tipoAfastamentoId])
+  @@index([matricula])
+  @@index([cpf])
+  @@index([dataInicio, dataFim])
+  @@index([ativo])
+  @@map("afastamentos_sarh")
 }
 
 model GestorUnidade {
@@ -1476,7 +1565,7 @@ model IntegracaoSistema {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  orgao               Orgao? @relation(fields: [orgaoId], references: [id], onDelete: SetNull)
+  orgao               Orgao?                   @relation(fields: [orgaoId], references: [id], onDelete: SetNull)
   logs                LogIntegracao[]
   equipamentos        EquipamentoBiometrico[]
   execucoesSarh       IntegracaoSarhExecucao[]
@@ -1976,43 +2065,43 @@ model ArquivoAfd {
 }
 
 model CalendarioInstitucional {
-    id String @id @default(uuid()) @db.Uuid
-  
-    dataReferencia DateTime                    @map("data_referencia") @db.Date
-    descricao      String                      @db.VarChar(200)
-    tipo           TipoCalendarioInstitucional
-    abrangencia    AbrangenciaCalendarioInstitucional @default(NACIONAL)
-    uf             String?                     @db.Char(2)
-    municipio      String?                     @db.VarChar(120)
-    municipioIbge  String?                     @map("municipio_ibge") @db.VarChar(7)
-    orgaoId        String?                     @map("orgao_id") @db.Uuid
-    unidadeId      String?                     @map("unidade_id") @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
 
-  contaComoDiaUtil    Boolean @default(false) @map("conta_como_dia_util")
-  geraApuracaoRegular Boolean @default(false) @map("gera_apuracao_regular")
-  janelaInicio        String? @map("janela_inicio") @db.VarChar(5)
-  janelaFim           String? @map("janela_fim") @db.VarChar(5)
+  dataReferencia DateTime                           @map("data_referencia") @db.Date
+  descricao      String                             @db.VarChar(200)
+  tipo           TipoCalendarioInstitucional
+  abrangencia    AbrangenciaCalendarioInstitucional @default(NACIONAL)
+  uf             String?                            @db.Char(2)
+  municipio      String?                            @db.VarChar(120)
+  municipioIbge  String?                            @map("municipio_ibge") @db.VarChar(7)
+  orgaoId        String?                            @map("orgao_id") @db.Uuid
+  unidadeId      String?                            @map("unidade_id") @db.Uuid
+
+  contaComoDiaUtil    Boolean   @default(false) @map("conta_como_dia_util")
+  geraApuracaoRegular Boolean   @default(false) @map("gera_apuracao_regular")
+  janelaInicio        String?   @map("janela_inicio") @db.VarChar(5)
+  janelaFim           String?   @map("janela_fim") @db.VarChar(5)
   dataOriginal        DateTime? @map("data_original") @db.Date
-  dataSubstituida     Boolean @default(false) @map("data_substituida")
-  observacao          String? @db.Text
-  ativo               Boolean @default(true)
+  dataSubstituida     Boolean   @default(false) @map("data_substituida")
+  observacao          String?   @db.Text
+  ativo               Boolean   @default(true)
 
-    criadoEm     DateTime @default(now()) @map("criado_em")
-    atualizadoEm DateTime @updatedAt @map("atualizado_em")
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-    orgao   Orgao? @relation(fields: [orgaoId], references: [id], onDelete: SetNull)
-    unidade UnidadeOrganizacional? @relation(fields: [unidadeId], references: [id], onDelete: SetNull)
-  
-    @@index([dataReferencia])
-    @@index([tipo])
-    @@index([ativo])
-    @@index([abrangencia])
-    @@index([uf])
-    @@index([municipioIbge])
-    @@index([orgaoId])
-    @@index([unidadeId])
-    @@map("calendarios_institucionais")
-  }
+  orgao   Orgao?                 @relation(fields: [orgaoId], references: [id], onDelete: SetNull)
+  unidade UnidadeOrganizacional? @relation(fields: [unidadeId], references: [id], onDelete: SetNull)
+
+  @@index([dataReferencia])
+  @@index([tipo])
+  @@index([ativo])
+  @@index([abrangencia])
+  @@index([uf])
+  @@index([municipioIbge])
+  @@index([orgaoId])
+  @@index([unidadeId])
+  @@map("calendarios_institucionais")
+}
 
 model RecessoForense {
   id  String @id @default(uuid()) @db.Uuid

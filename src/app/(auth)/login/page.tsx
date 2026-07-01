@@ -7,6 +7,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+import { SecpLogo } from "@/components/brand/secp-logo";
 import { LoginForm } from "./_components/login-form";
 
 const pontosConfianca = [
@@ -38,7 +39,22 @@ export default function LoginPage() {
             </Link>
 
             <div className="mt-14 max-w-3xl">
-              <div className="inline-flex items-center gap-3 rounded-md border border-cyan-200/30 bg-cyan-100/10 px-4 py-2 text-sm font-bold text-cyan-50">
+              <div className="flex items-center gap-5">
+                <SecpLogo
+                  variant="mark"
+                  tone="light"
+                  className="size-24 rounded-xl bg-white/95 p-2.5 shadow-sm ring-1 ring-white/30 xl:size-28"
+                />
+                <div>
+                  <p className="text-5xl font-black tracking-normal text-white xl:text-7xl">
+                    SECP
+                  </p>
+                  <p className="mt-2 text-sm font-bold uppercase tracking-normal text-cyan-100 xl:text-base">
+                    Justiça Federal do Amazonas
+                  </p>
+                </div>
+              </div>
+              <div className="mt-8 inline-flex items-center gap-3 rounded-md border border-cyan-200/30 bg-cyan-100/10 px-4 py-2 text-sm font-bold text-cyan-50">
                 <Building2 className="size-4" aria-hidden="true" />
                 Justiça Federal · SECP
               </div>
@@ -75,12 +91,21 @@ export default function LoginPage() {
                 <ArrowLeft className="size-4" aria-hidden="true" />
                 Apresentação
               </Link>
-              <div className="flex size-10 items-center justify-center rounded-md bg-blue-950 text-sm font-black text-white">
-                SE
-              </div>
+              <SecpLogo variant="mark" className="size-10" />
             </div>
 
             <div className="rounded-lg border border-white/70 bg-white/95 p-7 shadow-[0_24px_70px_rgba(15,23,42,0.18)] backdrop-blur">
+              <div className="mb-7 flex items-center gap-4">
+                <SecpLogo variant="mark" className="size-14 shrink-0" />
+                <div>
+                  <p className="text-2xl font-black tracking-normal text-blue-950">
+                    SECP
+                  </p>
+                  <p className="text-xs font-bold uppercase tracking-normal text-slate-500">
+                    Justiça Federal do Amazonas
+                  </p>
+                </div>
+              </div>
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-sm font-black uppercase text-blue-900">

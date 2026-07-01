@@ -4,6 +4,7 @@ import { Edit, SlidersHorizontal } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
+import { obterEscopoOrgaoDaSessao, whereOrgaoPermitido } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { REGULAMENTACAO_PONTO_PADRAO } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
@@ -47,8 +48,12 @@ export default async function RegulamentacaoPontoPage() {
     "regulamentacao-ponto:gerenciar:global",
   );
 
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
   const orgaos = await prisma.orgao.findMany({
-    where: { ativo: true },
+    where: {
+      ativo: true,
+      ...whereOrgaoPermitido(escopoOrgao),
+    },
     include: {
       regulamentacaoPonto: true,
       _count: {
@@ -68,7 +73,7 @@ export default async function RegulamentacaoPontoPage() {
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administracao", href: "/administracao" },
+          { label: "Administração", href: "/administracao" },
           { label: "Regulamentacao do ponto" },
         ]}
       />
@@ -85,7 +90,7 @@ export default async function RegulamentacaoPontoPage() {
       <section className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-lg border bg-[var(--card)] p-5 text-[var(--card-foreground)]">
           <p className="text-sm font-semibold text-[var(--muted-foreground)]">
-            Orgaos com regra ativa
+            Órgãos com regra ativa
           </p>
           <p className="mt-2 text-3xl font-black">
             {configurados}/{orgaos.length}
@@ -129,13 +134,13 @@ export default async function RegulamentacaoPontoPage() {
             </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
-                <th className="px-5 py-3">Orgao</th>
+                <th className="px-5 py-3">Órgão</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Portaria/ato</th>
                 <th className="px-5 py-3">Limite mensal</th>
                 <th className="px-5 py-3">Expiracao</th>
                 <th className="px-5 py-3">Servidores</th>
-                <th className="px-5 py-3 text-right">Acoes</th>
+                <th className="px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
 

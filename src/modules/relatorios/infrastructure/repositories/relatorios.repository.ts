@@ -141,12 +141,14 @@ export async function buscarDadosEspelhoPontoPdf(params: {
     },
     include: {
       usuario: true,
+      cargo: true,
       lotacoes: {
         where: {
           status: "ATIVO",
         },
         include: {
           unidade: true,
+          cargo: true,
         },
         orderBy: {
           dataInicio: "desc",

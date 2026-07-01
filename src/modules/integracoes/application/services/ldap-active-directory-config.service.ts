@@ -138,7 +138,7 @@ export async function obterOuCriarIntegracaoLdapActiveDirectory() {
       baseUrl: ambiente.authUrl || null,
       ativo: true,
       descricao:
-        "IntegraÃ§Ã£o usada pelo login institucional do SECP para autenticaÃ§Ã£o por LDAP/Active Directory.",
+        "Integração usada pelo login institucional do SECP para autenticação por LDAP/Active Directory.",
       configuracao: {
         modoAutenticacao: ambiente.modoAutenticacao,
         authUrl: ambiente.authUrl,

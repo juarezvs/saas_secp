@@ -51,6 +51,18 @@ export type SarhServidorDto = {
   lotacaoTipo: string | null;
   cargoId: number | null;
   cargoDescricao: string | null;
+  codigoFuncionario?: number | null;
+  codigoProvimento?: number | null;
+  descricaoProvimento?: string | null;
+  codigoSituacao?: number | null;
+  descricaoSituacao?: string | null;
+  perfilTipo?: string | null;
+  funcaoAtualGrupo?: string | null;
+  funcaoAtualCategoria?: string | null;
+  funcaoAtualCodigo?: string | null;
+  funcaoAtualDescricao?: string | null;
+  funcaoAtualSituacao?: string | null;
+  funcaoAtualInicio?: string | null;
 };
 
 export type SarhLotacaoServidorDto = {
@@ -61,12 +73,59 @@ export type SarhLotacaoServidorDto = {
   cargo: SarhCargoDto | null;
 };
 
+export type SarhTipoAfastamentoDto = {
+  codigo: number;
+  descricao: string;
+  categoria: string;
+  remunerada: string | boolean | null;
+  servidor: string | boolean | null;
+  juiz: string | boolean | null;
+  dataInicioVigencia: string | null;
+  dataFimVigencia: string | null;
+};
+
+export type SarhAfastamentoDto = {
+  id: string;
+  categoria: string;
+  tipoCodigo: number | string | null;
+  tipoDescricao: string | null;
+  matricula: string | null;
+  cpf: number | string | null;
+  nome: string | null;
+  dataInicio: string | null;
+  dataFim: string | null;
+  dias: number | null;
+  exercicio: number | null;
+  processo: string | null;
+  observacao: string | null;
+  origemTabela: string;
+};
+
+export type SarhChefiaDto = {
+  idFuncaoLotacao: number;
+  lotacaoId: number;
+  lotacaoSigla: string | null;
+  lotacaoDescricao: string | null;
+  funcaoDescricao: string | null;
+  funcaoCategoria: string | null;
+  funcaoCodigo: string | null;
+  matricula: string | null;
+  nome: string | null;
+  situacao: string | null;
+  dataInicio: string | null;
+  flagOcupado: string | boolean | null;
+  flagAtiva: string | boolean | null;
+};
+
 export type SarhPayloadCompleto = {
   empresas: SarhEmpresaDto[];
   lotacoes: SarhLotacaoDto[];
   cargos: SarhCargoDto[];
   servidores: SarhServidorDto[];
   lotacoesServidores: SarhLotacaoServidorDto[];
+  tiposAfastamento: SarhTipoAfastamentoDto[];
+  afastamentos: SarhAfastamentoDto[];
+  chefias: SarhChefiaDto[];
 };
 
 export type SarhEndpointKey =
@@ -74,7 +133,10 @@ export type SarhEndpointKey =
   | "lotacoes"
   | "cargos"
   | "servidores"
-  | "lotacoesServidores";
+  | "lotacoesServidores"
+  | "tiposAfastamento"
+  | "afastamentos"
+  | "chefias";
 
 export type TipoExecucaoSarh =
   | "CARGA_INICIAL"
@@ -88,29 +150,26 @@ export type TipoEndpointSarhDb =
   | "LOTACOES"
   | "CARGOS"
   | "SERVIDORES"
-  | "LOTACOES_SERVIDORES";
+  | "LOTACOES_SERVIDORES"
+  | "TIPOS_AFASTAMENTO"
+  | "AFASTAMENTOS"
+  | "CHEFIAS";
 
 export type TipoRegistroSarhDb =
   | "EMPRESA"
   | "LOTACAO"
   | "CARGO"
   | "SERVIDOR"
-  | "LOTACAO_SERVIDOR";
+  | "LOTACAO_SERVIDOR"
+  | "TIPO_AFASTAMENTO"
+  | "AFASTAMENTO"
+  | "CHEFIA";
 
 export type OperacaoRegistroSarhDb =
-  | "CRIAR"
-  | "ATUALIZAR"
-  | "INATIVAR"
-  | "IGNORAR"
-  | "CONFLITO"
-  | "ERRO";
+  "CRIAR" | "ATUALIZAR" | "INATIVAR" | "IGNORAR" | "CONFLITO" | "ERRO";
 
 export type StatusRegistroIntegracaoSarhDb =
-  | "PENDENTE"
-  | "PROCESSADO"
-  | "IGNORADO"
-  | "ERRO"
-  | "CONFLITO";
+  "PENDENTE" | "PROCESSADO" | "IGNORADO" | "ERRO" | "CONFLITO";
 
 export type ResultadoItemSarh = {
   tipoRegistro: TipoRegistroSarhDb;
@@ -139,4 +198,24 @@ export type SarhResumoExecucao = {
   iniciadoEm: Date;
   finalizadoEm: Date;
   duracaoMs: number;
+};
+
+export type SarhSyncProgress = {
+  execucaoId?: string;
+  percentualGeral: number;
+  percentualEndpoint: number;
+  endpointAtual: SarhEndpointKey | null;
+  endpointIndice: number;
+  totalEndpoints: number;
+  etapa: string;
+  status: "AGENDADA" | "EM_EXECUCAO" | "CONCLUIDA" | "FALHOU";
+  contadores: {
+    totalRecebidos: number;
+    totalCriados: number;
+    totalAtualizados: number;
+    totalInativados: number;
+    totalIgnorados: number;
+    totalErros: number;
+    totalConflitos: number;
+  };
 };

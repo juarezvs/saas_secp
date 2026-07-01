@@ -189,7 +189,7 @@ export function SolicitacoesTable({
       <div className="rounded-lg border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
         <div className="flex flex-col gap-3 border-b p-5 md:flex-row md:items-start md:justify-between">
           <div>
-            <h2 className="text-lg font-bold">Solicitacoes registradas</h2>
+            <h2 className="text-lg font-bold">Solicitações registradas</h2>
             {tipoAtivo ? (
               <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                 Filtrando por {rotuloTipoSolicitacao(tipoAtivo)}
@@ -221,7 +221,7 @@ export function SolicitacoesTable({
                   name="servidor"
                   list="solicitacoes-servidores"
                   defaultValue={servidorAtivo}
-                  placeholder="Pesquise por nome ou matricula"
+                  placeholder="Pesquise por nome ou matrícula"
                   className="h-10 w-full min-w-[300px] rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
                 />
                 <datalist id="solicitacoes-servidores">
@@ -297,13 +297,13 @@ export function SolicitacoesTable({
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
                 <th className="px-5 py-3">Criada em</th>
-                <th className="px-5 py-3">Referencia</th>
+                <th className="px-5 py-3">Referência</th>
                 <th className="px-5 py-3">Servidor</th>
                 <th className="px-5 py-3">Unidade</th>
                 <th className="px-5 py-3">Tipo</th>
-                <th className="px-5 py-3">Titulo</th>
+                <th className="px-5 py-3">Título</th>
                 <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Acoes</th>
+                <th className="px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
 
@@ -366,7 +366,7 @@ export function SolicitacoesTable({
                     colSpan={8}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
-                    Nenhuma solicitacao encontrada.
+                    Nenhuma solicitação encontrada.
                   </td>
                 </tr>
               )}

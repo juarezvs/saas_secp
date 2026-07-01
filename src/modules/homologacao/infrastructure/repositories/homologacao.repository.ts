@@ -31,7 +31,9 @@ export function montarWhereFechamentosMensais(
     ...(Number.isInteger(anoReferencia) && anoReferencia > 0
       ? { anoReferencia }
       : {}),
-    ...(Number.isInteger(mesReferencia) && mesReferencia >= 1 && mesReferencia <= 12
+    ...(Number.isInteger(mesReferencia) &&
+    mesReferencia >= 1 &&
+    mesReferencia <= 12
       ? { mesReferencia }
       : {}),
     ...(params.status && ehStatusFechamento(params.status)
@@ -41,8 +43,18 @@ export function montarWhereFechamentosMensais(
       ? {
           unidade: {
             OR: [
-              { sigla: { contains: params.unidade, mode: "insensitive" as const } },
-              { nome: { contains: params.unidade, mode: "insensitive" as const } },
+              {
+                sigla: {
+                  contains: params.unidade,
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                nome: {
+                  contains: params.unidade,
+                  mode: "insensitive" as const,
+                },
+              },
             ],
           },
         }
@@ -58,8 +70,16 @@ export function montarWhereFechamentosMensais(
                 ],
               },
             },
-            { abertoPor: { nome: { contains: busca, mode: "insensitive" as const } } },
-            { homologadoPor: { nome: { contains: busca, mode: "insensitive" as const } } },
+            {
+              abertoPor: {
+                nome: { contains: busca, mode: "insensitive" as const },
+              },
+            },
+            {
+              homologadoPor: {
+                nome: { contains: busca, mode: "insensitive" as const },
+              },
+            },
           ],
         }
       : {}),
@@ -232,6 +252,7 @@ export async function listarServidoresDaUnidadeNoMes(params: {
       ativo: true,
       lotacoes: {
         some: {
+          status: "ATIVO",
           unidadeId: params.unidadeId,
           dataInicio: {
             lt: fim,
@@ -254,6 +275,7 @@ export async function listarServidoresDaUnidadeNoMes(params: {
       bancoHorasSaldo: true,
       lotacoes: {
         where: {
+          status: "ATIVO",
           unidadeId: params.unidadeId,
         },
         include: {
@@ -300,7 +322,9 @@ export async function listarJornadasServidorMes(params: {
   anoReferencia: number;
   mesReferencia: number;
 }) {
-  const inicio = new Date(Date.UTC(params.anoReferencia, params.mesReferencia - 1, 1));
+  const inicio = new Date(
+    Date.UTC(params.anoReferencia, params.mesReferencia - 1, 1),
+  );
   const fim = new Date(Date.UTC(params.anoReferencia, params.mesReferencia, 1));
 
   return prisma.jornadaServidor.findMany({

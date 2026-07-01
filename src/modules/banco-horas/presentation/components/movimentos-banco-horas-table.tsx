@@ -59,7 +59,7 @@ export function MovimentosBancoHorasTable({
               <th className="px-5 py-3">Status</th>
               <th className="px-5 py-3">Expiracao</th>
               <th className="px-5 py-3">Descrição</th>
-              {podeGerenciar && <th className="px-5 py-3">Acoes</th>}
+              {podeGerenciar && <th className="px-5 py-3">Ações</th>}
             </tr>
           </thead>
 

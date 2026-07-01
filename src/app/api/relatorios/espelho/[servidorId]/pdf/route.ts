@@ -29,8 +29,15 @@ export async function GET(request: Request, context: RouteContext) {
   const podeExportarProprio = permissoes.includes(
     "relatorios:exportar:proprio",
   );
+  const podeVisualizarEspelhoProprio = permissoes.includes(
+    "espelho-ponto:visualizar:proprio",
+  );
 
-  if (!podeExportarGlobal && !podeExportarProprio) {
+  if (
+    !podeExportarGlobal &&
+    !podeExportarProprio &&
+    !podeVisualizarEspelhoProprio
+  ) {
     return new Response("Acesso negado.", {
       status: 403,
     });

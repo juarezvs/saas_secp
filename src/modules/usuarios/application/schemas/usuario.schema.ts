@@ -46,6 +46,11 @@ export const usuarioAtualizacaoSchema = usuarioSchema.extend({
 export const vincularPerfilUsuarioSchema = z.object({
   usuarioId: z.string().uuid("Usuário inválido."),
   perfilId: z.string().uuid("Informe o perfil."),
+  orgaoId: z
+    .string()
+    .uuid("Selecione uma seccional valida.")
+    .optional()
+    .or(z.literal("")),
 });
 
 export type UsuarioInput = z.infer<typeof usuarioSchema>;
@@ -63,6 +68,7 @@ export type UsuarioFormState = {
     senha?: string;
     ativo?: boolean;
     perfis?: string[];
+    perfisEscopos?: Record<string, string>;
   };
 };
 
@@ -73,5 +79,6 @@ export type VincularPerfilUsuarioFormState = {
   campos?: {
     usuarioId?: string;
     perfilId?: string;
+    orgaoId?: string;
   };
 };

@@ -3,6 +3,10 @@ import { Edit, Landmark, Plus } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
+import {
+  aplicarEscopoOrgaoId,
+  obterEscopoOrgaoDaSessao,
+} from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarFusosHorariosAtivos } from "@/modules/fusos-horarios/infrastructure/repositories/fuso-horario.repository";
 import { listarOrgaosPaginado } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
@@ -25,20 +29,26 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
   await exigirPermissaoOuRedirecionar("unidades:gerenciar:global");
 
   const params = searchParams ? await searchParams : {};
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
 
   const [resultado, fusosHorarios] = await Promise.all([
-    listarOrgaosPaginado({
-      busca: params.busca ?? "",
-      sigla: params.sigla ?? "",
-      nome: params.nome ?? "",
-      codigoExternoSarh: params.codigoExternoSarh ?? "",
-      status: params.status ?? "",
-      fusoHorario: params.fusoHorario ?? "",
-      pagina,
-      itensPorPagina,
-    }),
+    listarOrgaosPaginado(
+      aplicarEscopoOrgaoId(
+        {
+          busca: params.busca ?? "",
+          sigla: params.sigla ?? "",
+          nome: params.nome ?? "",
+          codigoExternoSarh: params.codigoExternoSarh ?? "",
+          status: params.status ?? "",
+          fusoHorario: params.fusoHorario ?? "",
+          pagina,
+          itensPorPagina,
+        },
+        escopoOrgao,
+      ),
+    ),
     listarFusosHorariosAtivos(),
   ]);
 
@@ -84,15 +94,17 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
         regraDescricao="A estrutura de órgãos organiza a abrangência administrativa do SECP e sustenta cadastros funcionais, unidades organizacionais e sincronizações externas."
       />
 
-      <div className="flex justify-end">
-        <Link
-          href="/orgaos/novo"
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-blue-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-950"
-        >
-          <Plus className="size-4" aria-hidden="true" />
-          Novo orgao
-        </Link>
-      </div>
+      {escopoOrgao.global && (
+        <div className="flex justify-end">
+          <Link
+            href="/orgaos/novo"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-blue-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-950"
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            Novo orgao
+          </Link>
+        </div>
+      )}
 
       <DataTableShell
         title="Órgãos cadastrados"
@@ -126,7 +138,7 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
                 <th className="px-5 py-3">Fuso</th>
                 <th className="px-5 py-3">Última sincronização</th>
                 <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Acoes</th>
+                <th className="px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
 

@@ -5,6 +5,7 @@ import {
 } from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
 import { calcularCargaMensalEsperada } from "@/modules/homologacao/application/services/calcular-carga-mensal-esperada.service";
 import { normalizarFusoHorario } from "@/modules/marcacoes/application/services/data-marcacao.service";
+import { prisma } from "@/shared/infrastructure/database/prisma";
 
 import { normalizarDataReferencia } from "./calcular-tempo.service";
 
@@ -34,6 +35,15 @@ type OcorrenciaEspelhoMensal = {
   tipo: string;
   descricao: string;
   minutos: number;
+};
+
+type AfastamentoSarhEspelho = {
+  id: string;
+  categoria: string;
+  tipoDescricao: string | null;
+  dataInicio: Date;
+  dataFim: Date | null;
+  processo: string | null;
 };
 
 type ApuracaoEspelhoMensal = {
@@ -143,7 +153,9 @@ function movimentosCompensacaoCredito(
 function ajustarApuracaoPorCompensacao(
   apuracao: ApuracaoEspelhoMensal,
 ): ItemEspelhoMensalCompleto {
-  const compensacoes = movimentosCompensacaoCredito(apuracao.movimentoBancoHoras);
+  const compensacoes = movimentosCompensacaoCredito(
+    apuracao.movimentoBancoHoras,
+  );
   const minutosDebitoCompensado = Math.min(
     apuracao.minutosDebito,
     compensacoes.reduce((total, movimento) => total + movimento.minutos, 0),
@@ -279,6 +291,90 @@ function metadadosDiaInstitucional(dia: {
   };
 }
 
+async function carregarAfastamentosSarhPeriodo(params: {
+  servidorId?: string | null;
+  inicio: Date;
+  fim: Date;
+}) {
+  if (!params.servidorId) {
+    return [];
+  }
+
+  return prisma.afastamentoSarh.findMany({
+    where: {
+      servidorId: params.servidorId,
+      dataInicio: { lt: params.fim },
+      OR: [{ dataFim: null }, { dataFim: { gte: params.inicio } }],
+    },
+    select: {
+      id: true,
+      categoria: true,
+      tipoDescricao: true,
+      dataInicio: true,
+      dataFim: true,
+      processo: true,
+    },
+    orderBy: [{ dataInicio: "asc" }, { categoria: "asc" }],
+  });
+}
+
+function afastamentoAbrangeData(
+  afastamento: AfastamentoSarhEspelho,
+  dataReferencia: Date,
+) {
+  const data = normalizarDataReferencia(dataReferencia);
+  const inicio = normalizarDataReferencia(afastamento.dataInicio);
+  const fim = afastamento.dataFim
+    ? normalizarDataReferencia(afastamento.dataFim)
+    : null;
+
+  return data >= inicio && (!fim || data <= fim);
+}
+
+function descricaoAfastamento(afastamento: AfastamentoSarhEspelho) {
+  const tipo = afastamento.tipoDescricao ?? afastamento.categoria;
+  const processo = afastamento.processo
+    ? ` Processo/SEI: ${afastamento.processo}.`
+    : "";
+
+  return `Afastamento SARH: ${tipo}.${processo}`;
+}
+
+function aplicarAfastamentoSarh(
+  item: ItemEspelhoMensalCompleto,
+  afastamento: AfastamentoSarhEspelho,
+): ItemEspelhoMensalCompleto {
+  return {
+    ...item,
+    cargaPrevistaMinutos: 0,
+    minutosCredito: 0,
+    minutosDebito: 0,
+    resultado: "REGULAR",
+    status: "CALCULADA",
+    metadados: {
+      ...metadadosComoObjeto(item.metadados),
+      afastamentoSarh: {
+        id: afastamento.id,
+        categoria: afastamento.categoria,
+        tipoDescricao: afastamento.tipoDescricao,
+        processo: afastamento.processo,
+      },
+    },
+    ocorrencias: [
+      ...(item.ocorrencias ?? []).filter(
+        (ocorrencia) => !["DEBITO", "FALTA"].includes(ocorrencia.tipo),
+      ),
+      {
+        tipo: "AFASTAMENTO",
+        descricao: descricaoAfastamento(afastamento),
+        minutos: item.cargaPrevistaMinutos,
+      },
+    ],
+    minutosDebitoApurado: 0,
+    minutosDebitoCompensado: 0,
+  };
+}
+
 export async function montarEspelhoMensalCompleto(params: {
   anoReferencia: number;
   mesReferencia: number;
@@ -298,14 +394,18 @@ export async function montarEspelhoMensalCompleto(params: {
       fimExclusivo: fim,
     }));
   const limiteSaldos = dataLimiteSaldos(params);
-  const { dias, cargaPrevistaMensalMinutos } =
-    await preencherDiasDaCompetencia({
-      anoReferencia: params.anoReferencia,
-      mesReferencia: params.mesReferencia,
-      jornadas: params.jornadas,
-      calendario,
-      servidorId: params.servidorId,
-    });
+  const { dias } = await preencherDiasDaCompetencia({
+    anoReferencia: params.anoReferencia,
+    mesReferencia: params.mesReferencia,
+    jornadas: params.jornadas,
+    calendario,
+    servidorId: params.servidorId,
+  });
+  const afastamentos = await carregarAfastamentosSarhPeriodo({
+    servidorId: params.servidorId,
+    inicio,
+    fim,
+  });
   const apuracoesPorData = new Map(
     params.apuracoes.map((apuracao) => [
       chaveData(apuracao.dataReferencia),
@@ -317,9 +417,12 @@ export async function montarEspelhoMensalCompleto(params: {
     const chave = chaveData(dia.dataReferencia);
     const apuracao = apuracoesPorData.get(chave);
     const contabilizarSaldos = dia.dataReferencia <= limiteSaldos;
+    const afastamento = afastamentos.find((item) =>
+      afastamentoAbrangeData(item, dia.dataReferencia),
+    );
 
     if (apuracao) {
-      return {
+      const item = {
         ...apuracao,
         metadados: {
           ...metadadosDiaInstitucional(dia),
@@ -327,9 +430,11 @@ export async function montarEspelhoMensalCompleto(params: {
         },
         contabilizarSaldos,
       };
+
+      return afastamento ? aplicarAfastamentoSarh(item, afastamento) : item;
     }
 
-    return {
+    const item = {
       id: `competencia-${chave}`,
       dataReferencia: dia.dataReferencia,
       cargaPrevistaMinutos: dia.cargaPrevistaMinutos,
@@ -349,10 +454,15 @@ export async function montarEspelhoMensalCompleto(params: {
       minutosDebitoApurado: 0,
       minutosDebitoCompensado: 0,
     };
+
+    return afastamento ? aplicarAfastamentoSarh(item, afastamento) : item;
   });
 
   return {
     itens,
-    cargaPrevistaMensalMinutos,
+    cargaPrevistaMensalMinutos: itens.reduce(
+      (total, item) => total + item.cargaPrevistaMinutos,
+      0,
+    ),
   };
 }

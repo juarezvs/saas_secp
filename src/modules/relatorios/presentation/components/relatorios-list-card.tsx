@@ -52,7 +52,7 @@ export function RelatoriosListCard({
       <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
         <div className="flex flex-col gap-4 border-b p-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="text-lg font-bold">Relatorios individuais</h2>
+            <h2 className="text-lg font-bold">Relatórios individuais</h2>
             <p className="mt-1 text-sm text-[var(--muted-foreground)]">
               Documentos por servidor para espelho de ponto e banco de horas.
             </p>
@@ -89,7 +89,7 @@ export function RelatoriosListCard({
       {mostrarGerenciais && (
         <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
           <div className="border-b p-5">
-            <h2 className="text-lg font-bold">Relatorios gerenciais</h2>
+            <h2 className="text-lg font-bold">Relatórios gerenciais</h2>
             <p className="mt-1 text-sm text-[var(--muted-foreground)]">
               Visao consolidada conforme o escopo do perfil ativo.
             </p>
@@ -128,7 +128,7 @@ export function RelatoriosListCard({
 
       <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
         <div className="border-b p-5">
-          <h2 className="text-lg font-bold">Boletins de Frequencia</h2>
+          <h2 className="text-lg font-bold">Boletins de Frequência</h2>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
             Boletins disponiveis para exportacao em PDF.
           </p>

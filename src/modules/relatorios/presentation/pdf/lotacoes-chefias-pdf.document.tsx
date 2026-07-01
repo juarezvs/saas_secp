@@ -52,9 +52,9 @@ export function LotacoesChefiasPdfDocument({
           <Text style={s.sectionTitle}>Detalhamento</Text>
           <View style={s.table}>
             <View style={s.tableHeader}>
-              <Text style={[s.th, { width: "8%" }]}>Orgao</Text>
+              <Text style={[s.th, { width: "8%" }]}>Órgão</Text>
               <Text style={[s.th, { width: "10%" }]}>Sigla</Text>
-              <Text style={[s.th, { width: "22%" }]}>Lotacao</Text>
+              <Text style={[s.th, { width: "22%" }]}>Lotação</Text>
               <Text style={[s.th, { width: "20%" }]}>Unidade superior</Text>
               <Text style={[s.th, { width: "8%" }]}>Serv.</Text>
               <Text style={[s.th, { width: "8%" }]}>Filhas</Text>

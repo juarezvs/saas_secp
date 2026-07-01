@@ -141,13 +141,12 @@ function causaOcorrenciaEspelho(ocorrencia: OcorrenciaEspelho) {
   const rotulos: Record<string, string> = {
     MARCACAO_INCOMPLETA:
       "Marcacoes incompletas, por exemplo entrada sem saida.",
-    INTERVALO_INVALIDO:
-      "Intervalo obrigatorio ausente ou fora dos limites.",
-    HORA_NAO_AUTORIZADA:
-      "Horas registradas fora da janela autorizada.",
+    INTERVALO_INVALIDO: "Intervalo obrigatorio ausente ou fora dos limites.",
+    HORA_NAO_AUTORIZADA: "Horas registradas fora da janela autorizada.",
     FALTA: "Jornada esperada, mas sem marcacoes: falta.",
     DEBITO: "Debito ou falta nao justificados integralmente.",
     SEM_JORNADA: "Servidor sem jornada configurada em dia util.",
+    AFASTAMENTO: "Afastamento registrado no SARH.",
   };
 
   const rotulo = rotulos[ocorrencia.tipo];
@@ -162,9 +161,10 @@ function causaOcorrenciaEspelho(ocorrencia: OcorrenciaEspelho) {
 }
 
 function formatarDescricaoConferencia(causas: string[]) {
-  return ["Causas da conferencia:", ...causas.map((causa) => `- ${causa}`)].join(
-    "\n",
-  );
+  return [
+    "Causas da conferencia:",
+    ...causas.map((causa) => `- ${causa}`),
+  ].join("\n");
 }
 
 export function extrairSolicitacoesAplicadasEspelho(
@@ -202,9 +202,7 @@ export function extrairSolicitacoesAplicadasEspelho(
         tipo: dados.tipo,
         titulo: dados.titulo,
         minutosCobertos:
-          typeof dados.minutosCobertos === "number"
-            ? dados.minutosCobertos
-            : 0,
+          typeof dados.minutosCobertos === "number" ? dados.minutosCobertos : 0,
         coberturaIntegral: dados.coberturaIntegral === true,
         trabalhoRemoto: dados.trabalhoRemoto === true,
       },

@@ -1,204 +1,332 @@
 "use client";
 
 import {
-  useActionState,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type FormEvent,
 } from "react";
-import {
-  sincronizarSarhComProgressoAction,
-  type SincronizarSarhActionState,
-} from "../actions/sarh.actions";
+import type {
+  SarhEndpointKey,
+  SarhResumoExecucao,
+  SarhSyncProgress,
+} from "../../domain/sarh.types";
 
-const estadoInicial: SincronizarSarhActionState = {
-  ok: null,
-  mensagem: "Aguardando início da sincronização.",
-};
+const STORAGE_JOB_ID = "secp:sarh-sync:job-id";
 
-const endpointsDisponiveis = [
-  ["empresas", "Empresas / Seções Judiciárias"],
-  ["lotacoes", "Lotações / Departamentos"],
+const endpointsDisponiveis: Array<[SarhEndpointKey, string]> = [
+  ["empresas", "Empresas / Secoes Judiciarias"],
+  ["lotacoes", "Lotacoes / Departamentos"],
   ["cargos", "Cargos"],
   ["servidores", "Servidores"],
-  ["lotacoesServidores", "Lotações dos servidores"],
-] as const;
+  ["lotacoesServidores", "Lotacoes dos servidores"],
+  ["tiposAfastamento", "Tipos de afastamento"],
+  ["afastamentos", "Afastamentos"],
+  ["chefias", "Chefias"],
+];
+
+const endpointsCompativeisComMatricula = new Set<SarhEndpointKey>([
+  "servidores",
+  "lotacoesServidores",
+  "afastamentos",
+  "chefias",
+]);
+
+const todosEndpoints = endpointsDisponiveis.map(([value]) => value);
+const endpointLabels = new Map(endpointsDisponiveis);
+
+type JobEstado =
+  | "waiting"
+  | "delayed"
+  | "active"
+  | "completed"
+  | "failed"
+  | "unknown";
+
+type SarhSyncStatusResponse = {
+  jobId: string;
+  estado: JobEstado;
+  progresso: SarhSyncProgress;
+  resultado?: SarhResumoExecucao | null;
+  erro?: string | null;
+};
 
 type ResumoDetalhe = {
   rotulo: string;
   valor: number;
 };
 
-function obterEtapaPorProgresso(progresso: number) {
-  if (progresso < 18) return "Preparando execução e registrando início";
-  if (progresso < 38) return "Buscando dados nos endpoints do SARH";
-  if (progresso < 68) {
-    return "Normalizando CPF, matrícula, lotação, cargo e unidade";
-  }
-  if (progresso < 90) {
-    return "Comparando payloads, aplicando regras e registrando itens";
-  }
-  if (progresso < 100) return "Finalizando execução, logs e auditoria";
-
-  return "Execução concluída";
+function progressoInicial(): SarhSyncProgress {
+  return {
+    percentualGeral: 0,
+    percentualEndpoint: 0,
+    endpointAtual: null,
+    endpointIndice: 0,
+    totalEndpoints: 0,
+    etapa: "Pronto para iniciar",
+    status: "AGENDADA",
+    contadores: {
+      totalRecebidos: 0,
+      totalCriados: 0,
+      totalAtualizados: 0,
+      totalInativados: 0,
+      totalIgnorados: 0,
+      totalErros: 0,
+      totalConflitos: 0,
+    },
+  };
 }
 
-function obterNumeroDetalhe(
-  detalhes: Record<string, unknown>,
-  chave: string,
-): number | null {
-  const valor = detalhes[chave];
-
-  return typeof valor === "number" ? valor : null;
-}
-
-function obterResumoDetalhes(
-  detalhes: Record<string, unknown> | undefined,
+function montarResumo(
+  progresso: SarhSyncProgress,
+  resultado?: SarhResumoExecucao | null,
 ): ResumoDetalhe[] {
-  if (!detalhes) return [];
+  const contadores = resultado ?? progresso.contadores;
 
-  const resumo: ResumoDetalhe[] = [];
-
-  const totalRecebidos = obterNumeroDetalhe(detalhes, "totalRecebidos");
-  const totalCriados = obterNumeroDetalhe(detalhes, "totalCriados");
-  const totalAtualizados = obterNumeroDetalhe(detalhes, "totalAtualizados");
-  const totalIgnorados = obterNumeroDetalhe(detalhes, "totalIgnorados");
-  const totalErros = obterNumeroDetalhe(detalhes, "totalErros");
-  const totalConflitos = obterNumeroDetalhe(detalhes, "totalConflitos");
-
-  if (totalRecebidos !== null) {
-    resumo.push({ rotulo: "Recebidos", valor: totalRecebidos });
-  }
-
-  if (totalCriados !== null) {
-    resumo.push({ rotulo: "Criados", valor: totalCriados });
-  }
-
-  if (totalAtualizados !== null) {
-    resumo.push({ rotulo: "Atualizados", valor: totalAtualizados });
-  }
-
-  if (totalIgnorados !== null) {
-    resumo.push({ rotulo: "Ignorados", valor: totalIgnorados });
-  }
-
-  if (totalErros !== null) {
-    resumo.push({ rotulo: "Erros", valor: totalErros });
-  }
-
-  if (totalConflitos !== null) {
-    resumo.push({ rotulo: "Conflitos", valor: totalConflitos });
-  }
-
-  return resumo;
+  return [
+    ["Recebidos", contadores.totalRecebidos],
+    ["Criados", contadores.totalCriados],
+    ["Atualizados", contadores.totalAtualizados],
+    ["Inativados", contadores.totalInativados],
+    ["Ignorados", contadores.totalIgnorados],
+    ["Erros", contadores.totalErros],
+    ["Conflitos", contadores.totalConflitos],
+  ].map(([rotulo, valor]) => ({ rotulo: String(rotulo), valor: Number(valor) }));
 }
 
-export function SarhSyncProgressForm() {
-  const [estado, formAction, pendente] = useActionState(
-    sincronizarSarhComProgressoAction,
-    estadoInicial,
-  );
+function estadoEmAndamento(estado: JobEstado | null) {
+  return estado === "waiting" || estado === "delayed" || estado === "active";
+}
 
-  const [progresso, setProgresso] = useState(0);
+export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
+  const [matriculaFiltro, setMatriculaFiltro] = useState("");
+  const [endpointsSelecionados, setEndpointsSelecionados] =
+    useState<SarhEndpointKey[]>(todosEndpoints);
   const [modoSelecionado, setModoSelecionado] = useState<
     "simulacao" | "aplicar" | null
   >(null);
-  const [submetido, setSubmetido] = useState(false);
-
+  const [jobId, setJobId] = useState<string | null>(() =>
+    typeof window === "undefined"
+      ? null
+      : window.localStorage.getItem(STORAGE_JOB_ID),
+  );
+  const [estadoJob, setEstadoJob] = useState<JobEstado | null>(null);
+  const [progresso, setProgresso] = useState<SarhSyncProgress>(
+    progressoInicial,
+  );
+  const [resultado, setResultado] = useState<SarhResumoExecucao | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [enfileirando, setEnfileirando] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const pararAnimacao = useCallback(() => {
+  const matriculaAtiva = Boolean(matriculaFiltro.trim());
+  const emAndamento = enfileirando || estadoEmAndamento(estadoJob);
+  const endpointAtualRotulo = progresso.endpointAtual
+    ? endpointLabels.get(progresso.endpointAtual)
+    : estadoJob === "completed"
+      ? "Todos os endpoints concluidos"
+      : estadoJob === "failed"
+        ? "Execucao interrompida"
+        : "Aguardando inicio";
+  const statusVisual = enfileirando
+    ? "ENFILEIRANDO"
+    : estadoJob === "completed"
+      ? "CONCLUIDA"
+      : estadoJob === "failed"
+        ? "FALHA"
+        : estadoJob === "active"
+          ? "EM EXECUCAO"
+          : estadoJob === "waiting" || estadoJob === "delayed"
+            ? "AGENDADA"
+            : "PRONTO";
+  const corBarra =
+    estadoJob === "failed"
+      ? "bg-red-600"
+      : estadoJob === "completed"
+        ? "bg-green-600"
+        : "bg-blue-700";
+  const resumo = useMemo(
+    () => montarResumo(progresso, resultado),
+    [progresso, resultado],
+  );
+
+  const pararPolling = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
   }, []);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const consultarStatus = useCallback(
+    async (id: string) => {
+      const response = await fetch(
+        `/api/integracoes/sarh/sincronizar?jobId=${encodeURIComponent(id)}`,
+        { cache: "no-store" },
+      );
+
+      if (!response.ok) {
+        throw new Error("Nao foi possivel consultar a sincronizacao SARH.");
+      }
+
+      const status = (await response.json()) as SarhSyncStatusResponse;
+      setJobId(status.jobId);
+      setEstadoJob(status.estado);
+      setProgresso(status.progresso);
+      setResultado(status.resultado ?? null);
+      setErro(status.erro ?? null);
+
+      if (status.estado === "completed" || status.estado === "failed") {
+        pararPolling();
+        window.localStorage.removeItem(STORAGE_JOB_ID);
+      }
+    },
+    [pararPolling],
+  );
+
+  const iniciarPolling = useCallback(
+    (id: string) => {
+      pararPolling();
+      void consultarStatus(id).catch((error) => {
+        setErro(error instanceof Error ? error.message : String(error));
+      });
+      intervalRef.current = setInterval(() => {
+        void consultarStatus(id).catch((error) => {
+          setErro(error instanceof Error ? error.message : String(error));
+        });
+      }, 1500);
+    },
+    [consultarStatus, pararPolling],
+  );
+
+  useEffect(() => {
+    if (jobId) {
+      const timeout = setTimeout(() => iniciarPolling(jobId), 0);
+
+      return () => {
+        clearTimeout(timeout);
+        pararPolling();
+      };
+    }
+
+    return () => pararPolling();
+  }, [iniciarPolling, jobId, pararPolling]);
+
+  function endpointsEfetivos() {
+    if (!matriculaFiltro.trim()) {
+      return endpointsSelecionados;
+    }
+
+    const compativeis = endpointsSelecionados.filter((endpoint) =>
+      endpointsCompativeisComMatricula.has(endpoint),
+    );
+
+    return compativeis.length
+      ? compativeis
+      : todosEndpoints.filter((endpoint) =>
+          endpointsCompativeisComMatricula.has(endpoint),
+        );
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
     const submitter = (event.nativeEvent as SubmitEvent)
       .submitter as HTMLButtonElement | null;
     const modo = submitter?.value === "aplicar" ? "aplicar" : "simulacao";
 
-    pararAnimacao();
-    setSubmetido(true);
     setModoSelecionado(modo);
-    setProgresso(6);
+    setEnfileirando(true);
+    setErro(null);
+    setResultado(null);
+    setProgresso({
+      ...progressoInicial(),
+      etapa: "Enfileirando sincronizacao SARH",
+    });
+
+    try {
+      const response = await fetch("/api/integracoes/sarh/sincronizar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          modo,
+          orgaoId: orgaoId || undefined,
+          matricula: matriculaFiltro.trim() || undefined,
+          endpoints: endpointsEfetivos(),
+        }),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as {
+          message?: string;
+        } | null;
+        throw new Error(body?.message ?? "Falha ao enfileirar sincronizacao.");
+      }
+
+      const status = (await response.json()) as SarhSyncStatusResponse;
+      setJobId(status.jobId);
+      setEstadoJob(status.estado);
+      setProgresso(status.progresso);
+      window.localStorage.setItem(STORAGE_JOB_ID, status.jobId);
+      iniciarPolling(status.jobId);
+    } catch (error) {
+      setErro(error instanceof Error ? error.message : String(error));
+      setEstadoJob("failed");
+    } finally {
+      setEnfileirando(false);
+    }
   }
 
-  useEffect(() => {
-    if (!pendente) return;
+  function alternarEndpoint(endpoint: SarhEndpointKey, marcado: boolean) {
+    setEndpointsSelecionados((atuais) => {
+      if (marcado) {
+        return atuais.includes(endpoint) ? atuais : [...atuais, endpoint];
+      }
 
-    pararAnimacao();
+      return atuais.filter((item) => item !== endpoint);
+    });
+  }
 
-    intervalRef.current = setInterval(() => {
-      setProgresso((valorAtual) => {
-        const incremento = valorAtual < 30 ? 4 : valorAtual < 70 ? 2 : 1;
+  function handleMatriculaChange(valor: string) {
+    setMatriculaFiltro(valor);
 
-        return Math.min(valorAtual + incremento, 92);
-      });
-    }, 700);
+    if (!valor.trim()) return;
 
-    return () => {
-      pararAnimacao();
-    };
-  }, [pararAnimacao, pendente]);
+    setEndpointsSelecionados((atuais) => {
+      const compativeis = atuais.filter((endpoint) =>
+        endpointsCompativeisComMatricula.has(endpoint),
+      );
 
-  const sincronizacaoFinalizada = submetido && !pendente && estado.ok !== null;
-
-  const progressoVisual = sincronizacaoFinalizada ? 100 : progresso;
-
-  const etapaVisual = sincronizacaoFinalizada
-    ? estado.ok
-      ? "Execução concluída com sucesso"
-      : "Execução concluída com falha"
-    : submetido || pendente || progressoVisual > 0
-      ? obterEtapaPorProgresso(progressoVisual)
-      : "Aguardando execução";
-
-  const resumo = obterResumoDetalhes(estado.detalhes);
-
-  const statusVisual = pendente
-    ? "EM EXECUÇÃO"
-    : estado.ok === true
-      ? "CONCLUÍDA"
-      : estado.ok === false
-        ? "FALHA"
-        : "AGUARDANDO";
-
-  const corBarra = pendente
-    ? "bg-blue-700"
-    : estado.ok === false
-      ? "bg-red-600"
-      : estado.ok === true
-        ? "bg-green-600"
-        : "bg-blue-700";
+      return compativeis.length
+        ? compativeis
+        : todosEndpoints.filter((endpoint) =>
+            endpointsCompativeisComMatricula.has(endpoint),
+          );
+    });
+  }
 
   return (
     <form
-      action={formAction}
       onSubmit={handleSubmit}
       className="space-y-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950"
     >
       <div>
         <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-50">
-          Executar sincronização
+          Executar sincronizacao
         </h2>
-
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          Comece sempre por simulação. A aplicação efetiva altera as tabelas de
-          domínio do SECP.
+          A sincronizacao roda em fila. Voce pode sair desta tela e voltar para
+          acompanhar o andamento.
         </p>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900/60">
-        <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Status da execução
+              Status da execucao
             </p>
-
             <p className="mt-1 text-sm font-medium text-slate-900 dark:text-slate-100">
               {statusVisual}
             </p>
@@ -206,62 +334,109 @@ export function SarhSyncProgressForm() {
 
           <div className="text-right">
             <p className="text-2xl font-semibold tabular-nums text-slate-950 dark:text-slate-50">
-              {progressoVisual}%
+              {Math.round(progresso.percentualGeral)}%
             </p>
-
             <p className="text-xs text-slate-500 dark:text-slate-400">
               {modoSelecionado === "aplicar"
-                ? "Aplicação real"
+                ? "Aplicacao real"
                 : modoSelecionado === "simulacao"
-                  ? "Simulação"
-                  : "Modo não iniciado"}
+                  ? "Simulacao"
+                  : "Modo nao iniciado"}
             </p>
           </div>
         </div>
 
-        <div
-          className="h-3 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={progressoVisual}
-          aria-label="Progresso visual da sincronização SARH"
-        >
+        <div className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                Endpoint em execucao
+              </p>
+              <p className="mt-1 text-base font-semibold text-blue-800 dark:text-blue-300">
+                {endpointAtualRotulo}
+              </p>
+            </div>
+
+            <div className="text-right">
+              <p className="text-lg font-semibold tabular-nums text-slate-950 dark:text-slate-50">
+                {Math.round(progresso.percentualEndpoint)}%
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {progresso.totalEndpoints
+                  ? `${progresso.endpointIndice}/${progresso.totalEndpoints}`
+                  : "0/0"}
+              </p>
+            </div>
+          </div>
+
           <div
-            className={`h-full rounded-full transition-all duration-500 ease-out ${corBarra}`}
-            style={{ width: `${progressoVisual}%` }}
-          />
+            className="mt-3 h-3 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progresso.percentualEndpoint}
+            aria-label="Progresso do endpoint SARH em execucao"
+          >
+            <div
+              className={`h-full rounded-full transition-all duration-500 ease-out ${corBarra}`}
+              style={{ width: `${progresso.percentualEndpoint}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="mt-3">
+          <div className="mb-1 flex items-center justify-between text-xs font-medium text-slate-600 dark:text-slate-300">
+            <span>Progresso geral</span>
+            <span className="tabular-nums">
+              {Math.round(progresso.percentualGeral)}%
+            </span>
+          </div>
+          <div
+            className="h-3 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progresso.percentualGeral}
+            aria-label="Progresso geral da sincronizacao SARH"
+          >
+            <div
+              className={`h-full rounded-full transition-all duration-500 ease-out ${corBarra}`}
+              style={{ width: `${progresso.percentualGeral}%` }}
+            />
+          </div>
         </div>
 
         <div
           className="mt-3 flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300"
           aria-live="polite"
         >
-          {pendente ? (
+          {emAndamento ? (
             <span className="mt-1 h-2 w-2 animate-pulse rounded-full bg-blue-700" />
           ) : (
             <span
               className={`mt-1 h-2 w-2 rounded-full ${
-                estado.ok === false
+                estadoJob === "failed"
                   ? "bg-red-600"
-                  : estado.ok === true
+                  : estadoJob === "completed"
                     ? "bg-green-600"
                     : "bg-slate-400"
               }`}
             />
           )}
-
           <div>
             <p className="font-medium text-slate-800 dark:text-slate-100">
-              {etapaVisual}
+              {erro ?? progresso.etapa}
             </p>
-
-            <p className="mt-1">{estado.mensagem}</p>
+            {jobId && (
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Job: <span className="font-mono">{jobId}</span>
+              </p>
+            )}
           </div>
         </div>
 
-        {resumo.length > 0 && (
-          <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-3">
+        {(estadoJob || resultado) && (
+          <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
             {resumo.map((item) => (
               <div
                 key={item.rotulo}
@@ -270,7 +445,6 @@ export function SarhSyncProgressForm() {
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   {item.rotulo}
                 </p>
-
                 <p className="text-lg font-semibold text-slate-950 dark:text-slate-50">
                   {item.valor}
                 </p>
@@ -279,10 +453,12 @@ export function SarhSyncProgressForm() {
           </div>
         )}
 
-        {estado.execucaoId && (
+        {(resultado?.execucaoId || progresso.execucaoId) && (
           <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-            Execução registrada:{" "}
-            <span className="font-mono">{estado.execucaoId}</span>
+            Execucao registrada:{" "}
+            <span className="font-mono">
+              {resultado?.execucaoId ?? progresso.execucaoId}
+            </span>
           </p>
         )}
       </div>
@@ -292,37 +468,58 @@ export function SarhSyncProgressForm() {
           className="text-sm font-medium text-slate-700 dark:text-slate-200"
           htmlFor="matricula"
         >
-          Filtrar matrícula opcional
+          Filtrar matricula opcional
         </label>
-
         <input
           id="matricula"
           name="matricula"
+          value={matriculaFiltro}
+          onChange={(event) => handleMatriculaChange(event.target.value)}
           placeholder="Ex.: AM27803"
-          disabled={pendente}
+          disabled={emAndamento}
           className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-700/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:disabled:bg-slate-800"
         />
+        {matriculaAtiva && (
+          <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+            Com filtro por matricula, apenas servidores, lotacoes do servidor,
+            afastamentos e chefias sao executados.
+          </p>
+        )}
       </div>
 
-      <fieldset className="space-y-3" disabled={pendente}>
+      <fieldset className="space-y-3" disabled={emAndamento}>
         <legend className="text-sm font-medium text-slate-700 dark:text-slate-200">
           Endpoints
         </legend>
-
         <div className="grid gap-2 text-sm text-slate-700 dark:text-slate-200">
-          {endpointsDisponiveis.map(([value, label]) => (
-            <label key={value} className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                name="endpoints"
-                value={value}
-                defaultChecked
-                className="h-4 w-4"
-              />
+          {endpointsDisponiveis.map(([value, label]) => {
+            const compativel = endpointsCompativeisComMatricula.has(value);
+            const desabilitadoPorMatricula = matriculaAtiva && !compativel;
 
-              <span>{label}</span>
-            </label>
-          ))}
+            return (
+              <label
+                key={value}
+                className={`flex items-center gap-2 ${
+                  desabilitadoPorMatricula
+                    ? "text-slate-400 dark:text-slate-500"
+                    : ""
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  name="endpoints"
+                  value={value}
+                  checked={endpointsSelecionados.includes(value)}
+                  onChange={(event) =>
+                    alternarEndpoint(value, event.target.checked)
+                  }
+                  disabled={emAndamento || desabilitadoPorMatricula}
+                  className="h-4 w-4"
+                />
+                <span>{label}</span>
+              </label>
+            );
+          })}
         </div>
       </fieldset>
 
@@ -331,33 +528,25 @@ export function SarhSyncProgressForm() {
           type="submit"
           name="modo"
           value="simulacao"
-          disabled={pendente}
+          disabled={emAndamento}
           className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-100 dark:text-slate-950"
         >
-          {pendente && modoSelecionado === "simulacao"
+          {emAndamento && modoSelecionado === "simulacao"
             ? "Simulando..."
             : "Simular"}
         </button>
-
         <button
           type="submit"
           name="modo"
           value="aplicar"
-          disabled={pendente}
+          disabled={emAndamento}
           className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {pendente && modoSelecionado === "aplicar"
+          {emAndamento && modoSelecionado === "aplicar"
             ? "Aplicando..."
-            : "Aplicar sincronização"}
+            : "Aplicar sincronizacao"}
         </button>
       </div>
-
-      <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-        A barra indica o andamento visual da operação enquanto a Server Action
-        executa no servidor. A conclusão, os totais processados e o
-        identificador da execução são exibidos somente após o retorno real da
-        sincronização.
-      </p>
     </form>
   );
 }

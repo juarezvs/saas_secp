@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useActionState } from "react";
 import { Loader2, Save } from "lucide-react";
 import {
@@ -27,6 +28,10 @@ type ServidorFormProps = {
     email?: string | null;
     nomeFuncional?: string | null;
     vinculo?: string;
+    cargoDescricao?: string | null;
+    funcaoDescricao?: string | null;
+    descricaoProvimentoSarh?: string | null;
+    descricaoSituacaoSarh?: string | null;
     ativo?: boolean;
   };
   modo: "criar" | "editar";
@@ -58,7 +63,10 @@ export function ServidorForm({
 }: ServidorFormProps) {
   const [estado, formAction, pendente] = useActionState(action, estadoInicial);
 
-  const campos = estado.campos ?? valoresIniciais;
+  const campos = {
+    ...valoresIniciais,
+    ...estado.campos,
+  };
 
   return (
     <form action={formAction} className="space-y-6">
@@ -73,6 +81,48 @@ export function ServidorForm({
 
       <section className="rounded-xl border bg-(--card) p-6 text-(--card-foreground) shadow-sm">
         <h2 className="text-lg font-bold">Dados funcionais</h2>
+
+        {campos?.cpf && (
+          <div className="mt-5 flex items-center gap-4 rounded-lg border bg-[var(--muted)] p-4">
+            <Image
+              src={`/api/servidores/foto/${campos.cpf}`}
+              alt=""
+              width={76}
+              height={76}
+              unoptimized
+              className="size-[4.75rem] rounded-full border-4 border-white bg-slate-100 object-cover shadow-sm ring-2 ring-blue-100 dark:border-slate-950 dark:bg-slate-800 dark:ring-blue-900/60"
+            />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">
+                {campos.nomeFuncional ?? campos.nome ?? "Servidor"}
+              </p>
+              <p className="mt-1 font-mono text-xs text-[var(--muted-foreground)]">
+                CPF {campos.cpf}
+              </p>
+              {campos.cargoDescricao && (
+                <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                  {campos.cargoDescricao}
+                </p>
+              )}
+              {campos.funcaoDescricao && (
+                <p className="mt-1 text-xs font-semibold text-blue-900 dark:text-blue-300">
+                  {campos.funcaoDescricao}
+                </p>
+              )}
+              {(campos.descricaoProvimentoSarh ||
+                campos.descricaoSituacaoSarh) && (
+                <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                  {[
+                    campos.descricaoProvimentoSarh,
+                    campos.descricaoSituacaoSarh,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <div className="space-y-2">

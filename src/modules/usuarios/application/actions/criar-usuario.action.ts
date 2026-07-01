@@ -15,6 +15,14 @@ import {
 } from "../../infrastructure/repositories/usuario.repository";
 
 function extrairDadosUsuario(formData: FormData) {
+  const perfis = formData.getAll("perfis").map(String);
+  const perfisEscopos = Object.fromEntries(
+    perfis.map((perfilId) => [
+      perfilId,
+      String(formData.get(`perfilOrgao:${perfilId}`) ?? "").trim(),
+    ]),
+  );
+
   return {
     matricula: String(formData.get("matricula") ?? "").trim(),
     nome: String(formData.get("nome") ?? "").trim(),
@@ -22,8 +30,38 @@ function extrairDadosUsuario(formData: FormData) {
     tipo: String(formData.get("tipo") ?? ""),
     senha: String(formData.get("senha") ?? "").trim(),
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
-    perfis: formData.getAll("perfis").map(String),
+    perfis,
+    perfisEscopos,
   };
+}
+
+async function normalizarEscoposPerfis(
+  perfis: string[],
+  perfisEscopos: Record<string, string>,
+) {
+  const perfisSelecionados = await prisma.perfil.findMany({
+    where: { id: { in: perfis } },
+    select: { id: true, codigo: true, nome: true },
+  });
+  const escoposNormalizados = new Map<string, string | null>();
+
+  for (const perfil of perfisSelecionados) {
+    if (perfil.codigo === "MASTER") {
+      escoposNormalizados.set(perfil.id, null);
+      continue;
+    }
+
+    if (!perfisEscopos[perfil.id]) {
+      return {
+        erro: `Selecione a seccional para o perfil ${perfil.nome}.`,
+        escopos: escoposNormalizados,
+      };
+    }
+
+    escoposNormalizados.set(perfil.id, perfisEscopos[perfil.id]);
+  }
+
+  return { erro: null, escopos: escoposNormalizados };
 }
 
 export async function criarUsuarioAction(
@@ -69,6 +107,19 @@ export async function criarUsuarioAction(
     };
   }
 
+  const escoposPerfis = await normalizarEscoposPerfis(
+    parsed.data.perfis,
+    dados.perfisEscopos,
+  );
+
+  if (escoposPerfis.erro) {
+    return {
+      sucesso: false,
+      mensagem: escoposPerfis.erro,
+      campos: dados,
+    };
+  }
+
   const senhaHash = parsed.data.senha
     ? await bcrypt.hash(parsed.data.senha, 12)
     : null;
@@ -90,6 +141,7 @@ export async function criarUsuarioAction(
         data: parsed.data.perfis.map((perfilId) => ({
           usuarioId: novoUsuario.id,
           perfilId,
+          orgaoId: escoposPerfis.escopos.get(perfilId) ?? null,
           ativo: true,
         })),
         skipDuplicates: true,

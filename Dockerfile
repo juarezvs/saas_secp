@@ -6,9 +6,23 @@ WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl ca-certificates \
+COPY docker/oracle /tmp/oracle
+
+RUN set -eux; \
+  apt-get update \
+  && apt-get install -y --no-install-recommends openssl ca-certificates curl unzip libaio1 libnsl2 \
+  && mkdir -p /opt/oracle \
+  && instantclient_zip="$(find /tmp/oracle -maxdepth 1 -type f -name 'instantclient-basiclite-linux*x64*.zip' | head -n 1)" \
+  && if [ -n "$instantclient_zip" ]; then cp "$instantclient_zip" /tmp/instantclient.zip; else curl -fsSL https://download.oracle.com/otn_software/linux/instantclient/instantclient-basiclite-linuxx64.zip -o /tmp/instantclient.zip; fi \
+  && unzip -q /tmp/instantclient.zip -d /opt/oracle \
+  && mv /opt/oracle/instantclient_* /opt/oracle/instantclient \
+  && rm -rf /tmp/instantclient.zip /tmp/oracle \
+  && echo /opt/oracle/instantclient > /etc/ld.so.conf.d/oracle-instantclient.conf \
+  && ldconfig \
   && rm -rf /var/lib/apt/lists/*
+
+ENV SARH_ORACLE_HOME=/opt/oracle/instantclient
+ENV LD_LIBRARY_PATH=/opt/oracle/instantclient
 
 FROM base AS deps
 
@@ -55,6 +69,7 @@ RUN groupadd --system --gid 1001 nodejs \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/oracledb ./node_modules/oracledb
 
 USER nextjs
 

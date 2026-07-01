@@ -13,6 +13,7 @@ function extrairDados(formData: FormData) {
   return {
     usuarioId: String(formData.get("usuarioId") ?? ""),
     perfilId: String(formData.get("perfilId") ?? ""),
+    orgaoId: String(formData.get("orgaoId") ?? ""),
   };
 }
 
@@ -36,7 +37,33 @@ export async function vincularPerfilUsuarioAction(
     };
   }
 
-  const vinculoExistente = await buscarUsuarioPerfil(parsed.data);
+  const perfil = await prisma.perfil.findUnique({
+    where: { id: parsed.data.perfilId },
+    select: { codigo: true, nome: true },
+  });
+
+  if (!perfil) {
+    return {
+      sucesso: false,
+      mensagem: "Perfil nao encontrado.",
+      campos: dados,
+    };
+  }
+
+  if (perfil.codigo !== "MASTER" && !parsed.data.orgaoId) {
+    return {
+      sucesso: false,
+      mensagem: `Selecione a seccional para o perfil ${perfil.nome}.`,
+      campos: dados,
+    };
+  }
+
+  const orgaoId = perfil.codigo === "MASTER" ? null : parsed.data.orgaoId || null;
+  const vinculoExistente = await buscarUsuarioPerfil({
+    usuarioId: parsed.data.usuarioId,
+    perfilId: parsed.data.perfilId,
+    orgaoId,
+  });
 
   await prisma.$transaction(async (tx) => {
     if (vinculoExistente) {
@@ -53,6 +80,7 @@ export async function vincularPerfilUsuarioAction(
         data: {
           usuarioId: parsed.data.usuarioId,
           perfilId: parsed.data.perfilId,
+          orgaoId,
           ativo: true,
         },
       });
@@ -67,6 +95,7 @@ export async function vincularPerfilUsuarioAction(
         dadosDepois: {
           usuarioId: parsed.data.usuarioId,
           perfilId: parsed.data.perfilId,
+          orgaoId,
         },
       },
     });

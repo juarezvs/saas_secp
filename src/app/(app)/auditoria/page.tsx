@@ -3,6 +3,7 @@ import { ScrollText } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   listarEntidadesAuditoria,
@@ -38,6 +39,10 @@ export default async function AuditoriaPage({
   ]);
 
   const params = searchParams ? await searchParams : {};
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const orgaoIdsPermitidos = escopoOrgao.global
+    ? undefined
+    : escopoOrgao.orgaoIds;
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? params.limite ?? 20);
 
@@ -51,9 +56,10 @@ export default async function AuditoriaPage({
       usuarioId: params.usuarioId,
       dataInicio: params.dataInicio,
       dataFim: params.dataFim,
+      orgaoIdsPermitidos,
     }),
-    listarUsuariosParaFiltroAuditoria(),
-    listarEntidadesAuditoria(),
+    listarUsuariosParaFiltroAuditoria({ orgaoIdsPermitidos }),
+    listarEntidadesAuditoria({ orgaoIdsPermitidos }),
   ]);
 
   const exportParams = new URLSearchParams();

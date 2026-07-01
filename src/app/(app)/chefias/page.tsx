@@ -3,6 +3,7 @@ import { Building2, Network, UserCheck } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { vincularGestorUnidadeAction } from "@/modules/chefias/application/actions/vincular-gestor-unidade.action";
 import {
@@ -24,10 +25,14 @@ function contarGestoresPorPapel(
 export default async function ChefiasPage() {
   await exigirPermissaoOuRedirecionar("chefias:gerenciar:global");
 
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const orgaoIdsPermitidos = escopoOrgao.global
+    ? undefined
+    : escopoOrgao.orgaoIds;
   const [unidades, servidores, unidadesComGestores] = await Promise.all([
-    listarUnidadesAtivasParaGestao(),
-    listarServidoresAtivosParaGestao(),
-    listarUnidadesComGestores(),
+    listarUnidadesAtivasParaGestao({ orgaoIdsPermitidos }),
+    listarServidoresAtivosParaGestao({ orgaoIdsPermitidos }),
+    listarUnidadesComGestores({ orgaoIdsPermitidos }),
   ]);
 
   return (

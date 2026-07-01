@@ -47,14 +47,14 @@ const estadoInicial: CalendarioInstitucionalFormState = {
 const rotulosTipo: Record<string, string> = {
   FERIADO: "Feriado",
   PONTO_FACULTATIVO: "Ponto facultativo",
-  SUSPENSAO_EXPEDIENTE: "Suspensao do expediente",
+  SUSPENSAO_EXPEDIENTE: "Suspensão do expediente",
 };
 
 const rotulosAbrangencia: Record<string, string> = {
   NACIONAL: "Nacional",
   ESTADUAL: "Estadual",
   MUNICIPAL: "Municipal",
-  ORGAO: "Orgao",
+  ORGAO: "Órgão",
   UNIDADE: "Unidade",
 };
 
@@ -161,7 +161,7 @@ export function CalendarioInstitucionalForm({
 
           <div className="space-y-2 md:col-span-2">
             <label htmlFor="descricao" className="text-sm font-semibold">
-              Descricao
+              Descrição
             </label>
             <input
               id="descricao"
@@ -178,9 +178,9 @@ export function CalendarioInstitucionalForm({
 
           <div className="rounded-lg border bg-[var(--muted)] p-4 md:col-span-2">
             <div className="mb-4">
-              <h3 className="text-sm font-semibold">Abrangencia</h3>
+              <h3 className="text-sm font-semibold">Abrangência</h3>
               <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-                Define quais servidores serao impactados no espelho de ponto e
+                Define quais servidores serão impactados no espelho de ponto e
                 no banco de horas.
               </p>
             </div>
@@ -188,7 +188,7 @@ export function CalendarioInstitucionalForm({
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <label htmlFor="abrangencia" className="text-sm font-semibold">
-                  Aplicacao
+                  Aplicação
                 </label>
                 <select
                   id="abrangencia"
@@ -239,7 +239,7 @@ export function CalendarioInstitucionalForm({
 
                 <div className="space-y-2">
                   <label htmlFor="municipio" className="text-sm font-semibold">
-                    Municipio
+                    Município
                   </label>
                   <input
                     id="municipio"
@@ -261,7 +261,7 @@ export function CalendarioInstitucionalForm({
 
               <div className="space-y-2">
                 <label htmlFor="municipioIbge" className="text-sm font-semibold">
-                  Codigo IBGE do municipio
+                  Código IBGE do município
                 </label>
                 <input
                   id="municipioIbge"
@@ -283,17 +283,17 @@ export function CalendarioInstitucionalForm({
 
               <div className="space-y-2">
                 <label htmlFor="orgaoId" className="text-sm font-semibold">
-                  Orgao
+                  Órgão
                 </label>
                 <SearchableSelect
                   id="orgaoId"
                   name="orgaoId"
                   defaultValue={campos?.orgaoId ?? ""}
-                  placeholder="Nao se aplica"
+                  placeholder="Não se aplica"
                   searchPlaceholder="Pesquisar por sigla ou nome..."
-                  emptyMessage="Nenhum orgao encontrado."
+                  emptyMessage="Nenhum órgão encontrado."
                   options={[
-                    { value: "", label: "Nao se aplica" },
+                    { value: "", label: "Não se aplica" },
                     ...orgaos.map((orgao) => ({
                       value: orgao.id,
                       label: `${orgao.sigla} - ${orgao.nome}`,
@@ -316,11 +316,11 @@ export function CalendarioInstitucionalForm({
                   id="unidadeId"
                   name="unidadeId"
                   defaultValue={campos?.unidadeId ?? ""}
-                  placeholder="Nao se aplica"
+                  placeholder="Não se aplica"
                   searchPlaceholder="Pesquisar por sigla ou nome..."
                   emptyMessage="Nenhuma unidade encontrada."
                   options={[
-                    { value: "", label: "Nao se aplica" },
+                    { value: "", label: "Não se aplica" },
                     ...unidades.map((unidade) => ({
                       value: unidade.id,
                       label: `${unidade.sigla} - ${unidade.nome}`,
@@ -345,9 +345,9 @@ export function CalendarioInstitucionalForm({
               className="size-4 rounded border-slate-300"
             />
             <span>
-              <span className="block font-semibold">Conta como dia util</span>
+              <span className="block font-semibold">Conta como dia útil</span>
               <span className="text-xs text-[var(--muted-foreground)]">
-                Afeta os prazos regulatorios de homologacao e boletim.
+                Afeta os prazos regulatórios de homologação e boletim.
               </span>
             </span>
           </label>
@@ -360,9 +360,9 @@ export function CalendarioInstitucionalForm({
               className="size-4 rounded border-slate-300"
             />
             <span>
-              <span className="block font-semibold">Gera apuracao regular</span>
+              <span className="block font-semibold">Gera apuração regular</span>
               <span className="text-xs text-[var(--muted-foreground)]">
-                Mantem apuracao ordinaria no dia cadastrado.
+                Mantém apuração ordinária no dia cadastrado.
               </span>
             </span>
           </label>
@@ -379,13 +379,13 @@ export function CalendarioInstitucionalForm({
               </h3>
               <p className="mt-1 text-xs text-[var(--muted-foreground)]">
                 Use para expediente parcial, como dias em que o expediente
-                comeca apenas no meio do dia.
+                começa apenas no meio do dia.
               </p>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <label htmlFor="janelaInicio" className="text-sm font-semibold">
-                  Inicio
+                  Início
                 </label>
                 <input
                   id="janelaInicio"
@@ -434,7 +434,7 @@ export function CalendarioInstitucionalForm({
                   Evento transferido de outra data
                 </span>
                 <span className="text-xs text-[var(--muted-foreground)]">
-                  Registra a data original para auditoria e replicacao anual.
+                  Registra a data original para auditoria e replicação anual.
                 </span>
               </span>
             </label>
@@ -460,7 +460,7 @@ export function CalendarioInstitucionalForm({
 
           <div className="space-y-2 md:col-span-2">
             <label htmlFor="observacao" className="text-sm font-semibold">
-              Observacao
+              Observação
             </label>
             <textarea
               id="observacao"
@@ -468,7 +468,7 @@ export function CalendarioInstitucionalForm({
               defaultValue={campos?.observacao ?? ""}
               rows={4}
               className="w-full rounded-md border bg-[var(--card)] px-3 py-2 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
-              placeholder="Base normativa, ato administrativo ou observacoes operacionais."
+              placeholder="Base normativa, ato administrativo ou observações operacionais."
             />
             {erro(estado, "observacao") && (
               <p className="text-sm text-red-600">{erro(estado, "observacao")}</p>
@@ -485,7 +485,7 @@ export function CalendarioInstitucionalForm({
             <span>
               <span className="block font-semibold">Evento ativo</span>
               <span className="text-xs text-[var(--muted-foreground)]">
-                Eventos inativos permanecem no historico, mas deixam de produzir
+                Eventos inativos permanecem no histórico, mas deixam de produzir
                 efeito.
               </span>
             </span>
@@ -504,7 +504,7 @@ export function CalendarioInstitucionalForm({
           ) : (
             <Save className="size-4" />
           )}
-          {modo === "criar" ? "Criar evento" : "Salvar alteracoes"}
+          {modo === "criar" ? "Criar evento" : "Salvar alterações"}
         </button>
       </div>
     </form>
