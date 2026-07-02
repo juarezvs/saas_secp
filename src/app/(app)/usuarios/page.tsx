@@ -8,6 +8,11 @@ import {
   obterEscopoOrgaoDaSessao,
 } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
+import {
+  listarLotacoesAtivasParaFiltro,
+  listarServidoresParaFiltro,
+} from "@/modules/servidores/infrastructure/repositories/servidor.repository";
 import { listarUsuariosPaginado } from "@/modules/usuarios/infrastructure/repositories/usuario.repository";
 import { UsuariosListagemControles } from "@/modules/usuarios/presentation/components/usuarios-listagem-controles";
 
@@ -33,9 +38,9 @@ export default async function UsuariosPage({ searchParams }: UsuariosPageProps) 
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
+  const statusFiltro = params.status ?? "ativo";
 
-  const resultado = await listarUsuariosPaginado(
-    aplicarEscopoOrgaoId(
+  const filtrosEscopados = aplicarEscopoOrgaoId(
       {
         busca: params.busca ?? "",
         matricula: params.matricula ?? "",
@@ -44,13 +49,35 @@ export default async function UsuariosPage({ searchParams }: UsuariosPageProps) 
         tipo: params.tipo ?? "",
         lotacao: params.lotacao ?? "",
         perfil: params.perfil ?? "",
-        status: params.status ?? "",
+        status: statusFiltro,
         pagina,
         itensPorPagina,
       },
       escopoOrgao,
-    ),
-  );
+    );
+  const orgaoIdsPermitidos = escopoOrgao.global ? undefined : escopoOrgao.orgaoIds;
+  const [resultado, servidoresFiltro, lotacoesFiltro] = await Promise.all([
+    listarUsuariosPaginado(filtrosEscopados),
+    listarServidoresParaFiltro({ orgaoIdsPermitidos }),
+    listarLotacoesAtivasParaFiltro({ orgaoIdsPermitidos }),
+  ]);
+  const servidoresOptions = servidoresFiltro.map((servidor) => {
+    const nome = nomeServidor(servidor) || servidor.matricula;
+    const lotacao = servidor.lotacoes[0]?.unidade;
+
+    return {
+      value: nome,
+      label: `${nome} (${servidor.matricula})`,
+      searchText: `${servidor.matricula} ${lotacao?.sigla ?? ""} ${
+        lotacao?.nome ?? ""
+      }`,
+    };
+  });
+  const lotacoesOptions = lotacoesFiltro.map((lotacao) => ({
+    value: lotacao.sigla,
+    label: `${lotacao.sigla} - ${lotacao.nome}`,
+    searchText: lotacao.nome,
+  }));
 
   const exportParams = new URLSearchParams();
 
@@ -64,7 +91,9 @@ export default async function UsuariosPage({ searchParams }: UsuariosPageProps) 
     "perfil",
     "status",
   ] as const) {
-    if (params[chave]) {
+    if (chave === "status") {
+      exportParams.set(chave, statusFiltro);
+    } else if (params[chave]) {
       exportParams.set(chave, params[chave]!);
     }
   }
@@ -122,6 +151,8 @@ export default async function UsuariosPage({ searchParams }: UsuariosPageProps) 
         montarHrefPagina={montarHrefPagina}
         toolbar={
           <UsuariosListagemControles
+            servidores={servidoresOptions}
+            lotacoes={lotacoesOptions}
             exportCsvHref={`/api/usuarios/export?${exportParams.toString()}`}
             exportPdfHref={`/api/usuarios/export/pdf?${exportParams.toString()}`}
           />

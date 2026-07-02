@@ -20,6 +20,7 @@ type SearchableSelectProps = {
   disabled?: boolean;
   required?: boolean;
   className?: string;
+  onValueChange?: (value: string) => void;
 };
 
 function normalizarBusca(valor: string) {
@@ -40,6 +41,7 @@ export function SearchableSelect({
   disabled = false,
   required = false,
   className = "",
+  onValueChange,
 }: SearchableSelectProps) {
   const [aberto, setAberto] = useState(false);
   const [valor, setValor] = useState(defaultValue);
@@ -114,6 +116,7 @@ export function SearchableSelect({
                 aria-selected={option.value === valor}
                 onClick={() => {
                   setValor(option.value);
+                  onValueChange?.(option.value);
                   setBusca("");
                   setAberto(false);
                 }}

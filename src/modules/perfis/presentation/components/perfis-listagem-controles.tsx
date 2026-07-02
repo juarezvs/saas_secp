@@ -3,12 +3,22 @@ import {
   type DataTableFiltro,
 } from "@/components/listagens";
 
+type FiltroOption = {
+  value: string;
+  label: string;
+  searchText?: string;
+};
+
 type PerfisListagemControlesProps = {
+  perfis: FiltroOption[];
+  permissoes: FiltroOption[];
   exportCsvHref: string;
   exportPdfHref: string;
 };
 
 export function PerfisListagemControles({
+  perfis,
+  permissoes,
   exportCsvHref,
   exportPdfHref,
 }: PerfisListagemControlesProps) {
@@ -17,13 +27,29 @@ export function PerfisListagemControles({
       tipo: "texto",
       nome: "busca",
       label: "Consulta geral",
-      placeholder: "Consulta aplicada após 3 segundos",
+      placeholder: "Pesquisar imediatamente",
       className: "lg:col-span-2",
       comIconeBusca: true,
     },
-    { tipo: "texto", nome: "codigo", label: "Código" },
-    { tipo: "texto", nome: "nome", label: "Nome" },
-    { tipo: "texto", nome: "permissao", label: "Permissão" },
+    { tipo: "texto", nome: "codigo", label: "Codigo" },
+    {
+      tipo: "searchable-select",
+      nome: "nome",
+      label: "Nome",
+      placeholder: "Todos",
+      searchPlaceholder: "Pesquisar perfil...",
+      options: [{ value: "", label: "Todos" }, ...perfis],
+      className: "lg:col-span-2",
+    },
+    {
+      tipo: "searchable-select",
+      nome: "permissao",
+      label: "Permissao",
+      placeholder: "Todas",
+      searchPlaceholder: "Pesquisar permissao...",
+      options: [{ value: "", label: "Todas" }, ...permissoes],
+      className: "lg:col-span-2",
+    },
     {
       tipo: "select",
       nome: "status",

@@ -57,6 +57,28 @@ type ContadoresExecucao = {
   totalConflitos: number;
 };
 
+type ServidorAfastamentoSarh = {
+  id: string;
+  matricula: string;
+  cpf: string | null;
+};
+
+type TipoAfastamentoSarhExistente = {
+  id: string;
+  codigoExternoSarh: number;
+};
+
+type AfastamentoSarhExistente = Awaited<
+  ReturnType<PrismaLike["afastamentoSarh"]["findUnique"]>
+>;
+
+export type CacheAfastamentosSarh = {
+  servidoresPorMatricula: Map<string, ServidorAfastamentoSarh>;
+  servidoresPorCpf: Map<string, ServidorAfastamentoSarh>;
+  tiposPorCodigo: Map<number, TipoAfastamentoSarhExistente>;
+  afastamentosPorCodigo: Map<string, NonNullable<AfastamentoSarhExistente>>;
+};
+
 type JsonInputValue =
   string | number | boolean | JsonInputObject | JsonInputArray;
 
@@ -433,6 +455,11 @@ export class SarhPrismaRepository {
     payload: SarhAfastamentoDto;
     modoSimulacao: boolean;
     registroBrutoId?: string | null;
+    cache?: {
+      servidorId?: string | null;
+      tipoAfastamentoId?: string | null;
+      existente?: AfastamentoSarhExistente;
+    };
   }) {
     const endpoint: TipoEndpointSarhDb = "AFASTAMENTOS";
     const chaveExterna = String(params.payload.id);
@@ -460,28 +487,46 @@ export class SarhPrismaRepository {
       ? normalizarMatricula(params.payload.matricula)
       : null;
     const cpf = normalizarCpf(params.payload.cpf);
-    const filtrosServidor = [
-      ...(matricula ? [{ matricula }] : []),
-      ...(cpf ? [{ cpf }] : []),
-    ];
-    const servidor = filtrosServidor.length
-      ? await this.prisma.servidor.findFirst({
-          where: { OR: filtrosServidor },
-          select: { id: true },
-        })
-      : null;
+    const servidorIdCache = params.cache?.servidorId;
+    const filtrosServidor =
+      servidorIdCache === undefined
+        ? [
+            ...(matricula ? [{ matricula }] : []),
+            ...(cpf ? [{ cpf }] : []),
+          ]
+        : [];
+    const servidor =
+      servidorIdCache !== undefined
+        ? servidorIdCache
+          ? { id: servidorIdCache }
+          : null
+        : filtrosServidor.length
+          ? await this.prisma.servidor.findFirst({
+              where: { OR: filtrosServidor },
+              select: { id: true },
+            })
+          : null;
     const tipoCodigo = params.payload.tipoCodigo
       ? String(params.payload.tipoCodigo)
       : null;
-    const tipoAfastamento = tipoCodigo
-      ? await this.prisma.tipoAfastamentoSarh.findUnique({
-          where: { codigoExternoSarh: Number(tipoCodigo) || -1 },
-          select: { id: true },
-        })
-      : null;
-    const existente = await this.prisma.afastamentoSarh.findUnique({
-      where: { codigoExternoSarh: chaveExterna },
-    });
+    const tipoAfastamentoIdCache = params.cache?.tipoAfastamentoId;
+    const tipoAfastamento =
+      tipoAfastamentoIdCache !== undefined
+        ? tipoAfastamentoIdCache
+          ? { id: tipoAfastamentoIdCache }
+          : null
+        : tipoCodigo
+          ? await this.prisma.tipoAfastamentoSarh.findUnique({
+              where: { codigoExternoSarh: Number(tipoCodigo) || -1 },
+              select: { id: true },
+            })
+          : null;
+    const existente =
+      params.cache && "existente" in params.cache
+        ? params.cache.existente
+        : await this.prisma.afastamentoSarh.findUnique({
+            where: { codigoExternoSarh: chaveExterna },
+          });
     const dataFim = normalizarDataSarh(params.payload.dataFim);
     const fimConsulta = fimAfastamentoParaConsulta(dataFim);
     const data = {
@@ -572,6 +617,83 @@ export class SarhPrismaRepository {
     );
 
     return operacao;
+  }
+
+  async prepararCacheAfastamentos(
+    afastamentos: SarhAfastamentoDto[],
+  ): Promise<CacheAfastamentosSarh> {
+    const matriculas = new Set<string>();
+    const cpfs = new Set<string>();
+    const tipos = new Set<number>();
+    const codigosExternos = new Set<string>();
+
+    for (const afastamento of afastamentos) {
+      const matricula = afastamento.matricula
+        ? normalizarMatricula(afastamento.matricula)
+        : null;
+      const cpf = normalizarCpf(afastamento.cpf);
+      const tipoCodigo = afastamento.tipoCodigo
+        ? Number(afastamento.tipoCodigo)
+        : null;
+
+      if (matricula) matriculas.add(matricula);
+      if (cpf) cpfs.add(cpf);
+      if (tipoCodigo && Number.isFinite(tipoCodigo)) tipos.add(tipoCodigo);
+      codigosExternos.add(String(afastamento.id));
+    }
+
+    const [servidores, tiposAfastamento, afastamentosExistentes] =
+      await Promise.all([
+        matriculas.size || cpfs.size
+          ? this.prisma.servidor.findMany({
+              where: {
+                OR: [
+                  ...(matriculas.size
+                    ? [{ matricula: { in: Array.from(matriculas) } }]
+                    : []),
+                  ...(cpfs.size ? [{ cpf: { in: Array.from(cpfs) } }] : []),
+                ],
+              },
+              select: { id: true, matricula: true, cpf: true },
+            })
+          : [],
+        tipos.size
+          ? this.prisma.tipoAfastamentoSarh.findMany({
+              where: { codigoExternoSarh: { in: Array.from(tipos) } },
+              select: { id: true, codigoExternoSarh: true },
+            })
+          : [],
+        codigosExternos.size
+          ? this.prisma.afastamentoSarh.findMany({
+              where: { codigoExternoSarh: { in: Array.from(codigosExternos) } },
+            })
+          : [],
+      ]);
+
+    const servidoresPorMatricula = new Map<string, ServidorAfastamentoSarh>();
+    const servidoresPorCpf = new Map<string, ServidorAfastamentoSarh>();
+
+    for (const servidor of servidores) {
+      servidoresPorMatricula.set(servidor.matricula, servidor);
+
+      if (servidor.cpf) {
+        servidoresPorCpf.set(servidor.cpf, servidor);
+      }
+    }
+
+    return {
+      servidoresPorMatricula,
+      servidoresPorCpf,
+      tiposPorCodigo: new Map(
+        tiposAfastamento.map((tipo) => [tipo.codigoExternoSarh, tipo]),
+      ),
+      afastamentosPorCodigo: new Map(
+        afastamentosExistentes.map((afastamento) => [
+          afastamento.codigoExternoSarh,
+          afastamento,
+        ]),
+      ),
+    };
   }
 
   async processarChefia(params: {

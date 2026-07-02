@@ -22,12 +22,20 @@ export function FiltroTextoDebounce({
   className,
   placeholder,
   comIconeBusca = false,
-  delayMs = 3000,
+  delayMs = 0,
 }: FiltroTextoDebounceProps) {
   const id = useId();
   const [valorLocal, setValorLocal] = useState(valor);
 
   useEffect(() => {
+    if (delayMs <= 0) {
+      if (valorLocal !== valor) {
+        onChange(nome, valorLocal);
+      }
+
+      return;
+    }
+
     const timeout = window.setTimeout(() => {
       if (valorLocal !== valor) {
         onChange(nome, valorLocal);

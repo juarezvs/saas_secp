@@ -5,7 +5,11 @@ import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import { listarPerfisPaginado } from "@/modules/perfis/infrastructure/repositories/perfil.repository";
+import {
+  listarPerfisParaFiltro,
+  listarPerfisPaginado,
+  listarPermissoesParaFiltro,
+} from "@/modules/perfis/infrastructure/repositories/perfil.repository";
 import { PerfisListagemControles } from "@/modules/perfis/presentation/components/perfis-listagem-controles";
 
 type PerfisPageProps = {
@@ -28,7 +32,9 @@ export default async function PerfisPage({ searchParams }: PerfisPageProps) {
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
 
-  const resultado = await listarPerfisPaginado({
+  const orgaoIdsPermitidos = escopoOrgao.global ? undefined : escopoOrgao.orgaoIds;
+  const [resultado, perfisFiltro, permissoesFiltro] = await Promise.all([
+    listarPerfisPaginado({
     busca: params.busca ?? "",
     codigo: params.codigo ?? "",
     nome: params.nome ?? "",
@@ -37,7 +43,22 @@ export default async function PerfisPage({ searchParams }: PerfisPageProps) {
     orgaoIdsPermitidos: escopoOrgao.global ? undefined : escopoOrgao.orgaoIds,
     pagina,
     itensPorPagina,
-  });
+    }),
+    listarPerfisParaFiltro({ orgaoIdsPermitidos }),
+    listarPermissoesParaFiltro(),
+  ]);
+  const perfisOptions = perfisFiltro.map((perfil) => ({
+    value: perfil.nome,
+    label: `${perfil.nome} (${perfil.codigo})`,
+    searchText: perfil.codigo,
+  }));
+  const permissoesOptions = permissoesFiltro.map((permissao) => ({
+    value: permissao.codigo,
+    label: permissao.codigo,
+    searchText: `${permissao.recurso} ${permissao.acao} ${permissao.escopo} ${
+      permissao.descricao ?? ""
+    }`,
+  }));
 
   const exportParams = new URLSearchParams();
 
@@ -106,6 +127,8 @@ export default async function PerfisPage({ searchParams }: PerfisPageProps) {
         montarHrefPagina={montarHrefPagina}
         toolbar={
           <PerfisListagemControles
+            perfis={perfisOptions}
+            permissoes={permissoesOptions}
             exportCsvHref={`/api/perfis/export?${exportParams.toString()}`}
             exportPdfHref={`/api/perfis/export/pdf?${exportParams.toString()}`}
           />

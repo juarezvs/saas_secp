@@ -75,11 +75,7 @@ export function ListagemControlesClient({
   }
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      atualizarUrl({ busca });
-    }, 3000);
-
-    return () => window.clearTimeout(timer);
+    atualizarUrl({ busca });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busca]);
 
@@ -102,7 +98,7 @@ export function ListagemControlesClient({
         </div>
 
         <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-          A consulta será aplicada automaticamente após 3 segundos.
+          A consulta é aplicada automaticamente.
         </p>
       </div>
 

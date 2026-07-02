@@ -7,6 +7,7 @@ import type {
 } from "../../domain/sarh.types";
 import {
   endpointDbFromKey,
+  normalizarCpf,
   normalizarCodigoLotacaoServidor,
   normalizarMatricula,
 } from "../../domain/sarh-normalizer";
@@ -201,7 +202,7 @@ export class SincronizarSarhUseCase {
       total: number,
       etapa: string,
     ) => {
-      const intervalo = Number(process.env.SARH_SYNC_PROGRESS_BATCH ?? "25");
+      const intervalo = Number(process.env.SARH_SYNC_PROGRESS_BATCH ?? "100");
 
       if (
         processados > 0 &&
@@ -494,23 +495,71 @@ export class SincronizarSarhUseCase {
           );
         });
         let processados = 0;
+        const cacheAfastamentos =
+          await repository.prepararCacheAfastamentos(filtrados);
+        const concorrenciaAfastamentos = Math.max(
+          1,
+          Math.min(
+            25,
+            Number(process.env.SARH_AFASTAMENTOS_SYNC_CONCURRENCY ?? "8") || 8,
+          ),
+        );
 
-        for (const afastamento of filtrados) {
-          const bruto = await repository.registrarPayloadBruto({
-            execucaoId: execucao.id,
-            endpoint: "afastamentos",
-            payload: afastamento,
-          });
+        for (
+          let inicioLote = 0;
+          inicioLote < filtrados.length;
+          inicioLote += concorrenciaAfastamentos
+        ) {
+          const lote = filtrados.slice(
+            inicioLote,
+            inicioLote + concorrenciaAfastamentos,
+          );
+          const operacoes = await Promise.all(
+            lote.map(async (afastamento) => {
+              const bruto = await repository.registrarPayloadBruto({
+                execucaoId: execucao.id,
+                endpoint: "afastamentos",
+                payload: afastamento,
+              });
+              const matricula = afastamento.matricula
+                ? normalizarMatricula(afastamento.matricula)
+                : null;
+              const cpf = normalizarCpf(afastamento.cpf);
+              const tipoCodigo = afastamento.tipoCodigo
+                ? Number(afastamento.tipoCodigo)
+                : null;
+              const servidor =
+                (matricula
+                  ? cacheAfastamentos.servidoresPorMatricula.get(matricula)
+                  : null) ??
+                (cpf ? cacheAfastamentos.servidoresPorCpf.get(cpf) : null);
+              const tipoAfastamento =
+                tipoCodigo && Number.isFinite(tipoCodigo)
+                  ? cacheAfastamentos.tiposPorCodigo.get(tipoCodigo)
+                  : null;
 
-          const operacao = await repository.processarAfastamento({
-            execucaoId: execucao.id,
-            payload: afastamento,
-            modoSimulacao,
-            registroBrutoId: bruto?.id,
-          });
+              return repository.processarAfastamento({
+                execucaoId: execucao.id,
+                payload: afastamento,
+                modoSimulacao,
+                registroBrutoId: bruto?.id,
+                cache: {
+                  servidorId: servidor?.id ?? null,
+                  tipoAfastamentoId: tipoAfastamento?.id ?? null,
+                  existente:
+                    cacheAfastamentos.afastamentosPorCodigo.get(
+                      String(afastamento.id),
+                    ) ?? null,
+                },
+              });
+            }),
+          );
 
-          repository.incrementar(contadores, operacao);
-          processados += 1;
+          for (const operacao of operacoes) {
+            repository.incrementar(contadores, operacao);
+          }
+
+          processados += lote.length;
           await publicarProgressoEndpoint(
             "afastamentos",
             processados,

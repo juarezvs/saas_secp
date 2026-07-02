@@ -3,12 +3,22 @@ import {
   type DataTableFiltro,
 } from "@/components/listagens";
 
+type FiltroOption = {
+  value: string;
+  label: string;
+  searchText?: string;
+};
+
 type UsuariosListagemControlesProps = {
+  servidores: FiltroOption[];
+  lotacoes: FiltroOption[];
   exportCsvHref: string;
   exportPdfHref: string;
 };
 
 export function UsuariosListagemControles({
+  servidores,
+  lotacoes,
   exportCsvHref,
   exportPdfHref,
 }: UsuariosListagemControlesProps) {
@@ -17,14 +27,29 @@ export function UsuariosListagemControles({
       tipo: "texto",
       nome: "busca",
       label: "Consulta geral",
-      placeholder: "Consulta aplicada após 3 segundos",
+      placeholder: "Pesquisar imediatamente",
       className: "lg:col-span-2",
       comIconeBusca: true,
     },
-    { tipo: "texto", nome: "matricula", label: "Matrícula" },
-    { tipo: "texto", nome: "nome", label: "Nome" },
+    { tipo: "texto", nome: "matricula", label: "Matricula" },
+    {
+      tipo: "searchable-select",
+      nome: "nome",
+      label: "Servidor",
+      placeholder: "Todos",
+      searchPlaceholder: "Pesquisar servidor...",
+      options: [{ value: "", label: "Todos" }, ...servidores],
+      className: "lg:col-span-2",
+    },
     { tipo: "texto", nome: "email", label: "E-mail" },
-    { tipo: "texto", nome: "lotacao", label: "Lotação" },
+    {
+      tipo: "searchable-select",
+      nome: "lotacao",
+      label: "Lotacao",
+      placeholder: "Todas",
+      searchPlaceholder: "Pesquisar lotacao...",
+      options: [{ value: "", label: "Todas" }, ...lotacoes],
+    },
     { tipo: "texto", nome: "perfil", label: "Perfil" },
     {
       tipo: "select",
@@ -44,6 +69,7 @@ export function UsuariosListagemControles({
       tipo: "select",
       nome: "status",
       label: "Status",
+      defaultValue: "ativo",
       options: [
         { value: "", label: "Todos" },
         { value: "ativo", label: "Ativos" },

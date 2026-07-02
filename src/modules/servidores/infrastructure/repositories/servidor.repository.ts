@@ -223,6 +223,75 @@ export async function listarServidoresParaExportacao(
   });
 }
 
+export async function listarServidoresParaFiltro(params: {
+  orgaoIdsPermitidos?: string[];
+  limite?: number;
+} = {}) {
+  return prisma.servidor.findMany({
+    where: {
+      ativo: true,
+      usuario: { ativo: true },
+      ...(params.orgaoIdsPermitidos?.length
+        ? { orgaoId: { in: params.orgaoIdsPermitidos } }
+        : {}),
+    },
+    select: {
+      id: true,
+      matricula: true,
+      nomeFuncional: true,
+      usuario: {
+        select: {
+          nome: true,
+        },
+      },
+      lotacoes: {
+        where: { status: "ATIVO" },
+        select: {
+          unidade: {
+            select: {
+              sigla: true,
+              nome: true,
+            },
+          },
+        },
+        orderBy: { dataInicio: "desc" },
+        take: 1,
+      },
+    },
+    orderBy: [
+      { nomeFuncional: "asc" },
+      { usuario: { nome: "asc" } },
+      { matricula: "asc" },
+    ],
+    take: params.limite ?? 1000,
+  });
+}
+
+export async function listarLotacoesAtivasParaFiltro(params: {
+  orgaoIdsPermitidos?: string[];
+} = {}) {
+  return prisma.unidadeOrganizacional.findMany({
+    where: {
+      ativo: true,
+      lotacoes: {
+        some: {
+          status: "ATIVO",
+          servidor: { ativo: true },
+        },
+      },
+      ...(params.orgaoIdsPermitidos?.length
+        ? { orgaoId: { in: params.orgaoIdsPermitidos } }
+        : {}),
+    },
+    select: {
+      id: true,
+      sigla: true,
+      nome: true,
+    },
+    orderBy: [{ sigla: "asc" }, { nome: "asc" }],
+  });
+}
+
 export async function buscarServidorPorId(id: string) {
   if (!ehUuid(id)) {
     return null;

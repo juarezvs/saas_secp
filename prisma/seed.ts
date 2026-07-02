@@ -58,6 +58,13 @@ const permissoesIniciais = [
     descricao: "Gerenciar chefias, gestores, substitutos e delegações.",
   },
   {
+    recurso: "minha-equipe",
+    acao: "consultar",
+    escopo: "chefia",
+    descricao:
+      "Consultar presença diária dos servidores subordinados à chefia ou delegação.",
+  },
+  {
     recurso: "configuracoes",
     acao: "gerenciar",
     escopo: "global",
@@ -83,6 +90,21 @@ const permissoesIniciais = [
     acao: "visualizar",
     escopo: "proprio",
     descricao: "Visualizar dashboard próprio.",
+  },
+
+  {
+    recurso: "painel-executivo",
+    acao: "consultar",
+    escopo: "global",
+    descricao:
+      "Consultar painel executivo com indicadores gerenciais de frequencia, homologacao, pendencias e conformidade.",
+  },
+  {
+    recurso: "painel-executivo",
+    acao: "equipamentos",
+    escopo: "global",
+    descricao:
+      "Consultar indicadores tecnicos de equipamentos de ponto no painel executivo.",
   },
 
   // Jornadas
@@ -644,6 +666,7 @@ const codigosPermissoesServidor = [
 const codigosPermissoesChefia = [
   "dashboard:visualizar:proprio",
   "servidores:consultar:global",
+  "minha-equipe:consultar:chefia",
   "marcacoes:consultar:global",
   "apuracao:consultar:global",
   "banco-horas:consultar:chefia",
@@ -665,6 +688,7 @@ const codigosPermissoesChefia = [
 
 const codigosPermissoesSecap = [
   "dashboard:visualizar:proprio",
+  "painel-executivo:consultar:global",
   "usuarios:consultar:global",
   "servidores:gerenciar:global",
   "servidores:consultar:global",
@@ -693,6 +717,7 @@ const codigosPermissoesSecap = [
 
 const codigosPermissoesSecad = [
   "dashboard:visualizar:proprio",
+  "painel-executivo:consultar:global",
   "servidores:consultar:global",
   "recesso:gerenciar:global",
   "recesso:consultar:global",
@@ -708,6 +733,7 @@ const codigosPermissoesSecad = [
 
 const codigosPermissoesDiref = [
   "dashboard:visualizar:proprio",
+  "painel-executivo:consultar:global",
   "servidores:consultar:global",
   "marcacoes:consultar:global",
   "apuracao:consultar:global",
@@ -725,6 +751,8 @@ const codigosPermissoesDiref = [
 
 const codigosPermissoesSuporte = [
   "dashboard:visualizar:proprio",
+  "painel-executivo:consultar:global",
+  "painel-executivo:equipamentos:global",
   "integracoes:consultar:global",
   "integracoes:gerenciar:global",
   "integracoes:sincronizar:global",
@@ -1082,8 +1110,6 @@ async function vincularPermissoesPorCodigoAoPerfil(
   perfilId: string,
   codigos: string[],
 ) {
-  const permissaoIdsSincronizados: string[] = [];
-
   for (const codigo of codigos) {
     const permissao = await prisma.permissao.findUnique({
       where: { codigo },
@@ -1093,8 +1119,6 @@ async function vincularPermissoesPorCodigoAoPerfil(
       console.warn(`Permissão não encontrada no seed: ${codigo}`);
       continue;
     }
-
-    permissaoIdsSincronizados.push(permissao.id);
 
     await prisma.perfilPermissao.upsert({
       where: {
@@ -1110,15 +1134,6 @@ async function vincularPermissoesPorCodigoAoPerfil(
       },
     });
   }
-
-  await prisma.perfilPermissao.deleteMany({
-    where: {
-      perfilId,
-      permissaoId: {
-        notIn: permissaoIdsSincronizados,
-      },
-    },
-  });
 }
 
 async function criarUsuarioInicial(perfilId: string) {

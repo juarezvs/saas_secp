@@ -188,6 +188,23 @@ export async function listarPerfisParaExportacao(params: ListarPerfisParams) {
   });
 }
 
+export async function listarPerfisParaFiltro(params: {
+  orgaoIdsPermitidos?: string[];
+} = {}) {
+  return prisma.perfil.findMany({
+    where: montarWherePerfis({
+      orgaoIdsPermitidos: params.orgaoIdsPermitidos,
+      status: "ativo",
+    }),
+    select: {
+      id: true,
+      codigo: true,
+      nome: true,
+    },
+    orderBy: [{ nome: "asc" }, { codigo: "asc" }],
+  });
+}
+
 export async function listarPermissoesOrdenadas() {
   return prisma.permissao.findMany({
     orderBy: [
@@ -200,6 +217,24 @@ export async function listarPermissoesOrdenadas() {
       {
         escopo: "asc",
       },
+    ],
+  });
+}
+
+export async function listarPermissoesParaFiltro() {
+  return prisma.permissao.findMany({
+    select: {
+      id: true,
+      codigo: true,
+      recurso: true,
+      acao: true,
+      escopo: true,
+      descricao: true,
+    },
+    orderBy: [
+      { recurso: "asc" },
+      { acao: "asc" },
+      { escopo: "asc" },
     ],
   });
 }

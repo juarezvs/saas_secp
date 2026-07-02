@@ -22,7 +22,7 @@ export function OrgaosListagemControles({
       tipo: "texto",
       nome: "busca",
       label: "Consulta geral",
-      placeholder: "Consulta aplicada após 3 segundos",
+      placeholder: "Pesquisar imediatamente",
       className: "lg:col-span-2",
       comIconeBusca: true,
     },
@@ -31,7 +31,7 @@ export function OrgaosListagemControles({
     {
       tipo: "texto",
       nome: "codigoExternoSarh",
-      label: "Código SARH",
+      label: "Codigo SARH",
     },
     {
       tipo: "select",

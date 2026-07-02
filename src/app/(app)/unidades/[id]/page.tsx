@@ -14,15 +14,23 @@ type UnidadeDetalhePageProps = {
   params: Promise<{
     id: string;
   }>;
+  searchParams?: Promise<{
+    mostrarInativas?: string;
+  }>;
 };
 
 export default async function UnidadeDetalhePage({
   params,
+  searchParams,
 }: UnidadeDetalhePageProps) {
   await exigirPermissaoOuRedirecionar("unidades:gerenciar:global");
 
   const { id } = await params;
-  const unidade = await buscarUnidadePorId(id);
+  const query = searchParams ? await searchParams : {};
+  const mostrarUnidadesInativas = query.mostrarInativas === "1";
+  const unidade = await buscarUnidadePorId(id, {
+    incluirUnidadesFilhasInativas: mostrarUnidadesInativas,
+  });
 
   if (!unidade) {
     notFound();
@@ -139,6 +147,7 @@ export default async function UnidadeDetalhePage({
       <UnidadeHierarquiaCard
         unidadePai={unidade.unidadePai}
         unidadesFilhas={unidade.unidadesFilhas}
+        mostrarUnidadesInativas={mostrarUnidadesInativas}
       />
 
       <section className="rounded-xl border bg-(--card) text-(--card-foreground) shadow-sm">

@@ -4,14 +4,25 @@ import { useRef, useState } from "react";
 import { FileUp, Loader2, UploadCloud, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+import { SearchableSelect } from "@/components/ui";
+
 type ArquivoSelecionado = {
   file: File;
   id: string;
 };
 
-export function AfdUploadDropzone() {
-  const inputRef = useRef<HTMLInputElement | null>(null);
+type EquipamentoOption = {
+  value: string;
+  label: string;
+  searchText?: string;
+};
 
+export function AfdUploadDropzone({
+  equipamentos = [],
+}: {
+  equipamentos?: EquipamentoOption[];
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [arquivos, setArquivos] = useState<ArquivoSelecionado[]>([]);
   const [arrastando, setArrastando] = useState(false);
   const [equipamentoCodigo, setEquipamentoCodigo] = useState("");
@@ -33,13 +44,8 @@ export function AfdUploadDropzone() {
       const ids = new Set(atuais.map((item) => item.id));
       return [...atuais, ...novos.filter((item) => !ids.has(item.id))];
     });
-
     setMensagem(null);
     setErro(null);
-  }
-
-  function removerArquivo(id: string) {
-    setArquivos((atuais) => atuais.filter((item) => item.id !== id));
   }
 
   function limpar() {
@@ -78,8 +84,7 @@ export function AfdUploadDropzone() {
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
-        const percentual = Math.round((event.loaded / event.total) * 100);
-        setProgresso(percentual);
+        setProgresso(Math.round((event.loaded / event.total) * 100));
       }
     };
 
@@ -90,7 +95,6 @@ export function AfdUploadDropzone() {
         const resposta = JSON.parse(xhr.responseText) as {
           sucesso: boolean;
           mensagem?: string;
-          importacaoId?: string;
           arquivosRecebidos?: number;
           arquivosEnfileirados?: number;
         };
@@ -98,7 +102,7 @@ export function AfdUploadDropzone() {
         if (xhr.status >= 200 && xhr.status < 300 && resposta.sucesso) {
           setProgresso(100);
           setMensagem(
-            `${resposta.mensagem ?? "Upload concluído."} Arquivos recebidos: ${
+            `${resposta.mensagem ?? "Upload concluido."} Arquivos recebidos: ${
               resposta.arquivosRecebidos ?? arquivos.length
             }. Enfileirados: ${resposta.arquivosEnfileirados ?? 0}.`,
           );
@@ -125,23 +129,30 @@ export function AfdUploadDropzone() {
   return (
     <section className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
       <h2 className="text-lg font-bold">Enviar arquivos AFD</h2>
-
       <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-        Arraste múltiplos arquivos para a área abaixo ou selecione manualmente.
+        Arraste multiplos arquivos para a area abaixo ou selecione manualmente.
       </p>
 
       <div className="mt-5">
-        <label className="text-sm font-semibold">Código do equipamento</label>
-
-        <input
-          value={equipamentoCodigo}
-          onChange={(event) => setEquipamentoCodigo(event.target.value)}
-          placeholder="Opcional. Ex.: BIO-NUTEC-01"
-          className="mt-2 h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+        <label className="text-sm font-semibold" htmlFor="equipamentoCodigo">
+          Equipamento
+        </label>
+        <SearchableSelect
+          id="equipamentoCodigo"
+          name="equipamentoCodigo"
+          defaultValue={equipamentoCodigo}
+          options={[
+            { value: "", label: "Identificar automaticamente" },
+            ...equipamentos,
+          ]}
+          placeholder="Identificar automaticamente"
+          searchPlaceholder="Pesquisar por codigo, nome, serie ou unidade..."
+          className="mt-2"
+          onValueChange={setEquipamentoCodigo}
         />
         <p className="mt-2 text-xs leading-5 text-[var(--muted-foreground)]">
-          Se este campo ficar vazio, o SECP tenta identificar automaticamente o
-          equipamento pelo código ou número de série cadastrado e presente no AFD.
+          Se nenhum equipamento for selecionado, o SECP tenta identificar
+          automaticamente pelo codigo ou numero de serie presente no AFD.
         </p>
       </div>
 
@@ -171,13 +182,10 @@ export function AfdUploadDropzone() {
         }`}
       >
         <UploadCloud className="size-10" aria-hidden="true" />
-
-        <p className="mt-3 font-semibold">Arraste os arquivos AFD para cá</p>
-
+        <p className="mt-3 font-semibold">Arraste os arquivos AFD para ca</p>
         <p className="mt-1 text-sm">
           ou clique para selecionar arquivos .afd, .txt ou .csv
         </p>
-
         <input
           ref={inputRef}
           type="file"
@@ -194,7 +202,6 @@ export function AfdUploadDropzone() {
             <p className="font-semibold">
               Arquivos selecionados ({arquivos.length})
             </p>
-
             <button
               type="button"
               onClick={limpar}
@@ -213,7 +220,6 @@ export function AfdUploadDropzone() {
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <FileUp className="size-4 shrink-0 text-blue-900 dark:text-blue-300" />
-
                   <div className="min-w-0">
                     <p className="truncate font-semibold">{item.file.name}</p>
                     <p className="text-xs text-[var(--muted-foreground)]">
@@ -221,10 +227,13 @@ export function AfdUploadDropzone() {
                     </p>
                   </div>
                 </div>
-
                 <button
                   type="button"
-                  onClick={() => removerArquivo(item.id)}
+                  onClick={() =>
+                    setArquivos((atuais) =>
+                      atuais.filter((arquivo) => arquivo.id !== item.id),
+                    )
+                  }
                   disabled={enviando}
                   className="rounded-md border p-2 transition hover:bg-[var(--muted)] disabled:opacity-50"
                   aria-label={`Remover ${item.file.name}`}
@@ -240,10 +249,9 @@ export function AfdUploadDropzone() {
       {(enviando || progresso > 0) && (
         <div className="mt-5">
           <div className="flex justify-between text-sm">
-            <span>{enviando ? "Enviando..." : "Upload concluído"}</span>
+            <span>{enviando ? "Enviando..." : "Upload concluido"}</span>
             <span>{progresso}%</span>
           </div>
-
           <div className="mt-2 h-3 overflow-hidden rounded-full bg-[var(--muted)]">
             <div
               className="h-full rounded-full bg-blue-900 transition-all"

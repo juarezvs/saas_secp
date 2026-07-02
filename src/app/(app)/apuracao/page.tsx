@@ -3,18 +3,25 @@ import { FileCheck2 } from "lucide-react";
 import { auth } from "@/auth";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
+import { SearchableSelect } from "@/components/ui";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import { recalcularApuracaoDiaAction } from "@/modules/apuracao/application/actions/recalcular-apuracao-dia.action";
+import {
+  recalcularApuracaoDiaAction,
+  recalcularApuracaoPeriodoAction,
+} from "@/modules/apuracao/application/actions/recalcular-apuracao-dia.action";
 import { normalizarDataReferencia } from "@/modules/apuracao/application/services/calcular-tempo.service";
 import { ApuracaoDiaCard } from "@/modules/apuracao/presentation/components/apuracao-dia-card";
 import {
   buscarApuracaoDiaria,
   buscarServidorComUsuarioPorUsuarioId,
+  listarServidoresParaEspelhoPonto,
 } from "@/modules/apuracao/infrastructure/repositories/apuracao.repository";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
+import { listarServidoresParaFiltro } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
 
 export default async function ApuracaoPage() {
-  await exigirUmaDasPermissoesOuRedirecionar([
+  const permissao = await exigirUmaDasPermissoesOuRedirecionar([
     "apuracao:consultar:proprio",
     "apuracao:consultar:global",
     "apuracao:recalcular:global",
@@ -27,6 +34,33 @@ export default async function ApuracaoPage() {
     : null;
 
   const hoje = normalizarDataReferencia(new Date());
+  const hojeValor = hoje.toISOString().slice(0, 10);
+  const podeRecalcularGlobal = permissao.permissoes.includes(
+    "apuracao:recalcular:global",
+  );
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const servidoresAdministrativos = podeRecalcularGlobal
+    ? permissao.perfilAtivoCodigo === "CHEFIA"
+      ? await listarServidoresParaEspelhoPonto({
+          usuarioId: session?.user.id,
+          escopo: "chefia",
+        })
+      : await listarServidoresParaFiltro({
+          orgaoIdsPermitidos: escopoOrgao.global ? undefined : escopoOrgao.orgaoIds,
+        })
+    : [];
+  const servidoresOptions = servidoresAdministrativos.map((item) => {
+    const nome = nomeServidor(item) || item.matricula;
+    const lotacao = item.lotacoes[0]?.unidade;
+
+    return {
+      value: item.id,
+      label: `${nome} (${item.matricula})`,
+      searchText: `${item.matricula} ${lotacao?.sigla ?? ""} ${
+        lotacao?.nome ?? ""
+      }`,
+    };
+  });
 
   const apuracao = servidor
     ? await buscarApuracaoDiaria({
@@ -57,10 +91,14 @@ export default async function ApuracaoPage() {
 
           <form action={recalcularApuracaoDiaAction} className="mt-5 flex gap-3">
             <input type="hidden" name="servidorId" value={servidor.id} />
+            <label className="sr-only" htmlFor="dataReferencia">
+              Data de referência
+            </label>
             <input
+              id="dataReferencia"
               type="date"
               name="dataReferencia"
-              defaultValue={hoje.toISOString().slice(0, 10)}
+              defaultValue={hojeValor}
               className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
             />
 
@@ -75,6 +113,71 @@ export default async function ApuracaoPage() {
       ) : (
         <section className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
           Nenhum servidor ativo foi encontrado para o usuário autenticado.
+        </section>
+      )}
+
+      {podeRecalcularGlobal && (
+        <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
+          <h2 className="text-lg font-bold">Recalcular servidor por período</h2>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+            Escolha um servidor dentro do seu escopo de acesso e informe o
+            período da apuração.
+          </p>
+
+          <form
+            action={recalcularApuracaoPeriodoAction}
+            className="mt-5 grid gap-4 lg:grid-cols-[minmax(280px,1fr)_180px_180px_auto]"
+          >
+            <div>
+              <label className="text-sm font-semibold" htmlFor="servidorId">
+                Servidor
+              </label>
+              <SearchableSelect
+                id="servidorId"
+                name="servidorId"
+                options={servidoresOptions}
+                placeholder="Selecione o servidor"
+                searchPlaceholder="Pesquisar por matrícula, nome ou lotação..."
+                required
+                className="mt-2"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold" htmlFor="dataInicio">
+                Data inicial
+              </label>
+              <input
+                id="dataInicio"
+                type="date"
+                name="dataInicio"
+                defaultValue={hojeValor}
+                className="mt-2 h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold" htmlFor="dataFim">
+                Data final
+              </label>
+              <input
+                id="dataFim"
+                type="date"
+                name="dataFim"
+                defaultValue={hojeValor}
+                className="mt-2 h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+              />
+            </div>
+
+            <div className="flex items-end">
+              <button
+                type="submit"
+                className="h-10 rounded-md bg-blue-900 px-4 text-sm font-semibold text-white hover:bg-blue-950"
+              >
+                Recalcular período
+              </button>
+            </div>
+          </form>
         </section>
       )}
 

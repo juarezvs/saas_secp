@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Building2, GitBranch } from "lucide-react";
 
 type UnidadeResumo = {
@@ -6,17 +9,37 @@ type UnidadeResumo = {
   sigla: string;
   nome: string;
   tipo: string;
+  ativo?: boolean;
 };
 
 type UnidadeHierarquiaCardProps = {
   unidadePai?: UnidadeResumo | null;
   unidadesFilhas?: UnidadeResumo[];
+  mostrarUnidadesInativas?: boolean;
 };
 
 export function UnidadeHierarquiaCard({
   unidadePai,
   unidadesFilhas = [],
+  mostrarUnidadesInativas = false,
 }: UnidadeHierarquiaCardProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  function alternarInativas(marcado: boolean) {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (marcado) {
+      params.set("mostrarInativas", "1");
+    } else {
+      params.delete("mostrarInativas");
+    }
+
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  }
+
   return (
     <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
       <div className="flex items-center gap-2 border-b p-5">
@@ -52,15 +75,26 @@ export function UnidadeHierarquiaCard({
             </Link>
           ) : (
             <p className="mt-3 text-sm text-[var(--muted-foreground)]">
-              Esta unidade não possui unidade superior cadastrada.
+              Esta unidade nao possui unidade superior cadastrada.
             </p>
           )}
         </div>
 
         <div className="rounded-xl border bg-[var(--muted)] p-4">
-          <p className="text-sm font-semibold text-[var(--muted-foreground)]">
-            Unidades subordinadas
-          </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm font-semibold text-[var(--muted-foreground)]">
+              Unidades subordinadas
+            </p>
+            <label className="flex items-center gap-2 text-xs font-semibold text-[var(--muted-foreground)]">
+              <input
+                type="checkbox"
+                checked={mostrarUnidadesInativas}
+                onChange={(event) => alternarInativas(event.target.checked)}
+                className="size-4 rounded border-border text-blue-900 focus:ring-ring"
+              />
+              Mostrar unidades inativas
+            </label>
+          </div>
 
           <div className="mt-3 space-y-3">
             {unidadesFilhas.map((filha) => (
@@ -74,8 +108,15 @@ export function UnidadeHierarquiaCard({
                   aria-hidden="true"
                 />
 
-                <div>
-                  <p className="font-bold">{filha.sigla}</p>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-bold">{filha.sigla}</p>
+                    {filha.ativo === false && (
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                        Inativa
+                      </span>
+                    )}
+                  </div>
                   <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                     {filha.nome}
                   </p>

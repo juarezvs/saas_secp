@@ -351,16 +351,34 @@ export async function buscarEquipamentoBiometricoPorId(id: string) {
   });
 }
 
-export async function listarEquipamentosParaIdentificacaoAfd() {
+export async function listarEquipamentosParaIdentificacaoAfd(params?: {
+  orgaoIdsPermitidos?: string[];
+}) {
   return prisma.equipamentoBiometrico.findMany({
     where: {
       ativo: true,
+      ...(params?.orgaoIdsPermitidos?.length
+        ? {
+            unidade: {
+              orgaoId: {
+                in: params.orgaoIdsPermitidos,
+              },
+            },
+          }
+        : {}),
     },
     select: {
       id: true,
       codigo: true,
       nome: true,
       numeroSerie: true,
+      unidade: {
+        select: {
+          sigla: true,
+          nome: true,
+        },
+      },
     },
+    orderBy: [{ nome: "asc" }, { codigo: "asc" }],
   });
 }

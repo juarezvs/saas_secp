@@ -290,7 +290,10 @@ export async function listarUnidadesAtivas() {
   return listarUnidadesParaSelecao();
 }
 
-export async function buscarUnidadePorId(id: string) {
+export async function buscarUnidadePorId(
+  id: string,
+  options: { incluirUnidadesFilhasInativas?: boolean } = {},
+) {
   if (!ehUuid(id)) {
     return null;
   }
@@ -303,6 +306,11 @@ export async function buscarUnidadePorId(id: string) {
       orgao: true,
       unidadePai: true,
       unidadesFilhas: {
+        where: options.incluirUnidadesFilhasInativas
+          ? undefined
+          : {
+              ativo: true,
+            },
         orderBy: [
           {
             sigla: "asc",

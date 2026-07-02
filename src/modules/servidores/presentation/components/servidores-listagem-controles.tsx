@@ -8,14 +8,24 @@ type OrgaoOption = {
   sigla: string;
 };
 
+type FiltroOption = {
+  value: string;
+  label: string;
+  searchText?: string;
+};
+
 type ServidoresListagemControlesProps = {
   orgaos: OrgaoOption[];
+  servidores: FiltroOption[];
+  lotacoes: FiltroOption[];
   exportCsvHref: string;
   exportPdfHref: string;
 };
 
 export function ServidoresListagemControles({
   orgaos,
+  servidores,
+  lotacoes,
   exportCsvHref,
   exportPdfHref,
 }: ServidoresListagemControlesProps) {
@@ -24,18 +34,33 @@ export function ServidoresListagemControles({
       tipo: "texto",
       nome: "busca",
       label: "Consulta geral",
-      placeholder: "Consulta aplicada após 3 segundos",
+      placeholder: "Pesquisar imediatamente",
       className: "lg:col-span-2",
       comIconeBusca: true,
     },
-    { tipo: "texto", nome: "matricula", label: "Matrícula" },
+    { tipo: "texto", nome: "matricula", label: "Matricula" },
     { tipo: "texto", nome: "cpf", label: "CPF" },
-    { tipo: "texto", nome: "nome", label: "Nome" },
-    { tipo: "texto", nome: "lotacao", label: "Lotação" },
+    {
+      tipo: "searchable-select",
+      nome: "nome",
+      label: "Servidor",
+      placeholder: "Todos",
+      searchPlaceholder: "Pesquisar servidor...",
+      options: [{ value: "", label: "Todos" }, ...servidores],
+      className: "lg:col-span-2",
+    },
+    {
+      tipo: "searchable-select",
+      nome: "lotacao",
+      label: "Lotacao",
+      placeholder: "Todas",
+      searchPlaceholder: "Pesquisar lotacao...",
+      options: [{ value: "", label: "Todas" }, ...lotacoes],
+    },
     {
       tipo: "select",
       nome: "orgaoId",
-      label: "Órgão",
+      label: "Orgao",
       options: [
         { value: "", label: "Todos" },
         ...orgaos.map((orgao) => ({ value: orgao.id, label: orgao.sigla })),
@@ -44,7 +69,7 @@ export function ServidoresListagemControles({
     {
       tipo: "select",
       nome: "vinculo",
-      label: "Vínculo",
+      label: "Vinculo",
       options: [
         { value: "", label: "Todos" },
         { value: "EFETIVO", label: "Efetivo" },
@@ -59,6 +84,7 @@ export function ServidoresListagemControles({
       tipo: "select",
       nome: "status",
       label: "Status",
+      defaultValue: "ativo",
       options: [
         { value: "", label: "Todos" },
         { value: "ativo", label: "Ativos" },

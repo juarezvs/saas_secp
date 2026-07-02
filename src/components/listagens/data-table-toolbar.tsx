@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { DataTableExportButtons } from "@/components/listagens/data-table-export-buttons";
 import { FiltroSelectImediato } from "@/components/listagens/filtro-select-imediato";
 import { FiltroTextoDebounce } from "@/components/listagens/filtro-texto-debounce";
-import { CompetenciaInput } from "@/components/ui";
+import { CompetenciaInput, SearchableSelect } from "@/components/ui";
 import {
   criarQueryStringAtualizada,
   montarHrefComQuery,
@@ -18,6 +18,7 @@ export type DataTableFiltroTexto = {
   placeholder?: string;
   className?: string;
   comIconeBusca?: boolean;
+  defaultValue?: string;
 };
 
 export type DataTableFiltroSelect = {
@@ -29,6 +30,22 @@ export type DataTableFiltroSelect = {
     label: string;
   }[];
   className?: string;
+  defaultValue?: string;
+};
+
+export type DataTableFiltroSearchableSelect = {
+  tipo: "searchable-select";
+  nome: string;
+  label: string;
+  options: {
+    value: string;
+    label: string;
+    searchText?: string;
+  }[];
+  className?: string;
+  placeholder?: string;
+  searchPlaceholder?: string;
+  defaultValue?: string;
 };
 
 export type DataTableFiltroCompetencia = {
@@ -36,11 +53,13 @@ export type DataTableFiltroCompetencia = {
   nome: string;
   label: string;
   className?: string;
+  defaultValue?: string;
 };
 
 export type DataTableFiltro =
   | DataTableFiltroTexto
   | DataTableFiltroSelect
+  | DataTableFiltroSearchableSelect
   | DataTableFiltroCompetencia;
 
 type DataTableToolbarProps = {
@@ -82,7 +101,7 @@ export function DataTableToolbar({
 
   const obterValorFiltro = useCallback(
     (filtro: DataTableFiltro) => {
-      const value = paramsAtuais.get(filtro.nome) ?? "";
+      const value = paramsAtuais.get(filtro.nome) ?? filtro.defaultValue ?? "";
 
       if (filtro.tipo !== "competencia" || value) {
         return value;
@@ -121,6 +140,31 @@ export function DataTableToolbar({
                 onChange={aplicarParametro}
                 className={filtro.className}
               />
+            );
+          }
+
+          if (filtro.tipo === "searchable-select") {
+            return (
+              <div key={filtro.nome} className={filtro.className}>
+                <label className="text-xs font-semibold uppercase text-[var(--muted-foreground)]">
+                  {filtro.label}
+                </label>
+                <SearchableSelect
+                  key={`${filtro.nome}-${value}`}
+                  id={filtro.nome}
+                  name={filtro.nome}
+                  defaultValue={value}
+                  options={filtro.options}
+                  placeholder={filtro.placeholder ?? "Todos"}
+                  searchPlaceholder={
+                    filtro.searchPlaceholder ?? "Pesquisar..."
+                  }
+                  className="mt-2"
+                  onValueChange={(novoValor) =>
+                    aplicarParametro(filtro.nome, novoValor)
+                  }
+                />
+              </div>
             );
           }
 

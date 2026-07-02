@@ -34,6 +34,7 @@ export default async function UnidadesPage({
 
   const params = searchParams ? await searchParams : {};
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const statusFiltro = params.status ?? "ativa";
   const filtrosEscopados = aplicarEscopoOrgaoId(
     {
       busca: params.busca ?? "",
@@ -42,7 +43,7 @@ export default async function UnidadesPage({
       tipo: params.tipo ?? "",
       orgaoId: params.orgaoId ?? "",
       superior: params.superior ?? "",
-      status: params.status ?? "",
+      status: statusFiltro,
       pagina: Number(params.pagina ?? 1),
       itensPorPagina: Number(params.itensPorPagina ?? 10),
     },
@@ -67,7 +68,9 @@ export default async function UnidadesPage({
     "superior",
     "status",
   ] as const) {
-    if (params[chave]) {
+    if (chave === "status") {
+      exportParams.set(chave, statusFiltro);
+    } else if (params[chave]) {
       exportParams.set(chave, params[chave]!);
     }
   }

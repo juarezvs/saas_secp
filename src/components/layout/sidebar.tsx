@@ -11,6 +11,7 @@ import {
   CalendarRange,
   CalendarX,
   Cable,
+  ChevronDown,
   ClipboardList,
   Clock,
   DatabaseZap,
@@ -30,6 +31,7 @@ import {
   Upload,
   UserCog,
   Users,
+  UsersRound,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -37,6 +39,10 @@ import {
 import { SecpLogo } from "@/components/brand/secp-logo";
 import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao-utils";
 import { PERMISSOES_ACESSO_REGISTRO_PONTO_SECP } from "@/modules/auth/domain/constants/perfis-sistema";
+import {
+  PERMISSAO_PAINEL_EXECUTIVO,
+  PERMISSAO_PAINEL_EXECUTIVO_EQUIPAMENTOS,
+} from "@/modules/painel-executivo/presentation/painel-executivo-data";
 
 export type PerfilNavegacao = {
   codigo: string;
@@ -50,6 +56,7 @@ export type MenuItem = {
   href: string;
   icon: LucideIcon;
   permissoes?: string[];
+  children?: MenuItem[];
 };
 
 export const MENU_ITEMS: MenuItem[] = [
@@ -114,6 +121,12 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
+    label: "Minha Equipe",
+    href: "/minha-equipe",
+    icon: UsersRound,
+    permissoes: ["minha-equipe:consultar:chefia"],
+  },
+  {
     label: "Homologação",
     href: "/homologacao",
     icon: ShieldCheck,
@@ -156,6 +169,107 @@ export const MENU_ITEMS: MenuItem[] = [
       "relatorios-gerenciais:consultar:proprio",
       "relatorios-gerenciais:consultar:chefia",
       "relatorios-gerenciais:consultar:global",
+    ],
+  },
+  {
+    label: "Painel Executivo",
+    href: "/painel-executivo",
+    icon: BarChart3,
+    permissoes: [
+      PERMISSAO_PAINEL_EXECUTIVO,
+      PERMISSAO_PAINEL_EXECUTIVO_EQUIPAMENTOS,
+    ],
+    children: [
+      {
+        label: "Indicadores",
+        href: "/painel-executivo/indicadores",
+        icon: LayoutDashboard,
+        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
+      },
+      {
+        label: "Pendências de ponto",
+        href: "/painel-executivo/pendencias-de-ponto",
+        icon: FileCheck2,
+        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
+      },
+      {
+        label: "Frequência e assiduidade",
+        href: "/painel-executivo/frequencia-e-assiduidade",
+        icon: UsersRound,
+        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
+      },
+      {
+        label: "Justificativas e ocorrências",
+        href: "/painel-executivo/justificativas-e-ocorrencias",
+        icon: ClipboardList,
+        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
+      },
+      {
+        label: "Controle de homologação mensal",
+        href: "/painel-executivo/controle-de-homologacao-mensal",
+        icon: ShieldCheck,
+        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
+      },
+      {
+        label: "Jornada e carga horária",
+        href: "/painel-executivo/jornada-e-carga-horaria",
+        icon: CalendarClock,
+        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
+      },
+      {
+        label: "Teletrabalho, presencial e registro web",
+        href: "/painel-executivo/teletrabalho-presencial-registro-web",
+        icon: ScanFace,
+        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
+      },
+      {
+        label: "Equipamentos de ponto",
+        href: "/painel-executivo/equipamentos-de-ponto",
+        icon: Cable,
+        permissoes: [PERMISSAO_PAINEL_EXECUTIVO_EQUIPAMENTOS],
+      },
+      {
+        label: "Auditoria e conformidade",
+        href: "/painel-executivo/auditoria-e-conformidade",
+        icon: ScrollText,
+        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
+      },
+      {
+        label: "Indicadores por unidade e chefia",
+        href: "/painel-executivo/indicadores-por-unidade-e-chefia",
+        icon: Building2,
+        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
+      },
+      {
+        label: "Alertas inteligentes",
+        href: "/painel-executivo/alertas-inteligentes",
+        icon: ShieldAlert,
+        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
+      },
+      {
+        label: "Relatórios exportáveis",
+        href: "/painel-executivo/relatorios-exportaveis",
+        icon: FileSpreadsheet,
+        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
+      },
+      {
+        label: "Paineis",
+        href: "/painel-executivo/paineis",
+        icon: LayoutDashboard,
+        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
+      },
+      {
+        label: "Gráficos importantes",
+        href: "/painel-executivo/graficos-importantes",
+        icon: BarChart3,
+        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
+      },
+      {
+        label: "Banco de horas",
+        href: "/painel-executivo/banco-de-horas",
+        icon: Hourglass,
+        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
+      },
     ],
   },
   {
@@ -287,6 +401,14 @@ export function perfilPodeAcessarPath() {
 }
 
 function itemPodeSerExibido(item: MenuItem, perfilAtivo: PerfilNavegacao) {
+  const algumFilhoVisivel = item.children?.some((child) =>
+    itemPodeSerExibido(child, perfilAtivo),
+  );
+
+  if (algumFilhoVisivel) {
+    return true;
+  }
+
   if (!item.permissoes || item.permissoes.length === 0) {
     return true;
   }
@@ -302,8 +424,29 @@ function itemCorrespondeAoPath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function obterHrefAtivo(pathname: string, itens: MenuItem[]) {
+function filtrarItensVisiveis(
+  itens: MenuItem[],
+  perfilAtivo: PerfilNavegacao,
+): MenuItem[] {
   return itens
+    .map((item) => ({
+      ...item,
+      children: item.children
+        ? filtrarItensVisiveis(item.children, perfilAtivo)
+        : undefined,
+    }))
+    .filter((item) => itemPodeSerExibido(item, perfilAtivo));
+}
+
+function achatarItens(itens: MenuItem[]): MenuItem[] {
+  return itens.flatMap((item) => [
+    item,
+    ...(item.children ? achatarItens(item.children) : []),
+  ]);
+}
+
+function obterHrefAtivo(pathname: string, itens: MenuItem[]) {
+  return achatarItens(itens)
     .filter((item) => itemCorrespondeAoPath(pathname, item.href))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href;
 }
@@ -318,9 +461,7 @@ function MenuPrincipal({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
-  const itensVisiveis = MENU_ITEMS.filter((item) =>
-    itemPodeSerExibido(item, perfilAtivo),
-  );
+  const itensVisiveis = filtrarItensVisiveis(MENU_ITEMS, perfilAtivo);
   const hrefAtivo = obterHrefAtivo(pathname, itensVisiveis);
 
   return (
@@ -331,28 +472,82 @@ function MenuPrincipal({
       <ul className="space-y-1">
         {itensVisiveis.map((item) => {
           const Icon = item.icon;
+          const filhos = item.children ?? [];
+          const possuiFilhos = filhos.length > 0;
           const ativo = item.href === hrefAtivo;
+          const filhoAtivo = filhos.some((child) => child.href === hrefAtivo);
+          const grupoAtivo = ativo || filhoAtivo;
+          const mostrarFilhos = possuiFilhos && !recolhida && grupoAtivo;
 
           return (
-            <li key={item.href}>
+            <li key={item.href} className="space-y-1">
               <Link
-                href={item.href}
+                href={possuiFilhos ? filhos[0]?.href ?? item.href : item.href}
                 onClick={onNavigate}
-                aria-current={ativo ? "page" : undefined}
+                aria-current={grupoAtivo ? "page" : undefined}
                 aria-label={recolhida ? item.label : undefined}
                 title={recolhida ? item.label : undefined}
                 className={[
                   "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold transition",
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                  ativo
+                  grupoAtivo
                     ? "bg-secp-blue-900 text-white shadow-sm"
                     : "text-slate-700 hover:bg-secp-blue-900/10 hover:text-secp-blue-900 dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white",
                   recolhida ? "justify-center" : "",
                 ].join(" ")}
               >
                 <Icon className="size-5 shrink-0" aria-hidden="true" />
-                {!recolhida && <span className="truncate">{item.label}</span>}
+                {!recolhida && (
+                  <>
+                    <span className="min-w-0 flex-1 truncate">
+                      {item.label}
+                    </span>
+                    {possuiFilhos && (
+                      <ChevronDown
+                        className={[
+                          "size-4 shrink-0 transition-transform",
+                          mostrarFilhos ? "rotate-180" : "",
+                        ].join(" ")}
+                        aria-hidden="true"
+                      />
+                    )}
+                  </>
+                )}
               </Link>
+
+              {mostrarFilhos && (
+                <ul className="ml-4 space-y-1 border-l border-border pl-2">
+                  {filhos.map((child) => {
+                    const ChildIcon = child.icon;
+                    const childAtivo = child.href === hrefAtivo;
+
+                    return (
+                      <li key={child.href}>
+                        <Link
+                          href={child.href}
+                          onClick={onNavigate}
+                          aria-current={childAtivo ? "page" : undefined}
+                          className={[
+                            "flex items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition",
+                            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                            childAtivo
+                              ? "bg-secp-blue-900/10 text-secp-blue-900 dark:bg-white/10 dark:text-white"
+                              : "text-slate-600 hover:bg-secp-blue-900/10 hover:text-secp-blue-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white",
+                          ].join(" ")}
+                        >
+                          <ChildIcon
+                            className="size-4 shrink-0"
+                            aria-hidden="true"
+                          />
+                          <span className="min-w-0 flex-1 truncate">
+                            {child.label}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </li>
           );
         })}

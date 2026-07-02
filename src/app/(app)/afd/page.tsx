@@ -2,16 +2,31 @@ import { Upload } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { AfdUploadDropzone } from "@/modules/afd/presentation/components/afd-upload-dropzone";
 import { AfdImportacoesTable } from "@/modules/afd/presentation/components/afd-importacoes-table";
 import { ReprocessarMarcacoesBrutasForm } from "@/modules/marcacoes-brutas/presentation/components/reprocessar-marcacoes-brutas-form";
 import { listarImportacoesAfd } from "@/modules/afd/infrastructure/repositories/afd.repository";
+import { listarEquipamentosParaIdentificacaoAfd } from "@/modules/integracoes/infrastructure/repositories/integracoes.repository";
 
 export default async function AfdPage() {
   await exigirPermissaoOuRedirecionar("afd:importar:global");
 
-  const importacoes = await listarImportacoesAfd();
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const [importacoes, equipamentos] = await Promise.all([
+    listarImportacoesAfd(),
+    listarEquipamentosParaIdentificacaoAfd({
+      orgaoIdsPermitidos: escopoOrgao.global ? undefined : escopoOrgao.orgaoIds,
+    }),
+  ]);
+  const equipamentosOptions = equipamentos.map((equipamento) => ({
+    value: equipamento.codigo,
+    label: `${equipamento.codigo} - ${equipamento.nome}`,
+    searchText: `${equipamento.numeroSerie ?? ""} ${
+      equipamento.unidade?.sigla ?? ""
+    } ${equipamento.unidade?.nome ?? ""}`,
+  }));
 
   return (
     <div className="space-y-6">
@@ -26,7 +41,7 @@ export default async function AfdPage() {
         regraDescricao="Os arquivos AFD são importados como marcações brutas imutaveis e posteriormente processados para apuração de frequência."
       />
 
-      <AfdUploadDropzone />
+      <AfdUploadDropzone equipamentos={equipamentosOptions} />
 
       <section className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
         <h2 className="text-lg font-bold">Reprocessar pendências</h2>
