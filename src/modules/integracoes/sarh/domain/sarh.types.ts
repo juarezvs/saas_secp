@@ -117,6 +117,25 @@ export type SarhChefiaDto = {
   flagAtiva: string | boolean | null;
 };
 
+export type SarhCalendarioDto = {
+  id: string;
+  data: string;
+  descricao: string;
+  tipo: "FERIADO" | "PONTO_FACULTATIVO" | "SUSPENSAO_EXPEDIENTE";
+  abrangencia:
+    | "NACIONAL"
+    | "ESTADUAL"
+    | "MUNICIPAL"
+    | "ORGAO"
+    | "UNIDADE";
+  uf: string | null;
+  secaoSubsecaoId: number | null;
+  varaId: number | null;
+  ativo: boolean;
+  origemTabela: string;
+  metadados?: Record<string, unknown>;
+};
+
 export type SarhPayloadCompleto = {
   empresas: SarhEmpresaDto[];
   lotacoes: SarhLotacaoDto[];
@@ -126,6 +145,7 @@ export type SarhPayloadCompleto = {
   tiposAfastamento: SarhTipoAfastamentoDto[];
   afastamentos: SarhAfastamentoDto[];
   chefias: SarhChefiaDto[];
+  calendarios: SarhCalendarioDto[];
 };
 
 export type SarhEndpointKey =
@@ -136,7 +156,8 @@ export type SarhEndpointKey =
   | "lotacoesServidores"
   | "tiposAfastamento"
   | "afastamentos"
-  | "chefias";
+  | "chefias"
+  | "calendarios";
 
 export type TipoExecucaoSarh =
   | "CARGA_INICIAL"
@@ -153,7 +174,8 @@ export type TipoEndpointSarhDb =
   | "LOTACOES_SERVIDORES"
   | "TIPOS_AFASTAMENTO"
   | "AFASTAMENTOS"
-  | "CHEFIAS";
+  | "CHEFIAS"
+  | "CALENDARIOS";
 
 export type TipoRegistroSarhDb =
   | "EMPRESA"
@@ -163,7 +185,8 @@ export type TipoRegistroSarhDb =
   | "LOTACAO_SERVIDOR"
   | "TIPO_AFASTAMENTO"
   | "AFASTAMENTO"
-  | "CHEFIA";
+  | "CHEFIA"
+  | "CALENDARIO";
 
 export type OperacaoRegistroSarhDb =
   "CRIAR" | "ATUALIZAR" | "INATIVAR" | "IGNORAR" | "CONFLITO" | "ERRO";

@@ -5,6 +5,7 @@ import type {
   OperacaoRegistroSarhDb,
   ResultadoItemSarh,
   SarhAfastamentoDto,
+  SarhCalendarioDto,
   SarhCargoDto,
   SarhChefiaDto,
   SarhEmpresaDto,
@@ -611,6 +612,148 @@ export class SarhPrismaRepository {
         metadados: {
           servidorEncontrado: Boolean(servidor),
           tipoEncontrado: Boolean(tipoAfastamento),
+        },
+      },
+      params.registroBrutoId,
+    );
+
+    return operacao;
+  }
+
+  async processarCalendario(params: {
+    execucaoId: string;
+    payload: SarhCalendarioDto;
+    modoSimulacao: boolean;
+    registroBrutoId?: string | null;
+  }) {
+    const endpoint: TipoEndpointSarhDb = "CALENDARIOS";
+    const chaveExterna = params.payload.id;
+    const dataReferencia = normalizarDataSarh(params.payload.data);
+
+    if (!dataReferencia) {
+      await this.registrarItem(
+        params.execucaoId,
+        endpoint,
+        {
+          tipoRegistro: "CALENDARIO",
+          chaveExterna,
+          operacao: "IGNORAR",
+          status: "IGNORADO",
+          mensagem: "Calendário SARH sem data de referência.",
+          dadosDepois: params.payload,
+        },
+        params.registroBrutoId,
+      );
+
+      return "IGNORAR" as OperacaoRegistroSarhDb;
+    }
+
+    const orgao = await this.obterOrgaoPadrao();
+    const observacaoOrigem = `Origem SARH: ${params.payload.origemTabela}; Código: ${chaveExterna}`;
+    const mapeamento = await this.prisma.mapeamentoExterno.findUnique({
+      where: {
+        sistema_tipoRegistro_codigoExterno: {
+          sistema: "SARH",
+          tipoRegistro: "CALENDARIO",
+          codigoExterno: chaveExterna,
+        },
+      },
+    });
+    const existente =
+      mapeamento?.entidadeInternaId
+        ? await this.prisma.calendarioInstitucional.findUnique({
+            where: { id: mapeamento.entidadeInternaId },
+          })
+        : await this.prisma.calendarioInstitucional.findFirst({
+            where: {
+              dataReferencia,
+              descricao: limparTexto(params.payload.descricao) ?? "Calendário SARH",
+              observacao: { contains: observacaoOrigem },
+            },
+          });
+    const data = {
+      dataReferencia,
+      descricao: limparTexto(params.payload.descricao) ?? "Calendário SARH",
+      tipo: params.payload.tipo,
+      abrangencia: params.payload.abrangencia,
+      uf: limparTexto(params.payload.uf),
+      municipio: null,
+      municipioIbge: null,
+      orgaoId:
+        params.payload.abrangencia === "ORGAO" ||
+        params.payload.abrangencia === "UNIDADE"
+          ? orgao.id
+          : null,
+      unidadeId: null,
+      contaComoDiaUtil: false,
+      geraApuracaoRegular: false,
+      janelaInicio: null,
+      janelaFim: null,
+      dataOriginal: null,
+      dataSubstituida: false,
+      observacao: observacaoOrigem,
+      ativo: params.payload.ativo,
+    };
+    const operacao: OperacaoRegistroSarhDb = existente ? "ATUALIZAR" : "CRIAR";
+
+    if (params.modoSimulacao) {
+      await this.registrarItem(
+        params.execucaoId,
+        endpoint,
+        {
+          tipoRegistro: "CALENDARIO",
+          chaveExterna,
+          operacao,
+          status: "PROCESSADO",
+          entidadeInterna: "CalendarioInstitucional",
+          entidadeInternaId: existente?.id,
+          mensagem: `Simulação: calendário ${data.descricao} em ${params.payload.data} seria ${
+            existente ? "atualizado" : "criado"
+          }.`,
+          dadosAntes: existente,
+          dadosDepois: data,
+          metadados: {
+            modoSimulacao: true,
+            origemTabela: params.payload.origemTabela,
+            metadadosSarh: params.payload.metadados,
+          },
+        },
+        params.registroBrutoId,
+      );
+
+      return operacao;
+    }
+
+    const salvo = existente
+      ? await this.prisma.calendarioInstitucional.update({
+          where: { id: existente.id },
+          data,
+        })
+      : await this.prisma.calendarioInstitucional.create({ data });
+
+    await this.upsertMapeamento(
+      "CALENDARIO",
+      chaveExterna,
+      "CalendarioInstitucional",
+      salvo.id,
+      gerarHashRegistro(params.payload),
+    );
+
+    await this.registrarItem(
+      params.execucaoId,
+      endpoint,
+      {
+        tipoRegistro: "CALENDARIO",
+        chaveExterna,
+        operacao,
+        status: "PROCESSADO",
+        entidadeInterna: "CalendarioInstitucional",
+        entidadeInternaId: salvo.id,
+        dadosAntes: existente,
+        dadosDepois: salvo,
+        metadados: {
+          origemTabela: params.payload.origemTabela,
+          metadadosSarh: params.payload.metadados,
         },
       },
       params.registroBrutoId,

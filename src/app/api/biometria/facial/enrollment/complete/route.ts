@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
 import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
   if (!session?.user) {
     return respostaErro(
       "UNAUTHENTICATED",
-      "Sua sessao expirou. Faca login novamente.",
+      "Sua sessão expirou. Faça login novamente.",
       401,
     );
   }
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
   if (!autorizado) {
     return respostaErro(
       "FORBIDDEN",
-      "Voce nao possui permissao para realizar o cadastro facial.",
+      "Você não possui permissão para realizar o cadastro facial.",
       403,
     );
   }
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
 
   if (!parsed.success) {
     const primeiraFalha = parsed.error.issues[0];
-    console.warn("Payload de conclusao do enrollment facial rejeitado", {
+    console.warn("Payload de conclusão do enrollment facial rejeitado", {
       campo: primeiraFalha?.path.join(".") || "desconhecido",
       codigo: primeiraFalha?.code,
     });
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
     return respostaErro(
       "INVALID_REQUEST",
       primeiraFalha?.message ??
-        "Os dados de conclusao do cadastro facial sao invalidos.",
+        "Os dados de conclusão do cadastro facial são inválidos.",
       400,
     );
   }
@@ -58,6 +59,9 @@ export async function POST(request: NextRequest) {
       parsed.data,
     );
 
+    revalidatePath("/biometria");
+    revalidatePath("/biometria/cadastro");
+
     return NextResponse.json({
       success: true,
       data: {
@@ -66,8 +70,8 @@ export async function POST(request: NextRequest) {
           resultado.qualidadeMedia >= 0.85
             ? "ALTA"
             : resultado.qualidadeMedia >= 0.72
-              ? "MEDIA"
-              : "ACEITAVEL",
+              ? "MÉDIA"
+              : "ACEITÁVEL",
         provaDeVida: "APROVADA",
         recadastro: resultado.recadastro,
         concluidoEm: new Date().toISOString(),
@@ -78,13 +82,28 @@ export async function POST(request: NextRequest) {
       return respostaErro(error.code, error.message, error.status);
     }
 
+    if (
+      error instanceof Error &&
+      error.message.includes("BIOMETRIA_FACIAL_")
+    ) {
+      console.error("Configuração de biometria facial ausente ou inválida", {
+        error: error.message,
+      });
+
+      return respostaErro(
+        "BIOMETRIA_CONFIG_INVALIDA",
+        "A configuração de criptografia da biometria facial está ausente ou inválida. Verifique as variáveis BIOMETRIA_FACIAL_ENCRYPTION_KEY e BIOMETRIA_FACIAL_TEMPLATE_PEPPER.",
+        500,
+      );
+    }
+
     console.error("Falha ao concluir enrollment facial", {
       error: error instanceof Error ? error.message : "erro desconhecido",
     });
 
     return respostaErro(
       "ENROLLMENT_COMPLETE_FAILED",
-      "Nao foi possivel concluir o cadastro facial. Tente novamente.",
+      "Não foi possível concluir o cadastro facial. Tente novamente.",
       500,
     );
   }

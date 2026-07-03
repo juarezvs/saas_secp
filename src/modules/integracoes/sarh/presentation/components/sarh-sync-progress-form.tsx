@@ -17,14 +17,15 @@ import type {
 const STORAGE_JOB_ID = "secp:sarh-sync:job-id";
 
 const endpointsDisponiveis: Array<[SarhEndpointKey, string]> = [
-  ["empresas", "Empresas / Secoes Judiciarias"],
-  ["lotacoes", "Lotacoes / Departamentos"],
+  ["empresas", "Empresas / Seções Judiciárias"],
+  ["lotacoes", "Lotações / Departamentos"],
   ["cargos", "Cargos"],
   ["servidores", "Servidores"],
-  ["lotacoesServidores", "Lotacoes dos servidores"],
+  ["lotacoesServidores", "Lotações dos servidores"],
   ["tiposAfastamento", "Tipos de afastamento"],
   ["afastamentos", "Afastamentos"],
   ["chefias", "Chefias"],
+  ["calendarios", "Calendários institucionais"],
 ];
 
 const endpointsCompativeisComMatricula = new Set<SarhEndpointKey>([
@@ -32,6 +33,7 @@ const endpointsCompativeisComMatricula = new Set<SarhEndpointKey>([
   "lotacoesServidores",
   "afastamentos",
   "chefias",
+  "calendarios",
 ]);
 
 const todosEndpoints = endpointsDisponiveis.map(([value]) => value);
@@ -126,18 +128,18 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
   const endpointAtualRotulo = progresso.endpointAtual
     ? endpointLabels.get(progresso.endpointAtual)
     : estadoJob === "completed"
-      ? "Todos os endpoints concluidos"
+      ? "Todos os endpoints concluídos"
       : estadoJob === "failed"
-        ? "Execucao interrompida"
-        : "Aguardando inicio";
+        ? "Execução interrompida"
+        : "Aguardando início";
   const statusVisual = enfileirando
     ? "ENFILEIRANDO"
     : estadoJob === "completed"
-      ? "CONCLUIDA"
+      ? "CONCLUÍDA"
       : estadoJob === "failed"
         ? "FALHA"
         : estadoJob === "active"
-          ? "EM EXECUCAO"
+          ? "EM EXECUÇÃO"
           : estadoJob === "waiting" || estadoJob === "delayed"
             ? "AGENDADA"
             : "PRONTO";
@@ -167,7 +169,7 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
       );
 
       if (!response.ok) {
-        throw new Error("Nao foi possivel consultar a sincronizacao SARH.");
+        throw new Error("Não foi possível consultar a sincronização SARH.");
       }
 
       const status = (await response.json()) as SarhSyncStatusResponse;
@@ -242,7 +244,7 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
     setResultado(null);
     setProgresso({
       ...progressoInicial(),
-      etapa: "Enfileirando sincronizacao SARH",
+      etapa: "Enfileirando sincronização SARH",
     });
 
     try {
@@ -261,7 +263,7 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
         const body = (await response.json().catch(() => null)) as {
           message?: string;
         } | null;
-        throw new Error(body?.message ?? "Falha ao enfileirar sincronizacao.");
+        throw new Error(body?.message ?? "Falha ao enfileirar sincronização.");
       }
 
       const status = (await response.json()) as SarhSyncStatusResponse;
@@ -313,10 +315,10 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
     >
       <div>
         <h2 className="text-lg font-semibold text-slate-950 dark:text-slate-50">
-          Executar sincronizacao
+          Executar sincronização
         </h2>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          A sincronizacao roda em fila. Voce pode sair desta tela e voltar para
+          A sincronização roda em fila. Você pode sair desta tela e voltar para
           acompanhar o andamento.
         </p>
       </div>
@@ -325,7 +327,7 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-              Status da execucao
+              Status da execução
             </p>
             <p className="mt-1 text-sm font-medium text-slate-900 dark:text-slate-100">
               {statusVisual}
@@ -338,10 +340,10 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               {modoSelecionado === "aplicar"
-                ? "Aplicacao real"
+                ? "Aplicação real"
                 : modoSelecionado === "simulacao"
-                  ? "Simulacao"
-                  : "Modo nao iniciado"}
+                  ? "Simulação"
+                  : "Modo não iniciado"}
             </p>
           </div>
         </div>
@@ -350,7 +352,7 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Endpoint em execucao
+                Endpoint em execução
               </p>
               <p className="mt-1 text-base font-semibold text-blue-800 dark:text-blue-300">
                 {endpointAtualRotulo}
@@ -375,7 +377,7 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={progresso.percentualEndpoint}
-            aria-label="Progresso do endpoint SARH em execucao"
+            aria-label="Progresso do endpoint SARH em execução"
           >
             <div
               className={`h-full rounded-full transition-all duration-500 ease-out ${corBarra}`}
@@ -397,7 +399,7 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={progresso.percentualGeral}
-            aria-label="Progresso geral da sincronizacao SARH"
+            aria-label="Progresso geral da sincronização SARH"
           >
             <div
               className={`h-full rounded-full transition-all duration-500 ease-out ${corBarra}`}
@@ -455,7 +457,7 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
 
         {(resultado?.execucaoId || progresso.execucaoId) && (
           <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-            Execucao registrada:{" "}
+            Execução registrada:{" "}
             <span className="font-mono">
               {resultado?.execucaoId ?? progresso.execucaoId}
             </span>
@@ -468,7 +470,7 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
           className="text-sm font-medium text-slate-700 dark:text-slate-200"
           htmlFor="matricula"
         >
-          Filtrar matricula opcional
+          Filtrar matrícula opcional
         </label>
         <input
           id="matricula"
@@ -481,8 +483,8 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
         />
         {matriculaAtiva && (
           <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-            Com filtro por matricula, apenas servidores, lotacoes do servidor,
-            afastamentos e chefias sao executados.
+            Com filtro por matrícula, são executados servidores, lotações do
+            servidor, afastamentos, chefias e calendários institucionais.
           </p>
         )}
       </div>
@@ -544,7 +546,7 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
         >
           {emAndamento && modoSelecionado === "aplicar"
             ? "Aplicando..."
-            : "Aplicar sincronizacao"}
+            : "Aplicar sincronização"}
         </button>
       </div>
     </form>

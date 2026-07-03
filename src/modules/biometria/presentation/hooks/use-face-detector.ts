@@ -72,7 +72,7 @@ async function carregarHuman() {
       | undefined;
 
     if (!Constructor) {
-      throw new Error("Nao foi possivel carregar o motor facial.");
+      throw new Error("Não foi possível carregar o motor facial.");
     }
 
     const human = new Constructor({
@@ -101,7 +101,7 @@ async function carregarHuman() {
     await comTimeout(
       human.load(),
       45_000,
-      "O reconhecimento facial demorou demais para carregar. Verifique a conexao e tente novamente.",
+      "O reconhecimento facial demorou demais para carregar. Verifique a conexão e tente novamente.",
     );
     humanSingleton = human;
     return human;
@@ -133,7 +133,7 @@ export function useFaceDetector() {
       setErro(
         error instanceof Error
           ? error.message
-          : "Nao foi possivel carregar o motor facial.",
+          : "Não foi possível carregar o motor facial.",
       );
       throw error;
     } finally {
@@ -232,7 +232,9 @@ async function criarAssinaturaFrame(
     );
   }
 
-  const bytes = new TextEncoder().encode(vetor.map((item) => item.toFixed(3)).join(","));
+  const bytes = new TextEncoder().encode(
+    vetor.map((item) => item.toFixed(3)).join(","),
+  );
   const digest = await crypto.subtle.digest("SHA-256", bytes);
 
   return {

@@ -59,7 +59,7 @@ export async function enfileirarAtualizacaoSarhLogin(params: {
       usuarioId: params.usuarioId ?? null,
     },
     {
-      jobId: `sarh-login-${matricula}`,
+      jobId: `sarh-login-${matricula}-${Date.now()}`,
       delay: Number(process.env.SARH_LOGIN_SYNC_DELAY_MS ?? "5000"),
     },
   );

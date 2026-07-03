@@ -239,6 +239,54 @@ export async function buscarHomologacaoServidorPorId(id: string) {
   });
 }
 
+export async function buscarHomologacaoServidorMes(params: {
+  servidorId: string;
+  anoReferencia: number;
+  mesReferencia: number;
+}) {
+  return prisma.homologacaoServidorMes.findFirst({
+    where: {
+      servidorId: params.servidorId,
+      fechamento: {
+        anoReferencia: params.anoReferencia,
+        mesReferencia: params.mesReferencia,
+      },
+    },
+    include: {
+      homologadoPor: true,
+      fechamento: {
+        include: {
+          unidade: true,
+          gestorResponsavel: {
+            include: {
+              servidor: {
+                include: {
+                  usuario: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function verificarEnvioEspelhoServidor(homologacaoServidorMesId: string) {
+  const envio = await prisma.auditoriaEvento.findFirst({
+    where: {
+      entidade: "HomologacaoServidorMes",
+      entidadeId: homologacaoServidorMesId,
+      acao: "ESPELHO_PONTO_ENVIADO_CHEFIA",
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return Boolean(envio);
+}
+
 export async function listarServidoresDaUnidadeNoMes(params: {
   unidadeId: string;
   anoReferencia: number;

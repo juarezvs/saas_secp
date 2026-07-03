@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, Info } from "lucide-react";
+import { ArrowRight, Clock3, Info } from "lucide-react";
 
 import { Badge, Card } from "@/components/ui";
 import type {
   MarcacaoDia,
   PrevisaoJornadaDia,
-} from "../data/dashboard-servidor.mock";
+} from "../data/dashboard-servidor.config";
 
 type MarcacoesDoDiaTimelineProps = {
   marcacoes: MarcacaoDia[];
@@ -91,6 +91,28 @@ export function MarcacoesDoDiaTimeline({
             <Badge variant="regular">Carga {previsao.carga}</Badge>
           </div>
 
+          {previsao.saidaEstimada && (
+            <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-3 text-amber-950 shadow-sm dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+              <div className="flex items-start gap-3">
+                <span className="rounded-md bg-amber-200 p-2 text-amber-900 dark:bg-amber-900 dark:text-amber-100">
+                  <Clock3 className="size-4" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-wide">
+                    Saída estimada
+                  </p>
+                  <p className="mt-1 text-xl font-black leading-none">
+                    {previsao.saidaEstimada}
+                  </p>
+                  <p className="mt-1 text-xs font-medium leading-5">
+                    Entrada registrada às {previsao.entradaReferencia}. Ajuste sua
+                    saída para cumprir a carga de {previsao.carga}.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {previsao.horarios.length > 0 && (
             <dl className="mt-3 grid gap-2 sm:grid-cols-2">
               {previsao.horarios.map((item) => (
@@ -109,7 +131,7 @@ export function MarcacoesDoDiaTimeline({
             </dl>
           )}
 
-          {previsao.indicativo && (
+          {previsao.indicativo && !previsao.saidaEstimada && (
             <p className="mt-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs leading-5 text-blue-900 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200">
               {previsao.indicativo}
             </p>

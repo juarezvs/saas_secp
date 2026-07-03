@@ -12,6 +12,7 @@ import { EnrollmentFacialError } from "./enrollment.error";
 
 export async function iniciarSessaoCadastroFacial(params: {
   usuarioId: string;
+  servidorId?: string;
   consentimento: boolean;
   ip?: string | null;
   userAgent?: string | null;
@@ -19,16 +20,23 @@ export async function iniciarSessaoCadastroFacial(params: {
   if (!params.consentimento) {
     throw new EnrollmentFacialError(
       "CONSENT_REQUIRED",
-      "Confirme que leu as informacoes sobre o uso da biometria facial.",
+      "Confirme que leu as informações sobre o uso da biometria facial.",
     );
   }
 
-  const servidor = await buscarServidorBiometriaPorUsuarioId(params.usuarioId);
+  const servidor = params.servidorId
+    ? await prisma.servidor.findFirst({
+        where: {
+          id: params.servidorId,
+          ativo: true,
+        },
+      })
+    : await buscarServidorBiometriaPorUsuarioId(params.usuarioId);
 
   if (!servidor) {
     throw new EnrollmentFacialError(
       "SERVER_NOT_FOUND",
-      "Nenhum servidor ativo foi localizado para o usuario autenticado.",
+      "Nenhum servidor ativo foi localizado para o cadastro facial.",
       404,
     );
   }
@@ -36,7 +44,7 @@ export async function iniciarSessaoCadastroFacial(params: {
   const quinzeMinutosAtras = new Date(Date.now() - 15 * 60 * 1000);
   const falhasRecentes = await prisma.sessaoCadastroFacial.findMany({
     where: {
-      usuarioId: params.usuarioId,
+      servidorId: servidor.id,
       status: "REPROVADA",
       criadoEm: {
         gte: quinzeMinutosAtras,
@@ -80,7 +88,7 @@ export async function iniciarSessaoCadastroFacial(params: {
   const sessao = await prisma.$transaction(async (tx) => {
     await tx.sessaoCadastroFacial.updateMany({
       where: {
-        usuarioId: params.usuarioId,
+        servidorId: servidor.id,
         status: {
           in: ["INICIADA", "EM_ANDAMENTO"],
         },
@@ -116,6 +124,7 @@ export async function iniciarSessaoCadastroFacial(params: {
           expiraEm,
           quantidadeDesafios: desafios.length,
           consentimentoRegistrado: true,
+          cadastroTerceiro: Boolean(params.servidorId),
         },
       },
     });

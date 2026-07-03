@@ -39,16 +39,16 @@ export default async function CadastroBiometriaPage({
         descricao={
           recadastro
             ? "Capture novas amostras faciais para substituir o template biométrico atualmente ativo."
-            : "Capture amostras faciais para criacao do template biométrico do servidor autenticado."
+            : "Capture amostras faciais para criação do template biométrico do servidor autenticado."
         }
         artigo="Segurança e rastreabilidade"
         regraTitulo={
-          recadastro ? "Substituicao do template facial" : "Template facial"
+          recadastro ? "Substituição do template facial" : "Template facial"
         }
         regraDescricao={
           recadastro
             ? "O recadastro substitui o template facial ativo por um novo template numérico, mantendo a rastreabilidade do evento em auditoria."
-            : "O cadastro armazena apenas o template numérico necessário a comparação biometrica, evitando persistência de imagem bruta."
+            : "O cadastro armazena apenas o template numérico necessário à comparação biométrica, evitando persistência de imagem bruta."
         }
       />
 

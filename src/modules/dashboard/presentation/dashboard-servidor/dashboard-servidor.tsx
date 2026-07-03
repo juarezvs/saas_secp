@@ -1,10 +1,11 @@
 import { buscarContextoDashboardServidor } from "@/modules/dashboard/application/dashboard-servidor-contexto.service";
 import { buscarFrequenciaMesServidorPorUsuarioId } from "@/modules/dashboard/application/frequencia-mes-servidor.service";
+import { buscarResumoDashboardServidor } from "@/modules/dashboard/application/dashboard-servidor-resumo.service";
 import { DashboardServidor as DashboardServidorAtual } from "@/modules/dashboard/presentation/components/dashboard-servidor";
 import type {
   MarcacaoDia,
   PrevisaoJornadaDia,
-} from "@/modules/dashboard/presentation/data/dashboard-servidor.mock";
+} from "@/modules/dashboard/presentation/data/dashboard-servidor.config";
 import { obterRotuloTipoMarcacao } from "@/modules/marcacoes/application/services/classificar-marcacao.service";
 import { listarMarcacoesDoUsuarioNoDia } from "@/modules/marcacoes/infrastructure/repositories/marcacao.repository";
 import { contarNotificacoesUsuario } from "@/modules/notificacoes/application/notificacoes.service";
@@ -187,6 +188,8 @@ function montarPrevisaoJornadaDia(
     (item) => item.tipo === "RETORNO_INTERVALO",
   );
   let indicativo: string | undefined;
+  let saidaEstimada: string | undefined;
+  let entradaReferencia: string | undefined;
 
   if (entradaRegistrada && !saidaRegistrada) {
     const entradaMinutos = minutosDoDiaLocal(
@@ -209,11 +212,14 @@ function montarPrevisaoJornadaDia(
     const saidaSugerida = formatarMinutosComoHora(
       entradaMinutos + cargaPrevista + minutosIntervaloParaSaida,
     );
-
-    indicativo = `Com entrada às ${formatarHoraMarcacao(
+    const entradaFormatada = formatarHoraMarcacao(
       entradaRegistrada.dataHora,
       fusoHorario,
-    )}, a saída estimada para cumprir ${minutosParaTexto(
+    );
+
+    saidaEstimada = saidaSugerida;
+    entradaReferencia = entradaFormatada;
+    indicativo = `Com entrada às ${entradaFormatada}, a saída estimada para cumprir ${minutosParaTexto(
       cargaPrevista,
     )} é ${saidaSugerida}.`;
   }
@@ -223,6 +229,8 @@ function montarPrevisaoJornadaDia(
     horarios,
     carga: minutosParaTexto(cargaPrevista),
     indicativo,
+    saidaEstimada,
+    entradaReferencia,
   };
 }
 
@@ -271,6 +279,7 @@ export async function DashboardServidor({
     totalNotificacoes,
     frequenciaMes,
     marcacoesDashboard,
+    resumoDashboard,
   ] =
     await Promise.all([
       buscarNomeServidorPorUsuarioId(usuarioId),
@@ -278,6 +287,7 @@ export async function DashboardServidor({
       contarNotificacoesUsuario(usuarioId),
       buscarFrequenciaMesServidorPorUsuarioId(usuarioId),
       buscarMarcacoesDashboard(usuarioId),
+      buscarResumoDashboardServidor(usuarioId),
     ]);
   const nome = nomeServidor(servidor) || nomeFallback;
   const primeiroNome = nome.trim().split(/\s+/)[0] || "Servidor";
@@ -292,6 +302,8 @@ export async function DashboardServidor({
       permissoesPerfil={permissoesPerfil}
       marcacoesDia={marcacoesDashboard.marcacoes}
       previsaoJornadaDia={marcacoesDashboard.previsao}
+      metricas={resumoDashboard?.metricas}
+      alertas={resumoDashboard?.alertas}
     />
   );
 }

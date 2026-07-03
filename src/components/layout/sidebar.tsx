@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BarChart3,
   Building2,
@@ -17,6 +17,7 @@ import {
   DatabaseZap,
   FileCheck2,
   FileSpreadsheet,
+  FileText,
   Fingerprint,
   Hourglass,
   Landmark,
@@ -38,10 +39,16 @@ import {
 
 import { SecpLogo } from "@/components/brand/secp-logo";
 import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao-utils";
-import { PERMISSOES_ACESSO_REGISTRO_PONTO_SECP } from "@/modules/auth/domain/constants/perfis-sistema";
+import {
+  PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
+  PERMISSOES_ACESSO_REGISTRO_PONTO_SECP,
+  PERMISSOES_REGISTRO_PONTO_FACIAL,
+} from "@/modules/auth/domain/constants/perfis-sistema";
 import {
   PERMISSAO_PAINEL_EXECUTIVO,
   PERMISSAO_PAINEL_EXECUTIVO_EQUIPAMENTOS,
+  PERMISSOES_SUBMENUS_PAINEL_EXECUTIVO,
+  paineisExecutivos,
 } from "@/modules/painel-executivo/presentation/painel-executivo-data";
 
 export type PerfilNavegacao = {
@@ -162,7 +169,7 @@ export const MENU_ITEMS: MenuItem[] = [
   {
     label: "Relatórios",
     href: "/relatorios",
-    icon: BarChart3,
+    icon: FileText,
     permissoes: [
       "relatorios:consultar:proprio",
       "relatorios:consultar:global",
@@ -178,108 +185,42 @@ export const MENU_ITEMS: MenuItem[] = [
     permissoes: [
       PERMISSAO_PAINEL_EXECUTIVO,
       PERMISSAO_PAINEL_EXECUTIVO_EQUIPAMENTOS,
+      ...PERMISSOES_SUBMENUS_PAINEL_EXECUTIVO,
     ],
-    children: [
-      {
-        label: "Indicadores",
-        href: "/painel-executivo/indicadores",
-        icon: LayoutDashboard,
-        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
-      },
-      {
-        label: "Pendências de ponto",
-        href: "/painel-executivo/pendencias-de-ponto",
-        icon: FileCheck2,
-        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
-      },
-      {
-        label: "Frequência e assiduidade",
-        href: "/painel-executivo/frequencia-e-assiduidade",
-        icon: UsersRound,
-        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
-      },
-      {
-        label: "Justificativas e ocorrências",
-        href: "/painel-executivo/justificativas-e-ocorrencias",
-        icon: ClipboardList,
-        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
-      },
-      {
-        label: "Controle de homologação mensal",
-        href: "/painel-executivo/controle-de-homologacao-mensal",
-        icon: ShieldCheck,
-        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
-      },
-      {
-        label: "Jornada e carga horária",
-        href: "/painel-executivo/jornada-e-carga-horaria",
-        icon: CalendarClock,
-        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
-      },
-      {
-        label: "Teletrabalho, presencial e registro web",
-        href: "/painel-executivo/teletrabalho-presencial-registro-web",
-        icon: ScanFace,
-        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
-      },
-      {
-        label: "Equipamentos de ponto",
-        href: "/painel-executivo/equipamentos-de-ponto",
-        icon: Cable,
-        permissoes: [PERMISSAO_PAINEL_EXECUTIVO_EQUIPAMENTOS],
-      },
-      {
-        label: "Auditoria e conformidade",
-        href: "/painel-executivo/auditoria-e-conformidade",
-        icon: ScrollText,
-        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
-      },
-      {
-        label: "Indicadores por unidade e chefia",
-        href: "/painel-executivo/indicadores-por-unidade-e-chefia",
-        icon: Building2,
-        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
-      },
-      {
-        label: "Alertas inteligentes",
-        href: "/painel-executivo/alertas-inteligentes",
-        icon: ShieldAlert,
-        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
-      },
-      {
-        label: "Relatórios exportáveis",
-        href: "/painel-executivo/relatorios-exportaveis",
-        icon: FileSpreadsheet,
-        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
-      },
-      {
-        label: "Paineis",
-        href: "/painel-executivo/paineis",
-        icon: LayoutDashboard,
-        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
-      },
-      {
-        label: "Gráficos importantes",
-        href: "/painel-executivo/graficos-importantes",
-        icon: BarChart3,
-        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
-      },
-      {
-        label: "Banco de horas",
-        href: "/painel-executivo/banco-de-horas",
-        icon: Hourglass,
-        permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
-      },
-    ],
+    children: paineisExecutivos.map((painel) => ({
+      label: painel.menuLabel,
+      href: `/painel-executivo/${painel.slug}`,
+      icon: painel.icon,
+      permissoes: [
+        PERMISSAO_PAINEL_EXECUTIVO,
+        ...(painel.slug === "equipamentos-de-ponto"
+          ? [PERMISSAO_PAINEL_EXECUTIVO_EQUIPAMENTOS]
+          : []),
+        ...(painel.permissao ? [painel.permissao] : []),
+      ],
+    })),
   },
   {
-    label: "Biometria",
+    label: "Biometria facial",
     href: "/biometria",
     icon: ScanFace,
     permissoes: [
-      "biometria:consultar:proprio",
-      "biometria:cadastrar:proprio",
-      "biometria:gerenciar:global",
+      ...PERMISSOES_REGISTRO_PONTO_FACIAL,
+      ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
+    ],
+    children: [
+      {
+        label: "Meu cadastro/validação",
+        href: "/biometria",
+        icon: ScanFace,
+        permissoes: PERMISSOES_REGISTRO_PONTO_FACIAL,
+      },
+      {
+        label: "Cadastro de terceiros",
+        href: "/servidores",
+        icon: Users,
+        permissoes: PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
+      },
     ],
   },
   {
@@ -298,7 +239,11 @@ export const MENU_ITEMS: MenuItem[] = [
     label: "Servidores",
     href: "/servidores",
     icon: Users,
-    permissoes: ["servidores:gerenciar:global", "servidores:consultar:global"],
+    permissoes: [
+      "servidores:gerenciar:global",
+      "servidores:consultar:global",
+      ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
+    ],
   },
   {
     label: "Usuários",
@@ -461,8 +406,24 @@ function MenuPrincipal({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
-  const itensVisiveis = filtrarItensVisiveis(MENU_ITEMS, perfilAtivo);
-  const hrefAtivo = obterHrefAtivo(pathname, itensVisiveis);
+  const itensVisiveis = useMemo(
+    () => filtrarItensVisiveis(MENU_ITEMS, perfilAtivo),
+    [perfilAtivo],
+  );
+  const hrefAtivo = useMemo(
+    () => obterHrefAtivo(pathname, itensVisiveis),
+    [pathname, itensVisiveis],
+  );
+  const [gruposAlternados, setGruposAlternados] = useState<
+    Record<string, boolean>
+  >({});
+
+  function alternarGrupo(href: string, abertoAtual: boolean) {
+    setGruposAlternados((gruposAtuais) => ({
+      ...gruposAtuais,
+      [href]: !abertoAtual,
+    }));
+  }
 
   return (
     <nav
@@ -477,43 +438,57 @@ function MenuPrincipal({
           const ativo = item.href === hrefAtivo;
           const filhoAtivo = filhos.some((child) => child.href === hrefAtivo);
           const grupoAtivo = ativo || filhoAtivo;
-          const mostrarFilhos = possuiFilhos && !recolhida && grupoAtivo;
+          const grupoAberto = gruposAlternados[item.href] ?? grupoAtivo;
+          const mostrarFilhos =
+            possuiFilhos && !recolhida && grupoAberto;
+          const itemClassName = [
+            "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-semibold transition",
+            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+            grupoAtivo
+              ? "bg-secp-blue-900 text-white shadow-sm"
+              : "text-slate-700 hover:bg-secp-blue-900/10 hover:text-secp-blue-900 dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white",
+            recolhida ? "justify-center" : "",
+          ].join(" ");
 
           return (
             <li key={item.href} className="space-y-1">
-              <Link
-                href={possuiFilhos ? filhos[0]?.href ?? item.href : item.href}
-                onClick={onNavigate}
-                aria-current={grupoAtivo ? "page" : undefined}
-                aria-label={recolhida ? item.label : undefined}
-                title={recolhida ? item.label : undefined}
-                className={[
-                  "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold transition",
-                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                  grupoAtivo
-                    ? "bg-secp-blue-900 text-white shadow-sm"
-                    : "text-slate-700 hover:bg-secp-blue-900/10 hover:text-secp-blue-900 dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white",
-                  recolhida ? "justify-center" : "",
-                ].join(" ")}
-              >
-                <Icon className="size-5 shrink-0" aria-hidden="true" />
-                {!recolhida && (
-                  <>
+              {possuiFilhos && !recolhida ? (
+                <button
+                  type="button"
+                  onClick={() => alternarGrupo(item.href, grupoAberto)}
+                  aria-current={grupoAtivo ? "page" : undefined}
+                  aria-expanded={mostrarFilhos}
+                  className={itemClassName}
+                >
+                  <Icon className="size-5 shrink-0" aria-hidden="true" />
+                  <span className="min-w-0 flex-1 truncate text-left">
+                    {item.label}
+                  </span>
+                  <ChevronDown
+                    className={[
+                      "size-4 shrink-0 transition-transform",
+                      mostrarFilhos ? "rotate-180" : "",
+                    ].join(" ")}
+                    aria-hidden="true"
+                  />
+                </button>
+              ) : (
+                <Link
+                  href={possuiFilhos ? filhos[0]?.href ?? item.href : item.href}
+                  onClick={onNavigate}
+                  aria-current={grupoAtivo ? "page" : undefined}
+                  aria-label={recolhida ? item.label : undefined}
+                  title={recolhida ? item.label : undefined}
+                  className={itemClassName}
+                >
+                  <Icon className="size-5 shrink-0" aria-hidden="true" />
+                  {!recolhida && (
                     <span className="min-w-0 flex-1 truncate">
                       {item.label}
                     </span>
-                    {possuiFilhos && (
-                      <ChevronDown
-                        className={[
-                          "size-4 shrink-0 transition-transform",
-                          mostrarFilhos ? "rotate-180" : "",
-                        ].join(" ")}
-                        aria-hidden="true"
-                      />
-                    )}
-                  </>
-                )}
-              </Link>
+                  )}
+                </Link>
+              )}
 
               {mostrarFilhos && (
                 <ul className="ml-4 space-y-1 border-l border-border pl-2">

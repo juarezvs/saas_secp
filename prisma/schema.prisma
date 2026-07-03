@@ -324,6 +324,7 @@ enum TipoEndpointSarh {
   TIPOS_AFASTAMENTO
   AFASTAMENTOS
   CHEFIAS
+  CALENDARIOS
 }
 
 enum TipoRegistroSarh {
@@ -335,6 +336,7 @@ enum TipoRegistroSarh {
   TIPO_AFASTAMENTO
   AFASTAMENTO
   CHEFIA
+  CALENDARIO
 }
 
 enum OperacaoRegistroSarh {

@@ -214,7 +214,7 @@ export function CadastroFacialAutoWizard() {
       if (proxima === "CONCLUIDO") {
         etapaRef.current = "CONCLUIDO";
         setEtapa("CONCLUIDO");
-        setMensagem("Capturas concluidas. Salvando cadastro facial...");
+        setMensagem("Capturas concluídas. Salvando cadastro facial...");
         salvarCadastro(novasCapturas);
         return;
       }

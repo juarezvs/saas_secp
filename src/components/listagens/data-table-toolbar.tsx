@@ -64,8 +64,8 @@ export type DataTableFiltro =
 
 type DataTableToolbarProps = {
   filtros: DataTableFiltro[];
-  csvHref: string;
-  pdfHref: string;
+  csvHref?: string;
+  pdfHref?: string;
 };
 
 export function DataTableToolbar({
@@ -121,9 +121,11 @@ export function DataTableToolbar({
 
   return (
     <>
-      <div className="flex flex-col justify-end gap-3 lg:flex-row">
-        <DataTableExportButtons csvHref={csvHref} pdfHref={pdfHref} />
-      </div>
+      {csvHref && pdfHref && (
+        <div className="flex flex-col justify-end gap-3 lg:flex-row">
+          <DataTableExportButtons csvHref={csvHref} pdfHref={pdfHref} />
+        </div>
+      )}
 
       <div className="grid gap-3 lg:grid-cols-6">
         {filtros.map((filtro) => {

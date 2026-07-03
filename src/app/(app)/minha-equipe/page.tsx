@@ -4,8 +4,15 @@ import { auth } from "@/auth";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import { buscarMinhaEquipe } from "@/modules/minha-equipe/infrastructure/repositories/minha-equipe.repository";
-import type { MinhaEquipeDados } from "@/modules/minha-equipe/infrastructure/repositories/minha-equipe.repository";
+import {
+  buscarCalendarioFeriasEquipe,
+  buscarMinhaEquipe,
+} from "@/modules/minha-equipe/infrastructure/repositories/minha-equipe.repository";
+import type {
+  FeriasEquipeCalendarioDados,
+  MinhaEquipeDados,
+} from "@/modules/minha-equipe/infrastructure/repositories/minha-equipe.repository";
+import { FeriasEquipeCalendario } from "@/modules/minha-equipe/presentation/components/ferias-equipe-calendario";
 import { MinhaEquipeFiltros } from "@/modules/minha-equipe/presentation/components/minha-equipe-filtros";
 import { MinhaEquipeGrid } from "@/modules/minha-equipe/presentation/components/minha-equipe-grid";
 
@@ -13,6 +20,7 @@ type MinhaEquipePageProps = {
   searchParams?: Promise<{
     data?: string;
     unidadeId?: string | string[];
+    anoFerias?: string;
   }>;
 };
 
@@ -42,6 +50,16 @@ function normalizarUnidades(valor?: string | string[]) {
   return Array.isArray(valor) ? valor : [valor];
 }
 
+function normalizarAno(valor?: string) {
+  const ano = Number(valor);
+
+  if (Number.isInteger(ano) && ano >= 2000 && ano <= 2100) {
+    return ano;
+  }
+
+  return new Date().getFullYear();
+}
+
 function formatarPercentual(valor: number, total: number) {
   if (total === 0) return "0%";
 
@@ -62,6 +80,8 @@ export default async function MinhaEquipePage({
   const session = await auth();
   const params = searchParams ? await searchParams : {};
   const data = normalizarData(params.data);
+  const dataReferencia = parseDataReferencia(data);
+  const anoFerias = normalizarAno(params.anoFerias);
   const unidadeIds = normalizarUnidades(params.unidadeId);
   const dadosVazios: MinhaEquipeDados = {
     escopo: visualizarTodasEquipes ? "global" : "chefia",
@@ -70,14 +90,34 @@ export default async function MinhaEquipePage({
     servidores: [],
     resumo: { total: 0, presentes: 0, ausentes: 0, afastados: 0 },
   };
-  const dados = session?.user
-    ? await buscarMinhaEquipe({
-        usuarioId: session.user.id,
-        data: parseDataReferencia(data),
-        unidadeIds,
-        visualizarTodasEquipes,
-      })
-    : dadosVazios;
+  const feriasVazias: FeriasEquipeCalendarioDados = {
+    ano: anoFerias,
+    escopo: visualizarTodasEquipes ? "global" : "chefia",
+    itens: [],
+    resumo: {
+      periodos: 0,
+      servidores: 0,
+      mesMaisMovimentado: "-",
+      maiorQuantidadeMes: 0,
+    },
+  };
+  const [dados, feriasEquipe] = session?.user
+    ? await Promise.all([
+        buscarMinhaEquipe({
+          usuarioId: session.user.id,
+          data: dataReferencia,
+          unidadeIds,
+          visualizarTodasEquipes,
+        }),
+        buscarCalendarioFeriasEquipe({
+          usuarioId: session.user.id,
+          ano: anoFerias,
+          dataReferencia,
+          unidadeIds,
+          visualizarTodasEquipes,
+        }),
+      ])
+    : [dadosVazios, feriasVazias];
   const percentualPresentes = formatarPercentual(
     dados.resumo.presentes,
     dados.resumo.total,
@@ -90,6 +130,18 @@ export default async function MinhaEquipePage({
     dados.resumo.afastados,
     dados.resumo.total,
   );
+  const montarHrefAnoFerias = (ano: number) => {
+    const query = new URLSearchParams();
+
+    query.set("data", data);
+    query.set("anoFerias", String(ano));
+
+    for (const unidadeId of unidadeIds) {
+      query.append("unidadeId", unidadeId);
+    }
+
+    return `/minha-equipe?${query.toString()}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -107,6 +159,7 @@ export default async function MinhaEquipePage({
 
       <MinhaEquipeFiltros
         data={data}
+        anoFerias={anoFerias}
         escopo={dados.escopo}
         resumo={dados.resumo}
         unidades={dados.unidades}
@@ -142,6 +195,13 @@ export default async function MinhaEquipePage({
           </div>
         </div>
       </section>
+
+      <FeriasEquipeCalendario
+        dados={feriasEquipe}
+        dataReferencia={data}
+        unidadesSelecionadas={unidadeIds}
+        montarHrefAno={montarHrefAnoFerias}
+      />
 
       <MinhaEquipeGrid servidores={dados.servidores} />
     </div>

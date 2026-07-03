@@ -9,6 +9,10 @@ import {
   verificarPeriodoHomologado,
 } from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
 import { resolverChefiaResponsavelDaUnidade } from "@/modules/chefias/application/services/resolver-chefia.service";
+import {
+  EspelhoEnviadoParaHomologacaoError,
+  verificarEspelhoEnviadoParaHomologacao,
+} from "@/modules/homologacao/application/services/bloquear-espelho-enviado.service";
 import { dataHoraLocalParaUtc } from "@/modules/marcacoes/application/services/data-marcacao.service";
 import { resolverFusoHorarioServidor } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
@@ -20,6 +24,10 @@ import {
   type CriarSolicitacaoFormState,
   type CriarSolicitacaoInput,
 } from "../schemas/solicitacao.schema";
+import {
+  listarDatasImpactadasSolicitacao,
+  TIPOS_SOLICITACAO_COM_RECALCULO_APOS_DEFERIMENTO,
+} from "../services/periodo-solicitacao.service";
 import {
   PrazoAjustePontoExpiradoError,
   verificarPrazoAjustePontoComCalendario,
@@ -179,18 +187,19 @@ export async function criarSolicitacaoAction(
     lotacaoAtual.unidadeId,
   );
   const fusoHorario = resolverFusoHorarioServidor(servidor);
+  const dataReferencia = valorOpcionalData(parsed.data.dataReferencia);
+  const dataInicio = valorOpcionalDateTime(parsed.data.dataInicio, fusoHorario);
+  const dataFim = valorOpcionalFimPeriodo(parsed.data.dataFim, fusoHorario);
 
   if (parsed.data.tipo === "AJUSTE_PONTO" && parsed.data.dataReferencia) {
-    const dataReferenciaAjuste = valorOpcionalData(parsed.data.dataReferencia);
-
-    if (dataReferenciaAjuste) {
+    if (dataReferencia) {
       try {
         await verificarPeriodoHomologado({
           servidorId: servidor.id,
-          dataReferencia: dataReferenciaAjuste,
+          dataReferencia,
         });
         await verificarPrazoAjustePontoComCalendario({
-          dataReferencia: dataReferenciaAjuste,
+          dataReferencia,
         });
       } catch (error) {
         if (error instanceof PeriodoHomologadoError) {
@@ -216,6 +225,46 @@ export async function criarSolicitacaoAction(
     }
   }
 
+  if (
+    TIPOS_SOLICITACAO_COM_RECALCULO_APOS_DEFERIMENTO.includes(
+      parsed.data.tipo,
+    )
+  ) {
+    const datasImpactadas = listarDatasImpactadasSolicitacao(
+      { dataReferencia, dataInicio, dataFim },
+      fusoHorario,
+    );
+    const competenciasVerificadas = new Set<string>();
+
+    try {
+      for (const dataImpactada of datasImpactadas) {
+        const chaveCompetencia = `${dataImpactada.getUTCFullYear()}-${String(
+          dataImpactada.getUTCMonth() + 1,
+        ).padStart(2, "0")}`;
+
+        if (competenciasVerificadas.has(chaveCompetencia)) {
+          continue;
+        }
+
+        competenciasVerificadas.add(chaveCompetencia);
+        await verificarEspelhoEnviadoParaHomologacao({
+          servidorId: servidor.id,
+          dataReferencia: dataImpactada,
+        });
+      }
+    } catch (error) {
+      if (error instanceof EspelhoEnviadoParaHomologacaoError) {
+        return {
+          sucesso: false,
+          mensagem: error.message,
+          campos: dados,
+        };
+      }
+
+      throw error;
+    }
+  }
+
   const solicitacao = await prisma.$transaction(async (tx) => {
     const novaSolicitacao = await tx.solicitacao.create({
       data: {
@@ -227,9 +276,9 @@ export async function criarSolicitacaoAction(
         status: "ENVIADA",
         titulo: parsed.data.titulo,
         descricao: parsed.data.descricao,
-        dataReferencia: valorOpcionalData(parsed.data.dataReferencia),
-        dataInicio: valorOpcionalDateTime(parsed.data.dataInicio, fusoHorario),
-        dataFim: valorOpcionalFimPeriodo(parsed.data.dataFim, fusoHorario),
+        dataReferencia,
+        dataInicio,
+        dataFim,
         dadosSolicitados: {
           tipoMarcacao: parsed.data.tipoMarcacao || null,
           horaAjuste: parsed.data.horaAjuste || null,

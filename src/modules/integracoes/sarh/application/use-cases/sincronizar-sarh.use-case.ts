@@ -33,6 +33,7 @@ export class SincronizarSarhUseCase {
       buscarTiposAfastamento: SarhOracleClient["buscarTiposAfastamento"];
       buscarAfastamentos: SarhOracleClient["buscarAfastamentos"];
       buscarChefias: SarhOracleClient["buscarChefias"];
+      buscarCalendarios: SarhOracleClient["buscarCalendarios"];
     },
   ) {}
 
@@ -622,6 +623,41 @@ export class SincronizarSarhUseCase {
           for (const operacao of operacoes) {
             repository.incrementar(contadores, operacao);
           }
+        }
+      }
+
+      if (endpoints.includes("calendarios")) {
+        await publicarProgressoEndpoint(
+          "calendarios",
+          0,
+          1,
+          "Buscando calendários institucionais",
+        );
+        const calendarios = await sarhClient.buscarCalendarios();
+        let processados = 0;
+
+        for (const calendario of calendarios) {
+          const bruto = await repository.registrarPayloadBruto({
+            execucaoId: execucao.id,
+            endpoint: "calendarios",
+            payload: calendario,
+          });
+
+          const operacao = await repository.processarCalendario({
+            execucaoId: execucao.id,
+            payload: calendario,
+            modoSimulacao,
+            registroBrutoId: bruto?.id,
+          });
+
+          repository.incrementar(contadores, operacao);
+          processados += 1;
+          await publicarProgressoEndpoint(
+            "calendarios",
+            processados,
+            calendarios.length,
+            "Processando calendários institucionais",
+          );
         }
       }
 

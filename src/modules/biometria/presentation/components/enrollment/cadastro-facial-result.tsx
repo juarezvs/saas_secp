@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, RotateCcw } from "lucide-react";
 
 type ResultadoCadastro = {
@@ -17,6 +17,13 @@ export function CadastroFacialResult({
   resultado: ResultadoCadastro;
   onRefazer: () => void;
 }) {
+  const router = useRouter();
+
+  function concluir() {
+    router.replace("/biometria");
+    router.refresh();
+  }
+
   return (
     <section className="rounded-xl border border-green-200 bg-green-50 p-6 text-green-950 shadow-sm dark:border-green-900 dark:bg-green-950 dark:text-green-100">
       <CheckCircle2 className="size-8 text-green-700 dark:text-green-300" />
@@ -35,12 +42,13 @@ export function CadastroFacialResult({
         />
       </dl>
       <div className="mt-6 flex flex-wrap gap-3">
-        <Link
-          href="/biometria"
+        <button
+          type="button"
+          onClick={concluir}
           className="rounded-md bg-green-800 px-4 py-2 text-sm font-semibold text-white hover:bg-green-900"
         >
           Concluir
-        </Link>
+        </button>
         <button
           type="button"
           onClick={onRefazer}

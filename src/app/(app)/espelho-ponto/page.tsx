@@ -19,6 +19,15 @@ import {
   listarServidoresParaEspelhoPonto,
 } from "@/modules/apuracao/infrastructure/repositories/apuracao.repository";
 import { EspelhoPontoMensal } from "@/modules/apuracao/presentation/components/espelho-ponto-mensal";
+import {
+  classeStatusHomologacao,
+  rotuloStatusHomologacaoServidor,
+} from "@/modules/homologacao/application/services/formatar-homologacao.service";
+import {
+  buscarHomologacaoServidorMes,
+  verificarEnvioEspelhoServidor,
+} from "@/modules/homologacao/infrastructure/repositories/homologacao.repository";
+import { EnviarEspelhoHomologacaoModal } from "@/modules/homologacao/presentation/components/enviar-espelho-homologacao-modal";
 
 type EspelhoPontoPageProps = {
   searchParams: Promise<{
@@ -234,6 +243,24 @@ export default async function EspelhoPontoPage({
         }),
       ])
     : [[], []];
+  const homologacaoServidor =
+    servidorSelecionado && perfilServidorAtivo
+      ? await buscarHomologacaoServidorMes({
+          servidorId: servidorSelecionado.id,
+          anoReferencia,
+          mesReferencia,
+        })
+      : null;
+  const envioRegistrado = homologacaoServidor
+    ? await verificarEnvioEspelhoServidor(homologacaoServidor.id)
+    : false;
+  const espelhoEnviado = Boolean(
+    envioRegistrado ||
+      (homologacaoServidor &&
+        ["HOMOLOGADO", "HOMOLOGADO_COM_RESSALVA"].includes(
+          homologacaoServidor.status,
+        )),
+  );
 
   return (
     <div className="space-y-6">
@@ -316,7 +343,48 @@ export default async function EspelhoPontoPage({
           marcacoes={marcacoes}
           controles={
             perfilServidorAtivo ? (
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-end">
+              <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+                <div className="rounded-md border border-border bg-muted/50 p-3 text-sm">
+                  <p className="font-semibold text-foreground">
+                    Envio para homologação
+                  </p>
+                  {homologacaoServidor && espelhoEnviado ? (
+                    <div className="mt-2 grid gap-2">
+                      <span
+                        className={`w-fit rounded-full px-2 py-1 text-xs font-semibold ${classeStatusHomologacao(
+                          homologacaoServidor.status,
+                        )}`}
+                      >
+                        {rotuloStatusHomologacaoServidor(
+                          homologacaoServidor.status,
+                        )}
+                      </span>
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        Enviado para{" "}
+                        {nomeServidor(
+                          homologacaoServidor.fechamento.gestorResponsavel
+                            ?.servidor,
+                        ) || "chefia responsável"}
+                        . Solicitações que alterem esta competência ficam bloqueadas
+                        após o envio.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="mt-2 grid gap-2">
+                      <p className="text-xs leading-5 text-muted-foreground">
+                        Revise o espelho antes de enviar. Após o envio, não será
+                        possível criar ajuste, justificativa ou compensação que altere
+                        esta competência.
+                      </p>
+                      <EnviarEspelhoHomologacaoModal
+                        anoReferencia={anoReferencia}
+                        mesReferencia={mesReferencia}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-end">
                 <form className="flex flex-col gap-3 sm:flex-row sm:items-end">
                   <CompetenciaInput
                     defaultValue={competenciaParaInput(
@@ -344,6 +412,7 @@ export default async function EspelhoPontoPage({
                   <Download className="size-4" aria-hidden="true" />
                   Exportar PDF
                 </a>
+              </div>
               </div>
             ) : undefined
           }

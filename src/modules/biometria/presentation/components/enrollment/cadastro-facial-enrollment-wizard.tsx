@@ -8,6 +8,7 @@ import {
   type AmostraEnrollmentFacial,
   type PoseAmostraFacial,
 } from "../../../domain/biometria-facial.types";
+import type { ResultadoDesafioFacial } from "../../../domain/challenge.types";
 import type { MetricasLivenessPassivo } from "../../../domain/liveness.types";
 import { REGRAS_ENROLLMENT_FACIAL } from "../../../domain/biometria-facial.rules";
 import { useCameraStream } from "../../hooks/use-camera-stream";
@@ -56,13 +57,23 @@ const INDICADORES_INICIAIS: IndicadoresQualidade = {
 
 export function CadastroFacialEnrollmentWizard({
   modo,
+  endpoints,
+  requestExtra,
+  onConcluido,
 }: {
   modo: "cadastro" | "recadastro";
+  endpoints?: {
+    iniciar?: string;
+    concluir?: string;
+  };
+  requestExtra?: Record<string, unknown>;
+  onConcluido?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const estabilidadeDesdeRef = useRef<number | null>(null);
   const ultimaAmostraEmRef = useRef(0);
   const amostrasRef = useRef<AmostraEnrollmentFacial[]>([]);
+  const livenessResultadosRef = useRef<ResultadoDesafioFacial[]>([]);
   const passivoRef = useRef(criarAcumuladorPassivo());
   const finalizandoRef = useRef(false);
   const [etapa, setEtapa] = useState<Etapa>("CONSENTIMENTO");
@@ -91,7 +102,7 @@ export function CadastroFacialEnrollmentWizard({
     erro: enrollmentErro,
     iniciar: iniciarEnrollment,
     concluir: concluirEnrollment,
-  } = useFacialEnrollment();
+  } = useFacialEnrollment({ endpoints, requestExtra });
   const desafios = sessao?.challengeSequence ?? [];
   const liveness = useLivenessChallenge(desafios);
 
@@ -128,9 +139,18 @@ export function CadastroFacialEnrollmentWizard({
   const iniciar = useCallback(async () => {
     try {
       await iniciarEnrollment(modo);
+      amostrasRef.current = [];
+      livenessResultadosRef.current = [];
+      passivoRef.current = criarAcumuladorPassivo();
+      estabilidadeDesdeRef.current = null;
+      ultimaAmostraEmRef.current = 0;
+      finalizandoRef.current = false;
+      setAmostras([]);
+      setResultado(null);
+      setErroFluxo(null);
       setEtapa("PREPARACAO");
     } catch {
-      // O hook ja fornece mensagem segura para a interface.
+      // O hook já fornece mensagem segura para a interface.
     }
   }, [iniciarEnrollment, modo]);
 
@@ -162,8 +182,11 @@ export function CadastroFacialEnrollmentWizard({
       if (
         !sessao ||
         finalizandoRef.current ||
-        liveness.resultados.length !== desafios.length
+        livenessResultadosRef.current.length !== desafios.length
       ) {
+        setErroFluxo(
+          "A prova de vida ainda não foi consolidada. Repita o cadastro facial.",
+        );
         return;
       }
 
@@ -176,7 +199,7 @@ export function CadastroFacialEnrollmentWizard({
           sessionId: sessao.sessionId,
           nonce: sessao.nonce,
           consentimento: true,
-          desafios: liveness.resultados,
+          desafios: livenessResultadosRef.current,
           livenessPassivo: passivo,
           amostras: capturas,
           metadados: {
@@ -189,6 +212,7 @@ export function CadastroFacialEnrollmentWizard({
         pararCamera();
         setResultado(salvo);
         setEtapa("RESULTADO");
+        onConcluido?.();
       } catch (error) {
         setErroFluxo(
           error instanceof Error
@@ -202,7 +226,7 @@ export function CadastroFacialEnrollmentWizard({
     [
       concluirEnrollment,
       desafios.length,
-      liveness.resultados,
+      onConcluido,
       pararCamera,
       sessao,
     ],
@@ -241,11 +265,12 @@ export function CadastroFacialEnrollmentWizard({
           return;
         }
 
-        const concluiuDesafios = liveness.processar(snapshot);
+        const resultadosConcluidos = liveness.processar(snapshot);
 
-        if (concluiuDesafios) {
+        if (resultadosConcluidos) {
+          livenessResultadosRef.current = resultadosConcluidos;
           setEtapa("AMOSTRAS");
-          setMensagem("Prova de vida concluida. Iniciando capturas faciais.");
+          setMensagem("Prova de vida concluída. Iniciando capturas faciais.");
         }
         return;
       }
@@ -300,7 +325,7 @@ export function CadastroFacialEnrollmentWizard({
           sessao &&
           new Date(sessao.expiresAt).getTime() <= Date.now()
         ) {
-          setErroFluxo("A sessao de cadastro expirou. Inicie novamente.");
+          setErroFluxo("A sessão de cadastro expirou. Inicie novamente.");
           pararCamera();
           return;
         }
@@ -397,11 +422,11 @@ export function CadastroFacialEnrollmentWizard({
             </h2>
           </div>
           <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">
-            A câmera já esta ativa. Aguarde enquanto os modelos de análise
+            A câmera já está ativa. Aguarde enquanto os modelos de análise
             facial são carregados no navegador.
           </p>
           <p className="mt-3 text-sm text-[var(--muted-foreground)]">
-            Na primeira utilizacao, esta etapa pode levar alguns segundos.
+            Na primeira utilização, esta etapa pode levar alguns segundos.
           </p>
         </div>
       </section>
@@ -464,7 +489,7 @@ function avaliarQualidade(
   };
   const aprovado = Object.values(indicadores).every(Boolean);
   const mensagem = aprovado
-    ? "Mantenha a posicao por alguns segundos."
+    ? "Mantenha a posição por alguns segundos."
     : snapshot.faces > 1
       ? "Mantenha apenas uma pessoa visível na câmera."
       : !rostoDetectado

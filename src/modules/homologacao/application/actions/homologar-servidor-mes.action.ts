@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { atualizarStatusFechamentoService } from "../services/atualizar-status-fechamento.service";
 import { buscarHomologacaoServidorPorId } from "../../infrastructure/repositories/homologacao.repository";
@@ -18,6 +19,7 @@ export async function homologarServidorMesAction(formData: FormData) {
   const podeHomologar =
     permissoes.includes("homologacao:gerenciar:chefia") ||
     permissoes.includes("homologacao:gerenciar:global");
+  const podeHomologarGlobal = permissoes.includes("homologacao:gerenciar:global");
 
   if (!podeHomologar) {
     return;
@@ -47,6 +49,16 @@ export async function homologarServidorMesAction(formData: FormData) {
     !["HOMOLOGADO", "HOMOLOGADO_COM_RESSALVA", "DEVOLVIDO"].includes(status)
   ) {
     return;
+  }
+
+  if (!podeHomologarGlobal) {
+    const unidadesSubordinadas = await listarIdsUnidadesSubordinadasPorUsuario(
+      session.user.id,
+    );
+
+    if (!unidadesSubordinadas.includes(homologacaoAtual.fechamento.unidadeId)) {
+      return;
+    }
   }
 
   await prisma.$transaction(async (tx) => {

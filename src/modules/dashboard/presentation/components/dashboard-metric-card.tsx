@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 
 import { Card } from "@/components/ui";
+import { TempoTrabalhadoTempoReal } from "./tempo-trabalhado-tempo-real";
 
 type DashboardMetricCardProps = {
   titulo: string;
@@ -8,6 +9,10 @@ type DashboardMetricCardProps = {
   descricao: string;
   icon: LucideIcon;
   variante: "info" | "success" | "warning";
+  tempoReal?: {
+    inicioIso: string;
+    minutosBase: number;
+  };
 };
 
 const variantes = {
@@ -22,6 +27,7 @@ export function DashboardMetricCard({
   descricao,
   icon: Icon,
   variante,
+  tempoReal,
 }: DashboardMetricCardProps) {
   return (
     <Card className="p-2.5">
@@ -31,7 +37,15 @@ export function DashboardMetricCard({
             {titulo}
           </p>
           <p className="mt-1.5 text-lg font-bold leading-none text-foreground">
-            {valor}
+            {tempoReal ? (
+              <TempoTrabalhadoTempoReal
+                inicioIso={tempoReal.inicioIso}
+                minutosBase={tempoReal.minutosBase}
+                valorInicial={valor}
+              />
+            ) : (
+              valor
+            )}
           </p>
           <p className="mt-0.5 text-xs leading-4 text-muted-foreground">
             {descricao}

@@ -2,6 +2,7 @@ import React, { type ReactElement } from "react";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 
 import { auth } from "@/auth";
+import { registrarAuditoriaEvento } from "@/modules/auditoria/application/services/registrar-auditoria.service";
 import { buscarDadosEspelhoPontoPdf } from "@/modules/relatorios/infrastructure/repositories/relatorios.repository";
 import { EspelhoPontoPdfDocument } from "@/modules/relatorios/presentation/pdf/espelho-ponto-pdf.document";
 
@@ -80,6 +81,30 @@ export async function GET(request: Request, context: RouteContext) {
   const nomeArquivo = `espelho-ponto-${dados.servidor.matricula}-${String(
     mes,
   ).padStart(2, "0")}-${ano}.pdf`;
+
+  await registrarAuditoriaEvento({
+    usuarioId: session.user.id,
+    entidade: "RelatorioExportacao",
+    entidadeId: servidorId,
+    acao: "EXPORTAR_RELATORIO_PDF",
+    metadados: {
+      relatorioId: "espelho-mensal",
+      nomeRelatorio: "Espelho mensal de ponto",
+      formato: "PDF",
+      filtros: {
+        ano,
+        mes,
+        competencia: `${ano}-${String(mes).padStart(2, "0")}`,
+        servidorId,
+        matricula: dados.servidor.matricula,
+      },
+      nomeArquivo,
+    },
+    ip:
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      request.headers.get("x-real-ip"),
+    userAgent: request.headers.get("user-agent"),
+  });
 
   return new Response(new Uint8Array(buffer), {
     headers: {

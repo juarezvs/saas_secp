@@ -8,6 +8,7 @@ import {
   buscarPainelExecutivoPorSlug,
   PERMISSAO_PAINEL_EXECUTIVO,
   PERMISSAO_PAINEL_EXECUTIVO_EQUIPAMENTOS,
+  PERMISSOES_SUBMENUS_PAINEL_EXECUTIVO,
 } from "@/modules/painel-executivo/presentation/painel-executivo-data";
 import { buscarDadosPainelExecutivo } from "@/modules/painel-executivo/infrastructure/repositories/painel-executivo.repository";
 import { PainelExecutivoPage } from "@/modules/painel-executivo/presentation/painel-executivo-page";
@@ -30,10 +31,24 @@ export default async function PainelExecutivoSecaoPage({
   const permissao = await exigirUmaDasPermissoesOuRedirecionar([
     PERMISSAO_PAINEL_EXECUTIVO,
     PERMISSAO_PAINEL_EXECUTIVO_EQUIPAMENTOS,
+    ...PERMISSOES_SUBMENUS_PAINEL_EXECUTIVO,
   ]);
 
   if (
     painel.permissao &&
+    !usuarioPossuiPermissaoNoPerfil(
+      permissao.perfilAtivoCodigo,
+      permissao.permissoes,
+      PERMISSAO_PAINEL_EXECUTIVO,
+    ) &&
+    !(
+      painel.slug === "equipamentos-de-ponto" &&
+      usuarioPossuiPermissaoNoPerfil(
+        permissao.perfilAtivoCodigo,
+        permissao.permissoes,
+        PERMISSAO_PAINEL_EXECUTIVO_EQUIPAMENTOS,
+      )
+    ) &&
     !usuarioPossuiPermissaoNoPerfil(
       permissao.perfilAtivoCodigo,
       permissao.permissoes,
@@ -45,7 +60,13 @@ export default async function PainelExecutivoSecaoPage({
     );
   }
 
-  const dados = await buscarDadosPainelExecutivo({ competencia });
+  const dados = await buscarDadosPainelExecutivo({
+    competencia,
+    usuarioId: permissao.usuarioId,
+    perfilAtivoCodigo: permissao.perfilAtivoCodigo,
+    perfilAtivoEscopoGlobal: permissao.perfilAtivoEscopoGlobal,
+    orgaoIds: permissao.orgaoIds,
+  });
 
   return (
     <PainelExecutivoPage painel={painel} permissao={permissao} dados={dados} />

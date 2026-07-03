@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   if (!session?.user) {
     return respostaErro(
       "UNAUTHENTICATED",
-      "Sua sessao expirou. Faca login novamente.",
+      "Sua sessão expirou. Faça login novamente.",
       401,
     );
   }
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return respostaErro(
       "INVALID_REQUEST",
-      parsed.error.issues[0]?.message ?? "Dados invalidos.",
+      parsed.error.issues[0]?.message ?? "Dados inválidos.",
       400,
     );
   }
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
   if (!autorizado) {
     return respostaErro(
       "FORBIDDEN",
-      "Voce nao possui permissao para realizar o cadastro facial.",
+      "Você não possui permissão para realizar o cadastro facial.",
       403,
     );
   }
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     return respostaErro(
       "ENROLLMENT_START_FAILED",
-      "Nao foi possivel iniciar o cadastro facial. Tente novamente.",
+      "Não foi possível iniciar o cadastro facial. Tente novamente.",
       500,
     );
   }

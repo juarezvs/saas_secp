@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AlertTriangle, CheckCircle2, Info } from "lucide-react";
 
 import { Card } from "@/components/ui";
-import type { AlertaServidor } from "../data/dashboard-servidor.mock";
+import type { AlertaServidor } from "../data/dashboard-servidor.config";
 
 type AlertasEAvisosCardProps = {
   alertas: AlertaServidor[];

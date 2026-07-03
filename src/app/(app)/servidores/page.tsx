@@ -4,7 +4,11 @@ import { Plus, Users } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
-import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import {
+  exigirUmaDasPermissoesOuRedirecionar,
+  usuarioPossuiAlgumaPermissaoNoPerfil,
+} from "@/modules/auth/application/services/permissao.service";
+import { PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS } from "@/modules/auth/domain/constants/perfis-sistema";
 import {
   aplicarEscopoOrgaoId,
   obterEscopoOrgaoDaSessao,
@@ -44,7 +48,21 @@ type ServidoresPageProps = {
 export default async function ServidoresPage({
   searchParams,
 }: ServidoresPageProps) {
-  await exigirPermissaoOuRedirecionar("servidores:gerenciar:global");
+  const permissoesSessao = await exigirUmaDasPermissoesOuRedirecionar([
+    "servidores:gerenciar:global",
+    "servidores:consultar:global",
+    ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
+  ]);
+  const podeGerenciarServidor = usuarioPossuiAlgumaPermissaoNoPerfil(
+    permissoesSessao.perfilAtivoCodigo,
+    permissoesSessao.permissoes,
+    ["servidores:gerenciar:global"],
+  );
+  const podeExportarServidores = usuarioPossuiAlgumaPermissaoNoPerfil(
+    permissoesSessao.perfilAtivoCodigo,
+    permissoesSessao.permissoes,
+    ["servidores:gerenciar:global", "servidores:consultar:global"],
+  );
 
   const params = searchParams ? await searchParams : {};
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
@@ -152,13 +170,15 @@ export default async function ServidoresPage({
           />
         </div>
 
-        <Link
-          href="/servidores/novo"
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        >
-          <Plus className="size-4" aria-hidden="true" />
-          Novo servidor
-        </Link>
+        {podeGerenciarServidor && (
+          <Link
+            href="/servidores/novo"
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            Novo servidor
+          </Link>
+        )}
       </section>
 
       <DataTableShell
@@ -174,8 +194,16 @@ export default async function ServidoresPage({
             orgaos={orgaos}
             servidores={servidoresOptions}
             lotacoes={lotacoesOptions}
-            exportCsvHref={`/api/servidores/export?${exportParams.toString()}`}
-            exportPdfHref={`/api/servidores/export/pdf?${exportParams.toString()}`}
+            exportCsvHref={
+              podeExportarServidores
+                ? `/api/servidores/export?${exportParams.toString()}`
+                : undefined
+            }
+            exportPdfHref={
+              podeExportarServidores
+                ? `/api/servidores/export/pdf?${exportParams.toString()}`
+                : undefined
+            }
           />
         }
       >

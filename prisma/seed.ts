@@ -13,6 +13,112 @@ if (!connectionString) {
 const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
+const permissoesSubmenusPainelExecutivoSeed = [
+  {
+    recurso: "painel-executivo",
+    acao: "indicadores",
+    escopo: "global",
+    descricao: "Consultar o submenu Indicadores do painel executivo.",
+  },
+  {
+    recurso: "painel-executivo",
+    acao: "pendencias-de-ponto",
+    escopo: "global",
+    descricao: "Consultar o submenu Pendências de ponto do painel executivo.",
+  },
+  {
+    recurso: "painel-executivo",
+    acao: "frequencia-e-assiduidade",
+    escopo: "global",
+    descricao:
+      "Consultar o submenu Frequência e assiduidade do painel executivo.",
+  },
+  {
+    recurso: "painel-executivo",
+    acao: "justificativas-e-ocorrencias",
+    escopo: "global",
+    descricao:
+      "Consultar o submenu Justificativas e ocorrências do painel executivo.",
+  },
+  {
+    recurso: "painel-executivo",
+    acao: "controle-de-homologacao-mensal",
+    escopo: "global",
+    descricao:
+      "Consultar o submenu Controle de homologação mensal do painel executivo.",
+  },
+  {
+    recurso: "painel-executivo",
+    acao: "jornada-e-carga-horaria",
+    escopo: "global",
+    descricao: "Consultar o submenu Jornada e carga horária do painel executivo.",
+  },
+  {
+    recurso: "painel-executivo",
+    acao: "teletrabalho-presencial-registro-web",
+    escopo: "global",
+    descricao:
+      "Consultar o submenu Teletrabalho, presencial e registro web do painel executivo.",
+  },
+  {
+    recurso: "painel-executivo",
+    acao: "equipamentos-de-ponto",
+    escopo: "global",
+    descricao: "Consultar o submenu Equipamentos de ponto do painel executivo.",
+  },
+  {
+    recurso: "painel-executivo",
+    acao: "auditoria-e-conformidade",
+    escopo: "global",
+    descricao:
+      "Consultar o submenu Auditoria e conformidade do painel executivo.",
+  },
+  {
+    recurso: "painel-executivo",
+    acao: "indicadores-por-unidade-e-chefia",
+    escopo: "global",
+    descricao:
+      "Consultar o submenu Indicadores por unidade e chefia do painel executivo.",
+  },
+  {
+    recurso: "painel-executivo",
+    acao: "alertas-inteligentes",
+    escopo: "global",
+    descricao: "Consultar o submenu Alertas inteligentes do painel executivo.",
+  },
+  {
+    recurso: "painel-executivo",
+    acao: "relatorios-exportaveis",
+    escopo: "global",
+    descricao:
+      "Consultar o submenu Relatórios exportáveis do painel executivo.",
+  },
+  {
+    recurso: "painel-executivo",
+    acao: "paineis",
+    escopo: "global",
+    descricao: "Consultar o submenu Painéis do painel executivo.",
+  },
+  {
+    recurso: "painel-executivo",
+    acao: "graficos-importantes",
+    escopo: "global",
+    descricao: "Consultar o submenu Gráficos importantes do painel executivo.",
+  },
+  {
+    recurso: "painel-executivo",
+    acao: "banco-de-horas",
+    escopo: "global",
+    descricao: "Consultar o submenu Banco de horas do painel executivo.",
+  },
+] as const;
+
+const codigosPermissoesSubmenusPainelExecutivo =
+  permissoesSubmenusPainelExecutivoSeed.map(
+    (permissao) =>
+      `${permissao.recurso}:${permissao.acao}:${permissao.escopo}`,
+  );
+
 const permissoesIniciais = [
   // Usuários / perfis / estrutura
   {
@@ -106,6 +212,7 @@ const permissoesIniciais = [
     descricao:
       "Consultar indicadores tecnicos de equipamentos de ponto no painel executivo.",
   },
+  ...permissoesSubmenusPainelExecutivoSeed,
 
   // Jornadas
   {
@@ -689,6 +796,7 @@ const codigosPermissoesChefia = [
 const codigosPermissoesSecap = [
   "dashboard:visualizar:proprio",
   "painel-executivo:consultar:global",
+  ...codigosPermissoesSubmenusPainelExecutivo,
   "usuarios:consultar:global",
   "servidores:gerenciar:global",
   "servidores:consultar:global",
@@ -718,6 +826,7 @@ const codigosPermissoesSecap = [
 const codigosPermissoesSecad = [
   "dashboard:visualizar:proprio",
   "painel-executivo:consultar:global",
+  ...codigosPermissoesSubmenusPainelExecutivo,
   "servidores:consultar:global",
   "recesso:gerenciar:global",
   "recesso:consultar:global",
@@ -734,6 +843,7 @@ const codigosPermissoesSecad = [
 const codigosPermissoesDiref = [
   "dashboard:visualizar:proprio",
   "painel-executivo:consultar:global",
+  ...codigosPermissoesSubmenusPainelExecutivo,
   "servidores:consultar:global",
   "marcacoes:consultar:global",
   "apuracao:consultar:global",
@@ -752,6 +862,7 @@ const codigosPermissoesDiref = [
 const codigosPermissoesSuporte = [
   "dashboard:visualizar:proprio",
   "painel-executivo:consultar:global",
+  ...codigosPermissoesSubmenusPainelExecutivo,
   "painel-executivo:equipamentos:global",
   "integracoes:consultar:global",
   "integracoes:gerenciar:global",

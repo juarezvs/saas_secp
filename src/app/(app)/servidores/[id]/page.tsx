@@ -4,7 +4,12 @@ import { notFound } from "next/navigation";
 import { CalendarClock, Edit, ShieldCheck, UserRound } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
-import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import {
+  exigirUmaDasPermissoesOuRedirecionar,
+  usuarioPossuiAlgumaPermissaoNoPerfil,
+} from "@/modules/auth/application/services/permissao.service";
+import { PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS } from "@/modules/auth/domain/constants/perfis-sistema";
+import { buscarResumoBiometriaFacialServidor } from "@/modules/biometria/infrastructure/repositories/biometria.repository";
 import { buscarFotoServidorDataUrl } from "@/modules/servidores/application/services/foto-servidor.service";
 import {
   descricaoCargoServidor,
@@ -26,6 +31,7 @@ import { DispensaPontoServidorCard } from "@/modules/servidores/presentation/com
 import { AfastamentosServidorCard } from "@/modules/servidores/presentation/components/afastamentos-servidor-card";
 import { LotacaoForm } from "@/modules/servidores/presentation/components/lotacao-form";
 import { ServidorLotacoesCard } from "@/modules/servidores/presentation/components/servidor-lotacoes-card";
+import { ServidorBiometriaFacialCard } from "@/modules/servidores/presentation/components/servidor-biometria-facial-card";
 
 type ServidorDetalhePageProps = {
   params: Promise<{
@@ -55,25 +61,60 @@ export default async function ServidorDetalhePage({
   params,
   searchParams,
 }: ServidorDetalhePageProps) {
-  await exigirPermissaoOuRedirecionar("servidores:gerenciar:global");
+  const permissoesSessao = await exigirUmaDasPermissoesOuRedirecionar([
+    "servidores:gerenciar:global",
+    "servidores:consultar:global",
+    ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
+  ]);
 
   const { id } = await params;
   const query = searchParams ? await searchParams : {};
   const paginaAfastamentos = Number(query.paginaAfastamentos ?? 1);
 
-  const [servidor, unidades, afastamentosResultado] = await Promise.all([
-    buscarServidorPorId(id),
-    listarUnidadesAtivasParaLotacao(),
-    listarAfastamentosServidorSarhPaginado(id, {
-      pagina: paginaAfastamentos,
-    }),
-  ]);
+  const [servidor, unidades, afastamentosResultado, resumoBiometria] =
+    await Promise.all([
+      buscarServidorPorId(id),
+      listarUnidadesAtivasParaLotacao(),
+      listarAfastamentosServidorSarhPaginado(id, {
+        pagina: paginaAfastamentos,
+      }),
+      buscarResumoBiometriaFacialServidor(id),
+    ]);
 
   if (!servidor) {
     return notFound();
   }
 
   const servidorId = servidor.id;
+  const perfilCodigo = permissoesSessao.perfilAtivoCodigo;
+  const permissoesAtivas = permissoesSessao.permissoes;
+  const podeGerenciarServidor = usuarioPossuiAlgumaPermissaoNoPerfil(
+    perfilCodigo,
+    permissoesAtivas,
+    ["servidores:gerenciar:global"],
+  );
+  const permissoesBiometria = {
+    podeCadastrar: usuarioPossuiAlgumaPermissaoNoPerfil(
+      perfilCodigo,
+      permissoesAtivas,
+      ["biometriafacial:cadastrar:terceiros"],
+    ),
+    podeRecadastrar: usuarioPossuiAlgumaPermissaoNoPerfil(
+      perfilCodigo,
+      permissoesAtivas,
+      ["biometriafacial:recadastrar:terceiros"],
+    ),
+    podeInvalidar: usuarioPossuiAlgumaPermissaoNoPerfil(
+      perfilCodigo,
+      permissoesAtivas,
+      ["biometriafacial:invalidar:global"],
+    ),
+    podeVerAuditoria: usuarioPossuiAlgumaPermissaoNoPerfil(
+      perfilCodigo,
+      permissoesAtivas,
+      ["biometriafacial:visualizar:auditoria"],
+    ),
+  };
   const actionLotacao = vincularLotacaoAction.bind(null, servidorId);
   const fusoHorario = await resolverFusoHorarioServidorNoBanco({
     servidorId,
@@ -165,13 +206,15 @@ export default async function ServidorDetalhePage({
           </div>
         </div>
 
-        <Link
-          href={`/servidores/${servidor.id}/editar`}
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950"
-        >
-          <Edit className="size-4" aria-hidden="true" />
-          Editar servidor
-        </Link>
+        {podeGerenciarServidor && (
+          <Link
+            href={`/servidores/${servidor.id}/editar`}
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950"
+          >
+            <Edit className="size-4" aria-hidden="true" />
+            Editar servidor
+          </Link>
+        )}
       </section>
 
       <RegraPortariaCard
@@ -355,6 +398,39 @@ export default async function ServidorDetalhePage({
 
       <ServidorLotacoesCard lotacoes={servidor.lotacoes} />
 
+      <ServidorBiometriaFacialCard
+        servidorId={servidorId}
+        servidorNome={nomeFuncional}
+        resumo={{
+          status: resumoBiometria.biometria?.status ?? "NAO_CADASTRADO",
+          amostrasQuantidade:
+            resumoBiometria.biometria?.amostrasQuantidade ?? 0,
+          qualidadeMedia: resumoBiometria.biometria?.qualidadeMedia ?? null,
+          atualizadoEm:
+            resumoBiometria.biometria?.atualizadoEm.toISOString() ?? null,
+          revogadoEm:
+            resumoBiometria.biometria?.revogadoEm?.toISOString() ?? null,
+          ultimaTentativaEm:
+            resumoBiometria.ultimaSessao?.criadoEm.toISOString() ??
+            resumoBiometria.ultimaAmostra?.criadoEm.toISOString() ??
+            null,
+          ultimaTentativaStatus:
+            resumoBiometria.ultimaSessao?.status ??
+            (resumoBiometria.ultimaAmostra
+              ? resumoBiometria.ultimaAmostra.validada
+                ? "VALIDADA"
+                : "NÃO VALIDADA"
+              : null),
+          ultimoEventoEm:
+            resumoBiometria.ultimoEvento?.criadoEm.toISOString() ?? null,
+          ultimoEventoAcao: resumoBiometria.ultimoEvento?.acao ?? null,
+          ultimoEventoUsuario: resumoBiometria.ultimoEvento?.usuario
+            ? `${resumoBiometria.ultimoEvento.usuario.matricula} - ${resumoBiometria.ultimoEvento.usuario.nome}`
+            : null,
+        }}
+        permissoes={permissoesBiometria}
+      />
+
       <AfastamentosServidorCard
         afastamentos={afastamentosResultado.afastamentos}
         titulo="Afastamentos do servidor"
@@ -373,13 +449,17 @@ export default async function ServidorDetalhePage({
         }}
       />
 
-      <DispensaPontoServidorCard
-        dispensas={dispensasPonto}
-        fusoHorario={fusoHorario}
-        action={actionDispensaPonto}
-      />
+      {podeGerenciarServidor && (
+        <DispensaPontoServidorCard
+          dispensas={dispensasPonto}
+          fusoHorario={fusoHorario}
+          action={actionDispensaPonto}
+        />
+      )}
 
-      <LotacaoForm action={actionLotacao} unidades={unidades} />
+      {podeGerenciarServidor && (
+        <LotacaoForm action={actionLotacao} unidades={unidades} />
+      )}
     </div>
   );
 }

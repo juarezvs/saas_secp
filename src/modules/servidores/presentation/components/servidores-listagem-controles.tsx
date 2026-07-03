@@ -18,8 +18,8 @@ type ServidoresListagemControlesProps = {
   orgaos: OrgaoOption[];
   servidores: FiltroOption[];
   lotacoes: FiltroOption[];
-  exportCsvHref: string;
-  exportPdfHref: string;
+  exportCsvHref?: string;
+  exportPdfHref?: string;
 };
 
 export function ServidoresListagemControles({
@@ -38,7 +38,7 @@ export function ServidoresListagemControles({
       className: "lg:col-span-2",
       comIconeBusca: true,
     },
-    { tipo: "texto", nome: "matricula", label: "Matricula" },
+    { tipo: "texto", nome: "matricula", label: "Matrícula" },
     { tipo: "texto", nome: "cpf", label: "CPF" },
     {
       tipo: "searchable-select",
@@ -52,15 +52,15 @@ export function ServidoresListagemControles({
     {
       tipo: "searchable-select",
       nome: "lotacao",
-      label: "Lotacao",
+      label: "Lotação",
       placeholder: "Todas",
-      searchPlaceholder: "Pesquisar lotacao...",
+      searchPlaceholder: "Pesquisar lotação...",
       options: [{ value: "", label: "Todas" }, ...lotacoes],
     },
     {
       tipo: "select",
       nome: "orgaoId",
-      label: "Orgao",
+      label: "Órgão",
       options: [
         { value: "", label: "Todos" },
         ...orgaos.map((orgao) => ({ value: orgao.id, label: orgao.sigla })),
@@ -69,7 +69,7 @@ export function ServidoresListagemControles({
     {
       tipo: "select",
       nome: "vinculo",
-      label: "Vinculo",
+      label: "Vínculo",
       options: [
         { value: "", label: "Todos" },
         { value: "EFETIVO", label: "Efetivo" },
@@ -77,7 +77,7 @@ export function ServidoresListagemControles({
         { value: "REQUISITADO", label: "Requisitado" },
         { value: "REDISTRIBUIDO", label: "Redistribuido" },
         { value: "REMOVIDO", label: "Removido" },
-        { value: "EXERCICIO_PROVISORIO", label: "Exercicio provisorio" },
+        { value: "EXERCICIO_PROVISORIO", label: "Exercício provisório" },
       ],
     },
     {

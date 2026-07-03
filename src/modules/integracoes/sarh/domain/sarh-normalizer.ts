@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type {
   SarhCargoDto,
   SarhAfastamentoDto,
+  SarhCalendarioDto,
   SarhChefiaDto,
   SarhEmpresaDto,
   SarhEndpointKey,
@@ -97,6 +98,7 @@ export function endpointDbFromKey(
     tiposAfastamento: "TIPOS_AFASTAMENTO",
     afastamentos: "AFASTAMENTOS",
     chefias: "CHEFIAS",
+    calendarios: "CALENDARIOS",
   };
   return mapa[endpoint];
 }
@@ -113,6 +115,7 @@ export function tipoRegistroDbFromEndpoint(
     tiposAfastamento: "TIPO_AFASTAMENTO",
     afastamentos: "AFASTAMENTO",
     chefias: "CHEFIA",
+    calendarios: "CALENDARIO",
   };
   return mapa[endpoint];
 }
@@ -145,6 +148,10 @@ export function obterChaveExterna(
   if (endpoint === "chefias") {
     const chefia = payload as SarhChefiaDto;
     return `${chefia.lotacaoId}:${chefia.idFuncaoLotacao}`;
+  }
+
+  if (endpoint === "calendarios") {
+    return String((payload as SarhCalendarioDto).id);
   }
 
   return String((payload as SarhEmpresaDto | SarhLotacaoDto).id);

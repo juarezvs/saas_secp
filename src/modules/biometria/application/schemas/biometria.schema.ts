@@ -3,16 +3,16 @@ import { z } from "zod";
 import { BIOMETRIA_FACIAL_THRESHOLDS } from "../services/biometria-facial-config";
 
 export const templateFacialSchema = z.object({
-  servidorId: z.string().uuid("Servidor invalido.").optional(),
+  servidorId: z.string().uuid("Servidor inválido.").optional(),
   template: z
     .array(z.number())
     .min(
       BIOMETRIA_FACIAL_THRESHOLDS.minTemplateDimensao,
-      "Template facial invalido ou incompleto.",
+      "Template facial inválido ou incompleto.",
     )
     .refine(
       (valores) => valores.every((valor) => Number.isFinite(valor)),
-      "Template facial contem valores invalidos.",
+      "Template facial contém valores inválidos.",
     ),
   qualidade: z.coerce.number().min(0).max(1).optional(),
   metadados: z

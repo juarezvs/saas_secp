@@ -19,14 +19,16 @@ const statusConfig: Record<
     titulo: "Presentes",
     card: "border-green-500 ring-2 ring-green-100 dark:ring-green-950",
     badge: "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300",
-    column: "border-green-200 bg-green-50/45 dark:border-green-900 dark:bg-green-950/20",
+    column:
+      "border-green-200 bg-green-50/45 dark:border-green-900 dark:bg-green-950/20",
   },
   AUSENTE: {
     label: "Ausente",
     titulo: "Ausentes",
     card: "border-red-500 ring-2 ring-red-100 dark:ring-red-950",
     badge: "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300",
-    column: "border-red-200 bg-red-50/45 dark:border-red-900 dark:bg-red-950/20",
+    column:
+      "border-red-200 bg-red-50/45 dark:border-red-900 dark:bg-red-950/20",
   },
   AFASTADO: {
     label: "Licença/afastamento",

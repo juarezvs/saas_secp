@@ -7,6 +7,7 @@ import type { UnidadeMinhaEquipe } from "../../infrastructure/repositories/minha
 
 type MinhaEquipeFiltrosProps = {
   data: string;
+  anoFerias: number;
   escopo: "chefia" | "global";
   resumo: {
     total: number;
@@ -20,6 +21,7 @@ type MinhaEquipeFiltrosProps = {
 
 export function MinhaEquipeFiltros({
   data,
+  anoFerias,
   escopo,
   resumo,
   unidades,
@@ -100,6 +102,7 @@ export function MinhaEquipeFiltros({
       action="/minha-equipe"
       className="rounded-md border border-border bg-card p-5 shadow-card"
     >
+      <input type="hidden" name="anoFerias" value={anoFerias} />
       {Array.from(selecionadas).map((unidadeId) => (
         <input
           key={unidadeId}
@@ -128,7 +131,7 @@ export function MinhaEquipeFiltros({
             <div
               className="relative size-16 shrink-0 rounded-full"
               style={pizzaStyle}
-              aria-label="Percentual de presenca da equipe"
+              aria-label="Percentual de presença da equipe"
             >
               <div className="absolute inset-3 rounded-full bg-background" />
             </div>

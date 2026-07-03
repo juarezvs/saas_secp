@@ -382,6 +382,7 @@ export async function listarAfastamentosServidorSarhPaginado(
   params: {
     pagina?: number;
     itensPorPagina?: number;
+    grupo?: "ferias" | "outros";
   } = {},
 ) {
   const pagina = Math.max(Number(params.pagina ?? 1), 1);
@@ -402,7 +403,28 @@ export async function listarAfastamentosServidorSarhPaginado(
     };
   }
 
-  const where = { servidorId };
+  const filtroFerias = {
+    OR: [
+      { categoria: { contains: "FERIAS", mode: "insensitive" as const } },
+      { tipoDescricao: { contains: "FERIAS", mode: "insensitive" as const } },
+      { origemTabela: { contains: "FERIAS", mode: "insensitive" as const } },
+      {
+        tipoAfastamento: {
+          OR: [
+            { categoria: { contains: "FERIAS", mode: "insensitive" as const } },
+            { descricao: { contains: "FERIAS", mode: "insensitive" as const } },
+          ],
+        },
+      },
+    ],
+  };
+  const filtroGrupo =
+    params.grupo === "ferias"
+      ? filtroFerias
+      : params.grupo === "outros"
+        ? { NOT: filtroFerias }
+        : {};
+  const where = { servidorId, ...filtroGrupo };
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
 
@@ -410,7 +432,7 @@ export async function listarAfastamentosServidorSarhPaginado(
     prisma.afastamentoSarh.count({ where }),
     prisma.afastamentoSarh.count({
       where: {
-        servidorId,
+        ...where,
         ativo: true,
         dataInicio: {
           lte: hoje,
@@ -429,7 +451,7 @@ export async function listarAfastamentosServidorSarhPaginado(
     }),
     prisma.afastamentoSarh.count({
       where: {
-        servidorId,
+        ...where,
         ativo: true,
         dataInicio: {
           gt: hoje,

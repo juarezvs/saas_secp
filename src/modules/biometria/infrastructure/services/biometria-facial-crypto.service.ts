@@ -11,7 +11,7 @@ function obterChaveCriptografia() {
   const valor = process.env.BIOMETRIA_FACIAL_ENCRYPTION_KEY?.trim();
 
   if (!valor) {
-    throw new Error("BIOMETRIA_FACIAL_ENCRYPTION_KEY nao configurada.");
+    throw new Error("BIOMETRIA_FACIAL_ENCRYPTION_KEY não configurada.");
   }
 
   const candidatas = [
@@ -34,7 +34,7 @@ function obterPepper() {
   const pepper = process.env.BIOMETRIA_FACIAL_TEMPLATE_PEPPER?.trim();
 
   if (!pepper) {
-    throw new Error("BIOMETRIA_FACIAL_TEMPLATE_PEPPER nao configurado.");
+    throw new Error("BIOMETRIA_FACIAL_TEMPLATE_PEPPER não configurado.");
   }
 
   return pepper;
@@ -88,7 +88,7 @@ export function descriptografarTemplateFacial(params: {
     template.length === 0 ||
     template.some((item) => typeof item !== "number" || !Number.isFinite(item))
   ) {
-    throw new Error("Template facial criptografado invalido.");
+    throw new Error("Template facial criptografado inválido.");
   }
 
   return template;

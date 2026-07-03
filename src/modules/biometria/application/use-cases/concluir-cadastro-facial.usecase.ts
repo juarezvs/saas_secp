@@ -20,7 +20,7 @@ import { EnrollmentFacialError } from "./enrollment.error";
 
 export async function concluirCadastroFacial(
   usuarioId: string,
-  input: ConclusaoEnrollmentFacialInput,
+  input: ConclusaoEnrollmentFacialInput & { servidorId?: string },
 ): Promise<ConclusaoEnrollmentFacialResultado> {
   const sessao = await buscarSessaoCadastroFacial({
     sessaoId: input.sessionId,
@@ -30,15 +30,23 @@ export async function concluirCadastroFacial(
   if (!sessao) {
     throw new EnrollmentFacialError(
       "SESSION_NOT_FOUND",
-      "A sessao de cadastro facial nao foi localizada.",
+      "A sessão de cadastro facial não foi localizada.",
       404,
+    );
+  }
+
+  if (input.servidorId && sessao.servidorId !== input.servidorId) {
+    throw new EnrollmentFacialError(
+      "SESSION_SERVER_MISMATCH",
+      "A sessão de cadastro facial não pertence ao servidor informado.",
+      403,
     );
   }
 
   if (!["INICIADA", "EM_ANDAMENTO"].includes(sessao.status)) {
     throw new EnrollmentFacialError(
       "SESSION_ALREADY_USED",
-      "Esta sessao de cadastro facial nao pode mais ser utilizada.",
+      "Esta sessão de cadastro facial não pode mais ser utilizada.",
       409,
     );
   }
@@ -51,7 +59,7 @@ export async function concluirCadastroFacial(
 
     throw new EnrollmentFacialError(
       "SESSION_EXPIRED",
-      "A sessao de cadastro expirou. Inicie novamente o processo.",
+      "A sessão de cadastro expirou. Inicie novamente o processo.",
       410,
     );
   }
@@ -59,7 +67,7 @@ export async function concluirCadastroFacial(
   if (!nonceCorresponde(input.nonce, sessao.nonceHash)) {
     throw new EnrollmentFacialError(
       "INVALID_NONCE",
-      "Nao foi possivel validar a sessao de cadastro facial.",
+      "Não foi possível validar a sessão de cadastro facial.",
       403,
     );
   }
@@ -76,7 +84,7 @@ export async function concluirCadastroFacial(
     await reprovarSessao(sessao.id, usuarioId, "AMOSTRAS_INVALIDAS");
     throw new EnrollmentFacialError(
       "SAMPLES_REJECTED",
-      "Nao conseguimos capturar seu rosto com qualidade suficiente. Melhore a iluminacao e centralize o rosto.",
+      "Não conseguimos capturar seu rosto com qualidade suficiente. Melhore a iluminação e centralize o rosto.",
     );
   }
 
@@ -97,7 +105,7 @@ export async function concluirCadastroFacial(
     });
     throw new EnrollmentFacialError(
       "LIVENESS_FAILED",
-      "Nao foi possivel confirmar a prova de vida. Tente novamente olhando para a camera em um ambiente bem iluminado.",
+      "Não foi possível confirmar a prova de vida. Tente novamente olhando para a câmera em um ambiente bem iluminado.",
     );
   }
 
@@ -153,7 +161,7 @@ export async function concluirCadastroFacial(
       },
     });
 
-    await tx.amostraBiometricaFacial.createMany({
+    const amostrasCriadas = await tx.amostraBiometricaFacial.createMany({
       data: input.amostras.map((amostra) => ({
         biometriaId: biometria.id,
         servidorId: sessao.servidorId,
@@ -172,6 +180,14 @@ export async function concluirCadastroFacial(
       })),
     });
 
+    if (amostrasCriadas.count !== input.amostras.length) {
+      throw new EnrollmentFacialError(
+        "ENROLLMENT_NOT_CONSOLIDATED",
+        "O cadastro facial foi processado, mas as amostras não foram consolidadas. Tente novamente.",
+        500,
+      );
+    }
+
     await tx.sessaoCadastroFacial.update({
       where: { id: sessao.id },
       data: {
@@ -187,6 +203,36 @@ export async function concluirCadastroFacial(
         },
       },
     });
+
+    const biometriaConsolidada = await tx.biometriaFacialServidor.findFirst({
+      where: {
+        id: biometria.id,
+        servidorId: sessao.servidorId,
+        status: "ATIVO",
+        templateHash: templateSeguro.hash,
+        templateCriptografado: {
+          not: null,
+        },
+        templateIv: {
+          not: null,
+        },
+        templateTag: {
+          not: null,
+        },
+        amostrasQuantidade: input.amostras.length,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!biometriaConsolidada) {
+      throw new EnrollmentFacialError(
+        "ENROLLMENT_NOT_CONSOLIDATED",
+        "O cadastro facial foi processado, mas não ficou ativo para o servidor. Tente novamente.",
+        500,
+      );
+    }
 
     await tx.auditoriaEvento.create({
       data: {

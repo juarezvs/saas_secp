@@ -21,7 +21,7 @@ export function useCameraStream() {
 
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error("Este navegador nao oferece acesso compativel a camera.");
+        throw new Error("Este navegador não oferece acesso compatível à câmera.");
       }
 
       const novoStream = await navigator.mediaDevices.getUserMedia({
@@ -39,10 +39,10 @@ export function useCameraStream() {
     } catch (error) {
       const mensagem =
         error instanceof DOMException && error.name === "NotAllowedError"
-          ? "Nao foi possivel acessar a camera. Libere a permissao no navegador e tente novamente."
+          ? "Não foi possível acessar a câmera. Libere a permissão no navegador e tente novamente."
           : error instanceof Error
             ? error.message
-            : "Nao foi possivel acessar a camera.";
+            : "Não foi possível acessar a câmera.";
       setErro(mensagem);
       throw error;
     } finally {

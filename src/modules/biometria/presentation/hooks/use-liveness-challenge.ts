@@ -10,22 +10,55 @@ import { REGRAS_ENROLLMENT_FACIAL } from "../../domain/biometria-facial.rules";
 import type { FaceSnapshot } from "./use-face-detector";
 
 export function useLivenessChallenge(desafios: DesafioFacial[]) {
+  const desafiosKey = desafios.map((desafio) => desafio.id).join("|");
+  const desafiosKeyRef = useRef(desafiosKey);
   const movimentoIniciadoEmRef = useRef<number | null>(null);
   const framesRef = useRef(0);
-  const [indiceAtual, setIndiceAtual] = useState(0);
-  const [resultados, setResultados] = useState<ResultadoDesafioFacial[]>([]);
+  const indiceAtualRef = useRef(0);
+  const resultadosRef = useRef<ResultadoDesafioFacial[]>([]);
+  const desafioEmConclusaoRef = useRef<string | null>(null);
+  const [estado, setEstado] = useState<{
+    key: string;
+    indiceAtual: number;
+    resultados: ResultadoDesafioFacial[];
+  }>({
+    key: desafiosKey,
+    indiceAtual: 0,
+    resultados: [],
+  });
 
   useEffect(() => {
+    indiceAtualRef.current = estado.indiceAtual;
     movimentoIniciadoEmRef.current = null;
     framesRef.current = 0;
-  }, [indiceAtual]);
+    desafioEmConclusaoRef.current = null;
+  }, [estado.indiceAtual]);
 
   const processar = useCallback(
     (snapshot: FaceSnapshot) => {
-      const desafio = desafios[indiceAtual];
+      if (desafiosKeyRef.current !== desafiosKey) {
+        desafiosKeyRef.current = desafiosKey;
+        indiceAtualRef.current = 0;
+        resultadosRef.current = [];
+        movimentoIniciadoEmRef.current = null;
+        framesRef.current = 0;
+        desafioEmConclusaoRef.current = null;
+        setEstado({
+          key: desafiosKey,
+          indiceAtual: 0,
+          resultados: [],
+        });
+      }
 
-      if (!desafio || resultados.length >= desafios.length) {
-        return false;
+      const indice = indiceAtualRef.current;
+      const desafio = desafios[indice];
+
+      if (
+        !desafio ||
+        resultadosRef.current.length >= desafios.length ||
+        desafioEmConclusaoRef.current === desafio.id
+      ) {
+        return null;
       }
 
       const score = avaliarDesafio(desafio.tipo, snapshot);
@@ -33,7 +66,7 @@ export function useLivenessChallenge(desafios: DesafioFacial[]) {
       if (score < 0.6) {
         movimentoIniciadoEmRef.current = null;
         framesRef.current = 0;
-        return false;
+        return null;
       }
 
       movimentoIniciadoEmRef.current ??= Date.now();
@@ -49,8 +82,10 @@ export function useLivenessChallenge(desafios: DesafioFacial[]) {
         framesRef.current < requisitos.minFrames ||
         duracaoMs < requisitos.duracaoMinimaMs
       ) {
-        return false;
+        return null;
       }
+
+      desafioEmConclusaoRef.current = desafio.id;
 
       const resultado: ResultadoDesafioFacial = {
         desafioId: desafio.id,
@@ -61,26 +96,47 @@ export function useLivenessChallenge(desafios: DesafioFacial[]) {
         score,
         framesAnalisados: framesRef.current,
       };
+      const novosResultados = [...resultadosRef.current, resultado];
+      const proximoIndice = indice + 1;
 
-      setResultados((atuais) => [...atuais, resultado]);
-      setIndiceAtual((atual) => atual + 1);
-      return resultados.length + 1 === desafios.length;
+      resultadosRef.current = novosResultados;
+      indiceAtualRef.current = proximoIndice;
+      setEstado({
+        key: desafiosKey,
+        indiceAtual: proximoIndice,
+        resultados: novosResultados,
+      });
+
+      return novosResultados.length === desafios.length
+        ? novosResultados
+        : null;
     },
-    [desafios, indiceAtual, resultados.length],
+    [desafios, desafiosKey],
   );
 
   const reiniciar = useCallback(() => {
-    setIndiceAtual(0);
-    setResultados([]);
+    desafiosKeyRef.current = desafiosKey;
+    indiceAtualRef.current = 0;
+    resultadosRef.current = [];
+    setEstado({
+      key: desafiosKey,
+      indiceAtual: 0,
+      resultados: [],
+    });
     movimentoIniciadoEmRef.current = null;
     framesRef.current = 0;
-  }, []);
+    desafioEmConclusaoRef.current = null;
+  }, [desafiosKey]);
+
+  const resultadosVisiveis = estado.key === desafiosKey ? estado.resultados : [];
+  const indiceVisivel = estado.key === desafiosKey ? estado.indiceAtual : 0;
 
   return {
-    desafioAtual: desafios[indiceAtual] ?? null,
-    indiceAtual,
-    resultados,
-    concluido: desafios.length > 0 && resultados.length === desafios.length,
+    desafioAtual: desafios[indiceVisivel] ?? null,
+    indiceAtual: indiceVisivel,
+    resultados: resultadosVisiveis,
+    concluido:
+      desafios.length > 0 && resultadosVisiveis.length === desafios.length,
     processar,
     reiniciar,
   };

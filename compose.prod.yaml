@@ -123,7 +123,7 @@ services:
 
     ports:
       # Acesso direto por DNS apontando para o Ubuntu: http://secp.am.trf1.jus.br
-      - "80:3000"
+      #- "127.0.0.1:8000:3000"
       # Acesso via IIS/ARR no srvponto-am: encaminhar para http://172.19.5.244:3000
       - "3000:3000"
       - "3001:3001"

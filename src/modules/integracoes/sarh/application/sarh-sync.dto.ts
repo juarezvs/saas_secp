@@ -26,4 +26,5 @@ export const ENDPOINTS_PADRAO_SARH: SarhEndpointKey[] = [
   "tiposAfastamento",
   "afastamentos",
   "chefias",
+  "calendarios",
 ];

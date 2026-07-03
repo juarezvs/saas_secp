@@ -61,12 +61,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        enfileirarAtualizacaoSarhLogin({
-          matricula: usuario.matricula,
-          usuarioId: usuario.id,
-        }).catch((error) => {
+        Promise.all([
+          import(
+            "@/modules/integracoes/sarh/application/workers/sarh-login-sync-worker-runtime"
+          ).then((mod) => mod.garantirSarhLoginSyncWorkerAutomatico()),
+          enfileirarAtualizacaoSarhLogin({
+            matricula: usuario.matricula,
+            usuarioId: usuario.id,
+          }),
+        ]).catch((error) => {
           console.error(
-            "[SARH LOGIN] Falha ao enfileirar atualizacao SARH:",
+            "[SARH LOGIN] Falha ao enfileirar atualização SARH:",
             error,
           );
         });

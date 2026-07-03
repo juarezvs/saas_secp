@@ -17,6 +17,13 @@ export const PERMISSOES_REGISTRO_PONTO_FACIAL = [
   "biometriafacial:registrar:proprio",
 ];
 
+export const PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS = [
+  "biometriafacial:cadastrar:terceiros",
+  "biometriafacial:recadastrar:terceiros",
+  "biometriafacial:visualizar:auditoria",
+  "biometriafacial:invalidar:global",
+];
+
 export const PERMISSOES_EXCECAO_REGISTRO_PONTO = [
   ...PERMISSOES_REGISTRO_PONTO_WEB,
   ...PERMISSOES_REGISTRO_PONTO_FACIAL,

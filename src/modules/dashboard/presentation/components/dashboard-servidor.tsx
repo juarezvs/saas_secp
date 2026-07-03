@@ -11,21 +11,25 @@ import { FrequenciaMesResumo } from "./frequencia-mes-resumo";
 import { MarcacoesDoDiaTimeline } from "./marcacoes-do-dia-timeline";
 import { NextActionCard } from "./next-action-card";
 import {
-  dashboardServidorMock,
+  dashboardServidorConfig,
+  type AlertaServidor,
   type MarcacaoDia,
+  type MetricaServidor,
   type PrevisaoJornadaDia,
-} from "../data/dashboard-servidor.mock";
+} from "../data/dashboard-servidor.config";
 import type { FrequenciaMesServidorResumo } from "../../application/frequencia-mes-servidor.service";
 
 type DashboardServidorProps = {
   primeiroNome: string;
-  cabecalho?: Partial<typeof dashboardServidorMock.servidor>;
+  cabecalho?: Partial<typeof dashboardServidorConfig.servidor>;
   totalNotificacoes?: number;
   frequenciaMes?: FrequenciaMesServidorResumo;
   perfilAtivoCodigo?: string | null;
   permissoesPerfil?: string[];
   marcacoesDia?: MarcacaoDia[];
   previsaoJornadaDia?: PrevisaoJornadaDia | null;
+  metricas?: MetricaServidor[];
+  alertas?: AlertaServidor[];
 };
 
 export function DashboardServidor({
@@ -37,6 +41,8 @@ export function DashboardServidor({
   permissoesPerfil = [],
   marcacoesDia = [],
   previsaoJornadaDia = null,
+  metricas,
+  alertas,
 }: DashboardServidorProps) {
   const podeRegistrarPontoPeloSecp = usuarioPossuiAlgumaPermissaoNoPerfil(
     perfilAtivoCodigo,
@@ -49,12 +55,34 @@ export function DashboardServidor({
     ["marcacoes:registrar-facial:proprio"],
   );
   const dados = {
-    ...dashboardServidorMock,
+    ...dashboardServidorConfig,
     servidor: {
-      ...dashboardServidorMock.servidor,
+      ...dashboardServidorConfig.servidor,
       ...cabecalho,
     },
-    frequenciaMes: frequenciaMes ?? dashboardServidorMock.frequenciaMes,
+    frequenciaMes:
+      frequenciaMes ?? {
+        mes: "Competência atual",
+        diasUteis: 0,
+        regular: 0,
+        pendente: 0,
+        falta: 0,
+        recesso: 0,
+        aguardando: 0,
+      },
+    metricas:
+      metricas ??
+      [],
+    alertas:
+      alertas ??
+      [
+        {
+          tipo: "info" as const,
+          titulo: "Sem dados apurados",
+          descricao:
+            "Ainda não há apuração registrada para a competência atual.",
+        },
+      ],
     marcacoes: marcacoesDia,
   };
   const acessos = dados.acessos.filter((acesso) => {

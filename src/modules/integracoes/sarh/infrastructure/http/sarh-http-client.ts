@@ -1,5 +1,6 @@
 import type {
   SarhCargoDto,
+  SarhCalendarioDto,
   SarhEmpresaDto,
   SarhAfastamentoDto,
   SarhChefiaDto,
@@ -64,6 +65,10 @@ export class SarhHttpClient {
     return this.getJson<SarhChefiaDto[]>("/chefias/");
   }
 
+  async buscarCalendarios(): Promise<SarhCalendarioDto[]> {
+    return this.getJson<SarhCalendarioDto[]>("/calendarios/");
+  }
+
   async buscarTudo(): Promise<SarhPayloadCompleto> {
     const [
       empresas,
@@ -74,6 +79,7 @@ export class SarhHttpClient {
       tiposAfastamento,
       afastamentos,
       chefias,
+      calendarios,
     ] = await Promise.all([
       this.buscarEmpresas(),
       this.buscarLotacoes(),
@@ -83,6 +89,7 @@ export class SarhHttpClient {
       this.buscarTiposAfastamento(),
       this.buscarAfastamentos(),
       this.buscarChefias(),
+      this.buscarCalendarios().catch(() => []),
     ]);
 
     return {
@@ -94,6 +101,7 @@ export class SarhHttpClient {
       tiposAfastamento,
       afastamentos,
       chefias,
+      calendarios,
     };
   }
 

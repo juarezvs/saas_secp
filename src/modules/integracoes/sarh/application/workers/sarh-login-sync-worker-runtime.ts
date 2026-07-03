@@ -48,6 +48,7 @@ async function processarAtualizacaoSarhLogin(
       "tiposAfastamento",
       "afastamentos",
       "chefias",
+      "calendarios",
     ],
   });
 

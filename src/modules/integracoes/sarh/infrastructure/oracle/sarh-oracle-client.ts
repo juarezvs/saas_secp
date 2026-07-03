@@ -1,6 +1,7 @@
 import type {
   SarhCargoDto,
   SarhAfastamentoDto,
+  SarhCalendarioDto,
   SarhChefiaDto,
   SarhEmpresaDto,
   SarhLotacaoDto,
@@ -576,6 +577,57 @@ export class SarhOracleClient {
       }));
   }
 
+  async buscarCalendarios(): Promise<SarhCalendarioDto[]> {
+    const rows = await this.query<OracleRow>(`
+      select
+        f.feri_num_id_pk as "id",
+        to_char(f.feri_dt_data, 'YYYY-MM-DD') as "data",
+        f.feri_dsc_motivo as "descricao",
+        f.feri_num_abrangencia as "abrangencia",
+        f.sesu_cd_secsubsec_fk as "secaoSubsecaoId",
+        f.feri_cod_uf as "uf",
+        f.feri_cod_ativo as "ativo",
+        f.var_cd_vara as "varaId"
+      from sarh.ps_apoio_feriado f
+      where f.feri_dt_data is not null
+      order by f.feri_dt_data, f.feri_num_id_pk
+    `);
+
+    return rows
+      .map((row): SarhCalendarioDto | null => {
+        const data = this.toStringOrNull(row.data);
+        const descricao = String(row.descricao ?? "").trim();
+
+        if (!data || !descricao) {
+          return null;
+        }
+
+        return {
+          id: `PS_APOIO_FERIADO:${row.id}`,
+          data,
+          descricao,
+          tipo: this.mapearTipoCalendarioSarh(descricao),
+          abrangencia: this.mapearAbrangenciaCalendarioSarh(
+            this.toNumberOrNull(row.abrangencia),
+            this.toStringOrNull(row.uf),
+            this.toNumberOrNull(row.secaoSubsecaoId),
+            this.toNumberOrNull(row.varaId),
+          ),
+          uf: this.toStringOrNull(row.uf),
+          secaoSubsecaoId: this.toNumberOrNull(row.secaoSubsecaoId),
+          varaId: this.toNumberOrNull(row.varaId),
+          ativo: this.toBoolean(row.ativo),
+          origemTabela: "PS_APOIO_FERIADO",
+          metadados: {
+            abrangenciaSarh: this.toNumberOrNull(row.abrangencia),
+            secaoSubsecaoId: this.toNumberOrNull(row.secaoSubsecaoId),
+            varaId: this.toNumberOrNull(row.varaId),
+          },
+        };
+      })
+      .filter((item): item is SarhCalendarioDto => Boolean(item));
+  }
+
   async buscarFotoServidor(cpf: string): Promise<Buffer | null> {
     const cpfNormalizado = this.toCpf(cpf);
 
@@ -638,6 +690,7 @@ export class SarhOracleClient {
       tiposAfastamento,
       afastamentos,
       chefias,
+      calendarios,
     ] = await Promise.all([
       this.buscarEmpresas(),
       this.buscarLotacoes(),
@@ -647,6 +700,7 @@ export class SarhOracleClient {
       this.buscarTiposAfastamento(),
       this.buscarAfastamentos(),
       this.buscarChefias(),
+      this.buscarCalendarios(),
     ]);
 
     return {
@@ -658,6 +712,7 @@ export class SarhOracleClient {
       tiposAfastamento,
       afastamentos,
       chefias,
+      calendarios,
     };
   }
 
@@ -810,5 +865,37 @@ export class SarhOracleClient {
       .trim()
       .toUpperCase();
     return ["1", "S", "SIM", "TRUE", "ATIVO"].includes(normalized);
+  }
+
+  private mapearTipoCalendarioSarh(
+    descricao: string,
+  ): SarhCalendarioDto["tipo"] {
+    const texto = descricao
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toUpperCase();
+
+    if (texto.includes("PONTO FACULTATIVO")) {
+      return "PONTO_FACULTATIVO";
+    }
+
+    if (texto.includes("RECESSO") || texto.includes("SUSPENSAO")) {
+      return "SUSPENSAO_EXPEDIENTE";
+    }
+
+    return "FERIADO";
+  }
+
+  private mapearAbrangenciaCalendarioSarh(
+    abrangencia: number | null,
+    uf: string | null,
+    secaoSubsecaoId: number | null,
+    varaId: number | null,
+  ): SarhCalendarioDto["abrangencia"] {
+    if (varaId) return "UNIDADE";
+    if (secaoSubsecaoId) return "ORGAO";
+    if (uf) return "ESTADUAL";
+    if (abrangencia === 2) return "ORGAO";
+    return "NACIONAL";
   }
 }

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { Card } from "@/components/ui";
-import type { AcessoRapido } from "../data/dashboard-servidor.mock";
+import type { AcessoRapido } from "../data/dashboard-servidor.config";
 
 type AcessoRapidoGridProps = {
   acessos: AcessoRapido[];

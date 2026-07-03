@@ -4,13 +4,13 @@ export function normalizarVetor(vetor: number[]) {
   }
 
   if (vetor.some((valor) => !Number.isFinite(valor))) {
-    throw new Error("Template facial contem valores invalidos.");
+    throw new Error("Template facial contém valores inválidos.");
   }
 
   const norma = Math.sqrt(vetor.reduce((acc, valor) => acc + valor * valor, 0));
 
   if (!norma || !Number.isFinite(norma)) {
-    throw new Error("Template facial com norma invalida.");
+    throw new Error("Template facial com norma inválida.");
   }
 
   return vetor.map((valor) => valor / norma);

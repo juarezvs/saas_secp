@@ -33,20 +33,24 @@ export async function validarFaceMarcacaoAction(
   if (!session?.user) {
     return {
       sucesso: false,
-      mensagem: "Sessao expirada. Faca login novamente.",
+      mensagem: "Sessão expirada. Faça login novamente.",
     };
   }
 
   const podeValidar = usuarioPossuiAlgumaPermissaoNoPerfil(
     session.user.perfilAtivo?.codigo,
     session.user.perfilAtivo?.permissoes,
-    ["biometria:validar:proprio", "biometria:gerenciar:global"],
+    [
+      "biometria:validar:proprio",
+      "biometria:cadastrar:proprio",
+      "biometria:gerenciar:global",
+    ],
   );
 
   if (!podeValidar) {
     return {
       sucesso: false,
-      mensagem: "Voce nao possui permissao para validar biometria facial.",
+      mensagem: "Você não possui permissão para validar biometria facial.",
     };
   }
 
@@ -55,7 +59,7 @@ export async function validarFaceMarcacaoAction(
   if (!servidor) {
     return {
       sucesso: false,
-      mensagem: "Servidor nao localizado.",
+      mensagem: "Servidor não localizado.",
     };
   }
 
@@ -71,7 +75,7 @@ export async function validarFaceMarcacaoAction(
   } catch {
     return {
       sucesso: false,
-      mensagem: "Template facial invalido.",
+      mensagem: "Template facial inválido.",
     };
   }
 
@@ -92,7 +96,7 @@ export async function validarFaceMarcacaoAction(
   if (!parsed.success) {
     return {
       sucesso: false,
-      mensagem: parsed.error.issues[0]?.message ?? "Template facial invalido.",
+      mensagem: parsed.error.issues[0]?.message ?? "Template facial inválido.",
     };
   }
 
@@ -106,7 +110,9 @@ export async function validarFaceMarcacaoAction(
   }
 
   const templateCadastrado =
-    biometria.templateCriptografado && biometria.templateIv && biometria.templateTag
+    biometria.templateCriptografado &&
+    biometria.templateIv &&
+    biometria.templateTag
       ? descriptografarTemplateFacial({
           conteudo: biometria.templateCriptografado,
           iv: biometria.templateIv,
@@ -130,7 +136,7 @@ export async function validarFaceMarcacaoAction(
       mensagem:
         error instanceof Error
           ? error.message
-          : "Nao foi possivel comparar o template facial.",
+          : "Não foi possível comparar o template facial.",
     };
   }
 
@@ -205,8 +211,8 @@ export async function validarFaceMarcacaoAction(
   return {
     sucesso: validada,
     mensagem: validada
-      ? "Biometria facial validada com sucesso. Voce ja pode registrar a marcacao."
-      : "Biometria facial nao conferiu com o cadastro.",
+      ? "Biometria facial validada com sucesso. Você já pode registrar a marcação."
+      : "Biometria facial não conferiu com o cadastro.",
     distancia,
     similaridade,
     autorizacaoId,

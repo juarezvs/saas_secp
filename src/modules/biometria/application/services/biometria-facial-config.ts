@@ -99,24 +99,18 @@ export function avaliarPoseParaEtapa(params: {
   if (params.score < BIOMETRIA_FACIAL_THRESHOLDS.minScoreCaptura) {
     return {
       aprovado: false,
-      mensagem: `Melhore a iluminacao e mantenha o rosto visivel. Confianca: ${params.score.toFixed(
-        2,
-      )}`,
+      mensagem:
+        "Melhore a iluminação e mantenha o rosto visível dentro da moldura.",
     };
   }
 
   const classificacao = classificarPoseFacial(params.angulos);
-  const { yaw, pitch, roll } = classificacao.angulos;
 
   if (!classificacao.dentroDoLimite) {
     return {
       aprovado: false,
       pose: classificacao.pose,
-      mensagem: `Ajuste a posicao do rosto. Yaw ${yaw.toFixed(
-        1,
-      )} graus, pitch ${pitch.toFixed(1)} graus, roll ${roll.toFixed(
-        1,
-      )} graus.`,
+      mensagem: mensagemAjustePose(classificacao.angulos, params.etapa),
     };
   }
 
@@ -131,7 +125,7 @@ export function avaliarPoseParaEtapa(params: {
   return {
     aprovado: true,
     pose: classificacao.pose,
-    mensagem: `Pose ${rotuloPose(params.etapa)} detectada. Capturando...`,
+    mensagem: `Rosto ${rotuloPose(params.etapa)} detectado. Capturando...`,
   };
 }
 
@@ -145,11 +139,11 @@ function radianosParaGrausSeNecessario(valor: number) {
 
 function rotuloPose(pose: EtapaPoseFacial) {
   if (pose === "DIREITA") {
-    return "direita";
+    return "voltado para a direita";
   }
 
   if (pose === "ESQUERDA") {
-    return "esquerda";
+    return "voltado para a esquerda";
   }
 
   return "frontal";
@@ -164,5 +158,45 @@ function mensagemParaEtapa(etapa: EtapaPoseFacial) {
     return "Vire levemente o rosto para a esquerda.";
   }
 
-  return "Olhe de frente para a camera.";
+  return "Olhe de frente para a câmera.";
+}
+
+function mensagemAjustePose(angulos: AngulosFace, etapa: EtapaPoseFacial) {
+  const ajustes: string[] = [];
+
+  if (Math.abs(angulos.roll) > BIOMETRIA_FACIAL_THRESHOLDS.maxRollGraus) {
+    ajustes.push("deixe a cabeça mais reta, sem inclinar para os lados");
+  }
+
+  if (Math.abs(angulos.pitch) > BIOMETRIA_FACIAL_THRESHOLDS.maxPitchGraus) {
+    ajustes.push("mantenha o queixo mais alinhado, sem olhar para cima ou para baixo");
+  }
+
+  const yawForaDoLimite =
+    etapa === "FRONTAL"
+      ? Math.abs(angulos.yaw) > BIOMETRIA_FACIAL_THRESHOLDS.maxYawFrontalGraus
+      : Math.abs(angulos.yaw) >
+          BIOMETRIA_FACIAL_THRESHOLDS.maxYawLateralGraus;
+
+  if (yawForaDoLimite) {
+    ajustes.push(
+      etapa === "FRONTAL"
+        ? "olhe mais de frente para a câmera"
+        : "vire menos o rosto, mantendo apenas uma leve rotação",
+    );
+  }
+
+  if (ajustes.length === 0) {
+    return "Ajuste o rosto dentro da moldura e tente manter a posição por alguns segundos.";
+  }
+
+  return `Ajuste a posição do rosto: ${formatarLista(ajustes)}.`;
+}
+
+function formatarLista(itens: string[]) {
+  if (itens.length <= 1) {
+    return itens[0] ?? "";
+  }
+
+  return `${itens.slice(0, -1).join(", ")} e ${itens[itens.length - 1]}`;
 }

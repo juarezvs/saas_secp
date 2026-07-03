@@ -36,9 +36,9 @@ export default async function BiometriaPage() {
       <PageHeader
         icon={ScanFace}
         titulo="Validação facial"
-        descricao="Consulte o status do cadastro facial e realize validação biometrica para reforco de autenticação."
+        descricao="Consulte o status do cadastro facial e realize validação biométrica para reforço de autenticação."
         artigo="Controle eletrônico de frequência"
-        regraTitulo="Identificação biometrica"
+        regraTitulo="Identificação biométrica"
         regraDescricao="A biometria facial complementa os mecanismos de autenticação e pode ser usada em fluxos autorizados de registro de frequência, totem e validação complementar."
       />
 
@@ -67,7 +67,7 @@ export default async function BiometriaPage() {
 
         <article className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
           <p className="text-sm text-[var(--muted-foreground)]">
-            Qualidade media
+            Qualidade média
           </p>
 
           <h2 className="mt-1 text-xl font-bold">
@@ -101,9 +101,9 @@ export default async function BiometriaPage() {
             <h2 className="text-lg font-bold">Cadastro facial ativo</h2>
 
             <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-              Sua biometria facial esta ativa. Caso tenha dificuldade na
-              validação, alteração significativa de aparencia ou necessidade
-              administrativa, voce pode recadastrar sua biometria facial.
+              Sua biometria facial está ativa. Caso tenha dificuldade na
+              validação, alteração significativa de aparência ou necessidade
+              administrativa, você pode recadastrar sua biometria facial.
             </p>
 
             <Link

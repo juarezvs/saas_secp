@@ -31,6 +31,7 @@ const ENDPOINTS_VALIDOS = new Set<SarhEndpointKey>([
   "tiposAfastamento",
   "afastamentos",
   "chefias",
+  "calendarios",
 ]);
 
 const ENDPOINTS_COMPATIVEIS_MATRICULA = new Set<SarhEndpointKey>([
@@ -38,6 +39,7 @@ const ENDPOINTS_COMPATIVEIS_MATRICULA = new Set<SarhEndpointKey>([
   "lotacoesServidores",
   "afastamentos",
   "chefias",
+  "calendarios",
 ]);
 
 const ENDPOINTS_PADRAO_MATRICULA: SarhEndpointKey[] = [
@@ -45,6 +47,7 @@ const ENDPOINTS_PADRAO_MATRICULA: SarhEndpointKey[] = [
   "lotacoesServidores",
   "afastamentos",
   "chefias",
+  "calendarios",
 ];
 
 type SincronizarSarhRequest = {
@@ -115,7 +118,7 @@ async function validarAcesso() {
 
   if (!session?.user) {
     return {
-      erro: NextResponse.json({ message: "Nao autenticado." }, { status: 401 }),
+      erro: NextResponse.json({ message: "Não autenticado." }, { status: 401 }),
       session: null,
     };
   }
@@ -214,7 +217,7 @@ export async function GET(request: Request) {
 
   if (!job) {
     return NextResponse.json(
-      { message: "Sincronizacao SARH nao encontrada." },
+      { message: "Sincronização SARH não encontrada." },
       { status: 404 },
     );
   }

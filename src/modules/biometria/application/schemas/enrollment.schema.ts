@@ -6,7 +6,7 @@ import { TIPOS_DESAFIO_FACIAL } from "../../domain/challenge.types";
 
 export const iniciarEnrollmentSchema = z.object({
   consentimento: z.literal(true, {
-    error: "O consentimento informado e obrigatorio.",
+    error: "O consentimento informado é obrigatório.",
   }),
   modo: z.enum(["cadastro", "recadastro"]).default("cadastro"),
 });

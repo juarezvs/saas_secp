@@ -41,6 +41,44 @@ export type MinhaEquipeDados = {
   resumo: MinhaEquipeResumo;
 };
 
+export type StatusFeriasEquipe =
+  | "PROGRAMADA"
+  | "GOZADA"
+  | "CANCELADA"
+  | "ALTERADA"
+  | "INATIVA";
+
+export type FeriasEquipeItem = {
+  id: string;
+  servidorId: string;
+  matricula: string;
+  servidorNome: string;
+  unidadeId: string;
+  unidadeSigla: string;
+  unidadeNome: string;
+  dataInicio: Date;
+  dataFim: Date;
+  dias: number | null;
+  exercicio: number | null;
+  processo: string | null;
+  status: StatusFeriasEquipe;
+  statusLabel: string;
+};
+
+export type FeriasEquipeResumo = {
+  periodos: number;
+  servidores: number;
+  mesMaisMovimentado: string;
+  maiorQuantidadeMes: number;
+};
+
+export type FeriasEquipeCalendarioDados = {
+  ano: number;
+  escopo: "chefia" | "global";
+  itens: FeriasEquipeItem[];
+  resumo: FeriasEquipeResumo;
+};
+
 async function listarIdsUnidadesSubordinadasNaData(params: {
   usuarioId: string;
   data: Date;
@@ -126,6 +164,98 @@ function formatarHora(data: Date | null) {
     minute: "2-digit",
     timeZone: "America/Manaus",
   }).format(data);
+}
+
+function filtroFeriasSarh() {
+  return {
+    OR: [
+      { categoria: { equals: "FERIAS", mode: "insensitive" as const } },
+      { tipoDescricao: { contains: "FERIAS", mode: "insensitive" as const } },
+      { origemTabela: { contains: "FERIAS", mode: "insensitive" as const } },
+      {
+        tipoAfastamento: {
+          is: {
+            OR: [
+              { categoria: { equals: "FERIAS", mode: "insensitive" as const } },
+              { descricao: { contains: "FERIAS", mode: "insensitive" as const } },
+            ],
+          },
+        },
+      },
+    ],
+  };
+}
+
+function inicioAnoUtc(ano: number) {
+  return new Date(Date.UTC(ano, 0, 1));
+}
+
+function inicioProximoAnoUtc(ano: number) {
+  return new Date(Date.UTC(ano + 1, 0, 1));
+}
+
+function contarFeriasPorMes(itens: FeriasEquipeItem[], ano: number) {
+  return Array.from({ length: 12 }, (_, mes) => {
+    const inicioMes = new Date(Date.UTC(ano, mes, 1));
+    const inicioMesSeguinte = new Date(Date.UTC(ano, mes + 1, 1));
+
+    return itens.filter(
+      (item) => item.dataInicio < inicioMesSeguinte && item.dataFim >= inicioMes,
+    ).length;
+  });
+}
+
+function nomeMes(indice: number) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    month: "long",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(2024, indice, 1)));
+}
+
+function classificarStatusFerias(params: {
+  ativo: boolean;
+  tipoCodigo: string | null;
+  observacao: string | null;
+  dataFim: Date | null;
+  hoje?: Date;
+}): { status: StatusFeriasEquipe; statusLabel: string } {
+  const tipoCodigo = params.tipoCodigo?.trim();
+  const observacao = params.observacao
+    ?.normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toUpperCase();
+  const fim = params.dataFim;
+  const hoje = params.hoje ?? new Date();
+  const hojeUtc = Date.UTC(
+    hoje.getUTCFullYear(),
+    hoje.getUTCMonth(),
+    hoje.getUTCDate(),
+  );
+  const fimUtc = fim
+    ? Date.UTC(fim.getUTCFullYear(), fim.getUTCMonth(), fim.getUTCDate())
+    : null;
+
+  if (
+    observacao?.includes("CANCEL") ||
+    observacao?.includes("ANUL") ||
+    tipoCodigo === "4"
+  ) {
+    return { status: "CANCELADA", statusLabel: "Cancelada/alterada" };
+  }
+
+  if (observacao?.includes("ALTER")) {
+    return { status: "ALTERADA", statusLabel: "Alterada" };
+  }
+
+  if (tipoCodigo === "2" || (fimUtc !== null && fimUtc < hojeUtc)) {
+    return { status: "GOZADA", statusLabel: "Gozada" };
+  }
+
+  if (tipoCodigo === "1" || params.ativo) {
+    return { status: "PROGRAMADA", statusLabel: "Programada" };
+  }
+
+  return { status: "INATIVA", statusLabel: "Inativa" };
 }
 
 export async function buscarMinhaEquipe(params: {
@@ -346,6 +476,169 @@ export async function buscarMinhaEquipe(params: {
       presentes: itens.filter((item) => item.status === "PRESENTE").length,
       ausentes: itens.filter((item) => item.status === "AUSENTE").length,
       afastados: itens.filter((item) => item.status === "AFASTADO").length,
+    },
+  };
+}
+
+export async function buscarCalendarioFeriasEquipe(params: {
+  usuarioId: string;
+  ano: number;
+  dataReferencia?: Date;
+  unidadeIds?: string[];
+  visualizarTodasEquipes?: boolean;
+}): Promise<FeriasEquipeCalendarioDados> {
+  const escopo = params.visualizarTodasEquipes ? "global" : "chefia";
+  const inicioAno = inicioAnoUtc(params.ano);
+  const inicioProximoAno = inicioProximoAnoUtc(params.ano);
+  const dataEscopo = params.dataReferencia ?? new Date();
+  const idsSubordinados = params.visualizarTodasEquipes
+    ? []
+    : await listarIdsUnidadesSubordinadasNaData({
+        usuarioId: params.usuarioId,
+        data: dataEscopo,
+      });
+
+  if (!params.visualizarTodasEquipes && idsSubordinados.length === 0) {
+    return {
+      ano: params.ano,
+      escopo,
+      itens: [],
+      resumo: {
+        periodos: 0,
+        servidores: 0,
+        mesMaisMovimentado: "-",
+        maiorQuantidadeMes: 0,
+      },
+    };
+  }
+
+  const unidadesBase = await prisma.unidadeOrganizacional.findMany({
+    where: params.visualizarTodasEquipes
+      ? { ativo: true }
+      : {
+          id: { in: idsSubordinados },
+          ativo: true,
+        },
+    select: { id: true },
+  });
+  const idsValidos = new Set(unidadesBase.map((unidade) => unidade.id));
+  const unidadesSelecionadas = (params.unidadeIds ?? []).filter((id) =>
+    idsValidos.has(id),
+  );
+  const idsFiltro =
+    unidadesSelecionadas.length > 0 ? unidadesSelecionadas : Array.from(idsValidos);
+  const chefia = params.visualizarTodasEquipes
+    ? null
+    : await prisma.servidor.findUnique({
+        where: { usuarioId: params.usuarioId },
+        select: { id: true },
+      });
+
+  if (idsFiltro.length === 0) {
+    return {
+      ano: params.ano,
+      escopo,
+      itens: [],
+      resumo: {
+        periodos: 0,
+        servidores: 0,
+        mesMaisMovimentado: "-",
+        maiorQuantidadeMes: 0,
+      },
+    };
+  }
+
+  const lotacaoNoPeriodo = {
+    status: "ATIVO" as const,
+    unidadeId: { in: idsFiltro },
+    dataInicio: { lt: inicioProximoAno },
+    OR: [{ dataFim: null }, { dataFim: { gte: inicioAno } }],
+  };
+
+  const afastamentos = await prisma.afastamentoSarh.findMany({
+    where: {
+      servidorId: { not: null },
+      dataInicio: { lt: inicioProximoAno },
+      AND: [
+        { OR: [{ dataFim: null }, { dataFim: { gte: inicioAno } }] },
+        filtroFeriasSarh(),
+      ],
+      servidor: {
+        ativo: true,
+        ...(chefia ? { id: { not: chefia.id } } : {}),
+        usuario: { ativo: true },
+        lotacoes: {
+          some: lotacaoNoPeriodo,
+        },
+      },
+    },
+    include: {
+      servidor: {
+        include: {
+          usuario: true,
+          lotacoes: {
+            where: lotacaoNoPeriodo,
+            include: {
+              unidade: true,
+            },
+            orderBy: [{ dataInicio: "desc" }],
+          },
+        },
+      },
+    },
+    orderBy: [{ dataInicio: "asc" }, { dataFim: "asc" }],
+  });
+
+  const itens = afastamentos
+    .map((afastamento): FeriasEquipeItem | null => {
+      const servidor = afastamento.servidor;
+      const lotacao = servidor?.lotacoes[0];
+
+      if (!servidor || !lotacao) {
+        return null;
+      }
+      const status = classificarStatusFerias({
+        ativo: afastamento.ativo,
+        tipoCodigo: afastamento.tipoCodigo,
+        observacao: afastamento.observacao,
+        dataFim: afastamento.dataFim,
+      });
+
+      return {
+        id: afastamento.id,
+        servidorId: servidor.id,
+        matricula: servidor.matricula,
+        servidorNome: nomeServidor(servidor) || servidor.matricula,
+        unidadeId: lotacao.unidadeId,
+        unidadeSigla: lotacao.unidade.sigla,
+        unidadeNome: lotacao.unidade.nome,
+        dataInicio: afastamento.dataInicio,
+        dataFim: afastamento.dataFim ?? afastamento.dataInicio,
+        dias: afastamento.dias,
+        exercicio: afastamento.exercicio,
+        processo: afastamento.processo,
+        status: status.status,
+        statusLabel: status.statusLabel,
+      };
+    })
+    .filter((item): item is FeriasEquipeItem => Boolean(item));
+
+  const contagemMeses = contarFeriasPorMes(itens, params.ano);
+  const maiorQuantidadeMes = Math.max(0, ...contagemMeses);
+  const indiceMesMaisMovimentado = contagemMeses.findIndex(
+    (quantidade) => quantidade === maiorQuantidadeMes,
+  );
+
+  return {
+    ano: params.ano,
+    escopo,
+    itens,
+    resumo: {
+      periodos: itens.length,
+      servidores: new Set(itens.map((item) => item.servidorId)).size,
+      mesMaisMovimentado:
+        maiorQuantidadeMes > 0 ? nomeMes(indiceMesMaisMovimentado) : "-",
+      maiorQuantidadeMes,
     },
   };
 }
