@@ -140,6 +140,7 @@ export async function buscarDadosEspelhoPontoPdf(params: {
       id: params.servidorId,
     },
     include: {
+      orgao: true,
       usuario: true,
       cargo: true,
       lotacoes: {
@@ -147,7 +148,31 @@ export async function buscarDadosEspelhoPontoPdf(params: {
           status: "ATIVO",
         },
         include: {
-          unidade: true,
+          unidade: {
+            include: {
+              orgao: true,
+              unidadePai: {
+                include: {
+                  orgao: true,
+                  unidadePai: {
+                    include: {
+                      orgao: true,
+                      unidadePai: {
+                        include: {
+                          orgao: true,
+                          unidadePai: {
+                            include: {
+                              orgao: true,
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
           cargo: true,
         },
         orderBy: {

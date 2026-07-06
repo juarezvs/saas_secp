@@ -93,7 +93,7 @@ export async function listarApuracoesDoServidorNoMes(params: {
   const inicio = new Date(Date.UTC(params.ano, params.mes - 1, 1));
   const fim = new Date(Date.UTC(params.ano, params.mes, 1));
 
-  const [apuracoes, jornadas] = await Promise.all([
+  const [apuracoes, jornadas, fusoHorario] = await Promise.all([
     prisma.apuracaoDiaria.findMany({
       where: {
         servidorId: params.servidorId,
@@ -158,11 +158,10 @@ export async function listarApuracoesDoServidorNoMes(params: {
         dataInicio: "asc",
       },
     }),
+    resolverFusoHorarioServidorNoBanco({
+      servidorId: params.servidorId,
+    }),
   ]);
-
-  const fusoHorario = await resolverFusoHorarioServidorNoBanco({
-    servidorId: params.servidorId,
-  });
   const espelho = await montarEspelhoMensalCompleto({
     anoReferencia: params.ano,
     mesReferencia: params.mes,

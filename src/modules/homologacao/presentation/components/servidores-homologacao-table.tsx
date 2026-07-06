@@ -20,6 +20,10 @@ type ServidorHomologacaoItem = {
   saldoBancoAntesMinutos: number;
   saldoBancoDepoisMinutos: number | null;
   pendencias: unknown;
+  homologadoEm: Date | null;
+  homologadoPor: {
+    nome: string;
+  } | null;
   servidor: {
     matricula: string;
     nomeFuncional?: string | null;
@@ -39,12 +43,20 @@ export function ServidoresHomologacaoTable({
   anoReferencia,
   mesReferencia,
   servidores,
+  podeRegistrarDecisao,
+  servidorIdsPermitidosDecisao,
 }: {
   fechamentoId: string;
   anoReferencia: number;
   mesReferencia: number;
   servidores: ServidorHomologacaoItem[];
+  podeRegistrarDecisao: boolean;
+  servidorIdsPermitidosDecisao?: string[];
 }) {
+  const servidoresPermitidos = servidorIdsPermitidosDecisao
+    ? new Set(servidorIdsPermitidosDecisao)
+    : null;
+
   return (
     <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
       <div className="border-b p-5">
@@ -56,6 +68,15 @@ export function ServidoresHomologacaoTable({
 
       <div className="divide-y">
         {servidores.map((item) => {
+          const estaHomologado = [
+            "HOMOLOGADO",
+            "HOMOLOGADO_COM_RESSALVA",
+          ].includes(item.status);
+          const podeRegistrarDecisaoServidor =
+            podeRegistrarDecisao &&
+            !estaHomologado &&
+            (!servidoresPermitidos ||
+              servidoresPermitidos.has(item.servidorId));
           const pendencias = Array.isArray(item.pendencias)
             ? (item.pendencias as {
                 tipo: string;
@@ -144,7 +165,23 @@ export function ServidoresHomologacaoTable({
                   </button>
                 </form>
 
-                <HomologarServidorForm homologacaoServidorId={item.id} />
+                {estaHomologado ? (
+                  <div className="rounded-lg border bg-green-50 p-4 text-sm text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-100">
+                    <p className="font-semibold">Espelho já homologado.</p>
+                    <p className="mt-1">
+                      {item.homologadoPor?.nome
+                        ? `Homologado por ${item.homologadoPor.nome}.`
+                        : "Responsável pela homologação não informado."}
+                    </p>
+                  </div>
+                ) : podeRegistrarDecisaoServidor ? (
+                  <HomologarServidorForm homologacaoServidorId={item.id} />
+                ) : (
+                  <div className="rounded-lg border bg-[var(--muted)] p-4 text-sm text-[var(--muted-foreground)]">
+                    Seu perfil ativo permite consultar esta homologação, mas não
+                    registrar decisão da chefia.
+                  </div>
+                )}
               </div>
             </article>
           );

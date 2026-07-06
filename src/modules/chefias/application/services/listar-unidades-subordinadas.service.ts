@@ -3,10 +3,15 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 export async function listarIdsUnidadesSubordinadasPorUsuario(
   usuarioId: string,
 ) {
+  const hoje = new Date();
+
   const gestores = await prisma.gestorUnidade.findMany({
     where: {
       ativo: true,
-      dataFim: null,
+      dataInicio: {
+        lte: hoje,
+      },
+      OR: [{ dataFim: null }, { dataFim: { gte: hoje } }],
       servidor: {
         usuarioId,
         ativo: true,

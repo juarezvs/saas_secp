@@ -8,6 +8,7 @@ import {
   usuarioPossuiPermissaoNoPerfil,
 } from "@/modules/auth/application/services/permissao.service";
 import { gerarBoletimFrequenciaAction } from "@/modules/boletim-frequencia/application/actions/gerar-boletim-frequencia.action";
+import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 import {
   listarBoletinsFrequenciaPaginado,
   listarFechamentosHomologadosSemBoletim,
@@ -24,6 +25,7 @@ import {
   formatarDataPrazoRegulatorio,
   rotuloSituacaoPrazoRegulatorio,
 } from "@/modules/frequencia/application/services/prazo-regulatorio-frequencia.service";
+import { auth } from "@/auth";
 
 type BoletimFrequenciaPageProps = {
   searchParams?: Promise<{
@@ -55,7 +57,9 @@ function normalizarCompetencia(params: {
 
 function renderizarPrazoBoletim(
   prazo: Awaited<
-    ReturnType<typeof calcularPrazoEncaminhamentoBoletimCompetenciaComCalendario>
+    ReturnType<
+      typeof calcularPrazoEncaminhamentoBoletimCompetenciaComCalendario
+    >
   >,
 ) {
   return (
@@ -91,11 +95,17 @@ export default async function BoletimFrequenciaPage({
     acesso.permissoes,
     "boletim-frequencia:gerar:chefia",
   );
+  const session = await auth();
 
   const params = searchParams ? await searchParams : {};
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
   const competencia = normalizarCompetencia(params);
+
+  const unidadeIdsPermitidos =
+    podeGerar && session?.user
+      ? await listarIdsUnidadesSubordinadasPorUsuario(session.user.id)
+      : [];
 
   const [resultado, fechamentosDisponiveis] = await Promise.all([
     listarBoletinsFrequenciaPaginado({
@@ -107,12 +117,16 @@ export default async function BoletimFrequenciaPage({
       pagina,
       itensPorPagina,
     }),
-    podeGerar ? listarFechamentosHomologadosSemBoletim() : Promise.resolve([]),
+    podeGerar
+      ? listarFechamentosHomologadosSemBoletim({ unidadeIdsPermitidos })
+      : Promise.resolve([]),
   ]);
   const prazosPorBoletim = new Map<
     string,
     Awaited<
-      ReturnType<typeof calcularPrazoEncaminhamentoBoletimCompetenciaComCalendario>
+      ReturnType<
+        typeof calcularPrazoEncaminhamentoBoletimCompetenciaComCalendario
+      >
     >
   >();
 
@@ -129,12 +143,7 @@ export default async function BoletimFrequenciaPage({
 
   const exportParams = new URLSearchParams();
 
-  for (const chave of [
-    "busca",
-    "competencia",
-    "unidade",
-    "status",
-  ] as const) {
+  for (const chave of ["busca", "competencia", "unidade", "status"] as const) {
     if (params[chave]) {
       exportParams.set(chave, params[chave]!);
     }
@@ -169,10 +178,10 @@ export default async function BoletimFrequenciaPage({
         <PageHeader
           icon={FileSpreadsheet}
           titulo="Boletins mensais"
-          descricao="Gere, consulte e encaminhe a SECAP/NUCGP os boletins mensais de frequência das unidades homologadas."
+          descricao="Gere, consulte e encaminhe à SECAP/NUCGP os boletins mensais de frequência das unidades homologadas."
           artigo="Arts. 16 e 17"
           regraTitulo="Boletim após homologação"
-          regraDescricao="Após a homologação da frequência mensal, o boletim consolida as ocorrências e deve ser encaminhado a SECAP/NUCGP dentro do prazo regulamentar."
+          regraDescricao="Após a homologação da frequência mensal, o boletim consolida as ocorrências e deve ser encaminhado à SECAP/NUCGP dentro do prazo regulamentar."
         />
       </section>
 
@@ -214,7 +223,10 @@ export default async function BoletimFrequenciaPage({
             Gerar boletim de fechamento homologado
           </h2>
 
-          <form action={gerarBoletimFrequenciaAction} className="mt-4 space-y-4">
+          <form
+            action={gerarBoletimFrequenciaAction}
+            className="mt-4 space-y-4"
+          >
             <select
               name="fechamentoId"
               defaultValue=""
@@ -236,7 +248,7 @@ export default async function BoletimFrequenciaPage({
             <textarea
               name="observacao"
               rows={3}
-              placeholder="Observacao opcional para o boletim"
+              placeholder="Observação opcional para o boletim"
               className="w-full rounded-md border bg-[var(--card)] px-3 py-2 text-sm"
             />
 
@@ -308,9 +320,7 @@ export default async function BoletimFrequenciaPage({
                     </span>
                   </td>
                   <td className="px-5 py-4">
-                    {renderizarPrazoBoletim(
-                      prazosPorBoletim.get(boletim.id)!,
-                    )}
+                    {renderizarPrazoBoletim(prazosPorBoletim.get(boletim.id)!)}
                   </td>
                   <td className="px-5 py-4">{boletim.processoSei ?? "-"}</td>
                   <td className="px-5 py-4">{boletim.geradoPor.nome}</td>

@@ -51,7 +51,11 @@ export async function GET(_request: Request, context: RouteContext) {
       id,
     },
     include: {
-      unidade: true,
+      unidade: {
+        include: {
+          orgao: true,
+        },
+      },
       geradoPor: true,
       encaminhadoPor: true,
       recebidoPor: true,
@@ -100,6 +104,8 @@ export async function GET(_request: Request, context: RouteContext) {
       saldoBancoAntesMinutos: item.saldoBancoAntesMinutos,
       saldoBancoDepoisMinutos: item.saldoBancoDepoisMinutos,
       observacaoChefia: item.observacaoChefia,
+      ressalvas: item.ressalvas,
+      ocorrencias: item.ocorrencias,
       servidor: {
         matricula: item.servidor.matricula,
         nomeFuncional: item.servidor.nomeFuncional,
@@ -119,6 +125,11 @@ export async function GET(_request: Request, context: RouteContext) {
     unidade: {
       sigla: boletim.unidade.sigla,
       nome: boletim.unidade.nome,
+      uf: boletim.unidade.uf,
+      orgao: {
+        sigla: boletim.unidade.orgao.sigla,
+        nome: boletim.unidade.orgao.nome,
+      },
     },
     anoReferencia: boletim.anoReferencia,
     mesReferencia: boletim.mesReferencia,

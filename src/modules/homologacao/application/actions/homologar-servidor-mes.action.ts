@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
@@ -11,18 +12,21 @@ export async function homologarServidorMesAction(formData: FormData) {
   const session = await auth();
 
   if (!session?.user) {
-    return;
+    redirect("/login");
   }
 
   const permissoes = session.user.perfilAtivo?.permissoes ?? [];
-
-  const podeHomologar =
-    permissoes.includes("homologacao:gerenciar:chefia") ||
-    permissoes.includes("homologacao:gerenciar:global");
-  const podeHomologarGlobal = permissoes.includes("homologacao:gerenciar:global");
+  const perfilChefiaAtivo =
+    session.user.perfilAtivo?.codigo?.toUpperCase() === "CHEFIA";
+  const podeHomologarComoChefia =
+    perfilChefiaAtivo || permissoes.includes("homologacao:gerenciar:chefia");
+  const podeHomologarGlobal = permissoes.includes(
+    "homologacao:gerenciar:global",
+  );
+  const podeHomologar = podeHomologarComoChefia || podeHomologarGlobal;
 
   if (!podeHomologar) {
-    return;
+    redirect("/acesso-negado");
   }
 
   const homologacaoServidorId = String(
@@ -34,7 +38,7 @@ export async function homologarServidorMesAction(formData: FormData) {
   ).trim();
 
   if (!homologacaoServidorId) {
-    return;
+    throw new Error("Homologação do servidor não informada.");
   }
 
   const homologacaoAtual = await buscarHomologacaoServidorPorId(
@@ -42,22 +46,34 @@ export async function homologarServidorMesAction(formData: FormData) {
   );
 
   if (!homologacaoAtual) {
-    return;
+    throw new Error("Homologação do servidor não encontrada.");
+  }
+
+  if (
+    ["HOMOLOGADO", "HOMOLOGADO_COM_RESSALVA"].includes(homologacaoAtual.status)
+  ) {
+    throw new Error("Este espelho já foi homologado.");
   }
 
   if (
     !["HOMOLOGADO", "HOMOLOGADO_COM_RESSALVA", "DEVOLVIDO"].includes(status)
   ) {
-    return;
+    throw new Error("Status de homologação inválido.");
   }
 
   if (!podeHomologarGlobal) {
     const unidadesSubordinadas = await listarIdsUnidadesSubordinadasPorUsuario(
       session.user.id,
     );
+    const fechamentoEstaAbaixoDaChefia = unidadesSubordinadas.includes(
+      homologacaoAtual.fechamento.unidadeId,
+    );
+    const servidorEstaAbaixoDaChefia = homologacaoAtual.servidor.lotacoes.some(
+      (lotacao) => unidadesSubordinadas.includes(lotacao.unidadeId),
+    );
 
-    if (!unidadesSubordinadas.includes(homologacaoAtual.fechamento.unidadeId)) {
-      return;
+    if (!fechamentoEstaAbaixoDaChefia && !servidorEstaAbaixoDaChefia) {
+      redirect("/acesso-negado");
     }
   }
 
@@ -97,8 +113,11 @@ export async function homologarServidorMesAction(formData: FormData) {
     });
   });
 
-  await atualizarStatusFechamentoService(homologacaoAtual.fechamentoId);
+  await atualizarStatusFechamentoService(homologacaoAtual.fechamentoId, {
+    homologadoPorUsuarioId: status === "DEVOLVIDO" ? null : session.user.id,
+  });
 
   revalidatePath(`/homologacao/${homologacaoAtual.fechamentoId}`);
   revalidatePath("/homologacao");
+  redirect(`/homologacao/${homologacaoAtual.fechamentoId}`);
 }

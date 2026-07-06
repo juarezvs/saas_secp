@@ -19,10 +19,7 @@ import {
 import { useFacialEnrollment } from "../../hooks/use-facial-enrollment";
 import { useLivenessChallenge } from "../../hooks/use-liveness-challenge";
 import { CadastroFacialResult } from "./cadastro-facial-result";
-import {
-  CameraCheckStep,
-  CameraPreview,
-} from "./camera-check-step";
+import { CameraCheckStep, CameraPreview } from "./camera-check-step";
 import { ConsentimentoBiometriaCard } from "./consentimento-biometria-card";
 import {
   FaceQualityPanel,
@@ -78,7 +75,9 @@ export function CadastroFacialEnrollmentWizard({
   const finalizandoRef = useRef(false);
   const [etapa, setEtapa] = useState<Etapa>("CONSENTIMENTO");
   const [indicadores, setIndicadores] = useState(INDICADORES_INICIAIS);
-  const [mensagem, setMensagem] = useState("Posicione o rosto dentro da moldura.");
+  const [mensagem, setMensagem] = useState(
+    "Posicione o rosto dentro da moldura.",
+  );
   const [amostras, setAmostras] = useState<AmostraEnrollmentFacial[]>([]);
   const [resultado, setResultado] = useState<ResultadoCadastro | null>(null);
   const [erroFluxo, setErroFluxo] = useState<string | null>(null);
@@ -86,8 +85,11 @@ export function CadastroFacialEnrollmentWizard({
     stream,
     carregando: cameraCarregando,
     erro: cameraErro,
+    cameras,
+    cameraSelecionadaId,
     iniciar: iniciarCamera,
     parar: pararCamera,
+    selecionarCamera,
   } = useCameraStream();
   const {
     pronto: detectorPronto,
@@ -170,9 +172,9 @@ export function CadastroFacialEnrollmentWizard({
       setErroFluxo(
         error instanceof Error
           ? error.message
-          : cameraErro ??
+          : (cameraErro ??
               detectorErro ??
-              "Não foi possível preparar a câmera e o reconhecimento facial.",
+              "Não foi possível preparar a câmera e o reconhecimento facial."),
       );
     }
   }, [cameraErro, detectorErro, iniciarCamera, prepararDetector]);
@@ -223,13 +225,7 @@ export function CadastroFacialEnrollmentWizard({
         finalizandoRef.current = false;
       }
     },
-    [
-      concluirEnrollment,
-      desafios.length,
-      onConcluido,
-      pararCamera,
-      sessao,
-    ],
+    [concluirEnrollment, desafios.length, onConcluido, pararCamera, sessao],
   );
 
   const processarSnapshot = useCallback(
@@ -321,10 +317,7 @@ export function CadastroFacialEnrollmentWizard({
       }
 
       try {
-        if (
-          sessao &&
-          new Date(sessao.expiresAt).getTime() <= Date.now()
-        ) {
+        if (sessao && new Date(sessao.expiresAt).getTime() <= Date.now()) {
           setErroFluxo("A sessão de cadastro expirou. Inicie novamente.");
           pararCamera();
           return;
@@ -385,6 +378,11 @@ export function CadastroFacialEnrollmentWizard({
         carregando={cameraCarregando || detectorCarregando}
         erro={erroFluxo ?? cameraErro ?? detectorErro}
         cameraAtiva={Boolean(stream && detectorPronto)}
+        cameras={cameras}
+        cameraSelecionadaId={cameraSelecionadaId}
+        onSelecionarCamera={(deviceId) => {
+          void selecionarCamera(deviceId);
+        }}
         onVerificar={() => void verificarCamera()}
       />
     );
@@ -405,6 +403,11 @@ export function CadastroFacialEnrollmentWizard({
         <CameraPreview
           videoRef={videoRef}
           status="Câmera ativa. Carregando reconhecimento facial..."
+          cameras={cameras}
+          cameraSelecionadaId={cameraSelecionadaId}
+          onSelecionarCamera={(deviceId) => {
+            void selecionarCamera(deviceId);
+          }}
         />
 
         <div
@@ -435,7 +438,15 @@ export function CadastroFacialEnrollmentWizard({
 
   return (
     <section className="grid gap-6 lg:grid-cols-[minmax(0,560px)_1fr] lg:items-start">
-      <CameraPreview videoRef={videoRef} status={statusCamera} />
+      <CameraPreview
+        videoRef={videoRef}
+        status={statusCamera}
+        cameras={cameras}
+        cameraSelecionadaId={cameraSelecionadaId}
+        onSelecionarCamera={(deviceId) => {
+          void selecionarCamera(deviceId);
+        }}
+      />
 
       {etapa === "QUALIDADE" && (
         <FaceQualityPanel indicadores={indicadores} mensagem={mensagem} />
@@ -544,7 +555,9 @@ function mensagemPose(pose: PoseAmostraFacial) {
 }
 
 function normalizarVetor(vetor: number[]) {
-  const norma = Math.sqrt(vetor.reduce((total, item) => total + item * item, 0));
+  const norma = Math.sqrt(
+    vetor.reduce((total, item) => total + item * item, 0),
+  );
   return norma > 0 ? vetor.map((item) => item / norma) : vetor;
 }
 

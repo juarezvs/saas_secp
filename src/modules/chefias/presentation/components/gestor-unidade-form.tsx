@@ -34,7 +34,7 @@ type ServidorItem = {
 type GestorUnidadeFormProps = {
   action: (
     state: GestorUnidadeFormState,
-    formData: FormData
+    formData: FormData,
   ) => Promise<GestorUnidadeFormState>;
   unidades: UnidadeItem[];
   servidores: ServidorItem[];
@@ -52,10 +52,7 @@ const rotulosPapel: Record<string, string> = {
   DELEGADO_CHEFIA: "Delegado da chefia",
 };
 
-function obterErro(
-  erros: Record<string, string[]> | undefined,
-  campo: string
-) {
+function obterErro(erros: Record<string, string[]> | undefined, campo: string) {
   return erros?.[campo]?.[0];
 }
 
@@ -99,26 +96,20 @@ export function GestorUnidadeForm({
             Unidade
           </label>
 
-          <select
+          <SearchableSelect
             id="unidadeId"
             name="unidadeId"
             defaultValue={unidadeFixaId ?? estado.campos?.unidadeId ?? ""}
             disabled={Boolean(unidadeFixaId)}
-            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition disabled:opacity-80 focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
             required
-          >
-            <option value="">Selecione</option>
-
-            {unidades.map((unidade) => (
-              <option key={unidade.id} value={unidade.id}>
-                {unidade.sigla} — {unidade.nome}
-              </option>
-            ))}
-          </select>
-
-          {unidadeFixaId && (
-            <input type="hidden" name="unidadeId" value={unidadeFixaId} />
-          )}
+            placeholder="Selecione a unidade"
+            searchPlaceholder="Pesquisar por sigla, nome ou tipo..."
+            options={unidades.map((unidade) => ({
+              value: unidade.id,
+              label: `${unidade.sigla} - ${unidade.nome}`,
+              searchText: `${unidade.sigla} ${unidade.nome} ${unidade.tipo}`,
+            }))}
+          />
 
           {obterErro(estado.erros, "unidadeId") && (
             <p className="text-sm text-red-600">
@@ -235,8 +226,8 @@ export function GestorUnidadeForm({
           <span>
             <span className="block font-semibold">Vínculo ativo</span>
             <span className="text-xs text-[var(--muted-foreground)]">
-              Chefias ativas poderão ser usadas nas próximas etapas de
-              aprovação e homologação.
+              Chefias ativas poderão ser usadas nas próximas etapas de aprovação
+              e homologação.
             </span>
           </span>
         </label>

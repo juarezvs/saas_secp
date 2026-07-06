@@ -4,12 +4,8 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import {
-  listarFechamentosMensaisPaginado,
-} from "@/modules/homologacao/infrastructure/repositories/homologacao.repository";
-import {
-  rotuloStatusFechamento,
-} from "@/modules/homologacao/application/services/formatar-homologacao.service";
+import { listarFechamentosMensaisPaginado } from "@/modules/homologacao/infrastructure/repositories/homologacao.repository";
+import { rotuloStatusFechamento } from "@/modules/homologacao/application/services/formatar-homologacao.service";
 import { HomologacaoListagemControles } from "@/modules/homologacao/presentation/components/homologacao-listagem-controles";
 import {
   calcularPrazoHomologacaoCompetenciaComCalendario,
@@ -87,6 +83,22 @@ function renderizarPrazoHomologacao(
   );
 }
 
+function nomesHomologadoresServidores(
+  servidores: {
+    homologadoPor: {
+      nome: string;
+    } | null;
+  }[],
+) {
+  return Array.from(
+    new Set(
+      servidores
+        .map((servidor) => servidor.homologadoPor?.nome)
+        .filter((nome): nome is string => Boolean(nome)),
+    ),
+  ).join(", ");
+}
+
 export default async function HomologacaoPage({
   searchParams,
 }: HomologacaoPageProps) {
@@ -127,12 +139,7 @@ export default async function HomologacaoPage({
 
   const exportParams = new URLSearchParams();
 
-  for (const chave of [
-    "busca",
-    "competencia",
-    "unidade",
-    "status",
-  ] as const) {
+  for (const chave of ["busca", "competencia", "unidade", "status"] as const) {
     if (params[chave]) {
       exportParams.set(chave, params[chave]!);
     }
@@ -240,7 +247,9 @@ export default async function HomologacaoPage({
                   </td>
                   <td className="px-5 py-4">{fechamento.abertoPor.nome}</td>
                   <td className="px-5 py-4">
-                    {fechamento.homologadoPor?.nome ?? "-"}
+                    {fechamento.homologadoPor?.nome ||
+                      nomesHomologadoresServidores(fechamento.servidores) ||
+                      "-"}
                   </td>
                   <td className="px-5 py-4 text-right">
                     <Link

@@ -8,7 +8,10 @@ import {
   dataHoraLocalParaUtc,
   obterDataReferencia,
 } from "../services/data-marcacao.service";
-import { exigirUsuarioNutec } from "../services/permissao-manutencao-marcacao.service";
+import {
+  exigirUsuarioNutec,
+  exigirUsuarioPodeExcluirMarcacao,
+} from "../services/permissao-manutencao-marcacao.service";
 
 const tiposMarcacaoPermitidos = new Set([
   "ENTRADA",
@@ -244,7 +247,7 @@ export async function atualizarMarcacaoNutecAction(
 }
 
 export async function excluirMarcacaoNutecAction(marcacaoId: string) {
-  const permissao = await exigirUsuarioNutec();
+  const permissao = await exigirUsuarioPodeExcluirMarcacao();
   const atual = await prisma.marcacao.findUnique({
     where: {
       id: marcacaoId,

@@ -22,7 +22,9 @@ export async function DashboardSuporte() {
     sessoesFaciaisProblematicas,
   ] = await Promise.all([
     prisma.integracaoSistema.count({ where: { status: "ERRO" } }),
-    prisma.logIntegracao.count({ where: { status: { in: ["ERRO", "PENDENTE"] } } }),
+    prisma.logIntegracao.count({
+      where: { status: { in: ["ERRO", "PENDENTE"] } },
+    }),
     prisma.importacaoAfd.count({
       where: { status: { in: ["RECEBIDA", "EM_PROCESSAMENTO", "ERRO"] } },
     }),
@@ -83,7 +85,10 @@ export async function DashboardSuporte() {
 
       <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
         <DashboardAtalho href="/administracao" titulo="Administração" />
-        <DashboardAtalho href="/integracoes" titulo="Integrações" />
+        <DashboardAtalho
+          href="/administracao/integracoes"
+          titulo="Integrações"
+        />
         <DashboardAtalho href="/administracao/integracoes/sarh" titulo="SARH" />
         <DashboardAtalho href="/afd" titulo="Importações AFD" />
         <DashboardAtalho href="/marcacoes-brutas" titulo="Marcações brutas" />

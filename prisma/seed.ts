@@ -51,7 +51,8 @@ const permissoesSubmenusPainelExecutivoSeed = [
     recurso: "painel-executivo",
     acao: "jornada-e-carga-horaria",
     escopo: "global",
-    descricao: "Consultar o submenu Jornada e carga horária do painel executivo.",
+    descricao:
+      "Consultar o submenu Jornada e carga horária do painel executivo.",
   },
   {
     recurso: "painel-executivo",
@@ -115,8 +116,7 @@ const permissoesSubmenusPainelExecutivoSeed = [
 
 const codigosPermissoesSubmenusPainelExecutivo =
   permissoesSubmenusPainelExecutivoSeed.map(
-    (permissao) =>
-      `${permissao.recurso}:${permissao.acao}:${permissao.escopo}`,
+    (permissao) => `${permissao.recurso}:${permissao.acao}:${permissao.escopo}`,
   );
 
 const permissoesIniciais = [
@@ -277,6 +277,12 @@ const permissoesIniciais = [
     acao: "gerenciar",
     escopo: "global",
     descricao: "Gerenciar marcações.",
+  },
+  {
+    recurso: "marcacoes",
+    acao: "excluir",
+    escopo: "global",
+    descricao: "Excluir/cancelar marcacoes de ponto.",
   },
 
   // Apuração / espelho

@@ -21,6 +21,23 @@ const variantes = {
   warning: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-200",
 };
 
+function incluirSegundosNoTempo(valor: string) {
+  return /^\d{2}:\d{2}$/.test(valor) ? `${valor}:00` : valor;
+}
+
+function TempoComSegundosMenores({ valor }: { valor: string }) {
+  const [horasMinutos, segundos] = valor.split(/:(?=\d{2}$)/);
+
+  return (
+    <>
+      {horasMinutos}
+      {segundos ? (
+        <span className="align-baseline text-[0.72em]">:{segundos}</span>
+      ) : null}
+    </>
+  );
+}
+
 export function DashboardMetricCard({
   titulo,
   valor,
@@ -29,6 +46,10 @@ export function DashboardMetricCard({
   variante,
   tempoReal,
 }: DashboardMetricCardProps) {
+  const destacarHorasMinutos = titulo === "Trabalhado hoje";
+  const valorFormatado =
+    destacarHorasMinutos ? incluirSegundosNoTempo(valor) : valor;
+
   return (
     <Card className="p-2.5">
       <div className="flex items-start justify-between gap-2.5">
@@ -41,10 +62,14 @@ export function DashboardMetricCard({
               <TempoTrabalhadoTempoReal
                 inicioIso={tempoReal.inicioIso}
                 minutosBase={tempoReal.minutosBase}
-                valorInicial={valor}
+                valorInicial={valorFormatado}
               />
             ) : (
-              valor
+              destacarHorasMinutos ? (
+                <TempoComSegundosMenores valor={valorFormatado} />
+              ) : (
+                valorFormatado
+              )
             )}
           </p>
           <p className="mt-0.5 text-xs leading-4 text-muted-foreground">

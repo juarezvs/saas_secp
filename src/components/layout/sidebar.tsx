@@ -10,27 +10,26 @@ import {
   CalendarClock,
   CalendarRange,
   CalendarX,
-  Cable,
   ChevronDown,
   ClipboardList,
   Clock,
+  Cpu,
   DatabaseZap,
   FileCheck2,
   FileSpreadsheet,
   FileText,
   Fingerprint,
   Hourglass,
+  KeyRound,
   Landmark,
   LayoutDashboard,
   Network,
   ScanFace,
-  ScrollText,
   Settings,
   ShieldAlert,
   ShieldCheck,
   SlidersHorizontal,
   Upload,
-  UserCog,
   Users,
   UsersRound,
   X,
@@ -246,30 +245,6 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
-    label: "Usuários",
-    href: "/usuarios",
-    icon: UserCog,
-    permissoes: ["usuarios:gerenciar:global", "usuarios:consultar:global"],
-  },
-  {
-    label: "Perfis",
-    href: "/perfis",
-    icon: ShieldAlert,
-    permissoes: ["perfis:gerenciar:global"],
-  },
-  {
-    label: "Unidades",
-    href: "/unidades",
-    icon: Building2,
-    permissoes: ["unidades:gerenciar:global"],
-  },
-  {
-    label: "Órgãos",
-    href: "/orgaos",
-    icon: Landmark,
-    permissoes: ["unidades:gerenciar:global"],
-  },
-  {
     label: "Jornadas",
     href: "/jornadas",
     icon: CalendarClock,
@@ -280,15 +255,6 @@ export const MENU_ITEMS: MenuItem[] = [
     href: "/chefias",
     icon: Network,
     permissoes: ["chefias:gerenciar:global"],
-  },
-  {
-    label: "Integrações",
-    href: "/integracoes",
-    icon: Cable,
-    permissoes: [
-      "integracoes:consultar:global",
-      "integracoes:gerenciar:global",
-    ],
   },
   {
     label: "Administração",
@@ -309,24 +275,68 @@ export const MENU_ITEMS: MenuItem[] = [
       "auditoria:consultar:global",
       "auditoria:detalhar:global",
     ],
-  },
-  {
-    label: "Regulamentação",
-    href: "/administracao/regulamentacao-ponto",
-    icon: SlidersHorizontal,
-    permissoes: ["regulamentacao-ponto:gerenciar:global"],
-  },
-  {
-    label: "Fusos horários",
-    href: "/administracao/fusos-horarios",
-    icon: Clock,
-    permissoes: ["fusos-horarios:gerenciar:global"],
-  },
-  {
-    label: "Auditoria",
-    href: "/auditoria",
-    icon: ScrollText,
-    permissoes: ["auditoria:consultar:global", "auditoria:detalhar:global"],
+    children: [
+      {
+        label: "Perfis e permissões",
+        href: "/perfis",
+        icon: ShieldCheck,
+        permissoes: ["perfis:gerenciar:global"],
+      },
+      {
+        label: "Usuários",
+        href: "/usuarios",
+        icon: UsersRound,
+        permissoes: ["usuarios:gerenciar:global", "usuarios:consultar:global"],
+      },
+      {
+        label: "Órgãos",
+        href: "/orgaos",
+        icon: Landmark,
+        permissoes: ["unidades:gerenciar:global"],
+      },
+      {
+        label: "Unidades",
+        href: "/unidades",
+        icon: Building2,
+        permissoes: ["unidades:gerenciar:global"],
+      },
+      {
+        label: "Regulamentação do ponto",
+        href: "/administracao/regulamentacao-ponto",
+        icon: SlidersHorizontal,
+        permissoes: ["regulamentacao-ponto:gerenciar:global"],
+      },
+      {
+        label: "Calendário institucional",
+        href: "/administracao/calendario",
+        icon: CalendarDays,
+        permissoes: ["configuracoes:gerenciar:global"],
+      },
+      {
+        label: "Credenciais e integrações",
+        href: "/administracao/integracoes",
+        icon: KeyRound,
+        permissoes: [
+          "integracoes:consultar:global",
+          "integracoes:gerenciar:global",
+        ],
+      },
+      {
+        label: "Equipamentos biométricos",
+        href: "/equipamentos",
+        icon: Cpu,
+        permissoes: [
+          "integracoes:consultar:global",
+          "integracoes:gerenciar:global",
+        ],
+      },
+      {
+        label: "Auditoria",
+        href: "/auditoria",
+        icon: ShieldAlert,
+        permissoes: ["auditoria:consultar:global", "auditoria:detalhar:global"],
+      },
+    ],
   },
 ];
 
@@ -439,8 +449,7 @@ function MenuPrincipal({
           const filhoAtivo = filhos.some((child) => child.href === hrefAtivo);
           const grupoAtivo = ativo || filhoAtivo;
           const grupoAberto = gruposAlternados[item.href] ?? grupoAtivo;
-          const mostrarFilhos =
-            possuiFilhos && !recolhida && grupoAberto;
+          const mostrarFilhos = possuiFilhos && !recolhida && grupoAberto;
           const itemClassName = [
             "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-semibold transition",
             "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
@@ -474,7 +483,9 @@ function MenuPrincipal({
                 </button>
               ) : (
                 <Link
-                  href={possuiFilhos ? filhos[0]?.href ?? item.href : item.href}
+                  href={
+                    possuiFilhos ? (filhos[0]?.href ?? item.href) : item.href
+                  }
                   onClick={onNavigate}
                   aria-current={grupoAtivo ? "page" : undefined}
                   aria-label={recolhida ? item.label : undefined}

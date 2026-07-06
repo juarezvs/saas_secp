@@ -1,5 +1,6 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
+import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 
 import { buscarFechamentoParaBoletim } from "../../infrastructure/repositories/boletim-frequencia.repository";
 import { consolidarBoletimServidor } from "./consolidar-boletim-servidor.service";
@@ -18,6 +19,15 @@ export async function gerarBoletimUnidadeService(params: {
   if (fechamento.status !== "HOMOLOGADO") {
     throw new Error(
       "O Boletim de Frequência somente pode ser gerado após a homologação integral do fechamento.",
+    );
+  }
+
+  const unidadesPermitidas =
+    await listarIdsUnidadesSubordinadasPorUsuario(params.usuarioId);
+
+  if (!unidadesPermitidas.includes(fechamento.unidadeId)) {
+    throw new Error(
+      "O fechamento mensal selecionado não pertence à hierarquia de unidades do perfil ativo.",
     );
   }
 

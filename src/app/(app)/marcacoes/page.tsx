@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Clock, Clock3, Plus, Save, Trash2 } from "lucide-react";
 
-import { auth } from "@/auth";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { SearchableSelect } from "@/components/ui";
@@ -14,7 +13,10 @@ import {
   excluirMarcacaoNutecAction,
   incluirMarcacaoNutecAction,
 } from "@/modules/marcacoes/application/actions/manter-marcacao-nutec.action";
-import { usuarioAtualEhNutec } from "@/modules/marcacoes/application/services/permissao-manutencao-marcacao.service";
+import {
+  PERMISSAO_EXCLUIR_MARCACOES,
+  usuarioEhNutec,
+} from "@/modules/marcacoes/application/services/permissao-manutencao-marcacao.service";
 import {
   listarMarcacoesDoUsuarioNoDia,
   listarServidoresParaFiltroMarcacoes,
@@ -85,7 +87,9 @@ function normalizarArvoreLotacaoPorOrgao(
     (unidade) => unidade.sigla.trim() === siglaOrgao,
   );
 
-  return indiceUnidadeOrgao >= 0 ? unidades.slice(indiceUnidadeOrgao) : unidades;
+  return indiceUnidadeOrgao >= 0
+    ? unidades.slice(indiceUnidadeOrgao)
+    : unidades;
 }
 
 function montarSiglasLotacaoComOrgao(
@@ -136,35 +140,52 @@ function partesDataHoraLocal(data: Date, fusoHorario?: string | null) {
   };
 }
 
-export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps) {
-  await exigirUmaDasPermissoesOuRedirecionar([
-    "marcacoes:consultar:proprio",
-    "marcacoes:visualizar:proprio",
-    "marcacoes:consultar:global",
+export default async function MarcacoesPage({
+  searchParams,
+}: MarcacoesPageProps) {
+  const [permissao, params] = await Promise.all([
+    exigirUmaDasPermissoesOuRedirecionar([
+      "marcacoes:consultar:proprio",
+      "marcacoes:visualizar:proprio",
+      "marcacoes:consultar:global",
+    ]),
+    searchParams,
   ]);
 
-  const params = await searchParams;
-  const session = await auth();
-  const permissoes = session?.user.perfilAtivo?.permissoes ?? [];
-  const perfilCodigo = session?.user.perfilAtivo?.codigo;
+  const permissoes = permissao.permissoes;
+  const perfilCodigo = permissao.perfilAtivoCodigo;
   const podeConsultarGlobal = permissoes.includes("marcacoes:consultar:global");
-  const podeFiltrarServidor = podeConsultarGlobal && perfilCodigo !== "SERVIDOR";
-  const servidorIdFiltro = podeFiltrarServidor ? params?.servidorId || null : null;
+  const podeFiltrarServidor =
+    podeConsultarGlobal && perfilCodigo !== "SERVIDOR";
+  const servidorIdFiltro = podeFiltrarServidor
+    ? params?.servidorId || null
+    : null;
   const podeRegistrarPontoPeloSecp = PERMISSOES_ACESSO_REGISTRO_PONTO_SECP.some(
     (permissao) => permissoes.includes(permissao),
   );
-  const podeManterMarcacoesNutec = await usuarioAtualEhNutec();
-
-  const { marcacoes } = session?.user
-    ? await listarMarcacoesDoUsuarioNoDia(session.user.id)
-    : { marcacoes: [] };
-
-  const [ultimasMarcacoes, servidoresFiltro] = await Promise.all([
+  const [
+    podeManterMarcacoesNutec,
+    marcacoesUsuarioResultado,
+    ultimasMarcacoes,
+    servidoresFiltro,
+  ] = await Promise.all([
+    permissao.usuarioId ? usuarioEhNutec(permissao.usuarioId) : false,
+    permissao.usuarioId
+      ? listarMarcacoesDoUsuarioNoDia(permissao.usuarioId)
+      : Promise.resolve({ marcacoes: [] }),
     podeConsultarGlobal
       ? listarUltimasMarcacoes({ limite: 30, servidorId: servidorIdFiltro })
       : Promise.resolve([]),
-    podeFiltrarServidor ? listarServidoresParaFiltroMarcacoes() : Promise.resolve([]),
+    podeFiltrarServidor
+      ? listarServidoresParaFiltroMarcacoes()
+      : Promise.resolve([]),
   ]);
+  const podeExcluirMarcacoes =
+    permissoes.includes(PERMISSAO_EXCLUIR_MARCACOES) ||
+    podeManterMarcacoesNutec;
+  const podeExibirManutencaoMarcacoes =
+    podeManterMarcacoesNutec || podeExcluirMarcacoes;
+  const { marcacoes } = marcacoesUsuarioResultado;
 
   return (
     <div className="space-y-6">
@@ -197,11 +218,16 @@ export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps
           <div className="flex flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-2">
               <Clock3 className="size-5 text-blue-900 dark:text-blue-300" />
-              <h2 className="text-lg font-bold">Últimas marcações registradas</h2>
+              <h2 className="text-lg font-bold">
+                Últimas marcações registradas
+              </h2>
             </div>
 
             {podeFiltrarServidor && (
-              <form className="flex flex-col gap-2 sm:flex-row sm:items-center" action="/marcacoes">
+              <form
+                className="flex flex-col gap-2 sm:flex-row sm:items-center"
+                action="/marcacoes"
+              >
                 <label htmlFor="servidorId" className="text-sm font-semibold">
                   Servidor
                 </label>
@@ -242,7 +268,10 @@ export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps
                 className="grid gap-3 lg:grid-cols-[minmax(260px,1fr)_150px_120px_190px_minmax(180px,1fr)_auto] lg:items-end"
               >
                 <div>
-                  <label htmlFor="novaMarcacaoServidorId" className="text-sm font-semibold">
+                  <label
+                    htmlFor="novaMarcacaoServidorId"
+                    className="text-sm font-semibold"
+                  >
                     Servidor
                   </label>
                   <SearchableSelect
@@ -264,7 +293,10 @@ export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps
                 </div>
 
                 <div>
-                  <label htmlFor="novaMarcacaoData" className="text-sm font-semibold">
+                  <label
+                    htmlFor="novaMarcacaoData"
+                    className="text-sm font-semibold"
+                  >
                     Data
                   </label>
                   <input
@@ -277,7 +309,10 @@ export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps
                 </div>
 
                 <div>
-                  <label htmlFor="novaMarcacaoHora" className="text-sm font-semibold">
+                  <label
+                    htmlFor="novaMarcacaoHora"
+                    className="text-sm font-semibold"
+                  >
                     Hora
                   </label>
                   <input
@@ -290,7 +325,10 @@ export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps
                 </div>
 
                 <div>
-                  <label htmlFor="novaMarcacaoTipo" className="text-sm font-semibold">
+                  <label
+                    htmlFor="novaMarcacaoTipo"
+                    className="text-sm font-semibold"
+                  >
                     Tipo
                   </label>
                   <select
@@ -308,7 +346,10 @@ export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps
                 </div>
 
                 <div>
-                  <label htmlFor="novaMarcacaoObservacao" className="text-sm font-semibold">
+                  <label
+                    htmlFor="novaMarcacaoObservacao"
+                    className="text-sm font-semibold"
+                  >
                     Observacao
                   </label>
                   <input
@@ -340,8 +381,8 @@ export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps
                   <th className="px-5 py-3">Tipo</th>
                   <th className="px-5 py-3">Fonte</th>
                   <th className="px-5 py-3">Status</th>
-                  {podeManterMarcacoesNutec && (
-                    <th className="px-5 py-3">Manutencao NUTEC</th>
+                  {podeExibirManutencaoMarcacoes && (
+                    <th className="px-5 py-3">Manutencao</th>
                   )}
                 </tr>
               </thead>
@@ -349,7 +390,9 @@ export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps
               <tbody>
                 {ultimasMarcacoes.map((marcacao) => {
                   const lotacaoAtual = marcacao.servidor.lotacoes[0];
-                  const arvoreLotacao = montarArvoreLotacao(lotacaoAtual?.unidade);
+                  const arvoreLotacao = montarArvoreLotacao(
+                    lotacaoAtual?.unidade,
+                  );
                   const siglasLotacao = montarSiglasLotacaoComOrgao(
                     lotacaoAtual?.unidade.orgao?.sigla,
                     arvoreLotacao,
@@ -412,77 +455,90 @@ export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps
                         </span>
                       </td>
 
-                      {podeManterMarcacoesNutec && (
+                      {podeExibirManutencaoMarcacoes && (
                         <td className="px-5 py-4">
-                          <div className="flex min-w-[45rem] flex-col gap-2">
-                            <form
-                              action={atualizarMarcacaoNutecAction.bind(
-                                null,
-                                marcacao.id,
-                              )}
-                              className="grid gap-2 sm:grid-cols-[130px_100px_170px_minmax(160px,1fr)_auto]"
-                            >
-                              <input
-                                type="hidden"
-                                name="servidorId"
-                                value={marcacao.servidorId}
-                              />
-                              <input
-                                type="date"
-                                name="dataReferencia"
-                                defaultValue={camposDataHora.data}
-                                className="h-9 rounded-md border bg-[var(--card)] px-2 text-xs"
-                                required
-                              />
-                              <input
-                                type="time"
-                                name="hora"
-                                defaultValue={camposDataHora.hora}
-                                className="h-9 rounded-md border bg-[var(--card)] px-2 text-xs"
-                                required
-                              />
-                              <select
-                                name="tipo"
-                                defaultValue={marcacao.tipo}
-                                className="h-9 rounded-md border bg-[var(--card)] px-2 text-xs"
-                                required
+                          <div
+                            className={
+                              podeManterMarcacoesNutec
+                                ? "flex min-w-[45rem] flex-col gap-2"
+                                : "flex flex-col gap-2"
+                            }
+                          >
+                            {podeManterMarcacoesNutec && (
+                              <form
+                                action={atualizarMarcacaoNutecAction.bind(
+                                  null,
+                                  marcacao.id,
+                                )}
+                                className="grid gap-2 sm:grid-cols-[130px_100px_170px_minmax(160px,1fr)_auto]"
                               >
-                                {tiposMarcacaoManutencao.map((tipo) => (
-                                  <option key={tipo} value={tipo}>
-                                    {obterRotuloTipoMarcacao(tipo)}
-                                  </option>
-                                ))}
-                              </select>
-                              <input
-                                name="observacao"
-                                defaultValue={marcacao.observacao ?? ""}
-                                className="h-9 rounded-md border bg-[var(--card)] px-2 text-xs"
-                                placeholder="Observacao"
-                              />
-                              <button
-                                type="submit"
-                                className="inline-flex size-9 items-center justify-center rounded-md border text-blue-900 hover:bg-[var(--muted)] dark:text-blue-300"
-                                title="Salvar ajuste"
-                              >
-                                <Save className="size-4" aria-hidden="true" />
-                                <span className="sr-only">Salvar ajuste</span>
-                              </button>
-                            </form>
+                                <input
+                                  type="hidden"
+                                  name="servidorId"
+                                  value={marcacao.servidorId}
+                                />
+                                <input
+                                  type="date"
+                                  name="dataReferencia"
+                                  defaultValue={camposDataHora.data}
+                                  className="h-9 rounded-md border bg-[var(--card)] px-2 text-xs"
+                                  required
+                                />
+                                <input
+                                  type="time"
+                                  name="hora"
+                                  defaultValue={camposDataHora.hora}
+                                  className="h-9 rounded-md border bg-[var(--card)] px-2 text-xs"
+                                  required
+                                />
+                                <select
+                                  name="tipo"
+                                  defaultValue={marcacao.tipo}
+                                  className="h-9 rounded-md border bg-[var(--card)] px-2 text-xs"
+                                  required
+                                >
+                                  {tiposMarcacaoManutencao.map((tipo) => (
+                                    <option key={tipo} value={tipo}>
+                                      {obterRotuloTipoMarcacao(tipo)}
+                                    </option>
+                                  ))}
+                                </select>
+                                <input
+                                  name="observacao"
+                                  defaultValue={marcacao.observacao ?? ""}
+                                  className="h-9 rounded-md border bg-[var(--card)] px-2 text-xs"
+                                  placeholder="Observacao"
+                                />
+                                <button
+                                  type="submit"
+                                  className="inline-flex size-9 items-center justify-center rounded-md border text-blue-900 hover:bg-[var(--muted)] dark:text-blue-300"
+                                  title="Salvar ajuste"
+                                >
+                                  <Save className="size-4" aria-hidden="true" />
+                                  <span className="sr-only">Salvar ajuste</span>
+                                </button>
+                              </form>
+                            )}
 
-                            <form
-                              action={excluirMarcacaoNutecAction.bind(
-                                null,
-                                marcacao.id,
-                              )}
-                            >
-                              <button
-                                type="submit"
-                                className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950"
+                            {podeExcluirMarcacoes && (
+                              <form
+                                action={excluirMarcacaoNutecAction.bind(
+                                  null,
+                                  marcacao.id,
+                                )}
                               >
-                                <Trash2 className="size-3.5" aria-hidden="true" />
-                                Excluir
-                              </button>
-                            </form>
+                                <button
+                                  type="submit"
+                                  className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950"
+                                >
+                                  <Trash2
+                                    className="size-3.5"
+                                    aria-hidden="true"
+                                  />
+                                  Excluir
+                                </button>
+                              </form>
+                            )}
                           </div>
                         </td>
                       )}
@@ -493,7 +549,7 @@ export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps
                 {ultimasMarcacoes.length === 0 && (
                   <tr>
                     <td
-                      colSpan={podeManterMarcacoesNutec ? 7 : 6}
+                      colSpan={podeExibirManutencaoMarcacoes ? 7 : 6}
                       className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                     >
                       Nenhuma marcação encontrada.

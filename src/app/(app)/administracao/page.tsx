@@ -30,7 +30,8 @@ export default async function AdministracaoPage() {
   const cards = [
     {
       titulo: "Perfis e permissões",
-      descricao: "Gerencie perfis, permissões e acessos por papel institucional.",
+      descricao:
+        "Gerencie perfis, permissões e acessos por papel institucional.",
       href: "/perfis",
       icon: ShieldCheck,
     },
@@ -51,12 +52,6 @@ export default async function AdministracaoPage() {
       descricao: "Gerencie a estrutura organizacional da JFAM.",
       href: hrefComOrgao("/unidades"),
       icon: Building2,
-    },
-    {
-      titulo: "Parametros",
-      descricao: "Configure parametros gerais do controle eletrônico de ponto.",
-      href: "/administracao/parametros",
-      icon: Settings,
     },
     {
       titulo: "Regulamentação do ponto",

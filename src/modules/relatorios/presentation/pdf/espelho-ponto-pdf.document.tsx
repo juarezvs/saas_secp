@@ -3,25 +3,31 @@ import {
   Image,
   Page,
   Path,
+  StyleSheet,
   Svg,
   Text,
   View,
 } from "@react-pdf/renderer";
-import type { ReactNode } from "react";
 import { readFileSync } from "node:fs";
-import { pdfStyles as s } from "./pdf-styles";
-import {
-  minutosParaHoraRelatorio,
-  nomeMesReferencia,
-} from "../../application/services/formatar-relatorio.service";
+import type { ReactNode } from "react";
+import { nomeMesReferencia } from "../../application/services/formatar-relatorio.service";
 import {
   classificarDiaEspelho,
-  conferenciaEspelho,
-  resumirEspelhoMensal,
   rotuloSolicitacaoEspelho,
-  type SolicitacaoAplicadaEspelho,
 } from "@/modules/apuracao/application/services/classificar-espelho-mensal.service";
+import type { DadosAutenticacaoDocumento } from "@/modules/documentos-autenticacao/application/services/documento-autenticacao.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
+
+type UnidadeEspelho = {
+  sigla: string;
+  nome: string;
+  uf?: string | null;
+  orgao?: {
+    sigla: string;
+    nome: string;
+  } | null;
+  unidadePai?: UnidadeEspelho | null;
+};
 
 type EspelhoPontoPdfProps = {
   dados: {
@@ -32,14 +38,15 @@ type EspelhoPontoPdfProps = {
       cargo?: {
         descricao: string;
       } | null;
+      orgao: {
+        sigla: string;
+        nome: string;
+      };
       usuario: {
         nome: string;
       };
       lotacoes: {
-        unidade: {
-          sigla: string;
-          nome: string;
-        };
+        unidade: UnidadeEspelho;
         cargo?: {
           descricao: string;
         } | null;
@@ -83,17 +90,12 @@ type EspelhoPontoPdfProps = {
     ano: number;
     mes: number;
   };
+  autenticacao?: DadosAutenticacaoDocumento | null;
 };
 
-type MarcacaoPdfItem = {
-  id: string;
-  dataHora: Date;
-  dataReferencia: Date;
-  fusoHorario?: string | null;
-  tipo: string;
-  fonte?: string | null;
-  status: string;
-};
+type MarcacaoPdfItem = EspelhoPontoPdfProps["dados"]["marcacoes"][number];
+type ApuracaoEspelhoPdfItem =
+  EspelhoPontoPdfProps["dados"]["apuracoes"][number];
 
 type DiaInstitucionalEspelho = {
   tipo: string;
@@ -102,771 +104,745 @@ type DiaInstitucionalEspelho = {
   geraApuracaoRegular: boolean;
 };
 
-type ApuracaoEspelhoPdfItem =
-  EspelhoPontoPdfProps["dados"]["apuracoes"][number];
+const AZUL_MODELO = "#000080";
+const BORDA_MODELO = "#4b5563";
 
-const badgeRemoto = {
-  padding: 2,
-  borderWidth: 1,
-  borderColor: "#bfdbfe",
-  backgroundColor: "#eff6ff",
-  color: "#1e40af",
-  fontSize: 7,
+const styles = StyleSheet.create({
+  page: {
+    paddingHorizontal: 38,
+    paddingTop: 26,
+    paddingBottom: 30,
+    fontFamily: "Helvetica",
+    color: "#111111",
+  },
+  frame: {
+    borderWidth: 1,
+    borderColor: BORDA_MODELO,
+    minHeight: 598,
+  },
+  top: {
+    position: "relative",
+    minHeight: 172,
+    paddingTop: 4,
+    paddingHorizontal: 2,
+  },
+  watermark: {
+    position: "absolute",
+    top: 4,
+    left: 170,
+    width: 170,
+    height: 170,
+    opacity: 0.07,
+  },
+  identityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingLeft: 6,
+    paddingTop: 2,
+  },
+  brasao: {
+    width: 54,
+    height: 54,
+    objectFit: "contain",
+  },
+  orgaoBlock: {
+    marginLeft: 12,
+  },
+  orgaoLine: {
+    fontSize: 10,
+    marginBottom: 5,
+  },
+  title: {
+    marginTop: 20,
+    textAlign: "center",
+    fontSize: 15,
+    fontWeight: 700,
+    letterSpacing: 0.2,
+  },
+  periodoBox: {
+    position: "absolute",
+    top: 36,
+    right: 1,
+    width: 104,
+  },
+  periodoHeader: {
+    backgroundColor: AZUL_MODELO,
+    color: "#ffffff",
+    fontSize: 8,
+    paddingHorizontal: 3,
+    paddingVertical: 2,
+  },
+  periodoCell: {
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "#a3a3a3",
+    minHeight: 27,
+    paddingHorizontal: 4,
+    paddingTop: 4,
+  },
+  periodoLabel: {
+    fontSize: 7,
+  },
+  periodoValue: {
+    marginTop: -3,
+    textAlign: "center",
+    fontSize: 10,
+  },
+  infoGrid: {
+    flexDirection: "row",
+    gap: 4,
+    marginTop: 16,
+  },
+  leftInfo: {
+    width: "68.5%",
+  },
+  vistoBox: {
+    width: "31.5%",
+    minHeight: 74,
+    borderWidth: 1,
+    borderColor: "#a3a3a3",
+  },
+  sectionBar: {
+    backgroundColor: AZUL_MODELO,
+    color: "#ffffff",
+    fontSize: 8,
+    paddingHorizontal: 3,
+    paddingVertical: 2,
+  },
+  infoValueBox: {
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "#a3a3a3",
+    minHeight: 28,
+    justifyContent: "center",
+    paddingHorizontal: 5,
+  },
+  infoValue: {
+    fontSize: 10,
+  },
+  infoValueSecondary: {
+    marginTop: 2,
+    fontSize: 8,
+  },
+  controleBar: {
+    backgroundColor: AZUL_MODELO,
+    color: "#ffffff",
+    fontSize: 8,
+    paddingHorizontal: 3,
+    paddingVertical: 2,
+  },
+  table: {
+    width: "100%",
+  },
+  tableHeader: {
+    flexDirection: "row",
+    minHeight: 23,
+    borderBottomWidth: 1,
+    borderColor: BORDA_MODELO,
+  },
+  headerCell: {
+    justifyContent: "center",
+    alignItems: "center",
+    borderRightWidth: 1,
+    borderColor: "#9ca3af",
+    paddingHorizontal: 2,
+  },
+  headerText: {
+    fontSize: 8,
+    textAlign: "center",
+  },
+  tableRow: {
+    flexDirection: "row",
+    minHeight: 14,
+    borderBottomWidth: 0.7,
+    borderColor: BORDA_MODELO,
+  },
+  cell: {
+    justifyContent: "center",
+    alignItems: "center",
+    borderRightWidth: 0.7,
+    borderColor: "#9ca3af",
+    paddingHorizontal: 2,
+  },
+  dayText: {
+    fontSize: 8.5,
+  },
+  timeText: {
+    fontSize: 8,
+  },
+  noteText: {
+    fontSize: 9,
+    textAlign: "center",
+    textTransform: "uppercase",
+  },
+  bold: {
+    fontWeight: 700,
+  },
+  autenticacaoBox: {
+    marginTop: 7,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "#9ca3af",
+    paddingVertical: 5,
+  },
+  assinaturaLinha: {
+    flexDirection: "row",
+    borderBottomWidth: 0.7,
+    borderColor: "#d1d5db",
+    paddingVertical: 4,
+    gap: 6,
+  },
+  assinaturaIcon: {
+    width: 56,
+    minHeight: 36,
+    borderWidth: 0.8,
+    borderColor: AZUL_MODELO,
+    backgroundColor: "#f8fafc",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 3,
+    paddingVertical: 3,
+  },
+  assinaturaIconText: {
+    marginTop: 1,
+    fontSize: 7,
+    fontWeight: 700,
+    color: AZUL_MODELO,
+  },
+  assinaturaIconSmall: {
+    marginTop: 1,
+    fontSize: 5,
+    textAlign: "center",
+    color: "#334155",
+  },
+  assinaturaTexto: {
+    flexGrow: 1,
+    flexBasis: 0,
+    fontSize: 8,
+    lineHeight: 1.25,
+  },
+  autenticacaoQrRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingTop: 5,
+    alignItems: "center",
+  },
+  qrCode: {
+    width: 58,
+    height: 58,
+  },
+  autenticacaoTexto: {
+    flexGrow: 1,
+    flexBasis: 0,
+    fontSize: 8,
+    lineHeight: 1.25,
+  },
+  footerDoc: {
+    marginTop: 3,
+    textAlign: "center",
+    fontSize: 7,
+    color: "#6b7280",
+  },
+});
+
+const colunas = {
+  dia: "5.5%",
+  hora: "13.8%",
+  assinatura: "39.3%",
 };
 
-const badgeDispensa = {
-  padding: 2,
-  borderWidth: 1,
-  borderColor: "#a7f3d0",
-  backgroundColor: "#ecfdf5",
-  color: "#065f46",
-  fontSize: 7,
+const estadosPorUf: Record<string, string> = {
+  AC: "DO ACRE",
+  AM: "DO AMAZONAS",
+  AP: "DO AMAPÁ",
+  BA: "DA BAHIA",
+  DF: "DO DISTRITO FEDERAL",
+  GO: "DE GOIÁS",
+  MA: "DO MARANHÃO",
+  MG: "DE MINAS GERAIS",
+  MT: "DE MATO GROSSO",
+  PA: "DO PARÁ",
+  PI: "DO PIAUÍ",
+  RO: "DE RONDÔNIA",
+  RR: "DE RORAIMA",
+  TO: "DO TOCANTINS",
 };
 
-const badgeOcorrencia = {
-  marginBottom: 2,
-  padding: 2,
-  borderWidth: 1,
-  fontSize: 6,
+const ufsPorSiglaSecao: Record<string, string> = {
+  SJAC: "AC",
+  SJAM: "AM",
+  SJAP: "AP",
+  SJBA: "BA",
+  SJDF: "DF",
+  SJGO: "GO",
+  SJMA: "MA",
+  SJMG: "MG",
+  SJMT: "MT",
+  SJPA: "PA",
+  SJPI: "PI",
+  SJRO: "RO",
+  SJRR: "RR",
+  SJTO: "TO",
 };
 
-const observacaoMarcacoes = {
-  color: "#334155",
-  fontSize: 7,
-  fontWeight: 600,
-};
-
-const statusIndicadorBase = {
-  alignItems: "center" as const,
-  justifyContent: "center" as const,
-};
-
-function estimarPesoLinhaEspelho(item: ApuracaoEspelhoPdfItem) {
-  const classificacao = classificarDiaEspelho(item);
-  const solicitacoes = classificacao.solicitacoesAplicadas.length;
-  const ocorrencias = item.ocorrencias?.length ?? 0;
-  const temDebitoCompensado = (item.minutosDebitoCompensado ?? 0) > 0;
-  const diaInstitucional = extrairDiaInstitucional(item.metadados);
-  const trabalhoRemoto = extrairTrabalhoRemoto(item.metadados);
-  const justificativaAusenciaMesclada = encontrarJustificativaAusenciaMesclada(
-    classificacao.solicitacoesAplicadas,
-  );
-
-  let peso = 1;
-
-  if (ocorrencias > 1) {
-    peso += Math.min(1.4, (ocorrencias - 1) * 0.35);
-  }
-
-  if (solicitacoes > 1) {
-    peso += Math.min(1.2, (solicitacoes - 1) * 0.35);
-  }
-
-  if (diaInstitucional || trabalhoRemoto || justificativaAusenciaMesclada) {
-    peso += 0.25;
-  }
-
-  if (temDebitoCompensado) {
-    peso += 0.25;
-  }
-
-  return peso;
-}
-
-function paginarApuracoesEspelho(apuracoes: ApuracaoEspelhoPdfItem[]) {
-  if (apuracoes.length === 0) {
-    return [[]] as ApuracaoEspelhoPdfItem[][];
-  }
-
-  const capacidadePrimeiraPagina = 16;
-  const capacidadeDemaisPaginas = 16;
-  const paginas: ApuracaoEspelhoPdfItem[][] = [];
-  let paginaAtual: ApuracaoEspelhoPdfItem[] = [];
-  let pesoAtual = 0;
-
-  for (const item of apuracoes) {
-    const capacidade =
-      paginas.length === 0 ? capacidadePrimeiraPagina : capacidadeDemaisPaginas;
-    const pesoLinha = estimarPesoLinhaEspelho(item);
-
-    if (paginaAtual.length > 0 && pesoAtual + pesoLinha > capacidade) {
-      paginas.push(paginaAtual);
-      paginaAtual = [];
-      pesoAtual = 0;
-    }
-
-    paginaAtual.push(item);
-    pesoAtual += pesoLinha;
-  }
-
-  if (paginaAtual.length > 0) {
-    paginas.push(paginaAtual);
-  }
-
-  return paginas;
-}
-
-export function EspelhoPontoPdfDocument({ dados }: EspelhoPontoPdfProps) {
+export function EspelhoPontoPdfDocument({
+  dados,
+  autenticacao,
+}: EspelhoPontoPdfProps) {
   const servidor = dados.servidor;
+  const lotacao = servidor?.lotacoes[0] ?? null;
+  const unidade = lotacao?.unidade ?? null;
+  const orgaoSigla = servidor?.orgao?.sigla ?? unidade?.orgao?.sigla;
   const marcacoesPorDia = agruparMarcacoesPorDia(dados.marcacoes);
-
-  const totais = dados.apuracoes.reduce(
-    (acc, item) => {
-      acc.previsto += item.cargaPrevistaMinutos;
-
-      if (item.contabilizarSaldos !== false) {
-        acc.trabalhado += item.minutosTrabalhados;
-        acc.credito += item.minutosCredito;
-        acc.debito += item.minutosDebito;
-      }
-
-      return acc;
-    },
-    {
-      previsto: 0,
-      trabalhado: 0,
-      credito: 0,
-      debito: 0,
-    },
+  const apuracoesPorDia = new Map(
+    dados.apuracoes.map((item) => [chaveDataReferenciaUtc(item.dataReferencia), item]),
   );
-  const apuracoesContabilizadas = dados.apuracoes.filter(
-    (item) => item.contabilizarSaldos !== false,
-  );
-  const resumoFuncional = resumirEspelhoMensal(apuracoesContabilizadas);
-  const paginas = paginarApuracoesEspelho(dados.apuracoes);
-
-  return (
-    <Document
-      title={`Espelho de Ponto ${servidor?.matricula ?? ""}`}
-      author="SECP"
-      subject="Espelho de Ponto"
-      creator="SECP"
-      producer="SECP"
-    >
-      {paginas.map((apuracoesPagina, indicePagina) => (
-        <Page
-          key={`pagina-${indicePagina}`}
-          size="A4"
-          orientation="portrait"
-          style={[s.page, { paddingTop: 328, paddingBottom: 42 }]}
-        >
-          <CabecalhoPremiumEspelho
-            servidor={servidor}
-            ano={dados.ano}
-            mes={dados.mes}
-          />
-
-          <TabelaEspelhoPdf
-            titulo={
-              indicePagina === 0
-                ? "Espelho mensal"
-                : "Espelho mensal - continuação"
-            }
-            apuracoes={apuracoesPagina}
-            marcacoesPorDia={marcacoesPorDia}
-          />
-
-          {indicePagina === paginas.length - 1 && (
-            <TotaisEspelhoPdf
-              totais={totais}
-              resumoFuncional={resumoFuncional}
-            />
-          )}
-
-          <Text
-            fixed
-            style={s.footer}
-            render={({ pageNumber, totalPages }) =>
-              `Gerado pelo SECP em ${new Date().toLocaleString(
-                "pt-BR",
-              )}. Página ${pageNumber} de ${totalPages}.`
-            }
-          >
-            Gerado pelo SECP.
-          </Text>
-        </Page>
-      ))}
-    </Document>
-  );
-}
-
-function TotaisEspelhoPdf({
-  totais,
-  resumoFuncional,
-}: {
-  totais: {
-    previsto: number;
-    trabalhado: number;
-    credito: number;
-    debito: number;
-  };
-  resumoFuncional: ReturnType<typeof resumirEspelhoMensal>;
-}) {
-  return (
-    <View style={s.section}>
-      <Text style={s.sectionTitle}>Totais</Text>
-
-      <View style={s.row}>
-        <View style={s.infoBox}>
-          <Text style={s.label}>Previsto</Text>
-          <Text style={s.value}>
-            {minutosParaHoraRelatorio(totais.previsto)}
-          </Text>
-        </View>
-        <View style={s.infoBox}>
-          <Text style={s.label}>Trabalhado</Text>
-          <Text style={s.value}>
-            {minutosParaHoraRelatorio(totais.trabalhado)}
-          </Text>
-        </View>
-        <View style={s.infoBox}>
-          <Text style={s.label}>Crédito</Text>
-          <Text style={s.value}>
-            {minutosParaHoraRelatorio(totais.credito)}
-          </Text>
-        </View>
-        <View style={s.infoBox}>
-          <Text style={s.label}>Débito</Text>
-          <Text style={s.value}>{minutosParaHoraRelatorio(totais.debito)}</Text>
-        </View>
-      </View>
-      <View style={s.row}>
-        <View style={s.infoBox}>
-          <Text style={s.label}>Ausências</Text>
-          <Text style={s.value}>
-            {resumoFuncional.ausencias} -{" "}
-            {minutosParaHoraRelatorio(resumoFuncional.minutosAusencia)}
-          </Text>
-        </View>
-        <View style={s.infoBox}>
-          <Text style={s.label}>Atividades externas</Text>
-          <Text style={s.value}>
-            {resumoFuncional.atividadesExternas} -{" "}
-            {minutosParaHoraRelatorio(resumoFuncional.minutosAtividadeExterna)}
-          </Text>
-        </View>
-        <View style={s.infoBox}>
-          <Text style={s.label}>Viagens a serviço</Text>
-          <Text style={s.value}>
-            {resumoFuncional.viagensServico} -{" "}
-            {minutosParaHoraRelatorio(resumoFuncional.minutosViagemServico)}
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function TabelaEspelhoPdf({
-  titulo,
-  apuracoes,
-  marcacoesPorDia,
-}: {
-  titulo: string;
-  apuracoes: EspelhoPontoPdfProps["dados"]["apuracoes"];
-  marcacoesPorDia: Map<string, MarcacaoPdfItem[]>;
-}) {
-  return (
-    <View style={s.section}>
-      <Text style={s.sectionTitle}>{titulo}</Text>
-
-      <View style={s.table}>
-        <CabecalhoTabelaEspelhoPdf />
-
-        {apuracoes.map((item) => {
-          const chaveReferencia = chaveDataReferenciaUtc(item.dataReferencia);
-          const marcacoesDoDia = marcacoesPorDia.get(chaveReferencia) ?? [];
-          const trabalhoRemoto = extrairTrabalhoRemoto(item.metadados);
-          const classificacao = classificarDiaEspelho(item);
-          const diaInstitucional = extrairDiaInstitucional(item.metadados);
-          const dispensaPonto = classificacao.dispensaPonto;
-          const solicitacoesAplicadas = classificacao.solicitacoesAplicadas;
-          const justificativaAusenciaMesclada =
-            encontrarJustificativaAusenciaMesclada(solicitacoesAplicadas);
-          const conferencia = conferenciaEspelho(item.status, item);
-          const minutosDebitoCompensado = item.minutosDebitoCompensado ?? 0;
-          const mesclarMarcacoesOcorrencias =
-            !dispensaPonto &&
-            !trabalhoRemoto &&
-            marcacoesDoDia.length === 0 &&
-            (Boolean(diaInstitucional) ||
-              Boolean(justificativaAusenciaMesclada)) &&
-            !ehFimDeSemanaInstitucional(diaInstitucional);
-
-          return (
-            <View key={item.id} style={s.tableRow} wrap={false}>
-              <View style={[s.td, { width: "7%" }]}>
-                <StatusIndicadorPdf conferencia={conferencia} />
-              </View>
-              <Text style={[s.td, { width: "14%" }]}>
-                {formatarDataReferenciaPdf(item.dataReferencia)}
-              </Text>
-              <View style={[s.td, { width: "39%" }]}>
-                {mesclarMarcacoesOcorrencias ? (
-                  diaInstitucional ? (
-                    <Text style={observacaoMarcacoes}>
-                      {rotuloDiaInstitucional(diaInstitucional)}
-                    </Text>
-                  ) : (
-                    <Text style={observacaoMarcacoes}>
-                      {rotuloSolicitacaoEspelho(
-                        justificativaAusenciaMesclada!.tipo,
-                      )}
-                      : {justificativaAusenciaMesclada!.titulo}
-                    </Text>
-                  )
-                ) : dispensaPonto ? (
-                  <Text style={badgeDispensa}>Dispensa de ponto</Text>
-                ) : trabalhoRemoto ? (
-                  <Text style={badgeRemoto}>
-                    {trabalhoRemoto.regime === "TOTAL"
-                      ? "Teletrabalho"
-                      : "Trabalho remoto"}
-                  </Text>
-                ) : marcacoesDoDia.length > 0 ? (
-                  <Text>
-                    {marcacoesDoDia.map(formatarMarcacaoPdf).join("  ")}
-                  </Text>
-                ) : diaInstitucional &&
-                  !ehFimDeSemanaInstitucional(diaInstitucional) ? (
-                  <Text style={observacaoMarcacoes}>
-                    {rotuloDiaInstitucional(diaInstitucional)}
-                  </Text>
-                ) : (
-                  <Text>-</Text>
-                )}
-
-                {!mesclarMarcacoesOcorrencias && (
-                  <View style={{ marginTop: 2 }}>
-                    <OcorrenciasDiaPdf
-                      ocultarVazio
-                      ocultarDispensaPonto={dispensaPonto}
-                      ausente={classificacao.ausente}
-                      ausenciaParcial={classificacao.ausenciaParcial}
-                      dispensaPonto={classificacao.dispensaPonto}
-                      diaInstitucional={diaInstitucional}
-                      ocorrencias={item.ocorrencias ?? []}
-                      solicitacoes={solicitacoesAplicadas}
-                    />
-                  </View>
-                )}
-              </View>
-              <Text style={[s.td, { width: "9%" }]}>
-                {minutosParaHoraRelatorio(item.cargaPrevistaMinutos)}
-              </Text>
-              <Text style={[s.td, { width: "11%" }]}>
-                {minutosParaHoraRelatorio(item.minutosTrabalhados)}
-              </Text>
-              <Text style={[s.td, { width: "10%" }]}>
-                {minutosParaHoraRelatorio(item.minutosCredito)}
-              </Text>
-              <View style={[s.td, { width: "10%" }]}>
-                <Text>{minutosParaHoraRelatorio(item.minutosDebito)}</Text>
-                {minutosDebitoCompensado > 0 && (
-                  <Text style={{ marginTop: 2, fontSize: 6 }}>
-                    Comp. {minutosParaHoraRelatorio(minutosDebitoCompensado)}
-                  </Text>
-                )}
-              </View>
-            </View>
-          );
-        })}
-
-        {apuracoes.length === 0 && (
-          <View style={s.tableRow}>
-            <Text style={[s.td, { width: "100%" }]}>
-              Nenhuma apuração calculada para o mês.
-            </Text>
-          </View>
-        )}
-      </View>
-    </View>
-  );
-}
-
-function CabecalhoTabelaEspelhoPdf() {
-  return (
-    <View style={s.tableHeader}>
-      <Text style={[s.th, { width: "7%" }]} />
-      <Text style={[s.th, { width: "14%" }]}>Data</Text>
-      <Text style={[s.th, { width: "39%" }]}>Marcações</Text>
-      <Text style={[s.th, { width: "9%" }]}>Previsto</Text>
-      <Text style={[s.th, { width: "11%" }]}>Trabalhado</Text>
-      <Text style={[s.th, { width: "10%" }]}>Crédito</Text>
-      <Text style={[s.th, { width: "10%" }]}>Débito</Text>
-    </View>
-  );
-}
-
-function CabecalhoPremiumEspelho({
-  servidor,
-  ano,
-  mes,
-}: {
-  servidor: EspelhoPontoPdfProps["dados"]["servidor"];
-  ano: number;
-  mes: number;
-}) {
-  const lotacao = servidor?.lotacoes[0]
-    ? `${servidor.lotacoes[0].unidade.sigla} - ${servidor.lotacoes[0].unidade.nome}`
-    : "-";
-  const jornada = servidor?.jornadas[0]
-    ? `${servidor.jornadas[0].jornada.codigo} - ${servidor.jornadas[0].jornada.nome}`
-    : "-";
-  const cargo =
-    servidor?.cargo?.descricao ??
-    servidor?.lotacoes.find((lotacao) => lotacao.cargo?.descricao)?.cargo
-      ?.descricao ??
-    null;
-  const competencia = `${nomeMesReferencia(mes)} de ${ano}`;
-  const emissao = new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date());
   const brasaoRepublica = `data:image/png;base64,${readFileSync(
     `${process.cwd()}/public/brasao-republica.png`,
   ).toString("base64")}`;
 
   return (
-    <View
-      fixed
-      style={{
-        position: "absolute",
-        top: 58,
-        left: 40,
-        right: 40,
-        height: 246,
-        borderWidth: 1,
-        borderColor: "#d6d6d6",
-        borderRadius: 3,
-        backgroundColor: "#ffffff",
-        overflow: "hidden",
-      }}
+    <Document
+      title={`Folha de Frequencia ${servidor?.matricula ?? ""}`}
+      author="SECP"
+      subject="Folha de Frequencia"
+      creator="SECP"
+      producer="SECP"
     >
-      <View
-        style={{
-          borderBottomWidth: 1,
-          borderBottomColor: "#d6d6d6",
-          paddingHorizontal: 12,
-          paddingVertical: 9,
-        }}
-      >
-        <Text style={{ fontSize: 12 }}>
-          Espelho de ponto referente a{" "}
-          <Text style={{ fontWeight: 700 }}>{competencia}</Text>
+      <Page size="A4" orientation="portrait" style={styles.page}>
+        <View style={styles.frame}>
+          <View style={styles.top}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={brasaoRepublica} style={styles.watermark} />
+            <View style={styles.identityRow}>
+              {/* eslint-disable-next-line jsx-a11y/alt-text */}
+              <Image src={brasaoRepublica} style={styles.brasao} />
+              <View style={styles.orgaoBlock}>
+                <Text style={styles.orgaoLine}>PODER JUDICIÁRIO</Text>
+                <Text style={styles.orgaoLine}>
+                  {resolverNomeOficialOrgao(unidade)}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.title}>FOLHA DE FREQUÊNCIA</Text>
+
+            <View style={styles.periodoBox}>
+              <Text style={styles.periodoHeader}>PERÍODO</Text>
+              <View style={styles.periodoCell}>
+                <Text style={styles.periodoLabel}>MÊS</Text>
+                <Text style={styles.periodoValue}>{nomeMesReferencia(dados.mes)}</Text>
+              </View>
+              <View style={styles.periodoCell}>
+                <Text style={styles.periodoLabel}>ANO</Text>
+                <Text style={styles.periodoValue}>{dados.ano}</Text>
+              </View>
+            </View>
+
+            <View style={styles.infoGrid}>
+              <View style={styles.leftInfo}>
+                <Text style={styles.sectionBar}>UNIDADE ADMINISTRATIVA</Text>
+                <View style={styles.infoValueBox}>
+                  <Text style={styles.infoValue}>
+                    {normalizarTextoModelo(
+                      unidade?.nome?.trim() || unidade?.sigla || "-",
+                    )}
+                  </Text>
+                  <Text style={styles.infoValueSecondary}>
+                    {formatarSiglasUnidadeAdministrativa(unidade, orgaoSigla)}
+                  </Text>
+                </View>
+
+                <Text style={[styles.sectionBar, { marginTop: 5 }]}>
+                  NOME DO SERVIDOR
+                </Text>
+                <View style={styles.infoValueBox}>
+                  <Text style={styles.infoValue}>
+                    {servidor
+                      ? `${servidor.matricula}  - ${normalizarTextoModelo(
+                          nomeServidor(servidor) || "-",
+                        )}`
+                      : "-"}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.vistoBox}>
+                <Text style={styles.sectionBar}>VISTO DO DIRIGENTE (SOB CARIMBO)</Text>
+              </View>
+            </View>
+          </View>
+
+          <Text style={styles.controleBar}>CONTROLE DE FREQUÊNCIA</Text>
+          <TabelaFrequencia
+            ano={dados.ano}
+            mes={dados.mes}
+            marcacoesPorDia={marcacoesPorDia}
+            apuracoesPorDia={apuracoesPorDia}
+          />
+        </View>
+        {autenticacao ? (
+          <AutenticacaoDocumento autenticacao={autenticacao} />
+        ) : null}
+      </Page>
+    </Document>
+  );
+}
+
+function AutenticacaoDocumento({
+  autenticacao,
+}: {
+  autenticacao: DadosAutenticacaoDocumento;
+}) {
+  return (
+    <View style={styles.autenticacaoBox}>
+      {autenticacao.assinaturas.map((assinatura, indice) => (
+        <View
+          key={`${assinatura.tipo}-${assinatura.nome}-${indice}`}
+          style={styles.assinaturaLinha}
+        >
+          <View style={styles.assinaturaIcon}>
+            <CadeadoAssinatura />
+            <Text style={styles.assinaturaIconText}>SECP</Text>
+            <Text style={styles.assinaturaIconSmall}>assinatura eletrônica</Text>
+          </View>
+          <Text style={styles.assinaturaTexto}>
+            Documento assinado eletronicamente por{" "}
+            <Text style={styles.bold}>{assinatura.nome}</Text>
+            {assinatura.funcao ? <Text>, {assinatura.funcao}</Text> : null}
+            <Text>
+              , em {formatarDataHoraAssinatura(assinatura.data)} (
+              {assinatura.tipo}).
+            </Text>
+          </Text>
+        </View>
+      ))}
+      <View style={styles.autenticacaoQrRow}>
+        {/* eslint-disable-next-line jsx-a11y/alt-text */}
+        <Image src={autenticacao.qrCodeDataUrl} style={styles.qrCode} />
+        <Text style={styles.autenticacaoTexto}>
+          A autenticidade do documento pode ser conferida no site{" "}
+          {autenticacao.url} informando o código verificador{" "}
+          <Text style={styles.bold}>{autenticacao.codigo}</Text> e o código CRC{" "}
+          <Text style={styles.bold}>{autenticacao.crc}</Text>.
         </Text>
       </View>
-
-      <View style={{ paddingHorizontal: 12, paddingTop: 10 }}>
-        <View
-          style={{
-            borderTopWidth: 1,
-            borderTopColor: "#d6d6d6",
-            flexDirection: "row",
-            alignItems: "center",
-            minHeight: 92,
-            paddingTop: 8,
-            paddingBottom: 8,
-          }}
-        >
-          {/* eslint-disable-next-line jsx-a11y/alt-text */}
-          <Image
-            src={brasaoRepublica}
-            style={{ width: 84, height: 96, objectFit: "contain" }}
-          />
-          <View style={{ marginLeft: 10 }}>
-            <Text style={{ fontSize: 12, marginBottom: 5 }}>
-              PODER JUDICIÁRIO
-            </Text>
-            <Text style={{ fontSize: 12, marginBottom: 5 }}>
-              Tribunal Regional Federal da 1ª Região
-            </Text>
-            <Text style={{ fontSize: 12 }}>Espelho de Ponto</Text>
-          </View>
-        </View>
-
-        <View
-          style={{
-            borderWidth: 1,
-            borderColor: "#d6d6d6",
-            borderRadius: 3,
-            overflow: "hidden",
-          }}
-        >
-          <LinhaCabecalhoEspelho>
-            <Text>
-              Servidor:{" "}
-              <Text style={{ fontWeight: 700 }}>
-                {nomeServidor(servidor) || "-"} ({servidor?.matricula ?? "-"})
-              </Text>{" "}
-              CPF:{" "}
-              <Text style={{ fontWeight: 700 }}>
-                {formatarCpfEspelho(servidor?.cpf)}
-              </Text>
-            </Text>
-          </LinhaCabecalhoEspelho>
-
-          <LinhaCabecalhoEspelho>
-            <Text>
-              Cargo: <Text style={{ fontWeight: 700 }}>{cargo ?? "-"}</Text>
-            </Text>
-          </LinhaCabecalhoEspelho>
-
-          <LinhaCabecalhoEspelho>
-            <Text>
-              Lotação: <Text style={{ fontWeight: 700 }}>{lotacao}</Text>
-            </Text>
-          </LinhaCabecalhoEspelho>
-
-          <LinhaCabecalhoEspelho>
-            <Text>
-              Jornada: <Text style={{ fontWeight: 700 }}>{jornada}</Text>
-            </Text>
-          </LinhaCabecalhoEspelho>
-
-          <LinhaCabecalhoEspelho ultima>
-            <Text>
-              Competência:{" "}
-              <Text style={{ fontWeight: 700 }}>{competencia}</Text> Emissão:{" "}
-              <Text style={{ fontWeight: 700 }}>{emissao}</Text>
-            </Text>
-          </LinhaCabecalhoEspelho>
-        </View>
-      </View>
+      <Text style={styles.footerDoc}>
+        Espelho de ponto {autenticacao.codigo} - SECP
+      </Text>
     </View>
   );
 }
 
-function LinhaCabecalhoEspelho({
-  children,
-  ultima = false,
-}: {
-  children: ReactNode;
-  ultima?: boolean;
-}) {
+function CadeadoAssinatura() {
   return (
-    <View
-      style={{
-        borderBottomWidth: ultima ? 0 : 1,
-        borderBottomColor: "#d6d6d6",
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-      }}
-    >
-      <Text style={{ fontSize: 10, lineHeight: 1.25 }}>{children}</Text>
-    </View>
-  );
-}
-
-function formatarCpfEspelho(cpf?: string | null) {
-  const digitos = cpf?.replace(/\D/g, "") ?? "";
-
-  if (digitos.length !== 11) {
-    return "-";
-  }
-
-  return `${digitos.slice(0, 3)}.${digitos.slice(3, 6)}.${digitos.slice(
-    6,
-    9,
-  )}-${digitos.slice(9)}`;
-}
-function StatusIndicadorPdf({
-  conferencia,
-}: {
-  conferencia: ReturnType<typeof conferenciaEspelho>;
-}) {
-  const indicador =
-    conferencia.tom === "ok"
-      ? "ok"
-      : conferencia.tom === "alerta"
-        ? "alerta"
-        : "neutro";
-
-  return (
-    <View style={statusIndicadorBase}>
-      <StatusIconePdf tom={indicador} />
-    </View>
-  );
-}
-
-function StatusIconePdf({ tom }: { tom: "ok" | "alerta" | "neutro" }) {
-  if (tom === "ok") {
-    return (
-      <Svg width={14} height={14} viewBox="0 0 24 24">
-        <Path
-          d="M12 22C6.48 22 2 17.52 2 12S6.48 2 12 2s10 4.48 10 10-4.48 10-10 10Z"
-          fill="#059669"
-        />
-        <Path
-          d="m10.2 14.7-2.9-2.9-1.4 1.4 4.3 4.3 8-8-1.4-1.4-6.6 6.6Z"
-          fill="#ffffff"
-        />
-      </Svg>
-    );
-  }
-
-  if (tom === "alerta") {
-    return (
-      <Svg width={15} height={15} viewBox="0 0 24 24">
-        <Path d="M12 2 1 21h22L12 2Z" fill="#dc2626" />
-        <Path d="M11 8h2v6h-2V8Zm0 8h2v2h-2v-2Z" fill="#ffffff" />
-      </Svg>
-    );
-  }
-
-  return (
-    <Svg width={14} height={14} viewBox="0 0 24 24">
+    <Svg width={15} height={15} viewBox="0 0 24 24">
       <Path
-        d="M12 22C6.48 22 2 17.52 2 12S6.48 2 12 2s10 4.48 10 10-4.48 10-10 10Z"
-        fill="#d97706"
+        d="M7 10V8a5 5 0 0 1 10 0v2h1.2A1.8 1.8 0 0 1 20 11.8v7.4a1.8 1.8 0 0 1-1.8 1.8H5.8A1.8 1.8 0 0 1 4 19.2v-7.4A1.8 1.8 0 0 1 5.8 10H7Zm2 0h6V8a3 3 0 0 0-6 0v2Z"
+        fill={AZUL_MODELO}
       />
-      <Path d="M11 6h2v7h-2V6Zm1 8 5 3-1 1.7-6-3.6V14h2Z" fill="#ffffff" />
+      <Path
+        d="M12 13.2a1.6 1.6 0 0 1 .7 3.04V18h-1.4v-1.76A1.6 1.6 0 0 1 12 13.2Z"
+        fill="#ffffff"
+      />
     </Svg>
   );
 }
 
-function OcorrenciasDiaPdf({
-  ocultarVazio = false,
-  ocultarDispensaPonto = false,
-  ausente,
-  ausenciaParcial,
-  dispensaPonto,
-  diaInstitucional,
-  ocorrencias,
-  solicitacoes,
+function TabelaFrequencia({
+  ano,
+  mes,
+  marcacoesPorDia,
+  apuracoesPorDia,
 }: {
-  ocultarVazio?: boolean;
-  ocultarDispensaPonto?: boolean;
-  ausente: boolean;
-  ausenciaParcial: boolean;
-  dispensaPonto: boolean;
-  diaInstitucional: DiaInstitucionalEspelho | null;
-  ocorrencias: EspelhoPontoPdfProps["dados"]["apuracoes"][number]["ocorrencias"];
-  solicitacoes: SolicitacaoAplicadaEspelho[];
+  ano: number;
+  mes: number;
+  marcacoesPorDia: Map<string, MarcacaoPdfItem[]>;
+  apuracoesPorDia: Map<string, ApuracaoEspelhoPdfItem>;
 }) {
-  const itens = [
-    ...(diaInstitucional && !ehFimDeSemanaInstitucional(diaInstitucional)
-      ? [
-          {
-            chave: `dia-institucional-${diaInstitucional.tipo}`,
-            label: rotuloDiaInstitucional(diaInstitucional),
-            tipo: diaInstitucional.geraApuracaoRegular
-              ? ("alerta" as const)
-              : ("neutro" as const),
-          },
-        ]
-      : []),
-    ...(ausente
-      ? [{ chave: "ausencia", label: "Ausência", tipo: "erro" as const }]
-      : []),
-    ...(ausenciaParcial
-      ? [
-          {
-            chave: "ausencia-parcial",
-            label: "Ausência parcial",
-            tipo: "alerta" as const,
-          },
-        ]
-      : []),
-    ...(dispensaPonto && !ocultarDispensaPonto
-      ? [
-          {
-            chave: "dispensa-ponto",
-            label: "Dispensa de ponto",
-            tipo: "ok" as const,
-          },
-        ]
-      : []),
-    ...(ocorrencias ?? [])
-      .filter(
-        (ocorrencia) =>
-          !["FALTA", "DEBITO"].includes(ocorrencia.tipo) &&
-          !(
-            diaInstitucional &&
-            ["SEM_EXPEDIENTE", diaInstitucional.tipo].includes(ocorrencia.tipo)
-          ),
-      )
-      .map((ocorrencia, index) => ({
-        chave: `ocorrencia-${index}-${ocorrencia.tipo}`,
-        label: rotuloOcorrenciaEspelho(ocorrencia),
-        tipo:
-          ocorrencia.tipo === "CREDITO" ? ("ok" as const) : ("alerta" as const),
-      })),
-    ...solicitacoes
-      .filter(
-        (solicitacao) =>
-          ["ATIVIDADE_EXTERNA", "VIAGEM_SERVICO", "COMPENSACAO"].includes(
-            solicitacao.tipo,
-          ) ||
-          (solicitacao.tipo === "DISPENSA_PONTO" && !dispensaPonto),
-      )
-      .map((solicitacao) => ({
-        chave: solicitacao.id,
-        label: rotuloSolicitacaoEspelho(solicitacao.tipo),
-        tipo: "ok" as const,
-      })),
-  ];
-
-  if (itens.length === 0) {
-    if (ocultarVazio) {
-      return null;
-    }
-
-    return <Text>-</Text>;
-  }
+  const quantidadeDias = new Date(Date.UTC(ano, mes, 0)).getUTCDate();
+  const dias = Array.from({ length: quantidadeDias }, (_, indice) => indice + 1);
 
   return (
-    <View>
-      {itens.map((item) => (
-        <Text
-          key={item.chave}
-          style={[
-            badgeOcorrencia,
-            item.tipo === "erro"
-              ? {
-                  borderColor: "#fecaca",
-                  backgroundColor: "#fef2f2",
-                  color: "#991b1b",
-                }
-              : item.tipo === "alerta"
-                ? {
-                    borderColor: "#fde68a",
-                    backgroundColor: "#fffbeb",
-                    color: "#92400e",
-                  }
-                : item.tipo === "neutro"
-                  ? {
-                      borderColor: "#bfdbfe",
-                      backgroundColor: "#eff6ff",
-                      color: "#1e40af",
-                    }
-                  : {
-                      borderColor: "#a7f3d0",
-                      backgroundColor: "#ecfdf5",
-                      color: "#065f46",
-                    },
-          ]}
-        >
-          {item.label}
-        </Text>
-      ))}
+    <View style={styles.table}>
+      <View style={styles.tableHeader}>
+        <CabecalhoCelula width={colunas.dia}>DIA</CabecalhoCelula>
+        <CabecalhoCelula width={colunas.hora}>HORA DE{"\n"}CHEGADA</CabecalhoCelula>
+        <CabecalhoCelula width={colunas.hora}>HORA DE{"\n"}SAÍDA</CabecalhoCelula>
+        <CabecalhoCelula width={colunas.hora}>HORA DE{"\n"}CHEGADA</CabecalhoCelula>
+        <CabecalhoCelula width={colunas.hora}>HORA DE{"\n"}SAÍDA</CabecalhoCelula>
+        <CabecalhoCelula width={colunas.assinatura} ultimo>
+          ASSINATURA
+        </CabecalhoCelula>
+      </View>
+
+      {dias.map((dia) => {
+        const data = new Date(Date.UTC(ano, mes - 1, dia));
+        const chave = chaveDataReferenciaUtc(data);
+        const marcacoes = marcacoesPorDia.get(chave) ?? [];
+        const apuracao = apuracoesPorDia.get(chave) ?? null;
+        const horarios = distribuirMarcacoesNasColunas(marcacoes);
+        const observacao = obterObservacaoDia(data, apuracao);
+        const preencherComAsterisco =
+          observacao && marcacoes.length === 0 && !apuracao?.minutosTrabalhados;
+
+        return (
+          <View key={chave} style={styles.tableRow} wrap={false}>
+            <Celula width={colunas.dia}>
+              <Text style={styles.dayText}>{dia}</Text>
+            </Celula>
+            {horarios.map((horario, indice) => (
+              <Celula key={`${chave}-${indice}`} width={colunas.hora}>
+                <Text style={styles.timeText}>
+                  {horario || (preencherComAsterisco ? "*" : "")}
+                </Text>
+              </Celula>
+            ))}
+            <Celula width={colunas.assinatura} ultimo>
+              <Text style={styles.noteText}>{observacao}</Text>
+            </Celula>
+          </View>
+        );
+      })}
     </View>
   );
 }
 
-function marcacaoPossuiAjuste(marcacao: MarcacaoPdfItem) {
+function CabecalhoCelula({
+  width,
+  ultimo = false,
+  children,
+}: {
+  width: string;
+  ultimo?: boolean;
+  children: ReactNode;
+}) {
   return (
-    marcacao.status === "AJUSTADA" ||
-    marcacao.fonte === "MANUAL_ADMINISTRATIVO" ||
-    marcacao.tipo === "AJUSTE" ||
-    marcacao.tipo === "MANUAL"
+    <View style={[styles.headerCell, { width, borderRightWidth: ultimo ? 0 : 1 }]}>
+      <Text style={styles.headerText}>{children}</Text>
+    </View>
   );
 }
 
-function formatarMarcacaoPdf(marcacao: MarcacaoPdfItem) {
-  const hora = formatarHoraLocal(marcacao.dataHora, marcacao.fusoHorario);
+function Celula({
+  width,
+  ultimo = false,
+  children,
+}: {
+  width: string;
+  ultimo?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <View style={[styles.cell, { width, borderRightWidth: ultimo ? 0 : 0.7 }]}>
+      {children}
+    </View>
+  );
+}
 
-  return marcacaoPossuiAjuste(marcacao) ? `${hora}*` : hora;
+function distribuirMarcacoesNasColunas(marcacoes: MarcacaoPdfItem[]) {
+  const horarios: string[] = ["", "", "", ""];
+  const indicePorTipo: Record<string, number> = {
+    ENTRADA: 0,
+    SAIDA_INTERVALO: 1,
+    RETORNO_INTERVALO: 2,
+    SAIDA: 3,
+  };
+  const restantes: MarcacaoPdfItem[] = [];
+
+  for (const marcacao of marcacoes) {
+    const indice = indicePorTipo[marcacao.tipo];
+
+    if (indice === undefined || horarios[indice]) {
+      restantes.push(marcacao);
+      continue;
+    }
+
+    horarios[indice] = formatarHoraLocal(marcacao.dataHora, marcacao.fusoHorario);
+  }
+
+  for (const marcacao of restantes) {
+    const indiceLivre = horarios.findIndex((horario) => !horario);
+
+    if (indiceLivre < 0) {
+      break;
+    }
+
+    horarios[indiceLivre] = formatarHoraLocal(marcacao.dataHora, marcacao.fusoHorario);
+  }
+
+  return horarios;
+}
+
+function obterObservacaoDia(data: Date, apuracao: ApuracaoEspelhoPdfItem | null) {
+  if (apuracao) {
+    const diaInstitucional = extrairDiaInstitucional(apuracao.metadados);
+
+    if (diaInstitucional && !ehFimDeSemanaInstitucional(diaInstitucional)) {
+      return normalizarTextoModelo(rotuloDiaInstitucional(diaInstitucional));
+    }
+
+    const classificacao = classificarDiaEspelho(apuracao);
+    const solicitacaoIntegral = classificacao.solicitacoesAplicadas.find(
+      (solicitacao) => solicitacao.coberturaIntegral,
+    );
+
+    if (solicitacaoIntegral) {
+      return normalizarTextoModelo(rotuloSolicitacaoEspelho(solicitacaoIntegral.tipo));
+    }
+
+    const afastamento = apuracao.ocorrencias?.find(
+      (ocorrencia) => ocorrencia.tipo === "AFASTAMENTO",
+    );
+
+    if (afastamento) {
+      return normalizarTextoModelo(rotuloAfastamentoEspelho(afastamento.descricao));
+    }
+
+    const semJornada = apuracao.ocorrencias?.find(
+      (ocorrencia) => ocorrencia.tipo === "SEM_JORNADA",
+    );
+
+    if (semJornada) {
+      return "SEM JORNADA";
+    }
+  }
+
+  const diaSemana = data.getUTCDay();
+
+  if (diaSemana === 6) {
+    return "SÁBADO";
+  }
+
+  if (diaSemana === 0) {
+    return "DOMINGO";
+  }
+
+  return "";
+}
+
+function resolverNomeOficialOrgao(unidade?: UnidadeEspelho | null) {
+  const uf =
+    encontrarUfNaHierarquia(unidade) ??
+    ufsPorSiglaSecao[encontrarSiglaSecaoNaHierarquia(unidade) ?? ""];
+  const estado = uf ? estadosPorUf[uf] : null;
+
+  if (estado) {
+    return `JUSTIÇA FEDERAL DE 1ª INSTÂNCIA ${estado}`;
+  }
+
+  const nomeOrgao = unidade?.orgao?.nome?.trim();
+
+  if (nomeOrgao) {
+    return normalizarTextoModelo(nomeOrgao);
+  }
+
+  return "JUSTIÇA FEDERAL DE 1ª INSTÂNCIA";
+}
+
+function encontrarUfNaHierarquia(unidade?: UnidadeEspelho | null) {
+  let atual = unidade ?? null;
+  const visitados = new Set<UnidadeEspelho>();
+
+  while (atual && !visitados.has(atual)) {
+    visitados.add(atual);
+
+    if (atual.uf && estadosPorUf[atual.uf]) {
+      return atual.uf;
+    }
+
+    atual = atual.unidadePai ?? null;
+  }
+
+  return null;
+}
+
+function encontrarSiglaSecaoNaHierarquia(unidade?: UnidadeEspelho | null) {
+  let atual = unidade ?? null;
+  const visitados = new Set<UnidadeEspelho>();
+
+  while (atual && !visitados.has(atual)) {
+    visitados.add(atual);
+
+    if (ufsPorSiglaSecao[atual.sigla]) {
+      return atual.sigla;
+    }
+
+    atual = atual.unidadePai ?? null;
+  }
+
+  return null;
+}
+
+function formatarSiglasUnidadeAdministrativa(
+  unidade?: UnidadeEspelho | null,
+  orgaoSigla?: string | null,
+) {
+  if (!unidade) {
+    return "-";
+  }
+
+  const hierarquia = montarHierarquiaUnidade(unidade);
+  const hierarquiaNormalizada = normalizarCaminhoUnidadePorOrgao(
+    orgaoSigla,
+    hierarquia,
+  );
+  const primeiraUnidade = hierarquiaNormalizada[0]?.sigla.trim();
+  const siglaOrgao = orgaoSigla?.trim();
+  const partes: string[] = [];
+  const siglasHierarquia = [
+    primeiraUnidade === siglaOrgao ? null : siglaOrgao,
+    ...hierarquiaNormalizada.map((item) => item.sigla),
+  ];
+
+  for (const sigla of siglasHierarquia) {
+    const valor = sigla?.trim();
+
+    if (!valor || partes.at(-1) === valor) {
+      continue;
+    }
+
+    partes.push(valor);
+  }
+
+  return partes.join(" > ") || "-";
+}
+
+function normalizarCaminhoUnidadePorOrgao(
+  orgaoSigla: string | null | undefined,
+  unidades: UnidadeEspelho[],
+) {
+  const siglaOrgao = orgaoSigla?.trim();
+
+  if (!siglaOrgao) {
+    return unidades;
+  }
+
+  const indiceUnidadeOrgao = unidades.findIndex(
+    (unidade) => unidade.sigla.trim() === siglaOrgao,
+  );
+
+  return indiceUnidadeOrgao >= 0 ? unidades.slice(indiceUnidadeOrgao) : unidades;
+}
+
+function montarHierarquiaUnidade(unidade: UnidadeEspelho) {
+  const unidades: UnidadeEspelho[] = [];
+  const visitados = new Set<UnidadeEspelho>();
+  let atual: UnidadeEspelho | null | undefined = unidade;
+
+  while (atual && !visitados.has(atual)) {
+    visitados.add(atual);
+    unidades.unshift(atual);
+    atual = atual.unidadePai;
+  }
+
+  return unidades;
+}
+
+function normalizarTextoModelo(texto: string) {
+  return texto.trim().toLocaleUpperCase("pt-BR");
 }
 
 function agruparMarcacoesPorDia(marcacoes: MarcacaoPdfItem[]) {
@@ -897,28 +873,6 @@ function chaveDataReferenciaUtc(valor: Date | string) {
   }).format(data);
 }
 
-function formatarDataReferenciaPdf(valor: Date | string) {
-  const data = valor instanceof Date ? valor : new Date(valor);
-
-  if (Number.isNaN(data.getTime())) {
-    return "-";
-  }
-
-  const dataFormatada = new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeZone: "UTC",
-  }).format(data);
-  const diaSemana = new Intl.DateTimeFormat("pt-BR", {
-    weekday: "short",
-    timeZone: "UTC",
-  })
-    .format(data)
-    .replace(".", "")
-    .slice(0, 3);
-
-  return `${dataFormatada} - ${diaSemana}`;
-}
-
 function formatarHoraLocal(valor: Date | string, fusoHorario?: string | null) {
   const data = valor instanceof Date ? valor : new Date(valor);
 
@@ -930,6 +884,23 @@ function formatarHoraLocal(valor: Date | string, fusoHorario?: string | null) {
     hour: "2-digit",
     minute: "2-digit",
     timeZone: fusoHorario ?? "America/Manaus",
+  }).format(data);
+}
+
+function formatarDataHoraAssinatura(valor: Date | string) {
+  const data = valor instanceof Date ? valor : new Date(valor);
+
+  if (Number.isNaN(data.getTime())) {
+    return "--/--/---- --:--";
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Manaus",
   }).format(data);
 }
 
@@ -964,41 +935,6 @@ function extrairDiaInstitucional(
     contaComoDiaUtil: dados.contaComoDiaUtil === true,
     geraApuracaoRegular: dados.geraApuracaoRegular === true,
   };
-}
-
-function rotuloOcorrenciaEspelho(ocorrencia: {
-  tipo: string;
-  descricao?: string | null;
-}) {
-  if (ocorrencia.tipo === "AFASTAMENTO") {
-    return rotuloAfastamentoEspelho(ocorrencia.descricao);
-  }
-
-  const rotulos: Record<string, string> = {
-    MARCACAO_INCOMPLETA: "Marcações incompletas",
-    INTERVALO_INVALIDO: "Intervalo inválido",
-    CREDITO: "Crédito",
-    DEBITO: "Débito",
-    FALTA: "Falta",
-    SEM_JORNADA: "Sem jornada",
-    HORA_NAO_AUTORIZADA: "Hora fora do expediente",
-  };
-
-  return rotulos[ocorrencia.tipo] ?? ocorrencia.tipo.replaceAll("_", " ");
-}
-
-function rotuloAfastamentoEspelho(descricao?: string | null) {
-  const texto = descricao?.trim();
-
-  if (!texto) {
-    return "Afastamento";
-  }
-
-  return texto
-    .replace(/^Afastamento SARH:\s*/i, "")
-    .replace(/\s*Processo\/SEI:.*$/i, "")
-    .replace(/\.$/, "")
-    .trim();
 }
 
 function rotuloTipoDiaInstitucional(tipo: string) {
@@ -1040,56 +976,20 @@ function rotuloDiaInstitucional(dia: DiaInstitucionalEspelho) {
   return rotuloTipoDiaInstitucional(dia.tipo);
 }
 
-function encontrarJustificativaAusenciaMesclada(
-  solicitacoes: SolicitacaoAplicadaEspelho[],
-) {
-  const tiposJustificamAusencia = new Set([
-    "ABONO_JUSTIFICATIVA",
-    "ATIVIDADE_EXTERNA",
-    "VIAGEM_SERVICO",
-    "CAPACITACAO",
-    "COMPENSACAO",
-    "FOLGA_BANCO_HORAS",
-  ]);
+function rotuloAfastamentoEspelho(descricao?: string | null) {
+  const texto = descricao?.trim();
 
-  return (
-    solicitacoes.find(
-      (solicitacao) =>
-        solicitacao.coberturaIntegral &&
-        !solicitacao.trabalhoRemoto &&
-        tiposJustificamAusencia.has(solicitacao.tipo),
-    ) ?? null
-  );
+  if (!texto) {
+    return "Afastamento";
+  }
+
+  return texto
+    .replace(/^Afastamento SARH:\s*/i, "")
+    .replace(/\s*Processo\/SEI:.*$/i, "")
+    .replace(/\.$/, "")
+    .trim();
 }
 
 function ehFimDeSemanaInstitucional(dia: DiaInstitucionalEspelho | null) {
   return dia?.tipo === "SABADO" || dia?.tipo === "DOMINGO";
-}
-
-function extrairTrabalhoRemoto(metadados: unknown) {
-  if (!metadados || typeof metadados !== "object") {
-    return null;
-  }
-
-  const trabalhoRemoto = (metadados as { trabalhoRemoto?: unknown })
-    .trabalhoRemoto;
-
-  if (
-    !trabalhoRemoto ||
-    typeof trabalhoRemoto !== "object" ||
-    !(trabalhoRemoto as { ativo?: unknown }).ativo
-  ) {
-    return null;
-  }
-
-  const dados = trabalhoRemoto as {
-    regime?: unknown;
-    descricao?: unknown;
-  };
-
-  return {
-    regime: dados.regime === "HIBRIDO" ? "HIBRIDO" : "TOTAL",
-    descricao:
-      typeof dados.descricao === "string" ? dados.descricao : "Trabalho remoto",
-  };
 }

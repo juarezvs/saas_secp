@@ -4,6 +4,22 @@ import { rotuloStatusFechamento } from "@/modules/homologacao/application/servic
 
 export const runtime = "nodejs";
 
+function nomesHomologadoresServidores(
+  servidores: {
+    homologadoPor: {
+      nome: string;
+    } | null;
+  }[],
+) {
+  return Array.from(
+    new Set(
+      servidores
+        .map((servidor) => servidor.homologadoPor?.nome)
+        .filter((nome): nome is string => Boolean(nome)),
+    ),
+  ).join(", ");
+}
+
 export async function GET(request: Request) {
   const session = await auth();
 
@@ -39,7 +55,8 @@ export async function GET(request: Request) {
       fechamento.servidores.length,
       rotuloStatusFechamento(fechamento.status),
       fechamento.abertoPor.nome,
-      fechamento.homologadoPor?.nome ?? "",
+      fechamento.homologadoPor?.nome ||
+        nomesHomologadoresServidores(fechamento.servidores),
     ]),
   ];
 

@@ -49,7 +49,10 @@ export async function DashboardMaster() {
 
       <section className="grid gap-4 md:grid-cols-4">
         <DashboardAtalho href="/administracao" titulo="Administração" />
-        <DashboardAtalho href="/integracoes" titulo="Integrações" />
+        <DashboardAtalho
+          href="/administracao/integracoes"
+          titulo="Integrações"
+        />
         <DashboardAtalho href="/auditoria" titulo="Auditoria" />
         <DashboardAtalho href="/marcacoes-brutas" titulo="Marcações brutas" />
       </section>

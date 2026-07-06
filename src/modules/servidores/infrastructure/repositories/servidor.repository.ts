@@ -223,10 +223,12 @@ export async function listarServidoresParaExportacao(
   });
 }
 
-export async function listarServidoresParaFiltro(params: {
-  orgaoIdsPermitidos?: string[];
-  limite?: number;
-} = {}) {
+export async function listarServidoresParaFiltro(
+  params: {
+    orgaoIdsPermitidos?: string[];
+    limite?: number;
+  } = {},
+) {
   return prisma.servidor.findMany({
     where: {
       ativo: true,
@@ -267,9 +269,11 @@ export async function listarServidoresParaFiltro(params: {
   });
 }
 
-export async function listarLotacoesAtivasParaFiltro(params: {
-  orgaoIdsPermitidos?: string[];
-} = {}) {
+export async function listarLotacoesAtivasParaFiltro(
+  params: {
+    orgaoIdsPermitidos?: string[];
+  } = {},
+) {
   return prisma.unidadeOrganizacional.findMany({
     where: {
       ativo: true,
@@ -487,6 +491,38 @@ export async function listarAfastamentosServidorSarhPaginado(
     itensPorPagina,
     totalPaginas,
   };
+}
+
+export async function contarAfastamentosServidorSarhPorGrupo(
+  servidorId: string,
+  grupo: "ferias" | "outros",
+) {
+  if (!ehUuid(servidorId)) {
+    return 0;
+  }
+
+  const filtroFerias = {
+    OR: [
+      { categoria: { contains: "FERIAS", mode: "insensitive" as const } },
+      { tipoDescricao: { contains: "FERIAS", mode: "insensitive" as const } },
+      { origemTabela: { contains: "FERIAS", mode: "insensitive" as const } },
+      {
+        tipoAfastamento: {
+          OR: [
+            { categoria: { contains: "FERIAS", mode: "insensitive" as const } },
+            { descricao: { contains: "FERIAS", mode: "insensitive" as const } },
+          ],
+        },
+      },
+    ],
+  };
+
+  return prisma.afastamentoSarh.count({
+    where: {
+      servidorId,
+      ...(grupo === "ferias" ? filtroFerias : { NOT: filtroFerias }),
+    },
+  });
 }
 
 export async function contarAfastamentosServidorSarh(servidorId: string) {

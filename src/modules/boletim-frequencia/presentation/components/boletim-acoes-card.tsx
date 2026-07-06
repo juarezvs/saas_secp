@@ -25,12 +25,9 @@ export async function BoletimAcoesCard({
   podeEncaminhar: boolean;
   podeRegistrarSecap: boolean;
 }) {
-  const podeEncaminhar =
-    possuiPermissaoEncaminhar && status === "GERADO";
-  const podeReceber =
-    possuiPermissaoSecap && status === "ENCAMINHADO_SECAP";
-  const podeConferir =
-    possuiPermissaoSecap && status === "RECEBIDO_SECAP";
+  const podeEncaminhar = possuiPermissaoEncaminhar && status === "GERADO";
+  const podeReceber = possuiPermissaoSecap && status === "ENCAMINHADO_SECAP";
+  const podeConferir = possuiPermissaoSecap && status === "RECEBIDO_SECAP";
   const podeRegistrarSecap = podeReceber || podeConferir;
   const prazoEncaminhamento =
     await calcularPrazoEncaminhamentoBoletimCompetenciaComCalendario({
@@ -49,8 +46,8 @@ export async function BoletimAcoesCard({
         <div>
           <h2 className="text-lg font-bold">Ações do boletim</h2>
           <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
-            Registre o encaminhamento para a SECAP/NUCGP e, na etapa seguinte,
-            o recebimento ou conferência administrativa do boletim.
+            Registre o encaminhamento para a SECAP/NUCGP e, na etapa seguinte, o
+            recebimento ou conferência administrativa do boletim.
           </p>
         </div>
 
@@ -65,7 +62,7 @@ export async function BoletimAcoesCard({
         )}`}
       >
         <p className="font-semibold">
-          Prazo regulatorio de encaminhamento:{" "}
+          Prazo regulatório de encaminhamento:{" "}
           {formatarDataPrazoRegulatorio(prazoEncaminhamento.dataLimite)} (
           {rotuloSituacaoPrazoRegulatorio(prazoEncaminhamento.situacao)})
         </p>
@@ -80,7 +77,7 @@ export async function BoletimAcoesCard({
           <input type="hidden" name="boletimId" value={boletimId} />
 
           <div>
-            <h3 className="font-semibold">Encaminhar a SECAP/NUCGP</h3>
+            <h3 className="font-semibold">Encaminhar à SECAP/NUCGP</h3>
             <p className="mt-1 text-sm text-[var(--muted-foreground)]">
               Disponível quando o boletim estiver gerado pela chefia.
             </p>
@@ -103,7 +100,7 @@ export async function BoletimAcoesCard({
           <textarea
             name="observacao"
             rows={3}
-            placeholder="Observacao do encaminhamento"
+            placeholder="Observação do encaminhamento"
             disabled={!podeEncaminhar}
             className="w-full rounded-md border bg-[var(--card)] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
           />
@@ -126,8 +123,8 @@ export async function BoletimAcoesCard({
           <div>
             <h3 className="font-semibold">Registro SECAP/NUCGP</h3>
             <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-              Use esta etapa para confirmar recebimento e conferência do
-              boletim encaminhado.
+              Use esta etapa para confirmar recebimento e conferência do boletim
+              encaminhado.
             </p>
           </div>
 
@@ -138,9 +135,7 @@ export async function BoletimAcoesCard({
             className="h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
           >
             {podeReceber && (
-              <option value="RECEBIDO_SECAP">
-                Recebido pela SECAP/NUCGP
-              </option>
+              <option value="RECEBIDO_SECAP">Recebido pela SECAP/NUCGP</option>
             )}
             {podeConferir && <option value="CONFERIDO">Conferido</option>}
           </select>
@@ -148,7 +143,7 @@ export async function BoletimAcoesCard({
           <textarea
             name="observacao"
             rows={3}
-            placeholder="Observacao da conferência"
+            placeholder="Observação da conferência"
             disabled={!podeRegistrarSecap}
             className="w-full rounded-md border bg-[var(--card)] px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
           />

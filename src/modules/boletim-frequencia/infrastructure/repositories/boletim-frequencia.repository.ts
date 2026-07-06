@@ -213,11 +213,20 @@ export async function listarHistoricoBoletimFrequencia(boletimId: string) {
   });
 }
 
-export async function listarFechamentosHomologadosSemBoletim() {
+export async function listarFechamentosHomologadosSemBoletim(params?: {
+  unidadeIdsPermitidos?: string[];
+}) {
   return prisma.fechamentoMensalUnidade.findMany({
     where: {
       status: "HOMOLOGADO",
       boletimFrequencia: null,
+      ...(params?.unidadeIdsPermitidos
+        ? {
+            unidadeId: {
+              in: params.unidadeIdsPermitidos,
+            },
+          }
+        : {}),
     },
     include: {
       unidade: true,

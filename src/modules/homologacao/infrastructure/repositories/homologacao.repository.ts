@@ -94,6 +94,11 @@ const includeFechamentoListagem = {
     select: {
       id: true,
       status: true,
+      homologadoPor: {
+        select: {
+          nome: true,
+        },
+      },
     },
   },
 };
@@ -233,6 +238,14 @@ export async function buscarHomologacaoServidorPorId(id: string) {
       servidor: {
         include: {
           usuario: true,
+          lotacoes: {
+            where: {
+              status: "ATIVO",
+            },
+            select: {
+              unidadeId: true,
+            },
+          },
         },
       },
     },
@@ -272,7 +285,9 @@ export async function buscarHomologacaoServidorMes(params: {
   });
 }
 
-export async function verificarEnvioEspelhoServidor(homologacaoServidorMesId: string) {
+export async function verificarEnvioEspelhoServidor(
+  homologacaoServidorMesId: string,
+) {
   const envio = await prisma.auditoriaEvento.findFirst({
     where: {
       entidade: "HomologacaoServidorMes",

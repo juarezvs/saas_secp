@@ -1,12 +1,12 @@
 import { UsersRound } from "lucide-react";
 
-import { auth } from "@/auth";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   buscarCalendarioFeriasEquipe,
   buscarMinhaEquipe,
+  listarIdsUnidadesSubordinadasNaData,
 } from "@/modules/minha-equipe/infrastructure/repositories/minha-equipe.repository";
 import type {
   FeriasEquipeCalendarioDados,
@@ -77,7 +77,6 @@ export default async function MinhaEquipePage({
   const perfilAtivoCodigo = permissao.perfilAtivoCodigo?.toUpperCase() ?? "";
   const visualizarTodasEquipes = perfilAtivoCodigo !== "CHEFIA";
 
-  const session = await auth();
   const params = searchParams ? await searchParams : {};
   const data = normalizarData(params.data);
   const dataReferencia = parseDataReferencia(data);
@@ -101,20 +100,29 @@ export default async function MinhaEquipePage({
       maiorQuantidadeMes: 0,
     },
   };
-  const [dados, feriasEquipe] = session?.user
+  const idsSubordinados =
+    !visualizarTodasEquipes && permissao.usuarioId
+      ? await listarIdsUnidadesSubordinadasNaData({
+          usuarioId: permissao.usuarioId,
+          data: dataReferencia,
+        })
+      : [];
+  const [dados, feriasEquipe] = permissao.usuarioId
     ? await Promise.all([
         buscarMinhaEquipe({
-          usuarioId: session.user.id,
+          usuarioId: permissao.usuarioId,
           data: dataReferencia,
           unidadeIds,
           visualizarTodasEquipes,
+          idsSubordinados,
         }),
         buscarCalendarioFeriasEquipe({
-          usuarioId: session.user.id,
+          usuarioId: permissao.usuarioId,
           ano: anoFerias,
           dataReferencia,
           unidadeIds,
           visualizarTodasEquipes,
+          idsSubordinados,
         }),
       ])
     : [dadosVazios, feriasVazias];

@@ -9,7 +9,9 @@ export async function DashboardAuditor() {
     await Promise.all([
       prisma.auditoriaEvento.count(),
       prisma.marcacaoBruta.count(),
-      prisma.solicitacao.count({ where: { status: { in: ["ENVIADA", "EM_ANALISE"] } } }),
+      prisma.solicitacao.count({
+        where: { status: { in: ["ENVIADA", "EM_ANALISE"] } },
+      }),
       prisma.integracaoSistema.count({ where: { status: "ERRO" } }),
     ]);
 
@@ -51,7 +53,10 @@ export async function DashboardAuditor() {
         <DashboardAtalho href="/auditoria" titulo="Auditoria" />
         <DashboardAtalho href="/marcacoes-brutas" titulo="Marcações brutas" />
         <DashboardAtalho href="/solicitacoes" titulo="Solicitações" />
-        <DashboardAtalho href="/integracoes" titulo="Integrações" />
+        <DashboardAtalho
+          href="/administracao/integracoes"
+          titulo="Integrações"
+        />
       </section>
     </DashboardPerfilShell>
   );

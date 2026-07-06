@@ -35,7 +35,7 @@ function formatarDataHora(valor: Date) {
 function rotuloAcao(acao: string) {
   const mapa: Record<string, string> = {
     BOLETIM_FREQUENCIA_GERADO: "Boletim gerado",
-    BOLETIM_FREQUENCIA_ENCAMINHADO_SECAP: "Encaminhado a SECAP/NUCGP",
+    BOLETIM_FREQUENCIA_ENCAMINHADO_SECAP: "Encaminhado à SECAP/NUCGP",
     BOLETIM_FREQUENCIA_RECEBIDO_SECAP: "Recebido pela SECAP/NUCGP",
     BOLETIM_FREQUENCIA_CONFERIDO: "Conferido pela SECAP/NUCGP",
   };
@@ -50,11 +50,11 @@ export function BoletimHistoricoCard({
   const marcos = [
     {
       id: "gerado",
-      titulo: "Geracao do boletim",
+      titulo: "Geração do boletim",
       data: boletim.geradoEm,
       autor: boletim.geradoPor.nome,
       descricao:
-        "Consolidacao criada a partir do fechamento mensal homologado pela chefia.",
+        "Consolidação criada a partir do fechamento mensal homologado pela chefia.",
     },
     boletim.encaminhadoEm
       ? {

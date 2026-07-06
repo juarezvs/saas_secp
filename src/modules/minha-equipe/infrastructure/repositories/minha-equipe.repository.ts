@@ -42,11 +42,7 @@ export type MinhaEquipeDados = {
 };
 
 export type StatusFeriasEquipe =
-  | "PROGRAMADA"
-  | "GOZADA"
-  | "CANCELADA"
-  | "ALTERADA"
-  | "INATIVA";
+  "PROGRAMADA" | "GOZADA" | "CANCELADA" | "ALTERADA" | "INATIVA";
 
 export type FeriasEquipeItem = {
   id: string;
@@ -79,7 +75,7 @@ export type FeriasEquipeCalendarioDados = {
   resumo: FeriasEquipeResumo;
 };
 
-async function listarIdsUnidadesSubordinadasNaData(params: {
+export async function listarIdsUnidadesSubordinadasNaData(params: {
   usuarioId: string;
   data: Date;
 }) {
@@ -177,7 +173,9 @@ function filtroFeriasSarh() {
           is: {
             OR: [
               { categoria: { equals: "FERIAS", mode: "insensitive" as const } },
-              { descricao: { contains: "FERIAS", mode: "insensitive" as const } },
+              {
+                descricao: { contains: "FERIAS", mode: "insensitive" as const },
+              },
             ],
           },
         },
@@ -200,7 +198,8 @@ function contarFeriasPorMes(itens: FeriasEquipeItem[], ano: number) {
     const inicioMesSeguinte = new Date(Date.UTC(ano, mes + 1, 1));
 
     return itens.filter(
-      (item) => item.dataInicio < inicioMesSeguinte && item.dataFim >= inicioMes,
+      (item) =>
+        item.dataInicio < inicioMesSeguinte && item.dataFim >= inicioMes,
     ).length;
   });
 }
@@ -263,14 +262,16 @@ export async function buscarMinhaEquipe(params: {
   data: Date;
   unidadeIds?: string[];
   visualizarTodasEquipes?: boolean;
+  idsSubordinados?: string[];
 }): Promise<MinhaEquipeDados> {
   const escopo = params.visualizarTodasEquipes ? "global" : "chefia";
   const idsSubordinados = params.visualizarTodasEquipes
     ? []
-    : await listarIdsUnidadesSubordinadasNaData({
+    : (params.idsSubordinados ??
+      (await listarIdsUnidadesSubordinadasNaData({
         usuarioId: params.usuarioId,
         data: params.data,
-      });
+      })));
 
   if (!params.visualizarTodasEquipes && idsSubordinados.length === 0) {
     return {
@@ -307,7 +308,9 @@ export async function buscarMinhaEquipe(params: {
     idsValidos.has(id),
   );
   const idsFiltro =
-    unidadesSelecionadas.length > 0 ? unidadesSelecionadas : Array.from(idsValidos);
+    unidadesSelecionadas.length > 0
+      ? unidadesSelecionadas
+      : Array.from(idsValidos);
   const chefia = params.visualizarTodasEquipes
     ? null
     : await prisma.servidor.findUnique({
@@ -409,7 +412,10 @@ export async function buscarMinhaEquipe(params: {
     apuracoes.map((apuracao) => [apuracao.servidorId, apuracao]),
   );
   const afastamentoPorServidor = new Map(
-    afastamentos.map((afastamento) => [afastamento.servidorId ?? "", afastamento]),
+    afastamentos.map((afastamento) => [
+      afastamento.servidorId ?? "",
+      afastamento,
+    ]),
   );
 
   const itens = servidores.map((servidor): ServidorMinhaEquipe => {
@@ -423,7 +429,8 @@ export async function buscarMinhaEquipe(params: {
         ? marcacoesServidor[marcacoesServidor.length - 1]
         : null;
     const temPresenca =
-      marcacoesServidor.length > 0 || Number(apuracao?.minutosTrabalhados ?? 0) > 0;
+      marcacoesServidor.length > 0 ||
+      Number(apuracao?.minutosTrabalhados ?? 0) > 0;
     const status: StatusPresencaEquipe = afastamento
       ? "AFASTADO"
       : temPresenca
@@ -486,6 +493,7 @@ export async function buscarCalendarioFeriasEquipe(params: {
   dataReferencia?: Date;
   unidadeIds?: string[];
   visualizarTodasEquipes?: boolean;
+  idsSubordinados?: string[];
 }): Promise<FeriasEquipeCalendarioDados> {
   const escopo = params.visualizarTodasEquipes ? "global" : "chefia";
   const inicioAno = inicioAnoUtc(params.ano);
@@ -493,10 +501,11 @@ export async function buscarCalendarioFeriasEquipe(params: {
   const dataEscopo = params.dataReferencia ?? new Date();
   const idsSubordinados = params.visualizarTodasEquipes
     ? []
-    : await listarIdsUnidadesSubordinadasNaData({
+    : (params.idsSubordinados ??
+      (await listarIdsUnidadesSubordinadasNaData({
         usuarioId: params.usuarioId,
         data: dataEscopo,
-      });
+      })));
 
   if (!params.visualizarTodasEquipes && idsSubordinados.length === 0) {
     return {
@@ -526,14 +535,9 @@ export async function buscarCalendarioFeriasEquipe(params: {
     idsValidos.has(id),
   );
   const idsFiltro =
-    unidadesSelecionadas.length > 0 ? unidadesSelecionadas : Array.from(idsValidos);
-  const chefia = params.visualizarTodasEquipes
-    ? null
-    : await prisma.servidor.findUnique({
-        where: { usuarioId: params.usuarioId },
-        select: { id: true },
-      });
-
+    unidadesSelecionadas.length > 0
+      ? unidadesSelecionadas
+      : Array.from(idsValidos);
   if (idsFiltro.length === 0) {
     return {
       ano: params.ano,
@@ -565,7 +569,6 @@ export async function buscarCalendarioFeriasEquipe(params: {
       ],
       servidor: {
         ativo: true,
-        ...(chefia ? { id: { not: chefia.id } } : {}),
         usuario: { ativo: true },
         lotacoes: {
           some: lotacaoNoPeriodo,

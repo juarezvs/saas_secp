@@ -29,7 +29,7 @@ function prismaClientEstaAtualizado(client?: PrismaClient): client is PrismaClie
     return false;
   }
 
-  return "notificacaoLeitura" in client;
+  return "notificacaoLeitura" in client && "documentoAutenticacao" in client;
 }
 
 export const prisma: PrismaClient =

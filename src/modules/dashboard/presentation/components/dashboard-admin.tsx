@@ -134,7 +134,7 @@ export async function DashboardAdmin({ usuarioId }: { usuarioId: string }) {
         <Atalho href="/afd" titulo="Importar AFD" />
         <Atalho href="/marcacoes-brutas" titulo="Marcações brutas" />
         <Atalho href="/auditoria" titulo="Auditoria" />
-        <Atalho href="/integracoes" titulo="Integrações" />
+        <Atalho href="/administracao/integracoes" titulo="Integrações" />
         <Atalho href="/jornadas" titulo="Jornadas" />
         <Atalho href="/homologacao" titulo="Homologação" />
       </section>

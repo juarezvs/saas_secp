@@ -510,6 +510,7 @@ model Usuario {
   aceitesRecessoSecad              HomologacaoRecesso[]      @relation("AceitesRecessoSecadPorUsuario")
   sessoesCadastroFacial            SessaoCadastroFacial[]
   notificacoesLidas                NotificacaoLeitura[]
+  documentosAutenticacaoCriados    DocumentoAutenticacao[]   @relation("DocumentosAutenticacaoCriadosPorUsuario")
 
   @@map("usuarios")
 }
@@ -526,6 +527,42 @@ model NotificacaoLeitura {
   @@index([usuarioId])
   @@index([notificacaoId])
   @@map("notificacoes_lidas")
+}
+
+model DocumentoAutenticacao {
+  id String @id @default(uuid()) @db.Uuid
+
+  codigo        String @unique @db.VarChar(20)
+  crc           String @db.VarChar(12)
+  tipoDocumento String @map("tipo_documento") @db.VarChar(80)
+  entidade      String @db.VarChar(120)
+  entidadeId    String @map("entidade_id") @db.VarChar(120)
+
+  titulo            String  @db.VarChar(220)
+  competencia       String? @db.VarChar(20)
+  orgao             String? @db.VarChar(120)
+  unidade           String? @db.VarChar(180)
+  servidorNome      String? @map("servidor_nome") @db.VarChar(200)
+  servidorMatricula String? @map("servidor_matricula") @db.VarChar(50)
+
+  hashDocumento String @map("hash_documento") @db.VarChar(128)
+  dadosResumo   Json?  @map("dados_resumo")
+  assinaturas   Json?
+
+  criadoPorUsuarioId String?  @map("criado_por_usuario_id") @db.Uuid
+  criadoEm           DateTime @default(now()) @map("criado_em")
+  atualizadoEm       DateTime @updatedAt @map("atualizado_em")
+
+  criadoPor Usuario? @relation("DocumentosAutenticacaoCriadosPorUsuario", fields: [criadoPorUsuarioId], references: [id], onDelete: SetNull)
+
+  @@index([codigo])
+  @@index([crc])
+  @@index([tipoDocumento])
+  @@index([entidade, entidadeId])
+  @@index([tipoDocumento, entidade, entidadeId, competencia])
+  @@index([hashDocumento])
+  @@index([criadoEm])
+  @@map("documentos_autenticacao")
 }
 
 model Perfil {
@@ -564,8 +601,8 @@ model Permissao {
 model UsuarioPerfil {
   id String @id @default(uuid()) @db.Uuid
 
-  usuarioId String @map("usuario_id") @db.Uuid
-  perfilId  String @map("perfil_id") @db.Uuid
+  usuarioId String  @map("usuario_id") @db.Uuid
+  perfilId  String  @map("perfil_id") @db.Uuid
   orgaoId   String? @map("orgao_id") @db.Uuid
 
   ativo    Boolean  @default(true)
@@ -849,6 +886,8 @@ model Lotacao {
   @@index([codigoLotacaoSarh])
   @@index([origemSarh])
   @@index([status])
+  @@index([servidorId, status, dataInicio, dataFim])
+  @@index([unidadeId, status, dataInicio, dataFim])
   @@map("lotacoes")
 }
 
@@ -945,6 +984,8 @@ model AfastamentoSarh {
   @@index([cpf])
   @@index([dataInicio, dataFim])
   @@index([ativo])
+  @@index([servidorId, ativo, dataInicio, dataFim])
+  @@index([ativo, dataInicio, dataFim])
   @@map("afastamentos_sarh")
 }
 
@@ -970,6 +1011,8 @@ model GestorUnidade {
   @@index([unidadeId])
   @@index([servidorId])
   @@index([papel])
+  @@index([ativo, servidorId, dataInicio, dataFim])
+  @@index([ativo, unidadeId, dataInicio, dataFim])
   @@map("gestores_unidades")
 }
 
@@ -1100,6 +1143,7 @@ model JornadaServidor {
   @@index([escalaId])
   @@index([autorizadoPorUsuarioId])
   @@index([ativo])
+  @@index([servidorId, ativo, dataInicio, dataFim])
   @@map("jornadas_servidores")
 }
 
@@ -1143,6 +1187,9 @@ model Marcacao {
   @@index([tipo])
   @@index([fonte])
   @@index([status])
+  @@index([servidorId, dataReferencia, status, dataHora])
+  @@index([servidorId, dataHora])
+  @@index([dataHora, id])
   @@map("marcacoes")
 }
 
@@ -1185,6 +1232,7 @@ model ApuracaoDiaria {
   @@index([dataReferencia])
   @@index([resultado])
   @@index([status])
+  @@index([dataReferencia, servidorId])
   @@map("apuracoes_diarias")
 }
 
@@ -1272,6 +1320,8 @@ model MovimentoBancoHoras {
   @@index([mesReferencia, anoReferencia])
   @@index([tipo])
   @@index([status])
+  @@index([apuracaoDiariaId, status])
+  @@index([servidorId, anoReferencia, mesReferencia, status])
   @@map("banco_horas_movimentos")
 }
 
@@ -1452,6 +1502,7 @@ model HomologacaoServidorMes {
   @@index([fechamentoId])
   @@index([servidorId])
   @@index([status])
+  @@index([servidorId, status])
   @@map("homologacoes_servidores_meses")
 }
 
@@ -2002,6 +2053,12 @@ model MarcacaoBruta {
   @@index([equipamentoCodigo])
   @@index([servidorId])
   @@index([processada])
+  @@index([processada, dataHora, id])
+  @@index([origem, dataHora, id])
+  @@index([processada, origem, dataHora, id])
+  @@index([servidorId, processada, dataHora])
+  @@index([cpf, processada, dataHora])
+  @@index([matricula, processada, dataHora])
   @@map("marcacoes_brutas")
 }
 

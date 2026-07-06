@@ -177,8 +177,8 @@ export function DataTableToolbar({
                 name={filtro.nome}
                 label={filtro.label}
                 value={value}
-                onChange={(event) =>
-                  aplicarParametro(filtro.nome, event.target.value)
+                onValueChange={(novoValor) =>
+                  aplicarParametro(filtro.nome, novoValor)
                 }
                 className={filtro.className}
               />

@@ -18,6 +18,18 @@ type FechamentoExportacao = Awaited<
   ReturnType<typeof listarFechamentosMensaisParaExportacao>
 >[number];
 
+function nomesHomologadoresServidores(
+  servidores: FechamentoExportacao["servidores"],
+) {
+  return Array.from(
+    new Set(
+      servidores
+        .map((servidor) => servidor.homologadoPor?.nome)
+        .filter((nome): nome is string => Boolean(nome)),
+    ),
+  ).join(", ");
+}
+
 export async function GET(request: Request) {
   const session = await auth();
 
@@ -80,7 +92,11 @@ function HomologacaoPdfDocument({
           React.createElement(Text, { style: styles.cellUnidade }, "Unidade"),
           React.createElement(Text, { style: styles.cellServidores }, "Serv."),
           React.createElement(Text, { style: styles.cellStatus }, "Status"),
-          React.createElement(Text, { style: styles.cellUsuario }, "Aberto por"),
+          React.createElement(
+            Text,
+            { style: styles.cellUsuario },
+            "Aberto por",
+          ),
           React.createElement(
             Text,
             { style: styles.cellUsuario },
@@ -119,7 +135,9 @@ function HomologacaoPdfDocument({
             React.createElement(
               Text,
               { style: styles.cellUsuario },
-              fechamento.homologadoPor?.nome ?? "-",
+              fechamento.homologadoPor?.nome ||
+                nomesHomologadoresServidores(fechamento.servidores) ||
+                "-",
             ),
           ),
         ),

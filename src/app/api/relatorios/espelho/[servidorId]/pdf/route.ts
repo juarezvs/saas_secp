@@ -3,6 +3,7 @@ import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 
 import { auth } from "@/auth";
 import { registrarAuditoriaEvento } from "@/modules/auditoria/application/services/registrar-auditoria.service";
+import { prepararAutenticacaoEspelhoPonto } from "@/modules/documentos-autenticacao/application/services/documento-autenticacao.service";
 import { buscarDadosEspelhoPontoPdf } from "@/modules/relatorios/infrastructure/repositories/relatorios.repository";
 import { EspelhoPontoPdfDocument } from "@/modules/relatorios/presentation/pdf/espelho-ponto-pdf.document";
 
@@ -72,8 +73,15 @@ export async function GET(request: Request, context: RouteContext) {
     });
   }
 
+  const autenticacao = await prepararAutenticacaoEspelhoPonto({
+    dados,
+    requestUrl: request.url,
+    criadoPorUsuarioId: session.user.id,
+  });
+
   const documento = React.createElement(EspelhoPontoPdfDocument, {
     dados,
+    autenticacao,
   }) as ReactElement<DocumentProps>;
 
   const buffer = await renderToBuffer(documento);

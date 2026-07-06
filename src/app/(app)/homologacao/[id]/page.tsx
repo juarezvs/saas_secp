@@ -30,18 +30,41 @@ export default async function HomologacaoDetalhePage({
   }
 
   const permissoes = permissao.permissoes;
-  const podeGlobal =
+  const podeConsultarGlobal =
     permissoes.includes("homologacao:consultar:global") ||
     permissoes.includes("homologacao:gerenciar:global");
+  const podeGerenciarGlobal = permissoes.includes(
+    "homologacao:gerenciar:global",
+  );
+  const perfilChefiaAtivo =
+    permissao.perfilAtivoCodigo?.toUpperCase() === "CHEFIA";
+  const podeGerenciarComoChefia =
+    perfilChefiaAtivo || permissoes.includes("homologacao:gerenciar:chefia");
+  const unidadesSubordinadas = permissao.usuarioId
+    ? await listarIdsUnidadesSubordinadasPorUsuario(permissao.usuarioId)
+    : [];
+  const fechamentoEstaAbaixoDaChefia = unidadesSubordinadas.includes(
+    fechamento.unidadeId,
+  );
+  const servidorIdsAbaixoDaChefia = fechamento.servidores
+    .filter((item) =>
+      item.servidor.lotacoes.some((lotacao) =>
+        unidadesSubordinadas.includes(lotacao.unidadeId),
+      ),
+    )
+    .map((item) => item.servidorId);
+  const algumServidorEstaAbaixoDaChefia = servidorIdsAbaixoDaChefia.length > 0;
+  const podeRegistrarDecisao =
+    podeGerenciarGlobal ||
+    (podeGerenciarComoChefia &&
+      (fechamentoEstaAbaixoDaChefia || algumServidorEstaAbaixoDaChefia));
 
-  if (!podeGlobal && permissao.usuarioId) {
-    const unidadesSubordinadas = await listarIdsUnidadesSubordinadasPorUsuario(
-      permissao.usuarioId,
-    );
-
-    if (!unidadesSubordinadas.includes(fechamento.unidadeId)) {
-      redirect("/acesso-negado");
-    }
+  if (
+    !podeConsultarGlobal &&
+    !fechamentoEstaAbaixoDaChefia &&
+    !algumServidorEstaAbaixoDaChefia
+  ) {
+    redirect("/acesso-negado");
   }
 
   return (
@@ -70,6 +93,10 @@ export default async function HomologacaoDetalhePage({
         anoReferencia={fechamento.anoReferencia}
         mesReferencia={fechamento.mesReferencia}
         servidores={fechamento.servidores}
+        podeRegistrarDecisao={podeRegistrarDecisao}
+        servidorIdsPermitidosDecisao={
+          podeGerenciarGlobal ? undefined : servidorIdsAbaixoDaChefia
+        }
       />
     </div>
   );
