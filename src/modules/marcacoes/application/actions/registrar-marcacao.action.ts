@@ -205,7 +205,7 @@ export async function registrarMarcacaoAction(
         dataReferencia,
         fusoHorario,
         tipo: classificacao.tipo,
-        fonte: "WEB",
+        fonte: "BIOMETRIA_FACIAL",
         status: "VALIDA",
         latitude: decimalOuNull(parsed.data.latitude),
         longitude: decimalOuNull(parsed.data.longitude),

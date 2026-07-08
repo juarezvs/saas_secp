@@ -5,6 +5,7 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { SearchableSelect } from "@/components/ui";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
+import { perfilAtivoEhChefia } from "@/modules/auth/application/services/perfil-chefia.service";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   recalcularApuracaoDiaAction,
@@ -25,6 +26,8 @@ export default async function ApuracaoPage() {
     "apuracao:consultar:proprio",
     "apuracao:consultar:global",
     "apuracao:recalcular:global",
+    "homologacao:gerenciar:chefia",
+    "minha-equipe:consultar:chefia",
   ]);
 
   const session = await auth();
@@ -38,20 +41,35 @@ export default async function ApuracaoPage() {
   const podeRecalcularGlobal = permissao.permissoes.includes(
     "apuracao:recalcular:global",
   );
+  const perfilChefiaAtivo = perfilAtivoEhChefia({
+    perfilAtivoCodigo: permissao.perfilAtivoCodigo,
+    permissoes: permissao.permissoes,
+  });
+  const podeRecalcularChefia =
+    perfilChefiaAtivo &&
+    (permissao.permissoes.includes("homologacao:gerenciar:chefia") ||
+      permissao.permissoes.includes("minha-equipe:consultar:chefia"));
+  const podeRecalcularPeriodo = podeRecalcularGlobal || podeRecalcularChefia;
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
-  const servidoresAdministrativos = podeRecalcularGlobal
-    ? permissao.perfilAtivoCodigo === "CHEFIA"
-      ? await listarServidoresParaEspelhoPonto({
-          usuarioId: session?.user.id,
-          escopo: "chefia",
-        })
-      : await listarServidoresParaFiltro({
-          orgaoIdsPermitidos: escopoOrgao.global ? undefined : escopoOrgao.orgaoIds,
-        })
+  const servidoresChefia = perfilChefiaAtivo
+    ? await listarServidoresParaEspelhoPonto({
+        usuarioId: session?.user.id,
+        escopo: "chefia",
+      })
     : [];
+  const servidoresAdministrativos = podeRecalcularGlobal
+    ? await listarServidoresParaFiltro({
+        orgaoIdsPermitidos: escopoOrgao.global ? undefined : escopoOrgao.orgaoIds,
+      })
+    : podeRecalcularChefia
+      ? [
+          ...(servidor ? [servidor] : []),
+          ...servidoresChefia.filter((item) => item.id !== servidor?.id),
+        ]
+      : [];
   const servidoresOptions = servidoresAdministrativos.map((item) => {
     const nome = nomeServidor(item) || item.matricula;
-    const lotacao = item.lotacoes[0]?.unidade;
+    const lotacao = "lotacoes" in item ? item.lotacoes[0]?.unidade : null;
 
     return {
       value: item.id,
@@ -82,7 +100,7 @@ export default async function ApuracaoPage() {
         regraDescricao="A apuração compara as horas efetivamente trabalhadas com a carga horaria prevista, permitindo identificar crédito, débito e inconsistências."
       />
 
-      {servidor ? (
+      {servidor && !podeRecalcularPeriodo ? (
         <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
           <h2 className="text-lg font-bold">{nomeServidor(servidor)}</h2>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
@@ -110,13 +128,13 @@ export default async function ApuracaoPage() {
             </button>
           </form>
         </section>
-      ) : (
+      ) : !servidor ? (
         <section className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
           Nenhum servidor ativo foi encontrado para o usuário autenticado.
         </section>
-      )}
+      ) : null}
 
-      {podeRecalcularGlobal && (
+      {podeRecalcularPeriodo && (
         <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
           <h2 className="text-lg font-bold">Recalcular servidor por período</h2>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">

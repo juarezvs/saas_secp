@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 
-import { CompetenciaInput, SearchableSelect, Skeleton } from "@/components/ui";
+import { CompetenciaInput, SearchableSelect } from "@/components/ui";
 
 type ServidorOpcao = {
   value: string;
@@ -17,7 +17,6 @@ type EspelhoPontoFiltrosAutoProps = {
   podeSelecionarServidor?: boolean;
   mostrarServidor?: boolean;
   className?: string;
-  skeletonClassName?: string;
 };
 
 function competenciaValida(valor: string) {
@@ -31,7 +30,6 @@ export function EspelhoPontoFiltrosAuto({
   podeSelecionarServidor = false,
   mostrarServidor = false,
   className = "grid gap-4 md:grid-cols-[1fr_220px] md:items-end",
-  skeletonClassName = "grid gap-3 md:grid-cols-[1fr_220px]",
 }: EspelhoPontoFiltrosAutoProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -70,7 +68,7 @@ export function EspelhoPontoFiltrosAuto({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="relative min-h-[4.625rem]">
       <div className={className} aria-busy={pendente}>
         {mostrarServidor && (
           <div>
@@ -103,9 +101,11 @@ export function EspelhoPontoFiltrosAuto({
       </div>
 
       {pendente && (
-        <div className={skeletonClassName}>
-          {mostrarServidor && <Skeleton className="h-10" />}
-          <Skeleton className="h-10" />
+        <div
+          className="pointer-events-none absolute inset-x-0 -bottom-2 h-1 overflow-hidden rounded-full bg-muted"
+          aria-hidden="true"
+        >
+          <div className="h-full w-1/3 animate-pulse rounded-full bg-secp-blue-700" />
         </div>
       )}
     </div>

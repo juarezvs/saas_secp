@@ -1,5 +1,9 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
+type EscopoServidoresRecesso = {
+  servidorIdsPermitidos?: string[];
+};
+
 export async function listarRecessosForenses() {
   return prisma.recessoForense.findMany({
     orderBy: { ano: "desc" },
@@ -11,13 +15,32 @@ export async function listarRecessosForenses() {
   });
 }
 
-export async function buscarRecessoForensePorId(id: string) {
+export async function buscarRecessoForensePorId(
+  id: string,
+  params: EscopoServidoresRecesso = {},
+) {
+  const filtroServidores = params.servidorIdsPermitidos
+    ? { servidorId: { in: params.servidorIdsPermitidos } }
+    : {};
+  const filtroConvocacoes = params.servidorIdsPermitidos
+    ? {
+        convocados: {
+          some: {
+            servidorId: {
+              in: params.servidorIdsPermitidos,
+            },
+          },
+        },
+      }
+    : {};
+
   return prisma.recessoForense.findUnique({
     where: { id },
     include: {
       criadoPor: true,
       fechadoPor: true,
       convocacoes: {
+        where: filtroConvocacoes,
         orderBy: { criadoEm: "desc" },
         include: {
           unidade: true,
@@ -27,6 +50,7 @@ export async function buscarRecessoForensePorId(id: string) {
             },
           },
           convocados: {
+            where: filtroServidores,
             include: {
               servidor: {
                 include: {
@@ -44,6 +68,7 @@ export async function buscarRecessoForensePorId(id: string) {
         },
       },
       convocados: {
+        where: filtroServidores,
         include: {
           servidor: {
             include: {
@@ -60,6 +85,7 @@ export async function buscarRecessoForensePorId(id: string) {
         orderBy: [{ dataConvocacao: "asc" }],
       },
       homologacoes: {
+        where: filtroServidores,
         include: {
           servidor: {
             include: { usuario: true },
@@ -106,9 +132,16 @@ export async function listarUnidadesParaRecesso() {
   });
 }
 
-export async function listarServidoresParaRecesso() {
+export async function listarServidoresParaRecesso(
+  params: EscopoServidoresRecesso = {},
+) {
   return prisma.servidor.findMany({
-    where: { ativo: true },
+    where: {
+      ativo: true,
+      ...(params.servidorIdsPermitidos
+        ? { id: { in: params.servidorIdsPermitidos } }
+        : {}),
+    },
     include: {
       usuario: true,
       lotacoes: {
@@ -166,6 +199,57 @@ export async function listarRecessosDoServidor(usuarioId: string) {
       },
       homologacoes: {
         where: { servidorId: servidor.id },
+      },
+    },
+    orderBy: { ano: "desc" },
+  });
+}
+
+export async function listarRecessosPorServidores(servidorIds: string[]) {
+  return prisma.recessoForense.findMany({
+    where: {
+      OR: [
+        {
+          convocados: {
+            some: {
+              servidorId: {
+                in: servidorIds,
+              },
+            },
+          },
+        },
+        {
+          status: {
+            in: ["ABERTO", "EM_CONVOCACAO", "EM_EXECUCAO"],
+          },
+        },
+      ],
+    },
+    include: {
+      convocacoes: {
+        where: {
+          convocados: {
+            some: {
+              servidorId: {
+                in: servidorIds,
+              },
+            },
+          },
+        },
+      },
+      convocados: {
+        where: {
+          servidorId: {
+            in: servidorIds,
+          },
+        },
+      },
+      homologacoes: {
+        where: {
+          servidorId: {
+            in: servidorIds,
+          },
+        },
       },
     },
     orderBy: { ano: "desc" },

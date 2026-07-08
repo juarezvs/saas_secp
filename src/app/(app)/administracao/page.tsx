@@ -1,13 +1,19 @@
 import Link from "next/link";
 import {
   Building2,
+  CalendarClock,
   CalendarDays,
   Cpu,
+  FileCheck2,
   KeyRound,
+  Network,
   Settings,
   ShieldAlert,
   ShieldCheck,
   SlidersHorizontal,
+  ToggleLeft,
+  Upload,
+  Users,
   UsersRound,
 } from "lucide-react";
 
@@ -28,6 +34,13 @@ export default async function AdministracaoPage() {
       : href;
 
   const cards = [
+    {
+      titulo: "Liberação de Rotinas",
+      descricao:
+        "Controle quais rotinas ficam disponíveis para uso, mesmo quando já constam nos perfis.",
+      href: "/administracao/liberacao-rotinas",
+      icon: ToggleLeft,
+    },
     {
       titulo: "Perfis e permissões",
       descricao:
@@ -52,6 +65,41 @@ export default async function AdministracaoPage() {
       descricao: "Gerencie a estrutura organizacional da JFAM.",
       href: hrefComOrgao("/unidades"),
       icon: Building2,
+    },
+    {
+      titulo: "Servidores",
+      descricao:
+        "Gerencie servidores, vínculos funcionais, usuários relacionados e lotações.",
+      href: hrefComOrgao("/servidores"),
+      icon: Users,
+    },
+    {
+      titulo: "Chefias",
+      descricao:
+        "Gerencie gestores, substitutos, delegações e responsáveis por unidades.",
+      href: hrefComOrgao("/chefias"),
+      icon: Network,
+    },
+    {
+      titulo: "Jornadas",
+      descricao:
+        "Cadastre jornadas, escalas e atribuições aplicáveis aos servidores.",
+      href: hrefComOrgao("/jornadas"),
+      icon: CalendarClock,
+    },
+    {
+      titulo: "AFD",
+      descricao:
+        "Importe arquivos AFD de equipamentos biométricos e acompanhe o processamento.",
+      href: "/afd",
+      icon: Upload,
+    },
+    {
+      titulo: "Apuração",
+      descricao:
+        "Consulte e recalcule apurações diárias e mensais de frequência.",
+      href: hrefComOrgao("/apuracao"),
+      icon: FileCheck2,
     },
     {
       titulo: "Regulamentação do ponto",

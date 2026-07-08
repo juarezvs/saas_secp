@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarRange, FileCheck2, Plus, Users } from "lucide-react";
+import { CalendarDays, CalendarRange, FileCheck2, Plus } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
@@ -99,9 +99,9 @@ export function RecessoForenseDashboardReal({
         </article>
 
         <article className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
-          <Users className="size-5 text-blue-900 dark:text-blue-300" />
+          <CalendarDays className="size-5 text-blue-900 dark:text-blue-300" />
           <p className="mt-3 text-sm text-[var(--muted-foreground)]">
-            Convocados
+            Dias convocados
           </p>
           <h2 className="mt-1 text-xl font-bold">
             {ativo?.convocados.length ?? 0}
@@ -133,7 +133,7 @@ export function RecessoForenseDashboardReal({
                   {visualizacaoServidor ? "Pecúnia" : "Convocações"}
                 </th>
                 <th className="px-5 py-3">
-                  {visualizacaoServidor ? "Folga" : "Convocados"}
+                  {visualizacaoServidor ? "Folga" : "Dias convocados"}
                 </th>
                 {!visualizacaoServidor && (
                   <th className="px-5 py-3">Ações</th>

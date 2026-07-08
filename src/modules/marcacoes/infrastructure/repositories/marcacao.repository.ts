@@ -143,11 +143,15 @@ export async function listarMarcacoesDoUsuarioNoDia(usuarioId: string) {
 export async function listarUltimasMarcacoes(params?: {
   limite?: number;
   servidorId?: string | null;
+  servidorIdsPermitidos?: string[];
 }) {
   return prisma.marcacao.findMany({
     take: params?.limite ?? 50,
     where: {
       ...(params?.servidorId ? { servidorId: params.servidorId } : {}),
+      ...(!params?.servidorId && params?.servidorIdsPermitidos !== undefined
+        ? { servidorId: { in: params.servidorIdsPermitidos } }
+        : {}),
     },
     orderBy: {
       dataHora: "desc",
@@ -217,10 +221,15 @@ export async function listarUltimasMarcacoes(params?: {
   });
 }
 
-export async function listarServidoresParaFiltroMarcacoes() {
+export async function listarServidoresParaFiltroMarcacoes(params?: {
+  servidorIdsPermitidos?: string[];
+}) {
   return prisma.servidor.findMany({
     where: {
       ativo: true,
+      ...(params?.servidorIdsPermitidos !== undefined
+        ? { id: { in: params.servidorIdsPermitidos } }
+        : {}),
     },
     orderBy: [{ nomeFuncional: "asc" }, { matricula: "asc" }],
     select: {

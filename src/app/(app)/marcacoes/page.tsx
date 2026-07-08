@@ -4,8 +4,10 @@ import { Clock, Clock3, Plus, Save, Trash2 } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { SearchableSelect } from "@/components/ui";
+import { perfilAtivoEhChefia } from "@/modules/auth/application/services/perfil-chefia.service";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { PERMISSOES_ACESSO_REGISTRO_PONTO_SECP } from "@/modules/auth/domain/constants/perfis-sistema";
+import { listarServidoresParaEspelhoPonto } from "@/modules/apuracao/infrastructure/repositories/apuracao.repository";
 import { obterRotuloTipoMarcacao } from "@/modules/marcacoes/application/services/classificar-marcacao.service";
 import { formatarDataHoraPtBr } from "@/modules/marcacoes/application/services/data-marcacao.service";
 import {
@@ -148,6 +150,8 @@ export default async function MarcacoesPage({
       "marcacoes:consultar:proprio",
       "marcacoes:visualizar:proprio",
       "marcacoes:consultar:global",
+      "homologacao:gerenciar:chefia",
+      "minha-equipe:consultar:chefia",
     ]),
     searchParams,
   ]);
@@ -155,29 +159,63 @@ export default async function MarcacoesPage({
   const permissoes = permissao.permissoes;
   const perfilCodigo = permissao.perfilAtivoCodigo;
   const podeConsultarGlobal = permissoes.includes("marcacoes:consultar:global");
-  const podeFiltrarServidor =
-    podeConsultarGlobal && perfilCodigo !== "SERVIDOR";
-  const servidorIdFiltro = podeFiltrarServidor
-    ? params?.servidorId || null
-    : null;
+  const perfilChefiaAtivo = perfilAtivoEhChefia({
+    perfilAtivoCodigo: perfilCodigo,
+    permissoes,
+  });
+  const podeConsultarEscopoChefia =
+    perfilChefiaAtivo &&
+    (permissoes.includes("homologacao:gerenciar:chefia") ||
+      permissoes.includes("minha-equipe:consultar:chefia"));
+  const podeConsultarLista = podeConsultarGlobal || podeConsultarEscopoChefia;
+  const podeFiltrarServidor = podeConsultarLista && perfilCodigo !== "SERVIDOR";
   const podeRegistrarPontoPeloSecp = PERMISSOES_ACESSO_REGISTRO_PONTO_SECP.some(
     (permissao) => permissoes.includes(permissao),
   );
+  const servidoresChefia =
+    podeConsultarEscopoChefia && permissao.usuarioId
+      ? await listarServidoresParaEspelhoPonto({
+          usuarioId: permissao.usuarioId,
+          escopo: "chefia",
+        })
+      : [];
   const [
     podeManterMarcacoesNutec,
     marcacoesUsuarioResultado,
-    ultimasMarcacoes,
-    servidoresFiltro,
   ] = await Promise.all([
     permissao.usuarioId ? usuarioEhNutec(permissao.usuarioId) : false,
     permissao.usuarioId
       ? listarMarcacoesDoUsuarioNoDia(permissao.usuarioId)
-      : Promise.resolve({ marcacoes: [] }),
-    podeConsultarGlobal
-      ? listarUltimasMarcacoes({ limite: 30, servidorId: servidorIdFiltro })
+      : Promise.resolve({ servidor: null, marcacoes: [] }),
+  ]);
+  const servidorProprio = marcacoesUsuarioResultado.servidor;
+  const servidorIdsPermitidosChefia = podeConsultarEscopoChefia
+    ? Array.from(
+        new Set([
+          ...(servidorProprio ? [servidorProprio.id] : []),
+          ...servidoresChefia.map((servidor) => servidor.id),
+        ]),
+      )
+    : undefined;
+  const servidorIdParam = params?.servidorId || null;
+  const servidorIdFiltro =
+    podeFiltrarServidor &&
+    (!servidorIdsPermitidosChefia ||
+      servidorIdsPermitidosChefia.includes(servidorIdParam ?? ""))
+      ? servidorIdParam
+      : null;
+  const [ultimasMarcacoes, servidoresFiltro] = await Promise.all([
+    podeConsultarLista
+      ? listarUltimasMarcacoes({
+          limite: 30,
+          servidorId: servidorIdFiltro,
+          servidorIdsPermitidos: servidorIdsPermitidosChefia,
+        })
       : Promise.resolve([]),
     podeFiltrarServidor
-      ? listarServidoresParaFiltroMarcacoes()
+      ? listarServidoresParaFiltroMarcacoes({
+          servidorIdsPermitidos: servidorIdsPermitidosChefia,
+        })
       : Promise.resolve([]),
   ]);
   const podeExcluirMarcacoes =
@@ -213,7 +251,7 @@ export default async function MarcacoesPage({
 
       <MarcacoesDiaCard marcacoes={marcacoes} />
 
-      {podeConsultarGlobal && (
+      {podeConsultarLista && (
         <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
           <div className="flex flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-2">

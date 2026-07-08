@@ -5,6 +5,7 @@ import { ArrowLeft, CalendarRange } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { resolverEscopoServidoresRecesso } from "@/modules/recesso-forense/application/services/escopo-recesso-forense.service";
 import {
   atualizarConvocacaoRecessoAction,
   criarConvocacaoRecessoAction,
@@ -29,27 +30,38 @@ export default async function RecessoConvocacoesPage({
   params,
   searchParams,
 }: RecessoConvocacoesPageProps) {
-  await exigirUmaDasPermissoesOuRedirecionar([
+  const permissao = await exigirUmaDasPermissoesOuRedirecionar([
     "recesso:convocacao:gerenciar",
     "recesso:gerenciar:global",
+    "recesso:homologar:chefia",
   ]);
 
   const { id } = await params;
   const filtros = await searchParams;
+  const escopoRecesso = await resolverEscopoServidoresRecesso(permissao);
+  const podeGerenciarPortarias =
+    !escopoRecesso.restrito &&
+    (permissao.permissoes.includes("recesso:convocacao:gerenciar") ||
+      permissao.permissoes.includes("recesso:gerenciar:global"));
   const [recesso, unidades, servidores] = await Promise.all([
-    buscarRecessoForensePorId(id),
+    buscarRecessoForensePorId(id, {
+      servidorIdsPermitidos: escopoRecesso.servidorIdsPermitidos,
+    }),
     listarUnidadesParaRecesso(),
-    listarServidoresParaRecesso(),
+    listarServidoresParaRecesso({
+      servidorIdsPermitidos: escopoRecesso.servidorIdsPermitidos,
+    }),
   ]);
 
   if (!recesso) {
     notFound();
   }
 
-  const convocacaoSelecionada =
-    recesso.convocacoes.find(
-      (convocacao) => convocacao.id === filtros.convocacao,
-    ) ?? null;
+  const convocacaoSelecionada = podeGerenciarPortarias
+    ? recesso.convocacoes.find(
+        (convocacao) => convocacao.id === filtros.convocacao,
+      ) ?? null
+    : null;
 
   return (
     <div className="space-y-6">
@@ -79,22 +91,26 @@ export default async function RecessoConvocacoesPage({
         }
       />
 
-      <ConvocacaoRecessoForm
-        key={convocacaoSelecionada?.id ?? "nova"}
-        recessoId={recesso.id}
-        action={
-          convocacaoSelecionada
-            ? atualizarConvocacaoRecessoAction
-            : criarConvocacaoRecessoAction
-        }
-        unidades={unidades}
-        servidores={servidores}
-        convocacao={convocacaoSelecionada ?? undefined}
-      />
+      {podeGerenciarPortarias && (
+        <ConvocacaoRecessoForm
+          key={convocacaoSelecionada?.id ?? "nova"}
+          recessoId={recesso.id}
+          action={
+            convocacaoSelecionada
+              ? atualizarConvocacaoRecessoAction
+              : criarConvocacaoRecessoAction
+          }
+          unidades={unidades}
+          servidores={servidores}
+          convocacao={convocacaoSelecionada ?? undefined}
+        />
+      )}
 
       <ConvocacoesRecessoPanel
         recesso={recesso}
         servidores={servidores}
+        podeEditarPortaria={podeGerenciarPortarias}
+        podeGerenciarConvocados={!escopoRecesso.perfilServidor}
         edicao={{
           convocacaoId: filtros.convocacao,
           servidorId: filtros.servidor,

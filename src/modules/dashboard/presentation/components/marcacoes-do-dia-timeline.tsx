@@ -78,7 +78,7 @@ export function MarcacoesDoDiaTimeline({
       </div>
 
       {previsao && (
-        <footer className="mt-3 border-t border-border pt-3">
+        <footer className="mt-3 flex flex-col border-t border-border pt-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <p className="text-xs font-bold uppercase text-muted-foreground">
@@ -92,7 +92,7 @@ export function MarcacoesDoDiaTimeline({
           </div>
 
           {previsao.saidaEstimada && (
-            <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-3 text-amber-950 shadow-sm dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+            <div className="order-last mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-3 text-amber-950 shadow-sm dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
               <div className="flex items-start gap-3">
                 <span className="rounded-md bg-amber-200 p-2 text-amber-900 dark:bg-amber-900 dark:text-amber-100">
                   <Clock3 className="size-4" aria-hidden="true" />

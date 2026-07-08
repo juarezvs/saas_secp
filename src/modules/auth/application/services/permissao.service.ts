@@ -3,7 +3,10 @@ import { auth } from "@/auth";
 import { PermissaoNegadaError } from "@/shared/domain/errors/permissao-negada.error";
 import { buscarUsuarioParaLoginPorMatricula } from "../../infrastructure/repositories/usuario-auth.repository";
 import { escolherPerfilInicial } from "./perfil-servidor-prioritario.service";
-import { usuarioPossuiPermissaoNoPerfil } from "./permissao-utils";
+import {
+  possuiPermissaoNaLista,
+  usuarioPossuiPermissaoNoPerfil,
+} from "./permissao-utils";
 
 export {
   possuiAlgumaPermissaoNaLista,
@@ -76,10 +79,13 @@ export async function usuarioPossuiPermissao(
     return false;
   }
 
-  return usuarioPossuiPermissaoNoPerfil(
-    resultado.perfilAtivoCodigo,
-    resultado.permissoes,
-    permissao,
+  return (
+    possuiPermissaoNaLista(resultado.permissoes, permissao) &&
+    usuarioPossuiPermissaoNoPerfil(
+      resultado.perfilAtivoCodigo,
+      resultado.permissoes,
+      permissao,
+    )
   );
 }
 
@@ -91,6 +97,7 @@ export async function exigirPermissao(permissao: string) {
   }
 
   if (
+    !possuiPermissaoNaLista(resultado.permissoes, permissao) ||
     !usuarioPossuiPermissaoNoPerfil(
       resultado.perfilAtivoCodigo,
       resultado.permissoes,

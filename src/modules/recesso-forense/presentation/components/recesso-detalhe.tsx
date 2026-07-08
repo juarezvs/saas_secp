@@ -39,6 +39,9 @@ type RecessoDetalheProps = {
     }>;
     homologacoes: unknown[];
   };
+  visualizacaoRestrita?: boolean;
+  visualizacaoServidor?: boolean;
+  visualizacaoChefia?: boolean;
 };
 
 function agruparConvocadosRecesso(recesso: RecessoDetalheProps["recesso"]) {
@@ -103,8 +106,15 @@ function statusConsolidado(statuses: string[]) {
   return unicos.length === 1 ? unicos[0] : "MISTO";
 }
 
-export function RecessoDetalhe({ recesso }: RecessoDetalheProps) {
+export function RecessoDetalhe({
+  recesso,
+  visualizacaoRestrita = false,
+  visualizacaoServidor = false,
+  visualizacaoChefia = false,
+}: RecessoDetalheProps) {
   const convocadosAgrupados = agruparConvocadosRecesso(recesso);
+  const podeAcessarGestao = !visualizacaoServidor && visualizacaoChefia;
+  const podeGerenciarRecesso = !visualizacaoRestrita;
 
   return (
     <div className="space-y-6">
@@ -119,34 +129,53 @@ export function RecessoDetalhe({ recesso }: RecessoDetalheProps) {
         icon={CalendarRange}
         titulo={`Recesso ${recesso.ano}`}
         descricao={formatarPeriodoRecesso(recesso.dataInicio, recesso.dataFim)}
-        artigo="Módulo próprio"
+        artigo="Modulo proprio"
         regraTitulo="Fechamento separado"
-        regraDescricao="Dezembro e janeiro devem ser fechados separadamente pelo servidor antes da homologação."
+        regraDescricao="Dezembro e janeiro devem ser fechados separadamente pelo servidor antes da homologacao."
         actions={
           <div className="flex flex-wrap gap-2">
-            <Link className="rounded-md border px-4 py-2 text-sm font-semibold hover:bg-[var(--muted)]" href={`/recesso-forense/${recesso.id}/convocacoes`}>
-              Convocações
-            </Link>
-            <Link className="rounded-md border px-4 py-2 text-sm font-semibold hover:bg-[var(--muted)]" href={`/recesso-forense/${recesso.id}/espelho`}>
+            {(podeGerenciarRecesso || podeAcessarGestao) && (
+              <Link
+                className="rounded-md border px-4 py-2 text-sm font-semibold hover:bg-[var(--muted)]"
+                href={`/recesso-forense/${recesso.id}/convocacoes`}
+              >
+                Convocacoes
+              </Link>
+            )}
+            <Link
+              className="rounded-md border px-4 py-2 text-sm font-semibold hover:bg-[var(--muted)]"
+              href={`/recesso-forense/${recesso.id}/espelho`}
+            >
               Espelho
             </Link>
-            <Link className="rounded-md border px-4 py-2 text-sm font-semibold hover:bg-[var(--muted)]" href={`/recesso-forense/${recesso.id}/homologacao`}>
-              Homologação
-            </Link>
-            <form action={fecharRecessoForenseAction}>
-              <input type="hidden" name="recessoId" value={recesso.id} />
-              <button
-                type="submit"
-                className="rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-950"
+            {(podeGerenciarRecesso || visualizacaoChefia) && (
+              <Link
+                className="rounded-md border px-4 py-2 text-sm font-semibold hover:bg-[var(--muted)]"
+                href={`/recesso-forense/${recesso.id}/homologacao`}
               >
-                Fechar recesso
-              </button>
-            </form>
+                Homologacao
+              </Link>
+            )}
+            {podeGerenciarRecesso && (
+              <form action={fecharRecessoForenseAction}>
+                <input type="hidden" name="recessoId" value={recesso.id} />
+                <button
+                  type="submit"
+                  className="rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-950"
+                >
+                  Fechar recesso
+                </button>
+              </form>
+            )}
           </div>
         }
       />
 
-      <section className="grid gap-4 md:grid-cols-4">
+      <section
+        className={`grid gap-4 ${
+          visualizacaoRestrita ? "md:grid-cols-3" : "md:grid-cols-4"
+        }`}
+      >
         <article className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
           <p className="text-sm text-[var(--muted-foreground)]">Status</p>
           <div className="mt-2">
@@ -158,14 +187,16 @@ export function RecessoDetalhe({ recesso }: RecessoDetalheProps) {
           <p className="mt-3 text-sm text-[var(--muted-foreground)]">Convocados</p>
           <h2 className="mt-1 text-xl font-bold">{recesso.convocados.length}</h2>
         </article>
-        <article className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
-          <CalendarRange className="size-5 text-blue-900 dark:text-blue-300" />
-          <p className="mt-3 text-sm text-[var(--muted-foreground)]">Portarias</p>
-          <h2 className="mt-1 text-xl font-bold">{recesso.convocacoes.length}</h2>
-        </article>
+        {!visualizacaoRestrita && (
+          <article className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
+            <CalendarRange className="size-5 text-blue-900 dark:text-blue-300" />
+            <p className="mt-3 text-sm text-[var(--muted-foreground)]">Portarias</p>
+            <h2 className="mt-1 text-xl font-bold">{recesso.convocacoes.length}</h2>
+          </article>
+        )}
         <article className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
           <FileCheck2 className="size-5 text-blue-900 dark:text-blue-300" />
-          <p className="mt-3 text-sm text-[var(--muted-foreground)]">Homologações</p>
+          <p className="mt-3 text-sm text-[var(--muted-foreground)]">Homologacoes</p>
           <h2 className="mt-1 text-xl font-bold">{recesso.homologacoes.length}</h2>
         </article>
       </section>
@@ -181,15 +212,17 @@ export function RecessoDetalhe({ recesso }: RecessoDetalheProps) {
           <div>
             <h2 className="text-lg font-bold">Servidores convocados</h2>
             <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-              Resumo consolidado das escolhas registradas para todo o recesso.
+              Resumo consolidado das escolhas registradas para o escopo permitido.
             </p>
           </div>
-          <Link
-            href={`/recesso-forense/${recesso.id}/convocacoes`}
-            className="rounded-md border px-4 py-2 text-sm font-semibold hover:bg-[var(--muted)]"
-          >
-            Gerenciar convocações
-          </Link>
+          {(podeGerenciarRecesso || podeAcessarGestao) && (
+            <Link
+              href={`/recesso-forense/${recesso.id}/convocacoes`}
+              className="rounded-md border px-4 py-2 text-sm font-semibold hover:bg-[var(--muted)]"
+            >
+              Gerenciar convocacoes
+            </Link>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -199,7 +232,7 @@ export function RecessoDetalhe({ recesso }: RecessoDetalheProps) {
                 <th className="px-5 py-3">Servidor</th>
                 <th className="px-5 py-3">Unidade</th>
                 <th className="px-5 py-3">Portaria</th>
-                <th className="px-5 py-3">Pecúnia</th>
+                <th className="px-5 py-3">Pecunia</th>
                 <th className="px-5 py-3">Folga</th>
                 <th className="px-5 py-3">Status</th>
               </tr>

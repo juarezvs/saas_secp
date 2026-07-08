@@ -5,7 +5,11 @@ import { auth } from "@/auth";
 import { normalizarDataReferencia } from "../services/calcular-tempo.service";
 import { recalcularDiaEBancoHorasServidorService } from "@/modules/recalculo/application/services/recalcular-dia-e-banco-horas-servidor.service";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
-import { buscarServidorComUsuarioPorUsuarioId } from "../../infrastructure/repositories/apuracao.repository";
+import { perfilAtivoEhChefia } from "@/modules/auth/application/services/perfil-chefia.service";
+import {
+  buscarServidorComUsuarioPorUsuarioId,
+  listarServidoresParaEspelhoPonto,
+} from "../../infrastructure/repositories/apuracao.repository";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 export async function recalcularApuracaoDiaAction(formData: FormData) {
@@ -19,7 +23,9 @@ export async function recalcularApuracaoDiaAction(formData: FormData) {
 
   const podeRecalcular =
     permissoes.includes("apuracao:recalcular:global") ||
-    permissoes.includes("apuracao:consultar:proprio");
+    permissoes.includes("apuracao:consultar:proprio") ||
+    permissoes.includes("homologacao:gerenciar:chefia") ||
+    permissoes.includes("minha-equipe:consultar:chefia");
 
   if (!podeRecalcular) {
     return;
@@ -33,6 +39,22 @@ export async function recalcularApuracaoDiaAction(formData: FormData) {
   }
 
   const dataReferencia = normalizarDataReferencia(new Date(`${data}T00:00:00`));
+  const permitido = await usuarioPodeRecalcularServidor({
+    usuarioId: session.user.id,
+    perfilAtivoCodigo: session.user.perfilAtivo?.codigo,
+    servidorId,
+    permissoes,
+  });
+
+  if (!permitido) {
+    return;
+  }
+
+  await verificarPeriodoPodeSerRecalculado({
+    servidorId,
+    dataInicio: dataReferencia,
+    dataFim: dataReferencia,
+  });
 
   await recalcularDiaEBancoHorasServidorService({
     servidorId,
@@ -57,6 +79,7 @@ function parseDataFormulario(valor: string) {
 
 async function usuarioPodeRecalcularServidor(params: {
   usuarioId: string;
+  perfilAtivoCodigo?: string | null;
   servidorId: string;
   permissoes: string[];
 }) {
@@ -79,10 +102,141 @@ async function usuarioPodeRecalcularServidor(params: {
 
   if (params.permissoes.includes("apuracao:consultar:proprio")) {
     const servidor = await buscarServidorComUsuarioPorUsuarioId(params.usuarioId);
-    return servidor?.id === params.servidorId;
+    if (servidor?.id === params.servidorId) {
+      return true;
+    }
+  }
+
+  if (
+    perfilAtivoEhChefia({
+      perfilAtivoCodigo: params.perfilAtivoCodigo,
+      permissoes: params.permissoes,
+    })
+  ) {
+    const [servidorProprio, servidoresChefia] = await Promise.all([
+      buscarServidorComUsuarioPorUsuarioId(params.usuarioId),
+      listarServidoresParaEspelhoPonto({
+        usuarioId: params.usuarioId,
+        escopo: "chefia",
+      }),
+    ]);
+
+    return (
+      servidorProprio?.id === params.servidorId ||
+      servidoresChefia.some((servidor) => servidor.id === params.servidorId)
+    );
   }
 
   return false;
+}
+
+function competenciasNoPeriodo(dataInicio: Date, dataFim: Date) {
+  const competencias = new Map<string, { anoReferencia: number; mesReferencia: number }>();
+  const cursor = new Date(
+    Date.UTC(dataInicio.getUTCFullYear(), dataInicio.getUTCMonth(), 1),
+  );
+  const ultimo = new Date(
+    Date.UTC(dataFim.getUTCFullYear(), dataFim.getUTCMonth(), 1),
+  );
+
+  while (cursor <= ultimo) {
+    const anoReferencia = cursor.getUTCFullYear();
+    const mesReferencia = cursor.getUTCMonth() + 1;
+    competencias.set(`${anoReferencia}-${mesReferencia}`, {
+      anoReferencia,
+      mesReferencia,
+    });
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+  }
+
+  return Array.from(competencias.values());
+}
+
+async function verificarPeriodoPodeSerRecalculado(params: {
+  servidorId: string;
+  dataInicio: Date;
+  dataFim: Date;
+}) {
+  const competencias = competenciasNoPeriodo(params.dataInicio, params.dataFim);
+
+  for (const competencia of competencias) {
+    const inicioMes = new Date(
+      Date.UTC(competencia.anoReferencia, competencia.mesReferencia - 1, 1),
+    );
+    const fimMes = new Date(
+      Date.UTC(competencia.anoReferencia, competencia.mesReferencia, 1),
+    );
+    const homologacao = await prisma.homologacaoServidorMes.findFirst({
+      where: {
+        servidorId: params.servidorId,
+        fechamento: {
+          anoReferencia: competencia.anoReferencia,
+          mesReferencia: competencia.mesReferencia,
+        },
+      },
+      select: {
+        status: true,
+        fechamento: {
+          select: {
+            status: true,
+          },
+        },
+      },
+    });
+
+    if (!homologacao) {
+      continue;
+    }
+
+    if (
+      ["HOMOLOGADO", "HOMOLOGADO_COM_RESSALVA"].includes(homologacao.status) ||
+      homologacao.fechamento.status !== "ABERTO"
+    ) {
+      throw new Error(
+        "Não é possível recalcular período com competência homologada ou fechada.",
+      );
+    }
+
+    const fechamentoUnidade = await prisma.fechamentoMensalUnidade.findFirst({
+      where: {
+        anoReferencia: competencia.anoReferencia,
+        mesReferencia: competencia.mesReferencia,
+        status: {
+          not: "ABERTO",
+        },
+        unidade: {
+          lotacoes: {
+            some: {
+              servidorId: params.servidorId,
+              status: "ATIVO",
+              dataInicio: {
+                lt: fimMes,
+              },
+              OR: [
+                {
+                  dataFim: null,
+                },
+                {
+                  dataFim: {
+                    gte: inicioMes,
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (fechamentoUnidade) {
+      throw new Error(
+        "Não é possível recalcular período com competência homologada ou fechada.",
+      );
+    }
+  }
 }
 
 export async function recalcularApuracaoPeriodoAction(formData: FormData) {
@@ -103,6 +257,7 @@ export async function recalcularApuracaoPeriodoAction(formData: FormData) {
 
   const permitido = await usuarioPodeRecalcularServidor({
     usuarioId: session.user.id,
+    perfilAtivoCodigo: session.user.perfilAtivo?.codigo,
     servidorId,
     permissoes,
   });
@@ -110,6 +265,12 @@ export async function recalcularApuracaoPeriodoAction(formData: FormData) {
   if (!permitido) {
     return;
   }
+
+  await verificarPeriodoPodeSerRecalculado({
+    servidorId,
+    dataInicio,
+    dataFim,
+  });
 
   const cursor = new Date(dataInicio);
 

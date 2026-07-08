@@ -9,6 +9,7 @@ export type ListarServidoresParams = {
   nome?: string;
   orgaoId?: string;
   orgaoIdsPermitidos?: string[];
+  servidorIdsPermitidos?: string[];
   vinculo?: string;
   lotacao?: string;
   status?: string;
@@ -28,8 +29,18 @@ export function montarWhereServidores(params: ListarServidoresParams) {
   const busca = params.busca?.trim();
   const orgaoId = params.orgaoId?.trim();
   const orgaoIdsPermitidos = params.orgaoIdsPermitidos?.filter(ehUuid);
+  const servidorIdsPermitidos = params.servidorIdsPermitidos?.filter(ehUuid);
+  const filtrarPorServidorIds = params.servidorIdsPermitidos !== undefined;
 
   return {
+    ...(filtrarPorServidorIds
+      ? {
+          id: {
+            in: servidorIdsPermitidos ?? [],
+          },
+        }
+      : {}),
+
     ...(params.status === "ativo"
       ? { ativo: true }
       : params.status === "inativo"
@@ -226,6 +237,7 @@ export async function listarServidoresParaExportacao(
 export async function listarServidoresParaFiltro(
   params: {
     orgaoIdsPermitidos?: string[];
+    servidorIdsPermitidos?: string[];
     limite?: number;
   } = {},
 ) {
@@ -235,6 +247,9 @@ export async function listarServidoresParaFiltro(
       usuario: { ativo: true },
       ...(params.orgaoIdsPermitidos?.length
         ? { orgaoId: { in: params.orgaoIdsPermitidos } }
+        : {}),
+      ...(params.servidorIdsPermitidos !== undefined
+        ? { id: { in: params.servidorIdsPermitidos.filter(ehUuid) } }
         : {}),
     },
     select: {
@@ -272,6 +287,7 @@ export async function listarServidoresParaFiltro(
 export async function listarLotacoesAtivasParaFiltro(
   params: {
     orgaoIdsPermitidos?: string[];
+    servidorIdsPermitidos?: string[];
   } = {},
 ) {
   return prisma.unidadeOrganizacional.findMany({
@@ -280,7 +296,12 @@ export async function listarLotacoesAtivasParaFiltro(
       lotacoes: {
         some: {
           status: "ATIVO",
-          servidor: { ativo: true },
+          servidor: {
+            ativo: true,
+            ...(params.servidorIdsPermitidos !== undefined
+              ? { id: { in: params.servidorIdsPermitidos.filter(ehUuid) } }
+              : {}),
+          },
         },
       },
       ...(params.orgaoIdsPermitidos?.length

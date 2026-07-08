@@ -2,6 +2,7 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 import { normalizarPreferenciasAcessibilidade } from "../../application/services/preferencias-acessibilidade.service";
 import { aplicarExcecoesRegistroPontoAoPerfilServidor } from "../../application/services/perfil-excecao-registro-ponto.service";
 import { escolherPerfilInicial } from "../../application/services/perfil-servidor-prioritario.service";
+import { filtrarPermissoesLiberadas } from "@/modules/rotinas/application/services/liberacao-rotinas.service";
 import { perfilEhAdministradorSistema } from "../../domain/constants/perfis-sistema";
 import type {
   PerfilSessao,
@@ -122,8 +123,14 @@ export async function buscarUsuarioParaLoginPorMatricula(
         : perfil,
   );
 
-  const perfis = aplicarExcecoesRegistroPontoAoPerfilServidor(
+  const perfisComExcecoes = aplicarExcecoesRegistroPontoAoPerfilServidor(
     perfisComPermissoesExpandidas,
+  );
+  const perfis = await Promise.all(
+    perfisComExcecoes.map(async (perfil) => ({
+      ...perfil,
+      permissoes: await filtrarPermissoesLiberadas(perfil.permissoes),
+    })),
   );
 
   const perfilAtivo = escolherPerfilInicial({

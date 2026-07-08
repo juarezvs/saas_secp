@@ -122,7 +122,37 @@ function deduplicarAssinaturas(assinaturas: AssinaturaDocumentoAutenticacao[]) {
   return Array.from(mapa.values());
 }
 
+function normalizarUrlBase(valor?: string | null) {
+  const url = valor?.trim();
+
+  if (!url) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(url);
+
+    if (parsed.hostname === "0.0.0.0" || parsed.hostname === "::") {
+      return null;
+    }
+
+    return `${parsed.protocol}//${parsed.host}`;
+  } catch {
+    return null;
+  }
+}
+
 function urlBaseAplicacao(requestUrl: string) {
+  const urlPublica =
+    normalizarUrlBase(process.env.SECP_PUBLIC_URL) ??
+    normalizarUrlBase(process.env.NEXT_PUBLIC_APP_URL) ??
+    normalizarUrlBase(process.env.AUTH_URL) ??
+    normalizarUrlBase(process.env.NEXTAUTH_URL);
+
+  if (urlPublica) {
+    return urlPublica;
+  }
+
   const url = new URL(requestUrl);
   return `${url.protocol}//${url.host}`;
 }

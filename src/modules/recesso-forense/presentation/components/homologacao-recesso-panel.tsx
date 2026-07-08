@@ -21,17 +21,23 @@ type HomologacaoRecessoPanelProps = {
       usuario: { nome: string };
     };
   }>;
+  podeHomologar?: boolean;
+  podeAceitarSecad?: boolean;
 };
 
 export function HomologacaoRecessoPanel({
   homologacoes,
+  podeHomologar = true,
+  podeAceitarSecad = true,
 }: HomologacaoRecessoPanelProps) {
+  const exibirAcoes = podeHomologar || podeAceitarSecad;
+
   return (
     <section className="rounded-xl border bg-[var(--card)] shadow-sm">
       <div className="border-b p-5">
-        <h2 className="text-lg font-bold">Homologações do recesso</h2>
+        <h2 className="text-lg font-bold">Homologacoes do recesso</h2>
         <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-          Chefia homologa e SECAD aceita antes dos relatórios SEPAG/SECAP.
+          Chefia homologa e SECAD aceita antes dos relatorios SEPAG/SECAP.
         </p>
       </div>
 
@@ -40,12 +46,12 @@ export function HomologacaoRecessoPanel({
           <thead className="border-b bg-[var(--muted)] text-xs uppercase text-[var(--muted-foreground)]">
             <tr>
               <th className="px-5 py-3">Servidor</th>
-              <th className="px-5 py-3">Mês</th>
+              <th className="px-5 py-3">Mes</th>
               <th className="px-5 py-3">Status</th>
               <th className="px-5 py-3">Dias</th>
-              <th className="px-5 py-3">Pecúnia</th>
+              <th className="px-5 py-3">Pecunia</th>
               <th className="px-5 py-3">Folga</th>
-              <th className="px-5 py-3">Ações</th>
+              {exibirAcoes && <th className="px-5 py-3">Acoes</th>}
             </tr>
           </thead>
           <tbody>
@@ -68,36 +74,47 @@ export function HomologacaoRecessoPanel({
                 <td className="px-5 py-4">{homologacao.totalDiasConvocados}</td>
                 <td className="px-5 py-4">{homologacao.diasPecunia}</td>
                 <td className="px-5 py-4">{homologacao.diasFolga}</td>
-                <td className="px-5 py-4">
-                  <div className="flex flex-col gap-2">
-                    <form action={homologarRecessoAction} className="flex gap-2">
-                      <input type="hidden" name="homologacaoId" value={homologacao.id} />
-                      <input type="hidden" name="observacaoChefia" value="" />
-                      <button className="rounded-md border px-3 py-1 text-xs font-semibold hover:bg-[var(--muted)]">
-                        Homologar
-                      </button>
-                    </form>
-                    <form action={devolverHomologacaoRecessoAction} className="flex gap-2">
-                      <input type="hidden" name="homologacaoId" value={homologacao.id} />
-                      <input type="hidden" name="observacaoChefia" value="Devolvido para ajuste." />
-                      <button className="rounded-md border px-3 py-1 text-xs font-semibold hover:bg-[var(--muted)]">
-                        Devolver
-                      </button>
-                    </form>
-                    <form action={aceitarRecessoSecadAction} className="flex gap-2">
-                      <input type="hidden" name="homologacaoId" value={homologacao.id} />
-                      <input type="hidden" name="observacaoSecad" value="" />
-                      <button className="rounded-md bg-blue-900 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-950">
-                        Aceite SECAD
-                      </button>
-                    </form>
-                  </div>
-                </td>
+                {exibirAcoes && (
+                  <td className="px-5 py-4">
+                    <div className="flex flex-col gap-2">
+                      {podeHomologar && (
+                        <>
+                          <form action={homologarRecessoAction} className="flex gap-2">
+                            <input type="hidden" name="homologacaoId" value={homologacao.id} />
+                            <input type="hidden" name="observacaoChefia" value="" />
+                            <button className="rounded-md border px-3 py-1 text-xs font-semibold hover:bg-[var(--muted)]">
+                              Homologar
+                            </button>
+                          </form>
+                          <form action={devolverHomologacaoRecessoAction} className="flex gap-2">
+                            <input type="hidden" name="homologacaoId" value={homologacao.id} />
+                            <input type="hidden" name="observacaoChefia" value="Devolvido para ajuste." />
+                            <button className="rounded-md border px-3 py-1 text-xs font-semibold hover:bg-[var(--muted)]">
+                              Devolver
+                            </button>
+                          </form>
+                        </>
+                      )}
+                      {podeAceitarSecad && (
+                        <form action={aceitarRecessoSecadAction} className="flex gap-2">
+                          <input type="hidden" name="homologacaoId" value={homologacao.id} />
+                          <input type="hidden" name="observacaoSecad" value="" />
+                          <button className="rounded-md bg-blue-900 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-950">
+                            Aceite SECAD
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
             {homologacoes.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-5 py-10 text-center text-[var(--muted-foreground)]">
+                <td
+                  colSpan={exibirAcoes ? 7 : 6}
+                  className="px-5 py-10 text-center text-[var(--muted-foreground)]"
+                >
                   Nenhum fechamento de recesso aguardando fluxo.
                 </td>
               </tr>

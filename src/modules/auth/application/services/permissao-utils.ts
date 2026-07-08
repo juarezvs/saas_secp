@@ -1,5 +1,3 @@
-import { perfilEhAdministradorSistema } from "@/modules/auth/domain/constants/perfis-sistema";
-
 export function possuiPermissaoNaLista(
   permissoesUsuario: string[] | undefined,
   permissao: string,
@@ -12,10 +10,7 @@ export function usuarioPossuiPermissaoNoPerfil(
   permissoesUsuario: string[] | undefined,
   permissao: string,
 ) {
-  if (perfilEhAdministradorSistema({ codigo: perfilCodigo })) {
-    return true;
-  }
-
+  void perfilCodigo;
   return possuiPermissaoNaLista(permissoesUsuario, permissao);
 }
 
@@ -35,10 +30,7 @@ export function usuarioPossuiAlgumaPermissaoNoPerfil(
   permissoesUsuario: string[] | undefined,
   permissoes: string[],
 ) {
-  if (perfilEhAdministradorSistema({ codigo: perfilCodigo })) {
-    return true;
-  }
-
+  void perfilCodigo;
   return possuiAlgumaPermissaoNaLista(permissoesUsuario, permissoes);
 }
 
@@ -58,9 +50,6 @@ export function usuarioPossuiTodasPermissoesNoPerfil(
   permissoesUsuario: string[] | undefined,
   permissoes: string[],
 ) {
-  if (perfilEhAdministradorSistema({ codigo: perfilCodigo })) {
-    return true;
-  }
-
+  void perfilCodigo;
   return possuiTodasPermissoesNaLista(permissoesUsuario, permissoes);
 }

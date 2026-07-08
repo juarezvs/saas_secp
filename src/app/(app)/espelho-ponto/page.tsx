@@ -386,7 +386,6 @@ export default async function EspelhoPontoPage({
                   <EspelhoPontoFiltrosAuto
                     competencia={competenciaInput}
                     className="w-full sm:w-56"
-                    skeletonClassName="w-full sm:w-56"
                   />
                   <a
                     href={montarHrefExportacaoEspelho({

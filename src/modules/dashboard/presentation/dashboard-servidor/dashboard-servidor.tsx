@@ -2,6 +2,7 @@ import { buscarContextoDashboardServidor } from "@/modules/dashboard/application
 import { buscarFrequenciaMesServidorPorUsuarioId } from "@/modules/dashboard/application/frequencia-mes-servidor.service";
 import { buscarResumoDashboardServidor } from "@/modules/dashboard/application/dashboard-servidor-resumo.service";
 import { DashboardServidor as DashboardServidorAtual } from "@/modules/dashboard/presentation/components/dashboard-servidor";
+import { filtrarPermissoesLiberadas } from "@/modules/rotinas/application/services/liberacao-rotinas.service";
 import type {
   MarcacaoDia,
   PrevisaoJornadaDia,
@@ -273,6 +274,7 @@ export async function DashboardServidor({
   perfilAtivoCodigo,
   permissoesPerfil = [],
 }: DashboardServidorProps) {
+  const permissoesEfetivas = await filtrarPermissoesLiberadas(permissoesPerfil);
   const [
     servidor,
     contexto,
@@ -291,6 +293,19 @@ export async function DashboardServidor({
     ]);
   const nome = nomeServidor(servidor) || nomeFallback;
   const primeiroNome = nome.trim().split(/\s+/)[0] || "Servidor";
+  const bancoHorasLiberado = permissoesEfetivas.some((permissao) =>
+    permissao.startsWith("banco-horas:"),
+  );
+  const metricas = bancoHorasLiberado
+    ? resumoDashboard?.metricas
+    : resumoDashboard?.metricas.filter(
+        (metrica) => metrica.titulo !== "Banco de horas",
+      );
+  const alertas = bancoHorasLiberado
+    ? resumoDashboard?.alertas
+    : resumoDashboard?.alertas.filter(
+        (alerta) => alerta.acao?.href !== "/banco-horas",
+      );
 
   return (
     <DashboardServidorAtual
@@ -299,11 +314,11 @@ export async function DashboardServidor({
       totalNotificacoes={totalNotificacoes}
       frequenciaMes={frequenciaMes ?? undefined}
       perfilAtivoCodigo={perfilAtivoCodigo}
-      permissoesPerfil={permissoesPerfil}
+      permissoesPerfil={permissoesEfetivas}
       marcacoesDia={marcacoesDashboard.marcacoes}
       previsaoJornadaDia={marcacoesDashboard.previsao}
-      metricas={resumoDashboard?.metricas}
-      alertas={resumoDashboard?.alertas}
+      metricas={metricas}
+      alertas={alertas}
     />
   );
 }

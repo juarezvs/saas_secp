@@ -9,6 +9,11 @@ import {
   usuarioPossuiAlgumaPermissaoNoPerfil,
 } from "@/modules/auth/application/services/permissao.service";
 import { PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS } from "@/modules/auth/domain/constants/perfis-sistema";
+import { perfilAtivoEhChefia } from "@/modules/auth/application/services/perfil-chefia.service";
+import {
+  buscarServidorComUsuarioPorUsuarioId,
+  listarServidoresParaEspelhoPonto,
+} from "@/modules/apuracao/infrastructure/repositories/apuracao.repository";
 import {
   aplicarEscopoOrgaoId,
   obterEscopoOrgaoDaSessao,
@@ -51,6 +56,8 @@ export default async function ServidoresPage({
   const permissoesSessao = await exigirUmaDasPermissoesOuRedirecionar([
     "servidores:gerenciar:global",
     "servidores:consultar:global",
+    "homologacao:gerenciar:chefia",
+    "minha-equipe:consultar:chefia",
     ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
   ]);
   const podeGerenciarServidor = usuarioPossuiAlgumaPermissaoNoPerfil(
@@ -66,6 +73,27 @@ export default async function ServidoresPage({
 
   const params = searchParams ? await searchParams : {};
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const perfilChefiaAtivo = perfilAtivoEhChefia({
+    perfilAtivoCodigo: permissoesSessao.perfilAtivoCodigo,
+    permissoes: permissoesSessao.permissoes,
+  });
+  const servidoresChefia = perfilChefiaAtivo
+    ? await listarServidoresParaEspelhoPonto({
+        usuarioId: permissoesSessao.usuarioId,
+        escopo: "chefia",
+      })
+    : [];
+  const servidorProprio = perfilChefiaAtivo
+    ? await buscarServidorComUsuarioPorUsuarioId(permissoesSessao.usuarioId ?? "")
+    : null;
+  const servidorIdsPermitidosChefia = perfilChefiaAtivo
+    ? Array.from(
+        new Set([
+          ...(servidorProprio ? [servidorProprio.id] : []),
+          ...servidoresChefia.map((servidor) => servidor.id),
+        ]),
+      )
+    : undefined;
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
   const statusFiltro = params.status ?? "ativo";
@@ -79,6 +107,7 @@ export default async function ServidoresPage({
       vinculo: params.vinculo ?? "",
       lotacao: params.lotacao ?? "",
       status: statusFiltro,
+      servidorIdsPermitidos: servidorIdsPermitidosChefia,
       pagina,
       itensPorPagina,
     },
@@ -91,8 +120,14 @@ export default async function ServidoresPage({
       aplicarEscopoOrgaoId({ orgaoId: "" }, escopoOrgao),
     ),
     listarServidoresPaginado(filtrosEscopados),
-    listarServidoresParaFiltro({ orgaoIdsPermitidos }),
-    listarLotacoesAtivasParaFiltro({ orgaoIdsPermitidos }),
+    listarServidoresParaFiltro({
+      orgaoIdsPermitidos,
+      servidorIdsPermitidos: servidorIdsPermitidosChefia,
+    }),
+    listarLotacoesAtivasParaFiltro({
+      orgaoIdsPermitidos,
+      servidorIdsPermitidos: servidorIdsPermitidosChefia,
+    }),
   ]);
   const servidoresOptions = servidoresFiltro.map((servidor) => {
     const nome = nomeServidor(servidor) || servidor.matricula;

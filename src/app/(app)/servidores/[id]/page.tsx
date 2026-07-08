@@ -9,6 +9,11 @@ import {
   usuarioPossuiAlgumaPermissaoNoPerfil,
 } from "@/modules/auth/application/services/permissao.service";
 import { PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS } from "@/modules/auth/domain/constants/perfis-sistema";
+import { perfilAtivoEhChefia } from "@/modules/auth/application/services/perfil-chefia.service";
+import {
+  buscarServidorComUsuarioPorUsuarioId,
+  listarServidoresParaEspelhoPonto,
+} from "@/modules/apuracao/infrastructure/repositories/apuracao.repository";
 import { buscarResumoBiometriaFacialServidor } from "@/modules/biometria/infrastructure/repositories/biometria.repository";
 import { buscarFotoServidorDataUrl } from "@/modules/servidores/application/services/foto-servidor.service";
 import {
@@ -17,6 +22,7 @@ import {
 } from "@/modules/servidores/application/services/funcao-cargo-servidor.service";
 import {
   buscarServidorPorId,
+  contarAfastamentosServidorSarhPorGrupo,
   listarAfastamentosServidorSarhPaginado,
   listarUnidadesAtivasParaLotacao,
 } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
@@ -39,8 +45,13 @@ type ServidorDetalhePageProps = {
   }>;
   searchParams?: Promise<{
     paginaAfastamentos?: string;
+    paginaFerias?: string;
+    paginaOutros?: string;
+    abaAfastamentos?: string;
   }>;
 };
+
+type AbaAfastamentos = "ferias" | "outros";
 
 function formatarData(data: Date | null) {
   if (!data) return "Atual";
@@ -57,6 +68,15 @@ function formatarCarga(minutos: number) {
   return resto === 0 ? `${horas}h` : `${horas}h${resto}`;
 }
 
+function classeAba(ativa: boolean) {
+  return [
+    "inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm font-semibold transition",
+    ativa
+      ? "border-blue-900 bg-blue-900 text-white"
+      : "border-border bg-card hover:bg-muted",
+  ].join(" ");
+}
+
 export default async function ServidorDetalhePage({
   params,
   searchParams,
@@ -64,22 +84,27 @@ export default async function ServidorDetalhePage({
   const permissoesSessao = await exigirUmaDasPermissoesOuRedirecionar([
     "servidores:gerenciar:global",
     "servidores:consultar:global",
+    "homologacao:gerenciar:chefia",
+    "minha-equipe:consultar:chefia",
     ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
   ]);
 
   const { id } = await params;
   const query = searchParams ? await searchParams : {};
-  const paginaAfastamentos = Number(query.paginaAfastamentos ?? 1);
+  const abaAfastamentos: AbaAfastamentos =
+    query.abaAfastamentos === "outros" ? "outros" : "ferias";
+  const paginaFerias = Number(
+    query.paginaFerias ?? query.paginaAfastamentos ?? 1,
+  );
+  const paginaOutros = Number(query.paginaOutros ?? 1);
+  const paginaAfastamentos =
+    abaAfastamentos === "ferias" ? paginaFerias : paginaOutros;
 
-  const [servidor, unidades, afastamentosResultado, resumoBiometria] =
-    await Promise.all([
-      buscarServidorPorId(id),
-      listarUnidadesAtivasParaLotacao(),
-      listarAfastamentosServidorSarhPaginado(id, {
-        pagina: paginaAfastamentos,
-      }),
-      buscarResumoBiometriaFacialServidor(id),
-    ]);
+  const [servidor, unidades, resumoBiometria] = await Promise.all([
+    buscarServidorPorId(id),
+    listarUnidadesAtivasParaLotacao(),
+    buscarResumoBiometriaFacialServidor(id),
+  ]);
 
   if (!servidor) {
     return notFound();
@@ -88,6 +113,42 @@ export default async function ServidorDetalhePage({
   const servidorId = servidor.id;
   const perfilCodigo = permissoesSessao.perfilAtivoCodigo;
   const permissoesAtivas = permissoesSessao.permissoes;
+  const perfilChefiaAtivo = perfilAtivoEhChefia({
+    perfilAtivoCodigo: perfilCodigo,
+    permissoes: permissoesAtivas,
+  });
+  const [servidorProprio, servidoresChefia] = perfilChefiaAtivo
+    ? await Promise.all([
+        buscarServidorComUsuarioPorUsuarioId(permissoesSessao.usuarioId ?? ""),
+        listarServidoresParaEspelhoPonto({
+          usuarioId: permissoesSessao.usuarioId,
+          escopo: "chefia",
+        }),
+      ])
+    : [null, []];
+  const servidorPermitidoParaChefia =
+    !perfilChefiaAtivo ||
+    servidorProprio?.id === servidorId ||
+    servidoresChefia.some((item) => item.id === servidorId);
+
+  if (!servidorPermitidoParaChefia) {
+    return notFound();
+  }
+
+  const [afastamentosResultado, totalOutraAba] = await Promise.all([
+    listarAfastamentosServidorSarhPaginado(servidorId, {
+      pagina: paginaAfastamentos,
+      grupo: abaAfastamentos,
+    }),
+    contarAfastamentosServidorSarhPorGrupo(
+      servidorId,
+      abaAfastamentos === "ferias" ? "outros" : "ferias",
+    ),
+  ]);
+  const totalFerias =
+    abaAfastamentos === "ferias" ? afastamentosResultado.total : totalOutraAba;
+  const totalOutros =
+    abaAfastamentos === "outros" ? afastamentosResultado.total : totalOutraAba;
   const podeGerenciarServidor = usuarioPossuiAlgumaPermissaoNoPerfil(
     perfilCodigo,
     permissoesAtivas,
@@ -147,9 +208,28 @@ export default async function ServidorDetalhePage({
 
   function montarHrefPaginaAfastamentos(novaPagina: number) {
     const params = new URLSearchParams();
-    params.set("paginaAfastamentos", String(novaPagina));
+    params.set("abaAfastamentos", abaAfastamentos);
+    params.set(
+      abaAfastamentos === "ferias" ? "paginaFerias" : "paginaOutros",
+      String(novaPagina),
+    );
     return `/servidores/${servidorId}?${params.toString()}`;
   }
+
+  function montarHrefAbaAfastamentos(aba: AbaAfastamentos) {
+    const params = new URLSearchParams();
+    params.set("abaAfastamentos", aba);
+    return `/servidores/${servidorId}?${params.toString()}`;
+  }
+
+  const tituloAfastamentos =
+    abaAfastamentos === "ferias"
+      ? "Férias registradas"
+      : "Outros afastamentos";
+  const descricaoAfastamentos =
+    abaAfastamentos === "ferias"
+      ? "Períodos de férias importados do SARH e vinculados à matrícula funcional do servidor."
+      : "Licenças, afastamentos diversos e demais registros importados do SARH para este servidor.";
 
   return (
     <div className="space-y-6">
@@ -431,10 +511,34 @@ export default async function ServidorDetalhePage({
         permissoes={permissoesBiometria}
       />
 
+      <nav
+        aria-label="Tipos de afastamento"
+        className="flex flex-wrap gap-2 rounded-xl border bg-card p-2"
+      >
+        <Link
+          href={montarHrefAbaAfastamentos("ferias")}
+          className={classeAba(abaAfastamentos === "ferias")}
+        >
+          Férias
+          <span className="ml-2 rounded-full bg-background/80 px-2 py-0.5 text-xs text-foreground">
+            {totalFerias}
+          </span>
+        </Link>
+        <Link
+          href={montarHrefAbaAfastamentos("outros")}
+          className={classeAba(abaAfastamentos === "outros")}
+        >
+          Outros afastamentos
+          <span className="ml-2 rounded-full bg-background/80 px-2 py-0.5 text-xs text-foreground">
+            {totalOutros}
+          </span>
+        </Link>
+      </nav>
+
       <AfastamentosServidorCard
         afastamentos={afastamentosResultado.afastamentos}
-        titulo="Afastamentos do servidor"
-        descricao="Licenças, férias e demais afastamentos importados do SARH para este servidor."
+        titulo={tituloAfastamentos}
+        descricao={descricaoAfastamentos}
         resumo={{
           total: afastamentosResultado.total,
           vigentes: afastamentosResultado.vigentes,

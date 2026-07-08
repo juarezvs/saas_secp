@@ -29,6 +29,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   SlidersHorizontal,
+  ToggleLeft,
   Upload,
   Users,
   UsersRound,
@@ -37,7 +38,7 @@ import {
 } from "lucide-react";
 
 import { SecpLogo } from "@/components/brand/secp-logo";
-import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao-utils";
+import { possuiAlgumaPermissaoNaLista } from "@/modules/auth/application/services/permissao-utils";
 import {
   PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
   PERMISSOES_ACESSO_REGISTRO_PONTO_SECP,
@@ -223,40 +224,6 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
-    label: "Apuração",
-    href: "/apuracao",
-    icon: FileCheck2,
-    permissoes: ["apuracao:consultar:global", "apuracao:recalcular:global"],
-  },
-  {
-    label: "AFD",
-    href: "/afd",
-    icon: Upload,
-    permissoes: ["afd:importar:global"],
-  },
-  {
-    label: "Servidores",
-    href: "/servidores",
-    icon: Users,
-    permissoes: [
-      "servidores:gerenciar:global",
-      "servidores:consultar:global",
-      ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
-    ],
-  },
-  {
-    label: "Jornadas",
-    href: "/jornadas",
-    icon: CalendarClock,
-    permissoes: ["jornadas:gerenciar:global"],
-  },
-  {
-    label: "Chefias",
-    href: "/chefias",
-    icon: Network,
-    permissoes: ["chefias:gerenciar:global"],
-  },
-  {
     label: "Administração",
     href: "/administracao",
     icon: Settings,
@@ -266,16 +233,28 @@ export const MENU_ITEMS: MenuItem[] = [
       "usuarios:consultar:global",
       "perfis:gerenciar:global",
       "unidades:gerenciar:global",
+      "servidores:gerenciar:global",
+      "servidores:consultar:global",
       "jornadas:gerenciar:global",
       "chefias:gerenciar:global",
+      "afd:importar:global",
+      "apuracao:consultar:global",
+      "apuracao:recalcular:global",
       "integracoes:consultar:global",
       "integracoes:gerenciar:global",
       "regulamentacao-ponto:gerenciar:global",
       "fusos-horarios:gerenciar:global",
       "auditoria:consultar:global",
       "auditoria:detalhar:global",
+      ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
     ],
     children: [
+      {
+        label: "Liberação de Rotinas",
+        href: "/administracao/liberacao-rotinas",
+        icon: ToggleLeft,
+        permissoes: ["configuracoes:gerenciar:global"],
+      },
       {
         label: "Perfis e permissões",
         href: "/perfis",
@@ -299,6 +278,40 @@ export const MENU_ITEMS: MenuItem[] = [
         href: "/unidades",
         icon: Building2,
         permissoes: ["unidades:gerenciar:global"],
+      },
+      {
+        label: "Servidores",
+        href: "/servidores",
+        icon: Users,
+        permissoes: [
+          "servidores:gerenciar:global",
+          "servidores:consultar:global",
+          ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
+        ],
+      },
+      {
+        label: "Chefias",
+        href: "/chefias",
+        icon: Network,
+        permissoes: ["chefias:gerenciar:global"],
+      },
+      {
+        label: "Jornadas",
+        href: "/jornadas",
+        icon: CalendarClock,
+        permissoes: ["jornadas:gerenciar:global"],
+      },
+      {
+        label: "AFD",
+        href: "/afd",
+        icon: Upload,
+        permissoes: ["afd:importar:global"],
+      },
+      {
+        label: "Apuração",
+        href: "/apuracao",
+        icon: FileCheck2,
+        permissoes: ["apuracao:consultar:global", "apuracao:recalcular:global"],
       },
       {
         label: "Regulamentação do ponto",
@@ -368,11 +381,7 @@ function itemPodeSerExibido(item: MenuItem, perfilAtivo: PerfilNavegacao) {
     return true;
   }
 
-  return usuarioPossuiAlgumaPermissaoNoPerfil(
-    perfilAtivo.codigo,
-    perfilAtivo.permissoes,
-    item.permissoes,
-  );
+  return possuiAlgumaPermissaoNaLista(perfilAtivo.permissoes, item.permissoes);
 }
 
 function itemCorrespondeAoPath(pathname: string, href: string) {
@@ -400,10 +409,18 @@ function achatarItens(itens: MenuItem[]): MenuItem[] {
   ]);
 }
 
-function obterHrefAtivo(pathname: string, itens: MenuItem[]) {
+function obterItemAtivo(pathname: string, itens: MenuItem[]) {
   return achatarItens(itens)
     .filter((item) => itemCorrespondeAoPath(pathname, item.href))
-    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+    .sort((a, b) => {
+      const diferencaTamanho = b.href.length - a.href.length;
+
+      if (diferencaTamanho !== 0) {
+        return diferencaTamanho;
+      }
+
+      return b.label.localeCompare(a.label);
+    })[0];
 }
 
 function MenuPrincipal({
@@ -420,10 +437,11 @@ function MenuPrincipal({
     () => filtrarItensVisiveis(MENU_ITEMS, perfilAtivo),
     [perfilAtivo],
   );
-  const hrefAtivo = useMemo(
-    () => obterHrefAtivo(pathname, itensVisiveis),
+  const itemAtivo = useMemo(
+    () => obterItemAtivo(pathname, itensVisiveis),
     [pathname, itensVisiveis],
   );
+  const hrefAtivo = itemAtivo?.href;
   const [gruposAlternados, setGruposAlternados] = useState<
     Record<string, boolean>
   >({});
@@ -445,8 +463,8 @@ function MenuPrincipal({
           const Icon = item.icon;
           const filhos = item.children ?? [];
           const possuiFilhos = filhos.length > 0;
-          const ativo = item.href === hrefAtivo;
-          const filhoAtivo = filhos.some((child) => child.href === hrefAtivo);
+          const ativo = item.href === itemAtivo?.href;
+          const filhoAtivo = filhos.some((child) => child === itemAtivo);
           const grupoAtivo = ativo || filhoAtivo;
           const grupoAberto = gruposAlternados[item.href] ?? grupoAtivo;
           const mostrarFilhos = possuiFilhos && !recolhida && grupoAberto;

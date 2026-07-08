@@ -22,6 +22,10 @@ import {
   recessoForenseSchema,
   type RecessoFormState,
 } from "../schemas/recesso-forense.schema";
+import {
+  resolverEscopoServidoresRecesso,
+  servidorEstaNoEscopoRecesso,
+} from "../services/escopo-recesso-forense.service";
 import { criarDataUtc } from "../services/recesso-forense.service";
 
 const estadoErro = (
@@ -75,6 +79,21 @@ async function registrarAuditoria(
       dadosDepois: dadosDepois as object,
     },
   });
+}
+
+async function exigirServidorNoEscopoRecesso(
+  permissao: {
+    usuarioId?: string;
+    perfilAtivoCodigo?: string | null;
+    permissoes: string[];
+  },
+  servidorId: string,
+) {
+  const escopo = await resolverEscopoServidoresRecesso(permissao);
+
+  if (!servidorEstaNoEscopoRecesso(servidorId, escopo.servidorIdsPermitidos)) {
+    redirect("/acesso-negado?permissao=recesso%3Aescopo");
+  }
 }
 
 export async function criarRecessoForenseAction(
@@ -292,6 +311,7 @@ export async function convocarServidorRecessoAction(
   const permissao = await exigirUmaDasPermissoesOuRedirecionar([
     "recesso:convocacao:gerenciar",
     "recesso:gerenciar:global",
+    "recesso:homologar:chefia",
   ]);
 
   const dados = {
@@ -313,6 +333,8 @@ export async function convocarServidorRecessoAction(
       dados,
     );
   }
+
+  await exigirServidorNoEscopoRecesso(permissao, parsed.data.servidorId);
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -386,6 +408,7 @@ export async function convocarServidorRecessoEmLoteAction(
   const permissao = await exigirUmaDasPermissoesOuRedirecionar([
     "recesso:convocacao:gerenciar",
     "recesso:gerenciar:global",
+    "recesso:homologar:chefia",
   ]);
 
   const dados = {
@@ -414,6 +437,8 @@ export async function convocarServidorRecessoEmLoteAction(
       },
     );
   }
+
+  await exigirServidorNoEscopoRecesso(permissao, parsed.data.servidorId);
 
   const convocados = await prisma.$transaction(async (tx) => {
     const registros = [];
@@ -730,6 +755,17 @@ export async function homologarRecessoAction(formData: FormData) {
     observacaoChefia: texto(formData, "observacaoChefia"),
   });
 
+  const homologacaoAtual = await prisma.homologacaoRecesso.findUnique({
+    where: { id: parsed.homologacaoId },
+    select: { servidorId: true },
+  });
+
+  if (!homologacaoAtual) {
+    redirect("/acesso-negado?permissao=recesso%3Ahomologar%3Achefia");
+  }
+
+  await exigirServidorNoEscopoRecesso(permissao, homologacaoAtual.servidorId);
+
   const homologacao = await prisma.$transaction(async (tx) => {
     const atualizada = await tx.homologacaoRecesso.update({
       where: { id: parsed.homologacaoId },
@@ -782,6 +818,17 @@ export async function devolverHomologacaoRecessoAction(formData: FormData) {
     homologacaoId: texto(formData, "homologacaoId"),
     observacaoChefia: texto(formData, "observacaoChefia"),
   });
+
+  const homologacaoAtual = await prisma.homologacaoRecesso.findUnique({
+    where: { id: parsed.homologacaoId },
+    select: { servidorId: true },
+  });
+
+  if (!homologacaoAtual) {
+    redirect("/acesso-negado?permissao=recesso%3Ahomologar%3Achefia");
+  }
+
+  await exigirServidorNoEscopoRecesso(permissao, homologacaoAtual.servidorId);
 
   const homologacao = await prisma.$transaction(async (tx) => {
     const atualizada = await tx.homologacaoRecesso.update({
