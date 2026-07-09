@@ -489,7 +489,7 @@ export function calcularApuracaoDiaria(params: {
   );
   const minutosTrabalhados = Math.max(
     0,
-    minutosTrabalhadosNoExpediente - ajusteIntervaloMinimo,
+    minutosBrutosTrabalhados - ajusteIntervaloMinimo,
   );
   const minutosForaExpediente = Math.max(
     0,

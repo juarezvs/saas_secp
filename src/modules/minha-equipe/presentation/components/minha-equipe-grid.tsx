@@ -89,7 +89,7 @@ export function MinhaEquipeGrid({ servidores }: MinhaEquipeGridProps) {
         className={`rounded-md border bg-card p-4 shadow-card ${config.card}`}
       >
         <div className="flex gap-4">
-          <div className="relative size-16 shrink-0 overflow-hidden rounded-full bg-blue-50 text-blue-900 ring-1 ring-border">
+          <div className="secp-theme-icon relative size-16 shrink-0 overflow-hidden rounded-full ring-1 ring-border">
             {foto ? (
               <Image
                 src={foto}

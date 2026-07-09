@@ -16,6 +16,16 @@ import {
   type LdapActiveDirectoryFormState,
 } from "../schemas/integracao.schema";
 
+function normalizarLdapUrl(valor: string) {
+  const texto = valor.trim();
+
+  if (!texto || /^ldaps?:\/\//i.test(texto)) {
+    return texto;
+  }
+
+  return `ldap://${texto}`;
+}
+
 function extrairDados(formData: FormData) {
   return {
     orgaoId: String(formData.get("orgaoId") ?? "").trim(),
@@ -23,7 +33,7 @@ function extrairDados(formData: FormData) {
     nome: String(formData.get("nome") ?? "").trim(),
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
     authUrl: String(formData.get("authUrl") ?? "").trim(),
-    ldapUrl: String(formData.get("ldapUrl") ?? "").trim(),
+    ldapUrl: normalizarLdapUrl(String(formData.get("ldapUrl") ?? "")),
     baseDn: String(formData.get("baseDn") ?? "").trim(),
     dominio: String(formData.get("dominio") ?? "").trim(),
     bindDn: String(formData.get("bindDn") ?? "").trim(),

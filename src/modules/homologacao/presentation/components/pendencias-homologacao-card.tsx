@@ -7,6 +7,36 @@ type Pendencia = {
   minutos?: number;
 };
 
+const ROTULOS_PENDENCIA: Record<string, string> = {
+  APURACAO_INCONSISTENTE: "Apuração inconsistente",
+  MARCACAO_INCOMPLETA: "Marcação incompleta",
+  SOLICITACAO_PENDENTE: "Solicitação pendente",
+  BANCO_HORAS_PENDENTE: "Banco de horas pendente",
+  HORA_EXTRA_NAO_AUTORIZADA: "Hora extra não autorizada",
+  FALTA: "Falta",
+  DEBITO: "Débito",
+  JORNADA_NAO_CONFIGURADA: "Jornada não configurada",
+  APURACAO_MENSAL_INCOMPLETA: "Apuração mensal incompleta",
+  CARGA_PREVISTA_DIVERGENTE: "Carga prevista divergente",
+  SEM_APURACAO: "Sem apuração",
+};
+
+function rotuloPendencia(tipo: string) {
+  return ROTULOS_PENDENCIA[tipo] ?? tipo;
+}
+
+function minutosParaTexto(minutos: number) {
+  const sinal = minutos < 0 ? "-" : "";
+  const abs = Math.abs(minutos);
+  const horas = Math.floor(abs / 60);
+  const resto = abs % 60;
+
+  return `${sinal}${String(horas).padStart(2, "0")}:${String(resto).padStart(
+    2,
+    "0",
+  )}`;
+}
+
 export function PendenciasHomologacaoCard({
   pendencias,
 }: {
@@ -30,7 +60,7 @@ export function PendenciasHomologacaoCard({
       <div className="mt-3 space-y-3">
         {pendencias.map((pendencia, index) => (
           <div key={`${pendencia.tipo}-${index}`} className="text-sm">
-            <p className="font-semibold">{pendencia.tipo}</p>
+            <p className="font-semibold">{rotuloPendencia(pendencia.tipo)}</p>
             <p className="mt-1">{pendencia.descricao}</p>
 
             {(pendencia.quantidade || pendencia.minutos) && (
@@ -39,7 +69,9 @@ export function PendenciasHomologacaoCard({
                   ? `Quantidade: ${pendencia.quantidade}`
                   : ""}
                 {pendencia.quantidade && pendencia.minutos ? " • " : ""}
-                {pendencia.minutos ? `Minutos: ${pendencia.minutos}` : ""}
+                {pendencia.minutos
+                  ? `Tempo: ${minutosParaTexto(pendencia.minutos)}`
+                  : ""}
               </p>
             )}
           </div>

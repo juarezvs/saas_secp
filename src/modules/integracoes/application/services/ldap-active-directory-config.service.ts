@@ -56,7 +56,8 @@ export function obterConfiguracaoLdapActiveDirectoryAmbiente(): LdapActiveDirect
     bindPassword: process.env.LDAP_BIND_PASSWORD ?? "",
     userDnPattern: "",
     searchFilter: "(sAMAccountName={{matricula}})",
-    timeoutMs: Number(process.env.LDAP_TIMEOUT_MS ?? "") || LDAP_TIMEOUT_PADRAO_MS,
+    timeoutMs:
+      Number(process.env.LDAP_TIMEOUT_MS ?? "") || LDAP_TIMEOUT_PADRAO_MS,
   };
 }
 
@@ -80,8 +81,18 @@ async function montarConfiguracaoDaIntegracao(
     modoAutenticacao,
     nome: integracao.nome || fallback.nome,
     ativo: integracao.ativo && integracao.status !== "INATIVA",
-    authUrl: integracao.baseUrl || lerString(configuracao, "authUrl") || fallback.authUrl,
-    ldapUrl: lerString(configuracao, "ldapUrl") || fallback.ldapUrl,
+    authUrl:
+      modoAutenticacao === "HTTP_AD_API"
+        ? integracao.baseUrl ||
+          lerString(configuracao, "authUrl") ||
+          fallback.authUrl
+        : lerString(configuracao, "authUrl") || fallback.authUrl,
+    ldapUrl:
+      modoAutenticacao === "LDAP_BIND"
+        ? lerString(configuracao, "ldapUrl") ||
+          integracao.baseUrl ||
+          fallback.ldapUrl
+        : lerString(configuracao, "ldapUrl") || fallback.ldapUrl,
     baseDn: lerString(configuracao, "baseDn") || fallback.baseDn,
     dominio: lerString(configuracao, "dominio") || fallback.dominio,
     bindDn: lerString(configuracao, "bindDn") || fallback.bindDn,
@@ -134,7 +145,8 @@ export async function obterOuCriarIntegracaoLdapActiveDirectory() {
       nome: ambiente.nome,
       tipo: "LDAP",
       direcao: "ENTRADA",
-      status: ambiente.authUrl || ambiente.ldapUrl ? "ATIVA" : "NAO_CONFIGURADA",
+      status:
+        ambiente.authUrl || ambiente.ldapUrl ? "ATIVA" : "NAO_CONFIGURADA",
       baseUrl: ambiente.authUrl || null,
       ativo: true,
       descricao:

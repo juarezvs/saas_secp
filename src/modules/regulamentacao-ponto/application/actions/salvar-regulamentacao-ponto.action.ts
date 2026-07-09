@@ -3,12 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { normalizarDataReferencia } from "@/modules/apuracao/application/services/calcular-tempo.service";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import { recalcularDiaServidorService } from "@/modules/recalculo/application/services/recalcular-dia-servidor.service";
-import { regerarBancoHorasMesService } from "@/modules/recalculo/application/services/regerar-banco-horas-mes.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { enfileirarRecalculoRegulamentacaoPonto } from "../queues/recalcular-regulamentacao-ponto-queue";
+import { garantirRecalcularRegulamentacaoPontoWorkerAutomatico } from "../workers/recalcular-regulamentacao-ponto-worker-runtime";
 
 const regulamentacaoSchema = z.object({
   orgaoId: z.string().uuid("Informe o órgão."),
@@ -24,8 +23,9 @@ const regulamentacaoSchema = z.object({
   horasForaExpedienteInconsistente: z.coerce.boolean().default(true),
   ativo: z.coerce.boolean().default(true),
   recalcularCompetencia: z.coerce.boolean().default(false),
-  anoReferencia: z.coerce.number().int().min(2020).max(2100),
-  mesReferencia: z.coerce.number().int().min(1).max(12),
+  competencia: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/, "Informe a competencia no formato AAAA-MM."),
 });
 
 function checkboxLigado(formData: FormData, nome: string) {
@@ -57,113 +57,17 @@ function extrairDados(formData: FormData) {
     ),
     ativo: checkboxLigado(formData, "ativo"),
     recalcularCompetencia: checkboxLigado(formData, "recalcularCompetencia"),
-    anoReferencia: formData.get("anoReferencia"),
-    mesReferencia: formData.get("mesReferencia"),
+    competencia: String(formData.get("competencia") ?? ""),
   };
 }
 
-async function recalcularCompetenciaOrgao(params: {
-  orgaoId: string;
-  anoReferencia: number;
-  mesReferencia: number;
-  usuarioIdAuditoria?: string;
-}) {
-  const inicio = new Date(
-    Date.UTC(params.anoReferencia, params.mesReferencia - 1, 1),
-  );
-  const fim = new Date(Date.UTC(params.anoReferencia, params.mesReferencia, 1));
+function dividirCompetencia(competencia: string) {
+  const [ano, mes] = competencia.split("-").map(Number);
 
-  const servidores = await prisma.servidor.findMany({
-    where: {
-      orgaoId: params.orgaoId,
-      ativo: true,
-      OR: [
-        {
-          apuracaoDiarias: {
-            some: {
-              dataReferencia: {
-                gte: inicio,
-                lt: fim,
-              },
-            },
-          },
-        },
-        {
-          marcacoes: {
-            some: {
-              dataReferencia: {
-                gte: inicio,
-                lt: fim,
-              },
-              status: {
-                in: ["VALIDA", "PENDENTE", "AJUSTADA"],
-              },
-            },
-          },
-        },
-      ],
-    },
-    select: {
-      id: true,
-      apuracaoDiarias: {
-        where: {
-          dataReferencia: {
-            gte: inicio,
-            lt: fim,
-          },
-        },
-        select: {
-          dataReferencia: true,
-        },
-      },
-      marcacoes: {
-        where: {
-          dataReferencia: {
-            gte: inicio,
-            lt: fim,
-          },
-          status: {
-            in: ["VALIDA", "PENDENTE", "AJUSTADA"],
-          },
-        },
-        select: {
-          dataReferencia: true,
-        },
-      },
-    },
-  });
-
-  for (const servidor of servidores) {
-    const datas = new Map<string, Date>();
-
-    for (const item of [
-      ...servidor.apuracaoDiarias,
-      ...servidor.marcacoes,
-    ]) {
-      const data = normalizarDataReferencia(item.dataReferencia);
-      datas.set(data.toISOString().slice(0, 10), data);
-    }
-
-    for (const dataReferencia of datas.values()) {
-      await recalcularDiaServidorService({
-        servidorId: servidor.id,
-        dataReferencia,
-        usuarioIdAuditoria: params.usuarioIdAuditoria,
-        origem: "ALTERACAO_REGULAMENTACAO_PONTO_ORGAO",
-        ignorarBloqueioHomologacao: true,
-      });
-    }
-
-    await regerarBancoHorasMesService({
-      servidorId: servidor.id,
-      anoReferencia: params.anoReferencia,
-      mesReferencia: params.mesReferencia,
-      usuarioIdAuditoria: params.usuarioIdAuditoria,
-      origem: "ALTERACAO_REGULAMENTACAO_PONTO_ORGAO",
-    });
-  }
-
-  return servidores.length;
+  return {
+    anoReferencia: ano,
+    mesReferencia: mes,
+  };
 }
 
 export async function salvarRegulamentacaoPontoAction(formData: FormData) {
@@ -176,8 +80,8 @@ export async function salvarRegulamentacaoPontoAction(formData: FormData) {
     throw new Error("Dados inválidos para a regulamentação de ponto.");
   }
 
-  const { recalcularCompetencia, anoReferencia, mesReferencia, ...dados } =
-    parsed.data;
+  const { recalcularCompetencia, competencia, ...dados } = parsed.data;
+  const { anoReferencia, mesReferencia } = dividirCompetencia(competencia);
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
 
   if (!escopoOrgao.global && !escopoOrgao.orgaoIds.includes(dados.orgaoId)) {
@@ -202,15 +106,17 @@ export async function salvarRegulamentacaoPontoAction(formData: FormData) {
     },
   });
 
-  let servidoresRecalculados = 0;
+  let recalculoJobId: string | null = null;
 
   if (recalcularCompetencia) {
-    servidoresRecalculados = await recalcularCompetenciaOrgao({
+    const job = await enfileirarRecalculoRegulamentacaoPonto({
       orgaoId: dados.orgaoId,
       anoReferencia,
       mesReferencia,
       usuarioIdAuditoria: permissao.usuarioId,
     });
+    recalculoJobId = String(job.id);
+    garantirRecalcularRegulamentacaoPontoWorkerAutomatico();
   }
 
   await prisma.auditoriaEvento.create({
@@ -226,7 +132,8 @@ export async function salvarRegulamentacaoPontoAction(formData: FormData) {
           ? {
               anoReferencia,
               mesReferencia,
-              servidoresRecalculados,
+              jobId: recalculoJobId,
+              status: "ENFILEIRADO",
             }
           : null,
       },

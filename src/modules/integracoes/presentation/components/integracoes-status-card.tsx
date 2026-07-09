@@ -35,7 +35,7 @@ export function IntegracoesStatusCard({
               <h2 className="mt-1 font-bold">{integracao.nome}</h2>
             </div>
 
-            <div className="rounded-lg bg-blue-50 p-3 text-blue-900 dark:bg-blue-950 dark:text-blue-300">
+            <div className="secp-theme-icon rounded-lg p-3">
               {integracao.status === "ATIVA" ? (
                 <CheckCircle2 className="size-5" />
               ) : integracao.status === "ERRO" ? (

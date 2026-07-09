@@ -122,7 +122,17 @@ export async function incluirAjusteManualBancoHorasAction(formData: FormData) {
         dataReferencia: "asc",
       },
     });
-    const saldo = calcularSaldoBancoHoras(movimentos);
+    const saldoAtual = await tx.bancoHorasSaldo.findUnique({
+      where: {
+        servidorId: parsed.data.servidorId,
+      },
+      select: {
+        competenciaInicioControle: true,
+      },
+    });
+    const saldo = calcularSaldoBancoHoras(movimentos, {
+      competenciaInicioControle: saldoAtual?.competenciaInicioControle,
+    });
 
     await tx.bancoHorasSaldo.upsert({
       where: {

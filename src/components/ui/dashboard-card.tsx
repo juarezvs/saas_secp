@@ -23,7 +23,7 @@ export function DashboardCard({
           <h3 className="mt-2 text-2xl font-bold">{valor}</h3>
         </div>
 
-        <div className="rounded-lg bg-blue-50 p-3 text-blue-900 dark:bg-blue-950 dark:text-blue-200">
+        <div className="secp-theme-icon rounded-lg p-3">
           <Icon className="size-5" aria-hidden="true" />
         </div>
       </div>

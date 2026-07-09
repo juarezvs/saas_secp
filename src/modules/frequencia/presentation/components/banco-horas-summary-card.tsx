@@ -22,7 +22,7 @@ export function BancoHorasSummaryCard() {
                 <p className="text-sm font-semibold text-muted-foreground">{card.titulo}</p>
                 <p className="mt-2 text-3xl font-bold">{card.valor}</p>
               </div>
-              <span className="rounded-lg bg-blue-50 p-3 text-secp-blue-900 dark:bg-blue-950 dark:text-blue-200">
+              <span className="secp-theme-icon rounded-lg p-3">
                 <Icon className="size-5" aria-hidden="true" />
               </span>
             </div>

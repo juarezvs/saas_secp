@@ -125,8 +125,8 @@ export async function criarRecessoForenseAction(
 
   if (existente) {
     return estadoErro(
-      "Ja existe recesso cadastrado para este ano.",
-      { ano: ["Ja existe recesso cadastrado para este ano."] },
+      "Já existe recesso cadastrado para este ano.",
+      { ano: ["Já existe recesso cadastrado para este ano."] },
       dados,
     );
   }
@@ -181,7 +181,7 @@ export async function criarConvocacaoRecessoAction(
 
   if (!parsed.success) {
     return estadoErro(
-      "Verifique os campos da convocacao.",
+      "Verifique os campos da convocação.",
       parsed.error.flatten().fieldErrors,
       dados,
     );
@@ -248,7 +248,7 @@ export async function atualizarConvocacaoRecessoAction(
 
   if (!parsed.success) {
     return estadoErro(
-      "Verifique os campos da convocacao.",
+      "Verifique os campos da convocação.",
       parsed.error.flatten().fieldErrors,
       dados,
     );
@@ -262,11 +262,11 @@ export async function atualizarConvocacaoRecessoAction(
   });
 
   if (!existente) {
-    return estadoErro("A portaria informada nao pertence a este recesso.");
+    return estadoErro("A portaria informada não pertence a este recesso.");
   }
 
   if (existente.status === "CANCELADA") {
-    return estadoErro("Uma portaria cancelada nao pode ser atualizada.");
+    return estadoErro("Uma portaria cancelada não pode ser atualizada.");
   }
 
   const atualizada = await prisma.$transaction(async (tx) => {
@@ -386,8 +386,8 @@ export async function convocarServidorRecessoAction(
     });
   } catch {
     return estadoErro(
-      "Servidor ja convocado nesta data para a portaria informada.",
-      { dataConvocacao: ["Servidor ja convocado nesta data."] },
+      "Servidor já convocado nesta data para a portaria informada.",
+      { dataConvocacao: ["Servidor já convocado nesta data."] },
       dados,
     );
   }
@@ -425,7 +425,7 @@ export async function convocarServidorRecessoEmLoteAction(
 
   if (!parsed.success) {
     return estadoErro(
-      "Verifique os dados da convocacao em lote.",
+      "Verifique os dados da convocação em lote.",
       parsed.error.flatten().fieldErrors,
       {
         recessoId: dados.recessoId,
@@ -562,7 +562,7 @@ export async function convocarServidorRecessoEmLoteAction(
 
   return {
     sucesso: true,
-    mensagem: `${convocados.length} data(s) de convocacao salvas com sucesso.`,
+    mensagem: `${convocados.length} data(s) de convocação salvas com sucesso.`,
   };
 }
 

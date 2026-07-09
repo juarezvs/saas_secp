@@ -2,6 +2,9 @@ import type { ReactNode } from "react";
 import { AlertTriangle, CheckCircle2, Clock3, PartyPopper } from "lucide-react";
 
 import { minutosParaTexto } from "../../application/services/calcular-tempo.service";
+import { autorizarHoraExtraBancoHorasAction } from "../../application/actions/autorizar-hora-extra-banco-horas.action";
+import { ConfirmarAutorizacaoHoraExtraButton } from "./confirmar-autorizacao-hora-extra-button";
+import { TempoAutorizadoInput } from "./tempo-autorizado-input";
 import {
   classificarDiaEspelho,
   conferenciaEspelho,
@@ -25,6 +28,9 @@ type ApuracaoMensalItem = {
   geradoParaCompetencia?: boolean;
   minutosDebitoApurado?: number;
   minutosDebitoCompensado?: number;
+  minutosHoraExtraAutorizada?: number;
+  minutosHoraExtraNaoAutorizada?: number;
+  minutosBancoHoras?: number;
   ocorrencias?: {
     tipo: string;
     descricao: string;
@@ -53,10 +59,17 @@ export function EspelhoPontoMensal({
   apuracoes,
   marcacoes,
   controles,
+  acoesBancoHoras,
 }: {
   apuracoes: ApuracaoMensalItem[];
   marcacoes: MarcacaoItem[];
   controles?: ReactNode;
+  acoesBancoHoras?: {
+    habilitadas: boolean;
+    servidorId: string;
+    anoReferencia: number;
+    mesReferencia: number;
+  };
 }) {
   const marcacoesPorDia = agruparMarcacoesPorDia(marcacoes);
 
@@ -68,6 +81,9 @@ export function EspelhoPontoMensal({
         acc.trabalhado += item.minutosTrabalhados;
         acc.credito += item.minutosCredito;
         acc.debito += item.minutosDebito;
+        acc.horaExtraAutorizada += item.minutosHoraExtraAutorizada ?? 0;
+        acc.horaExtraNaoAutorizada += item.minutosHoraExtraNaoAutorizada ?? 0;
+        acc.bancoHoras += item.minutosBancoHoras ?? 0;
       }
 
       return acc;
@@ -77,6 +93,9 @@ export function EspelhoPontoMensal({
       trabalhado: 0,
       credito: 0,
       debito: 0,
+      horaExtraAutorizada: 0,
+      horaExtraNaoAutorizada: 0,
+      bancoHoras: 0,
     },
   );
   const apuracoesContabilizadas = apuracoes.filter(
@@ -97,7 +116,7 @@ export function EspelhoPontoMensal({
         {controles ? <div className="lg:ml-auto">{controles}</div> : null}
       </div>
 
-      <div className="grid gap-4 border-b p-5 md:grid-cols-4 xl:grid-cols-7">
+      <div className="grid gap-4 border-b p-5 md:grid-cols-4 xl:grid-cols-10">
         <Resumo label="Previsto" value={minutosParaTexto(totais.previsto)} />
         <Resumo
           label="Trabalhado"
@@ -112,6 +131,27 @@ export function EspelhoPontoMensal({
           label="Débito"
           value={minutosParaTexto(totais.debito)}
           destaque="debito"
+        />
+        <Resumo
+          label="Hora extra autorizada"
+          value={minutosParaTexto(totais.horaExtraAutorizada)}
+          destaque="credito"
+        />
+        <Resumo
+          label="Hora extra não autorizada"
+          value={minutosParaTexto(totais.horaExtraNaoAutorizada)}
+          destaque={totais.horaExtraNaoAutorizada > 0 ? "debito" : undefined}
+        />
+        <Resumo
+          label="Banco de horas"
+          value={formatarSaldoBancoHoras(totais.bancoHoras)}
+          destaque={
+            totais.bancoHoras > 0
+              ? "credito"
+              : totais.bancoHoras < 0
+                ? "debito"
+                : undefined
+          }
         />
         <Resumo
           label="Ausências"
@@ -136,7 +176,7 @@ export function EspelhoPontoMensal({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px] text-left text-sm">
+        <table className="w-full min-w-[1320px] text-left text-sm">
           <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
             <tr>
               <th className="w-14 px-5 py-3 text-center">Sit.</th>
@@ -146,6 +186,12 @@ export function EspelhoPontoMensal({
               <th className="px-5 py-3">Trabalhado</th>
               <th className="px-5 py-3">Crédito</th>
               <th className="px-5 py-3">Débito</th>
+              <th className="px-5 py-3">HE autorizada</th>
+              <th className="px-5 py-3">HE não autorizada</th>
+              <th className="px-5 py-3">Banco de horas</th>
+              {acoesBancoHoras?.habilitadas ? (
+                <th className="px-5 py-3">Ações</th>
+              ) : null}
             </tr>
           </thead>
 
@@ -292,6 +338,43 @@ export function EspelhoPontoMensal({
                       }
                     />
                   </td>
+
+                  <td className="px-5 py-4">
+                    <ValorTempo
+                      tipo="credito"
+                      minutos={item.minutosHoraExtraAutorizada ?? 0}
+                    />
+                  </td>
+
+                  <td className="px-5 py-4">
+                    <ValorTempo
+                      tipo="debito"
+                      minutos={item.minutosHoraExtraNaoAutorizada ?? 0}
+                      detalhe={
+                        (item.minutosHoraExtraNaoAutorizada ?? 0) > 0
+                          ? "Horas excedentes sem autorização prévia. Não entram no banco de horas até autorização da chefia."
+                          : undefined
+                      }
+                    />
+                  </td>
+
+                  <td className="px-5 py-4">
+                    <ValorSaldoBancoHoras minutos={item.minutosBancoHoras ?? 0} />
+                  </td>
+
+                  {acoesBancoHoras?.habilitadas ? (
+                    <td className="px-5 py-4">
+                      <AcoesBancoHorasDia
+                        servidorId={acoesBancoHoras.servidorId}
+                        anoReferencia={acoesBancoHoras.anoReferencia}
+                        mesReferencia={acoesBancoHoras.mesReferencia}
+                        dataReferencia={item.dataReferencia}
+                        minutosNaoAutorizados={
+                          item.minutosHoraExtraNaoAutorizada ?? 0
+                        }
+                      />
+                    </td>
+                  ) : null}
                 </tr>
               );
             })}
@@ -299,7 +382,7 @@ export function EspelhoPontoMensal({
             {apuracoes.length === 0 && (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={acoesBancoHoras?.habilitadas ? 11 : 10}
                   className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                 >
                   Nenhuma apuração calculada para o mês.
@@ -394,7 +477,10 @@ function OcorrenciasDia({
           ocorrencia.tipo === "AFASTAMENTO"
             ? rotuloOcorrenciaEspelho(ocorrencia)
             : null,
-        title: ocorrencia.descricao,
+        title: formatarDescricaoOcorrenciaHint(
+          ocorrencia.descricao,
+          ocorrencia.minutos,
+        ),
       })),
     ...solicitacoes
       .filter(
@@ -503,6 +589,37 @@ function encontrarJustificativaAusenciaMesclada(
         tiposJustificamAusencia.has(solicitacao.tipo),
     ) ?? null
   );
+}
+
+function formatarDescricaoOcorrenciaHint(
+  descricao?: string | null,
+  minutos?: number,
+) {
+  if (!descricao) {
+    return undefined;
+  }
+
+  const texto = descricao
+    .replaceAll("Ausencia", "Ausência")
+    .replaceAll("autorizacao", "autorização")
+    .replaceAll("horario", "horário")
+    .replaceAll("padrao", "padrão")
+    .replaceAll("HÃ¡", "Há")
+    .replaceAll("padrÃ£o", "padrão")
+    .replaceAll("autorizaÃ§Ã£o", "autorização")
+    .replaceAll("horÃ¡rio", "horário");
+
+  if (!minutos || minutos < 60) {
+    return texto;
+  }
+
+  const horas = Math.floor(minutos / 60);
+  const minutosRestantes = minutos % 60;
+  const formatado = `${String(horas).padStart(2, "0")}:${String(
+    minutosRestantes,
+  ).padStart(2, "0")}`;
+
+  return texto.replace(/\b\d+\s+minuto\(s\)/i, formatado);
 }
 
 function ehFimDeSemanaInstitucional(dia: DiaInstitucionalEspelho | null) {
@@ -819,6 +936,76 @@ function ValorTempo({
       {minutosParaTexto(minutos)}
     </span>
   );
+}
+
+function ValorSaldoBancoHoras({ minutos }: { minutos: number }) {
+  const tipo = minutos >= 0 ? "credito" : "debito";
+  const valor = minutos === 0 ? minutosParaTexto(0) : formatarSaldoBancoHoras(minutos);
+
+  return (
+    <span
+      className={`inline-flex rounded-full px-2 py-1 text-xs font-bold ${
+        minutos === 0
+          ? "bg-[var(--muted)] text-[var(--muted-foreground)]"
+          : tipo === "credito"
+            ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
+            : "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
+      }`}
+    >
+      {valor}
+    </span>
+  );
+}
+
+function AcoesBancoHorasDia({
+  servidorId,
+  anoReferencia,
+  mesReferencia,
+  dataReferencia,
+  minutosNaoAutorizados,
+}: {
+  servidorId: string;
+  anoReferencia: number;
+  mesReferencia: number;
+  dataReferencia: Date | string;
+  minutosNaoAutorizados: number;
+}) {
+  if (minutosNaoAutorizados <= 0) {
+    return <span className="text-xs text-[var(--muted-foreground)]">-</span>;
+  }
+
+  return (
+    <form action={autorizarHoraExtraBancoHorasAction} className="flex items-center gap-2">
+      <input type="hidden" name="servidorId" value={servidorId} />
+      <input type="hidden" name="anoReferencia" value={anoReferencia} />
+      <input type="hidden" name="mesReferencia" value={mesReferencia} />
+      <input
+        type="hidden"
+        name="dataReferencia"
+        value={chaveDataReferenciaUtc(dataReferencia)}
+      />
+      <input type="hidden" name="minutosMaximos" value={minutosNaoAutorizados} />
+      <TempoAutorizadoInput
+        name="tempoAutorizado"
+        minutos={minutosNaoAutorizados}
+        minutosMaximos={minutosNaoAutorizados}
+        className="h-8 w-20 rounded-md border bg-[var(--background)] px-2 text-xs font-semibold tabular-nums"
+        ariaLabel="Tempo a autorizar no formato horas e minutos"
+        title={`Informe o tempo no formato HH:MM, até ${minutosParaTexto(
+          minutosNaoAutorizados,
+        )}.`}
+      />
+      <ConfirmarAutorizacaoHoraExtraButton />
+    </form>
+  );
+}
+
+function formatarSaldoBancoHoras(minutos: number) {
+  if (minutos === 0) {
+    return minutosParaTexto(0);
+  }
+
+  return `${minutos > 0 ? "+" : "-"}${minutosParaTexto(Math.abs(minutos))}`;
 }
 
 function agruparMarcacoesPorDia(marcacoes: MarcacaoItem[]) {

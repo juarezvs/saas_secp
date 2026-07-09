@@ -62,4 +62,40 @@ describe("calcularSaldoBancoHoras", () => {
     expect(resultado.saldoMinutos).toBe(-90);
     expect(resultado.debitosValidadosMinutos).toBe(90);
   });
+
+  it("ignora movimentos anteriores a competencia inicial de controle", () => {
+    const resultado = calcularSaldoBancoHoras(
+      [
+        {
+          tipo: "CREDITO",
+          origem: "APURACAO_DIARIA",
+          status: "VALIDADO",
+          minutos: 120,
+          anoReferencia: 2026,
+          mesReferencia: 4,
+        },
+        {
+          tipo: "CREDITO",
+          origem: "IMPORTACAO",
+          status: "VALIDADO",
+          minutos: 60,
+          anoReferencia: 2026,
+          mesReferencia: 5,
+        },
+        {
+          tipo: "DEBITO",
+          origem: "APURACAO_DIARIA",
+          status: "VALIDADO",
+          minutos: 30,
+          anoReferencia: 2026,
+          mesReferencia: 5,
+        },
+      ],
+      { competenciaInicioControle: "2026-05" },
+    );
+
+    expect(resultado.saldoMinutos).toBe(30);
+    expect(resultado.creditosValidadosMinutos).toBe(60);
+    expect(resultado.debitosValidadosMinutos).toBe(30);
+  });
 });

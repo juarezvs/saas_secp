@@ -20,7 +20,7 @@ export type CompetenciaInputProps = Omit<
 const meses = [
   { valor: "01", curto: "Jan", longo: "janeiro" },
   { valor: "02", curto: "Fev", longo: "fevereiro" },
-  { valor: "03", curto: "Mar", longo: "marco" },
+  { valor: "03", curto: "Mar", longo: "março" },
   { valor: "04", curto: "Abr", longo: "abril" },
   { valor: "05", curto: "Mai", longo: "maio" },
   { valor: "06", curto: "Jun", longo: "junho" },
@@ -63,7 +63,7 @@ function rotuloCompetencia(value: string) {
 export function CompetenciaInput({
   id = "competencia",
   name = "competencia",
-  label = "Competencia",
+  label = "Competência",
   className,
   inputClassName,
   value,
@@ -136,7 +136,7 @@ export function CompetenciaInput({
       {aberto && !disabled && (
         <div
           role="dialog"
-          aria-label="Selecionar competencia"
+          aria-label="Selecionar competência"
           className="absolute z-50 mt-2 w-72 rounded-md border bg-[var(--card)] p-3 text-sm shadow-lg"
         >
           <div className="flex items-center justify-between gap-2">
@@ -153,7 +153,7 @@ export function CompetenciaInput({
               type="button"
               onClick={() => setAnoVisivel((atual) => atual + 1)}
               className="inline-flex size-8 items-center justify-center rounded-md border hover:bg-[var(--muted)]"
-              aria-label="Proximo ano"
+              aria-label="Próximo ano"
             >
               <ChevronRight className="size-4" aria-hidden="true" />
             </button>

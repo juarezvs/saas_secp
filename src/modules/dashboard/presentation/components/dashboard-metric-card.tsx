@@ -16,7 +16,7 @@ type DashboardMetricCardProps = {
 };
 
 const variantes = {
-  info: "bg-blue-50 text-secp-blue-900 dark:bg-blue-950 dark:text-blue-200",
+  info: "secp-theme-icon",
   success: "bg-green-50 text-secp-green-700 dark:bg-green-950 dark:text-green-200",
   warning: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-200",
 };

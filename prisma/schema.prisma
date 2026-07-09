@@ -274,6 +274,7 @@ enum TipoIntegracao {
   SEI
   EQUIPAMENTO_BIOMETRICO
   LDAP
+  TEAMS
   WEBHOOK
   OUTRO
 }
@@ -516,6 +517,9 @@ model Usuario {
   sessoesCadastroFacial            SessaoCadastroFacial[]
   notificacoesLidas                NotificacaoLeitura[]
   documentosAutenticacaoCriados    DocumentoAutenticacao[]   @relation("DocumentosAutenticacaoCriadosPorUsuario")
+  teamsVinculos                    TeamsUsuarioVinculado[]
+  teamsLogs                        TeamsLog[]
+  teamsNotificacoes                TeamsNotificacao[]
 
   @@map("usuarios")
 }
@@ -607,8 +611,8 @@ model LiberacaoRotina {
   id String @id @default(uuid()) @db.Uuid
 
   tipo     TipoLiberacaoRotina
-  chave    String               @db.VarChar(160)
-  liberada Boolean              @default(true)
+  chave    String              @db.VarChar(160)
+  liberada Boolean             @default(true)
 
   atualizadoPorUsuarioId String?  @map("atualizado_por_usuario_id") @db.Uuid
   criadoEm               DateTime @default(now()) @map("criado_em")
@@ -869,6 +873,7 @@ model Servidor {
   espelhosRecesso                   EspelhoRecesso[]
   homologacoesRecesso               HomologacaoRecesso[]
   sessoesCadastroFacial             SessaoCadastroFacial[]
+  teamsVinculos                     TeamsUsuarioVinculado[]
 
   @@index([orgaoId])
   @@index([cargoId])
@@ -1285,13 +1290,16 @@ model BancoHorasSaldo {
   id         String @id @default(uuid()) @db.Uuid
   servidorId String @unique @map("servidor_id") @db.Uuid
 
-  saldoMinutos               Int @default(0) @map("saldo_minutos")
-  creditosValidadosMinutos   Int @default(0) @map("creditos_validados_minutos")
-  debitosValidadosMinutos    Int @default(0) @map("debitos_validados_minutos")
-  creditosPendentesMinutos   Int @default(0) @map("creditos_pendentes_minutos")
-  debitosPendentesMinutos    Int @default(0) @map("debitos_pendentes_minutos")
-  horasAcimaLimiteMinutos    Int @default(0) @map("horas_acima_limite_minutos")
-  horasNaoAutorizadasMinutos Int @default(0) @map("horas_nao_autorizadas_minutos")
+  saldoMinutos               Int     @default(0) @map("saldo_minutos")
+  saldoInicialCreditoMinutos Int     @default(0) @map("saldo_inicial_credito_minutos")
+  saldoInicialDebitoMinutos  Int     @default(0) @map("saldo_inicial_debito_minutos")
+  creditosValidadosMinutos   Int     @default(0) @map("creditos_validados_minutos")
+  debitosValidadosMinutos    Int     @default(0) @map("debitos_validados_minutos")
+  creditosPendentesMinutos   Int     @default(0) @map("creditos_pendentes_minutos")
+  debitosPendentesMinutos    Int     @default(0) @map("debitos_pendentes_minutos")
+  horasAcimaLimiteMinutos    Int     @default(0) @map("horas_acima_limite_minutos")
+  horasNaoAutorizadasMinutos Int     @default(0) @map("horas_nao_autorizadas_minutos")
+  competenciaInicioControle  String? @map("competencia_inicio_controle") @db.VarChar(7)
 
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
   criadoEm     DateTime @default(now()) @map("criado_em")
@@ -1651,6 +1659,103 @@ model IntegracaoSistema {
   @@index([status])
   @@index([ativo])
   @@map("integracoes_sistemas")
+}
+
+model IntegracaoTeamsConfiguracao {
+  id                              String   @id @default(uuid()) @db.Uuid
+  ativo                           Boolean  @default(false)
+  ambiente                        String   @default("desenvolvimento") @db.VarChar(40)
+  microsoftAppId                  String?  @map("microsoft_app_id") @db.VarChar(120)
+  microsoftAppSecretCriptografado String?  @map("microsoft_app_secret_criptografado") @db.Text
+  tenantId                        String?  @map("tenant_id") @db.VarChar(120)
+  botEndpoint                     String?  @map("bot_endpoint") @db.Text
+  messagingEndpoint               String?  @map("messaging_endpoint") @db.Text
+  urlPublicaSecp                  String?  @map("url_publica_secp") @db.Text
+  politicaEnvioNotificacoes       String   @default("somente_vinculados") @map("politica_envio_notificacoes") @db.VarChar(80)
+  botConversacionalAtivo          Boolean  @default(false) @map("bot_conversacional_ativo")
+  notificacoesAtivas              Boolean  @default(false) @map("notificacoes_ativas")
+  adaptiveCardsAtivos             Boolean  @default(false) @map("adaptive_cards_ativos")
+  abasTeamsAtivas                 Boolean  @default(false) @map("abas_teams_ativas")
+  registroPontoAtivo              Boolean  @default(false) @map("registro_ponto_ativo")
+  consultaBancoHorasAtiva         Boolean  @default(false) @map("consulta_banco_horas_ativa")
+  aprovacoesAtivas                Boolean  @default(false) @map("aprovacoes_ativas")
+  homologacoesAtivas              Boolean  @default(false) @map("homologacoes_ativas")
+  criadoEm                        DateTime @default(now()) @map("criado_em")
+  atualizadoEm                    DateTime @updatedAt @map("atualizado_em")
+
+  @@index([ativo])
+  @@index([ambiente])
+  @@map("integracoes_teams_configuracoes")
+}
+
+model TeamsUsuarioVinculado {
+  id                  String   @id @default(uuid()) @db.Uuid
+  usuarioId           String   @map("usuario_id") @db.Uuid
+  servidorId          String?  @map("servidor_id") @db.Uuid
+  teamsUserId         String   @map("teams_user_id") @db.VarChar(180)
+  teamsAadObjectId    String?  @map("teams_aad_object_id") @db.VarChar(180)
+  teamsConversationId String?  @map("teams_conversation_id") @db.Text
+  tenantId            String?  @map("tenant_id") @db.VarChar(120)
+  serviceUrl          String?  @map("service_url") @db.Text
+  ativo               Boolean  @default(true)
+  criadoEm            DateTime @default(now()) @map("criado_em")
+  atualizadoEm        DateTime @updatedAt @map("atualizado_em")
+
+  usuario  Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  servidor Servidor? @relation(fields: [servidorId], references: [id], onDelete: SetNull)
+
+  @@unique([teamsUserId, tenantId])
+  @@index([usuarioId])
+  @@index([servidorId])
+  @@index([teamsAadObjectId])
+  @@index([ativo])
+  @@map("teams_usuarios_vinculados")
+}
+
+model TeamsLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  tipo          String   @db.VarChar(80)
+  direcao       String   @db.VarChar(40)
+  usuarioId     String?  @map("usuario_id") @db.Uuid
+  teamsUserId   String?  @map("teams_user_id") @db.VarChar(180)
+  evento        String   @db.VarChar(160)
+  payloadResumo String?  @map("payload_resumo") @db.Text
+  sucesso       Boolean  @default(true)
+  erro          String?  @db.Text
+  criadoEm      DateTime @default(now()) @map("criado_em")
+
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([tipo])
+  @@index([direcao])
+  @@index([usuarioId])
+  @@index([teamsUserId])
+  @@index([evento])
+  @@index([sucesso])
+  @@index([criadoEm])
+  @@map("teams_logs")
+}
+
+model TeamsNotificacao {
+  id          String    @id @default(uuid()) @db.Uuid
+  usuarioId   String    @map("usuario_id") @db.Uuid
+  teamsUserId String?   @map("teams_user_id") @db.VarChar(180)
+  titulo      String    @db.VarChar(180)
+  mensagem    String    @db.Text
+  tipo        String    @db.VarChar(80)
+  status      String    @default("pendente") @db.VarChar(40)
+  enviadoEm   DateTime? @map("enviado_em")
+  erro        String?   @db.Text
+  criadoEm    DateTime  @default(now()) @map("criado_em")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@index([teamsUserId])
+  @@index([tipo])
+  @@index([status])
+  @@index([criadoEm])
+  @@map("teams_notificacoes")
 }
 
 model LogIntegracao {

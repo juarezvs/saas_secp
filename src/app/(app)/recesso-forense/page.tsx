@@ -35,6 +35,7 @@ export default async function RecessoForensePage() {
       recessos={recessos}
       podeGerenciar={podeGerenciar}
       visualizacaoServidor={escopoRecesso.restrito}
+      podeGerenciarConvocacoes={escopoRecesso.perfilChefiaAtivo}
     />
   );
 }

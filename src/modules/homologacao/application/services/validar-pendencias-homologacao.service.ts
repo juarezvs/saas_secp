@@ -1,5 +1,6 @@
 import {
   listarApuracoesServidorMes,
+  listarHorasExtrasNaoAutorizadasMes,
   listarJornadasServidorMes,
   listarMovimentosPendentesBancoHorasMes,
   listarSolicitacoesPendentesServidorMes,
@@ -12,6 +13,7 @@ export type PendenciaHomologacao = {
     | "MARCACAO_INCOMPLETA"
     | "SOLICITACAO_PENDENTE"
     | "BANCO_HORAS_PENDENTE"
+    | "HORA_EXTRA_NAO_AUTORIZADA"
     | "FALTA"
     | "DEBITO"
     | "JORNADA_NAO_CONFIGURADA"
@@ -28,11 +30,17 @@ export async function validarPendenciasHomologacaoServidor(params: {
   anoReferencia: number;
   mesReferencia: number;
 }) {
-  const [apuracoes, solicitacoesPendentes, movimentosPendentes, jornadas] =
-    await Promise.all([
+  const [
+    apuracoes,
+    solicitacoesPendentes,
+    movimentosPendentes,
+    horasExtrasNaoAutorizadas,
+    jornadas,
+  ] = await Promise.all([
       listarApuracoesServidorMes(params),
       listarSolicitacoesPendentesServidorMes(params),
       listarMovimentosPendentesBancoHorasMes(params),
+      listarHorasExtrasNaoAutorizadasMes(params),
       listarJornadasServidorMes(params),
     ]);
   const cargaEsperada = await calcularCargaMensalEsperada({
@@ -168,6 +176,19 @@ export async function validarPendenciasHomologacaoServidor(params: {
       descricao: "Existem movimentos de banco de horas pendentes de validação.",
       quantidade: movimentosPendentes.length,
       minutos: movimentosPendentes.reduce(
+        (total, item) => total + item.minutos,
+        0,
+      ),
+    });
+  }
+
+  if (horasExtrasNaoAutorizadas.length > 0) {
+    pendencias.push({
+      tipo: "HORA_EXTRA_NAO_AUTORIZADA",
+      descricao:
+        "Existem horas extras sem autorização prévia aguardando deliberação da chefia.",
+      quantidade: horasExtrasNaoAutorizadas.length,
+      minutos: horasExtrasNaoAutorizadas.reduce(
         (total, item) => total + item.minutos,
         0,
       ),

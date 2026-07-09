@@ -69,8 +69,18 @@ export async function validarMovimentosBancoHorasHomologacaoAction(
         dataReferencia: "asc",
       },
     });
+    const saldoAtual = await tx.bancoHorasSaldo.findUnique({
+      where: {
+        servidorId,
+      },
+      select: {
+        competenciaInicioControle: true,
+      },
+    });
 
-    const saldo = calcularSaldoBancoHoras(movimentos);
+    const saldo = calcularSaldoBancoHoras(movimentos, {
+      competenciaInicioControle: saldoAtual?.competenciaInicioControle,
+    });
 
     await tx.bancoHorasSaldo.upsert({
       where: {

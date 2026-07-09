@@ -38,6 +38,31 @@ export function obterDataReferencia(
   return new Date(Date.UTC(ano, mes - 1, dia));
 }
 
+export function obterMinutosLocais(
+  dataHora: Date,
+  fusoHorario?: string | null,
+) {
+  const timeZone = normalizarFusoHorario(fusoHorario);
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(dataHora);
+  const hora = Number(partes.find((parte) => parte.type === "hour")?.value);
+  const minuto = Number(
+    partes.find((parte) => parte.type === "minute")?.value,
+  );
+
+  return hora * 60 + minuto;
+}
+
+export function subtrairDiasDataReferencia(dataReferencia: Date, dias: number) {
+  const data = new Date(dataReferencia);
+  data.setUTCDate(data.getUTCDate() - dias);
+  return data;
+}
+
 export function dataHoraLocalParaUtc(params: {
   dataReferencia: Date;
   hora: string;

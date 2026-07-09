@@ -29,7 +29,7 @@ export function PageHeader({
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="shrink-0 rounded-xl bg-blue-50 p-3 text-blue-900 dark:bg-blue-950 dark:text-blue-300">
+            <div className="secp-theme-icon shrink-0 rounded-xl p-3">
               <Icon className="size-6" aria-hidden="true" />
             </div>
 

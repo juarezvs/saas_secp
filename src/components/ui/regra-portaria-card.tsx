@@ -16,7 +16,7 @@ export function RegraPortariaCard({
       <button
         type="button"
         aria-label={`Base normativa: ${artigo}`}
-        className="inline-flex size-9 animate-pulse items-center justify-center rounded-full border border-blue-200 bg-blue-50 text-blue-900 shadow-sm transition hover:animate-none hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-700 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300 dark:hover:bg-blue-900"
+        className="secp-theme-icon inline-flex size-9 animate-pulse items-center justify-center rounded-full border border-secp-blue-900/20 shadow-sm transition hover:animate-none hover:bg-secp-blue-900/15 focus:outline-none focus:ring-2 focus:ring-ring dark:border-white/15 dark:hover:bg-white/10"
       >
         <Scale className="size-5" aria-hidden="true" />
       </button>

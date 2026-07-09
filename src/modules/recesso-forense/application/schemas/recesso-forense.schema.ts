@@ -18,8 +18,8 @@ export const recessoForenseSchema = z
     ano: z.coerce
       .number()
       .int("Informe um ano valido.")
-      .min(2024, "Ano inicial invalido.")
-      .max(2100, "Ano final invalido."),
+      .min(2024, "Ano inicial inválido.")
+      .max(2100, "Ano final inválido."),
     observacao: z.string().trim().max(2000).optional().or(z.literal("")),
   })
   .transform((data) => {
@@ -33,12 +33,12 @@ export const recessoForenseSchema = z
   });
 
 export const convocacaoRecessoSchema = z.object({
-  recessoId: z.string().uuid("Recesso invalido."),
+  recessoId: z.string().uuid("Recesso inválido."),
   numeroPortaria: z
     .string()
     .trim()
-    .min(2, "Informe o numero da portaria.")
-    .max(120, "Numero de portaria muito longo."),
+    .min(2, "Informe o número da portaria.")
+    .max(120, "Número de portaria muito longo."),
   dataPortaria: z.string().optional().or(z.literal("")),
   unidadeId: z.string().uuid().optional().or(z.literal("")),
   chefiaResponsavelId: z.string().uuid().optional().or(z.literal("")),
@@ -47,20 +47,20 @@ export const convocacaoRecessoSchema = z.object({
 
 export const atualizarConvocacaoRecessoSchema =
   convocacaoRecessoSchema.extend({
-    convocacaoId: z.string().uuid("Convocacao invalida."),
+    convocacaoId: z.string().uuid("Convocação inválida."),
   });
 
 export const convocadoRecessoSchema = z
   .object({
-    recessoId: z.string().uuid("Recesso invalido."),
-    convocacaoId: z.string().uuid("Convocacao invalida."),
-    servidorId: z.string().uuid("Servidor invalido."),
+    recessoId: z.string().uuid("Recesso inválido."),
+    convocacaoId: z.string().uuid("Convocação inválida."),
+    servidorId: z.string().uuid("Servidor inválido."),
     dataConvocacao: z.string().min(10, "Informe a data convocada."),
     minutosPrevistos: z.coerce
       .number()
       .int()
-      .min(0, "Minutos previstos invalidos.")
-      .max(1440, "Minutos previstos invalidos."),
+      .min(0, "Minutos previstos inválidos.")
+      .max(1440, "Minutos previstos inválidos."),
     observacao: z.string().trim().max(1000).optional().or(z.literal("")),
     anoRecesso: z.coerce.number().int(),
   })
@@ -78,22 +78,22 @@ export const convocadoRecessoSchema = z
 
 export const convocadoRecessoLoteSchema = z
   .object({
-    recessoId: z.string().uuid("Recesso invalido."),
-    convocacaoId: z.string().uuid("Convocacao invalida."),
-    servidorId: z.string().uuid("Servidor invalido."),
+    recessoId: z.string().uuid("Recesso inválido."),
+    convocacaoId: z.string().uuid("Convocação inválida."),
+    servidorId: z.string().uuid("Servidor inválido."),
     minutosPrevistos: z.coerce
       .number()
       .int()
-      .min(0, "Minutos previstos invalidos.")
-      .max(1440, "Minutos previstos invalidos."),
+      .min(0, "Minutos previstos inválidos.")
+      .max(1440, "Minutos previstos inválidos."),
     observacao: z.string().trim().max(1000).optional().or(z.literal("")),
     anoRecesso: z.coerce.number().int(),
     diasConvocados: z
       .array(
         z.object({
-          dataConvocacao: z.string().min(10, "Data convocada invalida."),
+          dataConvocacao: z.string().min(10, "Data convocada inválida."),
           escolha: z.enum(["PECUNIA", "FOLGA"], {
-            error: "Escolha pecunia ou folga.",
+            error: "Escolha pecúnia ou folga.",
           }),
         }),
       )
@@ -114,15 +114,15 @@ export const convocadoRecessoLoteSchema = z
   });
 
 export const escolhaRecessoSchema = z.object({
-  convocadoId: z.string().uuid("Convocacao invalida."),
+  convocadoId: z.string().uuid("Convocação inválida."),
   escolha: z.enum(["PECUNIA", "FOLGA"], {
-    error: "Escolha pecunia ou folga.",
+    error: "Escolha pecúnia ou folga.",
   }),
 });
 
 export const fecharRecessoSchema = z.object({
-  recessoId: z.string().uuid("Recesso invalido."),
-  servidorId: z.string().uuid("Servidor invalido."),
+  recessoId: z.string().uuid("Recesso inválido."),
+  servidorId: z.string().uuid("Servidor inválido."),
   mesReferencia: z.coerce.number().int().refine((mes) => mes === 12 || mes === 1, {
     message: "Fechamento permitido apenas para dezembro ou janeiro.",
   }),
@@ -130,13 +130,13 @@ export const fecharRecessoSchema = z.object({
 });
 
 export const homologarRecessoSchema = z.object({
-  homologacaoId: z.string().uuid("Homologacao invalida."),
+  homologacaoId: z.string().uuid("Homologação inválida."),
   observacaoChefia: z.string().trim().max(2000).optional().or(z.literal("")),
 });
 
 export const devolverHomologacaoRecessoSchema = homologarRecessoSchema;
 
 export const aceitarRecessoSecadSchema = z.object({
-  homologacaoId: z.string().uuid("Homologacao invalida."),
+  homologacaoId: z.string().uuid("Homologação inválida."),
   observacaoSecad: z.string().trim().max(2000).optional().or(z.literal("")),
 });

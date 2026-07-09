@@ -97,7 +97,7 @@ function FluxoCard({
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300">
+          <div className="secp-theme-icon flex size-10 shrink-0 items-center justify-center rounded-lg">
             <Icon className="size-5" aria-hidden="true" />
           </div>
           <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -190,7 +190,7 @@ function Indicador({
             {valor}
           </p>
         </div>
-        <div className="rounded-lg bg-blue-50 p-2 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300">
+        <div className="secp-theme-icon rounded-lg p-2">
           <Icon className="size-5" aria-hidden="true" />
         </div>
       </div>

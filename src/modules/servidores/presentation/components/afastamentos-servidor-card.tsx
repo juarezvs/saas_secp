@@ -120,7 +120,7 @@ export function AfastamentosServidorCard({
     <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
       <div className="flex flex-col gap-4 border-b p-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-start gap-3">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-900 dark:bg-blue-950 dark:text-blue-300">
+          <span className="secp-theme-icon flex size-11 shrink-0 items-center justify-center rounded-lg">
             <CalendarX className="size-5" aria-hidden="true" />
           </span>
           <div>

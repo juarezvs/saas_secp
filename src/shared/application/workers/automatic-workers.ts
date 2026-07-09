@@ -47,6 +47,11 @@ export async function iniciarWorkersAutomaticos() {
       garantirCalendarioInstitucionalWorkerAutomatico(),
     ),
     import(
+      "@/modules/regulamentacao-ponto/application/workers/recalcular-regulamentacao-ponto-worker-runtime"
+    ).then(({ garantirRecalcularRegulamentacaoPontoWorkerAutomatico }) =>
+      garantirRecalcularRegulamentacaoPontoWorkerAutomatico(),
+    ),
+    import(
       "@/modules/integracoes/sarh/application/workers/sarh-login-sync-worker-runtime"
     ).then(({ garantirSarhLoginSyncWorkerAutomatico }) =>
       garantirSarhLoginSyncWorkerAutomatico(),

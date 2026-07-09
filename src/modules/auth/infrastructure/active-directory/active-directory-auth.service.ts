@@ -63,6 +63,41 @@ function montarIdentificadorUsuario(params: {
   return `${params.dominio}\\${matricula}`;
 }
 
+function normalizarLdapUrl(valor: string) {
+  const texto = valor.trim();
+
+  if (!texto) {
+    return "";
+  }
+
+  if (/^ldaps?:\/\//i.test(texto)) {
+    return texto;
+  }
+
+  return `ldap://${texto}`;
+}
+
+function montarLdapUrls(valor: string) {
+  return valor
+    .split(/[,\s;]+/)
+    .map(normalizarLdapUrl)
+    .filter(Boolean);
+}
+
+function criarClienteLdap(params: { ldapUrl: string; timeoutMs: number }) {
+  const urls = montarLdapUrls(params.ldapUrl);
+
+  if (urls.length === 0) {
+    return null;
+  }
+
+  return createClient({
+    url: urls.length === 1 ? urls[0] : urls,
+    timeout: params.timeoutMs,
+    connectTimeout: params.timeoutMs,
+  });
+}
+
 function bindAsync(client: Client, dn: string, senha: string) {
   return new Promise<void>((resolve, reject) => {
     client.bind(dn, senha, (error) => {
@@ -90,8 +125,14 @@ function buscarDnUsuario(params: {
 }) {
   const filtro = (params.searchFilter || "(sAMAccountName={{matricula}})")
     .replaceAll("{{matricula}}", escaparFiltroLdap(params.matricula))
-    .replaceAll("{{matriculaLower}}", escaparFiltroLdap(params.matricula.toLowerCase()))
-    .replaceAll("{{matriculaUpper}}", escaparFiltroLdap(params.matricula.toUpperCase()));
+    .replaceAll(
+      "{{matriculaLower}}",
+      escaparFiltroLdap(params.matricula.toLowerCase()),
+    )
+    .replaceAll(
+      "{{matriculaUpper}}",
+      escaparFiltroLdap(params.matricula.toUpperCase()),
+    );
 
   return new Promise<string | null>((resolve, reject) => {
     let dn: string | null = null;
@@ -172,12 +213,6 @@ async function autenticarViaLdapBind(params: {
     return false;
   }
 
-  const client = createClient({
-    url: params.ldapUrl,
-    timeout: params.timeoutMs,
-    connectTimeout: params.timeoutMs,
-  });
-
   try {
     let userDn = montarIdentificadorUsuario({
       matricula: params.matricula,
@@ -186,27 +221,42 @@ async function autenticarViaLdapBind(params: {
     });
 
     if (params.bindDn && params.baseDn) {
-      await bindAsync(client, params.bindDn, params.bindPassword);
-      const dnEncontrado = await buscarDnUsuario({
-        client,
-        baseDn: params.baseDn,
-        searchFilter: params.searchFilter,
-        matricula: params.matricula,
+      const searchClient = criarClienteLdap({
+        ldapUrl: params.ldapUrl,
+        timeoutMs: params.timeoutMs,
       });
 
-      if (!dnEncontrado) {
+      if (!searchClient) {
         return false;
       }
 
-      await unbindAsync(client);
-      userDn = dnEncontrado;
+      try {
+        await bindAsync(searchClient, params.bindDn, params.bindPassword);
+        const dnEncontrado = await buscarDnUsuario({
+          client: searchClient,
+          baseDn: params.baseDn,
+          searchFilter: params.searchFilter,
+          matricula: params.matricula,
+        });
+
+        if (!dnEncontrado) {
+          return false;
+        }
+
+        userDn = dnEncontrado;
+      } finally {
+        await unbindAsync(searchClient);
+      }
     }
 
-    const authClient = createClient({
-      url: params.ldapUrl,
-      timeout: params.timeoutMs,
-      connectTimeout: params.timeoutMs,
+    const authClient = criarClienteLdap({
+      ldapUrl: params.ldapUrl,
+      timeoutMs: params.timeoutMs,
     });
+
+    if (!authClient) {
+      return false;
+    }
 
     try {
       await bindAsync(authClient, userDn, params.senha);
@@ -216,8 +266,6 @@ async function autenticarViaLdapBind(params: {
     }
   } catch {
     return false;
-  } finally {
-    await unbindAsync(client);
   }
 }
 

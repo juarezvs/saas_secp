@@ -136,7 +136,11 @@ export const modosAutenticacaoLdapAd = ["HTTP_AD_API", "LDAP_BIND"] as const;
 
 export const ldapActiveDirectorySchema = z
   .object({
-    orgaoId: z.string().uuid("Informe um órgão válido.").optional().or(z.literal("")),
+    orgaoId: z
+      .string()
+      .uuid("Informe um órgão válido.")
+      .optional()
+      .or(z.literal("")),
     modoAutenticacao: z.enum(modosAutenticacaoLdapAd, {
       error: "Informe o modo de autenticação.",
     }),
@@ -178,7 +182,24 @@ export const ldapActiveDirectorySchema = z
         });
       }
 
-      if (!dados.dominio && !dados.userDnPattern && !dados.baseDn) {
+      if (
+        dados.ldapUrl &&
+        !/^ldaps?:\/\/[^\s/]+/i.test(dados.ldapUrl) &&
+        !/^[^\s/]+(?::\d+)?$/i.test(dados.ldapUrl)
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["ldapUrl"],
+          message:
+            "Informe um endpoint LDAP valido, como ldap://ad.exemplo.gov.br:389 ou ad.exemplo.gov.br.",
+        });
+      }
+
+      if (
+        !dados.dominio &&
+        !dados.userDnPattern &&
+        !(dados.baseDn && dados.bindDn)
+      ) {
         ctx.addIssue({
           code: "custom",
           path: ["dominio"],
@@ -209,7 +230,11 @@ export type LdapActiveDirectoryFormState = {
 };
 
 export const sarhOracleSchema = z.object({
-  orgaoId: z.string().uuid("Informe um órgão válido.").optional().or(z.literal("")),
+  orgaoId: z
+    .string()
+    .uuid("Informe um órgão válido.")
+    .optional()
+    .or(z.literal("")),
   nome: z
     .string()
     .trim()

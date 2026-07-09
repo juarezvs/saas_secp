@@ -1,5 +1,7 @@
+import { CompetenciaInput } from "@/components/ui";
 import { salvarRegulamentacaoPontoAction } from "@/modules/regulamentacao-ponto/application/actions/salvar-regulamentacao-ponto.action";
 import { REGULAMENTACAO_PONTO_PADRAO } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
+import { RegulamentacaoPontoSubmitButton } from "./regulamentacao-ponto-submit-button";
 
 type OrgaoFormulario = {
   id: string;
@@ -27,11 +29,19 @@ type RegulamentacaoPontoFormProps = {
   regras?: RegrasFormulario | null;
 };
 
+function competenciaAtual() {
+  const hoje = new Date();
+
+  return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(
+    2,
+    "0",
+  )}`;
+}
+
 export function RegulamentacaoPontoForm({
   orgao,
   regras,
 }: RegulamentacaoPontoFormProps) {
-  const hoje = new Date();
   const valores = regras ?? REGULAMENTACAO_PONTO_PADRAO;
   const configuracaoAtiva =
     "ativo" in valores && typeof valores.ativo === "boolean"
@@ -51,7 +61,7 @@ export function RegulamentacaoPontoForm({
             {orgao.sigla} - {orgao.nome}
           </h2>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-            As alteracoes afetam somente servidores vinculados a este orgao.
+            As alterações afetam somente servidores vinculados a este órgão.
           </p>
         </div>
 
@@ -62,17 +72,15 @@ export function RegulamentacaoPontoForm({
             defaultChecked={configuracaoAtiva}
             className="size-4 rounded border-slate-300"
           />
-          Usar estas regras para este orgao
+          Usar estas regras para este órgão
         </label>
       </div>
 
       <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <label className="space-y-2 md:col-span-2">
-          <span className="text-sm font-semibold">
-            Referência normativa
-          </span>
+          <span className="text-sm font-semibold">Referência normativa</span>
           <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
-            Informe a portaria, ato, resolucao ou norma que fundamenta estas
+            Informe a portaria, ato, resolução ou norma que fundamenta estas
             regras.
           </span>
           <input
@@ -84,11 +92,11 @@ export function RegulamentacaoPontoForm({
 
         <label className="space-y-2">
           <span className="text-sm font-semibold">
-            Limite mensal de credito no banco de horas
+            Limite mensal de crédito no banco de horas
           </span>
           <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
-            Quantidade maxima de minutos que o servidor pode acumular como
-            credito em uma competencia.
+            Quantidade máxima de minutos que o servidor pode acumular como
+            crédito em uma competência.
           </span>
           <input
             name="limiteCreditoMensalMinutos"
@@ -102,10 +110,10 @@ export function RegulamentacaoPontoForm({
 
         <label className="space-y-2">
           <span className="text-sm font-semibold">
-            Prazo para compensacao do credito
+            Prazo para compensação do crédito
           </span>
           <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
-            Numero de meses em que o credito autorizado permanece disponivel
+            Número de meses em que o crédito autorizado permanece disponível
             para uso.
           </span>
           <input
@@ -120,10 +128,10 @@ export function RegulamentacaoPontoForm({
 
         <label className="space-y-2">
           <span className="text-sm font-semibold">
-            Tolerancia minima para gerar credito
+            Tolerância mínima para gerar crédito
           </span>
           <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
-            Minutos excedentes abaixo deste valor sao ignorados e nao entram no
+            Minutos excedentes abaixo deste valor são ignorados e não entram no
             banco de horas.
           </span>
           <input
@@ -138,11 +146,11 @@ export function RegulamentacaoPontoForm({
 
         <label className="space-y-2">
           <span className="text-sm font-semibold">
-            Tolerancia minima para registrar debito
+            Tolerância mínima para registrar débito
           </span>
           <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
-            Faltas de minutos abaixo deste valor sao desconsideradas na
-            apuracao.
+            Faltas de minutos abaixo deste valor são desconsideradas na
+            apuração.
           </span>
           <input
             name="toleranciaDebitoMinutos"
@@ -156,11 +164,11 @@ export function RegulamentacaoPontoForm({
 
         <label className="space-y-2">
           <span className="text-sm font-semibold">
-            Minimo trabalhado para gerar credito em jornada de 7h
+            Mínimo trabalhado para gerar crédito em jornada de 7h
           </span>
           <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
             Total de minutos trabalhados no dia para que excedente de jornada
-            de 7h seja considerado credito.
+            de 7h seja considerado crédito.
           </span>
           <input
             name="jornada7hCreditoMinimoMinutos"
@@ -174,11 +182,11 @@ export function RegulamentacaoPontoForm({
 
         <label className="space-y-2">
           <span className="text-sm font-semibold">
-            Intervalo minimo exigido na jornada de 7h
+            Intervalo mínimo exigido na jornada de 7h
           </span>
           <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
-            Intervalo intrajornada, em minutos, exigido para validar o credito
-            quando a jornada base for de 7h.
+            Intervalo intrajornada, em minutos, exigido para validar o crédito
+            quando a jornada-base for de 7h.
           </span>
           <input
             name="jornada7hIntervaloMinimoMinutos"
@@ -199,10 +207,10 @@ export function RegulamentacaoPontoForm({
           />
           <span>
             <span className="block font-semibold">
-              Exigir autorizacao previa para credito
+              Exigir autorização prévia para crédito
             </span>
             <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
-              O excedente so entra no banco de horas quando houver autorizacao
+              O excedente só entra no banco de horas quando houver autorização
               deferida.
             </span>
           </span>
@@ -217,22 +225,22 @@ export function RegulamentacaoPontoForm({
           />
           <span>
             <span className="block font-semibold">
-              Sinalizar marcacao fora do expediente
+              Sinalizar marcação fora do expediente
             </span>
             <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
-              Marca como inconsistente quando o horario registrado estiver fora
-              da regra de expediente aplicavel.
+              Marca como inconsistente quando o horário registrado estiver fora
+              da regra de expediente aplicável.
             </span>
           </span>
         </label>
 
         <label className="space-y-2 md:col-span-2 xl:col-span-4">
           <span className="text-sm font-semibold">
-            Observacoes sobre a regra do orgao
+            Observações sobre a regra do órgão
           </span>
           <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
-            Use este campo para resumir excecoes, fundamentos ou orientacoes de
-            aplicacao.
+            Use este campo para resumir exceções, fundamentos ou orientações de
+            aplicação.
           </span>
           <textarea
             name="descricao"
@@ -244,34 +252,12 @@ export function RegulamentacaoPontoForm({
       </div>
 
       <div className="mt-5 flex flex-col gap-4 border-t pt-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="grid gap-3 sm:grid-cols-[9rem_9rem_auto]">
-          <label className="space-y-2">
-            <span className="text-xs font-semibold">
-              Ano da competencia a recalcular
-            </span>
-            <input
-              name="anoReferencia"
-              type="number"
-              min={2020}
-              max={2100}
-              defaultValue={hoje.getFullYear()}
-              className="h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-            />
-          </label>
-
-          <label className="space-y-2">
-            <span className="text-xs font-semibold">
-              Mes da competencia a recalcular
-            </span>
-            <input
-              name="mesReferencia"
-              type="number"
-              min={1}
-              max={12}
-              defaultValue={hoje.getMonth() + 1}
-              className="h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-            />
-          </label>
+        <div className="grid gap-3 sm:grid-cols-[minmax(14rem,18rem)_auto] sm:items-end">
+          <CompetenciaInput
+            name="competencia"
+            label="Competência a recalcular"
+            defaultValue={competenciaAtual()}
+          />
 
           <label className="flex items-center gap-3 rounded-md border bg-[var(--muted)] px-4 py-3 text-sm">
             <input
@@ -281,22 +267,18 @@ export function RegulamentacaoPontoForm({
             />
             <span>
               <span className="block font-semibold">
-                Recalcular esta competencia ao salvar
+                Recalcular esta competência ao salvar
               </span>
               <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
                 Reprocessa espelho e banco de horas apenas dos servidores deste
-                orgao.
+                órgão. O processamento continua em segundo plano mesmo se você
+                sair desta tela.
               </span>
             </span>
           </label>
         </div>
 
-        <button
-          type="submit"
-          className="inline-flex h-11 items-center justify-center rounded-md bg-blue-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-950"
-        >
-          Salvar regras do orgao
-        </button>
+        <RegulamentacaoPontoSubmitButton />
       </div>
     </form>
   );

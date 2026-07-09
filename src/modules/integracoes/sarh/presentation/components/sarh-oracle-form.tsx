@@ -57,7 +57,7 @@ export function SarhOracleForm({
       className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950"
     >
       <div className="flex items-start gap-3">
-        <div className="rounded-lg bg-blue-50 p-2 text-blue-800 dark:bg-blue-950 dark:text-blue-200">
+        <div className="secp-theme-icon rounded-lg p-2">
           <Database className="size-5" aria-hidden="true" />
         </div>
         <div>

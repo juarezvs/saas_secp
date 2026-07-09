@@ -46,6 +46,7 @@ export default async function RecessoConvocacoesPage({
   const [recesso, unidades, servidores] = await Promise.all([
     buscarRecessoForensePorId(id, {
       servidorIdsPermitidos: escopoRecesso.servidorIdsPermitidos,
+      exibirTodasConvocacoes: !escopoRecesso.perfilServidor,
     }),
     listarUnidadesParaRecesso(),
     listarServidoresParaRecesso({

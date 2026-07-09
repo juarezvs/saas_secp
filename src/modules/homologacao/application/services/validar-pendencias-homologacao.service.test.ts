@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../infrastructure/repositories/homologacao.repository", () => ({
   listarApuracoesServidorMes: vi.fn(),
+  listarHorasExtrasNaoAutorizadasMes: vi.fn(),
   listarJornadasServidorMes: vi.fn(),
   listarMovimentosPendentesBancoHorasMes: vi.fn(),
   listarSolicitacoesPendentesServidorMes: vi.fn(),
@@ -27,6 +28,7 @@ vi.mock(
 
 import {
   listarApuracoesServidorMes,
+  listarHorasExtrasNaoAutorizadasMes,
   listarJornadasServidorMes,
   listarMovimentosPendentesBancoHorasMes,
   listarSolicitacoesPendentesServidorMes,
@@ -62,9 +64,11 @@ function apuracao(data: string, cargaPrevistaMinutos = 420) {
 describe("validarPendenciasHomologacaoServidor", () => {
   beforeEach(() => {
     vi.mocked(listarApuracoesServidorMes).mockReset();
+    vi.mocked(listarHorasExtrasNaoAutorizadasMes).mockReset();
     vi.mocked(listarJornadasServidorMes).mockReset();
     vi.mocked(listarMovimentosPendentesBancoHorasMes).mockReset();
     vi.mocked(listarSolicitacoesPendentesServidorMes).mockReset();
+    vi.mocked(listarHorasExtrasNaoAutorizadasMes).mockResolvedValue([]);
     vi.mocked(listarMovimentosPendentesBancoHorasMes).mockResolvedValue([]);
     vi.mocked(listarSolicitacoesPendentesServidorMes).mockResolvedValue([]);
     vi.mocked(listarJornadasServidorMes).mockResolvedValue([
@@ -126,5 +130,75 @@ describe("validarPendenciasHomologacaoServidor", () => {
       ]),
     );
     expect(resultado.totais.cargaPrevistaMinutos).toBe(22 * 420);
+  });
+
+  it("aponta pendencia para horas extras sem autorizacao previa", async () => {
+    vi.mocked(listarApuracoesServidorMes).mockResolvedValue(
+      Array.from({ length: 22 }, (_, index) =>
+        apuracao(`2026-06-${String(index + 1).padStart(2, "0")}`),
+      ),
+    );
+    vi.mocked(listarHorasExtrasNaoAutorizadasMes).mockResolvedValue([
+      {
+        id: "movimento-1",
+        servidorId: "servidor-1",
+        apuracaoDiariaId: "apuracao-2026-06-01",
+        autorizacaoBancoHorasId: null,
+        tipo: "HORAS_NAO_AUTORIZADAS",
+        origem: "APURACAO_DIARIA",
+        status: "DESCONSIDERADO",
+        dataReferencia: new Date("2026-06-01T00:00:00.000Z"),
+        mesReferencia: 6,
+        anoReferencia: 2026,
+        minutos: 154,
+        saldoAposMovimento: null,
+        descricao: null,
+        observacao: null,
+        autorizadoPorUsuarioId: null,
+        autorizadoEm: null,
+        expiraEm: null,
+        metadados: null,
+        criadoEm: new Date("2026-06-01T12:00:00.000Z"),
+        atualizadoEm: new Date("2026-06-01T12:00:00.000Z"),
+      },
+      {
+        id: "movimento-2",
+        servidorId: "servidor-1",
+        apuracaoDiariaId: "apuracao-2026-06-02",
+        autorizacaoBancoHorasId: null,
+        tipo: "HORAS_NAO_AUTORIZADAS",
+        origem: "APURACAO_DIARIA",
+        status: "DESCONSIDERADO",
+        dataReferencia: new Date("2026-06-02T00:00:00.000Z"),
+        mesReferencia: 6,
+        anoReferencia: 2026,
+        minutos: 161,
+        saldoAposMovimento: null,
+        descricao: null,
+        observacao: null,
+        autorizadoPorUsuarioId: null,
+        autorizadoEm: null,
+        expiraEm: null,
+        metadados: null,
+        criadoEm: new Date("2026-06-02T12:00:00.000Z"),
+        atualizadoEm: new Date("2026-06-02T12:00:00.000Z"),
+      },
+    ]);
+
+    const resultado = await validarPendenciasHomologacaoServidor({
+      servidorId: "servidor-1",
+      anoReferencia: 2026,
+      mesReferencia: 6,
+    });
+
+    expect(resultado.pendencias).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          tipo: "HORA_EXTRA_NAO_AUTORIZADA",
+          quantidade: 2,
+          minutos: 315,
+        }),
+      ]),
+    );
   });
 });

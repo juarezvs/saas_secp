@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Loader2, Save } from "lucide-react";
 
 import type {
@@ -23,10 +23,15 @@ type LdapActiveDirectoryFormProps = {
   }>;
 };
 
+type ModoAutenticacao = "HTTP_AD_API" | "LDAP_BIND";
+
 const estadoInicial: LdapActiveDirectoryFormState = {
   sucesso: false,
   mensagem: null,
 };
+
+const campoBase =
+  "h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-500 dark:disabled:border-slate-800 dark:disabled:bg-slate-900/60";
 
 function erro(estado: LdapActiveDirectoryFormState, campo: string) {
   return estado.erros?.[campo]?.[0];
@@ -48,6 +53,15 @@ function FieldError({
   return <p className="text-sm text-red-600">{mensagem}</p>;
 }
 
+function blocoModoClassName(ativo: boolean) {
+  return [
+    "rounded-lg border p-4 transition",
+    ativo
+      ? "border-blue-300 bg-blue-50/70 shadow-sm ring-1 ring-blue-200 dark:border-blue-800 dark:bg-blue-950/25 dark:ring-blue-900"
+      : "border-slate-200 bg-slate-50/70 opacity-60 dark:border-slate-800 dark:bg-slate-900/40",
+  ].join(" ");
+}
+
 export function LdapActiveDirectoryForm({
   action,
   valoresIniciais,
@@ -55,6 +69,11 @@ export function LdapActiveDirectoryForm({
 }: LdapActiveDirectoryFormProps) {
   const [estado, formAction, pendente] = useActionState(action, estadoInicial);
   const campos = estado.campos ?? valoresIniciais;
+  const [modoSelecionado, setModoSelecionado] = useState<ModoAutenticacao>(
+    campos.modoAutenticacao === "LDAP_BIND" ? "LDAP_BIND" : "HTTP_AD_API",
+  );
+  const modoApiAtivo = modoSelecionado === "HTTP_AD_API";
+  const modoLdapAtivo = modoSelecionado === "LDAP_BIND";
 
   return (
     <form action={formAction} className="space-y-6">
@@ -83,7 +102,7 @@ export function LdapActiveDirectoryForm({
               id="orgaoId"
               name="orgaoId"
               defaultValue={String(campos.orgaoId ?? "")}
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              className={campoBase}
             >
               <option value="">Padrão do sistema</option>
               {orgaos.map((orgao) => (
@@ -93,9 +112,9 @@ export function LdapActiveDirectoryForm({
               ))}
             </select>
             <p className="text-xs text-[var(--muted-foreground)]">
-              Ao autenticar um servidor desse órgão, o SECP usará este
-              controlador de domínio. Se não houver configuração específica,
-              usará o padrão do sistema.
+              Ao autenticar um servidor desse órgão, o SECP usará esta
+              configuração de autenticação. Se não houver configuração
+              específica, usará o padrão do sistema.
             </p>
             <FieldError estado={estado} campo="orgaoId" />
           </div>
@@ -108,7 +127,7 @@ export function LdapActiveDirectoryForm({
               id="nome"
               name="nome"
               defaultValue={String(campos.nome ?? "")}
-              className="h-11 w-full rounded-md border bg-card px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              className={campoBase}
               required
             />
             <FieldError estado={estado} campo="nome" />
@@ -121,8 +140,11 @@ export function LdapActiveDirectoryForm({
             <select
               id="modoAutenticacao"
               name="modoAutenticacao"
-              defaultValue={String(campos.modoAutenticacao ?? "HTTP_AD_API")}
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              value={modoSelecionado}
+              onChange={(event) =>
+                setModoSelecionado(event.target.value as ModoAutenticacao)
+              }
+              className={campoBase}
             >
               <option value="HTTP_AD_API">API HTTP do Active Directory</option>
               <option value="LDAP_BIND">Bind LDAP / Active Directory</option>
@@ -146,122 +168,208 @@ export function LdapActiveDirectoryForm({
             </span>
           </label>
 
-          <div className="space-y-2 md:col-span-2">
-            <label htmlFor="authUrl" className="text-sm font-semibold">
-              URL da API de autenticação AD
-            </label>
-            <input
-              id="authUrl"
-              name="authUrl"
-              type="url"
-              defaultValue={String(campos.authUrl ?? "")}
-              placeholder="http://login.ad.integracao.am.trf1.gov.br/auth/login"
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
-            />
-            <FieldError estado={estado} campo="authUrl" />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="ldapUrl" className="text-sm font-semibold">
-              Servidor LDAP/AD
-            </label>
-            <input
-              id="ldapUrl"
-              name="ldapUrl"
-              defaultValue={String(campos.ldapUrl ?? "")}
-              placeholder="ldap://srvdc1-am.jfam.local:389"
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
-            />
-            <FieldError estado={estado} campo="ldapUrl" />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="dominio" className="text-sm font-semibold">
-              Domínio NetBIOS ou UPN
-            </label>
-            <input
-              id="dominio"
-              name="dominio"
-              defaultValue={String(campos.dominio ?? "")}
-              placeholder="JFAM ou jfam.local"
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
-            />
-            <FieldError estado={estado} campo="dominio" />
-          </div>
-
-          <div className="space-y-2 md:col-span-2">
-            <label htmlFor="baseDn" className="text-sm font-semibold">
-              Base DN
-            </label>
-            <input
-              id="baseDn"
-              name="baseDn"
-              defaultValue={String(campos.baseDn ?? "")}
-              placeholder="DC=jfam,DC=local"
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
-            />
-            <FieldError estado={estado} campo="baseDn" />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="bindDn" className="text-sm font-semibold">
-              Bind DN técnico
-            </label>
-            <input
-              id="bindDn"
-              name="bindDn"
-              defaultValue={String(campos.bindDn ?? "")}
-              placeholder="CN=secp,OU=Servicos,DC=jfam,DC=local"
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
-            />
-            <FieldError estado={estado} campo="bindDn" />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="bindPassword" className="text-sm font-semibold">
-              Senha do bind técnico
-            </label>
-            <input
-              id="bindPassword"
-              name="bindPassword"
-              type="password"
-              placeholder={
-                valoresIniciais.possuiBindPassword
-                  ? "Senha já configurada; preencha para alterar"
-                  : ""
-              }
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
-            />
-            <FieldError estado={estado} campo="bindPassword" />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="userDnPattern" className="text-sm font-semibold">
-              Padrão de DN do usuário
-            </label>
-            <input
-              id="userDnPattern"
-              name="userDnPattern"
-              defaultValue={String(campos.userDnPattern ?? "")}
-              placeholder="CN={{matricula}},OU=Usuarios,DC=jfam,DC=local"
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
-            />
-            <FieldError estado={estado} campo="userDnPattern" />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="searchFilter" className="text-sm font-semibold">
-              Filtro de busca
-            </label>
-            <input
-              id="searchFilter"
-              name="searchFilter"
-              defaultValue={String(
-                campos.searchFilter ?? "(sAMAccountName={{matricula}})",
+          <div className={`${blocoModoClassName(modoApiAtivo)} md:col-span-2`}>
+            <div className="space-y-2">
+              <label htmlFor="authUrl" className="text-sm font-semibold">
+                URL da API de autenticação AD
+              </label>
+              <input
+                id="authUrl"
+                name="authUrl"
+                type="url"
+                defaultValue={String(campos.authUrl ?? "")}
+                placeholder="http://login.ad.integracao.am.trf1.gov.br/auth/login"
+                className={campoBase}
+                disabled={!modoApiAtivo}
+              />
+              {!modoApiAtivo && (
+                <input
+                  type="hidden"
+                  name="authUrl"
+                  value={String(campos.authUrl ?? "")}
+                />
               )}
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
-            />
-            <FieldError estado={estado} campo="searchFilter" />
+              <FieldError estado={estado} campo="authUrl" />
+              <p className="text-xs text-[var(--muted-foreground)]">
+                Usada somente no modo API HTTP. No modo LDAP bind, os parâmetros
+                abaixo fazem a autenticação interna do SECP.
+              </p>
+            </div>
+          </div>
+
+          <div className={`${blocoModoClassName(modoLdapAtivo)} md:col-span-2`}>
+            <div className="grid gap-5 md:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="ldapUrl" className="text-sm font-semibold">
+                  Endpoint LDAP/AD
+                </label>
+                <input
+                  id="ldapUrl"
+                  name="ldapUrl"
+                  defaultValue={String(campos.ldapUrl ?? "")}
+                  placeholder="ldap://am.trf1.gov.br:389"
+                  className={campoBase}
+                  disabled={!modoLdapAtivo}
+                />
+                {!modoLdapAtivo && (
+                  <input
+                    type="hidden"
+                    name="ldapUrl"
+                    value={String(campos.ldapUrl ?? "")}
+                  />
+                )}
+                <FieldError estado={estado} campo="ldapUrl" />
+                <p className="text-xs text-[var(--muted-foreground)]">
+                  Aceita FQDN do domínio ou de DC, com ou sem esquema. Exemplos:
+                  am.trf1.gov.br, ldap://am.trf1.gov.br:389 ou
+                  ldaps://am.trf1.gov.br:636.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="dominio" className="text-sm font-semibold">
+                  Domínio NetBIOS ou UPN
+                </label>
+                <input
+                  id="dominio"
+                  name="dominio"
+                  defaultValue={String(campos.dominio ?? "")}
+                  placeholder="JFAM ou am.trf1.gov.br"
+                  className={campoBase}
+                  disabled={!modoLdapAtivo}
+                />
+                {!modoLdapAtivo && (
+                  <input
+                    type="hidden"
+                    name="dominio"
+                    value={String(campos.dominio ?? "")}
+                  />
+                )}
+                <FieldError estado={estado} campo="dominio" />
+                <p className="text-xs text-[var(--muted-foreground)]">
+                  Para reproduzir a API atual, use o domínio NetBIOS, por
+                  exemplo JFAM. Com FQDN, o SECP tenta autenticar como
+                  matricula@dominio.
+                </p>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <label htmlFor="baseDn" className="text-sm font-semibold">
+                  Base DN
+                </label>
+                <input
+                  id="baseDn"
+                  name="baseDn"
+                  defaultValue={String(campos.baseDn ?? "")}
+                  placeholder="DC=am,DC=trf1,DC=gov,DC=br"
+                  className={campoBase}
+                  disabled={!modoLdapAtivo}
+                />
+                {!modoLdapAtivo && (
+                  <input
+                    type="hidden"
+                    name="baseDn"
+                    value={String(campos.baseDn ?? "")}
+                  />
+                )}
+                <FieldError estado={estado} campo="baseDn" />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="bindDn" className="text-sm font-semibold">
+                  Bind DN técnico
+                </label>
+                <input
+                  id="bindDn"
+                  name="bindDn"
+                  defaultValue={String(campos.bindDn ?? "")}
+                  placeholder="CN=secp,OU=Servicos,DC=am,DC=trf1,DC=gov,DC=br"
+                  className={campoBase}
+                  disabled={!modoLdapAtivo}
+                />
+                {!modoLdapAtivo && (
+                  <input
+                    type="hidden"
+                    name="bindDn"
+                    value={String(campos.bindDn ?? "")}
+                  />
+                )}
+                <FieldError estado={estado} campo="bindDn" />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="bindPassword" className="text-sm font-semibold">
+                  Senha do bind técnico
+                </label>
+                <input
+                  id="bindPassword"
+                  name="bindPassword"
+                  type="password"
+                  placeholder={
+                    valoresIniciais.possuiBindPassword
+                      ? "Senha já configurada; preencha para alterar"
+                      : ""
+                  }
+                  className={campoBase}
+                  disabled={!modoLdapAtivo}
+                />
+                <FieldError estado={estado} campo="bindPassword" />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="userDnPattern"
+                  className="text-sm font-semibold"
+                >
+                  Padrão de DN do usuário
+                </label>
+                <input
+                  id="userDnPattern"
+                  name="userDnPattern"
+                  defaultValue={String(campos.userDnPattern ?? "")}
+                  placeholder="CN={{matricula}},OU=Usuarios,DC=am,DC=trf1,DC=gov,DC=br"
+                  className={campoBase}
+                  disabled={!modoLdapAtivo}
+                />
+                {!modoLdapAtivo && (
+                  <input
+                    type="hidden"
+                    name="userDnPattern"
+                    value={String(campos.userDnPattern ?? "")}
+                  />
+                )}
+                <FieldError estado={estado} campo="userDnPattern" />
+                <p className="text-xs text-[var(--muted-foreground)]">
+                  Opcional. Use quando o DN do usuário puder ser montado
+                  diretamente com {"{{matricula}}"}.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="searchFilter" className="text-sm font-semibold">
+                  Filtro de busca
+                </label>
+                <input
+                  id="searchFilter"
+                  name="searchFilter"
+                  defaultValue={String(
+                    campos.searchFilter ?? "(sAMAccountName={{matricula}})",
+                  )}
+                  className={campoBase}
+                  disabled={!modoLdapAtivo}
+                />
+                {!modoLdapAtivo && (
+                  <input
+                    type="hidden"
+                    name="searchFilter"
+                    value={String(
+                      campos.searchFilter ?? "(sAMAccountName={{matricula}})",
+                    )}
+                  />
+                )}
+                <FieldError estado={estado} campo="searchFilter" />
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -276,7 +384,7 @@ export function LdapActiveDirectoryForm({
               max={60000}
               step={500}
               defaultValue={String(campos.timeoutMs ?? 5000)}
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              className={campoBase}
             />
             <FieldError estado={estado} campo="timeoutMs" />
           </div>

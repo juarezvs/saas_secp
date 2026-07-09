@@ -473,3 +473,22 @@ export async function listarMovimentosPendentesBancoHorasMes(params: {
     },
   });
 }
+
+export async function listarHorasExtrasNaoAutorizadasMes(params: {
+  servidorId: string;
+  anoReferencia: number;
+  mesReferencia: number;
+}) {
+  return prisma.movimentoBancoHoras.findMany({
+    where: {
+      servidorId: params.servidorId,
+      anoReferencia: params.anoReferencia,
+      mesReferencia: params.mesReferencia,
+      tipo: "HORAS_NAO_AUTORIZADAS",
+      status: "DESCONSIDERADO",
+    },
+    orderBy: {
+      dataReferencia: "asc",
+    },
+  });
+}

@@ -128,7 +128,10 @@ export function causasInconsistenciaEspelho(
 }
 
 function causaOcorrenciaEspelho(ocorrencia: OcorrenciaEspelho) {
-  const descricao = ocorrencia.descricao?.trim();
+  const descricao = formatarDescricaoOcorrenciaEspelho(
+    ocorrencia.descricao,
+    ocorrencia.minutos,
+  )?.trim();
   const complemento = descricao ? ` ${descricao}` : "";
 
   if (
@@ -158,6 +161,33 @@ function causaOcorrenciaEspelho(ocorrencia: OcorrenciaEspelho) {
   return descricao
     ? `${ocorrencia.tipo}: ${descricao}`
     : `Ocorrencia ${ocorrencia.tipo} exige conferencia.`;
+}
+
+function formatarDescricaoOcorrenciaEspelho(
+  descricao?: string | null,
+  minutos?: number,
+) {
+  if (!descricao) {
+    return descricao;
+  }
+
+  const texto = descricao
+    .replaceAll("Ausencia", "Ausência")
+    .replaceAll("autorizacao", "autorização")
+    .replaceAll("horario", "horário")
+    .replaceAll("padrao", "padrão");
+
+  if (!minutos || minutos < 60) {
+    return texto;
+  }
+
+  const horas = Math.floor(minutos / 60);
+  const minutosRestantes = minutos % 60;
+  const formatado = `${String(horas).padStart(2, "0")}:${String(
+    minutosRestantes,
+  ).padStart(2, "0")}`;
+
+  return texto.replace(/\b\d+\s+minuto\(s\)/i, formatado);
 }
 
 function formatarDescricaoConferencia(causas: string[]) {

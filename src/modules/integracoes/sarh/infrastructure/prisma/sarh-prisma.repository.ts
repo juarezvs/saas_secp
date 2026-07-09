@@ -861,7 +861,7 @@ export class SarhPrismaRepository {
           chaveExterna,
           operacao: "ERRO",
           status: "ERRO",
-          erro: `Unidade SARH ${params.payload.lotacaoId} nÃ£o encontrada para vincular chefia.`,
+          erro: `Unidade SARH ${params.payload.lotacaoId} não encontrada para vincular chefia.`,
           dadosDepois: params.payload,
         },
         params.registroBrutoId,
@@ -939,7 +939,7 @@ export class SarhPrismaRepository {
           chaveExterna,
           operacao: "ERRO",
           status: "ERRO",
-          erro: `Servidor ${matricula} nÃ£o encontrado para vincular chefia da unidade ${unidade.sigla}.`,
+          erro: `Servidor ${matricula} não encontrado para vincular chefia da unidade ${unidade.sigla}.`,
           dadosDepois: params.payload,
         },
         params.registroBrutoId,
@@ -967,8 +967,8 @@ export class SarhPrismaRepository {
           entidadeInterna: "GestorUnidade",
           entidadeInternaId: gestorTitularAtual?.id,
           mensagem: mesmaChefia
-            ? `SimulaÃ§Ã£o: chefia titular de ${unidade.sigla} seria conferida/atualizada.`
-            : `SimulaÃ§Ã£o: chefia titular de ${unidade.sigla} seria definida para ${matricula}.`,
+            ? `Simulação: chefia titular de ${unidade.sigla} seria conferida/atualizada.`
+            : `Simulação: chefia titular de ${unidade.sigla} seria definida para ${matricula}.`,
           dadosAntes: gestorTitularAtual,
           dadosDepois: {
             unidadeId: unidade.id,
@@ -1103,7 +1103,7 @@ export class SarhPrismaRepository {
           status: "PROCESSADO",
           entidadeInterna: "GestorUnidade",
           entidadeInternaId: gestor.id,
-          mensagem: `Chefia titular de ${matricula} encerrada porque nÃ£o consta mais como vigente no SARH.`,
+          mensagem: `Chefia titular de ${matricula} encerrada porque não consta mais como vigente no SARH.`,
           dadosAntes: gestor,
           metadados: { modoSimulacao: params.modoSimulacao },
         },

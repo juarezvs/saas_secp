@@ -595,6 +595,99 @@ const permissoesIniciais = [
     descricao: "Visualizar payload bruto do SARH, com cuidados de LGPD.",
   },
 
+  // Integração Microsoft Teams
+  {
+    codigo: "integracoes:teams:visualizar",
+    recurso: "integracoes:teams",
+    acao: "visualizar",
+    escopo: "global",
+    descricao: "Visualizar configuração e saúde da integração Microsoft Teams.",
+  },
+  {
+    codigo: "integracoes:teams:configurar",
+    recurso: "integracoes:teams",
+    acao: "configurar",
+    escopo: "global",
+    descricao: "Configurar parâmetros da integração Microsoft Teams.",
+  },
+  {
+    codigo: "integracoes:teams:ativar",
+    recurso: "integracoes:teams",
+    acao: "ativar",
+    escopo: "global",
+    descricao: "Ativar a integração Microsoft Teams.",
+  },
+  {
+    codigo: "integracoes:teams:desativar",
+    recurso: "integracoes:teams",
+    acao: "desativar",
+    escopo: "global",
+    descricao: "Desativar a integração Microsoft Teams.",
+  },
+  {
+    codigo: "integracoes:teams:testar",
+    recurso: "integracoes:teams",
+    acao: "testar",
+    escopo: "global",
+    descricao: "Executar testes operacionais da integração Microsoft Teams.",
+  },
+  {
+    codigo: "integracoes:teams:baixar-manifesto",
+    recurso: "integracoes:teams",
+    acao: "baixar-manifesto",
+    escopo: "global",
+    descricao: "Baixar o manifesto do aplicativo Microsoft Teams do SECP.",
+  },
+  {
+    codigo: "teams:bot:usar",
+    recurso: "teams:bot",
+    acao: "usar",
+    escopo: "proprio",
+    descricao: "Usar o bot conversacional do SECP no Microsoft Teams.",
+  },
+  {
+    codigo: "teams:notificacoes:receber",
+    recurso: "teams:notificacoes",
+    acao: "receber",
+    escopo: "proprio",
+    descricao: "Receber notificações individuais do SECP no Microsoft Teams.",
+  },
+  {
+    codigo: "teams:ponto:registrar",
+    recurso: "teams:ponto",
+    acao: "registrar",
+    escopo: "proprio",
+    descricao: "Registrar ponto pelo Microsoft Teams quando autorizado.",
+  },
+  {
+    codigo: "teams:banco-horas:consultar",
+    recurso: "teams:banco-horas",
+    acao: "consultar",
+    escopo: "proprio",
+    descricao: "Consultar banco de horas pelo Microsoft Teams.",
+  },
+  {
+    codigo: "teams:solicitacoes:criar",
+    recurso: "teams:solicitacoes",
+    acao: "criar",
+    escopo: "proprio",
+    descricao: "Criar solicitações pelo Microsoft Teams.",
+  },
+  {
+    codigo: "teams:aprovacoes:analisar",
+    recurso: "teams:aprovacoes",
+    acao: "analisar",
+    escopo: "chefia",
+    descricao: "Analisar aprovações pelo Microsoft Teams.",
+  },
+  {
+    codigo: "teams:homologacao:analisar",
+    recurso: "teams:homologacao",
+    acao: "analisar",
+    escopo: "chefia",
+    descricao: "Analisar homologações pelo Microsoft Teams.",
+  },
+
   // Biometria
   {
     recurso: "biometria",
@@ -774,6 +867,11 @@ const codigosPermissoesServidor = [
   "afastamentos:consultar:proprio",
   "recesso:consultar:proprio",
   "recesso:fechar:proprio",
+  "teams:bot:usar",
+  "teams:notificacoes:receber",
+  "teams:ponto:registrar",
+  "teams:banco-horas:consultar",
+  "teams:solicitacoes:criar",
 ];
 
 const codigosPermissoesChefia = [
@@ -797,6 +895,12 @@ const codigosPermissoesChefia = [
   "afastamentos:consultar:chefia",
   "recesso:homologar:chefia",
   "recesso:consultar:global",
+  "teams:bot:usar",
+  "teams:notificacoes:receber",
+  "teams:banco-horas:consultar",
+  "teams:solicitacoes:criar",
+  "teams:aprovacoes:analisar",
+  "teams:homologacao:analisar",
 ];
 
 const codigosPermissoesSecap = [
@@ -873,6 +977,12 @@ const codigosPermissoesSuporte = [
   "integracoes:consultar:global",
   "integracoes:gerenciar:global",
   "integracoes:sincronizar:global",
+  "integracoes:teams:visualizar",
+  "integracoes:teams:configurar",
+  "integracoes:teams:ativar",
+  "integracoes:teams:desativar",
+  "integracoes:teams:testar",
+  "integracoes:teams:baixar-manifesto",
   "integracoes-sarh:consultar:global",
   "integracoes-sarh:configurar:global",
   "integracoes-sarh:executar:global",
@@ -911,11 +1021,12 @@ const codigosPermissoesExcecaoRegistroFacial = [
 ];
 
 function codigoPermissao(item: {
+  codigo?: string;
   recurso: string;
   acao: string;
   escopo: string;
 }) {
-  return `${item.recurso}:${item.acao}:${item.escopo}`;
+  return item.codigo ?? `${item.recurso}:${item.acao}:${item.escopo}`;
 }
 
 async function criarPermissoes() {

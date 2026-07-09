@@ -3,11 +3,14 @@ import {
   Building2,
   CalendarClock,
   CalendarDays,
+  Clock3,
   Cpu,
   FileCheck2,
   KeyRound,
+  MessageSquare,
   Network,
   Settings,
+  ServerCog,
   ShieldAlert,
   ShieldCheck,
   SlidersHorizontal,
@@ -20,10 +23,21 @@ import {
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
-import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import {
+  exigirUmaDasPermissoesOuRedirecionar,
+  usuarioPossuiPermissaoNoPerfil,
+} from "@/modules/auth/application/services/permissao.service";
+
+const PERMISSOES_ADMINISTRACAO = [
+  "configuracoes:gerenciar:global",
+  "banco-horas:gerenciar:global",
+  "integracoes:teams:visualizar",
+];
 
 export default async function AdministracaoPage() {
-  await exigirPermissaoOuRedirecionar("configuracoes:gerenciar:global");
+  const permissao = await exigirUmaDasPermissoesOuRedirecionar(
+    PERMISSOES_ADMINISTRACAO,
+  );
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
   const orgaoIdPadrao = escopoOrgao.global
     ? null
@@ -110,6 +124,14 @@ export default async function AdministracaoPage() {
       permissao: "regulamentacao-ponto:gerenciar:global",
     },
     {
+      titulo: "Gerenciar banco de horas",
+      descricao:
+        "Defina competência inicial, saldos de implantação e transferências excepcionais por servidor.",
+      href: hrefComOrgao("/administracao/banco-horas"),
+      icon: Clock3,
+      permissao: "banco-horas:gerenciar:global",
+    },
+    {
       titulo: "Calendário institucional",
       descricao:
         "Cadastre feriados, pontos facultativos e suspensões que impactam prazos e a apuração do ponto.",
@@ -121,6 +143,22 @@ export default async function AdministracaoPage() {
       descricao: "Configure SARH, Active Directory e relógios por seccional.",
       href: hrefComOrgao("/administracao/integracoes"),
       icon: KeyRound,
+    },
+    {
+      titulo: "Saúde dos Workers",
+      descricao:
+        "Monitore filas, workers automáticos, rotinas assíncronas e últimos eventos de execução.",
+      href: "/administracao/integracoes/teams",
+      icon: MessageSquare,
+      permissao: "integracoes:teams:visualizar",
+    },
+    {
+      titulo: "Microsoft Teams",
+      descricao:
+        "Configure bot, abas, notificações individuais, Adaptive Cards e manifesto do aplicativo Teams.",
+      href: "/administracao/workers",
+      icon: ServerCog,
+      permissao: "configuracoes:gerenciar:global",
     },
     {
       titulo: "Equipamentos biométricos",
@@ -153,30 +191,41 @@ export default async function AdministracaoPage() {
       />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {cards.map((card) => {
-          const Icon = card.icon;
+        {cards
+          .filter((card) => {
+            const permissaoCard =
+              card.permissao ?? "configuracoes:gerenciar:global";
 
-          return (
-            <Link
-              key={card.href}
-              href={card.href}
-              className="group rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md"
-            >
-              <div className="flex gap-4">
-                <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-900 group-hover:bg-blue-900 group-hover:text-white dark:bg-blue-950 dark:text-blue-200">
-                  <Icon className="size-6" aria-hidden="true" />
-                </div>
+            return usuarioPossuiPermissaoNoPerfil(
+              permissao.perfilAtivoCodigo,
+              permissao.permissoes,
+              permissaoCard,
+            );
+          })
+          .map((card) => {
+            const Icon = card.icon;
 
-                <div>
-                  <h2 className="font-bold">{card.titulo}</h2>
-                  <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-                    {card.descricao}
-                  </p>
+            return (
+              <Link
+                key={card.href}
+                href={card.href}
+                className="group rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md"
+              >
+                <div className="flex gap-4">
+                  <div className="secp-theme-icon flex size-12 shrink-0 items-center justify-center rounded-xl group-hover:bg-secp-blue-900 group-hover:text-white">
+                    <Icon className="size-6" aria-hidden="true" />
+                  </div>
+
+                  <div>
+                    <h2 className="font-bold">{card.titulo}</h2>
+                    <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+                      {card.descricao}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          );
-        })}
+              </Link>
+            );
+          })}
       </section>
     </div>
   );

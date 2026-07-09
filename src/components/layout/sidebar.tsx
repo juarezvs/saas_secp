@@ -24,7 +24,9 @@ import {
   Landmark,
   LayoutDashboard,
   Network,
+  Palette,
   ScanFace,
+  ServerCog,
   Settings,
   ShieldAlert,
   ShieldCheck,
@@ -65,6 +67,20 @@ export type MenuItem = {
   permissoes?: string[];
   children?: MenuItem[];
 };
+
+type TemaVisual = "azul" | "verde" | "cinza";
+
+const STORAGE_TEMA_VISUAL = "secp-color-theme";
+
+const TEMAS_VISUAIS: Array<{
+  valor: TemaVisual;
+  label: string;
+  classe: string;
+}> = [
+  { valor: "azul", label: "Azul", classe: "bg-[#002f6c]" },
+  { valor: "verde", label: "Verde", classe: "bg-[#007a33]" },
+  { valor: "cinza", label: "Cinza", classe: "bg-[#97999b]" },
+];
 
 export const MENU_ITEMS: MenuItem[] = [
   { label: "Início", href: "/dashboard", icon: LayoutDashboard },
@@ -243,6 +259,7 @@ export const MENU_ITEMS: MenuItem[] = [
       "integracoes:consultar:global",
       "integracoes:gerenciar:global",
       "regulamentacao-ponto:gerenciar:global",
+      "banco-horas:gerenciar:global",
       "fusos-horarios:gerenciar:global",
       "auditoria:consultar:global",
       "auditoria:detalhar:global",
@@ -320,6 +337,12 @@ export const MENU_ITEMS: MenuItem[] = [
         permissoes: ["regulamentacao-ponto:gerenciar:global"],
       },
       {
+        label: "Gerenciar banco de horas",
+        href: "/administracao/banco-horas",
+        icon: Clock,
+        permissoes: ["banco-horas:gerenciar:global"],
+      },
+      {
         label: "Calendário institucional",
         href: "/administracao/calendario",
         icon: CalendarDays,
@@ -331,6 +354,15 @@ export const MENU_ITEMS: MenuItem[] = [
         icon: KeyRound,
         permissoes: [
           "integracoes:consultar:global",
+          "integracoes:gerenciar:global",
+        ],
+      },
+      {
+        label: "Saúde dos Workers",
+        href: "/administracao/workers",
+        icon: ServerCog,
+        permissoes: [
+          "configuracoes:gerenciar:global",
           "integracoes:gerenciar:global",
         ],
       },
@@ -421,6 +453,91 @@ function obterItemAtivo(pathname: string, itens: MenuItem[]) {
 
       return b.label.localeCompare(a.label);
     })[0];
+}
+
+function aplicarTemaVisual(tema: TemaVisual) {
+  if (tema === "azul") {
+    delete document.documentElement.dataset.secpColorTheme;
+  } else {
+    document.documentElement.dataset.secpColorTheme = tema;
+  }
+
+  window.localStorage.setItem(STORAGE_TEMA_VISUAL, tema);
+}
+
+function ThemeSelector({ recolhida }: { recolhida: boolean }) {
+  const [tema, setTema] = useState<TemaVisual>("azul");
+
+  useEffect(() => {
+    const temaArmazenado = window.localStorage.getItem(STORAGE_TEMA_VISUAL);
+
+    if (
+      temaArmazenado === "azul" ||
+      temaArmazenado === "verde" ||
+      temaArmazenado === "cinza"
+    ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Restaura a preferência visual salva no navegador após a hidratação.
+      setTema(temaArmazenado);
+      aplicarTemaVisual(temaArmazenado);
+    }
+  }, []);
+
+  function selecionarTema(novoTema: TemaVisual) {
+    setTema(novoTema);
+    aplicarTemaVisual(novoTema);
+  }
+
+  return (
+    <div
+      className={[
+        "border-t border-border/80 px-3 py-3",
+        recolhida ? "flex justify-center" : "space-y-2",
+      ].join(" ")}
+    >
+      {!recolhida && (
+        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+          <Palette className="size-4" aria-hidden="true" />
+          <span>Tema visual</span>
+        </div>
+      )}
+      <div
+        className={[
+          "flex gap-1.5",
+          recolhida ? "flex-col items-center" : "items-center",
+        ].join(" ")}
+        role="group"
+        aria-label="Selecionar tema visual"
+      >
+        {TEMAS_VISUAIS.map((item) => {
+          const ativo = item.valor === tema;
+
+          return (
+            <button
+              key={item.valor}
+              type="button"
+              onClick={() => selecionarTema(item.valor)}
+              className={[
+                "inline-flex h-8 items-center justify-center gap-2 rounded-md border px-2 text-xs font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                ativo
+                  ? "border-secp-blue-900 bg-secp-blue-900/10 text-secp-blue-900 dark:border-white/60 dark:bg-white/10 dark:text-white"
+                  : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
+                recolhida ? "w-9 px-0" : "flex-1",
+              ].join(" ")}
+              aria-pressed={ativo}
+              aria-label={`Usar tema ${item.label}`}
+              title={`Tema ${item.label}`}
+            >
+              <span
+                className={["size-3 rounded-full", item.classe].join(" ")}
+                aria-hidden="true"
+              />
+              {!recolhida && <span>{item.label}</span>}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function MenuPrincipal({
@@ -627,6 +744,7 @@ export function Sidebar({
             )}
           </div>
           <MenuPrincipal recolhida={recolhida} perfilAtivo={perfilAtivo} />
+          <ThemeSelector recolhida={recolhida} />
         </div>
       </aside>
 
@@ -679,6 +797,7 @@ export function Sidebar({
               perfilAtivo={perfilAtivo}
               onNavigate={onFecharDrawer}
             />
+            <ThemeSelector recolhida={false} />
           </aside>
         </div>
       )}

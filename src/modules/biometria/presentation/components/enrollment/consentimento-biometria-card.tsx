@@ -19,7 +19,7 @@ export function ConsentimentoBiometriaCard({
   return (
     <section className="rounded-xl border bg-[var(--card)] p-6 shadow-sm">
       <div className="flex items-start gap-3">
-        <div className="rounded-lg bg-blue-50 p-3 text-blue-900 dark:bg-blue-950 dark:text-blue-300">
+        <div className="secp-theme-icon rounded-lg p-3">
           <ShieldCheck className="size-5" aria-hidden="true" />
         </div>
         <div>

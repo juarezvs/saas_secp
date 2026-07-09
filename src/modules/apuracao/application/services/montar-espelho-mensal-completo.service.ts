@@ -69,6 +69,9 @@ export type ItemEspelhoMensalCompleto = Omit<
   geradoParaCompetencia: boolean;
   minutosDebitoApurado: number;
   minutosDebitoCompensado: number;
+  minutosHoraExtraAutorizada: number;
+  minutosHoraExtraNaoAutorizada: number;
+  minutosBancoHoras: number;
 };
 
 export type ResultadoEspelhoMensalCompleto = {
@@ -150,10 +153,47 @@ function movimentosCompensacaoCredito(
   );
 }
 
+function resumirMovimentosBancoHoras(
+  movimentos: MovimentoBancoHorasEspelho[] | undefined,
+) {
+  const movimentosAtivos = (movimentos ?? []).filter((movimento) =>
+    ["PENDENTE", "VALIDADO", "DESCONSIDERADO"].includes(movimento.status),
+  );
+  const creditoBanco = movimentosAtivos
+    .filter(
+      (movimento) =>
+        ["CREDITO", "COMPENSACAO_DEBITO"].includes(movimento.tipo) &&
+        ["PENDENTE", "VALIDADO"].includes(movimento.status),
+    )
+    .reduce((total, movimento) => total + movimento.minutos, 0);
+  const debitoBanco = movimentosAtivos
+    .filter(
+      (movimento) =>
+        ["DEBITO", "COMPENSACAO_CREDITO"].includes(movimento.tipo) &&
+        ["PENDENTE", "VALIDADO"].includes(movimento.status),
+    )
+    .reduce((total, movimento) => total + movimento.minutos, 0);
+
+  return {
+    minutosHoraExtraAutorizada: creditoBanco,
+    minutosHoraExtraNaoAutorizada: movimentosAtivos
+      .filter(
+        (movimento) =>
+          movimento.tipo === "HORAS_NAO_AUTORIZADAS" &&
+          movimento.status === "DESCONSIDERADO",
+      )
+      .reduce((total, movimento) => total + movimento.minutos, 0),
+    minutosBancoHoras: creditoBanco - debitoBanco,
+  };
+}
+
 function ajustarApuracaoPorCompensacao(
   apuracao: ApuracaoEspelhoMensal,
 ): ItemEspelhoMensalCompleto {
   const compensacoes = movimentosCompensacaoCredito(
+    apuracao.movimentoBancoHoras,
+  );
+  const resumoBancoHoras = resumirMovimentosBancoHoras(
     apuracao.movimentoBancoHoras,
   );
   const minutosDebitoCompensado = Math.min(
@@ -216,6 +256,7 @@ function ajustarApuracaoPorCompensacao(
     geradoParaCompetencia: false,
     minutosDebitoApurado: apuracao.minutosDebito,
     minutosDebitoCompensado,
+    ...resumoBancoHoras,
   };
 }
 
@@ -372,6 +413,9 @@ function aplicarAfastamentoSarh(
     ],
     minutosDebitoApurado: 0,
     minutosDebitoCompensado: 0,
+    minutosHoraExtraAutorizada: 0,
+    minutosHoraExtraNaoAutorizada: 0,
+    minutosBancoHoras: 0,
   };
 }
 
@@ -429,6 +473,7 @@ export async function montarEspelhoMensalCompleto(params: {
           ...metadadosComoObjeto(apuracao.metadados),
         },
         contabilizarSaldos,
+        geradoParaCompetencia: false,
       };
 
       return afastamento ? aplicarAfastamentoSarh(item, afastamento) : item;
@@ -453,6 +498,9 @@ export async function montarEspelhoMensalCompleto(params: {
       geradoParaCompetencia: true,
       minutosDebitoApurado: 0,
       minutosDebitoCompensado: 0,
+      minutosHoraExtraAutorizada: 0,
+      minutosHoraExtraNaoAutorizada: 0,
+      minutosBancoHoras: 0,
     };
 
     return afastamento ? aplicarAfastamentoSarh(item, afastamento) : item;

@@ -71,8 +71,9 @@ export default async function IntegracaoLdapActiveDirectoryPage({
           No modo API HTTP, o SECP envia matrícula e senha para a URL
           configurada e espera retorno autenticado do Active Directory. No modo
           bind LDAP, o sistema conecta ao servidor LDAP/AD e valida a senha com
-          bind direto do usuário, usando domínio, DN padrão ou busca por base DN
-          quando configurados.
+          bind direto do usuário, usando domínio, DN padrão ou busca por Base DN
+          quando configurados. O endpoint LDAP pode ser um FQDN do domínio, como
+          ldap://am.trf1.gov.br:389, ou um DC específico.
         </p>
       </section>
 

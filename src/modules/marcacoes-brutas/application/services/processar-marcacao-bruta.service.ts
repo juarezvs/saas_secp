@@ -3,6 +3,7 @@ import { obterDataReferencia } from "@/modules/marcacoes/application/services/da
 import { classificarProximaMarcacao } from "@/modules/marcacoes/application/services/classificar-marcacao.service";
 import { recalcularDiaEBancoHorasServidorService } from "@/modules/recalculo/application/services/recalcular-dia-e-banco-horas-servidor.service";
 import { normalizarMarcacoesSemIntervaloService } from "@/modules/marcacoes/application/services/normalizar-marcacoes-sem-intervalo.service";
+import { resolverDataReferenciaOperacionalMarcacaoService } from "@/modules/marcacoes/application/services/resolver-data-referencia-operacional-marcacao.service";
 import { verificarPeriodoHomologado } from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
 import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import {
@@ -94,12 +95,21 @@ export async function processarMarcacaoBrutaService(params: {
   let fusoHorario = await resolverFusoHorarioServidorNoBanco({
     servidorId: servidor.id,
   });
-  let dataReferencia = obterDataReferencia(bruta.dataHora, fusoHorario);
+  let dataReferenciaCivil = obterDataReferencia(bruta.dataHora, fusoHorario);
   fusoHorario = await resolverFusoHorarioServidorNoBanco({
     servidorId: servidor.id,
-    dataReferencia,
+    dataReferencia: dataReferenciaCivil,
   });
-  dataReferencia = obterDataReferencia(bruta.dataHora, fusoHorario);
+  dataReferenciaCivil = obterDataReferencia(bruta.dataHora, fusoHorario);
+  const resolucaoDataReferencia =
+    await resolverDataReferenciaOperacionalMarcacaoService(prisma, {
+      servidorId: servidor.id,
+      dataHora: bruta.dataHora,
+      dataReferenciaCivil,
+      fusoHorario,
+      origem: bruta.origem,
+    });
+  const dataReferencia = resolucaoDataReferencia.dataReferencia;
 
   await verificarPeriodoHomologado({
     servidorId: servidor.id,
@@ -193,9 +203,22 @@ export async function processarMarcacaoBrutaService(params: {
     },
   });
 
-  const marcacaoDuplicada = marcacoesDoDia.find(
-    (marcacao) => marcacao.dataHora.getTime() === bruta.dataHora.getTime(),
-  );
+  const marcacaoDuplicada =
+    marcacoesDoDia.find(
+      (marcacao) => marcacao.dataHora.getTime() === bruta.dataHora.getTime(),
+    ) ??
+    (await prisma.marcacao.findFirst({
+      where: {
+        servidorId: servidor.id,
+        dataHora: bruta.dataHora,
+        status: {
+          in: ["VALIDA", "PENDENTE", "AJUSTADA"],
+        },
+      },
+      orderBy: {
+        criadoEm: "asc",
+      },
+    }));
 
   if (marcacaoDuplicada) {
     await prisma.$transaction([
@@ -282,6 +305,10 @@ export async function processarMarcacaoBrutaService(params: {
           nsr: bruta.nsr,
           codigoExterno: bruta.codigoExterno,
           classificacao,
+          dataReferenciaCivil: resolucaoDataReferencia.dataReferenciaCivil,
+          dataReferenciaOperacionalAjustada:
+            resolucaoDataReferencia.ajustadaParaDiaAnterior,
+          motivoAjusteDataReferencia: resolucaoDataReferencia.motivo,
         },
       },
     });
@@ -317,6 +344,11 @@ export async function processarMarcacaoBrutaService(params: {
           dataHora: bruta.dataHora,
           origem: bruta.origem,
           tipo: novaMarcacao.tipo,
+          dataReferencia,
+          dataReferenciaCivil: resolucaoDataReferencia.dataReferenciaCivil,
+          dataReferenciaOperacionalAjustada:
+            resolucaoDataReferencia.ajustadaParaDiaAnterior,
+          motivoAjusteDataReferencia: resolucaoDataReferencia.motivo,
         },
       },
     });

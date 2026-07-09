@@ -34,6 +34,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" data-font-size="16" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+try {
+  var tema = window.localStorage.getItem("secp-color-theme");
+  if (tema === "verde" || tema === "cinza") {
+    document.documentElement.dataset.secpColorTheme = tema;
+  }
+} catch {}
+            `.trim(),
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         data-dyslexia-font="false"

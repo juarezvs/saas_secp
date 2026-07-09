@@ -2,6 +2,7 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 
 type EscopoServidoresRecesso = {
   servidorIdsPermitidos?: string[];
+  exibirTodasConvocacoes?: boolean;
 };
 
 export async function listarRecessosForenses() {
@@ -22,7 +23,8 @@ export async function buscarRecessoForensePorId(
   const filtroServidores = params.servidorIdsPermitidos
     ? { servidorId: { in: params.servidorIdsPermitidos } }
     : {};
-  const filtroConvocacoes = params.servidorIdsPermitidos
+  const filtroConvocacoes =
+    params.servidorIdsPermitidos && !params.exibirTodasConvocacoes
     ? {
         convocados: {
           some: {

@@ -150,6 +150,31 @@ export async function regerarBancoHorasMesService({
 }: RegerarBancoHorasMesParams) {
   const inicio = new Date(Date.UTC(anoReferencia, mesReferencia - 1, 1));
   const fim = new Date(Date.UTC(anoReferencia, mesReferencia, 1));
+  const saldoAtual = await prisma.bancoHorasSaldo.findUnique({
+    where: {
+      servidorId,
+    },
+    select: {
+      competenciaInicioControle: true,
+    },
+  });
+
+  if (
+    saldoAtual?.competenciaInicioControle &&
+    compararCompetencias(
+      anoReferencia,
+      mesReferencia,
+      saldoAtual.competenciaInicioControle,
+    ) < 0
+  ) {
+    return {
+      apuracoesProcessadas: 0,
+      autorizacoesConsideradas: 0,
+      movimentosCriados: 0,
+      saldo: await recalcularSaldoAtual(servidorId, saldoAtual.competenciaInicioControle),
+    };
+  }
+
   const fusoHorario = await resolverFusoHorarioServidorNoBanco({
     servidorId,
   });
@@ -326,6 +351,71 @@ export async function regerarBancoHorasMesService({
       );
 
       if (minutosCreditoPendentes > 0) {
+        if (!regulamentacao.exigeAutorizacaoPreviaCredito) {
+          const limite = aplicarLimiteCreditoMensal({
+            creditoDoDiaMinutos: minutosCreditoPendentes,
+            creditoJaComputadoNoMesMinutos: creditoComputadoNoMes,
+            limiteCreditoMensalMinutos:
+              regulamentacao.limiteCreditoMensalMinutos,
+          });
+
+          if (limite.minutosComputaveis > 0) {
+            await tx.movimentoBancoHoras.create({
+              data: {
+                servidorId,
+                apuracaoDiariaId: apuracao.id,
+                tipo: "CREDITO",
+                origem: "APURACAO_DIARIA",
+                status: "PENDENTE",
+                dataReferencia: apuracao.dataReferencia,
+                mesReferencia,
+                anoReferencia,
+                minutos: limite.minutosComputaveis,
+                expiraEm,
+                descricao:
+                  "Crédito gerado pela apuração diária. Pendente de homologação mensal.",
+                metadados: {
+                  origem,
+                  resultadoApuracao: apuracao.resultado,
+                  statusApuracao: apuracao.status,
+                  regulamentacaoPonto: regulamentacao,
+                },
+              },
+            });
+
+            movimentosCriados++;
+            creditoComputadoNoMes += limite.minutosComputaveis;
+          }
+
+          if (limite.minutosAcimaLimite > 0) {
+            await tx.movimentoBancoHoras.create({
+              data: {
+                servidorId,
+                apuracaoDiariaId: apuracao.id,
+                tipo: "HORAS_ACIMA_LIMITE",
+                origem: "APURACAO_DIARIA",
+                status: "DESCONSIDERADO",
+                dataReferencia: apuracao.dataReferencia,
+                mesReferencia,
+                anoReferencia,
+                minutos: limite.minutosAcimaLimite,
+                descricao:
+                  "Horas acima do limite ordinário mensal. Não computadas no saldo.",
+                metadados: {
+                  origem,
+                  limiteMensalMinutos:
+                    regulamentacao.limiteCreditoMensalMinutos,
+                  regulamentacaoPonto: regulamentacao,
+                },
+              },
+            });
+
+            movimentosCriados++;
+          }
+
+          continue;
+        }
+
         const credito = alocarAutorizacoes({
           autorizacoes,
           tipos: ["COMPENSACAO_DEBITO", "CREDITO"],
@@ -533,7 +623,9 @@ export async function regerarBancoHorasMesService({
       },
     });
 
-    const saldo = calcularSaldoBancoHoras(movimentos);
+    const saldo = calcularSaldoBancoHoras(movimentos, {
+      competenciaInicioControle: saldoAtual?.competenciaInicioControle,
+    });
 
     await tx.bancoHorasSaldo.upsert({
       where: {
@@ -575,4 +667,47 @@ export async function regerarBancoHorasMesService({
       saldo,
     };
   });
+}
+
+function compararCompetencias(
+  anoReferencia: number,
+  mesReferencia: number,
+  competenciaInicioControle: string,
+) {
+  const [anoInicio, mesInicio] = competenciaInicioControle.split("-").map(Number);
+  return anoReferencia === anoInicio
+    ? mesReferencia - mesInicio
+    : anoReferencia - anoInicio;
+}
+
+async function recalcularSaldoAtual(
+  servidorId: string,
+  competenciaInicioControle: string,
+) {
+  const movimentos = await prisma.movimentoBancoHoras.findMany({
+    where: {
+      servidorId,
+    },
+    orderBy: {
+      dataReferencia: "asc",
+    },
+  });
+
+  const saldo = calcularSaldoBancoHoras(movimentos, {
+    competenciaInicioControle,
+  });
+
+  await prisma.bancoHorasSaldo.upsert({
+    where: {
+      servidorId,
+    },
+    update: saldo,
+    create: {
+      servidorId,
+      ...saldo,
+      competenciaInicioControle,
+    },
+  });
+
+  return saldo;
 }

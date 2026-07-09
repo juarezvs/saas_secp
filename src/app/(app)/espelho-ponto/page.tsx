@@ -187,6 +187,14 @@ export default async function EspelhoPontoPage({
     permissao.permissoes,
     "apuracao:recalcular:global",
   );
+  const podeGerenciarBancoHorasNoEspelho =
+    perfilChefiaAtivo ||
+    usuarioPossuiPermissaoNoPerfil(
+      permissao.perfilAtivoCodigo,
+      permissao.permissoes,
+      "homologacao:gerenciar:global",
+    ) ||
+    podeRecalcular;
   const perfilServidorAtivo =
     permissao.perfilAtivoCodigo?.toUpperCase() === "SERVIDOR";
 
@@ -323,6 +331,12 @@ export default async function EspelhoPontoPage({
         <EspelhoPontoMensal
           apuracoes={apuracoes}
           marcacoes={marcacoes}
+          acoesBancoHoras={{
+            habilitadas: podeGerenciarBancoHorasNoEspelho,
+            servidorId: servidorSelecionado.id,
+            anoReferencia,
+            mesReferencia,
+          }}
           controles={
             perfilServidorAtivo ? (
               <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">

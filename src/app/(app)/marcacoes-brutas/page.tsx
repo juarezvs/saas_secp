@@ -6,8 +6,11 @@ import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application
 import { listarMarcacoesBrutasPaginado } from "@/modules/marcacoes-brutas/infrastructure/repositories/marcacao-bruta.repository";
 import { MarcacoesBrutasListagemControles } from "@/modules/marcacoes-brutas/presentation/components/marcacoes-brutas-listagem-controles";
 import { MarcacoesBrutasTable } from "@/modules/marcacoes-brutas/presentation/components/marcacoes-brutas-table";
+import { ReprocessarMarcacoesBrutasEscopoForm } from "@/modules/marcacoes-brutas/presentation/components/reprocessar-marcacoes-brutas-escopo-form";
 import { ReprocessarMarcacoesBrutasForm } from "@/modules/marcacoes-brutas/presentation/components/reprocessar-marcacoes-brutas-form";
 import { ReprocessarTodosForm } from "@/modules/marcacoes-brutas/presentation/components/reprocessar-todos-form";
+import { listarUnidadesParaSelecao } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
+import { prisma } from "@/shared/infrastructure/database/prisma";
 
 type MarcacoesBrutasPageProps = {
   searchParams?: Promise<{
@@ -32,13 +35,28 @@ export default async function MarcacoesBrutasPage({
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 20);
 
-  const resultado = await listarMarcacoesBrutasPaginado({
-    busca: params.busca,
-    origem: params.origem,
-    processada: params.processada,
-    pagina,
-    itensPorPagina,
-  });
+  const [resultado, servidores, unidades] = await Promise.all([
+    listarMarcacoesBrutasPaginado({
+      busca: params.busca,
+      origem: params.origem,
+      processada: params.processada,
+      pagina,
+      itensPorPagina,
+    }),
+    prisma.servidor.findMany({
+      where: {
+        ativo: true,
+      },
+      select: {
+        id: true,
+        matricula: true,
+        nomeFuncional: true,
+        nomeCompletoSarh: true,
+      },
+      orderBy: [{ nomeFuncional: "asc" }, { matricula: "asc" }],
+    }),
+    listarUnidadesParaSelecao(),
+  ]);
 
   const exportParams = new URLSearchParams();
 
@@ -85,6 +103,20 @@ export default async function MarcacoesBrutasPage({
           registros bloqueados por cadastro, jornada ou homologação.
         </p>
 
+        <ReprocessarMarcacoesBrutasEscopoForm
+          servidores={servidores.map((servidor) => ({
+            id: servidor.id,
+            matricula: servidor.matricula,
+            nome:
+              servidor.nomeFuncional ??
+              servidor.nomeCompletoSarh ??
+              "Servidor sem nome",
+          }))}
+          unidades={unidades.map((unidade) => ({
+            id: unidade.id,
+            label: unidade.label,
+          }))}
+        />
         <ReprocessarMarcacoesBrutasForm rotuloBotao="Reprocessar pendentes" />
         <ReprocessarTodosForm />
       </section>

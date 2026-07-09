@@ -126,6 +126,12 @@ export function ConvocacoesRecessoPanel({
 }: ConvocacoesRecessoPanelProps) {
   return (
     <div className="space-y-6">
+      {recesso.convocacoes.length === 0 && (
+        <section className="rounded-xl border bg-[var(--card)] p-8 text-center text-sm text-[var(--muted-foreground)] shadow-sm">
+          Nenhuma portaria de convocação cadastrada para este recesso.
+        </section>
+      )}
+
       {recesso.convocacoes.map((convocacao) => {
         const convocadosAgrupados = agruparConvocadosPorServidor(
           convocacao.convocados,
@@ -152,10 +158,10 @@ export function ConvocacoesRecessoPanel({
                     {convocacao.dataPortaria
                       ? formatarDataRecesso(convocacao.dataPortaria)
                       : "Sem data"}{" "}
-                    - {convocacao.unidade?.sigla ?? "Unidade nao informada"} -
+                    - {convocacao.unidade?.sigla ?? "Unidade não informada"} -
                     Chefia:{" "}
                     {convocacao.chefiaResponsavel?.usuario.nome ??
-                      "nao definida"}
+                      "não definida"}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -195,11 +201,11 @@ export function ConvocacoesRecessoPanel({
                   <tr>
                     <th className="px-5 py-3">Servidor</th>
                     <th className="px-5 py-3">Unidade</th>
-                    <th className="px-5 py-3">Pecunia</th>
+                    <th className="px-5 py-3">Pecúnia</th>
                     <th className="px-5 py-3">Folga</th>
                     <th className="px-5 py-3">Status</th>
                     {podeGerenciarConvocados && (
-                      <th className="px-5 py-3">Acoes</th>
+                      <th className="px-5 py-3">Ações</th>
                     )}
                   </tr>
                 </thead>

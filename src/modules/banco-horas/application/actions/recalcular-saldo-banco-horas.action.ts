@@ -37,8 +37,18 @@ export async function recalcularSaldoBancoHorasAction(formData: FormData) {
       dataReferencia: "asc",
     },
   });
+  const saldoAtual = await prisma.bancoHorasSaldo.findUnique({
+    where: {
+      servidorId,
+    },
+    select: {
+      competenciaInicioControle: true,
+    },
+  });
 
-  const saldo = calcularSaldoBancoHoras(movimentos);
+  const saldo = calcularSaldoBancoHoras(movimentos, {
+    competenciaInicioControle: saldoAtual?.competenciaInicioControle,
+  });
 
   await prisma.$transaction(async (tx) => {
     await tx.bancoHorasSaldo.upsert({

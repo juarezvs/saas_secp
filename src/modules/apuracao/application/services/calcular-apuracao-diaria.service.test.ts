@@ -360,13 +360,13 @@ describe("calcularApuracaoDiaria", () => {
     expect(resultado.minutosForaExpediente).toBe(0);
   });
 
-  it("desconsidera tempo anterior as 08:00 sem autorizacao diferenciada", () => {
+  it("contabiliza e sinaliza tempo anterior as 08:00 sem autorizacao diferenciada", () => {
     const resultado = calcularApuracaoDiaria({
       jornada: jornada7h,
       marcacoes: [marcacao("ENTRADA", "07:00"), marcacao("SAIDA", "15:00")],
     });
 
-    expect(resultado.minutosTrabalhados).toBe(420);
+    expect(resultado.minutosTrabalhados).toBe(480);
     expect(resultado.minutosForaExpediente).toBe(60);
     expect(resultado.resultado).toBe("REGULAR");
     expect(resultado.status).toBe("INCONSISTENTE");
@@ -400,7 +400,7 @@ describe("calcularApuracaoDiaria", () => {
     });
   });
 
-  it("desconsidera tempo anterior as 06:00 mesmo com autorizacao", () => {
+  it("contabiliza e sinaliza tempo anterior as 06:00 mesmo com autorizacao", () => {
     const resultado = calcularApuracaoDiaria({
       jornada: {
         ...jornada7h,
@@ -409,7 +409,7 @@ describe("calcularApuracaoDiaria", () => {
       marcacoes: [marcacao("ENTRADA", "05:30"), marcacao("SAIDA", "13:00")],
     });
 
-    expect(resultado.minutosTrabalhados).toBe(420);
+    expect(resultado.minutosTrabalhados).toBe(450);
     expect(resultado.minutosForaExpediente).toBe(30);
     expect(resultado.status).toBe("INCONSISTENTE");
   });
@@ -425,9 +425,43 @@ describe("calcularApuracaoDiaria", () => {
       ],
     });
 
-    expect(resultado.minutosTrabalhados).toBe(540);
+    expect(resultado.minutosTrabalhados).toBe(600);
     expect(resultado.minutosForaExpediente).toBe(60);
-    expect(resultado.minutosCredito).toBe(60);
+    expect(resultado.minutosCredito).toBe(120);
     expect(resultado.status).toBe("INCONSISTENTE");
+  });
+
+  it("calcula jornada operacional com saida depois da meia-noite", () => {
+    const resultado = calcularApuracaoDiaria({
+      jornada: jornada7h,
+      marcacoes: [
+        {
+          id: "entrada",
+          tipo: "ENTRADA",
+          dataHora: new Date("2026-05-27T11:52:00.000Z"),
+        },
+        {
+          id: "saida-intervalo",
+          tipo: "SAIDA_INTERVALO",
+          dataHora: new Date("2026-05-27T19:09:00.000Z"),
+        },
+        {
+          id: "retorno-intervalo",
+          tipo: "RETORNO_INTERVALO",
+          dataHora: new Date("2026-05-28T01:26:00.000Z"),
+        },
+        {
+          id: "saida",
+          tipo: "SAIDA",
+          dataHora: new Date("2026-05-28T04:43:00.000Z"),
+        },
+      ],
+      fusoHorario: "America/Manaus",
+    });
+
+    expect(resultado.minutosTrabalhados).toBe(634);
+    expect(resultado.minutosCredito).toBe(154);
+    expect(resultado.minutosDebito).toBe(0);
+    expect(resultado.resultado).toBe("CREDITO");
   });
 });

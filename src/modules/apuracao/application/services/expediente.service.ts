@@ -170,6 +170,28 @@ function minutosLocais(data: Date, fusoHorario?: string | null) {
   return horas * 60 + minutos;
 }
 
+function dataLocalAbsolutaEmMinutos(
+  data: Date,
+  fusoHorario?: string | null,
+) {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: fusoHorario ?? "America/Manaus",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(data);
+  const valor = (tipo: string) =>
+    Number(partes.find((parte) => parte.type === tipo)?.value);
+  const diaLocal = Math.floor(
+    Date.UTC(valor("year"), valor("month") - 1, valor("day")) / 86_400_000,
+  );
+
+  return diaLocal * 1_440 + valor("hour") * 60 + valor("minute");
+}
+
 export function resolverJanelaExpediente(
   jornada: JornadaExpediente,
   janelaInstitucional?: { inicio: string; fim: string } | null,
@@ -285,14 +307,31 @@ export function calcularMinutosNoExpediente(params: {
   janela: JanelaExpediente;
   fusoHorario?: string | null;
 }) {
-  const inicioSegmento = minutosLocais(params.inicio, params.fusoHorario);
-  const fimSegmento = minutosLocais(params.fim, params.fusoHorario);
+  const inicioSegmento = dataLocalAbsolutaEmMinutos(
+    params.inicio,
+    params.fusoHorario,
+  );
+  const fimSegmento = dataLocalAbsolutaEmMinutos(
+    params.fim,
+    params.fusoHorario,
+  );
   const inicioJanela = horaParaMinutos(params.janela.inicio);
   const fimJanela = horaParaMinutos(params.janela.fim);
+  let total = 0;
 
-  return Math.max(
-    0,
-    Math.min(fimSegmento, fimJanela) -
-      Math.max(inicioSegmento, inicioJanela),
-  );
+  if (fimSegmento <= inicioSegmento) {
+    return 0;
+  }
+
+  const diaInicio = Math.floor(inicioSegmento / 1_440);
+  const diaFim = Math.floor((fimSegmento - 1) / 1_440);
+
+  for (let dia = diaInicio; dia <= diaFim; dia += 1) {
+    const baseDia = dia * 1_440;
+    const inicioSobreposto = Math.max(inicioSegmento, baseDia + inicioJanela);
+    const fimSobreposto = Math.min(fimSegmento, baseDia + fimJanela);
+    total += Math.max(0, fimSobreposto - inicioSobreposto);
+  }
+
+  return total;
 }

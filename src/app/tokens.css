@@ -83,6 +83,22 @@
   --status-bloqueado-bg: #f2f4f7; --status-bloqueado-fg: #344054;
 }
 
+html[data-secp-color-theme="verde"] {
+  --secp-blue-900: #005c2a;
+  --secp-blue-800: #007a33;
+  --secp-blue-700: #0b8f43;
+  --secp-info: #007a33;
+  --ring: #007a33;
+}
+
+html[data-secp-color-theme="cinza"] {
+  --secp-blue-900: #4b5563;
+  --secp-blue-800: #6b7280;
+  --secp-blue-700: #97999b;
+  --secp-info: #6b7280;
+  --ring: #6b7280;
+}
+
 .dark {
   --secp-bg: #020617;
   --secp-card: #0f172a;

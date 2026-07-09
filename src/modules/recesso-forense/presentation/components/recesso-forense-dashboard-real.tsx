@@ -27,14 +27,17 @@ type RecessoForenseDashboardRealProps = {
   recessos: RecessoResumo[];
   podeGerenciar: boolean;
   visualizacaoServidor?: boolean;
+  podeGerenciarConvocacoes?: boolean;
 };
 
 export function RecessoForenseDashboardReal({
   recessos,
   podeGerenciar,
   visualizacaoServidor = false,
+  podeGerenciarConvocacoes = false,
 }: RecessoForenseDashboardRealProps) {
   const ativo = recessos[0];
+  const exibirAcoes = !visualizacaoServidor || podeGerenciarConvocacoes;
   const pendencias = recessos.reduce(
     (total, recesso) =>
       total +
@@ -54,7 +57,10 @@ export function RecessoForenseDashboardReal({
       .join(", ");
   }
 
-  function diasPorEscolha(recesso: RecessoResumo, escolha: "PECUNIA" | "FOLGA") {
+  function diasPorEscolha(
+    recesso: RecessoResumo,
+    escolha: "PECUNIA" | "FOLGA",
+  ) {
     return recesso.convocados
       .filter((convocado) => convocado.escolha === escolha)
       .map((convocado) => convocado.dataConvocacao);
@@ -80,6 +86,14 @@ export function RecessoForenseDashboardReal({
               <Plus className="size-4" aria-hidden="true" />
               Novo recesso
             </Link>
+          ) : podeGerenciarConvocacoes && ativo ? (
+            <Link
+              href={`/recesso-forense/${ativo.id}/convocacoes`}
+              className="inline-flex items-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-950"
+            >
+              <CalendarDays className="size-4" aria-hidden="true" />
+              Gerenciar convocações
+            </Link>
           ) : null
         }
       />
@@ -94,7 +108,9 @@ export function RecessoForenseDashboardReal({
             {ativo ? ativo.ano : "Não cadastrado"}
           </h2>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-            {ativo ? formatarPeriodoRecesso(ativo.dataInicio, ativo.dataFim) : "-"}
+            {ativo
+              ? formatarPeriodoRecesso(ativo.dataInicio, ativo.dataFim)
+              : "-"}
           </p>
         </article>
 
@@ -135,9 +151,7 @@ export function RecessoForenseDashboardReal({
                 <th className="px-5 py-3">
                   {visualizacaoServidor ? "Folga" : "Dias convocados"}
                 </th>
-                {!visualizacaoServidor && (
-                  <th className="px-5 py-3">Ações</th>
-                )}
+                {exibirAcoes && <th className="px-5 py-3">Ações</th>}
               </tr>
             </thead>
             <tbody>
@@ -149,7 +163,10 @@ export function RecessoForenseDashboardReal({
                   <tr key={recesso.id} className="border-b last:border-b-0">
                     <td className="px-5 py-4 font-semibold">{recesso.ano}</td>
                     <td className="px-5 py-4">
-                      {formatarPeriodoRecesso(recesso.dataInicio, recesso.dataFim)}
+                      {formatarPeriodoRecesso(
+                        recesso.dataInicio,
+                        recesso.dataFim,
+                      )}
                     </td>
                     <td className="px-5 py-4">
                       <RecessoStatusBadge status={recesso.status} />
@@ -162,13 +179,25 @@ export function RecessoForenseDashboardReal({
                         <td className="max-w-[280px] px-5 py-4 text-[var(--muted-foreground)]">
                           {formatarDatas(folga)}
                         </td>
+                        {podeGerenciarConvocacoes && (
+                          <td className="px-5 py-4">
+                            <Link
+                              href={`/recesso-forense/${recesso.id}/convocacoes`}
+                              className="font-semibold text-blue-900 hover:underline dark:text-blue-300"
+                            >
+                              Gerenciar convocações
+                            </Link>
+                          </td>
+                        )}
                       </>
                     ) : (
                       <>
                         <td className="px-5 py-4">
                           {recesso.convocacoes?.length ?? 0}
                         </td>
-                        <td className="px-5 py-4">{recesso.convocados.length}</td>
+                        <td className="px-5 py-4">
+                          {recesso.convocados.length}
+                        </td>
                         <td className="px-5 py-4">
                           <Link
                             href={`/recesso-forense/${recesso.id}`}
@@ -185,7 +214,7 @@ export function RecessoForenseDashboardReal({
               {recessos.length === 0 && (
                 <tr>
                   <td
-                    colSpan={visualizacaoServidor ? 5 : 6}
+                    colSpan={exibirAcoes ? 6 : 5}
                     className="px-5 py-10 text-center"
                   >
                     <div className="mx-auto flex max-w-md flex-col items-center gap-3">

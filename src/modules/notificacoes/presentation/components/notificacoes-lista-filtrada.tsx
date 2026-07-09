@@ -72,7 +72,7 @@ function NotificacaoCard({ notificacao }: { notificacao: NotificacaoListaItem })
             type="submit"
             className="grid w-full gap-4 p-5 text-left transition hover:bg-muted/50 md:grid-cols-[auto_1fr_auto]"
           >
-            <span className="flex size-11 items-center justify-center rounded-md bg-blue-50 text-blue-900 dark:bg-blue-950 dark:text-blue-200">
+            <span className="secp-theme-icon flex size-11 items-center justify-center rounded-md">
               <Icone className="size-5" aria-hidden="true" />
             </span>
 

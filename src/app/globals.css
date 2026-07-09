@@ -135,6 +135,16 @@ button:disabled,
   color: var(--muted-foreground);
 }
 
+.secp-theme-icon {
+  background: color-mix(in srgb, var(--secp-blue-800) 12%, transparent);
+  color: var(--secp-blue-900);
+}
+
+.dark .secp-theme-icon {
+  background: color-mix(in srgb, var(--secp-blue-700) 24%, transparent);
+  color: color-mix(in srgb, var(--secp-blue-700) 45%, white);
+}
+
 .secp-institutional-gradient {
   background: linear-gradient(135deg, var(--secp-blue-900), var(--secp-blue-800));
 }

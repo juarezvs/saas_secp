@@ -20,11 +20,11 @@ export function DashboardPerfilShell({
     <div className="space-y-6">
       <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
+          <p className="text-sm font-semibold uppercase tracking-wide text-secp-blue-900 dark:text-blue-200">
             {eyebrow}
           </p>
           <h1 className="mt-2 flex items-center gap-3 text-3xl font-bold tracking-tight">
-            <span className="rounded-lg bg-blue-50 p-2 text-blue-900 dark:bg-blue-950 dark:text-blue-300">
+            <span className="secp-theme-icon rounded-lg p-2">
               <Icon className="size-6" aria-hidden="true" />
             </span>
             {title}

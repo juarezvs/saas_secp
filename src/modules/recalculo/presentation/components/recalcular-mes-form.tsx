@@ -52,7 +52,14 @@ export function RecalcularMesForm({
 
     iniciarTransicao(async () => {
       try {
-        await recalcularMesServidorAction(formData);
+        const resultado = await recalcularMesServidorAction(formData);
+
+        if (!resultado.sucesso) {
+          setErro(resultado.mensagem);
+          setConcluido(false);
+          return;
+        }
+
         setProgresso(100);
         setConcluido(true);
         router.refresh();

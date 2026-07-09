@@ -107,7 +107,7 @@ export async function listarApuracoesDoServidorNoMes(params: {
         movimentoBancoHoras: {
           where: {
             status: {
-              in: ["PENDENTE", "VALIDADO"],
+              in: ["PENDENTE", "VALIDADO", "DESCONSIDERADO"],
             },
           },
           include: {
