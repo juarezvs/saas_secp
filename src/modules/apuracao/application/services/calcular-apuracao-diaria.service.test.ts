@@ -230,16 +230,10 @@ describe("calcularApuracaoDiaria", () => {
     );
   });
 
-  it("desconsidera marcacoes existentes quando ha dispensa de ponto na data", () => {
+  it("considera marcacoes existentes mesmo quando ha dispensa de ponto na data", () => {
     const resultado = calcularApuracaoDiaria({
       jornada: jornada7h,
-      marcacoes: [
-        {
-          id: "m1",
-          tipo: "ENTRADA",
-          dataHora: new Date("2026-06-10T08:00:00Z"),
-        },
-      ],
+      marcacoes: [marcacao("ENTRADA", "08:00"), marcacao("SAIDA", "15:00")],
       dispensaPontoEletronico: {
         ativa: true,
         motivos: ["Dispensa administrativa de ponto."],
@@ -252,8 +246,8 @@ describe("calcularApuracaoDiaria", () => {
     expect(resultado.minutosTrabalhados).toBe(420);
     expect(resultado.minutosCredito).toBe(0);
     expect(resultado.minutosDebito).toBe(0);
-    expect(resultado.primeiraEntrada).toBeNull();
-    expect(resultado.ultimaSaida).toBeNull();
+    expect(resultado.primeiraEntrada).toEqual(data("08:00"));
+    expect(resultado.ultimaSaida).toEqual(data("15:00"));
     expect(resultado.ocorrencias).toEqual([]);
   });
 

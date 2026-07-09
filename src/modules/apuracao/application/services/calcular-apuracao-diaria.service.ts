@@ -208,35 +208,6 @@ export function calcularApuracaoDiaria(params: {
     ? null
     : resolverJanelaExpediente(jornada, janelaInstitucionalEspecial);
 
-  if (dispensaPontoEletronico?.ativa) {
-    return {
-      cargaPrevistaMinutos: cargaPrevistaDia,
-      minutosTrabalhados: cargaPrevistaDia,
-      minutosIntervalo: 0,
-      minutosCredito: 0,
-      minutosDebito: 0,
-      resultado: "REGULAR",
-      status: "CALCULADA",
-      primeiraEntrada: null,
-      saidaIntervalo: null,
-      retornoIntervalo: null,
-      ultimaSaida: null,
-      janelaExpediente: janelaExpedienteDia,
-      minutosForaExpediente: 0,
-      dispensaPontoEletronico,
-      trabalhoRemoto: null,
-      frequenciaManual: dispensaPontoEletronico.exigeFrequenciaManual
-        ? {
-            obrigatoria: true,
-            registrada: false,
-            descricao:
-              "Frequencia manual dispensada pela dispensa de ponto na data.",
-          }
-        : null,
-      ocorrencias: [],
-    };
-  }
-
   const ordenadas = marcacoes
     .filter((m) =>
       ["ENTRADA", "SAIDA_INTERVALO", "RETORNO_INTERVALO", "SAIDA"].includes(
@@ -264,21 +235,16 @@ export function calcularApuracaoDiaria(params: {
     const exigeFrequenciaManual =
       Boolean(dispensaPontoEletronico?.ativa) &&
       Boolean(dispensaPontoEletronico?.exigeFrequenciaManual);
+    const servidorDispensado = Boolean(dispensaPontoEletronico?.ativa);
 
     return {
       cargaPrevistaMinutos: cargaPrevistaDia,
-      minutosTrabalhados: dispensaPontoEletronico?.ativa
-        ? cargaPrevistaDia
-        : 0,
+      minutosTrabalhados: servidorDispensado ? cargaPrevistaDia : 0,
       minutosIntervalo: 0,
       minutosCredito: 0,
-      minutosDebito: dispensaPontoEletronico?.ativa
-        ? 0
-        : cargaPrevistaDia,
-      resultado: dispensaPontoEletronico?.ativa ? "REGULAR" : "FALTA",
-      status: dispensaPontoEletronico?.ativa && !exigeFrequenciaManual
-        ? "CALCULADA"
-        : "INCONSISTENTE",
+      minutosDebito: servidorDispensado ? 0 : cargaPrevistaDia,
+      resultado: servidorDispensado ? "REGULAR" : "FALTA",
+      status: servidorDispensado ? "CALCULADA" : "INCONSISTENTE",
       primeiraEntrada: null,
       saidaIntervalo: null,
       retornoIntervalo: null,
@@ -292,20 +258,11 @@ export function calcularApuracaoDiaria(params: {
             obrigatoria: true,
             registrada: false,
             descricao:
-              "Frequencia manual obrigatoria para servidor dispensado do ponto eletronico.",
+              "Frequencia manual dispensada pela dispensa de ponto na data.",
           }
         : null,
-      ocorrencias: dispensaPontoEletronico?.ativa
-        ? exigeFrequenciaManual
-          ? [
-              {
-                tipo: "MARCACAO_INCOMPLETA",
-                descricao:
-                  "Frequencia manual obrigatoria nao registrada para servidor dispensado do ponto eletronico.",
-                minutos: 0,
-              },
-            ]
-          : []
+      ocorrencias: servidorDispensado
+        ? []
         : [
             {
               tipo: "FALTA",
