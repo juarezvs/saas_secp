@@ -23,6 +23,13 @@ async function obterCodigoPerfilAtivoCookie() {
   }
 }
 
+function deveIniciarSarhLoginWorkerAutomatico() {
+  return (
+    process.env.SECP_AUTO_WORKERS !== "false" &&
+    process.env.SARH_LOGIN_SYNC_AUTO_WORKER !== "false"
+  );
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
 
@@ -61,15 +68,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        Promise.all([
-          import(
-            "@/modules/integracoes/sarh/application/workers/sarh-login-sync-worker-runtime"
-          ).then((mod) => mod.garantirSarhLoginSyncWorkerAutomatico()),
+        const atualizacoesSarhLogin: Array<Promise<unknown>> = [
           enfileirarAtualizacaoSarhLogin({
             matricula: usuario.matricula,
             usuarioId: usuario.id,
           }),
-        ]).catch((error) => {
+        ];
+
+        if (deveIniciarSarhLoginWorkerAutomatico()) {
+          atualizacoesSarhLogin.push(
+            import(
+              "@/modules/integracoes/sarh/application/workers/sarh-login-sync-worker-runtime"
+            ).then((mod) => mod.garantirSarhLoginSyncWorkerAutomatico()),
+          );
+        }
+
+        Promise.all(atualizacoesSarhLogin).catch((error) => {
           console.error(
             "[SARH LOGIN] Falha ao enfileirar atualização SARH:",
             error,

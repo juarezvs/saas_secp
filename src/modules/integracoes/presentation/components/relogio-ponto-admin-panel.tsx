@@ -206,7 +206,7 @@ function proximoNsr(configuracao: unknown) {
 
 function equipamentoOperacionalSuportado(equipamento: EquipamentoOperacional) {
   const fabricante = equipamento.fabricante?.toUpperCase();
-  return fabricante === "HENRY" || fabricante === "DIMEP";
+  return fabricante === "HENRY" || fabricante === "DIMEP" || fabricante === "CONTROL_ID";
 }
 
 export function RelogioPontoAdminPanel({
@@ -267,7 +267,7 @@ export function RelogioPontoAdminPanel({
         {relogios.length === 0 ? (
           <div className="rounded-lg border border-dashed p-8 text-center text-sm text-[var(--muted-foreground)]">
             Nenhum equipamento de ponto suportado cadastrado. Cadastre Henry ou
-            Dimep Smart Print para habilitar operacoes e monitoramento.
+            Dimep Smart Print ou Control iD FACE ID para habilitar operacoes e monitoramento.
           </div>
         ) : (
           <>
@@ -1061,7 +1061,7 @@ function BiometriaRelogioCard({
         </select>
         <textarea
           name="template"
-          placeholder="Template biometrico Henry"
+          placeholder="Template biometrico"
           rows={4}
           className="mt-2 w-full rounded-md border bg-[var(--card)] px-2 py-2 font-mono text-xs"
         />
@@ -1179,7 +1179,7 @@ function CabecalhoEquipamento({
         </div>
         <p className="mt-1 text-xs text-[var(--muted-foreground)]">
           {equipamento.codigo} - {equipamento.ip ?? "sem IP"}:
-          {equipamento.porta ?? 3000} - {equipamento.modelo ?? "Henry"}
+          {equipamento.porta ?? 3000} - {equipamento.modelo ?? "Relogio"}
         </p>
       </div>
 

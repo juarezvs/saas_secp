@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { withHttpMetrics } from "@/lib/observability/http";
 import {
   enfileirarReprocessamentoGlobal,
   reprocessamentoGlobalQueue,
@@ -14,7 +15,8 @@ function podeReprocessar(permissoes: string[]) {
   );
 }
 
-export async function POST() {
+async function postReprocessarTodos(request: Request) {
+  void request;
   const session = await auth();
 
   if (!session?.user) {
@@ -37,7 +39,7 @@ export async function POST() {
   });
 }
 
-export async function GET(request: Request) {
+async function getReprocessarTodos(request: Request) {
   const session = await auth();
 
   if (!session?.user) {
@@ -71,3 +73,12 @@ export async function GET(request: Request) {
     erro: estado === "failed" ? job.failedReason : null,
   });
 }
+
+export const POST = withHttpMetrics(
+  "/api/marcacoes-brutas/reprocessar-todos",
+  postReprocessarTodos,
+);
+export const GET = withHttpMetrics(
+  "/api/marcacoes-brutas/reprocessar-todos",
+  getReprocessarTodos,
+);

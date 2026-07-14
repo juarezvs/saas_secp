@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   infoGrid: {
     flexDirection: "row",
     gap: 4,
-    marginTop: 16,
+    marginTop: 10,
   },
   leftInfo: {
     width: "68.5%",
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   },
   tableRow: {
     flexDirection: "row",
-    minHeight: 14,
+    minHeight: 14.5,
     borderBottomWidth: 0.7,
     borderColor: BORDA_MODELO,
   },
@@ -270,7 +270,20 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
   },
   timeText: {
-    fontSize: 8,
+    fontSize: 7.8,
+  },
+  statusText: {
+    fontSize: 7.4,
+    textAlign: "center",
+    textTransform: "uppercase",
+  },
+  dateText: {
+    fontSize: 7.2,
+    textAlign: "center",
+  },
+  totalText: {
+    fontSize: 7.3,
+    textAlign: "center",
   },
   noteText: {
     fontSize: 9,
@@ -348,9 +361,10 @@ const styles = StyleSheet.create({
 });
 
 const colunas = {
-  dia: "5.5%",
-  hora: "13.8%",
-  assinatura: "39.3%",
+  data: "13.5%",
+  hora: "9.5%",
+  total: "10.8%",
+  status: "17.3%",
 };
 
 const estadosPorUf: Record<string, string> = {
@@ -466,6 +480,14 @@ export function EspelhoPontoPdfDocument({
                         )}`
                       : "-"}
                   </Text>
+                  <Text style={styles.infoValueSecondary}>
+                    CPF: {formatarCpfModelo(servidor?.cpf)} | Cargo:{" "}
+                    {normalizarTextoModelo(
+                      lotacao?.cargo?.descricao ||
+                        servidor?.cargo?.descricao ||
+                        "-",
+                    )}
+                  </Text>
                 </View>
               </View>
 
@@ -568,13 +590,16 @@ function TabelaFrequencia({
   return (
     <View style={styles.table}>
       <View style={styles.tableHeader}>
-        <CabecalhoCelula width={colunas.dia}>DIA</CabecalhoCelula>
-        <CabecalhoCelula width={colunas.hora}>HORA DE{"\n"}CHEGADA</CabecalhoCelula>
-        <CabecalhoCelula width={colunas.hora}>HORA DE{"\n"}SAÍDA</CabecalhoCelula>
-        <CabecalhoCelula width={colunas.hora}>HORA DE{"\n"}CHEGADA</CabecalhoCelula>
-        <CabecalhoCelula width={colunas.hora}>HORA DE{"\n"}SAÍDA</CabecalhoCelula>
-        <CabecalhoCelula width={colunas.assinatura} ultimo>
-          ASSINATURA
+        <CabecalhoCelula width={colunas.data}>DIA</CabecalhoCelula>
+        <CabecalhoCelula width={colunas.hora}>1ª{"\n"}ENTRADA</CabecalhoCelula>
+        <CabecalhoCelula width={colunas.hora}>1ª{"\n"}SAÍDA</CabecalhoCelula>
+        <CabecalhoCelula width={colunas.hora}>2ª{"\n"}ENTRADA</CabecalhoCelula>
+        <CabecalhoCelula width={colunas.hora}>2ª{"\n"}SAÍDA</CabecalhoCelula>
+        <CabecalhoCelula width={colunas.total}>HORAS{"\n"}NORMAIS</CabecalhoCelula>
+        <CabecalhoCelula width={colunas.total}>HORAS{"\n"}ALMOÇO</CabecalhoCelula>
+        <CabecalhoCelula width={colunas.total}>HORAS{"\n"}TRAB.</CabecalhoCelula>
+        <CabecalhoCelula width={colunas.status} ultimo>
+          STATUS
         </CabecalhoCelula>
       </View>
 
@@ -584,24 +609,35 @@ function TabelaFrequencia({
         const marcacoes = marcacoesPorDia.get(chave) ?? [];
         const apuracao = apuracoesPorDia.get(chave) ?? null;
         const horarios = distribuirMarcacoesNasColunas(marcacoes);
-        const observacao = obterObservacaoDia(data, apuracao);
-        const preencherComAsterisco =
-          observacao && marcacoes.length === 0 && !apuracao?.minutosTrabalhados;
+        const status = obterStatusDia(data, apuracao, marcacoes);
 
         return (
           <View key={chave} style={styles.tableRow} wrap={false}>
-            <Celula width={colunas.dia}>
-              <Text style={styles.dayText}>{dia}</Text>
+            <Celula width={colunas.data}>
+              <Text style={styles.dateText}>{formatarDataTabela(data)}</Text>
             </Celula>
             {horarios.map((horario, indice) => (
               <Celula key={`${chave}-${indice}`} width={colunas.hora}>
-                <Text style={styles.timeText}>
-                  {horario || (preencherComAsterisco ? "*" : "")}
-                </Text>
+                <Text style={styles.timeText}>{horario || "-"}</Text>
               </Celula>
             ))}
-            <Celula width={colunas.assinatura} ultimo>
-              <Text style={styles.noteText}>{observacao}</Text>
+            <Celula width={colunas.total}>
+              <Text style={styles.totalText}>
+                {formatarMinutosTabela(apuracao?.cargaPrevistaMinutos ?? 0)}
+              </Text>
+            </Celula>
+            <Celula width={colunas.total}>
+              <Text style={styles.totalText}>
+                {formatarMinutosTabela(apuracao?.minutosIntervalo ?? 0)}
+              </Text>
+            </Celula>
+            <Celula width={colunas.total}>
+              <Text style={styles.totalText}>
+                {formatarMinutosTabela(apuracao?.minutosTrabalhados ?? 0)}
+              </Text>
+            </Celula>
+            <Celula width={colunas.status} ultimo>
+              <Text style={styles.statusText}>{status}</Text>
             </Celula>
           </View>
         );
@@ -676,7 +712,11 @@ function distribuirMarcacoesNasColunas(marcacoes: MarcacaoPdfItem[]) {
   return horarios;
 }
 
-function obterObservacaoDia(data: Date, apuracao: ApuracaoEspelhoPdfItem | null) {
+function obterStatusDia(
+  data: Date,
+  apuracao: ApuracaoEspelhoPdfItem | null,
+  marcacoes: MarcacaoPdfItem[],
+) {
   if (apuracao) {
     const diaInstitucional = extrairDiaInstitucional(apuracao.metadados);
 
@@ -708,19 +748,34 @@ function obterObservacaoDia(data: Date, apuracao: ApuracaoEspelhoPdfItem | null)
     if (semJornada) {
       return "SEM JORNADA";
     }
+
+    if (apuracao.resultado === "FALTA") {
+      return "SEM REGISTRO";
+    }
+
+    if (
+      apuracao.resultado === "INCOMPLETA" ||
+      (marcacoes.length > 0 && marcacoes.length < 2)
+    ) {
+      return "PARCIAL";
+    }
+
+    if (apuracao.minutosTrabalhados > 0) {
+      return "PRESENTE";
+    }
   }
 
   const diaSemana = data.getUTCDay();
 
   if (diaSemana === 6) {
-    return "SÁBADO";
+    return "FOLGA";
   }
 
   if (diaSemana === 0) {
-    return "DOMINGO";
+    return "FOLGA";
   }
 
-  return "";
+  return marcacoes.length > 0 ? "PARCIAL" : "SEM REGISTRO";
 }
 
 function resolverNomeOficialOrgao(unidade?: UnidadeEspelho | null) {
@@ -845,6 +900,19 @@ function normalizarTextoModelo(texto: string) {
   return texto.trim().toLocaleUpperCase("pt-BR");
 }
 
+function formatarCpfModelo(cpf?: string | null) {
+  const digitos = cpf?.replace(/\D/g, "") ?? "";
+
+  if (digitos.length !== 11) {
+    return cpf?.trim() || "-";
+  }
+
+  return `${digitos.slice(0, 3)}.${digitos.slice(3, 6)}.${digitos.slice(
+    6,
+    9,
+  )}-${digitos.slice(9)}`;
+}
+
 function agruparMarcacoesPorDia(marcacoes: MarcacaoPdfItem[]) {
   const mapa = new Map<string, MarcacaoPdfItem[]>();
 
@@ -871,6 +939,40 @@ function chaveDataReferenciaUtc(valor: Date | string) {
     month: "2-digit",
     day: "2-digit",
   }).format(data);
+}
+
+function formatarDataTabela(valor: Date | string) {
+  const data = valor instanceof Date ? valor : new Date(valor);
+
+  if (Number.isNaN(data.getTime())) {
+    return "-";
+  }
+
+  const dataFormatada = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(data);
+  const diaSemana = new Intl.DateTimeFormat("pt-BR", {
+    weekday: "short",
+    timeZone: "UTC",
+  })
+    .format(data)
+    .replace(".", "");
+
+  return `${normalizarTextoModelo(diaSemana)}, ${dataFormatada}`;
+}
+
+function formatarMinutosTabela(minutos: number) {
+  if (!Number.isFinite(minutos) || minutos <= 0) {
+    return "0h:00min";
+  }
+
+  const horas = Math.floor(minutos / 60);
+  const minutosRestantes = minutos % 60;
+
+  return `${horas}h:${String(minutosRestantes).padStart(2, "0")}min`;
 }
 
 function formatarHoraLocal(valor: Date | string, fusoHorario?: string | null) {

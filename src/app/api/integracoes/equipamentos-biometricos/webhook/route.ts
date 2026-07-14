@@ -1,3 +1,4 @@
+import { withHttpMetrics } from "@/lib/observability/http";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { criarMarcacaoBrutaService } from "@/modules/marcacoes-brutas/application/services/criar-marcacao-bruta.service";
 import { processarMarcacaoBrutaService } from "@/modules/marcacoes-brutas/application/services/processar-marcacao-bruta.service";
@@ -149,7 +150,7 @@ async function registrarEventoOperacional(
   });
 }
 
-export async function POST(request: Request) {
+async function postEquipamentosBiometricosWebhook(request: Request) {
   let payload: unknown;
 
   try {
@@ -321,3 +322,8 @@ export async function POST(request: Request) {
     marcacaoId: processamento.marcacaoId ?? null,
   });
 }
+
+export const POST = withHttpMetrics(
+  "/api/integracoes/equipamentos-biometricos/webhook",
+  postEquipamentosBiometricosWebhook,
+);

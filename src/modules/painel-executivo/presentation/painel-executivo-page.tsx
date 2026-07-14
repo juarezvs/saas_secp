@@ -32,6 +32,7 @@ import type {
   SerieDupla,
   SerieValor,
 } from "@/modules/painel-executivo/infrastructure/repositories/painel-executivo.repository";
+import { RelatorioExportacaoButton } from "@/modules/relatorios/presentation/components/relatorio-exportacao-button";
 import {
   PERMISSAO_PAINEL_EXECUTIVO,
   PERMISSAO_PAINEL_EXECUTIVO_EQUIPAMENTOS,
@@ -77,6 +78,39 @@ function formatarNumero(valor: number) {
   return new Intl.NumberFormat("pt-BR", {
     maximumFractionDigits: 1,
   }).format(valor);
+}
+
+function hrefRelatorioAssincrono(href: string) {
+  return (
+    href.startsWith("/api/homologacao/export?") ||
+    href.startsWith("/api/homologacao/export/pdf?") ||
+    href.startsWith("/api/relatorios/")
+  );
+}
+
+function RelatorioExportavelLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: string;
+}) {
+  const className =
+    "inline-flex h-8 items-center gap-2 rounded-md border border-border px-3 text-xs font-bold hover:bg-muted disabled:cursor-not-allowed disabled:opacity-70";
+
+  if (hrefRelatorioAssincrono(href)) {
+    return (
+      <RelatorioExportacaoButton href={href} className={className}>
+        {children}
+      </RelatorioExportacaoButton>
+    );
+  }
+
+  return (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
+  );
 }
 
 function formatarTextoPainel(valor: string) {
@@ -2947,20 +2981,14 @@ function PainelRelatoriosExportaveis({
                   <td className="px-3 py-3 text-right">
                     <div className="flex flex-wrap justify-end gap-2">
                       {item.hrefPdf ? (
-                        <Link
-                          href={item.hrefPdf}
-                          className="inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-bold hover:bg-muted"
-                        >
+                        <RelatorioExportavelLink href={item.hrefPdf}>
                           PDF
-                        </Link>
+                        </RelatorioExportavelLink>
                       ) : null}
                       {item.hrefCsv ? (
-                        <Link
-                          href={item.hrefCsv}
-                          className="inline-flex h-8 items-center rounded-md border border-border px-3 text-xs font-bold hover:bg-muted"
-                        >
+                        <RelatorioExportavelLink href={item.hrefCsv}>
                           CSV
-                        </Link>
+                        </RelatorioExportavelLink>
                       ) : null}
                       <Link
                         href={item.hrefTela}

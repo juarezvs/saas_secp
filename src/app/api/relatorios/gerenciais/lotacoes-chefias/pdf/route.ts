@@ -2,12 +2,15 @@ import React, { type ReactElement } from "react";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 
 import { auth } from "@/auth";
+import { withHttpMetrics } from "@/lib/observability/http";
 import { listarLotacoesComChefiasRegistradas } from "@/modules/relatorios/infrastructure/repositories/relatorios-gerenciais.repository";
 import { LotacoesChefiasPdfDocument } from "@/modules/relatorios/presentation/pdf/lotacoes-chefias-pdf.document";
+import { enfileirarRelatorioExportacaoResponse } from "@/modules/relatorios/application/services/relatorio-exportacao-response.service";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+async function getRelatorioGerencialLotacoesChefiasPdf(request: Request) {
+  void request;
   const session = await auth();
 
   if (!session?.user) {
@@ -24,6 +27,16 @@ export async function GET() {
   if (!podeExportar) {
     return new Response("Acesso negado.", {
       status: 403,
+    });
+  }
+
+  if (new URL(request.url).searchParams.get("sync") !== "1") {
+    return enfileirarRelatorioExportacaoResponse({
+      request,
+      tipo: "LOTACOES_CHEFIAS",
+      formato: "PDF",
+      usuarioId: session.user.id,
+      permissoes,
     });
   }
 
@@ -45,3 +58,8 @@ export async function GET() {
     },
   });
 }
+
+export const GET = withHttpMetrics(
+  "/api/relatorios/gerenciais/lotacoes-chefias/pdf",
+  getRelatorioGerencialLotacoesChefiasPdf,
+);

@@ -109,12 +109,12 @@ export function AuditoriaTable({
                 </td>
 
                 <td className="px-5 py-4 text-right">
-                  <Link
+                  <a
                     href={`/auditoria/${evento.id}`}
                     className="text-sm font-semibold text-blue-900 hover:underline dark:text-blue-300"
                   >
                     Detalhar
-                  </Link>
+                  </a>
                 </td>
               </tr>
             ))}

@@ -19,6 +19,7 @@ type ApuracaoMensalItem = {
   dataReferencia: Date | string;
   cargaPrevistaMinutos: number;
   minutosTrabalhados: number;
+  minutosIntervalo?: number;
   minutosCredito: number;
   minutosDebito: number;
   resultado: string;
@@ -176,13 +177,18 @@ export function EspelhoPontoMensal({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1320px] text-left text-sm">
+        <table className="w-full min-w-[1580px] text-left text-sm">
           <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
             <tr>
               <th className="w-14 px-5 py-3 text-center">Sit.</th>
               <th className="px-5 py-3">Data</th>
-              <th className="px-5 py-3">Marcações</th>
+              <th className="px-5 py-3">1ª entrada</th>
+              <th className="px-5 py-3">1ª saída</th>
+              <th className="px-5 py-3">2ª entrada</th>
+              <th className="px-5 py-3">2ª saída</th>
+              <th className="px-5 py-3">Status</th>
               <th className="px-5 py-3">Previsto</th>
+              <th className="px-5 py-3">Intervalo</th>
               <th className="px-5 py-3">Trabalhado</th>
               <th className="px-5 py-3">Crédito</th>
               <th className="px-5 py-3">Débito</th>
@@ -201,6 +207,7 @@ export function EspelhoPontoMensal({
                 item.dataReferencia,
               );
               const marcacoesDoDia = marcacoesPorDia.get(chaveReferencia) ?? [];
+              const horarios = distribuirMarcacoesNasColunas(marcacoesDoDia);
               const trabalhoRemoto = extrairTrabalhoRemoto(item.metadados);
               const classificacao = classificarDiaEspelho(item);
               const diaInstitucional = extrairDiaInstitucional(item.metadados);
@@ -242,6 +249,29 @@ export function EspelhoPontoMensal({
                     {formatarDataReferenciaUtc(item.dataReferencia)}
                   </td>
 
+                  {horarios.map((horario, indice) => (
+                    <td
+                      key={`${item.id}-horario-${indice}`}
+                      className="whitespace-nowrap px-5 py-4 font-mono"
+                    >
+                      {horario ? (
+                        <span
+                          className={`rounded-full border px-2 py-1 text-xs ${
+                            horario.ajustada
+                              ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
+                              : "bg-[var(--muted)]"
+                          }`}
+                          title={horario.title}
+                        >
+                          {horario.valor}
+                          {horario.ajustada ? "*" : ""}
+                        </span>
+                      ) : (
+                        <span className="text-[var(--muted-foreground)]">-</span>
+                      )}
+                    </td>
+                  ))}
+
                   <td className="px-5 py-4">
                     {mesclarMarcacoesOcorrencias ? (
                       diaInstitucional ? (
@@ -268,30 +298,12 @@ export function EspelhoPontoMensal({
                           : "Trabalho remoto"}
                       </span>
                     ) : marcacoesDoDia.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {marcacoesDoDia.map((marcacao) => (
-                          <span
-                            key={marcacao.id}
-                            className={`rounded-full border px-2 py-1 font-mono text-xs ${
-                              marcacaoPossuiAjuste(marcacao)
-                                ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
-                                : "bg-[var(--muted)]"
-                            }`}
-                            title={descricaoMarcacao(marcacao)}
-                          >
-                            {formatarHoraLocal(
-                              marcacao.dataHora,
-                              marcacao.fusoHorario,
-                            )}
-                            {marcacaoPossuiAjuste(marcacao) ? "*" : ""}
-                          </span>
-                        ))}
-                      </div>
+                      <StatusResultado item={item} />
                     ) : diaInstitucional &&
                       !ehFimDeSemanaInstitucional(diaInstitucional) ? (
                       <BadgeDiaInstitucional dia={diaInstitucional} />
                     ) : possuiAfastamento ? null : (
-                      <span className="text-[var(--muted-foreground)]">-</span>
+                      <StatusResultado item={item} />
                     )}
 
                     {!mesclarMarcacoesOcorrencias && (
@@ -312,6 +324,10 @@ export function EspelhoPontoMensal({
 
                   <td className="px-5 py-4">
                     {minutosParaTexto(item.cargaPrevistaMinutos)}
+                  </td>
+
+                  <td className="px-5 py-4">
+                    {minutosParaTexto(item.minutosIntervalo ?? 0)}
                   </td>
 
                   <td className="px-5 py-4">
@@ -382,7 +398,7 @@ export function EspelhoPontoMensal({
             {apuracoes.length === 0 && (
               <tr>
                 <td
-                  colSpan={acoesBancoHoras?.habilitadas ? 11 : 10}
+                  colSpan={acoesBancoHoras?.habilitadas ? 16 : 15}
                   className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                 >
                   Nenhuma apuração calculada para o mês.
@@ -565,6 +581,40 @@ function BadgeJustificativaAusencia({
       }`}
     >
       {rotuloSolicitacaoEspelho(solicitacao.tipo)}: {solicitacao.titulo}
+    </span>
+  );
+}
+
+function StatusResultado({ item }: { item: ApuracaoMensalItem }) {
+  const rotulo =
+    item.cargaPrevistaMinutos === 0 &&
+    item.minutosTrabalhados === 0 &&
+    item.minutosCredito === 0 &&
+    item.minutosDebito === 0
+      ? "Folga"
+      : rotuloResultadoEspelho(item.resultado);
+  const tipo =
+    item.resultado === "REGULAR" || item.resultado === "CREDITO"
+      ? "ok"
+      : item.resultado === "DEBITO" || item.resultado === "INCOMPLETA"
+        ? "alerta"
+        : item.resultado === "FALTA"
+          ? "erro"
+          : "neutro";
+
+  return (
+    <span
+      className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${
+        tipo === "ok"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
+          : tipo === "alerta"
+            ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
+            : tipo === "erro"
+              ? "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
+              : "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300"
+      }`}
+    >
+      {rotulo}
     </span>
   );
 }
@@ -1019,6 +1069,52 @@ function agruparMarcacoesPorDia(marcacoes: MarcacaoItem[]) {
   }
 
   return mapa;
+}
+
+function distribuirMarcacoesNasColunas(marcacoes: MarcacaoItem[]) {
+  const horarios: Array<{
+    valor: string;
+    ajustada: boolean;
+    title: string;
+  } | null> = [null, null, null, null];
+  const indicePorTipo: Record<string, number> = {
+    ENTRADA: 0,
+    SAIDA_INTERVALO: 1,
+    RETORNO_INTERVALO: 2,
+    SAIDA: 3,
+  };
+  const restantes: MarcacaoItem[] = [];
+
+  for (const marcacao of marcacoes) {
+    const indice = indicePorTipo[marcacao.tipo];
+
+    if (indice === undefined || horarios[indice]) {
+      restantes.push(marcacao);
+      continue;
+    }
+
+    horarios[indice] = formatarMarcacaoTabela(marcacao);
+  }
+
+  for (const marcacao of restantes) {
+    const indiceLivre = horarios.findIndex((horario) => !horario);
+
+    if (indiceLivre < 0) {
+      break;
+    }
+
+    horarios[indiceLivre] = formatarMarcacaoTabela(marcacao);
+  }
+
+  return horarios;
+}
+
+function formatarMarcacaoTabela(marcacao: MarcacaoItem) {
+  return {
+    valor: formatarHoraLocal(marcacao.dataHora, marcacao.fusoHorario),
+    ajustada: marcacaoPossuiAjuste(marcacao),
+    title: descricaoMarcacao(marcacao),
+  };
 }
 
 function chaveDataReferenciaUtc(valor: Date | string) {

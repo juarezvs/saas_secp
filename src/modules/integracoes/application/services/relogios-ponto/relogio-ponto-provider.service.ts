@@ -1,4 +1,5 @@
 import { DimepSmartPrintClient } from "./dimep-smart-print.client";
+import { ControlIdFaceIdClient } from "./control-id-face-id.client";
 import { HenryProtocoloLinhaAdvClient } from "./henry-protocolo-linha-adv.client";
 import { HenryLumenBalcaoClient } from "./henry-lumen-balcao.client";
 import type {
@@ -31,6 +32,10 @@ export function criarRelogioPontoProvider(
 ): RelogioPontoProvider {
   if (conexao.fabricante === "DIMEP") {
     return new DimepSmartPrintClient(conexao);
+  }
+
+  if (conexao.fabricante === "CONTROL_ID") {
+    return new ControlIdFaceIdClient(conexao);
   }
 
   if (conexao.fabricante === "HENRY") {

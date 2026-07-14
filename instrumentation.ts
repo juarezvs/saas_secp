@@ -3,6 +3,9 @@ export async function register() {
     return;
   }
 
+  const { inicializarTracing } = await import("./src/lib/observability/tracing");
+  await inicializarTracing();
+
   const { iniciarWorkersAutomaticos } = await import(
     "./src/shared/application/workers/automatic-workers"
   );

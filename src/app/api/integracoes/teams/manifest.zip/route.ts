@@ -1,3 +1,4 @@
+import { withHttpMetrics } from "@/lib/observability/http";
 import { exigirPermissaoTeamsApi } from "@/modules/integracoes/teams/application/teams-api-auth.service";
 import { obterOuCriarTeamsConfiguracao } from "@/modules/integracoes/teams/application/teams-configuracao.service";
 import { TEAMS_PERMISSOES } from "@/modules/integracoes/teams/domain/teams-permissoes";
@@ -5,7 +6,8 @@ import { gerarTeamsManifestZip } from "@/modules/integracoes/teams/infra/manifes
 
 export const runtime = "nodejs";
 
-export async function GET() {
+async function getTeamsManifestZip(request: Request) {
+  void request;
   const acesso = await exigirPermissaoTeamsApi(
     TEAMS_PERMISSOES.baixarManifesto,
   );
@@ -25,3 +27,8 @@ export async function GET() {
     },
   });
 }
+
+export const GET = withHttpMetrics(
+  "/api/integracoes/teams/manifest.zip",
+  getTeamsManifestZip,
+);

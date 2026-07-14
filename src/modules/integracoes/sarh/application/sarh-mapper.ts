@@ -74,18 +74,31 @@ export function mapearUnidadeSarh(
 
 export function mapearUsuarioServidorSarh(payload: SarhServidorDto) {
   const cpf = obterCpfServidorSarh(payload);
+  const matricula = normalizarMatricula(payload.matricula);
   const nome =
     limparTexto(payload.nomeSocial) ??
     limparTexto(payload.nome) ??
-    normalizarMatricula(payload.matricula);
+    matricula;
 
   return {
-    matricula: normalizarMatricula(payload.matricula),
+    matricula,
     cpf,
     nome,
-    tipo: "SERVIDOR",
+    tipo: mapearTipoPessoaPontoPorMatricula(matricula),
     ativo: payload.ativo,
   };
+}
+
+function mapearTipoPessoaPontoPorMatricula(
+  matricula: string,
+): "SERVIDOR" | "ESTAGIARIO" | "PRESTADOR" | "VOLUNTARIO" {
+  const normalizada = matricula.trim().toUpperCase();
+
+  if (normalizada.endsWith("ES")) return "ESTAGIARIO";
+  if (normalizada.endsWith("VO")) return "VOLUNTARIO";
+  if (normalizada.endsWith("PS")) return "PRESTADOR";
+
+  return "SERVIDOR";
 }
 
 function mapearVinculoServidorSarh(payload: SarhServidorDto) {

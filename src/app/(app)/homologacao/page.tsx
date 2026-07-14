@@ -83,22 +83,6 @@ function renderizarPrazoHomologacao(
   );
 }
 
-function nomesHomologadoresServidores(
-  servidores: {
-    homologadoPor: {
-      nome: string;
-    } | null;
-  }[],
-) {
-  return Array.from(
-    new Set(
-      servidores
-        .map((servidor) => servidor.homologadoPor?.nome)
-        .filter((nome): nome is string => Boolean(nome)),
-    ),
-  ).join(", ");
-}
-
 export default async function HomologacaoPage({
   searchParams,
 }: HomologacaoPageProps) {
@@ -230,7 +214,16 @@ export default async function HomologacaoPage({
                       {fechamento.unidade.nome}
                     </div>
                   </td>
-                  <td className="px-5 py-4">{fechamento.servidores.length}</td>
+                  <td className="px-5 py-4">
+                    <div className="font-semibold">
+                      {fechamento.totalServidores}
+                    </div>
+                    <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                      {fechamento.totalHomologados +
+                        fechamento.totalHomologadosComRessalva}{" "}
+                      homologado(s)
+                    </div>
+                  </td>
                   <td className="px-5 py-4">
                     <span
                       className={`rounded-full px-2 py-1 text-xs font-semibold ${classeStatusFechamento(
@@ -247,9 +240,7 @@ export default async function HomologacaoPage({
                   </td>
                   <td className="px-5 py-4">{fechamento.abertoPor.nome}</td>
                   <td className="px-5 py-4">
-                    {fechamento.homologadoPor?.nome ||
-                      nomesHomologadoresServidores(fechamento.servidores) ||
-                      "-"}
+                    {fechamento.homologadoPor?.nome || "-"}
                   </td>
                   <td className="px-5 py-4 text-right">
                     <Link

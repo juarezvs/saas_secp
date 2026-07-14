@@ -1,0 +1,11 @@
+{{ define "secp.default.title" }}[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}{{ end }}
+{{ define "secp.default.text" }}
+{{ range .Alerts }}
+Resumo: {{ .Annotations.summary }}
+Descricao: {{ .Annotations.description }}
+Servico: {{ .Labels.service }}
+Severidade: {{ .Labels.severity }}
+Runbook: {{ .Annotations.runbook_url }}
+{{ end }}
+{{ end }}
+

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { withHttpMetrics } from "@/lib/observability/http";
+import { logger } from "@/lib/observability/logger";
 import {
   exigirPermissaoBiometriaFacialAdmin,
   respostaErroBiometriaAdmin,
@@ -14,7 +16,7 @@ const concluirEnrollmentAdminSchema = concluirEnrollmentSchema.extend({
   servidorId: z.string().uuid(),
 });
 
-export async function POST(request: NextRequest) {
+async function postBiometriaAdminEnrollmentComplete(request: NextRequest) {
   const payload = await request.json();
   const parsed = concluirEnrollmentAdminSchema.safeParse(payload);
 
@@ -75,7 +77,7 @@ export async function POST(request: NextRequest) {
       error instanceof Error &&
       error.message.includes("BIOMETRIA_FACIAL_")
     ) {
-      console.error("Configuração de biometria facial ausente ou inválida", {
+      logger.error("Configuracao de biometria facial ausente ou invalida", {
         error: error.message,
       });
 
@@ -86,7 +88,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error("Falha ao concluir enrollment facial administrativo", {
+    logger.error("Falha ao concluir enrollment facial administrativo", {
       error: error instanceof Error ? error.message : "erro desconhecido",
     });
 
@@ -97,3 +99,8 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withHttpMetrics(
+  "/api/biometria/facial/admin/enrollment/complete",
+  postBiometriaAdminEnrollmentComplete,
+);

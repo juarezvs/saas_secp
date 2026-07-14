@@ -163,7 +163,7 @@ async function testarRelogio(orgaoId: string) {
   const equipamento = await prisma.equipamentoBiometrico.findFirst({
     where: {
       ativo: true,
-      unidade: { orgaoId },
+      OR: [{ orgaoId }, { unidade: { orgaoId } }],
     },
     select: { id: true },
     orderBy: { nome: "asc" },

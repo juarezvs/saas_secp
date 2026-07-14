@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { withHttpMetrics } from "@/lib/observability/http";
 import {
   PERFIL_ATIVO_COOKIE,
   PERFIL_ATIVO_COOKIE_MAX_AGE_SEGUNDOS,
@@ -20,7 +21,7 @@ function cookieSeguroEmProducao() {
   }
 }
 
-export async function POST(request: Request) {
+async function postPerfilAtivo(request: Request) {
   const session = await auth();
 
   if (!session?.user) {
@@ -67,3 +68,5 @@ export async function POST(request: Request) {
 
   return response;
 }
+
+export const POST = withHttpMetrics("/api/sessao/perfil-ativo", postPerfilAtivo);

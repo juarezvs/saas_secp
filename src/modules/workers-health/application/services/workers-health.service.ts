@@ -6,8 +6,14 @@ import { obterStatusHenryColetaWorker } from "@/modules/integracoes/application/
 import { obterStatusHenryOnlineWorker } from "@/modules/integracoes/application/workers/henry-online-worker-runtime";
 import { obterSarhLoginSyncQueue } from "@/modules/integracoes/sarh/application/queues/sarh-login-sync-queue";
 import { obterSarhSyncQueue } from "@/modules/integracoes/sarh/application/queues/sarh-sync-queue";
+import { coletaRelogioProgressivaQueue } from "@/modules/integracoes/application/queues/coleta-relogio-progressiva-queue";
 import { reprocessamentoGlobalQueue } from "@/modules/marcacoes-brutas/application/queues/reprocessamento-global-queue";
 import { recalcularRegulamentacaoPontoQueue } from "@/modules/regulamentacao-ponto/application/queues/recalcular-regulamentacao-ponto-queue";
+import { relatorioExportacaoQueue } from "@/modules/relatorios/application/queues/relatorio-exportacao-queue";
+import {
+  obterSaudeContainerDocker,
+  type DockerContainerHealth,
+} from "./docker-container-health.service";
 
 export type WorkerHealthStatus = "online" | "parado" | "atencao";
 
@@ -20,6 +26,7 @@ type WorkerMetadata = {
   fila?: Queue;
   globalKey?: string;
   envFlag?: string;
+  containerName?: string;
   descricao: string;
   ondeUsa: string[];
   quandoUsa: string[];
@@ -55,6 +62,7 @@ export type WorkerHealthResumo = {
   detalheOperacional: string;
   queueName?: string;
   counts?: QueueCounts;
+  container?: DockerContainerHealth;
   ativoNoProcesso: boolean;
   ultimaAtividadeEm?: Date | null;
   motivoAtencao?: string | null;
@@ -82,6 +90,7 @@ const WORKERS: WorkerMetadata[] = [
     fila: afdQueue as Queue,
     globalKey: "__secpAfdWorker",
     envFlag: "AFD_AUTO_WORKER",
+    containerName: "secp-worker-afd",
     descricao: "Processa arquivos AFD importados dos equipamentos de ponto.",
     ondeUsa: ["/afd", "API /api/afd/upload"],
     quandoUsa: [
@@ -98,6 +107,7 @@ const WORKERS: WorkerMetadata[] = [
     fila: reprocessamentoGlobalQueue as Queue,
     globalKey: "__secpReprocessamentoGlobalWorker",
     envFlag: "REPROCESSAMENTO_GLOBAL_AUTO_WORKER",
+    containerName: "secp-worker-reprocessamento",
     descricao: "Reprocessa marcações brutas pendentes e recalcula competências.",
     ondeUsa: ["/marcacoes-brutas", "API /api/marcacoes-brutas/reprocessar-todos"],
     quandoUsa: [
@@ -109,9 +119,10 @@ const WORKERS: WorkerMetadata[] = [
   },
   {
     id: "henry-coleta",
-    nome: "Henry coleta",
+    nome: "Equipamentos biometricos - coleta Henry",
     tipo: "continuo",
     envFlag: "HENRY_COLETA_AUTO_WORKER",
+    containerName: "secp-worker-henry-coleta",
     descricao: "Coleta marcações diretamente dos relógios Henry ativos.",
     ondeUsa: ["Equipamentos biométricos", "Relógios Henry cadastrados"],
     quandoUsa: [
@@ -123,9 +134,10 @@ const WORKERS: WorkerMetadata[] = [
   },
   {
     id: "henry-online",
-    nome: "Henry online",
+    nome: "Equipamentos biometricos - online Henry",
     tipo: "continuo",
     envFlag: "HENRY_ONLINE_AUTO_WORKER",
+    containerName: "secp-worker-henry-online",
     descricao: "Mantém o listener TCP para eventos online dos relógios Henry.",
     ondeUsa: ["Porta TCP dos relógios Henry", "Equipamentos biométricos"],
     quandoUsa: [
@@ -142,6 +154,7 @@ const WORKERS: WorkerMetadata[] = [
     fila: calendarioInstitucionalQueue as Queue,
     globalKey: "__secpCalendarioInstitucionalWorker",
     envFlag: "CALENDARIO_INSTITUCIONAL_AUTO_WORKER",
+    containerName: "secp-worker-calendario",
     descricao: "Recalcula reflexos de feriados, suspensões e pontos facultativos.",
     ondeUsa: ["/administracao/calendario"],
     quandoUsa: [
@@ -158,6 +171,7 @@ const WORKERS: WorkerMetadata[] = [
     fila: recalcularRegulamentacaoPontoQueue as Queue,
     globalKey: "__secpRecalcularRegulamentacaoPontoWorker",
     envFlag: "REGULAMENTACAO_PONTO_AUTO_WORKER",
+    containerName: "secp-worker-calendario",
     descricao: "Recalcula uma competência após alteração das regras do órgão.",
     ondeUsa: ["/administracao/regulamentacao-ponto/[orgaoId]"],
     quandoUsa: [
@@ -174,6 +188,7 @@ const WORKERS: WorkerMetadata[] = [
     fila: obterSarhLoginSyncQueue() as Queue,
     globalKey: "__secpSarhLoginSyncWorker",
     envFlag: "SARH_LOGIN_SYNC_AUTO_WORKER",
+    containerName: "secp-worker-sarh-login",
     descricao: "Atualiza dados funcionais do servidor após login.",
     ondeUsa: ["Fluxo de autenticação", "auth.ts"],
     quandoUsa: [
@@ -190,6 +205,7 @@ const WORKERS: WorkerMetadata[] = [
     fila: obterSarhSyncQueue() as Queue,
     globalKey: "__secpSarhSyncWorker",
     envFlag: "SARH_SYNC_AUTO_WORKER",
+    containerName: "secp-worker-sarh",
     descricao: "Executa sincronizações manuais ou amplas com o SARH.",
     ondeUsa: ["/administracao/integracoes/sarh", "API /api/integracoes/sarh/sincronizar"],
     quandoUsa: [
@@ -198,6 +214,36 @@ const WORKERS: WorkerMetadata[] = [
     ],
     detalheOperacional:
       "Sincroniza servidores, lotações, cargos, afastamentos, chefias, calendários e demais endpoints habilitados.",
+  },
+  {
+    id: "coleta-relogio",
+    nome: "Equipamentos biometricos - coleta automatica",
+    tipo: "fila",
+    fila: coletaRelogioProgressivaQueue as Queue,
+    containerName: "secp-worker-coleta-relogio",
+    descricao: "Coleta marcacoes de equipamentos biometricos por fila progressiva.",
+    ondeUsa: ["Equipamentos biometricos", "Control iD FACE ID", "coleta progressiva"],
+    quandoUsa: [
+      "Automaticamente em ciclos periodicos no container de coleta.",
+      "Ao iniciar coleta progressiva manual na tela de equipamentos.",
+    ],
+    detalheOperacional:
+      "Enfileira coletas por equipamento, respeita concorrencia baixa e atualiza cursor de NSR.",
+  },
+  {
+    id: "relatorio-exportacao",
+    nome: "Relatorios e exportacoes",
+    tipo: "fila",
+    fila: relatorioExportacaoQueue as Queue,
+    containerName: "secp-worker-relatorio-exportacao",
+    descricao: "Gera relatorios PDF/CSV pesados fora do processo web.",
+    ondeUsa: ["Relatorios", "Exportacoes assincronas"],
+    quandoUsa: [
+      "Quando o usuario solicita relatorios grandes.",
+      "Evita bloqueio da navegacao durante geracao de arquivos.",
+    ],
+    detalheOperacional:
+      "Processa jobs de exportacao e grava os arquivos gerados no volume compartilhado.",
   },
 ];
 
@@ -221,6 +267,26 @@ function statusLabel(status: WorkerHealthStatus) {
   if (status === "online") return "Online";
   if (status === "parado") return "Parado";
   return "Atenção";
+}
+
+function statusPorContainer(
+  container: DockerContainerHealth | undefined,
+): WorkerHealthStatus | null {
+  if (!container?.disponivel) return null;
+  if (!container.running) return "parado";
+  if (container.health === "unhealthy") return "atencao";
+  return "online";
+}
+
+function motivoPorContainer(container: DockerContainerHealth | undefined) {
+  if (!container?.disponivel) return null;
+  if (!container.running) {
+    return `Container ${container.containerName} nao esta em execucao.`;
+  }
+  if (container.health === "unhealthy") {
+    return `Container ${container.containerName} esta unhealthy.`;
+  }
+  return null;
 }
 
 function dataJob(job: Job) {
@@ -380,6 +446,9 @@ export function listarWorkersCatalogo() {
 export async function listarSaudeWorkers(): Promise<WorkerHealthResumo[]> {
   const itens = await Promise.all(
     WORKERS.map(async (worker) => {
+      const container = worker.containerName
+        ? await obterSaudeContainerDocker(worker.containerName)
+        : undefined;
       const base = {
         id: worker.id,
         nome: worker.nome,
@@ -389,12 +458,14 @@ export async function listarSaudeWorkers(): Promise<WorkerHealthResumo[]> {
         quandoUsa: worker.quandoUsa,
         detalheOperacional: worker.detalheOperacional,
         queueName: worker.fila?.name,
+        container,
         ativoNoProcesso:
-          worker.tipo === "fila"
+          container?.running ||
+          (worker.tipo === "fila"
             ? workerAtivoNoProcesso(worker)
             : worker.id === "henry-online"
               ? obterStatusHenryOnlineWorker().ativo
-              : obterStatusHenryColetaWorker().ativo,
+              : obterStatusHenryColetaWorker().ativo),
       };
 
       try {
@@ -402,14 +473,17 @@ export async function listarSaudeWorkers(): Promise<WorkerHealthResumo[]> {
           worker.tipo === "fila"
             ? await obterResumoFila(worker)
             : obterResumoContinuo(worker);
+        const statusContainer = statusPorContainer(container);
+        const statusFinal = statusContainer ?? status.status;
+        const motivoContainer = motivoPorContainer(container);
 
         return {
           ...base,
-          status: status.status,
-          statusLabel: statusLabel(status.status),
+          status: statusFinal,
+          statusLabel: statusLabel(statusFinal),
           counts: "counts" in status ? status.counts : undefined,
           ultimaAtividadeEm: status.ultimaAtividadeEm,
-          motivoAtencao: status.motivoAtencao,
+          motivoAtencao: motivoContainer ?? status.motivoAtencao,
         };
       } catch (error) {
         return {

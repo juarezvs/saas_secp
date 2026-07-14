@@ -14,6 +14,7 @@ import { BoletimFrequenciaCard } from "@/modules/boletim-frequencia/presentation
 import { BoletimHistoricoCard } from "@/modules/boletim-frequencia/presentation/components/boletim-historico-card";
 import { BoletimServidoresTable } from "@/modules/boletim-frequencia/presentation/components/boletim-servidores-table";
 import { BoletimAcoesCard } from "@/modules/boletim-frequencia/presentation/components/boletim-acoes-card";
+import { RelatorioExportacaoButton } from "@/modules/relatorios/presentation/components/relatorio-exportacao-button";
 
 type BoletimDetalhePageProps = {
   params: Promise<{
@@ -67,12 +68,12 @@ export default async function BoletimDetalhePage({
 
       <BoletimCicloCard boletim={boletim} />
 
-      <a
+      <RelatorioExportacaoButton
         href={`/api/relatorios/boletim/${boletim.id}/pdf`}
         className="inline-flex items-center justify-center rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950"
       >
         Exportar Boletim em PDF
-      </a>
+      </RelatorioExportacaoButton>
       <RegraPortariaCard
         artigo="Arts. 16, 17 e 20"
         titulo="Encaminhamento e conferência"

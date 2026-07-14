@@ -9,6 +9,17 @@ type UnidadeItem = {
   id: string;
   sigla: string;
   nome: string;
+  orgaoId?: string | null;
+  orgao?: {
+    sigla: string;
+    nome: string;
+  } | null;
+};
+
+type OrgaoItem = {
+  id: string;
+  sigla: string;
+  nome: string;
 };
 
 type EquipamentoFormItem = {
@@ -22,6 +33,7 @@ type EquipamentoFormItem = {
   ip: string | null;
   porta: number | null;
   ativo: boolean;
+  orgaoId?: string | null;
   unidadeId?: string | null;
   configuracao: unknown;
 };
@@ -76,11 +88,18 @@ function valorBooleanoCampo(
   return valor === "true" || valor === "on";
 }
 
+function rotuloUnidade(unidade: UnidadeItem) {
+  const orgao = unidade.orgao?.sigla ? `${unidade.orgao.sigla} / ` : "";
+  return `${orgao}${unidade.sigla} - ${unidade.nome}`;
+}
+
 export function EquipamentoBiometricoForm({
+  orgaos,
   unidades,
   equipamento,
   compacto = false,
 }: {
+  orgaos: OrgaoItem[];
   unidades: UnidadeItem[];
   equipamento?: EquipamentoFormItem | null;
   compacto?: boolean;
@@ -95,6 +114,9 @@ export function EquipamentoBiometricoForm({
       ? "HENRY_LUMEN_BALCAO"
       : configuracao.protocolo === "DIMEP_SMART_PRINT"
         ? "DIMEP_SMART_PRINT"
+      : configuracao.protocolo === "CONTROL_ID_FACE_ID" ||
+          equipamento?.fabricante === "CONTROL_ID"
+        ? "CONTROL_ID_FACE_ID"
       : configuracao.protocolo === "HENRY" ||
           equipamento?.fabricante === "HENRY"
         ? "HENRY"
@@ -142,8 +164,36 @@ export function EquipamentoBiometricoForm({
         />
 
         <div className="space-y-2">
+          <label htmlFor="orgaoId" className="text-sm font-semibold">
+            Orgao
+          </label>
+
+          <select
+            id="orgaoId"
+            name="orgaoId"
+            required
+            defaultValue={valorTextoCampo(
+              estado,
+              "orgaoId",
+              equipamento?.orgaoId ?? "",
+            )}
+            className="h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+          >
+            <option value="">Selecione o orgao</option>
+            {orgaos.map((orgao) => (
+              <option key={orgao.id} value={orgao.id}>
+                {orgao.sigla} - {orgao.nome}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-[var(--muted-foreground)]">
+            Use este campo para transferir o equipamento entre seccionais.
+          </p>
+        </div>
+
+        <div className="space-y-2">
           <label htmlFor="unidadeId" className="text-sm font-semibold">
-            Unidade
+            Unidade operacional
           </label>
 
           <select
@@ -159,10 +209,14 @@ export function EquipamentoBiometricoForm({
             <option value="">Sem unidade vinculada</option>
             {unidades.map((unidade) => (
               <option key={unidade.id} value={unidade.id}>
-                {unidade.sigla} - {unidade.nome}
+                {rotuloUnidade(unidade)}
               </option>
             ))}
           </select>
+          <p className="text-xs text-[var(--muted-foreground)]">
+            Opcional. Use quando o relogio estiver sob responsabilidade direta
+            de uma unidade.
+          </p>
         </div>
 
         <Campo
@@ -216,6 +270,7 @@ export function EquipamentoBiometricoForm({
             <option value="DIMEP_SMART_PRINT">
               Dimep Smart Print / Smart Print-Pro
             </option>
+            <option value="CONTROL_ID_FACE_ID">Control iD - FACE ID</option>
           </select>
         </div>
 

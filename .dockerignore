@@ -11,6 +11,7 @@ npm-debug.log
 coverage
 dist
 tmp
+.tmp
 backups
 import
 files_afd

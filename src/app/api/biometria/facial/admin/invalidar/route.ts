@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { withHttpMetrics } from "@/lib/observability/http";
 import {
   exigirPermissaoBiometriaFacialAdmin,
   respostaErroBiometriaAdmin,
@@ -13,7 +14,7 @@ const invalidarCadastroFacialSchema = z.object({
   motivo: z.string().trim().min(3).max(500).optional(),
 });
 
-export async function POST(request: NextRequest) {
+async function postBiometriaAdminInvalidar(request: NextRequest) {
   const acesso = await exigirPermissaoBiometriaFacialAdmin([
     "biometriafacial:invalidar:global",
   ]);
@@ -100,3 +101,8 @@ export async function POST(request: NextRequest) {
     },
   });
 }
+
+export const POST = withHttpMetrics(
+  "/api/biometria/facial/admin/invalidar",
+  postBiometriaAdminInvalidar,
+);

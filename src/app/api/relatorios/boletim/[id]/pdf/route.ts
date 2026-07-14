@@ -2,7 +2,9 @@ import React, { type ReactElement } from "react";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 
 import { auth } from "@/auth";
+import { withHttpMetrics } from "@/lib/observability/http";
 import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
+import { enfileirarRelatorioExportacaoResponse } from "@/modules/relatorios/application/services/relatorio-exportacao-response.service";
 import { BoletimFrequenciaPdfDocument } from "@/modules/relatorios/presentation/pdf/boletim-frequencia-pdf.document";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
@@ -18,7 +20,7 @@ type BoletimPdf = React.ComponentProps<
   typeof BoletimFrequenciaPdfDocument
 >["boletim"];
 
-export async function GET(_request: Request, context: RouteContext) {
+async function getRelatorioBoletimPdf(request: Request, context: RouteContext) {
   const session = await auth();
 
   if (!session?.user) {
@@ -45,6 +47,34 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   const { id } = await context.params;
+
+  if (new URL(request.url).searchParams.get("sync") !== "1") {
+    const boletimExiste = await prisma.boletimFrequencia.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!boletimExiste) {
+      return new Response("Boletim nÃ£o encontrado.", {
+        status: 404,
+      });
+    }
+
+    return enfileirarRelatorioExportacaoResponse({
+      request,
+      tipo: "BOLETIM_FREQUENCIA",
+      formato: "PDF",
+      usuarioId: session.user.id,
+      permissoes: session.user.perfilAtivo?.permissoes ?? [],
+      filtros: {
+        boletimId: id,
+      },
+    });
+  }
 
   const boletim = await prisma.boletimFrequencia.findUnique({
     where: {
@@ -182,3 +212,8 @@ export async function GET(_request: Request, context: RouteContext) {
     },
   });
 }
+
+export const GET = withHttpMetrics<Request, [RouteContext]>(
+  "/api/relatorios/boletim/:id/pdf",
+  getRelatorioBoletimPdf,
+);

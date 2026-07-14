@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { withHttpMetrics } from "@/lib/observability/http";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import {
   SarhEscopoSincronizacaoError,
@@ -133,7 +134,7 @@ async function validarAcesso() {
   return { erro: null, session };
 }
 
-export async function POST(request: Request) {
+async function postSincronizarSarh(request: Request) {
   const acesso = await validarAcesso();
 
   if (acesso.erro || !acesso.session) {
@@ -202,7 +203,7 @@ export async function POST(request: Request) {
   });
 }
 
-export async function GET(request: Request) {
+async function getSincronizarSarh(request: Request) {
   const acesso = await validarAcesso();
 
   if (acesso.erro) {
@@ -248,3 +249,12 @@ export async function GET(request: Request) {
     erro: estado === "failed" ? job.failedReason : null,
   });
 }
+
+export const POST = withHttpMetrics(
+  "/api/integracoes/sarh/sincronizar",
+  postSincronizarSarh,
+);
+export const GET = withHttpMetrics(
+  "/api/integracoes/sarh/sincronizar",
+  getSincronizarSarh,
+);

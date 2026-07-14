@@ -1,10 +1,13 @@
 import React, { type ReactElement } from "react";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import { auth } from "@/auth";
+import { withHttpMetrics } from "@/lib/observability/http";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
+import { enfileirarRelatorioExportacaoResponse } from "@/modules/relatorios/application/services/relatorio-exportacao-response.service";
 import { buscarDadosBancoHorasPdf } from "@/modules/relatorios/infrastructure/repositories/relatorios.repository";
 import { BancoHorasPdfDocument } from "@/modules/relatorios/presentation/pdf/banco-horas-pdf.document";
+import { prisma } from "@/shared/infrastructure/database/prisma";
 
 export const runtime = "nodejs";
 
@@ -14,7 +17,7 @@ type RouteContext = {
   }>;
 };
 
-export async function GET(request: Request, context: RouteContext) {
+async function getRelatorioBancoHorasPdf(request: Request, context: RouteContext) {
   const session = await auth();
 
   if (!session?.user) {
@@ -63,6 +66,71 @@ export async function GET(request: Request, context: RouteContext) {
   if (mesParam && (!mes || Number.isNaN(mes) || mes < 1 || mes > 12)) {
     return new Response("Mês inválido.", {
       status: 400,
+    });
+  }
+
+  if (url.searchParams.get("sync") !== "1") {
+    const servidor = await prisma.servidor.findUnique({
+      where: {
+        id: servidorId,
+      },
+      select: {
+        usuarioId: true,
+        orgaoId: true,
+        lotacoes: {
+          where: {
+            status: "ATIVO",
+          },
+          select: {
+            unidadeId: true,
+          },
+        },
+      },
+    });
+
+    if (!servidor) {
+      return new Response("Servidor nÃ£o encontrado.", {
+        status: 404,
+      });
+    }
+
+    const escopoOrgao = podeExportarGlobal
+      ? await obterEscopoOrgaoDaSessao()
+      : null;
+    const servidorDentroDoEscopoGlobal =
+      podeExportarGlobal &&
+      (escopoOrgao?.global || escopoOrgao?.orgaoIds.includes(servidor.orgaoId));
+    const servidorDentroDoEscopoChefia = podeExportarChefia
+      ? (
+          await listarIdsUnidadesSubordinadasPorUsuario(session.user.id)
+        ).some((unidadeId) =>
+          servidor.lotacoes.some((lotacao) => lotacao.unidadeId === unidadeId),
+        )
+      : false;
+    const servidorProprio =
+      podeExportarProprio && servidor.usuarioId === session.user.id;
+
+    if (
+      !servidorDentroDoEscopoGlobal &&
+      !servidorDentroDoEscopoChefia &&
+      !servidorProprio
+    ) {
+      return new Response("Acesso negado ao servidor informado.", {
+        status: 403,
+      });
+    }
+
+    return enfileirarRelatorioExportacaoResponse({
+      request,
+      tipo: "BANCO_HORAS",
+      formato: "PDF",
+      usuarioId: session.user.id,
+      permissoes,
+      filtros: {
+        servidorId,
+        ano: ano ? String(ano) : null,
+        mes: mes ? String(mes) : null,
+      },
     });
   }
 
@@ -126,3 +194,8 @@ export async function GET(request: Request, context: RouteContext) {
     },
   });
 }
+
+export const GET = withHttpMetrics<Request, [RouteContext]>(
+  "/api/relatorios/banco-horas/:id/pdf",
+  getRelatorioBancoHorasPdf,
+);

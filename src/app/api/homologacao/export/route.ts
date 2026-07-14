@@ -1,6 +1,8 @@
 import { auth } from "@/auth";
+import { withHttpMetrics } from "@/lib/observability/http";
 import { listarFechamentosMensaisParaExportacao } from "@/modules/homologacao/infrastructure/repositories/homologacao.repository";
 import { rotuloStatusFechamento } from "@/modules/homologacao/application/services/formatar-homologacao.service";
+import { enfileirarRelatorioExportacaoResponse } from "@/modules/relatorios/application/services/relatorio-exportacao-response.service";
 
 export const runtime = "nodejs";
 
@@ -20,7 +22,7 @@ function nomesHomologadoresServidores(
   ).join(", ");
 }
 
-export async function GET(request: Request) {
+async function getHomologacaoExport(request: Request) {
   const session = await auth();
 
   const permissoes = session?.user?.perfilAtivo?.permissoes ?? [];
@@ -29,6 +31,16 @@ export async function GET(request: Request) {
     !permissoes.includes("homologacao:consultar:global")
   ) {
     return new Response("Acesso negado.", { status: 403 });
+  }
+
+  if (new URL(request.url).searchParams.get("sync") !== "1") {
+    return enfileirarRelatorioExportacaoResponse({
+      request,
+      tipo: "HOMOLOGACAO",
+      formato: "CSV",
+      usuarioId: session!.user.id,
+      permissoes,
+    });
   }
 
   const url = new URL(request.url);
@@ -76,3 +88,8 @@ export async function GET(request: Request) {
     },
   });
 }
+
+export const GET = withHttpMetrics(
+  "/api/homologacao/export",
+  getHomologacaoExport,
+);

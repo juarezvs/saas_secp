@@ -117,6 +117,46 @@ function valorNumero(valor: unknown) {
   return Number.isFinite(numero) ? numero : null;
 }
 
+function prefixoMatriculaPorSiglaOrgao(sigla: string | null | undefined) {
+  const normalizada = sigla?.trim().toUpperCase();
+
+  if (!normalizada) return null;
+
+  if (/^SJ[A-Z]{2}$/.test(normalizada)) {
+    return normalizada.slice(2);
+  }
+
+  return normalizada;
+}
+
+function normalizarMatriculaControlId(params: {
+  matricula: string | null | undefined;
+  fabricante: FabricanteRelogioPonto;
+  siglaOrgao?: string | null;
+  configuracao?: ConfiguracaoEquipamento;
+}) {
+  const matricula = params.matricula?.trim();
+
+  if (!matricula || params.fabricante !== "CONTROL_ID") {
+    return matricula ?? null;
+  }
+
+  if (!/^\d+$/.test(matricula)) {
+    return matricula.toUpperCase();
+  }
+
+  const prefixoConfigurado = valorTexto(
+    (params.configuracao as Record<string, unknown> | undefined)
+      ?.prefixoMatriculaControlId,
+  );
+  const prefixo =
+    prefixoConfigurado?.toUpperCase() ??
+    prefixoMatriculaPorSiglaOrgao(params.siglaOrgao);
+  const numero = matricula.replace(/^0+/, "") || "0";
+
+  return prefixo ? `${prefixo}${numero}` : numero;
+}
+
 function normalizarFabricante(valor: string | null): FabricanteRelogioPonto {
   const fabricante = valor?.trim().toUpperCase();
 
@@ -126,6 +166,17 @@ function normalizarFabricante(valor: string | null): FabricanteRelogioPonto {
 
   if (fabricante === "DIMEP") {
     return "DIMEP";
+  }
+
+  if (
+    fabricante === "CONTROL_ID" ||
+    fabricante === "CONTROLID" ||
+    fabricante === "CONTROL ID" ||
+    fabricante === "CONTROLI D" ||
+    fabricante === "CONTROL-ID" ||
+    fabricante === "IDFACE"
+  ) {
+    return "CONTROL_ID";
   }
 
   return "GENERIC";
@@ -206,6 +257,21 @@ export async function listarCadastrosBiometricosEquipamentoService(params: {
 }) {
   return executarComLockEquipamento(params.equipamentoId, async () => {
     const conexao = await obterConexaoEquipamento(params.equipamentoId);
+    const equipamento = await prisma.equipamentoBiometrico.findUnique({
+      where: { id: params.equipamentoId },
+      select: {
+        configuracao: true,
+        unidade: {
+          select: {
+            orgao: {
+              select: {
+                sigla: true,
+              },
+            },
+          },
+        },
+      },
+    });
     const provider = criarRelogioPontoProvider(conexao);
 
     if (!provider.listarCadastrosBiometricos) {
@@ -214,11 +280,43 @@ export async function listarCadastrosBiometricosEquipamentoService(params: {
       );
     }
 
-    return provider.listarCadastrosBiometricos({
+    const resultado = await provider.listarCadastrosBiometricos({
       quantidade: params.quantidade ?? undefined,
       indiceInicial: params.indiceInicial ?? undefined,
       incluirTemplates: params.incluirTemplates,
     });
+
+    if (conexao.fabricante !== "CONTROL_ID") {
+      return resultado;
+    }
+
+    const configuracao = lerConfiguracao(
+      equipamento?.configuracao ?? conexao.configuracao,
+    );
+
+    return {
+      ...resultado,
+      cadastros: resultado.cadastros.map((cadastro) => {
+        const matriculaNormalizada = normalizarMatriculaControlId({
+          matricula: cadastro.matricula,
+          fabricante: conexao.fabricante,
+          siglaOrgao: equipamento?.unidade?.orgao.sigla,
+          configuracao,
+        });
+
+        return {
+          ...cadastro,
+          matricula: matriculaNormalizada ?? cadastro.matricula,
+          payload: {
+            ...(typeof cadastro.payload === "object" && cadastro.payload
+              ? cadastro.payload
+              : {}),
+            matriculaOriginal: cadastro.matricula,
+            matriculaNormalizada,
+          },
+        };
+      }),
+    };
   });
 }
 
@@ -237,6 +335,17 @@ async function coletarMarcacoesRelogioPontoSemLock(
   const conexao = await obterConexaoEquipamento(params.equipamentoId);
   const equipamento = await prisma.equipamentoBiometrico.findUniqueOrThrow({
     where: { id: params.equipamentoId },
+    include: {
+      unidade: {
+        select: {
+          orgao: {
+            select: {
+              sigla: true,
+            },
+          },
+        },
+      },
+    },
   });
   const configuracao = lerConfiguracao(equipamento.configuracao);
   const nsrInicial =
@@ -260,9 +369,16 @@ async function coletarMarcacoesRelogioPontoSemLock(
       continue;
     }
 
+    const matriculaNormalizada = normalizarMatriculaControlId({
+      matricula: marcacao.matricula,
+      fabricante: conexao.fabricante,
+      siglaOrgao: equipamento.unidade?.orgao.sigla,
+      configuracao,
+    });
+
     const bruta = await criarMarcacaoBrutaService({
       cpf: marcacao.cpf ? somenteDigitos(marcacao.cpf) : null,
-      matricula: marcacao.matricula ?? null,
+      matricula: matriculaNormalizada,
       dataHora: marcacao.dataHora,
       equipamentoCodigo: equipamento.codigo,
       equipamentoId: equipamento.id,
@@ -271,7 +387,14 @@ async function coletarMarcacoesRelogioPontoSemLock(
       codigoExterno: marcacao.codigoExterno ?? marcacao.nsr ?? null,
       payloadOriginal: {
         ...marcacao,
-        fonte: "HENRY_RR",
+        matriculaOriginal: marcacao.matricula ?? null,
+        matriculaNormalizada,
+        fonte:
+          conexao.fabricante === "CONTROL_ID"
+            ? "CONTROL_ID_ACCESS_LOGS"
+            : conexao.fabricante === "DIMEP"
+              ? "DIMEP"
+              : "HENRY_RR",
       },
     });
 
@@ -681,6 +804,11 @@ export async function sincronizarBiometriasEquipamentosOrgaoService(params: {
   const origem = await prisma.equipamentoBiometrico.findUnique({
     where: { id: params.equipamentoOrigemId },
     include: {
+      orgao: {
+        select: {
+          id: true,
+        },
+      },
       unidade: {
         select: {
           orgaoId: true,
@@ -693,11 +821,11 @@ export async function sincronizarBiometriasEquipamentosOrgaoService(params: {
     throw new Error("Equipamento de origem nao cadastrado ou inativo.");
   }
 
-  const orgaoId = origem.unidade?.orgaoId;
+  const orgaoId = origem.orgaoId ?? origem.unidade?.orgaoId;
 
   if (!orgaoId) {
     throw new Error(
-      "Vincule o equipamento de origem a uma unidade do orgao antes de sincronizar.",
+      "Vincule o equipamento de origem a um orgao antes de sincronizar.",
     );
   }
 
@@ -721,9 +849,7 @@ export async function sincronizarBiometriasEquipamentosOrgaoService(params: {
         equals: "HENRY",
         mode: "insensitive",
       },
-      unidade: {
-        orgaoId,
-      },
+      OR: [{ orgaoId }, { unidade: { orgaoId } }],
     },
     orderBy: {
       nome: "asc",

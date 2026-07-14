@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { withHttpMetrics } from "@/lib/observability/http";
+import { logger } from "@/lib/observability/logger";
 import {
   exigirPermissaoBiometriaFacialAdmin,
   respostaErroBiometriaAdmin,
@@ -13,7 +15,7 @@ const iniciarEnrollmentAdminSchema = iniciarEnrollmentSchema.extend({
   servidorId: z.string().uuid(),
 });
 
-export async function POST(request: NextRequest) {
+async function postBiometriaAdminEnrollmentSession(request: NextRequest) {
   const parsed = iniciarEnrollmentAdminSchema.safeParse(await request.json());
 
   if (!parsed.success) {
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
       return respostaErroBiometriaAdmin(error.code, error.message, error.status);
     }
 
-    console.error("Falha ao iniciar enrollment facial administrativo", {
+    logger.error("Falha ao iniciar enrollment facial administrativo", {
       error: error instanceof Error ? error.message : "erro desconhecido",
     });
 
@@ -74,3 +76,8 @@ function obterIp(request: NextRequest) {
     request.headers.get("x-real-ip")
   );
 }
+
+export const POST = withHttpMetrics(
+  "/api/biometria/facial/admin/enrollment/session",
+  postBiometriaAdminEnrollmentSession,
+);

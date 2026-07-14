@@ -1,7 +1,6 @@
 import {
   CalendarDays,
   CheckCircle2,
-  Download,
   Send,
   ShieldCheck,
 } from "lucide-react";
@@ -13,7 +12,13 @@ import {
   exigirUmaDasPermissoesOuRedirecionar,
   usuarioPossuiPermissaoNoPerfil,
 } from "@/modules/auth/application/services/permissao.service";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
+import { perfilAtivoEhChefia } from "@/modules/auth/application/services/perfil-chefia.service";
 import { RecalcularMesForm } from "@/modules/recalculo/presentation/components/recalcular-mes-form";
+import {
+  montarOpcoesCargoFuncaoAssinatura,
+  resolverSeccionalAssinatura,
+} from "@/modules/documentos-autenticacao/application/services/dados-assinatura-documento.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import {
@@ -33,6 +38,7 @@ import {
   verificarEnvioEspelhoServidor,
 } from "@/modules/homologacao/infrastructure/repositories/homologacao.repository";
 import { EnviarEspelhoHomologacaoModal } from "@/modules/homologacao/presentation/components/enviar-espelho-homologacao-modal";
+import { RelatorioExportacaoButton } from "@/modules/relatorios/presentation/components/relatorio-exportacao-button";
 
 type EspelhoPontoPageProps = {
   searchParams: Promise<{
@@ -116,10 +122,7 @@ function servidorProprioParaLista(
   }
 
   return [
-    {
-      ...servidor,
-      lotacoes: [],
-    },
+    servidor,
   ];
 }
 
@@ -134,30 +137,6 @@ function montarHrefExportacaoEspelho(params: {
   });
 
   return `/api/relatorios/espelho/${params.servidorId}/pdf?${query.toString()}`;
-}
-
-function perfilAtivoEhChefia(params: {
-  perfilAtivoCodigo?: string | null;
-  permissoes: string[];
-}) {
-  const codigo = params.perfilAtivoCodigo?.toUpperCase() ?? "";
-
-  if (
-    ["CHEFIA", "GESTOR", "GESTOR_UNIDADE", "DELEGADO_CHEFIA"].includes(codigo)
-  ) {
-    return true;
-  }
-
-  if (
-    ["ADMIN", "MASTER", "SUPORTE", "SUPORTE_TECNICO", "NUTEC"].includes(codigo)
-  ) {
-    return false;
-  }
-
-  return (
-    params.permissoes.includes("homologacao:gerenciar:chefia") ||
-    params.permissoes.includes("boletim-frequencia:gerar:chefia")
-  );
 }
 
 export default async function EspelhoPontoPage({
@@ -197,25 +176,43 @@ export default async function EspelhoPontoPage({
     podeRecalcular;
   const perfilServidorAtivo =
     permissao.perfilAtivoCodigo?.toUpperCase() === "SERVIDOR";
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const orgaoIdsPermitidos = escopoOrgao.global
+    ? undefined
+    : escopoOrgao.orgaoIds;
 
-  const servidores = podeConsultarTodosServidores
-    ? await listarServidoresParaEspelhoPonto({
-        anoReferencia,
-        mesReferencia,
-        escopo: "global",
-      })
-    : perfilChefiaAtivo && permissao.usuarioId
-      ? await listarServidoresParaEspelhoPonto({
-          usuarioId: permissao.usuarioId,
+  const [servidoresEscopo, servidorProprio] = await Promise.all([
+    podeConsultarTodosServidores
+      ? listarServidoresParaEspelhoPonto({
           anoReferencia,
           mesReferencia,
-          escopo: "chefia",
+          escopo: "global",
+          orgaoIdsPermitidos,
         })
-      : permissao.usuarioId
-        ? servidorProprioParaLista(
-            await buscarServidorComUsuarioPorUsuarioId(permissao.usuarioId),
-          )
-        : [];
+      : perfilChefiaAtivo && permissao.usuarioId
+        ? listarServidoresParaEspelhoPonto({
+            usuarioId: permissao.usuarioId,
+            anoReferencia,
+            mesReferencia,
+            escopo: "chefia",
+            orgaoIdsPermitidos,
+          })
+        : Promise.resolve([]),
+    permissao.usuarioId
+      ? buscarServidorComUsuarioPorUsuarioId(permissao.usuarioId)
+      : Promise.resolve(null),
+  ]);
+  const servidores =
+    perfilChefiaAtivo && servidorProprio
+      ? [
+          servidorProprio,
+          ...servidoresEscopo.filter(
+            (servidor) => servidor.id !== servidorProprio.id,
+          ),
+        ]
+      : podeConsultarTodosServidores || perfilChefiaAtivo
+        ? servidoresEscopo
+        : servidorProprioParaLista(servidorProprio);
   const podeSelecionarServidor =
     !perfilServidorAtivo && (podeConsultarTodosServidores || perfilChefiaAtivo);
 
@@ -311,17 +308,14 @@ export default async function EspelhoPontoPage({
 
           {servidorSelecionado && (
             <div className="mt-4 flex justify-end border-t pt-4">
-              <a
+              <RelatorioExportacaoButton
                 href={montarHrefExportacaoEspelho({
                   servidorId: servidorSelecionado.id,
                   anoReferencia,
                   mesReferencia,
                 })}
                 className="inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-semibold hover:bg-[var(--muted)]"
-              >
-                <Download className="size-4" aria-hidden="true" />
-                Exportar PDF
-              </a>
+              />
             </div>
           )}
         </Card>
@@ -391,6 +385,18 @@ export default async function EspelhoPontoPage({
                       <EnviarEspelhoHomologacaoModal
                         anoReferencia={anoReferencia}
                         mesReferencia={mesReferencia}
+                        assinatura={{
+                          orgao: resolverSeccionalAssinatura(
+                            servidorSelecionado,
+                          ),
+                          assinante:
+                            nomeServidor(servidorSelecionado) ||
+                            servidorSelecionado.matricula,
+                          cargoFuncoes:
+                            montarOpcoesCargoFuncaoAssinatura(
+                              servidorSelecionado,
+                            ),
+                        }}
                       />
                     </div>
                   )}
@@ -401,17 +407,14 @@ export default async function EspelhoPontoPage({
                     competencia={competenciaInput}
                     className="w-full sm:w-56"
                   />
-                  <a
+                  <RelatorioExportacaoButton
                     href={montarHrefExportacaoEspelho({
                       servidorId: servidorSelecionado.id,
                       anoReferencia,
                       mesReferencia,
                     })}
                     className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold hover:bg-[var(--muted)]"
-                  >
-                    <Download className="size-4" aria-hidden="true" />
-                    Exportar PDF
-                  </a>
+                  />
                 </div>
               </div>
             ) : undefined

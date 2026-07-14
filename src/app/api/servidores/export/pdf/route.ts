@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { withHttpMetrics } from "@/lib/observability/http";
 import {
   aplicarEscopoOrgaoId,
   obterEscopoOrgaoDaSessao,
@@ -66,7 +67,7 @@ const columns: PdfTableColumn<ServidorExportacao>[] = [
   },
 ];
 
-export async function GET(request: Request) {
+async function getServidoresExportPdf(request: Request) {
   const session = await auth();
 
   if (
@@ -90,6 +91,7 @@ export async function GET(request: Request) {
         matricula: url.searchParams.get("matricula") ?? "",
         cpf: url.searchParams.get("cpf") ?? "",
         nome: url.searchParams.get("nome") ?? "",
+        tipoUsuario: url.searchParams.get("tipoUsuario") ?? "",
         orgaoId: url.searchParams.get("orgaoId") ?? "",
         vinculo: url.searchParams.get("vinculo") ?? "",
         lotacao: url.searchParams.get("lotacao") ?? "",
@@ -111,3 +113,8 @@ export async function GET(request: Request) {
     filename: "servidores.pdf",
   });
 }
+
+export const GET = withHttpMetrics(
+  "/api/servidores/export/pdf",
+  getServidoresExportPdf,
+);

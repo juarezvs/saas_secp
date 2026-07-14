@@ -50,6 +50,32 @@ services:
       retries: 10
       start_period: 10s
 
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: secp-pgbouncer
+    restart: unless-stopped
+
+    volumes:
+      - ./docker/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./docker/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+
+    ports:
+      - "127.0.0.1:6432:6432"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - secp-network
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
   migrate:
     build:
       context: .
@@ -111,28 +137,49 @@ services:
     image: secp-web:${APP_VERSION}
     container_name: secp-web
     restart: unless-stopped
+    group_add:
+      - "0"
 
     env_file:
       - .env.production
 
     environment:
+      DATABASE_URL: ${DATABASE_URL_POOLED:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB}?schema=public}
       NODE_ENV: production
       PORT: 3000
       HOSTNAME: 0.0.0.0
       AUTH_TRUST_HOST: "true"
+      SECP_AUTO_WORKERS: "false"
+      AFD_AUTO_WORKER: "false"
+      REPROCESSAMENTO_GLOBAL_AUTO_WORKER: "false"
+      HENRY_COLETA_AUTO_WORKER: "false"
+      HENRY_ONLINE_AUTO_WORKER: "false"
+      CALENDARIO_INSTITUCIONAL_AUTO_WORKER: "false"
+      REGULAMENTACAO_PONTO_AUTO_WORKER: "false"
+      SARH_LOGIN_SYNC_AUTO_WORKER: "false"
+      SARH_SYNC_AUTO_WORKER: "false"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      SECP_METRICS_TOKEN_FILE: /run/secrets/secp_metrics_token
+      OTEL_ENABLED: ${OTEL_ENABLED:-true}
+      OTEL_SERVICE_NAME: secp-web
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://secp-observability-tempo:4318}
 
     ports:
       # Acesso direto por DNS apontando para o Ubuntu: http://secp.am.trf1.jus.br
       #- "127.0.0.1:8000:3000"
       # Acesso via IIS/ARR no srvponto-am: encaminhar para http://172.19.5.244:3000
       - "3000:3000"
-      - "3001:3001"
 
     volumes:
       - secp_uploads_data:/app/import/_upload/afd
+      - secp_relatorios_data:/app/.storage/relatorios
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    secrets:
+      - secp_metrics_token
 
     depends_on:
-      postgres:
+      pgbouncer:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -146,6 +193,325 @@ services:
       timeout: 10s
       retries: 5
       start_period: 40s
+
+    cpus: "${SECP_WEB_CPUS:-2.0}"
+    mem_limit: ${SECP_WEB_MEM_LIMIT:-2g}
+
+  worker-afd:
+    build:
+      context: .
+      target: worker
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+
+    image: secp-worker:${APP_VERSION}
+    container_name: secp-worker-afd
+    restart: unless-stopped
+    command: ["npm", "run", "worker:afd"]
+    profiles: ["workers"]
+
+    env_file:
+      - .env.production
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL_POOLED:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB}?schema=public}
+      SECP_AUTO_WORKERS: "false"
+      AFD_CONCURRENCY: ${AFD_CONCURRENCY:-2}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+    volumes:
+      - secp_uploads_data:/app/import/_upload/afd
+
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    networks:
+      - secp-network
+
+    cpus: "${SECP_WORKER_AFD_CPUS:-1.0}"
+    mem_limit: ${SECP_WORKER_AFD_MEM_LIMIT:-1g}
+
+  worker-sarh:
+    build:
+      context: .
+      target: worker
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+
+    image: secp-worker:${APP_VERSION}
+    container_name: secp-worker-sarh
+    restart: unless-stopped
+    command: ["npm", "run", "worker:sarh-sync"]
+    profiles: ["workers"]
+
+    env_file:
+      - .env.production
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL_POOLED:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB}?schema=public}
+      SECP_AUTO_WORKERS: "false"
+      SARH_SYNC_CONCURRENCY: ${SARH_SYNC_CONCURRENCY:-1}
+      SARH_AFASTAMENTOS_SYNC_CONCURRENCY: ${SARH_AFASTAMENTOS_SYNC_CONCURRENCY:-2}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    networks:
+      - secp-network
+
+    cpus: "${SECP_WORKER_SARH_CPUS:-1.0}"
+    mem_limit: ${SECP_WORKER_SARH_MEM_LIMIT:-1g}
+
+  worker-sarh-login:
+    build:
+      context: .
+      target: worker
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+
+    image: secp-worker:${APP_VERSION}
+    container_name: secp-worker-sarh-login
+    restart: unless-stopped
+    command: ["npm", "run", "worker:sarh-login-sync"]
+    profiles: ["workers"]
+
+    env_file:
+      - .env.production
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL_POOLED:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB}?schema=public}
+      SECP_AUTO_WORKERS: "false"
+      SARH_LOGIN_SYNC_CONCURRENCY: ${SARH_LOGIN_SYNC_CONCURRENCY:-1}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    networks:
+      - secp-network
+
+    cpus: "${SECP_WORKER_SARH_LOGIN_CPUS:-0.5}"
+    mem_limit: ${SECP_WORKER_SARH_LOGIN_MEM_LIMIT:-768m}
+
+  worker-reprocessamento:
+    build:
+      context: .
+      target: worker
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+
+    image: secp-worker:${APP_VERSION}
+    container_name: secp-worker-reprocessamento
+    restart: unless-stopped
+    command: ["npm", "run", "worker:reprocessamento-global"]
+    profiles: ["workers"]
+
+    env_file:
+      - .env.production
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL_POOLED:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB}?schema=public}
+      SECP_AUTO_WORKERS: "false"
+      REPROCESSAMENTO_GLOBAL_CONCURRENCY: ${REPROCESSAMENTO_GLOBAL_CONCURRENCY:-1}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    networks:
+      - secp-network
+
+    cpus: "${SECP_WORKER_REPROCESSAMENTO_CPUS:-0.75}"
+    mem_limit: ${SECP_WORKER_REPROCESSAMENTO_MEM_LIMIT:-1g}
+
+  worker-calendario:
+    build:
+      context: .
+      target: worker
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+
+    image: secp-worker:${APP_VERSION}
+    container_name: secp-worker-calendario
+    restart: unless-stopped
+    command: ["npm", "run", "worker:calendario-institucional"]
+    profiles: ["workers"]
+
+    env_file:
+      - .env.production
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL_POOLED:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB}?schema=public}
+      SECP_AUTO_WORKERS: "false"
+      CALENDARIO_INSTITUCIONAL_CONCURRENCY: ${CALENDARIO_INSTITUCIONAL_CONCURRENCY:-1}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    networks:
+      - secp-network
+
+    cpus: "${SECP_WORKER_CALENDARIO_CPUS:-0.5}"
+    mem_limit: ${SECP_WORKER_CALENDARIO_MEM_LIMIT:-768m}
+
+  worker-henry-coleta:
+    build:
+      context: .
+      target: worker
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+
+    image: secp-worker:${APP_VERSION}
+    container_name: secp-worker-henry-coleta
+    restart: unless-stopped
+    command: ["npm", "run", "worker:henry-coleta"]
+    profiles: ["workers"]
+
+    env_file:
+      - .env.production
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL_POOLED:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB}?schema=public}
+      SECP_AUTO_WORKERS: "false"
+      HENRY_COLETA_INTERVALO_MS: ${HENRY_COLETA_INTERVALO_MS:-30000}
+      HENRY_COLETA_QUANTIDADE: ${HENRY_COLETA_QUANTIDADE:-50}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    networks:
+      - secp-network
+
+    cpus: "${SECP_WORKER_RELOGIOS_CPUS:-1.0}"
+    mem_limit: ${SECP_WORKER_RELOGIOS_MEM_LIMIT:-1g}
+
+  worker-henry-online:
+    build:
+      context: .
+      target: worker
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+
+    image: secp-worker:${APP_VERSION}
+    container_name: secp-worker-henry-online
+    restart: unless-stopped
+    command: ["npm", "run", "worker:henry-online"]
+    profiles: ["workers"]
+
+    env_file:
+      - .env.production
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL_POOLED:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB}?schema=public}
+      SECP_AUTO_WORKERS: "false"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+    ports:
+      - "3001:3001"
+
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    networks:
+      - secp-network
+
+    cpus: "${SECP_WORKER_HENRY_ONLINE_CPUS:-0.5}"
+    mem_limit: ${SECP_WORKER_HENRY_ONLINE_MEM_LIMIT:-768m}
+
+  worker-coleta-relogio:
+    build:
+      context: .
+      target: worker
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+
+    image: secp-worker:${APP_VERSION}
+    container_name: secp-worker-coleta-relogio
+    restart: unless-stopped
+    command: ["npm", "run", "worker:coleta-relogio-progressiva"]
+    profiles: ["workers"]
+
+    env_file:
+      - .env.production
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL_POOLED:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB}?schema=public}
+      SECP_AUTO_WORKERS: "false"
+      COLETA_RELOGIO_CONCURRENCY: ${COLETA_RELOGIO_CONCURRENCY:-1}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    networks:
+      - secp-network
+
+    cpus: "${SECP_WORKER_COLETA_RELOGIO_CPUS:-1.0}"
+    mem_limit: ${SECP_WORKER_COLETA_RELOGIO_MEM_LIMIT:-1g}
+
+  worker-relatorio-exportacao:
+    build:
+      context: .
+      target: worker
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+
+    image: secp-worker:${APP_VERSION}
+    container_name: secp-worker-relatorio-exportacao
+    restart: unless-stopped
+    command: ["npm", "run", "worker:relatorio-exportacao"]
+    profiles: ["workers"]
+
+    env_file:
+      - .env.production
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL_POOLED:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB}?schema=public}
+      SECP_AUTO_WORKERS: "false"
+      RELATORIO_EXPORTACAO_CONCURRENCY: ${RELATORIO_EXPORTACAO_CONCURRENCY:-1}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+    volumes:
+      - secp_relatorios_data:/app/.storage/relatorios
+
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    networks:
+      - secp-network
+
+    cpus: "${SECP_WORKER_RELATORIO_CPUS:-1.0}"
+    mem_limit: ${SECP_WORKER_RELATORIO_MEM_LIMIT:-1g}
 
   pgadmin:
     image: dpage/pgadmin4:9.8
@@ -179,6 +545,11 @@ volumes:
   secp_redis_data:
   secp_pgadmin_data:
   secp_uploads_data:
+  secp_relatorios_data:
+
+secrets:
+  secp_metrics_token:
+    file: ${SECP_METRICS_TOKEN_FILE:-./observability/secrets/secp_metrics_token}
 
 networks:
   secp-network:

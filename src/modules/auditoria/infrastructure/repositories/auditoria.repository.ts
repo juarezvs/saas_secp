@@ -1,5 +1,7 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
+const LIMITE_PREVIA_JSON_AUDITORIA = 30000;
+
 export type ListarAuditoriaParams = {
   pagina?: number;
   limite?: number;
@@ -117,8 +119,20 @@ export async function listarEventosAuditoria(params: ListarAuditoriaParams) {
     prisma.auditoriaEvento.count({ where }),
     prisma.auditoriaEvento.findMany({
       where,
-      include: {
-        usuario: true,
+      select: {
+        id: true,
+        entidade: true,
+        entidadeId: true,
+        acao: true,
+        criadoEm: true,
+        ip: true,
+        usuario: {
+          select: {
+            id: true,
+            nome: true,
+            matricula: true,
+          },
+        },
       },
       orderBy: {
         criadoEm: "desc",
@@ -145,8 +159,20 @@ export async function listarEventosAuditoriaParaExportacao(
 ) {
   return prisma.auditoriaEvento.findMany({
     where: montarWhereAuditoria(params),
-    include: {
-      usuario: true,
+    select: {
+      id: true,
+      entidade: true,
+      entidadeId: true,
+      acao: true,
+      criadoEm: true,
+      ip: true,
+      usuario: {
+        select: {
+          id: true,
+          nome: true,
+          matricula: true,
+        },
+      },
     },
     orderBy: {
       criadoEm: "desc",
@@ -158,34 +184,200 @@ export async function buscarEventoAuditoriaPorId(
   id: string,
   params?: { orgaoIdsPermitidos?: string[] },
 ) {
-  return prisma.auditoriaEvento.findFirst({
-    where: {
-      id,
-      ...(params?.orgaoIdsPermitidos === undefined
-        ? {}
-        : {
-            OR: [
-              {
-                usuario: {
-                  servidor: {
-                    orgaoId: { in: params.orgaoIdsPermitidos },
-                  },
-                },
-              },
-              {
-                usuario: {
-                  perfis: {
-                    some: { orgaoId: { in: params.orgaoIdsPermitidos } },
-                  },
-                },
-              },
-            ],
-          }),
-    },
-    include: {
-      usuario: true,
-    },
-  });
+  if (params?.orgaoIdsPermitidos?.length === 0) {
+    return null;
+  }
+
+  const limite = LIMITE_PREVIA_JSON_AUDITORIA;
+  const eventos =
+    params?.orgaoIdsPermitidos === undefined
+      ? await prisma.$queryRaw<EventoAuditoriaDetalheRow[]>`
+          SELECT
+            ae.id,
+            ae.usuario_id AS "usuarioId",
+            ae.entidade,
+            ae.entidade_id AS "entidadeId",
+            ae.acao,
+            CASE
+              WHEN ae.dados_antes IS NULL THEN NULL
+              ELSE LEFT(ae.dados_antes::text, ${limite})
+            END AS "dadosAntesTexto",
+            CASE
+              WHEN ae.dados_antes IS NULL THEN NULL
+              ELSE CHAR_LENGTH(ae.dados_antes::text)
+            END AS "dadosAntesCaracteres",
+            CASE
+              WHEN ae.dados_antes IS NULL THEN NULL
+              ELSE PG_COLUMN_SIZE(ae.dados_antes)
+            END AS "dadosAntesBytes",
+            CASE
+              WHEN ae.dados_depois IS NULL THEN NULL
+              ELSE LEFT(ae.dados_depois::text, ${limite})
+            END AS "dadosDepoisTexto",
+            CASE
+              WHEN ae.dados_depois IS NULL THEN NULL
+              ELSE CHAR_LENGTH(ae.dados_depois::text)
+            END AS "dadosDepoisCaracteres",
+            CASE
+              WHEN ae.dados_depois IS NULL THEN NULL
+              ELSE PG_COLUMN_SIZE(ae.dados_depois)
+            END AS "dadosDepoisBytes",
+            CASE
+              WHEN ae.metadados IS NULL THEN NULL
+              ELSE LEFT(ae.metadados::text, ${limite})
+            END AS "metadadosTexto",
+            CASE
+              WHEN ae.metadados IS NULL THEN NULL
+              ELSE CHAR_LENGTH(ae.metadados::text)
+            END AS "metadadosCaracteres",
+            CASE
+              WHEN ae.metadados IS NULL THEN NULL
+              ELSE PG_COLUMN_SIZE(ae.metadados)
+            END AS "metadadosBytes",
+            ae.ip,
+            ae.user_agent AS "userAgent",
+            ae.criado_em AS "criadoEm",
+            u.nome AS "usuarioNome",
+            u.matricula AS "usuarioMatricula",
+            u.email AS "usuarioEmail"
+          FROM auditoria_eventos ae
+          LEFT JOIN usuarios u ON u.id = ae.usuario_id
+          WHERE ae.id = ${id}::uuid
+          LIMIT 1
+        `
+      : await prisma.$queryRaw<EventoAuditoriaDetalheRow[]>`
+          SELECT
+            ae.id,
+            ae.usuario_id AS "usuarioId",
+            ae.entidade,
+            ae.entidade_id AS "entidadeId",
+            ae.acao,
+            CASE
+              WHEN ae.dados_antes IS NULL THEN NULL
+              ELSE LEFT(ae.dados_antes::text, ${limite})
+            END AS "dadosAntesTexto",
+            CASE
+              WHEN ae.dados_antes IS NULL THEN NULL
+              ELSE CHAR_LENGTH(ae.dados_antes::text)
+            END AS "dadosAntesCaracteres",
+            CASE
+              WHEN ae.dados_antes IS NULL THEN NULL
+              ELSE PG_COLUMN_SIZE(ae.dados_antes)
+            END AS "dadosAntesBytes",
+            CASE
+              WHEN ae.dados_depois IS NULL THEN NULL
+              ELSE LEFT(ae.dados_depois::text, ${limite})
+            END AS "dadosDepoisTexto",
+            CASE
+              WHEN ae.dados_depois IS NULL THEN NULL
+              ELSE CHAR_LENGTH(ae.dados_depois::text)
+            END AS "dadosDepoisCaracteres",
+            CASE
+              WHEN ae.dados_depois IS NULL THEN NULL
+              ELSE PG_COLUMN_SIZE(ae.dados_depois)
+            END AS "dadosDepoisBytes",
+            CASE
+              WHEN ae.metadados IS NULL THEN NULL
+              ELSE LEFT(ae.metadados::text, ${limite})
+            END AS "metadadosTexto",
+            CASE
+              WHEN ae.metadados IS NULL THEN NULL
+              ELSE CHAR_LENGTH(ae.metadados::text)
+            END AS "metadadosCaracteres",
+            CASE
+              WHEN ae.metadados IS NULL THEN NULL
+              ELSE PG_COLUMN_SIZE(ae.metadados)
+            END AS "metadadosBytes",
+            ae.ip,
+            ae.user_agent AS "userAgent",
+            ae.criado_em AS "criadoEm",
+            u.nome AS "usuarioNome",
+            u.matricula AS "usuarioMatricula",
+            u.email AS "usuarioEmail"
+          FROM auditoria_eventos ae
+          LEFT JOIN usuarios u ON u.id = ae.usuario_id
+          WHERE ae.id = ${id}::uuid
+            AND (
+              EXISTS (
+                SELECT 1
+                FROM servidores s
+                WHERE s.usuario_id = ae.usuario_id
+                  AND s.orgao_id = ANY(${params.orgaoIdsPermitidos}::uuid[])
+              )
+              OR EXISTS (
+                SELECT 1
+                FROM usuarios_perfis up
+                WHERE up.usuario_id = ae.usuario_id
+                  AND up.orgao_id = ANY(${params.orgaoIdsPermitidos}::uuid[])
+              )
+            )
+          LIMIT 1
+        `;
+
+  return normalizarEventoAuditoriaDetalhe(eventos[0]);
+}
+
+type EventoAuditoriaDetalheRow = {
+  id: string;
+  usuarioId: string | null;
+  entidade: string;
+  entidadeId: string | null;
+  acao: string;
+  dadosAntesTexto: string | null;
+  dadosAntesCaracteres: number | bigint | null;
+  dadosAntesBytes: number | bigint | null;
+  dadosDepoisTexto: string | null;
+  dadosDepoisCaracteres: number | bigint | null;
+  dadosDepoisBytes: number | bigint | null;
+  metadadosTexto: string | null;
+  metadadosCaracteres: number | bigint | null;
+  metadadosBytes: number | bigint | null;
+  ip: string | null;
+  userAgent: string | null;
+  criadoEm: Date;
+  usuarioNome: string | null;
+  usuarioMatricula: string | null;
+  usuarioEmail: string | null;
+};
+
+function numeroAuditoria(valor: number | bigint | null) {
+  return typeof valor === "bigint" ? Number(valor) : valor;
+}
+
+function normalizarEventoAuditoriaDetalhe(
+  row: EventoAuditoriaDetalheRow | undefined,
+) {
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    usuarioId: row.usuarioId,
+    entidade: row.entidade,
+    entidadeId: row.entidadeId,
+    acao: row.acao,
+    dadosAntesTexto: row.dadosAntesTexto,
+    dadosAntesCaracteres: numeroAuditoria(row.dadosAntesCaracteres),
+    dadosAntesBytes: numeroAuditoria(row.dadosAntesBytes),
+    dadosDepoisTexto: row.dadosDepoisTexto,
+    dadosDepoisCaracteres: numeroAuditoria(row.dadosDepoisCaracteres),
+    dadosDepoisBytes: numeroAuditoria(row.dadosDepoisBytes),
+    metadadosTexto: row.metadadosTexto,
+    metadadosCaracteres: numeroAuditoria(row.metadadosCaracteres),
+    metadadosBytes: numeroAuditoria(row.metadadosBytes),
+    ip: row.ip,
+    userAgent: row.userAgent,
+    criadoEm: row.criadoEm,
+    usuario:
+      row.usuarioNome && row.usuarioMatricula
+        ? {
+            nome: row.usuarioNome,
+            matricula: row.usuarioMatricula,
+            email: row.usuarioEmail,
+          }
+        : null,
+  };
 }
 
 export async function listarUsuariosParaFiltroAuditoria(params?: {

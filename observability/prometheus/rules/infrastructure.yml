@@ -1,0 +1,37 @@
+groups:
+  - name: secp_infrastructure
+    rules:
+      - alert: SecpHostDiskUsageHigh
+        expr: (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: host
+          category: infrastructure
+        annotations:
+          summary: "Uso de disco acima de 80%"
+          description: "O filesystem do host passou de 80% de uso."
+          runbook_url: "docs/runbooks/host-disk.md"
+      - alert: SecpHostDiskUsageCritical
+        expr: (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) > 0.9
+        for: 5m
+        labels:
+          severity: critical
+          service: host
+          category: infrastructure
+        annotations:
+          summary: "Uso de disco acima de 90%"
+          description: "O filesystem do host passou de 90% de uso. Risco de indisponibilidade."
+          runbook_url: "docs/runbooks/host-disk.md"
+      - alert: SecpContainerRestarting
+        expr: increase(container_start_time_seconds{name=~"secp-.*"}[15m]) > 2
+        for: 1m
+        labels:
+          severity: warning
+          service: docker
+          category: infrastructure
+        annotations:
+          summary: "Container do SECP reiniciando"
+          description: "Um container com prefixo secp reiniciou mais de duas vezes em 15 minutos."
+          runbook_url: "docs/runbooks/container-restarts.md"
+

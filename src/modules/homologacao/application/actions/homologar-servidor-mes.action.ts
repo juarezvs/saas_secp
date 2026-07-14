@@ -4,11 +4,19 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
+import { validarAssinaturaDocumento } from "@/modules/documentos-autenticacao/application/services/validar-assinatura-documento.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { atualizarStatusFechamentoService } from "../services/atualizar-status-fechamento.service";
 import { buscarHomologacaoServidorPorId } from "../../infrastructure/repositories/homologacao.repository";
 
-export async function homologarServidorMesAction(formData: FormData) {
+type AssinaturaActionState = {
+  erro?: string | null;
+};
+
+export async function homologarServidorMesAction(
+  _state: AssinaturaActionState,
+  formData: FormData,
+): Promise<AssinaturaActionState> {
   const session = await auth();
 
   if (!session?.user) {
@@ -36,6 +44,10 @@ export async function homologarServidorMesAction(formData: FormData) {
   const observacaoChefia = String(
     formData.get("observacaoChefia") ?? "",
   ).trim();
+  const senhaAssinatura = String(formData.get("senhaAssinatura") ?? "");
+  const cargoFuncaoAssinatura = String(
+    formData.get("cargoFuncaoAssinatura") ?? "",
+  ).trim();
 
   if (!homologacaoServidorId) {
     throw new Error("Homologação do servidor não informada.");
@@ -59,6 +71,21 @@ export async function homologarServidorMesAction(formData: FormData) {
     !["HOMOLOGADO", "HOMOLOGADO_COM_RESSALVA", "DEVOLVIDO"].includes(status)
   ) {
     throw new Error("Status de homologação inválido.");
+  }
+
+  const assinatura = await validarAssinaturaDocumento({
+    session,
+    senha: senhaAssinatura,
+  }).catch((error: unknown) => {
+    if (error instanceof Error) {
+      return { erro: error.message } as const;
+    }
+
+    return { erro: "Não foi possível validar a assinatura." } as const;
+  });
+
+  if ("erro" in assinatura) {
+    return { erro: assinatura.erro };
   }
 
   if (!podeHomologarGlobal) {
@@ -108,6 +135,13 @@ export async function homologarServidorMesAction(formData: FormData) {
           observacaoChefia,
           servidorId: homologacaoAtual.servidorId,
           fechamentoId: homologacaoAtual.fechamentoId,
+          assinatura: {
+            usuarioId: assinatura.usuarioId,
+            matricula: assinatura.matricula,
+            nome: assinatura.nome,
+            cargoFuncao: cargoFuncaoAssinatura || null,
+            assinadoEm: assinatura.assinadoEm.toISOString(),
+          },
         },
       },
     });

@@ -39,6 +39,7 @@ export const equipamentoBiometricoSchema = z.object({
     .trim()
     .min(3, "Informe o nome do equipamento.")
     .max(160, "O nome deve ter no máximo 160 caracteres."),
+  orgaoId: z.string().uuid("Informe um orgao valido.").optional().or(z.literal("")),
   unidadeId: z.string().uuid().optional().or(z.literal("")),
   fabricante: z.string().trim().optional().or(z.literal("")),
   modelo: z.string().trim().optional().or(z.literal("")),
@@ -47,7 +48,13 @@ export const equipamentoBiometricoSchema = z.object({
   ip: z.string().trim().optional().or(z.literal("")),
   porta: z.coerce.number().int().positive().optional().or(z.literal("")),
   protocolo: z
-    .enum(["GENERIC", "HENRY", "HENRY_LUMEN_BALCAO", "DIMEP_SMART_PRINT"])
+    .enum([
+      "GENERIC",
+      "HENRY",
+      "HENRY_LUMEN_BALCAO",
+      "DIMEP_SMART_PRINT",
+      "CONTROL_ID_FACE_ID",
+    ])
     .default("GENERIC"),
   usuario: z.string().trim().optional().or(z.literal("")),
   senha: z.string().optional().or(z.literal("")),

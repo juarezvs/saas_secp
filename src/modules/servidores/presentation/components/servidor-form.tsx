@@ -27,6 +27,7 @@ type ServidorFormProps = {
     nome?: string;
     email?: string | null;
     nomeFuncional?: string | null;
+    tipoUsuario?: string;
     vinculo?: string;
     cargoDescricao?: string | null;
     funcaoDescricao?: string | null;
@@ -70,6 +71,12 @@ export function ServidorForm({
 
   return (
     <form action={formAction} className="space-y-6">
+      <input
+        type="hidden"
+        name="tipoUsuario"
+        value={campos.tipoUsuario ?? "SERVIDOR"}
+      />
+
       {estado.mensagem && (
         <div
           role="alert"

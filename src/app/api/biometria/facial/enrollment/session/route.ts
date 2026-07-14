@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { auth } from "@/auth";
+import { withHttpMetrics } from "@/lib/observability/http";
+import { logger } from "@/lib/observability/logger";
 import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 import { iniciarEnrollmentSchema } from "@/modules/biometria/application/schemas/enrollment.schema";
 import { EnrollmentFacialError } from "@/modules/biometria/application/use-cases/enrollment.error";
 import { iniciarSessaoCadastroFacial } from "@/modules/biometria/application/use-cases/iniciar-sessao-cadastro-facial.usecase";
 import { PERMISSOES_BIOMETRIA_FACIAL } from "@/modules/biometria/domain/biometria-facial.rules";
 
-export async function POST(request: NextRequest) {
+async function postEnrollmentSession(request: NextRequest) {
   const session = await auth();
 
   if (!session?.user) {
@@ -63,7 +65,7 @@ export async function POST(request: NextRequest) {
       return respostaErro(error.code, error.message, error.status);
     }
 
-    console.error("Falha ao iniciar enrollment facial", {
+    logger.error("Falha ao iniciar enrollment facial", {
       error: error instanceof Error ? error.message : "erro desconhecido",
     });
 
@@ -81,6 +83,11 @@ function obterIp(request: NextRequest) {
     request.headers.get("x-real-ip")
   );
 }
+
+export const POST = withHttpMetrics(
+  "/api/biometria/facial/enrollment/session",
+  postEnrollmentSession,
+);
 
 function respostaErro(code: string, message: string, status: number) {
   return NextResponse.json(

@@ -129,15 +129,15 @@ export async function listarEquipamentosBiometricos(params?: {
   const equipamentos = await prisma.equipamentoBiometrico.findMany({
     where: orgaoIds
       ? {
-          unidade: {
-            orgaoId: {
-              in: orgaoIds,
-            },
-          },
+          OR: [
+            { orgaoId: { in: orgaoIds } },
+            { unidade: { orgaoId: { in: orgaoIds } } },
+          ],
         }
       : undefined,
     orderBy: [{ ativo: "desc" }, { nome: "asc" }],
     include: {
+      orgao: true,
       unidade: true,
       integracao: true,
       _count: {
@@ -221,6 +221,11 @@ export async function listarUnidadesParaEquipamentos(params?: {
     },
     orderBy: [
       {
+        orgao: {
+          sigla: "asc",
+        },
+      },
+      {
         sigla: "asc",
       },
       {
@@ -231,6 +236,13 @@ export async function listarUnidadesParaEquipamentos(params?: {
       id: true,
       sigla: true,
       nome: true,
+      orgaoId: true,
+      orgao: {
+        select: {
+          sigla: true,
+          nome: true,
+        },
+      },
     },
   });
 }
@@ -335,6 +347,7 @@ export async function buscarEquipamentoPorCodigo(codigo: string) {
       codigo,
     },
     include: {
+      orgao: true,
       unidade: true,
     },
   });
@@ -359,11 +372,10 @@ export async function listarEquipamentosParaIdentificacaoAfd(params?: {
       ativo: true,
       ...(params?.orgaoIdsPermitidos?.length
         ? {
-            unidade: {
-              orgaoId: {
-                in: params.orgaoIdsPermitidos,
-              },
-            },
+            OR: [
+              { orgaoId: { in: params.orgaoIdsPermitidos } },
+              { unidade: { orgaoId: { in: params.orgaoIdsPermitidos } } },
+            ],
           }
         : {}),
     },
@@ -372,6 +384,12 @@ export async function listarEquipamentosParaIdentificacaoAfd(params?: {
       codigo: true,
       nome: true,
       numeroSerie: true,
+      orgao: {
+        select: {
+          sigla: true,
+          nome: true,
+        },
+      },
       unidade: {
         select: {
           sigla: true,

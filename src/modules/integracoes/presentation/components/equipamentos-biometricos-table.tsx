@@ -33,6 +33,7 @@ type EquipamentoItem = {
   porta: number | null;
   localizacao: string | null;
   ativo: boolean;
+  orgaoId: string | null;
   unidadeId: string | null;
   ultimoHeartbeatEm: Date | null;
   ultimaSincronizacaoEm: Date | null;
@@ -42,6 +43,9 @@ type EquipamentoItem = {
     marcacoesPendentes: number;
   };
   unidade: {
+    sigla: string;
+  } | null;
+  orgao: {
     sigla: string;
   } | null;
   _count: {
@@ -231,7 +235,7 @@ export function EquipamentosBiometricosTable({
             <tr>
               <th className="px-5 py-3">Código</th>
               <th className="px-5 py-3">Nome</th>
-              <th className="px-5 py-3">Unidade</th>
+              <th className="px-5 py-3">Orgao / Unidade</th>
               <th className="px-5 py-3">Modelo</th>
               <th className="px-5 py-3">Endpoint</th>
               <th className="px-5 py-3">NSR</th>
@@ -268,7 +272,14 @@ export function EquipamentosBiometricosTable({
                     )}
                   </td>
 
-                  <td className="px-5 py-4">{equipamento.unidade?.sigla ?? "-"}</td>
+                  <td className="px-5 py-4">
+                    <div className="font-semibold">
+                      {equipamento.orgao?.sigla ?? "-"}
+                    </div>
+                    <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                      {equipamento.unidade?.sigla ?? "Sem unidade"}
+                    </div>
+                  </td>
 
                   <td className="px-5 py-4">
                     {[equipamento.fabricante, equipamento.modelo]

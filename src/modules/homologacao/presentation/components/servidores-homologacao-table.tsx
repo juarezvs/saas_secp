@@ -45,6 +45,7 @@ export function ServidoresHomologacaoTable({
   servidores,
   podeRegistrarDecisao,
   servidorIdsPermitidosDecisao,
+  assinatura,
 }: {
   fechamentoId: string;
   anoReferencia: number;
@@ -52,6 +53,11 @@ export function ServidoresHomologacaoTable({
   servidores: ServidorHomologacaoItem[];
   podeRegistrarDecisao: boolean;
   servidorIdsPermitidosDecisao?: string[];
+  assinatura?: {
+    orgao?: string | null;
+    assinante?: string | null;
+    cargoFuncoes?: string[];
+  };
 }) {
   const servidoresPermitidos = servidorIdsPermitidosDecisao
     ? new Set(servidorIdsPermitidosDecisao)
@@ -175,7 +181,10 @@ export function ServidoresHomologacaoTable({
                     </p>
                   </div>
                 ) : podeRegistrarDecisaoServidor ? (
-                  <HomologarServidorForm homologacaoServidorId={item.id} />
+                  <HomologarServidorForm
+                    homologacaoServidorId={item.id}
+                    assinatura={assinatura}
+                  />
                 ) : (
                   <div className="rounded-lg border bg-[var(--muted)] p-4 text-sm text-[var(--muted-foreground)]">
                     Seu perfil ativo permite consultar esta homologação, mas não

@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
+import { withHttpMetrics } from "@/lib/observability/http";
 import { contarNotificacoesUsuario } from "@/modules/notificacoes/application/notificacoes.service";
 
-export async function GET() {
+async function getNotificacoesContador(request: Request) {
+  void request;
   const session = await auth();
 
   if (!session?.user) {
@@ -21,3 +23,8 @@ export async function GET() {
     },
   );
 }
+
+export const GET = withHttpMetrics(
+  "/api/notificacoes/contador",
+  getNotificacoesContador,
+);

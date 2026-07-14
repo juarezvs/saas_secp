@@ -1,0 +1,15 @@
+groups:
+  - name: secp_recording
+    interval: 30s
+    rules:
+      - record: secp:http_request_rate5m
+        expr: sum by (route, method, status) (rate(secp_http_requests_total[5m]))
+      - record: secp:http_error_rate5m
+        expr: sum(rate(secp_http_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(secp_http_requests_total[5m])), 1)
+      - record: secp:http_latency_p95_5m
+        expr: histogram_quantile(0.95, sum by (le, route, method) (rate(secp_http_request_duration_seconds_bucket[5m])))
+      - record: secp:queue_failed_jobs
+        expr: sum by (queue) (secp_queue_jobs{state="failed"})
+      - record: secp:container_memory_usage_bytes
+        expr: sum by (name) (container_memory_usage_bytes{name=~"secp-.*"})
+

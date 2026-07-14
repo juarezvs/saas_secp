@@ -1,4 +1,8 @@
-export type FabricanteRelogioPonto = "HENRY" | "DIMEP" | "GENERIC";
+export type FabricanteRelogioPonto =
+  | "HENRY"
+  | "DIMEP"
+  | "CONTROL_ID"
+  | "GENERIC";
 
 export type FormatoTemplateBiometricoRelogio =
   | "SUPREMA"

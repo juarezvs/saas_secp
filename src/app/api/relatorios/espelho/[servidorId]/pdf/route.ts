@@ -2,10 +2,13 @@ import React, { type ReactElement } from "react";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 
 import { auth } from "@/auth";
+import { withHttpMetrics } from "@/lib/observability/http";
 import { registrarAuditoriaEvento } from "@/modules/auditoria/application/services/registrar-auditoria.service";
 import { prepararAutenticacaoEspelhoPonto } from "@/modules/documentos-autenticacao/application/services/documento-autenticacao.service";
+import { enfileirarRelatorioExportacaoResponse } from "@/modules/relatorios/application/services/relatorio-exportacao-response.service";
 import { buscarDadosEspelhoPontoPdf } from "@/modules/relatorios/infrastructure/repositories/relatorios.repository";
 import { EspelhoPontoPdfDocument } from "@/modules/relatorios/presentation/pdf/espelho-ponto-pdf.document";
+import { prisma } from "@/shared/infrastructure/database/prisma";
 
 export const runtime = "nodejs";
 
@@ -15,7 +18,7 @@ type RouteContext = {
   }>;
 };
 
-export async function GET(request: Request, context: RouteContext) {
+async function getRelatorioEspelhoPdf(request: Request, context: RouteContext) {
   const session = await auth();
 
   if (!session?.user) {
@@ -54,6 +57,42 @@ export async function GET(request: Request, context: RouteContext) {
   const ano = Number(url.searchParams.get("ano") ?? hoje.getFullYear());
 
   const mes = Number(url.searchParams.get("mes") ?? hoje.getMonth() + 1);
+
+  if (url.searchParams.get("sync") !== "1") {
+    const servidor = await prisma.servidor.findUnique({
+      where: {
+        id: servidorId,
+      },
+      select: {
+        usuarioId: true,
+      },
+    });
+
+    if (!servidor) {
+      return new Response("Servidor nÃ£o encontrado.", {
+        status: 404,
+      });
+    }
+
+    if (!podeExportarGlobal && servidor.usuarioId !== session.user.id) {
+      return new Response("Acesso negado ao servidor informado.", {
+        status: 403,
+      });
+    }
+
+    return enfileirarRelatorioExportacaoResponse({
+      request,
+      tipo: "ESPELHO_PONTO",
+      formato: "PDF",
+      usuarioId: session.user.id,
+      permissoes,
+      filtros: {
+        servidorId,
+        ano: String(ano),
+        mes: String(mes),
+      },
+    });
+  }
 
   const dados = await buscarDadosEspelhoPontoPdf({
     servidorId,
@@ -122,3 +161,8 @@ export async function GET(request: Request, context: RouteContext) {
     },
   });
 }
+
+export const GET = withHttpMetrics<Request, [RouteContext]>(
+  "/api/relatorios/espelho/:id/pdf",
+  getRelatorioEspelhoPdf,
+);

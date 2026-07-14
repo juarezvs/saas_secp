@@ -9,6 +9,7 @@ import {
   type DocumentProps,
 } from "@react-pdf/renderer";
 import { auth } from "@/auth";
+import { withHttpMetrics } from "@/lib/observability/http";
 import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 import { listarBoletinsFrequenciaParaExportacao } from "@/modules/boletim-frequencia/infrastructure/repositories/boletim-frequencia.repository";
 import { rotuloStatusBoletim } from "@/modules/boletim-frequencia/application/services/formatar-boletim-frequencia.service";
@@ -19,7 +20,7 @@ type BoletimExportacao = Awaited<
   ReturnType<typeof listarBoletinsFrequenciaParaExportacao>
 >[number];
 
-export async function GET(request: Request) {
+async function getBoletimFrequenciaExportPdf(request: Request) {
   const session = await auth();
 
   if (!session?.user) {
@@ -64,6 +65,11 @@ export async function GET(request: Request) {
     },
   });
 }
+
+export const GET = withHttpMetrics(
+  "/api/boletim-frequencia/export/pdf",
+  getBoletimFrequenciaExportPdf,
+);
 
 function BoletinsPdfDocument({ boletins }: { boletins: BoletimExportacao[] }) {
   return React.createElement(

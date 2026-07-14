@@ -1,0 +1,32 @@
+groups:
+  - name: secp-observability-stack
+    rules:
+      - alert: SecpTempoDown
+        expr: up{job="tempo"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          category: observability
+        annotations:
+          summary: "Tempo indisponivel"
+          description: "O backend de traces do SECP nao responde ha mais de 2 minutos."
+
+      - alert: SecpLokiDown
+        expr: up{job="loki"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          category: observability
+        annotations:
+          summary: "Loki indisponivel"
+          description: "O backend de logs do SECP nao responde ha mais de 2 minutos."
+
+      - alert: SecpPromtailDown
+        expr: up{job="promtail"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          category: observability
+        annotations:
+          summary: "Promtail indisponivel"
+          description: "O coletor de logs Docker do SECP nao responde ha mais de 2 minutos."

@@ -1,11 +1,12 @@
 import { auth } from "@/auth";
+import { withHttpMetrics } from "@/lib/observability/http";
 import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 import { listarBoletinsFrequenciaParaExportacao } from "@/modules/boletim-frequencia/infrastructure/repositories/boletim-frequencia.repository";
 import { rotuloStatusBoletim } from "@/modules/boletim-frequencia/application/services/formatar-boletim-frequencia.service";
 
 export const runtime = "nodejs";
 
-export async function GET(request: Request) {
+async function getBoletimFrequenciaExport(request: Request) {
   const session = await auth();
 
   if (!session?.user) {
@@ -71,3 +72,8 @@ export async function GET(request: Request) {
     },
   });
 }
+
+export const GET = withHttpMetrics(
+  "/api/boletim-frequencia/export",
+  getBoletimFrequenciaExport,
+);

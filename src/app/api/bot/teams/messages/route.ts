@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { withHttpMetrics } from "@/lib/observability/http";
 import { processarMensagemTeams } from "@/modules/integracoes/teams/application/teams-bot.service";
 import { registrarTeamsLog } from "@/modules/integracoes/teams/application/teams-configuracao.service";
 
@@ -10,7 +11,7 @@ function possuiBearerBotFramework(request: Request) {
   return /^Bearer\s+[\w.-]+$/i.test(authorization);
 }
 
-export async function POST(request: Request) {
+async function postTeamsMessages(request: Request) {
   if (!possuiBearerBotFramework(request)) {
     await registrarTeamsLog({
       tipo: "BOT",
@@ -35,3 +36,8 @@ export async function POST(request: Request) {
   const resposta = await processarMensagemTeams(activity);
   return NextResponse.json(resposta);
 }
+
+export const POST = withHttpMetrics(
+  "/api/bot/teams/messages",
+  postTeamsMessages,
+);

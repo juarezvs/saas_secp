@@ -56,6 +56,10 @@ type ApuracaoEspelhoMensal = {
   minutosDebito: number;
   resultado: string;
   status: string;
+  primeiraEntrada?: Date | null;
+  saidaIntervalo?: Date | null;
+  retornoIntervalo?: Date | null;
+  ultimaSaida?: Date | null;
   metadados?: unknown;
   ocorrencias?: OcorrenciaEspelhoMensal[];
   movimentoBancoHoras?: MovimentoBancoHorasEspelho[];
@@ -106,6 +110,44 @@ function hojeNoFuso(fusoHorario?: string | null) {
   return new Date(Date.UTC(ano, mes - 1, dia));
 }
 
+function minutosAgoraNoFuso(fusoHorario?: string | null, agora = new Date()) {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: normalizarFusoHorario(fusoHorario),
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(agora);
+
+  const hora = Number(partes.find((parte) => parte.type === "hour")?.value);
+  const minuto = Number(partes.find((parte) => parte.type === "minute")?.value);
+
+  return hora * 60 + minuto;
+}
+
+function minutosLocais(data: Date, fusoHorario?: string | null) {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: normalizarFusoHorario(fusoHorario),
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(data);
+
+  const hora = Number(partes.find((parte) => parte.type === "hour")?.value);
+  const minuto = Number(partes.find((parte) => parte.type === "minute")?.value);
+
+  return hora * 60 + minuto;
+}
+
+function horaParaMinutos(hora?: string | null) {
+  const match = hora?.match(/^(\d{2}):(\d{2})$/);
+
+  if (!match) {
+    return null;
+  }
+
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
 function dataLimiteSaldos(params: {
   anoReferencia: number;
   mesReferencia: number;
@@ -151,6 +193,76 @@ function movimentosCompensacaoCredito(
       movimento.tipo === "COMPENSACAO_CREDITO" &&
       ["PENDENTE", "VALIDADO"].includes(movimento.status),
   );
+}
+
+function extrairJanelaExpediente(metadados: unknown) {
+  const janela = metadadosComoObjeto(metadados).janelaExpediente;
+
+  if (!janela || typeof janela !== "object" || Array.isArray(janela)) {
+    return null;
+  }
+
+  const dados = janela as { inicio?: unknown; fim?: unknown };
+
+  return {
+    inicio: typeof dados.inicio === "string" ? dados.inicio : null,
+    fim: typeof dados.fim === "string" ? dados.fim : null,
+  };
+}
+
+function ajustarDiaAtualEmAndamento(
+  item: ItemEspelhoMensalCompleto,
+  params: {
+    hoje: Date;
+    agora?: Date;
+    fusoHorario?: string | null;
+  },
+) {
+  if (
+    item.cargaPrevistaMinutos <= 0 ||
+    chaveData(item.dataReferencia) !== chaveData(params.hoje) ||
+    !["FALTA", "INCOMPLETA", "DEBITO", "PENDENTE"].includes(item.resultado)
+  ) {
+    return item;
+  }
+
+  const janela = extrairJanelaExpediente(item.metadados);
+  const inicioJanela = horaParaMinutos(janela?.inicio) ?? 8 * 60;
+  const fimJanela = horaParaMinutos(janela?.fim) ?? 18 * 60;
+  const inicioPrevisto = item.primeiraEntrada
+    ? minutosLocais(item.primeiraEntrada, params.fusoHorario)
+    : inicioJanela;
+  const saidaPrevista = Math.min(
+    fimJanela,
+    inicioPrevisto + item.cargaPrevistaMinutos,
+  );
+  const agora = minutosAgoraNoFuso(params.fusoHorario, params.agora);
+
+  if (agora >= saidaPrevista) {
+    return item;
+  }
+
+  const minutosTrabalhadosParciais = item.primeiraEntrada
+    ? Math.max(0, Math.min(agora - inicioPrevisto, item.cargaPrevistaMinutos))
+    : 0;
+
+  return {
+    ...item,
+    minutosTrabalhados: minutosTrabalhadosParciais,
+    minutosCredito: 0,
+    minutosDebito: 0,
+    resultado: "PENDENTE",
+    status: "PENDENTE",
+    ocorrencias: (item.ocorrencias ?? []).filter(
+      (ocorrencia) =>
+        !["MARCACAO_INCOMPLETA", "FALTA", "DEBITO"].includes(ocorrencia.tipo),
+    ),
+    minutosDebitoApurado: 0,
+    minutosDebitoCompensado: 0,
+    minutosHoraExtraAutorizada: 0,
+    minutosHoraExtraNaoAutorizada: 0,
+    minutosBancoHoras: 0,
+  };
 }
 
 function resumirMovimentosBancoHoras(
@@ -456,6 +568,9 @@ export async function montarEspelhoMensalCompleto(params: {
       ajustarApuracaoPorCompensacao(apuracao),
     ]),
   );
+  const hoje = normalizarDataReferencia(
+    params.hoje ?? hojeNoFuso(params.fusoHorario),
+  );
 
   const itens = dias.map<ItemEspelhoMensalCompleto>((dia) => {
     const chave = chaveData(dia.dataReferencia);
@@ -476,7 +591,14 @@ export async function montarEspelhoMensalCompleto(params: {
         geradoParaCompetencia: false,
       };
 
-      return afastamento ? aplicarAfastamentoSarh(item, afastamento) : item;
+      return ajustarDiaAtualEmAndamento(
+        afastamento ? aplicarAfastamentoSarh(item, afastamento) : item,
+        {
+          hoje,
+          agora: params.hoje,
+          fusoHorario: params.fusoHorario,
+        },
+      );
     }
 
     const item = {
@@ -503,7 +625,14 @@ export async function montarEspelhoMensalCompleto(params: {
       minutosBancoHoras: 0,
     };
 
-    return afastamento ? aplicarAfastamentoSarh(item, afastamento) : item;
+    return ajustarDiaAtualEmAndamento(
+      afastamento ? aplicarAfastamentoSarh(item, afastamento) : item,
+      {
+        hoje,
+        agora: params.hoje,
+        fusoHorario: params.fusoHorario,
+      },
+    );
   });
 
   return {

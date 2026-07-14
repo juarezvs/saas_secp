@@ -1,3 +1,4 @@
+import { buscarEquipamentosBiometricosPorIdsOuCodigosEmLotes } from "@/modules/integracoes/infrastructure/repositories/equipamento-biometrico-lotes.repository";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 export type ListarMarcacoesBrutasParams = {
@@ -85,28 +86,16 @@ async function anexarEquipamentosAsMarcacoesBrutas<
     .map((item) => item.equipamentoCodigo)
     .filter((codigo): codigo is string => Boolean(codigo));
 
-  const filtros = [
-    equipamentoIds.length > 0 ? { id: { in: equipamentoIds } } : null,
-    equipamentoCodigos.length > 0 ? { codigo: { in: equipamentoCodigos } } : null,
-  ].filter((item): item is NonNullable<typeof item> => Boolean(item));
-
-  if (filtros.length === 0) {
+  if (equipamentoIds.length === 0 && equipamentoCodigos.length === 0) {
     return marcacoes.map((item) => ({
       ...item,
       equipamento: null,
     }));
   }
 
-  const equipamentos = await prisma.equipamentoBiometrico.findMany({
-    where: {
-      OR: filtros,
-    },
-    select: {
-      id: true,
-      codigo: true,
-      nome: true,
-      numeroSerie: true,
-    },
+  const equipamentos = await buscarEquipamentosBiometricosPorIdsOuCodigosEmLotes({
+    ids: equipamentoIds,
+    codigos: equipamentoCodigos,
   });
 
   const porId = new Map(equipamentos.map((item) => [item.id, item]));

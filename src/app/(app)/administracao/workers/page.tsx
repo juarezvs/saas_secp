@@ -88,6 +88,15 @@ export default async function SaudeWorkersPage() {
                         {worker.motivoAtencao}
                       </p>
                     )}
+                    {worker.container && (
+                      <p className="mt-2 font-mono text-xs text-[var(--muted-foreground)]">
+                        Docker: {worker.container.containerName} ·{" "}
+                        {worker.container.status ?? "indisponivel"}
+                        {worker.container.health
+                          ? `/${worker.container.health}`
+                          : ""}
+                      </p>
+                    )}
                   </td>
                   <td className="px-5 py-4">
                     <span

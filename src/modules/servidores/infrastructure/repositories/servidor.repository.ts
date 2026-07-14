@@ -1,3 +1,4 @@
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 export type ListarServidoresParams = {
@@ -7,6 +8,7 @@ export type ListarServidoresParams = {
   matricula?: string;
   cpf?: string;
   nome?: string;
+  tipoUsuario?: string;
   orgaoId?: string;
   orgaoIdsPermitidos?: string[];
   servidorIdsPermitidos?: string[];
@@ -25,14 +27,57 @@ function ehUuid(valor?: string | null): valor is string {
   );
 }
 
-export function montarWhereServidores(params: ListarServidoresParams) {
+function ehTipoUsuario(
+  valor?: string | null,
+): valor is "SERVIDOR" | "ESTAGIARIO" | "PRESTADOR" | "VOLUNTARIO" {
+  return (
+    valor === "SERVIDOR" ||
+    valor === "ESTAGIARIO" ||
+    valor === "PRESTADOR" ||
+    valor === "VOLUNTARIO"
+  );
+}
+
+const servidorListagemInclude = {
+  usuario: true,
+  orgao: true,
+  cargo: true,
+  lotacoes: {
+    where: { status: "ATIVO" },
+    include: { cargo: true, unidade: true },
+    orderBy: { dataInicio: "desc" },
+    take: 1,
+  },
+  _count: {
+    select: {
+      lotacoes: { where: { status: "ATIVO" } },
+      gestores: true,
+    },
+  },
+} satisfies Prisma.ServidorInclude;
+
+const servidorExportacaoInclude = {
+  usuario: true,
+  orgao: true,
+  cargo: true,
+  lotacoes: {
+    where: { status: "ATIVO" },
+    include: { cargo: true, unidade: true },
+    orderBy: { dataInicio: "desc" },
+    take: 1,
+  },
+} satisfies Prisma.ServidorInclude;
+
+export function montarWhereServidores(
+  params: ListarServidoresParams,
+): Prisma.ServidorWhereInput {
   const busca = params.busca?.trim();
   const orgaoId = params.orgaoId?.trim();
   const orgaoIdsPermitidos = params.orgaoIdsPermitidos?.filter(ehUuid);
   const servidorIdsPermitidos = params.servidorIdsPermitidos?.filter(ehUuid);
   const filtrarPorServidorIds = params.servidorIdsPermitidos !== undefined;
 
-  return {
+  const where: Prisma.ServidorWhereInput = {
     ...(filtrarPorServidorIds
       ? {
           id: {
@@ -73,6 +118,14 @@ export function montarWhereServidores(params: ListarServidoresParams) {
               },
             },
           ],
+        }
+      : {}),
+
+    ...(ehTipoUsuario(params.tipoUsuario)
+      ? {
+          usuario: {
+            tipo: params.tipoUsuario,
+          },
         }
       : {}),
 
@@ -160,6 +213,8 @@ export function montarWhereServidores(params: ListarServidoresParams) {
         }
       : {}),
   };
+
+  return where;
 }
 
 export async function listarServidoresPaginado(params: ListarServidoresParams) {
@@ -174,23 +229,7 @@ export async function listarServidoresPaginado(params: ListarServidoresParams) {
     prisma.servidor.count({ where }),
     prisma.servidor.findMany({
       where,
-      include: {
-        usuario: true,
-        orgao: true,
-        cargo: true,
-        lotacoes: {
-          where: { status: "ATIVO" },
-          include: { cargo: true, unidade: true },
-          orderBy: { dataInicio: "desc" },
-          take: 1,
-        },
-        _count: {
-          select: {
-            lotacoes: { where: { status: "ATIVO" } },
-            gestores: true,
-          },
-        },
-      },
+      include: servidorListagemInclude,
       orderBy: [
         { nomeFuncional: "asc" },
         { usuario: { nome: "asc" } },
@@ -215,17 +254,7 @@ export async function listarServidoresParaExportacao(
 ) {
   return prisma.servidor.findMany({
     where: montarWhereServidores(params),
-    include: {
-      usuario: true,
-      orgao: true,
-      cargo: true,
-      lotacoes: {
-        where: { status: "ATIVO" },
-        include: { cargo: true, unidade: true },
-        orderBy: { dataInicio: "desc" },
-        take: 1,
-      },
-    },
+    include: servidorExportacaoInclude,
     orderBy: [
       { nomeFuncional: "asc" },
       { usuario: { nome: "asc" } },

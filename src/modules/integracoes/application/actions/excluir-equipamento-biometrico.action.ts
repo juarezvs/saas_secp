@@ -41,6 +41,7 @@ export async function excluirEquipamentoBiometricoAction(formData: FormData) {
       porta: true,
       ativo: true,
       integracaoId: true,
+      orgaoId: true,
       unidadeId: true,
       unidade: {
         select: {
@@ -61,7 +62,8 @@ export async function excluirEquipamentoBiometricoAction(formData: FormData) {
     redirect(retorno);
   }
 
-  const orgaoIdEquipamento = equipamento.unidade?.orgaoId ?? null;
+  const orgaoIdEquipamento =
+    equipamento.orgaoId ?? equipamento.unidade?.orgaoId ?? null;
 
   if (
     !escopo.global &&
@@ -89,9 +91,9 @@ export async function excluirEquipamentoBiometricoAction(formData: FormData) {
           porta: equipamento.porta,
           ativo: equipamento.ativo,
           integracaoId: equipamento.integracaoId,
+          orgaoId: orgaoIdEquipamento,
           unidadeId: equipamento.unidadeId,
           unidadeSigla: equipamento.unidade?.sigla ?? null,
-          orgaoId: orgaoIdEquipamento,
           eventosVinculados: equipamento._count.eventos,
         },
       },

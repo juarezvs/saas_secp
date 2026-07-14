@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { withHttpMetrics } from "@/lib/observability/http";
 import { TEAMS_PERMISSOES } from "@/modules/integracoes/teams/domain/teams-permissoes";
 import { exigirPermissaoTeamsApi } from "@/modules/integracoes/teams/application/teams-api-auth.service";
 import {
@@ -10,7 +11,8 @@ import {
 
 export const runtime = "nodejs";
 
-export async function GET() {
+async function getTeamsConfiguracao(request: Request) {
+  void request;
   const acesso = await exigirPermissaoTeamsApi(TEAMS_PERMISSOES.visualizar);
 
   if (!acesso.permitido) {
@@ -24,7 +26,7 @@ export async function GET() {
   return NextResponse.json(serializarTeamsConfiguracao(configuracao));
 }
 
-export async function PUT(request: Request) {
+async function putTeamsConfiguracao(request: Request) {
   const acesso = await exigirPermissaoTeamsApi(TEAMS_PERMISSOES.configurar);
 
   if (!acesso.permitido) {
@@ -61,3 +63,12 @@ export async function PUT(request: Request) {
 
   return NextResponse.json(serializarTeamsConfiguracao(configuracao));
 }
+
+export const GET = withHttpMetrics(
+  "/api/integracoes/teams/configuracao",
+  getTeamsConfiguracao,
+);
+export const PUT = withHttpMetrics(
+  "/api/integracoes/teams/configuracao",
+  putTeamsConfiguracao,
+);

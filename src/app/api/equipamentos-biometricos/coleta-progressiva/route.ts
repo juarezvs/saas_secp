@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { withHttpMetrics } from "@/lib/observability/http";
 import {
   cancelarColetaRelogioProgressiva,
   iniciarColetaRelogioProgressiva,
@@ -19,7 +20,7 @@ function normalizarModo(valor: unknown): ColetaRelogioProgressivaModo {
   return valor === "SERVIDOR" ? "SERVIDOR" : "TODAS";
 }
 
-export async function POST(request: Request) {
+async function postColetaProgressiva(request: Request) {
   const session = await auth();
 
   if (!session?.user) {
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const job = iniciarColetaRelogioProgressiva({
+  const job = await iniciarColetaRelogioProgressiva({
     equipamentoId,
     modo,
     nsrInicial:
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
   return Response.json(job);
 }
 
-export async function GET(request: Request) {
+async function getColetaProgressiva(request: Request) {
   const session = await auth();
 
   if (!session?.user) {
@@ -93,7 +94,7 @@ export async function GET(request: Request) {
   }
 
   const jobId = new URL(request.url).searchParams.get("jobId");
-  const job = jobId ? obterColetaRelogioProgressiva(jobId) : null;
+  const job = jobId ? await obterColetaRelogioProgressiva(jobId) : null;
 
   if (!job) {
     return Response.json({ mensagem: "Coleta nao encontrada." }, { status: 404 });
@@ -102,7 +103,7 @@ export async function GET(request: Request) {
   return Response.json(job);
 }
 
-export async function PATCH(request: Request) {
+async function patchColetaProgressiva(request: Request) {
   const session = await auth();
 
   if (!session?.user) {
@@ -127,7 +128,7 @@ export async function PATCH(request: Request) {
     return Response.json({ mensagem: "Cancelamento invalido." }, { status: 400 });
   }
 
-  const job = cancelarColetaRelogioProgressiva(jobId);
+  const job = await cancelarColetaRelogioProgressiva(jobId);
 
   if (!job) {
     return Response.json({ mensagem: "Coleta nao encontrada." }, { status: 404 });
@@ -135,3 +136,16 @@ export async function PATCH(request: Request) {
 
   return Response.json(job);
 }
+
+export const POST = withHttpMetrics(
+  "/api/equipamentos-biometricos/coleta-progressiva",
+  postColetaProgressiva,
+);
+export const GET = withHttpMetrics(
+  "/api/equipamentos-biometricos/coleta-progressiva",
+  getColetaProgressiva,
+);
+export const PATCH = withHttpMetrics(
+  "/api/equipamentos-biometricos/coleta-progressiva",
+  patchColetaProgressiva,
+);

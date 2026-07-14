@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { withHttpMetrics } from "@/lib/observability/http";
 import { normalizarPreferenciasAcessibilidade } from "@/modules/auth/application/services/preferencias-acessibilidade.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
-export async function PUT(request: Request) {
+async function putAcessibilidade(request: Request) {
   const session = await auth();
 
   if (!session?.user?.id) {
@@ -24,3 +25,5 @@ export async function PUT(request: Request) {
 
   return NextResponse.json({ preferencias }, { status: 200 });
 }
+
+export const PUT = withHttpMetrics("/api/sessao/acessibilidade", putAcessibilidade);

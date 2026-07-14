@@ -16,6 +16,10 @@ function workerEstaAtivo(worker: Worker<ReprocessamentoGlobalJob>) {
 }
 
 export function criarReprocessamentoGlobalWorker() {
+  const concurrency = Math.max(
+    Number(process.env.REPROCESSAMENTO_GLOBAL_CONCURRENCY ?? "1"),
+    1,
+  );
   const worker = new Worker<ReprocessamentoGlobalJob>(
     REPROCESSAMENTO_GLOBAL_QUEUE_NAME,
     async (job) =>
@@ -27,7 +31,7 @@ export function criarReprocessamentoGlobalWorker() {
       }),
     {
       connection: reprocessamentoGlobalConnection,
-      concurrency: 1,
+      concurrency,
     },
   );
 

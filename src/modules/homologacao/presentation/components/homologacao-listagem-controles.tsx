@@ -43,6 +43,8 @@ export function HomologacaoListagemControles({
       filtros={filtros}
       csvHref={exportCsvHref}
       pdfHref={exportPdfHref}
+      csvAssincrono
+      pdfAssincrono
     />
   );
 }

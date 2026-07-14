@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
-import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
-import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { obterPermissoesDaSessao } from "@/modules/auth/application/services/permissao.service";
 import { buscarEventoAuditoriaPorId } from "@/modules/auditoria/infrastructure/repositories/auditoria.repository";
 import { AuditoriaDetalheCard } from "@/modules/auditoria/presentation/components/auditoria-detalhe-card";
 
@@ -16,15 +15,29 @@ type AuditoriaDetalhePageProps = {
 export default async function AuditoriaDetalhePage({
   params,
 }: AuditoriaDetalhePageProps) {
-  await exigirUmaDasPermissoesOuRedirecionar([
-    "auditoria:consultar:global",
-    "auditoria:detalhar:global",
-  ]);
-
   const { id } = await params;
-  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const permissao = await obterPermissoesDaSessao();
+
+  if (!permissao.permitido) {
+    redirect("/login");
+  }
+
+  const podeDetalhar =
+    permissao.permissoes.includes("auditoria:consultar:global") ||
+    permissao.permissoes.includes("auditoria:detalhar:global");
+
+  if (!podeDetalhar) {
+    redirect(
+      `/acesso-negado?permissao=${encodeURIComponent(
+        "auditoria:consultar:global ou auditoria:detalhar:global",
+      )}`,
+    );
+  }
+
   const evento = await buscarEventoAuditoriaPorId(id, {
-    orgaoIdsPermitidos: escopoOrgao.global ? undefined : escopoOrgao.orgaoIds,
+    orgaoIdsPermitidos: permissao.perfilAtivoEscopoGlobal
+      ? undefined
+      : (permissao.orgaoIds ?? []),
   });
 
   if (!evento) {

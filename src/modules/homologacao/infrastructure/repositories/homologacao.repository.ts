@@ -90,6 +90,10 @@ const includeFechamentoListagem = {
   unidade: true,
   abertoPor: true,
   homologadoPor: true,
+};
+
+const includeFechamentoExportacao = {
+  ...includeFechamentoListagem,
   servidores: {
     select: {
       id: true,
@@ -174,7 +178,7 @@ export async function listarFechamentosMensaisParaExportacao(
       { mesReferencia: "desc" },
       { criadoEm: "desc" },
     ],
-    include: includeFechamentoListagem,
+    include: includeFechamentoExportacao,
   });
 }
 

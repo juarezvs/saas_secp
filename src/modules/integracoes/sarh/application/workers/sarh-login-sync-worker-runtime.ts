@@ -81,7 +81,10 @@ export function criarSarhLoginSyncWorker() {
 }
 
 export function garantirSarhLoginSyncWorkerAutomatico() {
-  if (process.env.SARH_LOGIN_SYNC_AUTO_WORKER === "false") {
+  if (
+    process.env.SECP_AUTO_WORKERS === "false" ||
+    process.env.SARH_LOGIN_SYNC_AUTO_WORKER === "false"
+  ) {
     return null;
   }
 

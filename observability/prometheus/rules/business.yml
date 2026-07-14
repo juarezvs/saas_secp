@@ -1,0 +1,26 @@
+groups:
+  - name: secp_business
+    rules:
+      - alert: SecpQueueCollectionFailed
+        expr: secp_queue_healthy == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: secp
+          category: business
+        annotations:
+          summary: "Coleta de fila BullMQ falhou"
+          description: "A coleta de uma fila BullMQ do SECP esta falhando. Verifique Redis e workers antes de investigar a regra de negocio."
+          runbook_url: "docs/runbooks/secp-queues.md"
+      - alert: SecpQueueFailedJobs
+        expr: secp:queue_failed_jobs > 20
+        for: 15m
+        labels:
+          severity: warning
+          service: secp
+          category: business
+        annotations:
+          summary: "Fila BullMQ com muitos jobs falhos"
+          description: "Uma fila do SECP tem mais de 20 jobs falhos de forma persistente."
+          runbook_url: "docs/runbooks/secp-queues.md"
+

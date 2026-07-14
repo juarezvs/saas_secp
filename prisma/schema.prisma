@@ -680,6 +680,7 @@ model Orgao {
 
   unidades                  UnidadeOrganizacional[]
   servidores                Servidor[]
+  equipamentosBiometricos   EquipamentoBiometrico[]
   regulamentacaoPonto       RegulamentacaoPontoOrgao?
   integracoes               IntegracaoSistema[]
   calendariosInstitucionais CalendarioInstitucional[]
@@ -1478,6 +1479,18 @@ model FechamentoMensalUnidade {
   observacao String? @db.Text
   metadados  Json?
 
+  totalServidores             Int @default(0) @map("total_servidores")
+  totalPendentes              Int @default(0) @map("total_pendentes")
+  totalComPendencias          Int @default(0) @map("total_com_pendencias")
+  totalHomologados            Int @default(0) @map("total_homologados")
+  totalHomologadosComRessalva Int @default(0) @map("total_homologados_com_ressalva")
+  totalDevolvidos             Int @default(0) @map("total_devolvidos")
+  totalCargaPrevistaMinutos   Int @default(0) @map("total_carga_prevista_minutos")
+  totalMinutosTrabalhados     Int @default(0) @map("total_minutos_trabalhados")
+  totalMinutosCredito         Int @default(0) @map("total_minutos_credito")
+  totalMinutosDebito          Int @default(0) @map("total_minutos_debito")
+  totalFaltas                 Int @default(0) @map("total_faltas")
+
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
@@ -1958,6 +1971,7 @@ model IntegracaoSarhConflito {
 model EquipamentoBiometrico {
   id           String  @id @default(uuid()) @db.Uuid
   integracaoId String? @map("integracao_id") @db.Uuid
+  orgaoId      String? @map("orgao_id") @db.Uuid
   unidadeId    String? @map("unidade_id") @db.Uuid
 
   codigo      String  @unique @db.VarChar(80)
@@ -1979,10 +1993,12 @@ model EquipamentoBiometrico {
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
   integracao IntegracaoSistema?            @relation(fields: [integracaoId], references: [id], onDelete: SetNull)
+  orgao      Orgao?                        @relation(fields: [orgaoId], references: [id], onDelete: SetNull)
   unidade    UnidadeOrganizacional?        @relation(fields: [unidadeId], references: [id], onDelete: SetNull)
   eventos    EventoEquipamentoBiometrico[]
 
   @@index([integracaoId])
+  @@index([orgaoId])
   @@index([unidadeId])
   @@index([ativo])
   @@map("equipamentos_biometricos")

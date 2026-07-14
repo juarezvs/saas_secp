@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -299,6 +298,36 @@ export const MENU_ITEMS: MenuItem[] = [
       {
         label: "Servidores",
         href: "/servidores",
+        icon: Users,
+        permissoes: [
+          "servidores:gerenciar:global",
+          "servidores:consultar:global",
+          ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
+        ],
+      },
+      {
+        label: "Estagiarios",
+        href: "/estagiarios",
+        icon: Users,
+        permissoes: [
+          "servidores:gerenciar:global",
+          "servidores:consultar:global",
+          ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
+        ],
+      },
+      {
+        label: "Prestadores",
+        href: "/prestadores",
+        icon: Users,
+        permissoes: [
+          "servidores:gerenciar:global",
+          "servidores:consultar:global",
+          ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
+        ],
+      },
+      {
+        label: "Voluntarios",
+        href: "/voluntarios",
         icon: Users,
         permissoes: [
           "servidores:gerenciar:global",
@@ -617,7 +646,7 @@ function MenuPrincipal({
                   />
                 </button>
               ) : (
-                <Link
+                <a
                   href={
                     possuiFilhos ? (filhos[0]?.href ?? item.href) : item.href
                   }
@@ -633,7 +662,7 @@ function MenuPrincipal({
                       {item.label}
                     </span>
                   )}
-                </Link>
+                </a>
               )}
 
               {mostrarFilhos && (
@@ -644,7 +673,7 @@ function MenuPrincipal({
 
                     return (
                       <li key={child.href}>
-                        <Link
+                        <a
                           href={child.href}
                           onClick={onNavigate}
                           aria-current={childAtivo ? "page" : undefined}
@@ -663,7 +692,7 @@ function MenuPrincipal({
                           <span className="min-w-0 flex-1 truncate">
                             {child.label}
                           </span>
-                        </Link>
+                        </a>
                       </li>
                     );
                   })}

@@ -9,7 +9,25 @@ export async function buscarServidorComUsuarioPorUsuarioId(usuarioId: string) {
       ativo: true,
     },
     include: {
+      orgao: true,
       usuario: true,
+      cargo: true,
+      lotacoes: {
+        where: {
+          status: "ATIVO",
+        },
+        include: {
+          cargo: true,
+          unidade: {
+            include: {
+              orgao: true,
+            },
+          },
+        },
+        orderBy: {
+          dataInicio: "desc",
+        },
+      },
     },
   });
 }
@@ -282,6 +300,7 @@ type ListarServidoresParaEspelhoPontoParams = {
   anoReferencia?: number;
   mesReferencia?: number;
   escopo?: "global" | "chefia";
+  orgaoIdsPermitidos?: string[];
 };
 
 function intervaloReferencia(params: {
@@ -393,6 +412,13 @@ export async function listarServidoresParaEspelhoPonto(
       usuario: {
         ativo: true,
       },
+      ...(params.orgaoIdsPermitidos
+        ? {
+            orgaoId: {
+              in: params.orgaoIdsPermitidos,
+            },
+          }
+        : {}),
       ...(unidadesSubordinadas
         ? {
             lotacoes: {
@@ -420,13 +446,20 @@ export async function listarServidoresParaEspelhoPonto(
         : {}),
     },
     include: {
+      orgao: true,
+      cargo: true,
       usuario: true,
       lotacoes: {
         where: {
           status: "ATIVO",
         },
         include: {
-          unidade: true,
+          cargo: true,
+          unidade: {
+            include: {
+              orgao: true,
+            },
+          },
         },
         orderBy: {
           dataInicio: "desc",

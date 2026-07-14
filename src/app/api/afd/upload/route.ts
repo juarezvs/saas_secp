@@ -3,8 +3,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { auth } from "@/auth";
+import { withHttpMetrics } from "@/lib/observability/http";
+import { logger } from "@/lib/observability/logger";
 import { enfileirarProcessamentoArquivoAfd } from "@/modules/afd/application/queues/afd-queue";
-import { garantirAfdWorkerAutomatico } from "@/modules/afd/application/workers/afd-worker-runtime";
 import { usuarioPossuiPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
@@ -35,7 +36,7 @@ async function salvarArquivo(file: File, uploadDir: string) {
   };
 }
 
-export async function POST(request: Request) {
+async function postAfdUpload(request: Request) {
   const session = await auth();
 
   if (!session?.user) {
@@ -91,7 +92,6 @@ export async function POST(request: Request) {
   }
 
   const uploadDir = process.env.AFD_UPLOAD_DIR ?? "import/_upload/afd";
-  garantirAfdWorkerAutomatico();
 
   const importacao = await prisma.importacaoAfd.create({
     data: {
@@ -138,7 +138,10 @@ export async function POST(request: Request) {
       usuarioId: session.user.id,
     });
 
-    console.log("[AFD UPLOAD] Job enfileirado para arquivo:", arquivo.id);
+    logger.info("Job AFD enfileirado para arquivo", {
+      arquivoAfdId: arquivo.id,
+      importacaoId: importacao.id,
+    });
   }
 
   await prisma.importacaoAfd.update({
@@ -163,3 +166,5 @@ export async function POST(request: Request) {
     arquivosEnfileirados: arquivosCriados.length,
   });
 }
+
+export const POST = withHttpMetrics("/api/afd/upload", postAfdUpload);

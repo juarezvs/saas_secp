@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
+import { withHttpMetrics } from "@/lib/observability/http";
+import { logger } from "@/lib/observability/logger";
 import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 import { concluirEnrollmentSchema } from "@/modules/biometria/application/schemas/enrollment.schema";
 import { concluirCadastroFacial } from "@/modules/biometria/application/use-cases/concluir-cadastro-facial.usecase";
 import { EnrollmentFacialError } from "@/modules/biometria/application/use-cases/enrollment.error";
 import { PERMISSOES_BIOMETRIA_FACIAL } from "@/modules/biometria/domain/biometria-facial.rules";
 
-export async function POST(request: NextRequest) {
+async function postEnrollmentComplete(request: NextRequest) {
   const session = await auth();
 
   if (!session?.user) {
@@ -40,7 +42,7 @@ export async function POST(request: NextRequest) {
 
   if (!parsed.success) {
     const primeiraFalha = parsed.error.issues[0];
-    console.warn("Payload de conclusão do enrollment facial rejeitado", {
+    logger.warn("Payload de conclusao do enrollment facial rejeitado", {
       campo: primeiraFalha?.path.join(".") || "desconhecido",
       codigo: primeiraFalha?.code,
     });
@@ -86,7 +88,7 @@ export async function POST(request: NextRequest) {
       error instanceof Error &&
       error.message.includes("BIOMETRIA_FACIAL_")
     ) {
-      console.error("Configuração de biometria facial ausente ou inválida", {
+      logger.error("Configuracao de biometria facial ausente ou invalida", {
         error: error.message,
       });
 
@@ -97,7 +99,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error("Falha ao concluir enrollment facial", {
+    logger.error("Falha ao concluir enrollment facial", {
       error: error instanceof Error ? error.message : "erro desconhecido",
     });
 
@@ -119,3 +121,8 @@ function respostaErro(code: string, message: string, status: number) {
     { status },
   );
 }
+
+export const POST = withHttpMetrics(
+  "/api/biometria/facial/enrollment/complete",
+  postEnrollmentComplete,
+);

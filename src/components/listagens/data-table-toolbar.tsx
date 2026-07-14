@@ -66,12 +66,16 @@ type DataTableToolbarProps = {
   filtros: DataTableFiltro[];
   csvHref?: string;
   pdfHref?: string;
+  csvAssincrono?: boolean;
+  pdfAssincrono?: boolean;
 };
 
 export function DataTableToolbar({
   filtros,
   csvHref,
   pdfHref,
+  csvAssincrono = false,
+  pdfAssincrono = false,
 }: DataTableToolbarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -123,7 +127,12 @@ export function DataTableToolbar({
     <>
       {csvHref && pdfHref && (
         <div className="flex flex-col justify-end gap-3 lg:flex-row">
-          <DataTableExportButtons csvHref={csvHref} pdfHref={pdfHref} />
+          <DataTableExportButtons
+            csvHref={csvHref}
+            pdfHref={pdfHref}
+            csvAssincrono={csvAssincrono}
+            pdfAssincrono={pdfAssincrono}
+          />
         </div>
       )}
 

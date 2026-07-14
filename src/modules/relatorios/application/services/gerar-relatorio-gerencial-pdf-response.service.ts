@@ -11,6 +11,61 @@ const nomesArquivo: Record<TipoRelatorioGerencial, string> = {
   JORNADA_TRABALHADA: "jornada-trabalhada",
 };
 
+export async function gerarRelatorioGerencialPdf(params: {
+  tipo: TipoRelatorioGerencial;
+  usuarioId: string;
+  permissoes: string[];
+  ano: number;
+  mes: number;
+  servidorId?: string | null;
+}) {
+  if (!Number.isInteger(params.ano) || params.ano < 2000 || params.ano > 2100) {
+    throw new Error("Ano invalido.");
+  }
+
+  if (!Number.isInteger(params.mes) || params.mes < 1 || params.mes > 12) {
+    throw new Error("Mes invalido.");
+  }
+
+  const podeExportar =
+    params.permissoes.includes("relatorios-gerenciais:exportar:proprio") ||
+    params.permissoes.includes("relatorios-gerenciais:exportar:chefia") ||
+    params.permissoes.includes("relatorios-gerenciais:exportar:global");
+
+  if (!podeExportar) {
+    throw new Error("Acesso negado.");
+  }
+
+  const dados = await buscarDadosRelatorioGerencial({
+    tipo: params.tipo,
+    usuarioId: params.usuarioId,
+    permissoes: params.permissoes,
+    ano: params.ano,
+    mes: params.mes,
+    servidorId: params.servidorId,
+  });
+
+  if (params.servidorId && dados.linhas.length === 0) {
+    throw new Error("Servidor nao encontrado ou fora do seu escopo.");
+  }
+
+  const documento = React.createElement(RelatorioGerencialPdfDocument, {
+    dados,
+  }) as ReactElement<DocumentProps>;
+
+  const buffer = await renderToBuffer(documento);
+  const nomeArquivo = `${nomesArquivo[params.tipo]}-${String(params.mes).padStart(
+    2,
+    "0",
+  )}-${params.ano}.pdf`;
+
+  return {
+    buffer,
+    nomeArquivo,
+    contentType: "application/pdf",
+  };
+}
+
 export async function gerarRelatorioGerencialPdfResponse(params: {
   request: Request;
   tipo: TipoRelatorioGerencial;
@@ -35,47 +90,28 @@ export async function gerarRelatorioGerencialPdfResponse(params: {
     });
   }
 
-  const podeExportar =
-    params.permissoes.includes("relatorios-gerenciais:exportar:proprio") ||
-    params.permissoes.includes("relatorios-gerenciais:exportar:chefia") ||
-    params.permissoes.includes("relatorios-gerenciais:exportar:global");
+  try {
+    const relatorio = await gerarRelatorioGerencialPdf({
+      tipo: params.tipo,
+      usuarioId: params.usuarioId,
+      permissoes: params.permissoes,
+      ano,
+      mes,
+      servidorId,
+    });
 
-  if (!podeExportar) {
-    return new Response("Acesso negado.", {
-      status: 403,
+    return new Response(new Uint8Array(relatorio.buffer), {
+      headers: {
+        "Content-Type": relatorio.contentType,
+        "Content-Disposition": `attachment; filename="${relatorio.nomeArquivo}"`,
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    const mensagem = error instanceof Error ? error.message : "Erro ao gerar relatorio.";
+    const status = mensagem === "Acesso negado." ? 403 : mensagem.includes("Servidor") ? 404 : 500;
+    return new Response(mensagem, {
+      status,
     });
   }
-
-  const dados = await buscarDadosRelatorioGerencial({
-    tipo: params.tipo,
-    usuarioId: params.usuarioId,
-    permissoes: params.permissoes,
-    ano,
-    mes,
-    servidorId,
-  });
-
-  if (servidorId && dados.linhas.length === 0) {
-    return new Response("Servidor nao encontrado ou fora do seu escopo.", {
-      status: 404,
-    });
-  }
-
-  const documento = React.createElement(RelatorioGerencialPdfDocument, {
-    dados,
-  }) as ReactElement<DocumentProps>;
-
-  const buffer = await renderToBuffer(documento);
-  const nomeArquivo = `${nomesArquivo[params.tipo]}-${String(mes).padStart(
-    2,
-    "0",
-  )}-${ano}.pdf`;
-
-  return new Response(new Uint8Array(buffer), {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${nomeArquivo}"`,
-      "Cache-Control": "no-store",
-    },
-  });
 }

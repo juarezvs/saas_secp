@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   AlertTriangle,
   CalendarClock,
-  FileDown,
   Hourglass,
   Landmark,
   PlusCircle,
@@ -15,6 +14,7 @@ import {
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { CompetenciaInput, SearchableSelect } from "@/components/ui";
+import { RelatorioExportacaoButton } from "@/modules/relatorios/presentation/components/relatorio-exportacao-button";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { gerarMovimentosBancoHorasAction } from "../../application/actions/gerar-movimento-banco-horas.action";
 import { expirarDebitosVencidosAction } from "../../application/actions/expirar-debitos-vencidos.action";
@@ -417,13 +417,12 @@ function SaldoPrincipalCard({
             </p>
           </div>
 
-          <Link
+          <RelatorioExportacaoButton
             href={`/api/relatorios/banco-horas/${servidor.id}/pdf?ano=${anoReferencia}&mes=${mesReferencia}`}
             className="inline-flex w-fit items-center gap-2 rounded-md bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/20"
           >
-            <FileDown className="size-4" aria-hidden="true" />
             Exportar PDF
-          </Link>
+          </RelatorioExportacaoButton>
         </div>
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -971,13 +970,12 @@ export function BancoHorasPageReal({
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <Link
+              <RelatorioExportacaoButton
                 href={`/api/relatorios/banco-horas/${servidorSelecionado.id}/pdf?ano=${anoReferencia}&mes=${mesReferencia}`}
                 className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)]"
               >
-                <FileDown className="size-4" aria-hidden="true" />
                 Exportar PDF
-              </Link>
+              </RelatorioExportacaoButton>
 
               {podeGerenciar && (
                 <>

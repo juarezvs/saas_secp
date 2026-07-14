@@ -38,6 +38,8 @@ export type SarhOracleClientOptions = {
 };
 
 const TIPOS_LOTACAO_SERVIDOR_FORA = [11, 12, 13];
+const FILTRO_MATRICULA_PESSOA_PONTO_SARH =
+  "(regexp_like({coluna}, '[0-9]$') or upper({coluna}) like '%ES' or upper({coluna}) like '%VO' or upper({coluna}) like '%PS')";
 
 let oracleClientInicializado = false;
 
@@ -199,7 +201,7 @@ export class SarhOracleClient {
         on fv.mvfu_matricula_folha = s.nu_matr_servidor
       where s.flag_ativo = 1
         and upper(s.nu_matr_servidor) like upper(:siglaLocalidade) || '%'
-        and regexp_like(s.nu_matr_servidor, '[0-9]$')
+        and ${this.filtroMatriculaPessoaPontoSarh("s.nu_matr_servidor")}
         and (
           l.lota_tipo_lotacao is null
           or l.lota_tipo_lotacao not in (${TIPOS_LOTACAO_SERVIDOR_FORA.join(", ")})
@@ -261,8 +263,11 @@ export class SarhOracleClient {
         on t.tlot_tipo_lotacao = l.lota_tipo_lotacao
       left join sarh.rh_cargo c
         on c.carg_cod_cargo = cf.cafu_carg_cod_cargo
+      join sarh.serv_pessoal s
+        on s.nu_matr_servidor = cf.cafu_matricula_folha
+       and s.flag_ativo = 1
       where upper(cf.cafu_matricula_folha) like upper(:siglaLocalidade) || '%'
-        and regexp_like(cf.cafu_matricula_folha, '[0-9]$')
+        and ${this.filtroMatriculaPessoaPontoSarh("cf.cafu_matricula_folha")}
       order by cf.cafu_matricula_folha
       `,
       { siglaLocalidade: this.siglaLocalidade },
@@ -343,7 +348,8 @@ export class SarhOracleClient {
           on s.nu_matr_servidor = f.func_matricula_folha
         cross join filtros flt
         where upper(f.func_matricula_folha) like upper(flt.sigla_localidade) || '%'
-          and regexp_like(f.func_matricula_folha, '[0-9]$')
+          and s.flag_ativo = 1
+          and ${this.filtroMatriculaPessoaPontoSarh("f.func_matricula_folha")}
       ),
       eventos as (
         select
@@ -535,20 +541,32 @@ export class SarhOracleClient {
         on s.nu_matr_servidor = mf.mvfu_matricula_folha
       left join sarh.rh_situacao_funcao_confianca sitf
         on sitf.sitf_cod_sit_func_conf = mf.mvfu_sitf_cod_sit_func_conf
-      where upper(mf.mvfu_matricula_folha) like upper(:siglaLocalidade) || '%'
+      where (mf.mvfu_matricula_folha is null or s.flag_ativo = 1)
+        and (
+          upper(mf.mvfu_matricula_folha) like upper(:siglaLocalidade) || '%'
+          and ${this.filtroMatriculaPessoaPontoSarh("mf.mvfu_matricula_folha")}
          or exists (
            select 1
            from sarh.rh_cargo_funcionario cf
+           join sarh.serv_pessoal s_cf
+             on s_cf.nu_matr_servidor = cf.cafu_matricula_folha
+            and s_cf.flag_ativo = 1
            where cf.cafu_cod_lotacao = l.lota_cod_lotacao
              and upper(cf.cafu_matricula_folha) like upper(:siglaLocalidade) || '%'
+             and ${this.filtroMatriculaPessoaPontoSarh("cf.cafu_matricula_folha")}
          )
          or exists (
            select 1
            from sarh.rh_movimentacao_funcional mf_lot
+           join sarh.serv_pessoal s_mf_lot
+             on s_mf_lot.nu_matr_servidor = mf_lot.mvfu_matricula_folha
+            and s_mf_lot.flag_ativo = 1
            where upper(mf_lot.mvfu_func_sigla_secao_exerce) = upper(l.lota_sigla_lotacao)
              and upper(mf_lot.mvfu_func_sigla_secao_exerce) like upper(:siglaLocalidade) || '%'
              and upper(mf_lot.mvfu_matricula_folha) like upper(:siglaLocalidade) || '%'
+             and ${this.filtroMatriculaPessoaPontoSarh("mf_lot.mvfu_matricula_folha")}
          )
+        )
       order by l.lota_sigla_lotacao, hifc.hifc_fcon_categ_func_conf desc, f.nfun_dsc_funcao
       `,
       { siglaLocalidade: this.siglaLocalidade },
@@ -765,6 +783,10 @@ export class SarhOracleClient {
     } finally {
       await connection?.close();
     }
+  }
+
+  private filtroMatriculaPessoaPontoSarh(coluna: string) {
+    return FILTRO_MATRICULA_PESSOA_PONTO_SARH.replaceAll("{coluna}", coluna);
   }
 
   private async loadOracleDb() {

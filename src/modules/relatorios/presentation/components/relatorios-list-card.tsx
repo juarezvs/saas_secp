@@ -9,6 +9,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { RelatorioExportacaoButton } from "./relatorio-exportacao-button";
 
 type BoletimRelatorioItem = {
   id: string;
@@ -71,6 +72,7 @@ export function RelatoriosListCard({
                 ? `/api/relatorios/espelho/${servidorId}/pdf?ano=${ano}&mes=${mes}`
                 : null
             }
+            assincrono
           />
 
           <RelatorioCard
@@ -82,6 +84,7 @@ export function RelatoriosListCard({
                 ? `/api/relatorios/banco-horas/${servidorId}/pdf?ano=${ano}&mes=${mes}`
                 : null
             }
+            assincrono
           />
         </div>
       </section>
@@ -101,18 +104,21 @@ export function RelatoriosListCard({
               descricao="Aponta creditos, debitos e saldo por servidor para gerir pagamentos e folgas."
               icon={BriefcaseBusiness}
               href={`/api/relatorios/gerenciais/horas-extras-banco-horas/pdf?${queryGerencial.toString()}`}
+              assincrono
             />
             <RelatorioCard
               titulo="Absenteismo"
               descricao="Exibe faltas, dias com debito, saidas antecipadas e inconsistencias."
               icon={AlertTriangle}
               href={`/api/relatorios/gerenciais/absenteismo/pdf?${queryGerencial.toString()}`}
+              assincrono
             />
             <RelatorioCard
               titulo="Jornada trabalhada"
               descricao="Mostra carga prevista, tempo trabalhado e percentual realizado no periodo."
               icon={Clock3}
               href={`/api/relatorios/gerenciais/jornada-trabalhada/pdf?${queryGerencial.toString()}`}
+              assincrono
             />
             {mostrarLotacoesChefias && (
               <RelatorioCard
@@ -120,6 +126,7 @@ export function RelatoriosListCard({
                 descricao="Lista unidades ativas que possuem chefia ou substituto registrado."
                 icon={FileCheck2}
                 href="/api/relatorios/gerenciais/lotacoes-chefias/pdf"
+                assincrono
               />
             )}
           </div>
@@ -151,13 +158,11 @@ export function RelatoriosListCard({
                 </p>
               </div>
 
-              <Link
+              <RelatorioExportacaoButton
                 href={`/api/relatorios/boletim/${boletim.id}/pdf`}
-                className="inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold transition hover:bg-[var(--muted)]"
               >
-                <Download className="size-4" aria-hidden="true" />
                 PDF
-              </Link>
+              </RelatorioExportacaoButton>
             </div>
           ))}
 
@@ -177,11 +182,13 @@ function RelatorioCard({
   descricao,
   icon: Icon,
   href,
+  assincrono = false,
 }: {
   titulo: string;
   descricao: string;
   icon: typeof FileCheck2;
   href: string | null;
+  assincrono?: boolean;
 }) {
   return (
     <article className="rounded-lg border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
@@ -196,7 +203,9 @@ function RelatorioCard({
             {descricao}
           </p>
 
-          {href ? (
+          {href && assincrono ? (
+            <RelatorioExportacaoButton href={href} />
+          ) : href ? (
             <Link
               href={href}
               className="mt-4 inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950"

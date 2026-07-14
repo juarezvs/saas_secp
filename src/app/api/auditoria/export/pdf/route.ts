@@ -9,6 +9,7 @@ import {
   type DocumentProps,
 } from "@react-pdf/renderer";
 import { auth } from "@/auth";
+import { withHttpMetrics } from "@/lib/observability/http";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { listarEventosAuditoriaParaExportacao } from "@/modules/auditoria/infrastructure/repositories/auditoria.repository";
 import { formatarDataHoraAuditoria } from "@/modules/auditoria/application/services/formatar-auditoria.service";
@@ -19,7 +20,7 @@ type EventoExportacao = Awaited<
   ReturnType<typeof listarEventosAuditoriaParaExportacao>
 >[number];
 
-export async function GET(request: Request) {
+async function getAuditoriaExportPdf(request: Request) {
   const session = await auth();
 
   const permissoes = session?.user?.perfilAtivo?.permissoes ?? [];
@@ -56,6 +57,11 @@ export async function GET(request: Request) {
     },
   });
 }
+
+export const GET = withHttpMetrics(
+  "/api/auditoria/export/pdf",
+  getAuditoriaExportPdf,
+);
 
 function AuditoriaPdfDocument({ eventos }: { eventos: EventoExportacao[] }) {
   return React.createElement(

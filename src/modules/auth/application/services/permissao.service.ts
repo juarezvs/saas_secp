@@ -20,9 +20,13 @@ export {
 export type ResultadoPermissao = {
   permitido: boolean;
   usuarioId?: string;
+  usuarioMatricula?: string;
+  usuarioNome?: string;
   perfilAtivoId?: string;
+  perfilAtivoNome?: string;
   perfilAtivoCodigo?: string;
   perfilAtivoEscopoGlobal?: boolean;
+  orgaoSiglas?: string[];
   orgaoIds?: string[];
   permissoes: string[];
 };
@@ -62,9 +66,13 @@ export async function obterPermissoesDaSessao(): Promise<ResultadoPermissao> {
   return {
     permitido: true,
     usuarioId: usuario.id,
+    usuarioMatricula: usuario.matricula,
+    usuarioNome: usuario.nome,
     perfilAtivoId: perfilAtivo?.id,
+    perfilAtivoNome: perfilAtivo?.nome,
     perfilAtivoCodigo: perfilAtivo?.codigo,
     perfilAtivoEscopoGlobal: perfilAtivo?.escopoGlobal ?? false,
+    orgaoSiglas: perfilAtivo?.orgaos?.map((orgao) => orgao.sigla) ?? [],
     orgaoIds: perfilAtivo?.orgaos?.map((orgao) => orgao.id) ?? [],
     permissoes: perfilAtivo?.permissoes ?? [],
   };

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { withHttpMetrics } from "@/lib/observability/http";
 import { exigirPermissaoTeamsApi } from "@/modules/integracoes/teams/application/teams-api-auth.service";
 import {
   obterOuCriarTeamsConfiguracao,
@@ -9,7 +10,8 @@ import { TEAMS_PERMISSOES } from "@/modules/integracoes/teams/domain/teams-permi
 
 export const runtime = "nodejs";
 
-export async function POST() {
+async function postTeamsTestarConexao(request: Request) {
+  void request;
   const acesso = await exigirPermissaoTeamsApi(TEAMS_PERMISSOES.testar);
 
   if (!acesso.permitido) {
@@ -48,3 +50,8 @@ export async function POST() {
     mensagem: "Configuração mínima do Teams validada.",
   });
 }
+
+export const POST = withHttpMetrics(
+  "/api/integracoes/teams/testar-conexao",
+  postTeamsTestarConexao,
+);

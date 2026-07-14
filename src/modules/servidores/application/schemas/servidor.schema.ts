@@ -9,6 +9,13 @@ export const tiposVinculoServidor = [
   "EXERCICIO_PROVISORIO",
 ] as const;
 
+export const tiposUsuarioPessoaPonto = [
+  "SERVIDOR",
+  "ESTAGIARIO",
+  "PRESTADOR",
+  "VOLUNTARIO",
+] as const;
+
 const cpfSchema = z
   .preprocess((valor) => {
     if (valor === undefined || valor === null) {
@@ -23,6 +30,7 @@ const cpfSchema = z
 
 export const servidorSchema = z.object({
   orgaoId: z.string().uuid("Informe o órgão."),
+  tipoUsuario: z.enum(tiposUsuarioPessoaPonto).default("SERVIDOR"),
   matricula: z
     .string()
     .trim()

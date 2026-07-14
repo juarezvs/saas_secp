@@ -56,6 +56,25 @@ COPY . .
 
 RUN npm run build
 
+FROM deps AS worker
+
+ARG DATABASE_URL
+
+ENV DATABASE_URL=${DATABASE_URL}
+ENV NODE_ENV=production
+ENV SECP_AUTO_WORKERS=false
+
+COPY prisma ./prisma
+COPY prisma.config.ts ./prisma.config.ts
+COPY tsconfig.json ./tsconfig.json
+COPY public ./public
+COPY src ./src
+COPY workers ./workers
+
+RUN npx prisma generate
+
+CMD ["npm", "run", "worker:afd"]
+
 FROM base AS runner
 
 ENV NODE_ENV=production
@@ -102,6 +121,7 @@ COPY prisma ./prisma
 COPY prisma.config.ts ./prisma.config.ts
 COPY tsconfig.json ./tsconfig.json
 COPY src ./src
+COPY scripts ./scripts
 
 RUN npx prisma generate
 

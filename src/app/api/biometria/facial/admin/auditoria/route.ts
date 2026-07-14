@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+import { withHttpMetrics } from "@/lib/observability/http";
 import {
   exigirPermissaoBiometriaFacialAdmin,
   respostaErroBiometriaAdmin,
@@ -12,7 +13,7 @@ const consultarAuditoriaFacialSchema = z.object({
   limite: z.coerce.number().int().min(1).max(100).default(30),
 });
 
-export async function GET(request: NextRequest) {
+async function getBiometriaAdminAuditoria(request: NextRequest) {
   const acesso = await exigirPermissaoBiometriaFacialAdmin([
     "biometriafacial:visualizar:auditoria",
   ]);
@@ -132,3 +133,8 @@ export async function GET(request: NextRequest) {
     })),
   });
 }
+
+export const GET = withHttpMetrics(
+  "/api/biometria/facial/admin/auditoria",
+  getBiometriaAdminAuditoria,
+);

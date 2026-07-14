@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { definirCacheJson, obterCacheJson } from "@/lib/cache/redis-cache";
 import { normalizarPreferenciasAcessibilidade } from "../../application/services/preferencias-acessibilidade.service";
 import { aplicarExcecoesRegistroPontoAoPerfilServidor } from "../../application/services/perfil-excecao-registro-ponto.service";
 import { escolherPerfilInicial } from "../../application/services/perfil-servidor-prioritario.service";
@@ -18,6 +19,19 @@ export async function buscarUsuarioParaLoginPorMatricula(
     })
   | null
 > {
+  const matriculaNormalizada = matricula.trim().toUpperCase();
+  const cacheKey = `secp:auth:usuario:${matriculaNormalizada}`;
+  const ttl = Number(process.env.AUTH_SESSION_CACHE_TTL_SECONDS ?? "60");
+  const cached = ttl > 0
+    ? await obterCacheJson<Awaited<ReturnType<typeof buscarUsuarioParaLoginPorMatricula>>>(
+        cacheKey,
+      )
+    : null;
+
+  if (cached) {
+    return cached;
+  }
+
   const usuario = await prisma.usuario.findFirst({
     where: {
       matricula: {
@@ -138,7 +152,7 @@ export async function buscarUsuarioParaLoginPorMatricula(
     perfis,
   });
 
-  return {
+  const resultado = {
     id: usuario.id,
     matricula: usuario.matricula,
     nome: usuario.nome,
@@ -152,4 +166,10 @@ export async function buscarUsuarioParaLoginPorMatricula(
     perfis,
     perfilAtivo,
   };
+
+  if (ttl > 0) {
+    await definirCacheJson(cacheKey, resultado, Math.min(Math.max(ttl, 30), 120));
+  }
+
+  return resultado;
 }

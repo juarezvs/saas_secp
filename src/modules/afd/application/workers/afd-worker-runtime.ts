@@ -27,12 +27,13 @@ async function processarJobAfd(job: Job<ProcessarArquivoAfdJob>) {
 }
 
 export function criarAfdWorker() {
+  const concurrency = Math.max(Number(process.env.AFD_CONCURRENCY ?? "2"), 1);
   const worker = new Worker<ProcessarArquivoAfdJob>(
     AFD_QUEUE_NAME,
     processarJobAfd,
     {
       connection: afdConnection,
-      concurrency: 3,
+      concurrency,
     },
   );
 

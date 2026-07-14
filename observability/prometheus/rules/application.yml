@@ -1,0 +1,37 @@
+groups:
+  - name: secp_application
+    rules:
+      - alert: SecpAppDown
+        expr: up{job="secp"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: secp
+          category: application
+        annotations:
+          summary: "SECP sem scrape de metricas"
+          description: "O Prometheus nao conseguiu coletar /api/metrics do SECP por mais de 2 minutos."
+          runbook_url: "docs/runbooks/secp-app-down.md"
+      - alert: SecpHighHttpErrorRate
+        expr: secp:http_error_rate5m > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          service: secp
+          category: application
+        annotations:
+          summary: "Taxa de erro HTTP elevada no SECP"
+          description: "Mais de 5% das requisicoes observadas estao retornando 5xx nos ultimos 5 minutos."
+          runbook_url: "docs/runbooks/secp-http-errors.md"
+      - alert: SecpHighHttpLatency
+        expr: secp:http_latency_p95_5m > 3
+        for: 10m
+        labels:
+          severity: warning
+          service: secp
+          category: application
+        annotations:
+          summary: "Latencia p95 alta no SECP"
+          description: "A latencia p95 observada ficou acima de 3 segundos por mais de 10 minutos."
+          runbook_url: "docs/runbooks/secp-latency.md"
+

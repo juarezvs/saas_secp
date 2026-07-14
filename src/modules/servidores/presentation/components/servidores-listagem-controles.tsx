@@ -18,6 +18,7 @@ type ServidoresListagemControlesProps = {
   orgaos: OrgaoOption[];
   servidores: FiltroOption[];
   lotacoes: FiltroOption[];
+  tipoUsuarioFixo?: string;
   exportCsvHref?: string;
   exportPdfHref?: string;
 };
@@ -26,6 +27,7 @@ export function ServidoresListagemControles({
   orgaos,
   servidores,
   lotacoes,
+  tipoUsuarioFixo,
   exportCsvHref,
   exportPdfHref,
 }: ServidoresListagemControlesProps) {
@@ -57,6 +59,21 @@ export function ServidoresListagemControles({
       searchPlaceholder: "Pesquisar lotação...",
       options: [{ value: "", label: "Todas" }, ...lotacoes],
     },
+    ...(tipoUsuarioFixo
+      ? []
+      : [
+          {
+            tipo: "select" as const,
+            nome: "tipoUsuario",
+            label: "Tipo",
+            options: [
+              { value: "", label: "Servidores" },
+              { value: "ESTAGIARIO", label: "Estagiarios" },
+              { value: "PRESTADOR", label: "Prestadores" },
+              { value: "VOLUNTARIO", label: "Voluntarios" },
+            ],
+          },
+        ]),
     {
       tipo: "select",
       nome: "orgaoId",

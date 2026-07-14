@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { atualizarResumoFechamentoService } from "./atualizar-resumo-fechamento.service";
 
 export async function atualizarStatusFechamentoService(
   fechamentoId: string,
@@ -53,4 +54,6 @@ export async function atualizarStatusFechamentoService(
       homologadoPorUsuarioId,
     },
   });
+
+  await atualizarResumoFechamentoService(fechamentoId);
 }

@@ -41,6 +41,7 @@ type ServidoresPageProps = {
     matricula?: string;
     cpf?: string;
     nome?: string;
+    tipoUsuario?: string;
     orgaoId?: string;
     vinculo?: string;
     lotacao?: string;
@@ -49,6 +50,93 @@ type ServidoresPageProps = {
     itensPorPagina?: string;
   }>;
 };
+
+type TipoPessoaPonto = "SERVIDOR" | "ESTAGIARIO" | "PRESTADOR" | "VOLUNTARIO";
+
+const CONTEXTOS_PESSOA: Record<
+  TipoPessoaPonto,
+  {
+    hrefBase: string;
+    breadcrumb: string;
+    eyebrow: string;
+    titulo: string;
+    descricao: string;
+    regraTitulo: string;
+    regraDescricao: string;
+    novoLabel: string;
+    tabelaTitulo: string;
+    colunaPessoa: string;
+  }
+> = {
+  SERVIDOR: {
+    hrefBase: "/servidores",
+    breadcrumb: "Servidores",
+    eyebrow: "Cadastro funcional",
+    titulo: "Servidores",
+    descricao:
+      "Gerencie servidores, vinculos funcionais, usuarios relacionados e lotacoes em unidades organizacionais.",
+    regraTitulo: "Servidor, jornada, frequencia e consulta",
+    regraDescricao:
+      "O cadastro funcional sustenta a jornada, a apuracao mensal, o banco de horas, a homologacao pela chefia e a consulta da propria frequencia pelo servidor.",
+    novoLabel: "Novo servidor",
+    tabelaTitulo: "Servidores cadastrados",
+    colunaPessoa: "Servidor",
+  },
+  ESTAGIARIO: {
+    hrefBase: "/estagiarios",
+    breadcrumb: "Estagiarios",
+    eyebrow: "Cadastro de estagiarios",
+    titulo: "Estagiarios",
+    descricao:
+      "Gerencie estagiarios controlados pelo ponto, com lotacao, jornada e usuario de acesso por seccional.",
+    regraTitulo: "Estagio, jornada e frequencia",
+    regraDescricao:
+      "Estagiarios podem registrar ponto e compor espelhos e homologacao; regras de banco de horas e creditos devem ser habilitadas apenas quando houver norma aplicavel.",
+    novoLabel: "Novo estagiario",
+    tabelaTitulo: "Estagiarios cadastrados",
+    colunaPessoa: "Estagiario",
+  },
+  PRESTADOR: {
+    hrefBase: "/prestadores",
+    breadcrumb: "Prestadores",
+    eyebrow: "Cadastro de prestadores",
+    titulo: "Prestadores",
+    descricao:
+      "Gerencie prestadores controlados pelo ponto, respeitando a seccional e a unidade de atuacao.",
+    regraTitulo: "Prestador, jornada e frequencia",
+    regraDescricao:
+      "Prestadores podem ser acompanhados no ponto; regras de creditos, debitos e horas extras devem permanecer condicionadas a autorizacao normativa.",
+    novoLabel: "Novo prestador",
+    tabelaTitulo: "Prestadores cadastrados",
+    colunaPessoa: "Prestador",
+  },
+  VOLUNTARIO: {
+    hrefBase: "/voluntarios",
+    breadcrumb: "Voluntarios",
+    eyebrow: "Cadastro de voluntarios",
+    titulo: "Voluntarios",
+    descricao:
+      "Gerencie voluntarios controlados pelo ponto, com vinculo operacional por seccional.",
+    regraTitulo: "Voluntario, jornada e frequencia",
+    regraDescricao:
+      "Voluntarios podem registrar ponto e ter frequencia acompanhada; aplicacao de banco de horas e creditos deve ser explicitamente autorizada.",
+    novoLabel: "Novo voluntario",
+    tabelaTitulo: "Voluntarios cadastrados",
+    colunaPessoa: "Voluntario",
+  },
+};
+
+function normalizarTipoUsuario(valor?: string | null): TipoPessoaPonto {
+  return valor === "ESTAGIARIO" ||
+    valor === "PRESTADOR" ||
+    valor === "VOLUNTARIO"
+    ? valor
+    : "SERVIDOR";
+}
+
+function obterContextoPessoa(tipoUsuario: TipoPessoaPonto) {
+  return CONTEXTOS_PESSOA[tipoUsuario];
+}
 
 export default async function ServidoresPage({
   searchParams,
@@ -72,6 +160,8 @@ export default async function ServidoresPage({
   );
 
   const params = searchParams ? await searchParams : {};
+  const tipoUsuario = normalizarTipoUsuario(params.tipoUsuario);
+  const contextoPessoa = obterContextoPessoa(tipoUsuario);
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
   const perfilChefiaAtivo = perfilAtivoEhChefia({
     perfilAtivoCodigo: permissoesSessao.perfilAtivoCodigo,
@@ -103,6 +193,7 @@ export default async function ServidoresPage({
       matricula: params.matricula ?? "",
       cpf: params.cpf ?? "",
       nome: params.nome ?? "",
+      tipoUsuario,
       orgaoId: params.orgaoId ?? "",
       vinculo: params.vinculo ?? "",
       lotacao: params.lotacao ?? "",
@@ -159,6 +250,7 @@ export default async function ServidoresPage({
     "matricula",
     "cpf",
     "nome",
+    "tipoUsuario",
     "orgaoId",
     "vinculo",
     "lotacao",
@@ -166,6 +258,8 @@ export default async function ServidoresPage({
   ] as const) {
     if (chave === "status") {
       exportParams.set(chave, statusFiltro);
+    } else if (chave === "tipoUsuario") {
+      exportParams.set(chave, tipoUsuario);
     } else if (params[chave]) {
       exportParams.set(chave, params[chave]!);
     }
@@ -177,7 +271,7 @@ export default async function ServidoresPage({
   function montarHrefPagina(novaPagina: number) {
     const query = new URLSearchParams(baseParams);
     query.set("pagina", String(novaPagina));
-    return `/servidores?${query.toString()}`;
+    return `${contextoPessoa.hrefBase}?${query.toString()}`;
   }
 
   return (
@@ -185,39 +279,41 @@ export default async function ServidoresPage({
       <Breadcrumb
         items={[
           { label: "Administração", href: "/administracao" },
-          { label: "Servidores" },
+          { label: contextoPessoa.breadcrumb },
         ]}
       />
 
       <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-            Cadastro funcional
+            {contextoPessoa.eyebrow}
           </p>
 
           <PageHeader
             icon={Users}
-            titulo="Servidores"
-            descricao="Gerencie servidores, vínculos funcionais, usuários relacionados e lotações em unidades organizacionais."
+            titulo={contextoPessoa.titulo}
+            descricao={contextoPessoa.descricao}
             artigo="Arts. 4, 8, 16 e 19"
-            regraTitulo="Servidor, jornada, frequência e consulta"
-            regraDescricao="O cadastro funcional sustenta a jornada, a apuração mensal, o banco de horas, a homologação pela chefia e a consulta da própria frequência pelo servidor."
+            regraTitulo={contextoPessoa.regraTitulo}
+            regraDescricao={contextoPessoa.regraDescricao}
           />
         </div>
 
         {podeGerenciarServidor && (
           <Link
-            href="/servidores/novo"
+            href={`/servidores/novo?${new URLSearchParams({
+              tipoUsuario,
+            }).toString()}`}
             className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <Plus className="size-4" aria-hidden="true" />
-            Novo servidor
+            {contextoPessoa.novoLabel}
           </Link>
         )}
       </section>
 
       <DataTableShell
-        title="Servidores cadastrados"
+        title={contextoPessoa.tabelaTitulo}
         description="Use a pesquisa geral ou filtre diretamente pelas colunas da tabela."
         total={resultado.total}
         pagina={resultado.pagina}
@@ -229,6 +325,7 @@ export default async function ServidoresPage({
             orgaos={orgaos}
             servidores={servidoresOptions}
             lotacoes={lotacoesOptions}
+            tipoUsuarioFixo={tipoUsuario}
             exportCsvHref={
               podeExportarServidores
                 ? `/api/servidores/export?${exportParams.toString()}`
@@ -245,14 +342,14 @@ export default async function ServidoresPage({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1120px] text-left text-sm">
             <caption className="sr-only">
-              Listagem de servidores com matrícula, CPF, nome, órgão, vínculo,
+              Listagem de pessoas com matrícula, CPF, nome, órgão, vínculo,
               lotação atual, contadores, status e ações.
             </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
                 <th className="px-5 py-3">Matrícula</th>
                 <th className="px-5 py-3">CPF</th>
-                <th className="px-5 py-3">Servidor</th>
+                <th className="px-5 py-3">{contextoPessoa.colunaPessoa}</th>
                 <th className="px-5 py-3">Órgão</th>
                 <th className="px-5 py-3">Vínculo</th>
                 <th className="px-5 py-3">Lotação atual</th>
@@ -357,7 +454,7 @@ export default async function ServidoresPage({
                     colSpan={10}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
-                    Nenhum servidor encontrado para os filtros informados.
+                    Nenhum registro encontrado para os filtros informados.
                   </td>
                 </tr>
               )}

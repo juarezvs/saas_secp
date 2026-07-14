@@ -15,6 +15,7 @@ function extrairDados(formData: FormData) {
     equipamentoId: String(formData.get("equipamentoId") ?? "").trim(),
     codigo: String(formData.get("codigo") ?? "").trim(),
     nome: String(formData.get("nome") ?? "").trim(),
+    orgaoId: String(formData.get("orgaoId") ?? ""),
     unidadeId: String(formData.get("unidadeId") ?? ""),
     fabricante: String(formData.get("fabricante") ?? "").trim(),
     modelo: String(formData.get("modelo") ?? "").trim(),
@@ -126,14 +127,27 @@ export async function registrarEquipamentoBiometricoAction(
         throw new Error("Unidade do equipamento nao encontrada.");
       }
 
-      if (!unidade) {
-        throw new Error(
-          "Vincule o equipamento a uma unidade da seccional antes de salvar.",
-        );
+      const orgaoId = parsed.data.orgaoId || unidade?.orgaoId || null;
+
+      if (!orgaoId) {
+        throw new Error("Vincule o equipamento a um orgao antes de salvar.");
       }
 
-      if (!escopo.global && !escopo.orgaoIds.includes(unidade.orgaoId)) {
-        throw new Error("Unidade fora do escopo do perfil ativo.");
+      if (unidade && unidade.orgaoId !== orgaoId) {
+        throw new Error("A unidade selecionada nao pertence ao orgao informado.");
+      }
+
+      const orgao = await tx.orgao.findUnique({
+        where: { id: orgaoId },
+        select: { id: true },
+      });
+
+      if (!orgao) {
+        throw new Error("Orgao do equipamento nao encontrado.");
+      }
+
+      if (!escopo.global && !escopo.orgaoIds.includes(orgaoId)) {
+        throw new Error("Orgao fora do escopo do perfil ativo.");
       }
 
       const configEditada = Object.fromEntries(
@@ -163,12 +177,12 @@ export async function registrarEquipamentoBiometricoAction(
       const integracaoAtual = await tx.integracaoSistema.findFirst({
         where: {
           tipo: "EQUIPAMENTO_BIOMETRICO",
-          orgaoId: unidade.orgaoId,
+          orgaoId,
         },
         select: { id: true },
       });
       const dadosIntegracao = {
-        orgaoId: unidade.orgaoId,
+        orgaoId,
         nome: "Equipamentos biometricos",
         tipo: "EQUIPAMENTO_BIOMETRICO" as const,
         direcao: "ENTRADA" as const,
@@ -199,16 +213,19 @@ export async function registrarEquipamentoBiometricoAction(
 
       const dadosEquipamento = {
         integracaoId: integracao.id,
+        orgaoId,
         codigo: parsed.data.codigo,
         nome: parsed.data.nome,
-        unidadeId: unidade.id,
+        unidadeId: unidade?.id ?? null,
         fabricante:
           parsed.data.protocolo === "HENRY" ||
           parsed.data.protocolo === "HENRY_LUMEN_BALCAO"
             ? "HENRY"
             : parsed.data.protocolo === "DIMEP_SMART_PRINT"
               ? "DIMEP"
-              : parsed.data.fabricante || null,
+              : parsed.data.protocolo === "CONTROL_ID_FACE_ID"
+                ? "CONTROL_ID"
+                : parsed.data.fabricante || null,
         modelo: parsed.data.modelo || null,
         numeroSerie: parsed.data.numeroSerie || null,
         localizacao: parsed.data.localizacao || null,
@@ -246,7 +263,7 @@ export async function registrarEquipamentoBiometricoAction(
             nome: equipamento.nome,
             unidadeId: equipamento.unidadeId,
             integracaoId: equipamento.integracaoId,
-            orgaoId: unidade.orgaoId,
+            orgaoId,
             ativo: equipamento.ativo,
           },
         },

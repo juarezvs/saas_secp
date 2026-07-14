@@ -72,7 +72,7 @@ export default async function NovoEquipamentoPage({
         }
       />
 
-      <EquipamentoBiometricoForm unidades={unidades} />
+      <EquipamentoBiometricoForm orgaos={orgaos} unidades={unidades} />
     </div>
   );
 }

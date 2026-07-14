@@ -15,6 +15,7 @@ import {
 } from "../../infrastructure/repositories/servidor.repository";
 import {
   servidorSchema,
+  tiposUsuarioPessoaPonto,
   tiposVinculoServidor,
   type ServidorFormState,
   type ServidorInput,
@@ -33,8 +34,15 @@ function normalizarVinculoServidor(
 }
 
 function extrairDadosServidor(formData: FormData): Partial<ServidorInput> {
+  const tipoUsuario = String(formData.get("tipoUsuario") ?? "SERVIDOR");
+
   return {
     orgaoId: String(formData.get("orgaoId") ?? ""),
+    tipoUsuario: tiposUsuarioPessoaPonto.includes(
+      tipoUsuario as ServidorInput["tipoUsuario"],
+    )
+      ? (tipoUsuario as ServidorInput["tipoUsuario"])
+      : "SERVIDOR",
     matricula: String(formData.get("matricula") ?? "").trim(),
     cpf: String(formData.get("cpf") ?? "").replace(/\D/g, ""),
     nome: String(formData.get("nome") ?? "").trim(),
@@ -110,7 +118,7 @@ export async function criarServidorAction(
         cpf: parsed.data.cpf || null,
         nome: parsed.data.nome,
         email: parsed.data.email || null,
-        tipo: "SERVIDOR",
+        tipo: parsed.data.tipoUsuario,
         ativo: parsed.data.ativo,
       },
     });
@@ -176,6 +184,9 @@ export async function criarServidorAction(
   });
 
   revalidatePath("/servidores");
+  revalidatePath("/estagiarios");
+  revalidatePath("/prestadores");
+  revalidatePath("/voluntarios");
   revalidatePath(`/servidores/${servidor.id}`);
 
   redirect(`/servidores/${servidor.id}`);

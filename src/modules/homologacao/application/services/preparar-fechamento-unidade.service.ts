@@ -2,6 +2,7 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 import { resolverChefiaResponsavelDaUnidade } from "@/modules/chefias/application/services/resolver-chefia.service";
 import { recalcularMesServidorService } from "@/modules/recalculo/application/services/recalcular-mes-servidor.service";
 import { listarServidoresDaUnidadeNoMes } from "../../infrastructure/repositories/homologacao.repository";
+import { atualizarResumoFechamentoService } from "./atualizar-resumo-fechamento.service";
 import { validarPendenciasHomologacaoServidor } from "./validar-pendencias-homologacao.service";
 
 export async function prepararFechamentoUnidadeService(params: {
@@ -103,6 +104,8 @@ export async function prepararFechamentoUnidadeService(params: {
       },
     });
   }
+
+  await atualizarResumoFechamentoService(fechamento.id);
 
   await prisma.auditoriaEvento.create({
     data: {

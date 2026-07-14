@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 
+import { withHttpMetrics } from "@/lib/observability/http";
 import { exigirPermissaoTeamsApi } from "@/modules/integracoes/teams/application/teams-api-auth.service";
 import { enviarNotificacaoTeams } from "@/modules/integracoes/teams/application/teams-notification.service";
 import { TEAMS_PERMISSOES } from "@/modules/integracoes/teams/domain/teams-permissoes";
 
 export const runtime = "nodejs";
 
-export async function POST(request: Request) {
+async function postTeamsTestarMensagem(request: Request) {
   const acesso = await exigirPermissaoTeamsApi(TEAMS_PERMISSOES.testar);
 
   if (!acesso.permitido) {
@@ -34,3 +35,8 @@ export async function POST(request: Request) {
 
   return NextResponse.json(resultado);
 }
+
+export const POST = withHttpMetrics(
+  "/api/integracoes/teams/testar-mensagem",
+  postTeamsTestarMensagem,
+);
