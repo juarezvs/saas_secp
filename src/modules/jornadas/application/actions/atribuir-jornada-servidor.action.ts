@@ -217,6 +217,7 @@ export async function atribuirJornadaServidorAction(
   });
 
   revalidatePath("/jornadas");
+  revalidatePath("/jornadas/atribuicoes");
   revalidatePath("/servidores");
   revalidatePath(`/servidores/${parsed.data.servidorId}`);
 

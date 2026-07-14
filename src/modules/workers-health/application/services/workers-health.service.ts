@@ -272,14 +272,20 @@ function statusLabel(status: WorkerHealthStatus) {
 function statusPorContainer(
   container: DockerContainerHealth | undefined,
 ): WorkerHealthStatus | null {
-  if (!container?.disponivel) return null;
+  if (!container) return null;
+  if (!container.disponivel) return "atencao";
   if (!container.running) return "parado";
   if (container.health === "unhealthy") return "atencao";
   return "online";
 }
 
 function motivoPorContainer(container: DockerContainerHealth | undefined) {
-  if (!container?.disponivel) return null;
+  if (!container) return null;
+  if (!container.disponivel) {
+    return container.erro
+      ? `Nao foi possivel consultar o Docker: ${container.erro}`
+      : "Nao foi possivel consultar o Docker.";
+  }
   if (!container.running) {
     return `Container ${container.containerName} nao esta em execucao.`;
   }

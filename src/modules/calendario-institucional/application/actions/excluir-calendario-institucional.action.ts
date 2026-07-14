@@ -67,3 +67,67 @@ export async function excluirCalendarioInstitucionalAction(calendarioId: string)
   revalidarRotasRelacionadas();
   redirect("/administracao/calendario");
 }
+
+export async function excluirCalendariosInstitucionaisAction(formData: FormData) {
+  const permissao = await exigirPermissaoOuRedirecionar(
+    "configuracoes:gerenciar:global",
+  );
+  const ids = formData
+    .getAll("calendarioId")
+    .map((id) => String(id))
+    .filter(Boolean);
+  const redirectTo =
+    String(formData.get("redirectTo") ?? "") || "/administracao/calendario";
+
+  if (ids.length === 0) {
+    redirect(redirectTo);
+  }
+
+  const eventos = await prisma.calendarioInstitucional.findMany({
+    where: { id: { in: ids } },
+  });
+
+  if (eventos.length === 0) {
+    redirect(redirectTo);
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.auditoriaEvento.createMany({
+      data: eventos.map((evento) => ({
+        usuarioId: permissao.usuarioId,
+        entidade: "CalendarioInstitucional",
+        entidadeId: evento.id,
+        acao: "CALENDARIO_INSTITUCIONAL_EXCLUIDO",
+        dadosAntes: evento,
+      })),
+    });
+
+    await tx.calendarioInstitucional.deleteMany({
+      where: { id: { in: eventos.map((evento) => evento.id) } },
+    });
+  });
+
+  await Promise.all(
+    eventos.map((evento) =>
+      enfileirarReflexosCalendarioInstitucional({
+        calendarioId: evento.id,
+        datasReferencia: [
+          evento.dataReferencia,
+          ...(evento.dataOriginal ? [evento.dataOriginal] : []),
+        ],
+        usuarioIdAuditoria: permissao.usuarioId,
+        calendarioEscopo: {
+          abrangencia: evento.abrangencia,
+          uf: evento.uf,
+          municipio: evento.municipio,
+          municipioIbge: evento.municipioIbge,
+          orgaoId: evento.orgaoId,
+          unidadeId: evento.unidadeId,
+        },
+      }),
+    ),
+  );
+
+  revalidarRotasRelacionadas();
+  redirect(redirectTo);
+}

@@ -1,49 +1,27 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import { Search } from "lucide-react";
 
 type FiltroTextoDebounceProps = {
   nome: string;
   label: string;
   valor: string;
-  onChange: (nome: string, valor: string) => void;
   className?: string;
   placeholder?: string;
   comIconeBusca?: boolean;
-  delayMs?: number;
 };
 
 export function FiltroTextoDebounce({
   nome,
   label,
   valor,
-  onChange,
   className,
   placeholder,
   comIconeBusca = false,
-  delayMs = 0,
 }: FiltroTextoDebounceProps) {
   const id = useId();
   const [valorLocal, setValorLocal] = useState(valor);
-
-  useEffect(() => {
-    if (delayMs <= 0) {
-      if (valorLocal !== valor) {
-        onChange(nome, valorLocal);
-      }
-
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      if (valorLocal !== valor) {
-        onChange(nome, valorLocal);
-      }
-    }, delayMs);
-
-    return () => window.clearTimeout(timeout);
-  }, [delayMs, nome, onChange, valor, valorLocal]);
 
   return (
     <div className={className}>
@@ -62,6 +40,7 @@ export function FiltroTextoDebounce({
           />
           <input
             id={id}
+            name={nome}
             value={valorLocal}
             onChange={(event) => setValorLocal(event.target.value)}
             placeholder={placeholder}
@@ -71,6 +50,7 @@ export function FiltroTextoDebounce({
       ) : (
         <input
           id={id}
+          name={nome}
           value={valorLocal}
           onChange={(event) => setValorLocal(event.target.value)}
           placeholder={placeholder}

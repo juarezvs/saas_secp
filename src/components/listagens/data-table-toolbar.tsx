@@ -103,6 +103,25 @@ export function DataTableToolbar({
     [pathname, router, searchParams],
   );
 
+  const aplicarParametrosTexto = useCallback(
+    (formData: FormData) => {
+      const atualizacoes: Record<string, string> = { pagina: "1" };
+
+      for (const filtro of filtros) {
+        if (filtro.tipo !== "texto") continue;
+        atualizacoes[filtro.nome] = String(formData.get(filtro.nome) ?? "");
+      }
+
+      const params = criarQueryStringAtualizada(searchParams, atualizacoes);
+      const destino = montarHrefComQuery(pathname, params);
+
+      startTransition(() => {
+        router.push(destino);
+      });
+    },
+    [filtros, pathname, router, searchParams],
+  );
+
   const obterValorFiltro = useCallback(
     (filtro: DataTableFiltro) => {
       const value = paramsAtuais.get(filtro.nome) ?? filtro.defaultValue ?? "";
@@ -122,6 +141,7 @@ export function DataTableToolbar({
     },
     [paramsAtuais],
   );
+  const possuiFiltroTexto = filtros.some((filtro) => filtro.tipo === "texto");
 
   return (
     <>
@@ -136,7 +156,10 @@ export function DataTableToolbar({
         </div>
       )}
 
-      <div className="grid gap-3 lg:grid-cols-6">
+      <form
+        action={aplicarParametrosTexto}
+        className="grid gap-3 lg:grid-cols-6"
+      >
         {filtros.map((filtro) => {
           const value = obterValorFiltro(filtro);
 
@@ -203,11 +226,20 @@ export function DataTableToolbar({
               placeholder={filtro.placeholder}
               comIconeBusca={filtro.comIconeBusca}
               className={filtro.className}
-              onChange={aplicarParametro}
             />
           );
         })}
-      </div>
+        {possuiFiltroTexto && (
+          <div className="flex items-end">
+            <button
+              type="submit"
+              className="h-10 rounded-md bg-blue-900 px-4 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              Filtrar
+            </button>
+          </div>
+        )}
+      </form>
     </>
   );
 }

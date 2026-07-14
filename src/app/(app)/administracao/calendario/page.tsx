@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { CalendarDays, Edit, Plus } from "lucide-react";
+import { CalendarDays, Plus } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarCalendarioInstitucionalPaginado } from "@/modules/calendario-institucional/infrastructure/repositories/calendario-institucional.repository";
+import { CalendarioInstitucionalListagem } from "@/modules/calendario-institucional/presentation/components/calendario-institucional-listagem";
 import { ReplicarCalendarioInstitucionalForm } from "@/modules/calendario-institucional/presentation/components/replicar-calendario-institucional-form";
 
 type CalendarioInstitucionalPageProps = {
@@ -19,29 +20,6 @@ type CalendarioInstitucionalPageProps = {
     itensPorPagina?: string;
   }>;
 };
-
-const rotulosTipo: Record<string, string> = {
-  FERIADO: "Feriado",
-  PONTO_FACULTATIVO: "Ponto facultativo",
-  SUSPENSAO_EXPEDIENTE: "Suspensão do expediente",
-};
-
-function formatarDataUtc(data: Date) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "UTC",
-  }).format(data);
-}
-
-function formatarJanela(evento: {
-  janelaInicio?: string | null;
-  janelaFim?: string | null;
-}) {
-  if (!evento.janelaInicio || !evento.janelaFim) {
-    return "Dia inteiro";
-  }
-
-  return `${evento.janelaInicio} - ${evento.janelaFim}`;
-}
 
 export default async function CalendarioInstitucionalPage({
   searchParams,
@@ -84,22 +62,26 @@ export default async function CalendarioInstitucionalPage({
     return `/administracao/calendario?${query.toString()}`;
   }
 
+  const redirectParams = new URLSearchParams(baseParams);
+  redirectParams.set("pagina", String(resultado.pagina));
+  const redirectTo = `/administracao/calendario?${redirectParams.toString()}`;
+
   return (
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Administração", href: "/administracao" },
-          { label: "Calendário institucional" },
+          { label: "Administracao", href: "/administracao" },
+          { label: "Calendario institucional" },
         ]}
       />
 
       <PageHeader
         icon={CalendarDays}
-        titulo="Calendário institucional"
-        descricao="Cadastre os dias que alteram a rotina ordinária do órgão, com reflexos em prazos regulamentares e na apuração diária do ponto."
+        titulo="Calendario institucional"
+        descricao="Cadastre os dias que alteram a rotina ordinaria do orgao, com reflexos em prazos regulamentares e na apuracao diaria do ponto."
         artigo="Arts. 16, 17 e fluxo institucional"
         regraTitulo="Prazos e expediente"
-        regraDescricao="Feriados, pontos facultativos, suspensões de expediente e recesso forense precisam refletir corretamente nos prazos de homologação, boletim e na apuração do ponto."
+        regraDescricao="Feriados, pontos facultativos, suspensoes de expediente e recesso forense precisam refletir corretamente nos prazos de homologacao, boletim e na apuracao do ponto."
       />
 
       <div className="flex justify-end">
@@ -118,7 +100,7 @@ export default async function CalendarioInstitucionalPage({
 
       <DataTableShell
         title="Eventos cadastrados"
-        description="Filtre por tipo, ano, mês, status e termos livres da descrição."
+        description="Filtre por tipo, ano, mes, status e termos livres da descricao."
         total={resultado.total}
         pagina={resultado.pagina}
         totalPaginas={resultado.totalPaginas}
@@ -130,7 +112,7 @@ export default async function CalendarioInstitucionalPage({
               type="text"
               name="busca"
               defaultValue={params.busca ?? ""}
-              placeholder="Buscar descrição"
+              placeholder="Buscar descricao"
               className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm md:col-span-2"
             />
             <select
@@ -141,7 +123,7 @@ export default async function CalendarioInstitucionalPage({
               <option value="">Todos os tipos</option>
               <option value="FERIADO">Feriado</option>
               <option value="PONTO_FACULTATIVO">Ponto facultativo</option>
-              <option value="SUSPENSAO_EXPEDIENTE">Suspensão do expediente</option>
+              <option value="SUSPENSAO_EXPEDIENTE">Suspensao do expediente</option>
             </select>
             <select
               name="status"
@@ -167,7 +149,7 @@ export default async function CalendarioInstitucionalPage({
               min={1}
               max={12}
               defaultValue={params.mes ?? ""}
-              placeholder="Mês"
+              placeholder="Mes"
               className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
             />
             <div className="flex gap-2 md:col-span-6">
@@ -187,90 +169,23 @@ export default async function CalendarioInstitucionalPage({
           </form>
         }
       >
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1120px] text-left text-sm">
-            <caption className="sr-only">
-              Listagem de eventos do calendário institucional com data, tipo,
-              descrição, parâmetros de prazo, apuração e ações.
-            </caption>
-            <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
-              <tr>
-                <th className="px-5 py-3">Data</th>
-                <th className="px-5 py-3">Tipo</th>
-                <th className="px-5 py-3">Descrição</th>
-                <th className="px-5 py-3">Dia útil</th>
-                <th className="px-5 py-3">Apuração regular</th>
-                <th className="px-5 py-3">Expediente</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Ações</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {resultado.eventos.map((evento) => (
-                <tr key={evento.id} className="border-b last:border-b-0">
-                  <td className="px-5 py-4 font-semibold">
-                    {formatarDataUtc(evento.dataReferencia)}
-                  </td>
-                  <td className="px-5 py-4">
-                    {rotulosTipo[evento.tipo] ?? evento.tipo}
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="font-semibold">{evento.descricao}</div>
-                    {evento.observacao && (
-                      <div className="mt-1 text-xs text-[var(--muted-foreground)]">
-                        {evento.observacao}
-                      </div>
-                    )}
-                    {evento.dataSubstituida && evento.dataOriginal && (
-                      <div className="mt-1 text-xs font-medium text-blue-800 dark:text-blue-300">
-                        Transferido de {formatarDataUtc(evento.dataOriginal)}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-5 py-4">
-                    {evento.contaComoDiaUtil ? "Sim" : "Não"}
-                  </td>
-                  <td className="px-5 py-4">
-                    {evento.geraApuracaoRegular ? "Sim" : "Não"}
-                  </td>
-                  <td className="px-5 py-4">{formatarJanela(evento)}</td>
-                  <td className="px-5 py-4">
-                    <span
-                      className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                        evento.ativo
-                          ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
-                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                      }`}
-                    >
-                      {evento.ativo ? "Ativo" : "Inativo"}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    <Link
-                      href={`/administracao/calendario/${evento.id}/editar`}
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-blue-900 hover:underline dark:text-blue-300"
-                    >
-                      <Edit className="size-4" aria-hidden="true" />
-                      Editar
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-
-              {resultado.eventos.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="px-5 py-10 text-center text-[var(--muted-foreground)]"
-                  >
-                    Nenhum evento institucional encontrado para os filtros informados.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <CalendarioInstitucionalListagem
+          redirectTo={redirectTo}
+          eventos={resultado.eventos.map((evento) => ({
+            id: evento.id,
+            dataReferencia: evento.dataReferencia.toISOString(),
+            dataOriginal: evento.dataOriginal?.toISOString() ?? null,
+            dataSubstituida: evento.dataSubstituida,
+            tipo: evento.tipo,
+            descricao: evento.descricao,
+            observacao: evento.observacao,
+            contaComoDiaUtil: evento.contaComoDiaUtil,
+            geraApuracaoRegular: evento.geraApuracaoRegular,
+            janelaInicio: evento.janelaInicio,
+            janelaFim: evento.janelaFim,
+            ativo: evento.ativo,
+          }))}
+        />
       </DataTableShell>
     </div>
   );
