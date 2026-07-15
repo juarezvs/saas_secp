@@ -28,6 +28,7 @@ docker/oracle/instantclient-basiclite-linuxx64.zip
 /backups
 /import
 /files_afd
+/secp-deploy-*.tar.gz
 
 # misc
 .DS_Store

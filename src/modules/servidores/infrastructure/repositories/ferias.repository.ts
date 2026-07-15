@@ -36,6 +36,34 @@ function statusFerias(dataInicio: Date, dataFim: Date | null, ativo: boolean) {
   return "ENCERRADA";
 }
 
+function calcularDiasFerias(
+  dias: number | null,
+  dataInicio: Date,
+  dataFim: Date | null,
+) {
+  if (typeof dias === "number" && Number.isFinite(dias) && dias > 0) {
+    return dias;
+  }
+
+  if (!dataFim) {
+    return 0;
+  }
+
+  const inicioUtc = Date.UTC(
+    dataInicio.getUTCFullYear(),
+    dataInicio.getUTCMonth(),
+    dataInicio.getUTCDate(),
+  );
+  const fimUtc = Date.UTC(
+    dataFim.getUTCFullYear(),
+    dataFim.getUTCMonth(),
+    dataFim.getUTCDate(),
+  );
+  const diasCalculados = Math.floor((fimUtc - inicioUtc) / 86400000) + 1;
+
+  return diasCalculados > 0 ? diasCalculados : 0;
+}
+
 export async function listarPeriodosAquisitivosFerias(servidorId: string) {
   const registros = await prisma.afastamentoSarh.findMany({
     where: filtroFerias(servidorId),
@@ -87,7 +115,11 @@ export async function listarPeriodosAquisitivosFerias(servidorId: string) {
     );
 
     existente.totalPeriodos += 1;
-    existente.diasProgramados += registro.dias ?? 0;
+    existente.diasProgramados += calcularDiasFerias(
+      registro.dias,
+      registro.dataInicio,
+      registro.dataFim,
+    );
     existente.inicio =
       !existente.inicio || registro.dataInicio < existente.inicio
         ? registro.dataInicio

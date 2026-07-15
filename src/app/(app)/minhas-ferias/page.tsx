@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CalendarRange, TreePalm } from "lucide-react";
 
@@ -10,6 +9,7 @@ import {
   listarFeriasPorPeriodoAquisitivo,
   listarPeriodosAquisitivosFerias,
 } from "@/modules/servidores/infrastructure/repositories/ferias.repository";
+import { MinhasFeriasPeriodoSelect } from "@/modules/servidores/presentation/components/minhas-ferias-periodo-select";
 
 type MinhasFeriasPageProps = {
   searchParams?: Promise<{
@@ -27,15 +27,6 @@ function formatarData(data: Date | null) {
   return new Intl.DateTimeFormat("pt-BR", {
     timeZone: "UTC",
   }).format(data);
-}
-
-function classePeriodo(ativo: boolean) {
-  return [
-    "flex min-h-20 flex-col justify-between rounded-md border px-3 py-2 text-left transition",
-    ativo
-      ? "border-blue-900 bg-blue-50 text-blue-950 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-100"
-      : "bg-[var(--card)] hover:border-blue-300 hover:bg-[var(--muted)]/50",
-  ].join(" ");
 }
 
 function classeStatus(status: string) {
@@ -153,13 +144,12 @@ function TabelaFeriasExercicio({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] text-left text-sm">
+          <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
                 <th className="px-5 py-3">Período</th>
                 <th className="px-5 py-3">Ocorrência</th>
                 <th className="px-5 py-3">Dias</th>
-                <th className="px-5 py-3">Processo</th>
                 <th className="px-5 py-3">Motivo/observação</th>
                 <th className="px-5 py-3">Status</th>
               </tr>
@@ -181,9 +171,6 @@ function TabelaFeriasExercicio({
                     </td>
                     <td className="px-5 py-4 font-mono text-xs">
                       {calcularDiasFerias(item) ?? "-"}
-                    </td>
-                    <td className="px-5 py-4 font-mono text-xs">
-                      {item.processo || "-"}
                     </td>
                     <td className="px-5 py-4">
                       <p className="max-w-xl whitespace-normal text-sm text-[var(--muted-foreground)]">
@@ -229,7 +216,10 @@ export default async function MinhasFeriasPage({
   }
 
   const periodos = await listarPeriodosAquisitivosFerias(servidor.id);
-  const exercicioParam = Number(query?.exercicio ?? "");
+  const exercicioParam =
+    query?.exercicio && query.exercicio.trim()
+      ? Number(query.exercicio)
+      : Number.NaN;
   const exercicioSelecionado = Number.isInteger(exercicioParam)
     ? exercicioParam
     : periodos[0]?.exercicio ?? null;
@@ -271,71 +261,11 @@ export default async function MinhasFeriasPage({
             Nenhum período de férias sincronizado do SARH para sua matrícula.
           </div>
         ) : (
-          <div className="space-y-4 p-5">
-            <form
-              action="/minhas-ferias"
-              className="grid gap-3 md:grid-cols-[minmax(16rem,24rem)_auto] md:items-end"
-            >
-              <div className="space-y-2">
-                <label htmlFor="exercicio" className="text-sm font-semibold">
-                  Período aquisitivo
-                </label>
-                <select
-                  id="exercicio"
-                  name="exercicio"
-                  defaultValue={exercicioSelecionado ?? ""}
-                  className="h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-                >
-                  {periodos.map((periodo) => (
-                    <option key={periodo.chave} value={periodo.exercicio ?? ""}>
-                      {periodo.label} - {rotuloStatus(periodo.status)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button
-                type="submit"
-                className="h-10 rounded-md bg-blue-900 px-4 text-sm font-semibold text-white hover:bg-blue-950"
-              >
-                Consultar
-              </button>
-            </form>
-
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
-              {periodos.map((periodo) => {
-                const ativo = periodo.exercicio === exercicioSelecionado;
-                const href = periodo.exercicio
-                  ? `/minhas-ferias?${new URLSearchParams({
-                      exercicio: String(periodo.exercicio),
-                    }).toString()}`
-                  : "/minhas-ferias";
-
-                return (
-                  <Link
-                    key={periodo.chave}
-                    href={href}
-                    className={classePeriodo(ativo)}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-bold">
-                        {periodo.exercicio ?? "S/ exercício"}
-                      </p>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${classeStatus(
-                          periodo.status,
-                        )}`}
-                      >
-                        {rotuloStatus(periodo.status)}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-xs text-[var(--muted-foreground)]">
-                      {periodo.totalPeriodos} período(s),{" "}
-                      {periodo.diasProgramados} dia(s)
-                    </p>
-                  </Link>
-                );
-              })}
-            </div>
+          <div className="p-5">
+            <MinhasFeriasPeriodoSelect
+              periodos={periodos}
+              exercicioSelecionado={exercicioSelecionado}
+            />
           </div>
         )}
       </section>
