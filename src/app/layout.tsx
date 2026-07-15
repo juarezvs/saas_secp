@@ -40,7 +40,7 @@ export default function RootLayout({
             __html: `
 try {
   var tema = window.localStorage.getItem("secp-color-theme");
-  if (tema === "verde" || tema === "cinza") {
+  if (tema === "azul" || tema === "verde" || tema === "cinza") {
     document.documentElement.dataset.secpColorTheme = tema;
   }
 } catch {}

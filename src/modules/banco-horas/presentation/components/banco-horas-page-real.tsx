@@ -365,7 +365,7 @@ function FiltrosBancoHoras({
 
         <button
           type="submit"
-          className="h-10 rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)]"
+          className="secp-theme-action h-10 rounded-md border px-4 text-sm font-semibold transition"
         >
           Aplicar
         </button>
@@ -400,17 +400,17 @@ function SaldoPrincipalCard({
   const saldoPositivo = saldoMinutos >= 0;
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-blue-950 text-white shadow-sm">
+    <section className="secp-banco-horas-balance-card overflow-hidden rounded-xl border shadow-sm">
       <div className="p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="text-sm font-semibold text-blue-100">
+            <p className="secp-banco-horas-balance-muted text-sm font-semibold">
               {perfilServidorAtivo ? "Meu saldo disponível" : "Saldo do servidor"}
             </p>
             <h2 className="mt-3 text-4xl font-bold tracking-tight md:text-5xl">
               {minutosParaHoraBanco(saldoMinutos)}
             </h2>
-            <p className="mt-2 text-sm text-blue-100">
+            <p className="secp-banco-horas-balance-muted mt-2 text-sm">
               {saldoPositivo
                 ? "Horas disponíveis para fruição ou compensação."
                 : "Saldo negativo que exige compensação no prazo."}
@@ -419,7 +419,7 @@ function SaldoPrincipalCard({
 
           <RelatorioExportacaoButton
             href={`/api/relatorios/banco-horas/${servidor.id}/pdf?ano=${anoReferencia}&mes=${mesReferencia}`}
-            className="inline-flex w-fit items-center gap-2 rounded-md bg-white/10 px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/20"
+            className="secp-theme-primary-action inline-flex w-fit items-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition"
           >
             Exportar PDF
           </RelatorioExportacaoButton>
@@ -475,7 +475,7 @@ function SaldoPrincipalCard({
 
       <div className="border-t border-white/10 bg-white/5 px-6 py-4">
         <p className="text-sm font-semibold">{nomeServidor(servidor)}</p>
-        <p className="mt-1 text-sm text-blue-100">
+        <p className="secp-banco-horas-balance-muted mt-1 text-sm">
           Matrícula {servidor.matricula} -{" "}
           {servidor.lotacoes?.[0]?.unidade.sigla ??
             "Sem lotação na competência"}
@@ -499,13 +499,12 @@ function SaldoMiniIndicador({
   return (
     <Link
       href={href}
-      className={`rounded-lg p-3 ring-1 transition hover:bg-white/20 ${
-        ativo ? "bg-white/25 ring-white/60" : "bg-white/10 ring-white/10"
-      }`}
+      aria-current={ativo ? "true" : undefined}
+      className="secp-banco-horas-mini-card rounded-lg border p-3 transition"
     >
-      <p className="text-xs font-medium text-blue-100">{titulo}</p>
+      <p className="secp-banco-horas-balance-muted text-xs font-medium">{titulo}</p>
       <p className="mt-1 font-mono text-lg font-bold">{valor}</p>
-      <p className="mt-2 text-xs font-semibold text-blue-100">
+      <p className="secp-banco-horas-balance-muted mt-2 text-xs font-semibold">
         Ver composição
       </p>
     </Link>
@@ -553,7 +552,7 @@ function AcoesBancoHoras({
           <input type="hidden" name="mesReferencia" value={mesReferencia} />
           <button
             type="submit"
-            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)]"
+            className="secp-theme-action inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition"
           >
             <RotateCw className="size-4" aria-hidden="true" />
             Gerar movimentos
@@ -564,7 +563,7 @@ function AcoesBancoHoras({
           <input type="hidden" name="servidorId" value={servidorId} />
           <button
             type="submit"
-            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)]"
+            className="secp-theme-action inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition"
           >
             <RotateCw className="size-4" aria-hidden="true" />
             Recalcular saldo
@@ -575,7 +574,7 @@ function AcoesBancoHoras({
           <input type="hidden" name="servidorId" value={servidorId} />
           <button
             type="submit"
-            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-amber-200 px-4 text-sm font-semibold text-amber-800 transition hover:bg-amber-50 dark:border-amber-900 dark:text-amber-300 dark:hover:bg-amber-950"
+            className="secp-theme-action inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition"
           >
             <Landmark className="size-4" aria-hidden="true" />
             Expirar débitos vencidos
@@ -660,7 +659,7 @@ function ExtratoComposicaoSaldo({
     >
       <div className="flex flex-col gap-3 border-b p-5 md:flex-row md:items-start md:justify-between">
         <div>
-          <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">
+          <p className="text-sm font-semibold text-[var(--secp-theme-accent)]">
             Extrato da composição
           </p>
           <h2 className="mt-1 text-xl font-bold">{configuracao.titulo}</h2>
@@ -724,7 +723,7 @@ function ExtratoComposicaoSaldo({
                             ancora: "extrato-diario",
                           })
                     }
-                    className="text-sm font-semibold text-blue-800 underline-offset-4 hover:underline dark:text-blue-300"
+                    className="text-sm font-semibold text-[var(--secp-theme-accent)] underline-offset-4 hover:underline"
                   >
                     {detalheAtivo === competencia.chave
                       ? "Detalhando"
@@ -772,7 +771,7 @@ function ExtratoComposicaoSaldo({
                 mesReferencia,
                 extrato,
               })}
-              className="inline-flex w-fit items-center justify-center rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)]"
+              className="secp-theme-action inline-flex w-fit items-center justify-center rounded-md border px-4 py-2 text-sm font-semibold transition"
             >
               Voltar para competências
             </Link>
@@ -857,7 +856,7 @@ export function BancoHorasPageReal({
   const extratoAtivo = normalizarExtratoSaldo(extratoSelecionado);
 
   return (
-    <div className="space-y-6">
+    <div className="secp-banco-horas space-y-6">
       <Breadcrumb items={[{ label: "Banco de horas" }]} />
 
       <PageHeader
@@ -901,7 +900,7 @@ export function BancoHorasPageReal({
 
           <button
             type="submit"
-            className="h-10 rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)]"
+            className="secp-theme-action h-10 rounded-md border px-4 text-sm font-semibold transition"
           >
             Aplicar
           </button>
@@ -972,7 +971,7 @@ export function BancoHorasPageReal({
             <div className="flex flex-wrap gap-2">
               <RelatorioExportacaoButton
                 href={`/api/relatorios/banco-horas/${servidorSelecionado.id}/pdf?ano=${anoReferencia}&mes=${mesReferencia}`}
-                className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)]"
+                className="secp-theme-action inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition"
               >
                 Exportar PDF
               </RelatorioExportacaoButton>
@@ -985,7 +984,7 @@ export function BancoHorasPageReal({
                     <input type="hidden" name="mesReferencia" value={mesReferencia || mes} />
                     <button
                       type="submit"
-                      className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)]"
+                      className="secp-theme-action inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition"
                     >
                       <RotateCw className="size-4" aria-hidden="true" />
                       Gerar movimentos
@@ -996,7 +995,7 @@ export function BancoHorasPageReal({
                     <input type="hidden" name="servidorId" value={servidorSelecionado.id} />
                     <button
                       type="submit"
-                      className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)]"
+                      className="secp-theme-action inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition"
                     >
                       <RotateCw className="size-4" aria-hidden="true" />
                       Recalcular saldo
@@ -1007,7 +1006,7 @@ export function BancoHorasPageReal({
                     <input type="hidden" name="servidorId" value={servidorSelecionado.id} />
                     <button
                       type="submit"
-                      className="inline-flex items-center gap-2 rounded-md border border-amber-200 px-4 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-50 dark:border-amber-900 dark:text-amber-300 dark:hover:bg-amber-950"
+                      className="secp-theme-action inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition"
                     >
                       <Landmark className="size-4" aria-hidden="true" />
                       Expirar debitos vencidos
@@ -1327,7 +1326,7 @@ function AjusteManualBancoHorasForm({
 
         <button
           type="submit"
-          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-[var(--primary)] px-4 text-sm font-semibold text-[var(--primary-foreground)] transition hover:opacity-90"
+          className="secp-theme-primary-action inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition"
         >
           <PlusCircle className="size-4" aria-hidden="true" />
           Incluir ajuste
@@ -1403,7 +1402,7 @@ function AutorizacoesBancoHorasTable({
                   <td className="px-5 py-4">
                     <Link
                       href={`/solicitacoes/${autorizacao.solicitacao.id}`}
-                      className="font-semibold text-blue-800 underline-offset-4 hover:underline dark:text-blue-300"
+                      className="font-semibold text-[var(--secp-theme-accent)] underline-offset-4 hover:underline"
                     >
                       Ver solicitação
                     </Link>

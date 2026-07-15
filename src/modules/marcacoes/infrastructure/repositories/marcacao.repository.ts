@@ -38,25 +38,31 @@ export async function buscarServidorPorUsuarioId(
           cargo: true,
           unidade: {
             include: {
-              orgao: {
-                select: {
-                  fusoHorario: true,
+                orgao: {
+                  select: {
+                    sigla: true,
+                    nome: true,
+                    fusoHorario: true,
+                  },
                 },
-              },
               unidadePai: {
                 include: {
-                  orgao: {
-                    select: {
-                      fusoHorario: true,
+                    orgao: {
+                      select: {
+                        sigla: true,
+                        nome: true,
+                        fusoHorario: true,
+                      },
                     },
-                  },
                   unidadePai: {
                     include: {
-                      orgao: {
-                        select: {
-                          fusoHorario: true,
+                        orgao: {
+                          select: {
+                            sigla: true,
+                            nome: true,
+                            fusoHorario: true,
+                          },
                         },
-                      },
                     },
                   },
                 },

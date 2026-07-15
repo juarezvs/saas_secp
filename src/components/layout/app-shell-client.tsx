@@ -11,6 +11,7 @@ type UsuarioNavegacao = {
   funcaoOuCargo?: string | null;
   fotoUrl?: string | null;
   unidade: string;
+  instituicaoLabel: string;
   perfis: PerfilNavegacao[];
   perfilAtivo: PerfilNavegacao;
   preferenciasAcessibilidade: PreferenciasAcessibilidade;
@@ -46,6 +47,8 @@ export function AppShellClient({
           recolhida={sidebarRecolhida}
           drawerAberto={drawerAberto}
           perfilAtivo={perfilAtivo}
+          preferenciasAcessibilidade={usuario.preferenciasAcessibilidade}
+          instituicaoLabel={usuario.instituicaoLabel}
           onFecharDrawer={() => setDrawerAberto(false)}
         />
 

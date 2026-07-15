@@ -16,13 +16,13 @@ export function RegraPortariaCard({
       <button
         type="button"
         aria-label={`Base normativa: ${artigo}`}
-        className="secp-theme-icon inline-flex size-9 animate-pulse items-center justify-center rounded-full border border-secp-blue-900/20 shadow-sm transition hover:animate-none hover:bg-secp-blue-900/15 focus:outline-none focus:ring-2 focus:ring-ring dark:border-white/15 dark:hover:bg-white/10"
+        className="secp-theme-icon inline-flex size-9 animate-pulse items-center justify-center rounded-full border shadow-sm transition hover:animate-none focus:outline-none focus:ring-2 focus:ring-ring"
       >
         <Scale className="size-5" aria-hidden="true" />
       </button>
 
-      <span className="pointer-events-none absolute left-1/2 top-11 z-50 hidden w-[min(360px,calc(100vw-2rem))] -translate-x-1/2 rounded-xl border border-blue-100 bg-white p-4 text-left text-blue-950 shadow-xl group-hover:block group-focus-within:block dark:border-blue-900 dark:bg-slate-950 dark:text-blue-100">
-        <span className="block text-xs font-bold uppercase tracking-wide text-blue-800 dark:text-blue-300">
+      <span className="pointer-events-none absolute left-1/2 top-11 z-50 hidden w-[min(360px,calc(100vw-2rem))] -translate-x-1/2 rounded-xl border bg-[var(--card)] p-4 text-left text-[var(--card-foreground)] shadow-xl group-hover:block group-focus-within:block">
+        <span className="block text-xs font-bold uppercase tracking-wide text-[var(--secp-theme-accent)]">
           Base normativa — {artigo}
         </span>
 

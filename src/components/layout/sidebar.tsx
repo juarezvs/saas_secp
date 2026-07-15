@@ -53,6 +53,10 @@ import {
   PERMISSOES_SUBMENUS_PAINEL_EXECUTIVO,
   paineisExecutivos,
 } from "@/modules/painel-executivo/presentation/painel-executivo-data";
+import type {
+  PreferenciasAcessibilidade,
+  TemaVisualAcessibilidade,
+} from "@/modules/auth/application/services/preferencias-acessibilidade.service";
 
 export type PerfilNavegacao = {
   codigo: string;
@@ -69,7 +73,7 @@ export type MenuItem = {
   children?: MenuItem[];
 };
 
-type TemaVisual = "azul" | "verde" | "cinza";
+type TemaVisual = TemaVisualAcessibilidade;
 
 const STORAGE_TEMA_VISUAL = "secp-color-theme";
 
@@ -78,6 +82,7 @@ const TEMAS_VISUAIS: Array<{
   label: string;
   classe: string;
 }> = [
+  { valor: "padrao", label: "Padrão", classe: "bg-white" },
   { valor: "azul", label: "Azul", classe: "bg-[#002f6c]" },
   { valor: "verde", label: "Verde", classe: "bg-[#007a33]" },
   { valor: "cinza", label: "Cinza", classe: "bg-[#97999b]" },
@@ -435,6 +440,8 @@ type SidebarProps = {
   recolhida: boolean;
   drawerAberto: boolean;
   perfilAtivo: PerfilNavegacao;
+  preferenciasAcessibilidade: PreferenciasAcessibilidade;
+  instituicaoLabel: string;
   onFecharDrawer: () => void;
 };
 
@@ -502,7 +509,7 @@ function obterItemAtivo(pathname: string, itens: MenuItem[]) {
 }
 
 function aplicarTemaVisual(tema: TemaVisual) {
-  if (tema === "azul") {
+  if (tema === "padrao") {
     delete document.documentElement.dataset.secpColorTheme;
   } else {
     document.documentElement.dataset.secpColorTheme = tema;
@@ -511,13 +518,38 @@ function aplicarTemaVisual(tema: TemaVisual) {
   window.localStorage.setItem(STORAGE_TEMA_VISUAL, tema);
 }
 
-function ThemeSelector({ recolhida }: { recolhida: boolean }) {
-  const [tema, setTema] = useState<TemaVisual>("azul");
+function persistirTemaVisual(
+  preferenciasAtuais: PreferenciasAcessibilidade,
+  temaVisual: TemaVisual,
+) {
+  return fetch("/api/sessao/acessibilidade", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      ...preferenciasAtuais,
+      temaVisual,
+    }),
+  });
+}
+
+function ThemeSelector({
+  recolhida,
+  preferenciasAcessibilidade,
+}: {
+  recolhida: boolean;
+  preferenciasAcessibilidade: PreferenciasAcessibilidade;
+}) {
+  const [tema, setTema] = useState<TemaVisual>(
+    preferenciasAcessibilidade.temaVisual,
+  );
 
   useEffect(() => {
-    const temaArmazenado = window.localStorage.getItem(STORAGE_TEMA_VISUAL);
+    const temaArmazenado = preferenciasAcessibilidade.temaVisual;
 
     if (
+      temaArmazenado === "padrao" ||
       temaArmazenado === "azul" ||
       temaArmazenado === "verde" ||
       temaArmazenado === "cinza"
@@ -525,17 +557,31 @@ function ThemeSelector({ recolhida }: { recolhida: boolean }) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Restaura a preferência visual salva no navegador após a hidratação.
       setTema(temaArmazenado);
       aplicarTemaVisual(temaArmazenado);
+      window.dispatchEvent(
+        new CustomEvent<TemaVisual>("secp:tema-visual", {
+          detail: temaArmazenado,
+        }),
+      );
     }
-  }, []);
+  }, [preferenciasAcessibilidade.temaVisual]);
 
   function selecionarTema(novoTema: TemaVisual) {
     setTema(novoTema);
     aplicarTemaVisual(novoTema);
+    window.dispatchEvent(
+      new CustomEvent<TemaVisual>("secp:tema-visual", {
+        detail: novoTema,
+      }),
+    );
+    void persistirTemaVisual(preferenciasAcessibilidade, novoTema).catch(
+      () => undefined,
+    );
   }
 
   return (
     <div
       className={[
+        "secp-sidebar-theme-selector",
         "border-t border-border/80 px-3 py-3",
         recolhida ? "flex justify-center" : "space-y-2",
       ].join(" ")}
@@ -548,8 +594,8 @@ function ThemeSelector({ recolhida }: { recolhida: boolean }) {
       )}
       <div
         className={[
-          "flex gap-1.5",
-          recolhida ? "flex-col items-center" : "items-center",
+          "gap-1.5",
+          recolhida ? "flex flex-col items-center" : "grid grid-cols-2",
         ].join(" ")}
         role="group"
         aria-label="Selecionar tema visual"
@@ -563,21 +609,21 @@ function ThemeSelector({ recolhida }: { recolhida: boolean }) {
               type="button"
               onClick={() => selecionarTema(item.valor)}
               className={[
-                "inline-flex h-8 items-center justify-center gap-2 rounded-md border px-2 text-xs font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                "inline-flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-md border px-1.5 text-[11px] font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                 ativo
                   ? "border-secp-blue-900 bg-secp-blue-900/10 text-secp-blue-900 dark:border-white/60 dark:bg-white/10 dark:text-white"
                   : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
-                recolhida ? "w-9 px-0" : "flex-1",
+                recolhida ? "w-9 px-0" : "w-full",
               ].join(" ")}
               aria-pressed={ativo}
               aria-label={`Usar tema ${item.label}`}
               title={`Tema ${item.label}`}
             >
               <span
-                className={["size-3 rounded-full", item.classe].join(" ")}
+                className={["size-2.5 shrink-0 rounded-full", item.classe].join(" ")}
                 aria-hidden="true"
               />
-              {!recolhida && <span>{item.label}</span>}
+              {!recolhida && <span className="truncate">{item.label}</span>}
             </button>
           );
         })}
@@ -632,6 +678,7 @@ function MenuPrincipal({
           const grupoAberto = gruposAlternados[item.href] ?? grupoAtivo;
           const mostrarFilhos = possuiFilhos && !recolhida && grupoAberto;
           const itemClassName = [
+            "secp-sidebar-item",
             "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-semibold transition",
             "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
             grupoAtivo
@@ -695,6 +742,7 @@ function MenuPrincipal({
                           onClick={onNavigate}
                           aria-current={childAtivo ? "page" : undefined}
                           className={[
+                            "secp-sidebar-subitem",
                             "flex items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition",
                             "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                             childAtivo
@@ -732,6 +780,8 @@ export function Sidebar({
   recolhida,
   drawerAberto,
   perfilAtivo,
+  preferenciasAcessibilidade,
+  instituicaoLabel,
   onFecharDrawer,
 }: SidebarProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -759,6 +809,7 @@ export function Sidebar({
       <aside
         id="secp-sidebar-desktop"
         className={[
+          "secp-sidebar",
           "sticky top-0 hidden h-screen shrink-0 border-r border-border bg-card text-card-foreground shadow-card transition-[width] duration-300 lg:flex",
           recolhida ? "w-20" : "w-72",
         ].join(" ")}
@@ -767,6 +818,7 @@ export function Sidebar({
         <div className="flex min-w-0 flex-1 flex-col">
           <div
             className={[
+              "secp-sidebar-header",
               "flex h-[4.5rem] items-center border-b border-border/80 bg-gradient-to-b from-card to-muted/30 px-4",
               recolhida ? "justify-center" : "gap-3",
             ].join(" ")}
@@ -778,7 +830,7 @@ export function Sidebar({
             {!recolhida && (
               <div className="min-w-0">
                 <p className="truncate text-[11px] font-black uppercase text-secp-blue-800 dark:text-blue-200">
-                  Justiça Federal
+                  {instituicaoLabel}
                 </p>
                 <p className="truncate text-xl font-black leading-6 tracking-normal text-foreground">
                   SECP
@@ -790,7 +842,10 @@ export function Sidebar({
             )}
           </div>
           <MenuPrincipal recolhida={recolhida} perfilAtivo={perfilAtivo} />
-          <ThemeSelector recolhida={recolhida} />
+          <ThemeSelector
+            recolhida={recolhida}
+            preferenciasAcessibilidade={preferenciasAcessibilidade}
+          />
         </div>
       </aside>
 
@@ -809,8 +864,8 @@ export function Sidebar({
             tabIndex={-1}
             onClick={onFecharDrawer}
           />
-          <aside className="relative flex h-full w-[min(20rem,88vw)] flex-col bg-card text-card-foreground shadow-floating">
-            <div className="flex h-[4.5rem] items-center justify-between border-b border-border/80 bg-gradient-to-b from-card to-muted/30 px-4">
+          <aside className="secp-sidebar relative flex h-full w-[min(20rem,88vw)] flex-col bg-card text-card-foreground shadow-floating">
+            <div className="secp-sidebar-header flex h-[4.5rem] items-center justify-between border-b border-border/80 bg-gradient-to-b from-card to-muted/30 px-4">
               <div className="flex items-center gap-3">
                 <SecpLogo
                   variant="mark"
@@ -818,7 +873,7 @@ export function Sidebar({
                 />
                 <div className="min-w-0">
                   <p className="truncate text-[11px] font-black uppercase text-secp-blue-800 dark:text-blue-200">
-                    Justiça Federal
+                    {instituicaoLabel}
                   </p>
                   <p className="text-xl font-black leading-6 tracking-normal">
                     SECP
@@ -843,7 +898,10 @@ export function Sidebar({
               perfilAtivo={perfilAtivo}
               onNavigate={onFecharDrawer}
             />
-            <ThemeSelector recolhida={false} />
+            <ThemeSelector
+              recolhida={false}
+              preferenciasAcessibilidade={preferenciasAcessibilidade}
+            />
           </aside>
         </div>
       )}

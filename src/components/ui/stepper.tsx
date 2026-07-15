@@ -28,7 +28,7 @@ export function Stepper({ steps, currentStep, className }: StepperProps) {
               key={step.id}
               className={cn(
                 "rounded-md border p-3 text-sm",
-                active && "border-secp-blue-700 bg-blue-50 text-secp-blue-900 dark:bg-blue-950 dark:text-blue-100",
+                active && "border-[var(--secp-theme-accent)] bg-[var(--secp-theme-accent-soft)] text-[var(--secp-theme-accent)]",
                 completed && "border-green-200 bg-green-50 text-green-900 dark:border-green-900 dark:bg-green-950 dark:text-green-100",
                 !active && !completed && "border-border bg-muted text-muted-foreground",
               )}

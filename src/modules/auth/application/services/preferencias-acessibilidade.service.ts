@@ -9,11 +9,13 @@ export const TAMANHOS_FONTE_ACESSIBILIDADE = [
 ] as const;
 
 export type TemaAcessibilidade = "light" | "dark";
+export type TemaVisualAcessibilidade = "padrao" | "azul" | "verde" | "cinza";
 export type TamanhoFonteAcessibilidade =
   (typeof TAMANHOS_FONTE_ACESSIBILIDADE)[number];
 
 export type PreferenciasAcessibilidade = {
   tema: TemaAcessibilidade;
+  temaVisual: TemaVisualAcessibilidade;
   tamanhoFonte: TamanhoFonteAcessibilidade;
   fonteDislexia: boolean;
   altoContraste: boolean;
@@ -21,6 +23,7 @@ export type PreferenciasAcessibilidade = {
 
 export const PREFERENCIAS_ACESSIBILIDADE_PADRAO: PreferenciasAcessibilidade = {
   tema: "light",
+  temaVisual: "padrao",
   tamanhoFonte: "16",
   fonteDislexia: false,
   altoContraste: false,
@@ -28,6 +31,15 @@ export const PREFERENCIAS_ACESSIBILIDADE_PADRAO: PreferenciasAcessibilidade = {
 
 function normalizarTema(valor: unknown): TemaAcessibilidade {
   return valor === "dark" || valor === "light" ? valor : "light";
+}
+
+function normalizarTemaVisual(valor: unknown): TemaVisualAcessibilidade {
+  return valor === "padrao" ||
+    valor === "azul" ||
+    valor === "verde" ||
+    valor === "cinza"
+    ? valor
+    : "padrao";
 }
 
 function normalizarTamanhoFonte(valor: unknown): TamanhoFonteAcessibilidade {
@@ -61,6 +73,7 @@ export function normalizarPreferenciasAcessibilidade(
 
   return {
     tema: normalizarTema(objeto.tema),
+    temaVisual: normalizarTemaVisual(objeto.temaVisual),
     tamanhoFonte: normalizarTamanhoFonte(objeto.tamanhoFonte),
     fonteDislexia: objeto.fonteDislexia === true,
     altoContraste: objeto.altoContraste === true,

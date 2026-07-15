@@ -46,6 +46,12 @@
 html {
   min-height: 100%;
   scroll-behavior: smooth;
+  --secp-theme-accent: var(--secp-blue-900);
+  --secp-theme-accent-strong: var(--secp-blue-800);
+  --secp-theme-accent-soft: color-mix(in srgb, var(--secp-blue-800) 12%, transparent);
+  --secp-theme-accent-soft-hover: color-mix(in srgb, var(--secp-blue-800) 18%, transparent);
+  --secp-theme-accent-contrast: #ffffff;
+  --secp-theme-accent-muted: color-mix(in srgb, var(--secp-blue-900) 78%, white);
 }
 
 body {
@@ -136,17 +142,459 @@ button:disabled,
 }
 
 .secp-theme-icon {
-  background: color-mix(in srgb, var(--secp-blue-800) 12%, transparent);
-  color: var(--secp-blue-900);
+  background: var(--secp-theme-accent-soft);
+  color: var(--secp-theme-accent);
 }
 
 .dark .secp-theme-icon {
-  background: color-mix(in srgb, var(--secp-blue-700) 24%, transparent);
-  color: color-mix(in srgb, var(--secp-blue-700) 45%, white);
+  background: color-mix(in srgb, var(--secp-theme-accent) 26%, transparent);
+  color: color-mix(in srgb, var(--secp-theme-accent) 42%, white);
 }
 
 .secp-institutional-gradient {
   background: linear-gradient(135deg, var(--secp-blue-900), var(--secp-blue-800));
+}
+
+.secp-theme-action {
+  border-color: color-mix(in srgb, var(--secp-theme-accent) 24%, var(--border));
+  background: color-mix(in srgb, var(--secp-theme-accent) 8%, var(--card));
+  color: var(--secp-theme-accent);
+}
+
+.secp-theme-action:hover {
+  border-color: color-mix(in srgb, var(--secp-theme-accent) 42%, var(--border));
+  background: var(--secp-theme-accent-soft-hover);
+  color: var(--secp-theme-accent-strong);
+}
+
+.secp-theme-action svg {
+  color: currentColor;
+}
+
+.secp-theme-primary-action {
+  border-color: color-mix(in srgb, var(--secp-theme-accent) 68%, transparent);
+  background: var(--secp-theme-accent);
+  color: var(--secp-theme-accent-contrast);
+}
+
+.secp-theme-primary-action:hover {
+  background: var(--secp-theme-accent-strong);
+}
+
+.secp-theme-primary-action svg {
+  color: currentColor;
+}
+
+button[class*="bg-secp-blue-900"],
+a[class*="bg-secp-blue-900"],
+button[class*="bg-blue-900"],
+a[class*="bg-blue-900"] {
+  background-color: var(--secp-theme-accent);
+  color: var(--secp-theme-accent-contrast);
+}
+
+button[class*="hover:bg-secp-blue-800"]:hover,
+a[class*="hover:bg-secp-blue-800"]:hover,
+button[class*="hover:bg-blue-800"]:hover,
+a[class*="hover:bg-blue-800"]:hover {
+  background-color: var(--secp-theme-accent-strong);
+  color: var(--secp-theme-accent-contrast);
+}
+
+button[class*="text-secp-blue"],
+a[class*="text-secp-blue"],
+button[class*="text-blue-"],
+a[class*="text-blue-"],
+svg[class*="text-secp-blue"],
+svg[class*="text-blue-"] {
+  color: var(--secp-theme-accent);
+}
+
+button[class*="hover:text-secp-blue"]:hover,
+a[class*="hover:text-secp-blue"]:hover,
+button[class*="hover:text-blue-"]:hover,
+a[class*="hover:text-blue-"]:hover {
+  color: var(--secp-theme-accent-strong);
+}
+
+button[class*="border-secp-blue"],
+a[class*="border-secp-blue"],
+button[class*="border-blue-"],
+a[class*="border-blue-"] {
+  border-color: color-mix(in srgb, var(--secp-theme-accent) 42%, var(--border));
+}
+
+button[class*="bg-secp-blue-900/10"],
+a[class*="bg-secp-blue-900/10"],
+button[class*="hover:bg-secp-blue-900/10"]:hover,
+a[class*="hover:bg-secp-blue-900/10"]:hover,
+button[class*="bg-blue-50"],
+a[class*="bg-blue-50"] {
+  background-color: var(--secp-theme-accent-soft);
+}
+
+.secp-banco-horas-balance-card {
+  border-color: color-mix(in srgb, var(--secp-theme-accent) 38%, var(--border));
+  background:
+    linear-gradient(
+      135deg,
+      var(--secp-theme-accent),
+      color-mix(in srgb, var(--secp-theme-accent-strong) 86%, black)
+    );
+  color: var(--secp-theme-accent-contrast);
+}
+
+.secp-banco-horas-balance-card .secp-banco-horas-balance-muted {
+  color: color-mix(in srgb, var(--secp-theme-accent-contrast) 78%, transparent);
+}
+
+.secp-banco-horas-balance-card .secp-banco-horas-mini-card {
+  background: color-mix(in srgb, var(--secp-theme-accent-contrast) 10%, transparent);
+  border-color: color-mix(in srgb, var(--secp-theme-accent-contrast) 16%, transparent);
+}
+
+.secp-banco-horas-balance-card .secp-banco-horas-mini-card:hover {
+  background: color-mix(in srgb, var(--secp-theme-accent-contrast) 18%, transparent);
+}
+
+.secp-banco-horas-balance-card .secp-banco-horas-mini-card[aria-current="true"] {
+  background: color-mix(in srgb, var(--secp-theme-accent-contrast) 24%, transparent);
+  border-color: color-mix(in srgb, var(--secp-theme-accent-contrast) 58%, transparent);
+}
+
+.dark .secp-theme-action {
+  background: color-mix(in srgb, var(--secp-theme-accent) 14%, var(--card));
+  color: color-mix(in srgb, var(--secp-theme-accent) 36%, white);
+}
+
+.dark .secp-theme-action:hover {
+  background: color-mix(in srgb, var(--secp-theme-accent) 24%, var(--card));
+  color: color-mix(in srgb, var(--secp-theme-accent) 28%, white);
+}
+
+.dark .secp-banco-horas-balance-card {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--secp-theme-accent) 82%, black),
+      color-mix(in srgb, var(--secp-theme-accent-strong) 72%, black)
+    );
+}
+
+html[data-secp-color-theme="azul"] {
+  --secp-theme-accent: #003c88;
+  --secp-theme-accent-strong: #002f6c;
+  --secp-theme-accent-soft: color-mix(in srgb, #003c88 12%, transparent);
+  --secp-theme-accent-soft-hover: color-mix(in srgb, #003c88 18%, transparent);
+  --secp-theme-accent-muted: color-mix(in srgb, #003c88 78%, white);
+}
+
+html[data-secp-color-theme="verde"] {
+  --secp-theme-accent: #047857;
+  --secp-theme-accent-strong: #065f46;
+  --secp-theme-accent-soft: color-mix(in srgb, #047857 12%, transparent);
+  --secp-theme-accent-soft-hover: color-mix(in srgb, #047857 18%, transparent);
+  --secp-theme-accent-muted: color-mix(in srgb, #047857 78%, white);
+}
+
+html[data-secp-color-theme="cinza"] {
+  --secp-theme-accent: #4b5563;
+  --secp-theme-accent-strong: #374151;
+  --secp-theme-accent-soft: color-mix(in srgb, #4b5563 12%, transparent);
+  --secp-theme-accent-soft-hover: color-mix(in srgb, #4b5563 18%, transparent);
+  --secp-theme-accent-muted: color-mix(in srgb, #4b5563 78%, white);
+}
+
+html.dark[data-secp-color-theme="azul"] {
+  --secp-theme-accent: #2563eb;
+  --secp-theme-accent-strong: #1d4ed8;
+}
+
+html.dark[data-secp-color-theme="verde"] {
+  --secp-theme-accent: #059669;
+  --secp-theme-accent-strong: #047857;
+}
+
+html.dark[data-secp-color-theme="cinza"] {
+  --secp-theme-accent: #64748b;
+  --secp-theme-accent-strong: #475569;
+}
+
+html[data-secp-color-theme="azul"] .secp-sidebar {
+  border-color: color-mix(in srgb, white 18%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, #003c88 92%, black),
+      color-mix(in srgb, #002f6c 88%, black)
+    );
+  color: #eff6ff;
+}
+
+html[data-secp-color-theme="azul"] .secp-sidebar-header {
+  border-color: color-mix(in srgb, white 18%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, white 12%, transparent),
+      color-mix(in srgb, black 8%, transparent)
+    );
+}
+
+html[data-secp-color-theme="azul"] .secp-sidebar .text-secp-blue-800,
+html[data-secp-color-theme="azul"] .secp-sidebar .text-secp-blue-900,
+html[data-secp-color-theme="azul"] .secp-sidebar .text-foreground,
+html[data-secp-color-theme="azul"] .secp-sidebar .text-muted-foreground {
+  color: #eff6ff;
+}
+
+html[data-secp-color-theme="azul"] .secp-sidebar .bg-secp-blue-900\/10 {
+  background: color-mix(in srgb, white 14%, transparent);
+  color: #eff6ff;
+}
+
+html[data-secp-color-theme="azul"] .secp-sidebar-item:not([aria-current="page"]),
+html[data-secp-color-theme="azul"] .secp-sidebar-subitem:not([aria-current="page"]) {
+  color: color-mix(in srgb, white 86%, transparent);
+}
+
+html[data-secp-color-theme="azul"] .secp-sidebar-item:not([aria-current="page"]):hover,
+html[data-secp-color-theme="azul"] .secp-sidebar-subitem:not([aria-current="page"]):hover {
+  background: color-mix(in srgb, white 12%, transparent);
+  color: #ffffff;
+}
+
+html[data-secp-color-theme="azul"] .secp-sidebar-item[aria-current="page"],
+html[data-secp-color-theme="azul"] .secp-sidebar-subitem[aria-current="page"] {
+  background: color-mix(in srgb, white 18%, transparent);
+  color: #ffffff;
+  box-shadow: inset 3px 0 0 #93c5fd;
+}
+
+html[data-secp-color-theme="azul"] .secp-sidebar ul {
+  border-color: color-mix(in srgb, white 18%, transparent);
+}
+
+html[data-secp-color-theme="azul"] .secp-sidebar-theme-selector {
+  border-color: color-mix(in srgb, white 18%, transparent);
+}
+
+html[data-secp-color-theme="azul"] .secp-sidebar-theme-selector button:not([aria-pressed="true"]),
+html[data-secp-color-theme="verde"] .secp-sidebar-theme-selector button:not([aria-pressed="true"]),
+html[data-secp-color-theme="cinza"] .secp-sidebar-theme-selector button:not([aria-pressed="true"]) {
+  border-color: color-mix(in srgb, white 24%, transparent);
+  color: color-mix(in srgb, white 82%, transparent);
+}
+
+html[data-secp-color-theme="azul"] .secp-sidebar-theme-selector button:not([aria-pressed="true"]):hover,
+html[data-secp-color-theme="verde"] .secp-sidebar-theme-selector button:not([aria-pressed="true"]):hover,
+html[data-secp-color-theme="cinza"] .secp-sidebar-theme-selector button:not([aria-pressed="true"]):hover {
+  background: color-mix(in srgb, white 12%, transparent);
+  color: #ffffff;
+}
+
+html[data-secp-color-theme="azul"] .secp-sidebar-theme-selector button[aria-pressed="true"],
+html[data-secp-color-theme="verde"] .secp-sidebar-theme-selector button[aria-pressed="true"],
+html[data-secp-color-theme="cinza"] .secp-sidebar-theme-selector button[aria-pressed="true"] {
+  border-color: color-mix(in srgb, white 58%, transparent);
+  background: color-mix(in srgb, white 18%, transparent);
+  color: #ffffff;
+}
+
+html[data-secp-color-theme="verde"] .secp-sidebar {
+  border-color: color-mix(in srgb, white 18%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--secp-blue-800) 92%, black),
+      color-mix(in srgb, var(--secp-blue-900) 88%, black)
+    );
+  color: #ecfdf3;
+}
+
+html[data-secp-color-theme="verde"] .secp-sidebar-header {
+  border-color: color-mix(in srgb, white 18%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, white 12%, transparent),
+      color-mix(in srgb, black 8%, transparent)
+    );
+}
+
+html[data-secp-color-theme="verde"] .secp-sidebar .text-secp-blue-800,
+html[data-secp-color-theme="verde"] .secp-sidebar .text-secp-blue-900,
+html[data-secp-color-theme="verde"] .secp-sidebar .text-foreground,
+html[data-secp-color-theme="verde"] .secp-sidebar .text-muted-foreground {
+  color: #ecfdf3;
+}
+
+html[data-secp-color-theme="verde"] .secp-sidebar .bg-secp-blue-900\/10 {
+  background: color-mix(in srgb, white 14%, transparent);
+  color: #ecfdf3;
+}
+
+html[data-secp-color-theme="verde"] .secp-sidebar-item:not([aria-current="page"]),
+html[data-secp-color-theme="verde"] .secp-sidebar-subitem:not([aria-current="page"]) {
+  color: color-mix(in srgb, white 86%, transparent);
+}
+
+html[data-secp-color-theme="verde"] .secp-sidebar-item:not([aria-current="page"]):hover,
+html[data-secp-color-theme="verde"] .secp-sidebar-subitem:not([aria-current="page"]):hover {
+  background: color-mix(in srgb, white 12%, transparent);
+  color: #ffffff;
+}
+
+html[data-secp-color-theme="verde"] .secp-sidebar-item[aria-current="page"],
+html[data-secp-color-theme="verde"] .secp-sidebar-subitem[aria-current="page"] {
+  background: color-mix(in srgb, white 18%, transparent);
+  color: #ffffff;
+  box-shadow: inset 3px 0 0 #bbf7d0;
+}
+
+html[data-secp-color-theme="verde"] .secp-sidebar ul {
+  border-color: color-mix(in srgb, white 18%, transparent);
+}
+
+html[data-secp-color-theme="verde"] .secp-sidebar-theme-selector {
+  border-color: color-mix(in srgb, white 18%, transparent);
+}
+
+html[data-secp-color-theme="cinza"] .secp-sidebar {
+  border-color: color-mix(in srgb, white 18%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, #6b7280 92%, black),
+      color-mix(in srgb, #374151 88%, black)
+    );
+  color: #f8fafc;
+}
+
+html[data-secp-color-theme="cinza"] .secp-sidebar-header {
+  border-color: color-mix(in srgb, white 18%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, white 12%, transparent),
+      color-mix(in srgb, black 8%, transparent)
+    );
+}
+
+html[data-secp-color-theme="cinza"] .secp-sidebar .text-secp-blue-800,
+html[data-secp-color-theme="cinza"] .secp-sidebar .text-secp-blue-900,
+html[data-secp-color-theme="cinza"] .secp-sidebar .text-foreground,
+html[data-secp-color-theme="cinza"] .secp-sidebar .text-muted-foreground {
+  color: #f8fafc;
+}
+
+html[data-secp-color-theme="cinza"] .secp-sidebar .bg-secp-blue-900\/10 {
+  background: color-mix(in srgb, white 14%, transparent);
+  color: #f8fafc;
+}
+
+html[data-secp-color-theme="cinza"] .secp-sidebar-item:not([aria-current="page"]),
+html[data-secp-color-theme="cinza"] .secp-sidebar-subitem:not([aria-current="page"]) {
+  color: color-mix(in srgb, white 86%, transparent);
+}
+
+html[data-secp-color-theme="cinza"] .secp-sidebar-item:not([aria-current="page"]):hover,
+html[data-secp-color-theme="cinza"] .secp-sidebar-subitem:not([aria-current="page"]):hover {
+  background: color-mix(in srgb, white 12%, transparent);
+  color: #ffffff;
+}
+
+html[data-secp-color-theme="cinza"] .secp-sidebar-item[aria-current="page"],
+html[data-secp-color-theme="cinza"] .secp-sidebar-subitem[aria-current="page"] {
+  background: color-mix(in srgb, white 18%, transparent);
+  color: #ffffff;
+  box-shadow: inset 3px 0 0 #e5e7eb;
+}
+
+html[data-secp-color-theme="cinza"] .secp-sidebar ul {
+  border-color: color-mix(in srgb, white 18%, transparent);
+}
+
+html[data-secp-color-theme="cinza"] .secp-sidebar-theme-selector {
+  border-color: color-mix(in srgb, white 18%, transparent);
+}
+
+html.dark[data-secp-color-theme="azul"] .secp-sidebar {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, #002f6c 78%, black),
+      color-mix(in srgb, #001b3f 88%, black)
+    );
+  color: #dbeafe;
+}
+
+html.dark[data-secp-color-theme="azul"] .secp-sidebar-header {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, white 9%, transparent),
+      color-mix(in srgb, black 16%, transparent)
+    );
+}
+
+html.dark[data-secp-color-theme="azul"] .secp-sidebar .text-secp-blue-800,
+html.dark[data-secp-color-theme="azul"] .secp-sidebar .text-secp-blue-900,
+html.dark[data-secp-color-theme="azul"] .secp-sidebar .text-foreground,
+html.dark[data-secp-color-theme="azul"] .secp-sidebar .text-muted-foreground {
+  color: #dbeafe;
+}
+
+html.dark[data-secp-color-theme="verde"] .secp-sidebar {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, #005c2a 78%, black),
+      color-mix(in srgb, #003519 88%, black)
+    );
+  color: #dcfce7;
+}
+
+html.dark[data-secp-color-theme="verde"] .secp-sidebar-header {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, white 9%, transparent),
+      color-mix(in srgb, black 16%, transparent)
+    );
+}
+
+html.dark[data-secp-color-theme="verde"] .secp-sidebar .text-secp-blue-800,
+html.dark[data-secp-color-theme="verde"] .secp-sidebar .text-secp-blue-900,
+html.dark[data-secp-color-theme="verde"] .secp-sidebar .text-foreground,
+html.dark[data-secp-color-theme="verde"] .secp-sidebar .text-muted-foreground {
+  color: #dcfce7;
+}
+
+html.dark[data-secp-color-theme="cinza"] .secp-sidebar {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, #374151 82%, black),
+      color-mix(in srgb, #111827 90%, black)
+    );
+  color: #f1f5f9;
+}
+
+html.dark[data-secp-color-theme="cinza"] .secp-sidebar-header {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, white 9%, transparent),
+      color-mix(in srgb, black 16%, transparent)
+    );
+}
+
+html.dark[data-secp-color-theme="cinza"] .secp-sidebar .text-secp-blue-800,
+html.dark[data-secp-color-theme="cinza"] .secp-sidebar .text-secp-blue-900,
+html.dark[data-secp-color-theme="cinza"] .secp-sidebar .text-foreground,
+html.dark[data-secp-color-theme="cinza"] .secp-sidebar .text-muted-foreground {
+  color: #f1f5f9;
 }
 
 .secp-comfortable-reading {

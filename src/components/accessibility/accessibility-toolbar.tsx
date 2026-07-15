@@ -15,6 +15,7 @@ import {
   type PreferenciasAcessibilidade,
   type TamanhoFonteAcessibilidade,
   type TemaAcessibilidade,
+  type TemaVisualAcessibilidade,
 } from "@/modules/auth/application/services/preferencias-acessibilidade.service";
 
 const STORAGE_TEMA = "secp-tema";
@@ -94,6 +95,9 @@ export function AccessibilityToolbar({
   const [altoContraste, setAltoContraste] = useState<boolean>(
     preferenciasIniciais.altoContraste,
   );
+  const [temaVisual, setTemaVisual] = useState<TemaVisualAcessibilidade>(
+    preferenciasIniciais.temaVisual,
+  );
 
   useEffect(() => {
     aplicarTema(tema);
@@ -112,6 +116,26 @@ export function AccessibilityToolbar({
   }, [altoContraste]);
 
   useEffect(() => {
+    function atualizarTemaVisual(event: Event) {
+      const novoTema = (event as CustomEvent<TemaVisualAcessibilidade>).detail;
+
+      if (
+        novoTema === "padrao" ||
+        novoTema === "azul" ||
+        novoTema === "verde" ||
+        novoTema === "cinza"
+      ) {
+        setTemaVisual(novoTema);
+      }
+    }
+
+    window.addEventListener("secp:tema-visual", atualizarTemaVisual);
+
+    return () =>
+      window.removeEventListener("secp:tema-visual", atualizarTemaVisual);
+  }, []);
+
+  useEffect(() => {
     if (primeiraPersistencia.current) {
       primeiraPersistencia.current = false;
       return;
@@ -126,6 +150,7 @@ export function AccessibilityToolbar({
         },
         body: JSON.stringify({
           tema,
+          temaVisual,
           tamanhoFonte,
           fonteDislexia,
           altoContraste,
@@ -138,7 +163,7 @@ export function AccessibilityToolbar({
       controller.abort();
       window.clearTimeout(timeout);
     };
-  }, [tema, tamanhoFonte, fonteDislexia, altoContraste]);
+  }, [tema, temaVisual, tamanhoFonte, fonteDislexia, altoContraste]);
 
   function alternarTema() {
     setTema((temaAtual) => (temaAtual === "dark" ? "light" : "dark"));

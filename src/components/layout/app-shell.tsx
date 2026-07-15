@@ -13,6 +13,67 @@ type AppShellProps = {
   children: React.ReactNode;
 };
 
+type OrgaoInstitucional = {
+  sigla?: string | null;
+  nome?: string | null;
+};
+
+const ROTULOS_UF_JUSTICA_FEDERAL: Record<string, string> = {
+  AC: "do Acre",
+  AL: "de Alagoas",
+  AM: "do Amazonas",
+  AP: "do Amapá",
+  BA: "da Bahia",
+  CE: "do Ceará",
+  DF: "do Distrito Federal",
+  ES: "do Espírito Santo",
+  GO: "de Goiás",
+  MA: "do Maranhão",
+  MG: "de Minas Gerais",
+  MS: "de Mato Grosso do Sul",
+  MT: "de Mato Grosso",
+  PA: "do Pará",
+  PB: "da Paraíba",
+  PE: "de Pernambuco",
+  PI: "do Piauí",
+  PR: "do Paraná",
+  RJ: "do Rio de Janeiro",
+  RN: "do Rio Grande do Norte",
+  RO: "de Rondônia",
+  RR: "de Roraima",
+  RS: "do Rio Grande do Sul",
+  SC: "de Santa Catarina",
+  SE: "de Sergipe",
+  SP: "de São Paulo",
+  TO: "do Tocantins",
+};
+
+function removerAcentos(valor: string) {
+  return valor.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function obterUfOrgao(orgao?: OrgaoInstitucional | null) {
+  const sigla = orgao?.sigla?.trim().toUpperCase() ?? "";
+  const ufSigla = sigla.match(/^SJ([A-Z]{2})$/)?.[1];
+
+  if (ufSigla && ROTULOS_UF_JUSTICA_FEDERAL[ufSigla]) {
+    return ufSigla;
+  }
+
+  const nomeNormalizado = removerAcentos(orgao?.nome ?? "").toUpperCase();
+
+  return Object.entries(ROTULOS_UF_JUSTICA_FEDERAL).find(([, rotulo]) =>
+    nomeNormalizado.includes(removerAcentos(rotulo).toUpperCase()),
+  )?.[0];
+}
+
+function montarRotuloInstituicao(orgao?: OrgaoInstitucional | null) {
+  const uf = obterUfOrgao(orgao);
+  const rotuloUf = uf ? ROTULOS_UF_JUSTICA_FEDERAL[uf] : null;
+
+  return rotuloUf ? `Justiça Federal ${rotuloUf}` : "Justiça Federal";
+}
+
 export async function AppShell({ children }: AppShellProps) {
   const session = await auth();
 
@@ -33,6 +94,8 @@ export async function AppShell({ children }: AppShellProps) {
 
   const fotoCpf = servidor?.cpf;
   const fotoUrl = await buscarFotoServidorDataUrl(fotoCpf);
+  const orgaoInstitucional =
+    lotacaoAtual?.unidade.orgao ?? perfilAtivo.orgaos?.[0] ?? null;
   const usuario = {
     nome:
       nomeServidor(servidor) ||
@@ -44,6 +107,7 @@ export async function AppShell({ children }: AppShellProps) {
     fotoUrl,
     preferenciasAcessibilidade: session.user.preferenciasAcessibilidade,
     unidade: lotacaoAtual?.unidade.nome ?? lotacaoAtual?.unidade.sigla ?? "",
+    instituicaoLabel: montarRotuloInstituicao(orgaoInstitucional),
     perfilAtivo: {
       codigo: perfilAtivo.codigo,
       nome: perfilAtivo.nome,

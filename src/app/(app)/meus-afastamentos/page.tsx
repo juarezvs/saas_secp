@@ -1,4 +1,5 @@
 import { CalendarX } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
@@ -33,8 +34,8 @@ function classeAba(ativa: boolean) {
   return [
     "inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm font-semibold transition",
     ativa
-      ? "border-blue-900 bg-blue-900 text-white"
-      : "border-border bg-card hover:bg-muted",
+      ? "secp-theme-primary-action"
+      : "secp-theme-action bg-card",
   ].join(" ");
 }
 
@@ -116,7 +117,7 @@ export default async function MeusAfastamentosPage({
         aria-label="Tipos de afastamento"
         className="flex flex-wrap gap-2 rounded-xl border bg-card p-2"
       >
-        <a
+        <Link
           href={montarHrefAba("ferias")}
           className={classeAba(abaAtiva === "ferias")}
         >
@@ -124,8 +125,8 @@ export default async function MeusAfastamentosPage({
           <span className="ml-2 rounded-full bg-background/80 px-2 py-0.5 text-xs text-foreground">
             {totalFerias}
           </span>
-        </a>
-        <a
+        </Link>
+        <Link
           href={montarHrefAba("outros")}
           className={classeAba(abaAtiva === "outros")}
         >
@@ -133,7 +134,7 @@ export default async function MeusAfastamentosPage({
           <span className="ml-2 rounded-full bg-background/80 px-2 py-0.5 text-xs text-foreground">
             {totalOutros}
           </span>
-        </a>
+        </Link>
       </nav>
 
       <AfastamentosServidorCard

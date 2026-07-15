@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { removerCache } from "@/lib/cache/redis-cache";
 import { withHttpMetrics } from "@/lib/observability/http";
 import { normalizarPreferenciasAcessibilidade } from "@/modules/auth/application/services/preferencias-acessibilidade.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
@@ -22,6 +23,12 @@ async function putAcessibilidade(request: Request) {
       preferenciasAcessibilidade: preferencias,
     },
   });
+
+  if (session.user.matricula) {
+    await removerCache(
+      `secp:auth:usuario:${session.user.matricula.trim().toUpperCase()}`,
+    );
+  }
 
   return NextResponse.json({ preferencias }, { status: 200 });
 }

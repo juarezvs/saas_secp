@@ -18,12 +18,12 @@ export function PageHeader({ title, description, icon: Icon, eyebrow, actions, c
       <div className="min-w-0">
         <div className="flex items-center gap-3">
           {Icon && (
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-secp-blue-900 text-white shadow-sm">
+            <span className="secp-theme-icon flex size-11 shrink-0 items-center justify-center rounded-lg shadow-sm">
               <Icon className="size-5" aria-hidden="true" />
             </span>
           )}
           <div className="min-w-0">
-            {eyebrow && <p className="text-xs font-semibold uppercase text-secp-blue-700">{eyebrow}</p>}
+            {eyebrow && <p className="text-xs font-semibold uppercase text-[var(--secp-theme-accent)]">{eyebrow}</p>}
             <h1 className="text-2xl font-bold tracking-normal text-foreground md:text-3xl">{title}</h1>
           </div>
         </div>
