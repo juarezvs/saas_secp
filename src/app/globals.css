@@ -320,6 +320,68 @@ html.dark[data-secp-color-theme="cinza"] {
   --secp-theme-accent-strong: #475569;
 }
 
+html:not([data-secp-color-theme]) .secp-sidebar,
+html[data-secp-color-theme="padrao"] .secp-sidebar {
+  border-color: color-mix(in srgb, #003c88 18%, white);
+  background: #ffffff;
+  color: #003c88;
+}
+
+html:not([data-secp-color-theme]) .secp-sidebar-header,
+html[data-secp-color-theme="padrao"] .secp-sidebar-header {
+  border-color: color-mix(in srgb, #003c88 14%, white);
+  background: #ffffff;
+}
+
+html:not([data-secp-color-theme]) .secp-sidebar .text-secp-blue-800,
+html:not([data-secp-color-theme]) .secp-sidebar .text-secp-blue-900,
+html:not([data-secp-color-theme]) .secp-sidebar .text-foreground,
+html:not([data-secp-color-theme]) .secp-sidebar .text-card-foreground,
+html:not([data-secp-color-theme]) .secp-sidebar .text-muted-foreground,
+html[data-secp-color-theme="padrao"] .secp-sidebar .text-secp-blue-800,
+html[data-secp-color-theme="padrao"] .secp-sidebar .text-secp-blue-900,
+html[data-secp-color-theme="padrao"] .secp-sidebar .text-foreground,
+html[data-secp-color-theme="padrao"] .secp-sidebar .text-card-foreground,
+html[data-secp-color-theme="padrao"] .secp-sidebar .text-muted-foreground {
+  color: #003c88;
+}
+
+html:not([data-secp-color-theme]) .secp-sidebar .bg-secp-blue-900\/10,
+html[data-secp-color-theme="padrao"] .secp-sidebar .bg-secp-blue-900\/10 {
+  background: #ffffff !important;
+  color: #003c88 !important;
+}
+
+html:not([data-secp-color-theme]) .secp-sidebar-item,
+html:not([data-secp-color-theme]) .secp-sidebar-subitem,
+html[data-secp-color-theme="padrao"] .secp-sidebar-item,
+html[data-secp-color-theme="padrao"] .secp-sidebar-subitem {
+  background: #ffffff !important;
+  color: #003c88 !important;
+}
+
+html:not([data-secp-color-theme]) .secp-sidebar-item:not([aria-current="page"]):hover,
+html:not([data-secp-color-theme]) .secp-sidebar-subitem:not([aria-current="page"]):hover,
+html[data-secp-color-theme="padrao"] .secp-sidebar-item:not([aria-current="page"]):hover,
+html[data-secp-color-theme="padrao"] .secp-sidebar-subitem:not([aria-current="page"]):hover {
+  background: color-mix(in srgb, #003c88 10%, white) !important;
+  color: #002f6c !important;
+}
+
+html:not([data-secp-color-theme]) .secp-sidebar-item[aria-current="page"],
+html:not([data-secp-color-theme]) .secp-sidebar-subitem[aria-current="page"],
+html[data-secp-color-theme="padrao"] .secp-sidebar-item[aria-current="page"],
+html[data-secp-color-theme="padrao"] .secp-sidebar-subitem[aria-current="page"] {
+  background: #ffffff !important;
+  color: #002f6c !important;
+  box-shadow: inset 3px 0 0 #003c88;
+}
+
+html:not([data-secp-color-theme]) .secp-sidebar ul,
+html[data-secp-color-theme="padrao"] .secp-sidebar ul {
+  border-color: color-mix(in srgb, #003c88 18%, white);
+}
+
 html[data-secp-color-theme="azul"] .secp-sidebar {
   border-color: color-mix(in srgb, white 18%, transparent);
   background:
@@ -355,6 +417,7 @@ html[data-secp-color-theme="azul"] .secp-sidebar .bg-secp-blue-900\/10 {
 
 html[data-secp-color-theme="azul"] .secp-sidebar-item:not([aria-current="page"]),
 html[data-secp-color-theme="azul"] .secp-sidebar-subitem:not([aria-current="page"]) {
+  background: transparent;
   color: color-mix(in srgb, white 86%, transparent);
 }
 
@@ -436,6 +499,7 @@ html[data-secp-color-theme="verde"] .secp-sidebar .bg-secp-blue-900\/10 {
 
 html[data-secp-color-theme="verde"] .secp-sidebar-item:not([aria-current="page"]),
 html[data-secp-color-theme="verde"] .secp-sidebar-subitem:not([aria-current="page"]) {
+  background: transparent;
   color: color-mix(in srgb, white 86%, transparent);
 }
 
@@ -495,6 +559,7 @@ html[data-secp-color-theme="cinza"] .secp-sidebar .bg-secp-blue-900\/10 {
 
 html[data-secp-color-theme="cinza"] .secp-sidebar-item:not([aria-current="page"]),
 html[data-secp-color-theme="cinza"] .secp-sidebar-subitem:not([aria-current="page"]) {
+  background: transparent;
   color: color-mix(in srgb, white 86%, transparent);
 }
 

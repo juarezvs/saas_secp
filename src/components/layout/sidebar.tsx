@@ -612,7 +612,7 @@ function ThemeSelector({
                 "inline-flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-md border px-1.5 text-[11px] font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                 ativo
                   ? "border-secp-blue-900 bg-secp-blue-900/10 text-secp-blue-900 dark:border-white/60 dark:bg-white/10 dark:text-white"
-                  : "border-border text-muted-foreground hover:bg-muted hover:text-foreground",
+                  : "border-border bg-white text-muted-foreground hover:bg-muted hover:text-foreground dark:bg-slate-950 dark:hover:bg-muted",
                 recolhida ? "w-9 px-0" : "w-full",
               ].join(" ")}
               aria-pressed={ativo}
@@ -683,7 +683,7 @@ function MenuPrincipal({
             "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
             grupoAtivo
               ? "bg-secp-blue-900 text-white shadow-sm"
-              : "text-slate-700 hover:bg-secp-blue-900/10 hover:text-secp-blue-900 dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white",
+              : "bg-white text-slate-700 hover:bg-secp-blue-900/10 hover:text-secp-blue-900 dark:bg-transparent dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white",
             recolhida ? "justify-center" : "",
           ].join(" ");
 
@@ -747,7 +747,7 @@ function MenuPrincipal({
                             "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                             childAtivo
                               ? "bg-secp-blue-900/10 text-secp-blue-900 dark:bg-white/10 dark:text-white"
-                              : "text-slate-600 hover:bg-secp-blue-900/10 hover:text-secp-blue-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white",
+                              : "bg-white text-slate-600 hover:bg-secp-blue-900/10 hover:text-secp-blue-900 dark:bg-transparent dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white",
                           ].join(" ")}
                         >
                           <ChildIcon
