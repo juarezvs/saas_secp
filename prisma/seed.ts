@@ -874,6 +874,16 @@ const codigosPermissoesServidor = [
   "teams:solicitacoes:criar",
 ];
 
+const codigosPermissoesPessoaExterna = [
+  "dashboard:visualizar:proprio",
+  "marcacoes:consultar:proprio",
+  "marcacoes:visualizar:proprio",
+  "espelho-ponto:visualizar:proprio",
+  "solicitacoes:criar:proprio",
+  "solicitacoes:consultar:proprio",
+  "solicitacoes:visualizar:proprio",
+];
+
 const codigosPermissoesChefia = [
   "dashboard:visualizar:proprio",
   "servidores:consultar:global",
@@ -1139,6 +1149,29 @@ async function criarPerfilServidor() {
       codigo: "SERVIDOR",
       nome: "Servidor",
       descricao: "Perfil básico para servidores utilizarem o SECP.",
+      sistema: true,
+      ativo: true,
+    },
+  });
+}
+
+async function criarPerfilPessoaPonto(params: {
+  codigo: string;
+  nome: string;
+  descricao: string;
+}) {
+  return prisma.perfil.upsert({
+    where: { codigo: params.codigo },
+    update: {
+      nome: params.nome,
+      descricao: params.descricao,
+      sistema: true,
+      ativo: true,
+    },
+    create: {
+      codigo: params.codigo,
+      nome: params.nome,
+      descricao: params.descricao,
       sistema: true,
       ativo: true,
     },
@@ -1691,6 +1724,26 @@ async function main() {
   const perfilMaster = await criarPerfilMaster();
   const perfilAdmin = await criarPerfilAdministrador();
   const perfilServidor = await criarPerfilServidor();
+  const perfilEstagiario = await criarPerfilPessoaPonto({
+    codigo: "ESTAGIARIO",
+    nome: "Estagiário",
+    descricao: "Perfil básico para estagiários utilizarem o SECP.",
+  });
+  const perfilPrestador = await criarPerfilPessoaPonto({
+    codigo: "PRESTADOR",
+    nome: "Prestador",
+    descricao: "Perfil básico para prestadores utilizarem o SECP.",
+  });
+  const perfilVoluntario = await criarPerfilPessoaPonto({
+    codigo: "VOLUNTARIO",
+    nome: "Voluntário",
+    descricao: "Perfil básico para voluntários utilizarem o SECP.",
+  });
+  const perfilMagistrado = await criarPerfilPessoaPonto({
+    codigo: "MAGISTRADO",
+    nome: "Magistrado",
+    descricao: "Perfil básico para magistrados utilizarem o SECP.",
+  });
   const perfilChefia = await criarPerfilChefia();
   const perfilSecap = await criarPerfilSecap();
   const perfilSecad = await criarPerfilSecad();
@@ -1704,6 +1757,25 @@ async function main() {
   await vincularPermissoesAoPerfil(perfilAdmin.id, permissoes);
   await vincularPermissoesPorCodigoAoPerfil(
     perfilServidor.id,
+    codigosPermissoesServidor,
+  );
+  await vincularPermissoesPorCodigoAoPerfil(
+    perfilEstagiario.id,
+    [
+      ...codigosPermissoesPessoaExterna,
+      "afastamentos:consultar:proprio",
+    ],
+  );
+  await vincularPermissoesPorCodigoAoPerfil(
+    perfilPrestador.id,
+    codigosPermissoesPessoaExterna,
+  );
+  await vincularPermissoesPorCodigoAoPerfil(
+    perfilVoluntario.id,
+    codigosPermissoesPessoaExterna,
+  );
+  await vincularPermissoesPorCodigoAoPerfil(
+    perfilMagistrado.id,
     codigosPermissoesServidor,
   );
   await vincularPermissoesPorCodigoAoPerfil(

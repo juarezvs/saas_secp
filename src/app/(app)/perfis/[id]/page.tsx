@@ -4,7 +4,9 @@ import { Edit, ShieldCheck, UsersRound } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { excluirPerfilAction } from "@/modules/perfis/application/actions/excluir-perfil.action";
 import { buscarPerfilPorId } from "@/modules/perfis/infrastructure/repositories/perfil.repository";
+import { ExcluirPerfilButton } from "@/modules/perfis/presentation/components/excluir-perfil-button";
 
 type PerfilDetalhePageProps = {
   params: Promise<{
@@ -23,6 +25,9 @@ export default async function PerfilDetalhePage({
   if (!perfil) {
     notFound();
   }
+
+  const excluirAction = excluirPerfilAction.bind(null, perfil.id);
+  const podeExcluirPerfil = !perfil.sistema && perfil.usuarios.length === 0;
 
   return (
     <div className="space-y-6">
@@ -49,13 +54,19 @@ export default async function PerfilDetalhePage({
           </p>
         </div>
 
-        <Link
-          href={`/perfis/${perfil.id}/editar`}
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950"
-        >
-          <Edit className="size-4" aria-hidden="true" />
-          Editar perfil
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          {podeExcluirPerfil && (
+            <ExcluirPerfilButton action={excluirAction} nome={perfil.nome} />
+          )}
+
+          <Link
+            href={`/perfis/${perfil.id}/editar`}
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950"
+          >
+            <Edit className="size-4" aria-hidden="true" />
+            Editar perfil
+          </Link>
+        </div>
       </section>
 
       <RegraPortariaCard

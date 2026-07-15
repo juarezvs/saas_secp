@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Edit3, Fingerprint } from "lucide-react";
+import { Copy, Edit3, Fingerprint } from "lucide-react";
 
 import { excluirEquipamentoBiometricoAction } from "../../application/actions/excluir-equipamento-biometrico.action";
 import { ExcluirEquipamentoButton } from "./excluir-equipamento-button";
@@ -341,6 +341,17 @@ export function EquipamentosBiometricosTable({
                       >
                         <Edit3 className="size-3.5" />
                         Editar
+                      </Link>
+                      <Link
+                        href={`/equipamentos/${equipamento.id}/clonar${
+                          orgaoId
+                            ? `?${new URLSearchParams({ orgaoId }).toString()}`
+                            : ""
+                        }`}
+                        className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-semibold hover:bg-[var(--muted)]"
+                      >
+                        <Copy className="size-3.5" />
+                        Clonar
                       </Link>
                       <form action={excluirEquipamentoBiometricoAction}>
                         <input

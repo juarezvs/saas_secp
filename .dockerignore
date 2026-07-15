@@ -15,6 +15,10 @@ tmp
 backups
 import
 files_afd
+*.tar.gz
+secp-deploy-*.tar.gz
+observability/secrets
+observability/secrets/**
 .DS_Store
 
 Dockerfile

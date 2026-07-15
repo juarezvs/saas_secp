@@ -174,12 +174,33 @@ function normalizarFabricante(valor: string | null): FabricanteRelogioPonto {
     fabricante === "CONTROL ID" ||
     fabricante === "CONTROLI D" ||
     fabricante === "CONTROL-ID" ||
-    fabricante === "IDFACE"
+    fabricante === "IDFACE" ||
+    fabricante === "IDCLASS" ||
+    fabricante === "IDCLASS BIO"
   ) {
     return "CONTROL_ID";
   }
 
   return "GENERIC";
+}
+
+function protocoloConfigurado(configuracao: ConfiguracaoEquipamento) {
+  return valorTexto(
+    (configuracao as Record<string, unknown> | undefined)?.protocolo,
+  )?.toUpperCase();
+}
+
+function portaPadraoEquipamento(params: {
+  fabricante: FabricanteRelogioPonto;
+  configuracao: ConfiguracaoEquipamento;
+}) {
+  if (params.fabricante === "CONTROL_ID") {
+    return protocoloConfigurado(params.configuracao) === "CONTROL_ID_IDCLASS_BIO"
+      ? 443
+      : 80;
+  }
+
+  return 3000;
 }
 
 async function obterConexaoEquipamento(
@@ -199,14 +220,15 @@ async function obterConexaoEquipamento(
   }
 
   const config = lerConfiguracao(equipamento.configuracao);
+  const fabricante = normalizarFabricante(equipamento.fabricante);
 
   return {
     equipamentoId: equipamento.id,
     codigo: equipamento.codigo,
-    fabricante: normalizarFabricante(equipamento.fabricante),
+    fabricante,
     modelo: equipamento.modelo,
     ip: equipamento.ip,
-    porta: equipamento.porta ?? 3000,
+    porta: equipamento.porta ?? portaPadraoEquipamento({ fabricante, configuracao: config }),
     usuario:
       perfilCredencial === "configuracao"
         ? (valorTexto(config.usuarioConfiguracao) ?? valorTexto(config.usuario))

@@ -20,7 +20,7 @@ const endpointsDisponiveis: Array<[SarhEndpointKey, string]> = [
   ["empresas", "Empresas / Seções Judiciárias"],
   ["lotacoes", "Lotações / Departamentos"],
   ["cargos", "Cargos"],
-  ["servidores", "Servidores"],
+  ["servidores", "Pessoas"],
   ["lotacoesServidores", "Lotações dos servidores"],
   ["tiposAfastamento", "Tipos de afastamento"],
   ["afastamentos", "Afastamentos"],

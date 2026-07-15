@@ -54,6 +54,7 @@ export const equipamentoBiometricoSchema = z.object({
       "HENRY_LUMEN_BALCAO",
       "DIMEP_SMART_PRINT",
       "CONTROL_ID_FACE_ID",
+      "CONTROL_ID_IDCLASS_BIO",
     ])
     .default("GENERIC"),
   usuario: z.string().trim().optional().or(z.literal("")),

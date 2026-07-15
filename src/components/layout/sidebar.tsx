@@ -18,6 +18,7 @@ import {
   FileSpreadsheet,
   FileText,
   Fingerprint,
+  History,
   Hourglass,
   KeyRound,
   Landmark,
@@ -31,6 +32,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   ToggleLeft,
+  TreePalm,
   Upload,
   Users,
   UsersRound,
@@ -84,19 +86,28 @@ const TEMAS_VISUAIS: Array<{
 export const MENU_ITEMS: MenuItem[] = [
   { label: "Início", href: "/dashboard", icon: LayoutDashboard },
   {
-    label: "Registrar ponto",
+    label: "Registrar Ponto",
     href: "/marcacoes/registrar",
     icon: Fingerprint,
     permissoes: PERMISSOES_ACESSO_REGISTRO_PONTO_SECP,
   },
   {
-    label: "Marcações",
+    label: "Ponto de Hoje",
     href: "/marcacoes",
     icon: Clock,
     permissoes: [
       "marcacoes:consultar:proprio",
       "marcacoes:visualizar:proprio",
       "marcacoes:consultar:global",
+    ],
+  },
+  {
+    label: "Histórico de Marcações",
+    href: "/historico-marcacoes",
+    icon: History,
+    permissoes: [
+      "marcacoes:consultar:proprio",
+      "marcacoes:visualizar:proprio",
     ],
   },
   {
@@ -118,6 +129,12 @@ export const MENU_ITEMS: MenuItem[] = [
     label: "Meus afastamentos",
     href: "/meus-afastamentos",
     icon: CalendarX,
+    permissoes: ["afastamentos:consultar:proprio"],
+  },
+  {
+    label: "Minhas férias",
+    href: "/minhas-ferias",
+    icon: TreePalm,
     permissoes: ["afastamentos:consultar:proprio"],
   },
   {

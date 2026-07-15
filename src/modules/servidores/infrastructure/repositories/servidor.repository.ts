@@ -267,13 +267,17 @@ export async function listarServidoresParaFiltro(
   params: {
     orgaoIdsPermitidos?: string[];
     servidorIdsPermitidos?: string[];
+    tipoUsuario?: string;
     limite?: number;
   } = {},
 ) {
   return prisma.servidor.findMany({
     where: {
       ativo: true,
-      usuario: { ativo: true },
+      usuario: {
+        ativo: true,
+        ...(ehTipoUsuario(params.tipoUsuario) ? { tipo: params.tipoUsuario } : {}),
+      },
       ...(params.orgaoIdsPermitidos?.length
         ? { orgaoId: { in: params.orgaoIdsPermitidos } }
         : {}),
@@ -317,6 +321,7 @@ export async function listarLotacoesAtivasParaFiltro(
   params: {
     orgaoIdsPermitidos?: string[];
     servidorIdsPermitidos?: string[];
+    tipoUsuario?: string;
   } = {},
 ) {
   return prisma.unidadeOrganizacional.findMany({
@@ -327,6 +332,12 @@ export async function listarLotacoesAtivasParaFiltro(
           status: "ATIVO",
           servidor: {
             ativo: true,
+            usuario: {
+              ativo: true,
+              ...(ehTipoUsuario(params.tipoUsuario)
+                ? { tipo: params.tipoUsuario }
+                : {}),
+            },
             ...(params.servidorIdsPermitidos !== undefined
               ? { id: { in: params.servidorIdsPermitidos.filter(ehUuid) } }
               : {}),

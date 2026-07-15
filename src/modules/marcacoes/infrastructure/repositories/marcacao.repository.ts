@@ -140,6 +140,58 @@ export async function listarMarcacoesDoUsuarioNoDia(usuarioId: string) {
   };
 }
 
+export async function listarHistoricoMarcacoesDoUsuario(params: {
+  usuarioId: string;
+  limite?: number;
+  anoReferencia?: number;
+  mesReferencia?: number;
+}) {
+  const servidor = await buscarServidorPorUsuarioId(params.usuarioId);
+
+  if (!servidor) {
+    return {
+      servidor: null,
+      marcacoes: [],
+    };
+  }
+
+  const fusoHorario = resolverFusoHorarioServidor(servidor);
+  const dataReferenciaHoje = obterDataReferencia(new Date(), fusoHorario);
+  const inicioCompetencia =
+    params.anoReferencia && params.mesReferencia
+      ? new Date(Date.UTC(params.anoReferencia, params.mesReferencia - 1, 1))
+      : null;
+  const fimCompetencia =
+    params.anoReferencia && params.mesReferencia
+      ? new Date(Date.UTC(params.anoReferencia, params.mesReferencia, 1))
+      : null;
+  const marcacoes = await prisma.marcacao.findMany({
+    take: inicioCompetencia ? undefined : (params.limite ?? 100),
+    where: {
+      servidorId: servidor.id,
+      dataReferencia: inicioCompetencia
+        ? {
+            gte: inicioCompetencia,
+            lt: fimCompetencia!,
+          }
+        : {
+            lt: dataReferenciaHoje,
+          },
+      status: {
+        in: ["VALIDA", "PENDENTE"],
+      },
+    },
+    orderBy: {
+      dataHora: "desc",
+    },
+  });
+
+  return {
+    servidor,
+    marcacoes,
+  };
+}
+
 export async function listarUltimasMarcacoes(params?: {
   limite?: number;
   servidorId?: string | null;

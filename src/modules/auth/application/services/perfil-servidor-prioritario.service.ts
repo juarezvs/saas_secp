@@ -13,17 +13,25 @@ export function escolherPerfilInicial(params: {
     return perfilMaster;
   }
 
-  const perfilServidor = params.perfis.find(
-    (perfil) => perfil.codigo.toUpperCase() === "SERVIDOR",
+  const codigoPerfilPorTipoUsuario: Record<string, string> = {
+    SERVIDOR: "SERVIDOR",
+    ESTAGIARIO: "ESTAGIARIO",
+    PRESTADOR: "PRESTADOR",
+    VOLUNTARIO: "VOLUNTARIO",
+  };
+  const codigoPerfilPrioritario =
+    codigoPerfilPorTipoUsuario[params.tipoUsuario?.toUpperCase() ?? ""];
+  const perfilPessoaPonto = params.perfis.find(
+    (perfil) => perfil.codigo.toUpperCase() === codigoPerfilPrioritario,
   );
-  const devePriorizarServidor =
+  const devePriorizarPessoaPonto =
     !params.perfilPreferido &&
-    params.tipoUsuario?.toUpperCase() === "SERVIDOR" &&
+    Boolean(codigoPerfilPrioritario) &&
     params.perfis.length > 1 &&
-    Boolean(perfilServidor);
+    Boolean(perfilPessoaPonto);
 
-  if (devePriorizarServidor) {
-    return perfilServidor ?? null;
+  if (devePriorizarPessoaPonto) {
+    return perfilPessoaPonto ?? null;
   }
 
   return params.perfilPreferido ?? params.perfis[0] ?? null;

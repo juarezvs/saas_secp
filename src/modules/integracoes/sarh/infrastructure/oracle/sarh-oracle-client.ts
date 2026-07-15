@@ -394,8 +394,17 @@ export class SarhOracleClient {
           'FERIAS:' || f.feri_func_sigla_secao_subsecao || ':' || f.feri_func_cod_funcionario || ':' ||
             f.feri_exercicio || ':' || p.pfer_cod_peri_feri as id,
           'FERIAS' as categoria,
-          p.pfer_flag_ocorrencia as tipo_codigo,
-          'FERIAS' as tipo_descricao,
+          to_char(p.pfer_flag_ocorrencia) as tipo_codigo,
+          case to_char(p.pfer_flag_ocorrencia)
+            when '1' then 'MARCADA'
+            when '2' then 'GOZADA'
+            when '3' then 'ANTECIPADA'
+            when '4' then 'ADIADA'
+            when '5' then 'INTERROMPIDA'
+            when '6' then 'INDISPONIBILIZADA'
+            when '7' then 'SUSPENSA'
+            else 'FERIAS'
+          end as tipo_descricao,
           sb.matricula,
           sb.cpf,
           sb.nome,

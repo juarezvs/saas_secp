@@ -223,7 +223,8 @@ export async function registrarEquipamentoBiometricoAction(
             ? "HENRY"
             : parsed.data.protocolo === "DIMEP_SMART_PRINT"
               ? "DIMEP"
-              : parsed.data.protocolo === "CONTROL_ID_FACE_ID"
+              : parsed.data.protocolo === "CONTROL_ID_FACE_ID" ||
+                  parsed.data.protocolo === "CONTROL_ID_IDCLASS_BIO"
                 ? "CONTROL_ID"
                 : parsed.data.fabricante || null,
         modelo: parsed.data.modelo || null,

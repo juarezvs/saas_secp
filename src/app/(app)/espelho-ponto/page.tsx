@@ -176,6 +176,12 @@ export default async function EspelhoPontoPage({
     podeRecalcular;
   const perfilServidorAtivo =
     permissao.perfilAtivoCodigo?.toUpperCase() === "SERVIDOR";
+  const perfilPessoaExternaAtivo = [
+    "ESTAGIARIO",
+    "PRESTADOR",
+    "VOLUNTARIO",
+  ].includes(permissao.perfilAtivoCodigo?.toUpperCase() ?? "");
+  const perfilProprioAtivo = perfilServidorAtivo || perfilPessoaExternaAtivo;
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
   const orgaoIdsPermitidos = escopoOrgao.global
     ? undefined
@@ -214,7 +220,7 @@ export default async function EspelhoPontoPage({
         ? servidoresEscopo
         : servidorProprioParaLista(servidorProprio);
   const podeSelecionarServidor =
-    !perfilServidorAtivo && (podeConsultarTodosServidores || perfilChefiaAtivo);
+    !perfilProprioAtivo && (podeConsultarTodosServidores || perfilChefiaAtivo);
 
   const servidorSelecionado =
     servidores.find((servidor) => servidor.id === params.servidorId) ??
@@ -288,7 +294,7 @@ export default async function EspelhoPontoPage({
         regraDescricao="O servidor pode consultar a própria frequência e o saldo; a chefia homologa mensalmente comparecimento, ausências, créditos, débitos e compensações."
       />
 
-      {!perfilServidorAtivo && (
+      {!perfilProprioAtivo && (
         <Card className="p-5">
           <EspelhoPontoFiltrosAuto
             competencia={competenciaInput}
@@ -325,8 +331,10 @@ export default async function EspelhoPontoPage({
         <EspelhoPontoMensal
           apuracoes={apuracoes}
           marcacoes={marcacoes}
+          modoCompactoPessoaExterna={perfilPessoaExternaAtivo}
           acoesBancoHoras={{
-            habilitadas: podeGerenciarBancoHorasNoEspelho,
+            habilitadas:
+              podeGerenciarBancoHorasNoEspelho && !perfilPessoaExternaAtivo,
             servidorId: servidorSelecionado.id,
             anoReferencia,
             mesReferencia,

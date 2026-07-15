@@ -61,10 +61,12 @@ export function EspelhoPontoMensal({
   marcacoes,
   controles,
   acoesBancoHoras,
+  modoCompactoPessoaExterna = false,
 }: {
   apuracoes: ApuracaoMensalItem[];
   marcacoes: MarcacaoItem[];
   controles?: ReactNode;
+  modoCompactoPessoaExterna?: boolean;
   acoesBancoHoras?: {
     habilitadas: boolean;
     servidorId: string;
@@ -176,6 +178,9 @@ export function EspelhoPontoMensal({
         />
       </div>
 
+      {modoCompactoPessoaExterna ? (
+        <EspelhoPontoMensalCompacto apuracoes={apuracoes} marcacoes={marcacoes} />
+      ) : (
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1580px] text-left text-sm">
           <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
@@ -408,7 +413,101 @@ export function EspelhoPontoMensal({
           </tbody>
         </table>
       </div>
+      )}
     </section>
+  );
+}
+
+function EspelhoPontoMensalCompacto({
+  apuracoes,
+  marcacoes,
+}: {
+  apuracoes: ApuracaoMensalItem[];
+  marcacoes: MarcacaoItem[];
+}) {
+  const marcacoesPorDia = agruparMarcacoesPorDia(marcacoes);
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[920px] text-left text-sm">
+        <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
+          <tr>
+            <th className="px-5 py-3">DIA</th>
+            <th className="px-5 py-3">1ª ENTRADA</th>
+            <th className="px-5 py-3">1ª SAÍDA</th>
+            <th className="px-5 py-3">2ª ENTRADA</th>
+            <th className="px-5 py-3">2ª SAÍDA</th>
+            <th className="px-5 py-3">HORAS NORMAIS</th>
+            <th className="px-5 py-3">HORAS ALMOÇO</th>
+            <th className="px-5 py-3">HORAS TRAB.</th>
+            <th className="px-5 py-3">STATUS</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {apuracoes.map((item) => {
+            const chaveReferencia = chaveDataReferenciaUtc(item.dataReferencia);
+            const marcacoesDoDia = marcacoesPorDia.get(chaveReferencia) ?? [];
+            const horarios = distribuirMarcacoesNasColunas(marcacoesDoDia);
+
+            return (
+              <tr key={item.id} className="border-b last:border-b-0">
+                <td className="whitespace-nowrap px-5 py-4 font-medium">
+                  {formatarDataReferenciaUtc(item.dataReferencia)}
+                </td>
+
+                {horarios.map((horario, indice) => (
+                  <td
+                    key={`${item.id}-horario-compacto-${indice}`}
+                    className="whitespace-nowrap px-5 py-4 font-mono"
+                  >
+                    {horario ? (
+                      <span
+                        className={`rounded-full border px-2 py-1 text-xs ${
+                          horario.ajustada
+                            ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
+                            : "bg-[var(--muted)]"
+                        }`}
+                        title={horario.title}
+                      >
+                        {horario.valor}
+                        {horario.ajustada ? "*" : ""}
+                      </span>
+                    ) : (
+                      <span className="text-[var(--muted-foreground)]">-</span>
+                    )}
+                  </td>
+                ))}
+
+                <td className="px-5 py-4">
+                  {minutosParaTexto(item.cargaPrevistaMinutos)}
+                </td>
+                <td className="px-5 py-4">
+                  {minutosParaTexto(item.minutosIntervalo ?? 0)}
+                </td>
+                <td className="px-5 py-4">
+                  {minutosParaTexto(item.minutosTrabalhados)}
+                </td>
+                <td className="px-5 py-4">
+                  <StatusResultado item={item} />
+                </td>
+              </tr>
+            );
+          })}
+
+          {apuracoes.length === 0 && (
+            <tr>
+              <td
+                colSpan={9}
+                className="px-5 py-10 text-center text-[var(--muted-foreground)]"
+              >
+                Nenhuma apuração calculada para o mês.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

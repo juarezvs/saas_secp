@@ -1,5 +1,7 @@
 import { ShieldCheck } from "lucide-react";
 import { alterarStatusPerfilUsuarioAction } from "../../application/actions/alterar-status-perfil-usuario.action";
+import { desvincularPerfilUsuarioAction } from "../../application/actions/desvincular-perfil-usuario.action";
+import { DesvincularPerfilUsuarioButton } from "./desvincular-perfil-usuario-button";
 
 type UsuarioPerfilItem = {
   id: string;
@@ -42,6 +44,11 @@ export function PerfisUsuarioCard({
             usuarioPerfil.id,
             usuarioId,
             !usuarioPerfil.ativo
+          );
+          const desvincularAction = desvincularPerfilUsuarioAction.bind(
+            null,
+            usuarioPerfil.id,
+            usuarioId
           );
 
           return (
@@ -94,6 +101,10 @@ export function PerfisUsuarioCard({
                     {usuarioPerfil.ativo ? "Inativar" : "Ativar"}
                   </button>
                 </form>
+                <DesvincularPerfilUsuarioButton
+                  action={desvincularAction}
+                  perfilNome={usuarioPerfil.perfil.nome}
+                />
               </div>
             </div>
           );

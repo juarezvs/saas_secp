@@ -21,6 +21,10 @@ import { SarhPrismaRepository } from "../../infrastructure/prisma/sarh-prisma.re
 
 type PrismaLike = ConstructorParameters<typeof SarhPrismaRepository>[0];
 
+function ehPessoaExternaPontoSarh(matricula: string) {
+  return /(?:ES|PS|VO)$/i.test(matricula.trim());
+}
+
 export class SincronizarSarhUseCase {
   constructor(
     private readonly prisma: PrismaLike,
@@ -350,13 +354,19 @@ export class SincronizarSarhUseCase {
             return false;
           }
 
+          const codigoLotacao = normalizarCodigoLotacaoServidor(servidor);
+
           if (!codigosPermitidos) {
+            return true;
+          }
+
+          if (!codigoLotacao && ehPessoaExternaPontoSarh(matricula)) {
             return true;
           }
 
           return (
             codigoLotacaoPermitido(
-              normalizarCodigoLotacaoServidor(servidor),
+              codigoLotacao,
               codigosPermitidos,
             ) || Boolean(matriculasPermitidas?.has(matricula))
           );

@@ -43,13 +43,21 @@ function normalizarConfiguracao(valor: unknown): Record<string, unknown> {
 }
 
 export function obterConfiguracaoLdapActiveDirectoryAmbiente(): LdapActiveDirectoryConfig {
+  const modoConfigurado =
+    process.env.LDAP_MODO_AUTENTICACAO ?? process.env.LDAP_AUTH_MODE;
+  const authUrl = process.env.AD_AUTH_URL?.trim() || AD_AUTH_URL_PADRAO;
+  const ldapUrl = process.env.LDAP_URL?.trim() || "";
+  const usarLdapBind =
+    modoConfigurado === "LDAP_BIND" ||
+    (!modoConfigurado && !process.env.AD_AUTH_URL && Boolean(ldapUrl));
+
   return {
-    modoAutenticacao: process.env.LDAP_URL ? "LDAP_BIND" : "HTTP_AD_API",
+    modoAutenticacao: usarLdapBind ? "LDAP_BIND" : "HTTP_AD_API",
     orgaoId: null,
     nome: "LDAP / Active Directory",
     ativo: true,
-    authUrl: process.env.AD_AUTH_URL?.trim() || AD_AUTH_URL_PADRAO,
-    ldapUrl: process.env.LDAP_URL?.trim() || "",
+    authUrl,
+    ldapUrl,
     baseDn: process.env.LDAP_BASE_DN?.trim() || "",
     dominio: process.env.LDAP_DOMAIN?.trim() || "",
     bindDn: process.env.LDAP_BIND_DN?.trim() || "",
@@ -109,28 +117,50 @@ async function montarConfiguracaoDaIntegracao(
   };
 }
 
+function configuracaoEstaOperacional(configuracao: LdapActiveDirectoryConfig) {
+  if (!configuracao.ativo) {
+    return false;
+  }
+
+  if (configuracao.modoAutenticacao === "LDAP_BIND") {
+    return Boolean(configuracao.ldapUrl);
+  }
+
+  return Boolean(configuracao.authUrl);
+}
+
 export async function obterConfiguracaoLdapActiveDirectory(
   orgaoId?: string | null,
 ): Promise<LdapActiveDirectoryConfig> {
-  const fallback = obterConfiguracaoLdapActiveDirectoryAmbiente();
+  const ambiente = obterConfiguracaoLdapActiveDirectoryAmbiente();
 
-  if (orgaoId) {
-    const integracaoOrgao = await prisma.integracaoSistema.findFirst({
-      where: { tipo: "LDAP", orgaoId },
-      orderBy: { atualizadoEm: "desc" },
-    });
-
-    if (integracaoOrgao) {
-      return montarConfiguracaoDaIntegracao(integracaoOrgao, fallback);
-    }
-  }
-
-  const integracao = await prisma.integracaoSistema.findFirst({
+  const integracaoGlobal = await prisma.integracaoSistema.findFirst({
     where: { tipo: "LDAP", orgaoId: null },
     orderBy: { atualizadoEm: "desc" },
   });
 
-  return montarConfiguracaoDaIntegracao(integracao, fallback);
+  const fallback = await montarConfiguracaoDaIntegracao(
+    integracaoGlobal,
+    ambiente,
+  );
+
+  if (!orgaoId) {
+    return fallback;
+  }
+
+  const integracaoOrgao = await prisma.integracaoSistema.findFirst({
+    where: { tipo: "LDAP", orgaoId },
+    orderBy: { atualizadoEm: "desc" },
+  });
+
+  const configuracaoOrgao = await montarConfiguracaoDaIntegracao(
+    integracaoOrgao,
+    fallback,
+  );
+
+  return configuracaoEstaOperacional(configuracaoOrgao)
+    ? configuracaoOrgao
+    : fallback;
 }
 
 export async function obterOuCriarIntegracaoLdapActiveDirectory() {

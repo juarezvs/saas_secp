@@ -186,7 +186,8 @@ export default async function ServidoresPage({
     : undefined;
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
-  const statusFiltro = params.status ?? "ativo";
+  const statusFiltro =
+    tipoUsuario === "SERVIDOR" ? (params.status ?? "ativo") : "ativo";
   const filtrosEscopados = aplicarEscopoOrgaoId(
     {
       busca: params.busca ?? "",
@@ -214,10 +215,12 @@ export default async function ServidoresPage({
     listarServidoresParaFiltro({
       orgaoIdsPermitidos,
       servidorIdsPermitidos: servidorIdsPermitidosChefia,
+      tipoUsuario,
     }),
     listarLotacoesAtivasParaFiltro({
       orgaoIdsPermitidos,
       servidorIdsPermitidos: servidorIdsPermitidosChefia,
+      tipoUsuario,
     }),
   ]);
   const servidoresOptions = servidoresFiltro.map((servidor) => {

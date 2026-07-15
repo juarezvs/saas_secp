@@ -104,6 +104,7 @@ export function EquipamentoBiometricoForm({
   equipamento?: EquipamentoFormItem | null;
   compacto?: boolean;
 }) {
+  const ehEdicao = Boolean(equipamento?.id);
   const [estado, formAction, pendente] = useActionState(
     registrarEquipamentoBiometricoAction,
     estadoInicial,
@@ -114,6 +115,8 @@ export function EquipamentoBiometricoForm({
       ? "HENRY_LUMEN_BALCAO"
       : configuracao.protocolo === "DIMEP_SMART_PRINT"
         ? "DIMEP_SMART_PRINT"
+      : configuracao.protocolo === "CONTROL_ID_IDCLASS_BIO"
+        ? "CONTROL_ID_IDCLASS_BIO"
       : configuracao.protocolo === "CONTROL_ID_FACE_ID" ||
           equipamento?.fabricante === "CONTROL_ID"
         ? "CONTROL_ID_FACE_ID"
@@ -127,10 +130,10 @@ export function EquipamentoBiometricoForm({
       action={formAction}
       className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm"
     >
-      <input type="hidden" name="equipamentoId" value={equipamento?.id ?? ""} />
+      <input type="hidden" name="equipamentoId" value={ehEdicao ? equipamento?.id : ""} />
 
       <h2 className="text-lg font-bold">
-        {equipamento ? "Editar equipamento biometrico" : "Cadastrar equipamento biometrico"}
+        {ehEdicao ? "Editar equipamento biometrico" : "Cadastrar equipamento biometrico"}
       </h2>
 
       {estado.mensagem && (
@@ -271,6 +274,9 @@ export function EquipamentoBiometricoForm({
               Dimep Smart Print / Smart Print-Pro
             </option>
             <option value="CONTROL_ID_FACE_ID">Control iD - FACE ID</option>
+            <option value="CONTROL_ID_IDCLASS_BIO">
+              Control iD - idClass Bio
+            </option>
           </select>
         </div>
 
@@ -283,7 +289,7 @@ export function EquipamentoBiometricoForm({
           label="Senha padrao do relogio"
           name="senha"
           defaultValue={valorTextoCampo(estado, "senha", configuracao.senha)}
-          placeholder={equipamento ? "Senha atual carregada" : undefined}
+          placeholder={ehEdicao ? "Senha atual carregada" : undefined}
           senha
         />
         <Campo
@@ -299,7 +305,7 @@ export function EquipamentoBiometricoForm({
             "senhaDados",
             configuracao.senhaDados,
           )}
-          placeholder={equipamento ? "Senha atual carregada" : undefined}
+          placeholder={ehEdicao ? "Senha atual carregada" : undefined}
           senha
         />
         <Campo
@@ -319,7 +325,7 @@ export function EquipamentoBiometricoForm({
             "senhaConfiguracao",
             configuracao.senhaConfiguracao,
           )}
-          placeholder={equipamento ? "Senha atual carregada" : undefined}
+          placeholder={ehEdicao ? "Senha atual carregada" : undefined}
           senha
         />
         <Campo
@@ -374,7 +380,7 @@ export function EquipamentoBiometricoForm({
           ) : (
             <Save className="size-4" />
           )}
-          {equipamento ? "Atualizar equipamento" : "Salvar equipamento"}
+          {ehEdicao ? "Atualizar equipamento" : "Salvar equipamento"}
         </button>
       </div>
     </form>

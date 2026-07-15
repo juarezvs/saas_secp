@@ -1,6 +1,10 @@
 import ldapjs, { type Client } from "ldapjs";
 
-import { obterConfiguracaoLdapActiveDirectory } from "@/modules/integracoes/application/services/ldap-active-directory-config.service";
+import {
+  obterConfiguracaoLdapActiveDirectory,
+  obterConfiguracaoLdapActiveDirectoryAmbiente,
+  type LdapActiveDirectoryConfig,
+} from "@/modules/integracoes/application/services/ldap-active-directory-config.service";
 
 const { createClient } = ldapjs;
 
@@ -269,6 +273,49 @@ async function autenticarViaLdapBind(params: {
   }
 }
 
+async function autenticarComConfiguracao(params: {
+  configuracao: LdapActiveDirectoryConfig;
+  matricula: string;
+  senha: string;
+}) {
+  if (!params.configuracao.ativo) {
+    return false;
+  }
+
+  if (params.configuracao.modoAutenticacao === "LDAP_BIND") {
+    return autenticarViaLdapBind({
+      matricula: params.matricula,
+      senha: params.senha,
+      ldapUrl: params.configuracao.ldapUrl,
+      baseDn: params.configuracao.baseDn,
+      dominio: params.configuracao.dominio,
+      bindDn: params.configuracao.bindDn,
+      bindPassword: params.configuracao.bindPassword,
+      userDnPattern: params.configuracao.userDnPattern,
+      searchFilter: params.configuracao.searchFilter,
+      timeoutMs: params.configuracao.timeoutMs,
+    });
+  }
+
+  return autenticarViaApiHttp({
+    matricula: params.matricula,
+    senha: params.senha,
+    url: params.configuracao.authUrl,
+    timeoutMs: params.configuracao.timeoutMs,
+  });
+}
+
+function mesmaOrigemAutenticacao(
+  configuracao: LdapActiveDirectoryConfig,
+  ambiente: LdapActiveDirectoryConfig,
+) {
+  return (
+    configuracao.modoAutenticacao === ambiente.modoAutenticacao &&
+    configuracao.authUrl === ambiente.authUrl &&
+    configuracao.ldapUrl === ambiente.ldapUrl
+  );
+}
+
 export async function autenticarNoActiveDirectory(
   matricula: string,
   senha: string,
@@ -279,30 +326,25 @@ export async function autenticarNoActiveDirectory(
   }
 
   const configuracao = await obterConfiguracaoLdapActiveDirectory(orgaoId);
+  const autenticado = await autenticarComConfiguracao({
+    configuracao,
+    matricula,
+    senha,
+  });
 
-  if (!configuracao.ativo) {
+  if (autenticado) {
+    return true;
+  }
+
+  const ambiente = obterConfiguracaoLdapActiveDirectoryAmbiente();
+
+  if (mesmaOrigemAutenticacao(configuracao, ambiente)) {
     return false;
   }
 
-  if (configuracao.modoAutenticacao === "LDAP_BIND") {
-    return autenticarViaLdapBind({
-      matricula,
-      senha,
-      ldapUrl: configuracao.ldapUrl,
-      baseDn: configuracao.baseDn,
-      dominio: configuracao.dominio,
-      bindDn: configuracao.bindDn,
-      bindPassword: configuracao.bindPassword,
-      userDnPattern: configuracao.userDnPattern,
-      searchFilter: configuracao.searchFilter,
-      timeoutMs: configuracao.timeoutMs,
-    });
-  }
-
-  return autenticarViaApiHttp({
+  return autenticarComConfiguracao({
+    configuracao: ambiente,
     matricula,
     senha,
-    url: configuracao.authUrl,
-    timeoutMs: configuracao.timeoutMs,
   });
 }

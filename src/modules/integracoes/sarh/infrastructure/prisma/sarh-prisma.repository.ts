@@ -172,6 +172,20 @@ function fimAfastamentoParaConsulta(dataFim: Date | null) {
   return fim;
 }
 
+function resolverSiglaLocalidadeSarh(siglaOrgao?: string | null) {
+  const sigla = siglaOrgao?.trim().toUpperCase();
+
+  if (!sigla) {
+    return process.env.SARH_SIGLA_LOCALIDADE ?? process.env.SIGLA_LOCALIDADE ?? "AM";
+  }
+
+  if (sigla.length >= 4 && sigla.startsWith("SJ")) {
+    return sigla.slice(-2);
+  }
+
+  return sigla.slice(-2);
+}
+
 export class SarhPrismaRepository {
   constructor(
     private readonly prisma: PrismaLike,
@@ -188,6 +202,13 @@ export class SarhPrismaRepository {
     });
 
     if (existente) return existente;
+
+    const orgaoEscopo = this.orgaoId
+      ? await this.prisma.orgao.findUnique({
+          where: { id: this.orgaoId },
+          select: { sigla: true },
+        })
+      : null;
 
     return this.prisma.integracaoSistema.create({
       data: {
@@ -211,10 +232,7 @@ export class SarhPrismaRepository {
             afastamentos: "/afastamentos/",
           },
           provider: "oracle",
-          siglaLocalidade:
-            process.env.SARH_SIGLA_LOCALIDADE ??
-            process.env.SIGLA_LOCALIDADE ??
-            "AM",
+          siglaLocalidade: resolverSiglaLocalidadeSarh(orgaoEscopo?.sigla),
         },
       },
     });
@@ -1461,11 +1479,21 @@ export class SarhPrismaRepository {
         })
       : null;
 
-    const usuarioExistente = await this.prisma.usuario.findUnique({
-      where: { matricula },
+    const usuarioExistente = await this.prisma.usuario.findFirst({
+      where: {
+        OR: [
+          { matricula },
+          { matricula: { equals: matricula, mode: "insensitive" } },
+        ],
+      },
     });
-    const servidorExistente = await this.prisma.servidor.findUnique({
-      where: { matricula },
+    const servidorExistente = await this.prisma.servidor.findFirst({
+      where: {
+        OR: [
+          { matricula },
+          { matricula: { equals: matricula, mode: "insensitive" } },
+        ],
+      },
     });
     const usuarioData = mapearUsuarioServidorSarh(params.payload);
     const servidorBaseData = mapearServidorSarh(
@@ -1551,7 +1579,7 @@ export class SarhPrismaRepository {
           } as Parameters<typeof this.prisma.servidor.create>[0]["data"],
         });
 
-    await this.vincularPerfilServidor(usuario.id);
+    await this.vincularPerfilPessoaPonto(usuario.id, servidor.matricula);
     await garantirJornadaPadraoServidorService(this.prisma, servidor.id);
 
     await this.upsertMapeamento(
@@ -1929,10 +1957,36 @@ export class SarhPrismaRepository {
     });
   }
 
-  private async vincularPerfilServidor(usuarioId: string) {
+  private resolverCodigoPerfilPessoaPonto(matricula?: string | null) {
+    const matriculaNormalizada = matricula?.trim().toUpperCase() ?? "";
+
+    if (matriculaNormalizada.startsWith("JU")) {
+      return "MAGISTRADO";
+    }
+
+    if (matriculaNormalizada.endsWith("ES")) {
+      return "ESTAGIARIO";
+    }
+
+    if (matriculaNormalizada.endsWith("PS")) {
+      return "PRESTADOR";
+    }
+
+    if (matriculaNormalizada.endsWith("VO")) {
+      return "VOLUNTARIO";
+    }
+
+    return "SERVIDOR";
+  }
+
+  private async vincularPerfilPessoaPonto(
+    usuarioId: string,
+    matricula?: string | null,
+  ) {
+    const codigoPerfil = this.resolverCodigoPerfilPessoaPonto(matricula);
     const [perfil, servidor] = await Promise.all([
       this.prisma.perfil.findUnique({
-        where: { codigo: "SERVIDOR" },
+        where: { codigo: codigoPerfil },
       }),
       this.prisma.servidor.findUnique({
         where: { usuarioId },

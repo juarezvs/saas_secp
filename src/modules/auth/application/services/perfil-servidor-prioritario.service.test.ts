@@ -15,6 +15,36 @@ const perfilGestor = {
   permissoes: [],
 };
 
+const perfisPessoaExterna = [
+  {
+    tipoUsuario: "ESTAGIARIO",
+    perfil: {
+      id: "perfil-estagiario",
+      codigo: "ESTAGIARIO",
+      nome: "Estagiário",
+      permissoes: [],
+    },
+  },
+  {
+    tipoUsuario: "PRESTADOR",
+    perfil: {
+      id: "perfil-prestador",
+      codigo: "PRESTADOR",
+      nome: "Prestador",
+      permissoes: [],
+    },
+  },
+  {
+    tipoUsuario: "VOLUNTARIO",
+    perfil: {
+      id: "perfil-voluntario",
+      codigo: "VOLUNTARIO",
+      nome: "Voluntário",
+      permissoes: [],
+    },
+  },
+];
+
 describe("escolherPerfilInicial", () => {
   it("prioriza o perfil servidor no primeiro acesso de usuario servidor com multiplos perfis", () => {
     expect(
@@ -24,6 +54,18 @@ describe("escolherPerfilInicial", () => {
       }),
     ).toEqual(perfilServidor);
   });
+
+  it.each(perfisPessoaExterna)(
+    "prioriza o perfil $tipoUsuario no primeiro acesso",
+    ({ tipoUsuario, perfil }) => {
+      expect(
+        escolherPerfilInicial({
+          tipoUsuario,
+          perfis: [perfilGestor, perfil],
+        }),
+      ).toEqual(perfil);
+    },
+  );
 
   it("respeita uma escolha explicita de perfil", () => {
     expect(

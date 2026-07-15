@@ -227,12 +227,12 @@ export default async function MarcacoesPage({
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Marcações" }]} />
+      <Breadcrumb items={[{ label: "Ponto de Hoje" }]} />
 
       <PageHeader
         icon={Clock}
-        titulo="Marcações de ponto"
-        descricao="Consulte suas marcações do dia e registre novo horário."
+        titulo="Ponto de Hoje"
+        descricao="Consulte os registros de hoje e registre novo horário."
         artigo="Art. 6"
         regraTitulo="Marcação de entrada, saída e intervalo"
         regraDescricao="O sistema registra entrada, saída, saída para intervalo e retorno do intervalo, permitindo futura apuração da jornada diária e mensal."
