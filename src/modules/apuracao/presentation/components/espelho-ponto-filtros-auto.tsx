@@ -8,6 +8,7 @@ import { CompetenciaInput, SearchableSelect } from "@/components/ui";
 type ServidorOpcao = {
   value: string;
   label: string;
+  searchText?: string;
 };
 
 type EspelhoPontoFiltrosAutoProps = {
@@ -15,6 +16,7 @@ type EspelhoPontoFiltrosAutoProps = {
   servidorId?: string;
   servidores?: ServidorOpcao[];
   podeSelecionarServidor?: boolean;
+  pessoasSearchUrl?: string;
   mostrarServidor?: boolean;
   className?: string;
 };
@@ -28,8 +30,9 @@ export function EspelhoPontoFiltrosAuto({
   servidorId = "",
   servidores = [],
   podeSelecionarServidor = false,
+  pessoasSearchUrl,
   mostrarServidor = false,
-  className = "grid gap-4 md:grid-cols-[1fr_220px] md:items-end",
+  className = "grid gap-4 md:grid-cols-[220px_minmax(0,1fr)] md:items-end",
 }: EspelhoPontoFiltrosAutoProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -70,13 +73,20 @@ export function EspelhoPontoFiltrosAuto({
   return (
     <div className="relative min-h-[4.625rem]">
       <div className={className} aria-busy={pendente}>
+        <CompetenciaInput
+          key={competencia}
+          defaultValue={competencia}
+          disabled={pendente}
+          onValueChange={aoTrocarCompetencia}
+        />
+
         {mostrarServidor && (
           <div>
             <label
               htmlFor="servidorId"
               className="text-sm font-semibold text-[var(--foreground)]"
             >
-              Servidor
+              Pessoa
             </label>
             <SearchableSelect
               key={servidorId}
@@ -86,18 +96,13 @@ export function EspelhoPontoFiltrosAuto({
               disabled={!podeSelecionarServidor || pendente}
               className="mt-2"
               searchPlaceholder="Pesquisar por matricula ou nome..."
+              emptyMessage="Nenhuma pessoa encontrada."
+              asyncSearchUrl={pessoasSearchUrl}
               options={servidores}
               onValueChange={(valor) => atualizarFiltros({ servidorId: valor })}
             />
           </div>
         )}
-
-        <CompetenciaInput
-          key={competencia}
-          defaultValue={competencia}
-          disabled={pendente}
-          onValueChange={aoTrocarCompetencia}
-        />
       </div>
 
       {pendente && (

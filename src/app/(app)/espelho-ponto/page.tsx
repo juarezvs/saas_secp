@@ -188,20 +188,24 @@ export default async function EspelhoPontoPage({
     : escopoOrgao.orgaoIds;
 
   const [servidoresEscopo, servidorProprio] = await Promise.all([
-    podeConsultarTodosServidores
+    params.servidorId && podeConsultarTodosServidores
       ? listarServidoresParaEspelhoPonto({
           anoReferencia,
           mesReferencia,
           escopo: "global",
           orgaoIdsPermitidos,
+          servidorId: params.servidorId,
+          limite: 1,
         })
-      : perfilChefiaAtivo && permissao.usuarioId
+      : params.servidorId && perfilChefiaAtivo && permissao.usuarioId
         ? listarServidoresParaEspelhoPonto({
             usuarioId: permissao.usuarioId,
             anoReferencia,
             mesReferencia,
             escopo: "chefia",
             orgaoIdsPermitidos,
+            servidorId: params.servidorId,
+            limite: 1,
           })
         : Promise.resolve([]),
     permissao.usuarioId
@@ -224,7 +228,7 @@ export default async function EspelhoPontoPage({
 
   const servidorSelecionado =
     servidores.find((servidor) => servidor.id === params.servidorId) ??
-    servidores[0] ??
+    (perfilProprioAtivo || perfilChefiaAtivo ? servidores[0] : null) ??
     null;
 
   if (!paramsPossuemCompetencia(params)) {
@@ -279,7 +283,11 @@ export default async function EspelhoPontoPage({
   const servidorOpcoes = servidores.map((servidor) => ({
     value: servidor.id,
     label: `${servidor.matricula} - ${nomeServidor(servidor)}`,
+    searchText: `${servidor.matricula} ${nomeServidor(servidor)}`,
   }));
+  const queryBuscaPessoa = new URLSearchParams({
+    competencia: competenciaInput,
+  });
 
   return (
     <div className="space-y-6">
@@ -301,6 +309,7 @@ export default async function EspelhoPontoPage({
             servidorId={servidorSelecionado?.id ?? ""}
             servidores={servidorOpcoes}
             podeSelecionarServidor={podeSelecionarServidor}
+            pessoasSearchUrl={`/api/espelho-ponto/pessoas?${queryBuscaPessoa.toString()}`}
             mostrarServidor
           />
 

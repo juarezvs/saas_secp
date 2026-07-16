@@ -301,6 +301,9 @@ type ListarServidoresParaEspelhoPontoParams = {
   mesReferencia?: number;
   escopo?: "global" | "chefia";
   orgaoIdsPermitidos?: string[];
+  servidorId?: string;
+  busca?: string;
+  limite?: number;
 };
 
 function intervaloReferencia(params: {
@@ -389,6 +392,10 @@ async function listarIdsUnidadesSubordinadasParaEspelho(params: {
 export async function listarServidoresParaEspelhoPonto(
   params: ListarServidoresParaEspelhoPontoParams = {},
 ) {
+  if (params.escopo === "chefia" && !params.usuarioId) {
+    return [];
+  }
+
   const { inicio, fim } = intervaloReferencia({
     anoReferencia: params.anoReferencia,
     mesReferencia: params.mesReferencia,
@@ -406,12 +413,48 @@ export async function listarServidoresParaEspelhoPonto(
     return [];
   }
 
+  const busca = params.busca?.trim();
+  const filtroBusca = busca
+    ? {
+        OR: [
+          {
+            matricula: {
+              contains: busca,
+              mode: "insensitive" as const,
+            },
+          },
+          {
+            nomeFuncional: {
+              contains: busca,
+              mode: "insensitive" as const,
+            },
+          },
+          {
+            nomeCompletoSarh: {
+              contains: busca,
+              mode: "insensitive" as const,
+            },
+          },
+          {
+            usuario: {
+              nome: {
+                contains: busca,
+                mode: "insensitive" as const,
+              },
+            },
+          },
+        ],
+      }
+    : {};
+
   return prisma.servidor.findMany({
     where: {
       ativo: true,
       usuario: {
         ativo: true,
       },
+      ...(params.servidorId ? { id: params.servidorId } : {}),
+      ...filtroBusca,
       ...(params.orgaoIdsPermitidos
         ? {
             orgaoId: {
@@ -469,5 +512,6 @@ export async function listarServidoresParaEspelhoPonto(
     orderBy: {
       matricula: "asc",
     },
+    ...(params.limite ? { take: params.limite } : {}),
   });
 }

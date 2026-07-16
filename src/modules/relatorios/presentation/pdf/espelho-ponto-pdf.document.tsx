@@ -76,6 +76,7 @@ type EspelhoPontoPdfProps = {
         tipo: string;
         descricao: string;
         minutos: number;
+        detalhes?: unknown;
       }[];
     }[];
     marcacoes: {
@@ -272,6 +273,11 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 7.8,
   },
+  mergedDescriptionText: {
+    fontSize: 7.2,
+    textAlign: "center",
+    textTransform: "uppercase",
+  },
   statusText: {
     fontSize: 7.4,
     textAlign: "center",
@@ -363,6 +369,7 @@ const styles = StyleSheet.create({
 const colunas = {
   data: "13.5%",
   hora: "9.5%",
+  marcacoesMescladas: "38%",
   total: "10.8%",
   status: "17.3%",
 };
@@ -609,18 +616,26 @@ function TabelaFrequencia({
         const marcacoes = marcacoesPorDia.get(chave) ?? [];
         const apuracao = apuracoesPorDia.get(chave) ?? null;
         const horarios = distribuirMarcacoesNasColunas(marcacoes);
-        const status = obterStatusDia(data, apuracao, marcacoes);
+        const resumoDia = obterResumoDia(data, apuracao, marcacoes);
 
         return (
           <View key={chave} style={styles.tableRow} wrap={false}>
             <Celula width={colunas.data}>
               <Text style={styles.dateText}>{formatarDataTabela(data)}</Text>
             </Celula>
-            {horarios.map((horario, indice) => (
-              <Celula key={`${chave}-${indice}`} width={colunas.hora}>
-                <Text style={styles.timeText}>{horario || "-"}</Text>
+            {resumoDia.descricaoMarcacoes ? (
+              <Celula width={colunas.marcacoesMescladas}>
+                <Text style={styles.mergedDescriptionText}>
+                  {resumoDia.descricaoMarcacoes}
+                </Text>
               </Celula>
-            ))}
+            ) : (
+              horarios.map((horario, indice) => (
+                <Celula key={`${chave}-${indice}`} width={colunas.hora}>
+                  <Text style={styles.timeText}>{horario || "-"}</Text>
+                </Celula>
+              ))
+            )}
             <Celula width={colunas.total}>
               <Text style={styles.totalText}>
                 {formatarMinutosTabela(apuracao?.cargaPrevistaMinutos ?? 0)}
@@ -637,7 +652,7 @@ function TabelaFrequencia({
               </Text>
             </Celula>
             <Celula width={colunas.status} ultimo>
-              <Text style={styles.statusText}>{status}</Text>
+              <Text style={styles.statusText}>{resumoDia.status}</Text>
             </Celula>
           </View>
         );
@@ -712,7 +727,7 @@ function distribuirMarcacoesNasColunas(marcacoes: MarcacaoPdfItem[]) {
   return horarios;
 }
 
-function obterStatusDia(
+function obterResumoDia(
   data: Date,
   apuracao: ApuracaoEspelhoPdfItem | null,
   marcacoes: MarcacaoPdfItem[],
@@ -720,25 +735,68 @@ function obterStatusDia(
   if (apuracao) {
     const diaInstitucional = extrairDiaInstitucional(apuracao.metadados);
 
-    if (diaInstitucional && !ehFimDeSemanaInstitucional(diaInstitucional)) {
-      return normalizarTextoModelo(rotuloDiaInstitucional(diaInstitucional));
-    }
-
     const classificacao = classificarDiaEspelho(apuracao);
     const solicitacaoIntegral = classificacao.solicitacoesAplicadas.find(
       (solicitacao) => solicitacao.coberturaIntegral,
     );
-
-    if (solicitacaoIntegral) {
-      return normalizarTextoModelo(rotuloSolicitacaoEspelho(solicitacaoIntegral.tipo));
-    }
-
     const afastamento = apuracao.ocorrencias?.find(
       (ocorrencia) => ocorrencia.tipo === "AFASTAMENTO",
     );
 
+    if (marcacoes.length === 0 && afastamento) {
+      const resumoAfastamento = resumirAfastamentoEspelho(
+        afastamento,
+        apuracao.dataReferencia,
+      );
+
+      return {
+        status: normalizarTextoModelo(resumoAfastamento.rotuloTipo),
+        descricaoMarcacoes: normalizarTextoModelo(
+          resumoAfastamento.rotuloCompleto,
+        ),
+      };
+    }
+
+    if (marcacoes.length === 0) {
+      const resumoMesclado = resumirMarcacoesMescladas({
+        diaInstitucional,
+        solicitacao: solicitacaoIntegral ?? null,
+      });
+
+      if (resumoMesclado) {
+        return {
+          status: normalizarTextoModelo(resumoMesclado.rotuloStatus),
+          descricaoMarcacoes: normalizarTextoModelo(
+            resumoMesclado.rotuloDescricao,
+          ),
+        };
+      }
+    }
+
+    if (diaInstitucional && !ehFimDeSemanaInstitucional(diaInstitucional)) {
+      return {
+        status: normalizarTextoModelo(rotuloDiaInstitucional(diaInstitucional)),
+        descricaoMarcacoes: null,
+      };
+    }
+
+    if (solicitacaoIntegral) {
+      return {
+        status: normalizarTextoModelo(
+          rotuloSolicitacaoEspelho(solicitacaoIntegral.tipo),
+        ),
+        descricaoMarcacoes: null,
+      };
+    }
+
     if (afastamento) {
-      return normalizarTextoModelo(rotuloAfastamentoEspelho(afastamento.descricao));
+      return {
+        status: normalizarTextoModelo(
+          resumirAfastamentoEspelho(afastamento, apuracao.dataReferencia)
+            .rotuloCompleto,
+        ),
+        descricaoMarcacoes: null,
+      };
     }
 
     const semJornada = apuracao.ocorrencias?.find(
@@ -746,36 +804,261 @@ function obterStatusDia(
     );
 
     if (semJornada) {
-      return "SEM JORNADA";
+      return { status: "SEM JORNADA", descricaoMarcacoes: null };
     }
 
     if (apuracao.resultado === "FALTA") {
-      return "SEM REGISTRO";
+      return { status: "SEM REGISTRO", descricaoMarcacoes: null };
     }
 
     if (
       apuracao.resultado === "INCOMPLETA" ||
       (marcacoes.length > 0 && marcacoes.length < 2)
     ) {
-      return "PARCIAL";
+      return { status: "PARCIAL", descricaoMarcacoes: null };
     }
 
     if (apuracao.minutosTrabalhados > 0) {
-      return "PRESENTE";
+      return { status: "PRESENTE", descricaoMarcacoes: null };
     }
   }
 
   const diaSemana = data.getUTCDay();
 
-  if (diaSemana === 6) {
-    return "FOLGA";
+  if (marcacoes.length === 0 && (diaSemana === 6 || diaSemana === 0)) {
+    return {
+      status: "REGULAR",
+      descricaoMarcacoes: "DESCANSO PREVISTO NA JORNADA",
+    };
   }
 
-  if (diaSemana === 0) {
-    return "FOLGA";
+  return {
+    status: marcacoes.length > 0 ? "PARCIAL" : "SEM REGISTRO",
+    descricaoMarcacoes: null,
+  };
+}
+
+type ResumoAfastamentoEspelhoPdf = {
+  rotuloTipo: string;
+  rotuloCompleto: string;
+};
+
+type ResumoMarcacoesMescladasPdf = {
+  rotuloStatus: string;
+  rotuloDescricao: string;
+};
+
+type SolicitacaoMescladaPdf = {
+  tipo: string;
+  titulo: string;
+};
+
+function resumirMarcacoesMescladas({
+  diaInstitucional,
+  solicitacao,
+}: {
+  diaInstitucional: DiaInstitucionalEspelho | null;
+  solicitacao: SolicitacaoMescladaPdf | null;
+}): ResumoMarcacoesMescladasPdf | null {
+  if (diaInstitucional) {
+    if (ehFimDeSemanaInstitucional(diaInstitucional)) {
+      return {
+        rotuloStatus: "Regular",
+        rotuloDescricao: "Descanso previsto na jornada",
+      };
+    }
+
+    if (diaInstitucional.tipo === "FERIADO") {
+      return {
+        rotuloStatus: "Feriado",
+        rotuloDescricao:
+          diaInstitucional.descricao &&
+          diaInstitucional.descricao !== "Feriado institucional"
+            ? `Feriado — ${diaInstitucional.descricao}`
+            : "Feriado",
+      };
+    }
+
+    if (diaInstitucional.tipo === "PONTO_FACULTATIVO") {
+      return {
+        rotuloStatus: "Regular",
+        rotuloDescricao: "Ponto facultativo",
+      };
+    }
+
+    return {
+      rotuloStatus: "Regular",
+      rotuloDescricao: rotuloDiaInstitucional(diaInstitucional),
+    };
   }
 
-  return marcacoes.length > 0 ? "PARCIAL" : "SEM REGISTRO";
+  if (!solicitacao) {
+    return null;
+  }
+
+  if (["COMPENSACAO", "FOLGA_BANCO_HORAS"].includes(solicitacao.tipo)) {
+    return {
+      rotuloStatus: "Regular",
+      rotuloDescricao: "Folga por compensação",
+    };
+  }
+
+  if (solicitacao.tipo === "ABONO_JUSTIFICATIVA") {
+    return {
+      rotuloStatus: "Regular",
+      rotuloDescricao: "Folga autorizada",
+    };
+  }
+
+  return {
+    rotuloStatus: "Regular",
+    rotuloDescricao: rotuloSolicitacaoEspelho(solicitacao.tipo),
+  };
+}
+
+function resumirAfastamentoEspelho(
+  ocorrencia: {
+    descricao?: string | null;
+    detalhes?: unknown;
+  },
+  dataReferencia: Date | string | null,
+): ResumoAfastamentoEspelhoPdf {
+  const detalhes = detalhesAfastamentoComoObjeto(ocorrencia.detalhes);
+  const rotuloBase = rotuloAfastamentoEspelho(ocorrencia.descricao);
+  const ehFerias =
+    detalhes?.ehFerias === true ||
+    textoContemFerias(rotuloBase) ||
+    textoContemFerias(String(detalhes?.categoria ?? "")) ||
+    textoContemFerias(String(detalhes?.tipoDescricao ?? ""));
+
+  if (!ehFerias) {
+    return {
+      rotuloTipo: "Afastamento",
+      rotuloCompleto: rotuloBase,
+    };
+  }
+
+  const situacao = classificarSituacaoFeriasEspelho({
+    detalhes,
+    dataReferencia,
+  });
+
+  return {
+    rotuloTipo: "Férias",
+    rotuloCompleto:
+      situacao === "Em férias" ? situacao : `Férias ${situacao}`,
+  };
+}
+
+function detalhesAfastamentoComoObjeto(valor: unknown) {
+  return valor && typeof valor === "object" && !Array.isArray(valor)
+    ? (valor as Record<string, unknown>)
+    : null;
+}
+
+function textoNormalizado(valor: string | null | undefined) {
+  return (valor ?? "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toUpperCase();
+}
+
+function textoContemFerias(valor: string) {
+  return textoNormalizado(valor).includes("FERIAS");
+}
+
+function dataReferenciaUtc(valor: Date | string | null | undefined) {
+  if (!valor) {
+    return null;
+  }
+
+  const data = valor instanceof Date ? valor : new Date(valor);
+
+  if (Number.isNaN(data.getTime())) {
+    return null;
+  }
+
+  return Date.UTC(
+    data.getUTCFullYear(),
+    data.getUTCMonth(),
+    data.getUTCDate(),
+  );
+}
+
+function hojeUtc() {
+  const hoje = new Date();
+  return Date.UTC(
+    hoje.getUTCFullYear(),
+    hoje.getUTCMonth(),
+    hoje.getUTCDate(),
+  );
+}
+
+function classificarSituacaoFeriasEspelho({
+  detalhes,
+  dataReferencia,
+}: {
+  detalhes: Record<string, unknown> | null;
+  dataReferencia: Date | string | null;
+}) {
+  const textoSituacao = textoNormalizado(
+    [
+      detalhes?.tipoCodigo,
+      detalhes?.tipoDescricao,
+      detalhes?.categoria,
+      detalhes?.observacao,
+      detalhes?.origemTabela,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+
+  if (textoSituacao.includes("CANCEL") || textoSituacao.includes("ANUL")) {
+    return "canceladas";
+  }
+
+  if (
+    textoSituacao.includes("INTERROMP") ||
+    textoSituacao.includes("SUSPENS")
+  ) {
+    return "interrompidas";
+  }
+
+  if (
+    textoSituacao.includes("ADIAD") ||
+    textoSituacao.includes("REMARC") ||
+    textoSituacao.includes("ALTER")
+  ) {
+    return "adiadas";
+  }
+
+  const referencia = dataReferenciaUtc(
+    dataReferencia ?? (detalhes?.dataReferencia as string | null),
+  );
+  const inicio = dataReferenciaUtc(detalhes?.dataInicio as string | null);
+  const fim = dataReferenciaUtc(detalhes?.dataFim as string | null);
+  const hoje = hojeUtc();
+
+  if (referencia !== null) {
+    if (referencia > hoje) {
+      return "programadas";
+    }
+
+    if (
+      referencia === hoje &&
+      inicio !== null &&
+      inicio <= hoje &&
+      (fim === null || hoje <= fim)
+    ) {
+      return "Em férias";
+    }
+
+    if (referencia < hoje) {
+      return "gozadas";
+    }
+  }
+
+  return "programadas";
 }
 
 function resolverNomeOficialOrgao(unidade?: UnidadeEspelho | null) {

@@ -20,6 +20,8 @@ type SearchableSelectProps = {
   disabled?: boolean;
   required?: boolean;
   className?: string;
+  asyncSearchUrl?: string;
+  minSearchLength?: number;
   onValueChange?: (value: string) => void;
 };
 
@@ -41,27 +43,57 @@ export function SearchableSelect({
   disabled = false,
   required = false,
   className = "",
+  asyncSearchUrl,
+  minSearchLength = 2,
   onValueChange,
 }: SearchableSelectProps) {
   const [aberto, setAberto] = useState(false);
   const [valor, setValor] = useState(defaultValue);
   const [busca, setBusca] = useState("");
+  const [opcoesRemotas, setOpcoesRemotas] = useState<
+    SearchableSelectOption[]
+  >([]);
+  const [carregando, setCarregando] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const selecionada = options.find((option) => option.value === valor);
+  const opcoes = useMemo(() => {
+    const mapa = new Map<string, SearchableSelectOption>();
+
+    for (const option of [...options, ...opcoesRemotas]) {
+      mapa.set(option.value, option);
+    }
+
+    return Array.from(mapa.values());
+  }, [opcoesRemotas, options]);
+  const selecionada = opcoes.find((option) => option.value === valor);
 
   const filtradas = useMemo(() => {
     const termo = normalizarBusca(busca.trim());
 
-    if (!termo) {
+    if (asyncSearchUrl) {
+      if (termo.length >= minSearchLength) {
+        return opcoesRemotas;
+      }
+
       return options;
     }
 
-    return options.filter((option) =>
+    if (!termo) {
+      return opcoes;
+    }
+
+    return opcoes.filter((option) =>
       normalizarBusca(`${option.label} ${option.searchText ?? ""}`).includes(
         termo,
       ),
     );
-  }, [busca, options]);
+  }, [
+    asyncSearchUrl,
+    busca,
+    minSearchLength,
+    opcoes,
+    opcoesRemotas,
+    options,
+  ]);
 
   useEffect(() => {
     function fecharAoClicarFora(event: MouseEvent) {
@@ -76,6 +108,51 @@ export function SearchableSelect({
     document.addEventListener("mousedown", fecharAoClicarFora);
     return () => document.removeEventListener("mousedown", fecharAoClicarFora);
   }, []);
+
+  useEffect(() => {
+    if (!asyncSearchUrl || !aberto || disabled) {
+      return;
+    }
+
+    const termo = busca.trim();
+
+    if (termo.length < minSearchLength) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      try {
+        setCarregando(true);
+        const separador = asyncSearchUrl.includes("?") ? "&" : "?";
+        const resposta = await fetch(
+          `${asyncSearchUrl}${separador}q=${encodeURIComponent(termo)}`,
+          { signal: controller.signal },
+        );
+
+        if (!resposta.ok) {
+          setOpcoesRemotas([]);
+          return;
+        }
+
+        const payload = (await resposta.json()) as {
+          options?: SearchableSelectOption[];
+        };
+        setOpcoesRemotas(Array.isArray(payload.options) ? payload.options : []);
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setOpcoesRemotas([]);
+        }
+      } finally {
+        setCarregando(false);
+      }
+    }, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [aberto, asyncSearchUrl, busca, disabled, minSearchLength]);
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
@@ -108,7 +185,14 @@ export function SearchableSelect({
           />
 
           <div className="mt-2 max-h-64 overflow-y-auto" role="listbox">
-            {filtradas.map((option) => (
+            {carregando && (
+              <p className="px-3 py-3 text-center text-sm text-[var(--muted-foreground)]">
+                Pesquisando...
+              </p>
+            )}
+
+            {!carregando &&
+              filtradas.map((option) => (
               <button
                 key={option.value}
                 type="button"
@@ -124,9 +208,9 @@ export function SearchableSelect({
               >
                 {option.label}
               </button>
-            ))}
+              ))}
 
-            {filtradas.length === 0 && (
+            {!carregando && filtradas.length === 0 && (
               <p className="px-3 py-4 text-center text-sm text-[var(--muted-foreground)]">
                 {emptyMessage}
               </p>

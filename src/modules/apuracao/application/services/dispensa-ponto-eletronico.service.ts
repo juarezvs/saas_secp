@@ -1,6 +1,7 @@
 type ResolverDispensaPontoEletronicoParams = {
   cargoDescricao?: string | null;
   quantidadeEquipamentosAtivosUnidade?: number | null;
+  quantidadeEquipamentosAtivosOrgao?: number | null;
   dispensaAdministrativa?: {
     motivo: string;
     exigeFrequenciaManual?: boolean | null;
@@ -33,6 +34,7 @@ export function servidorEhOficialJustica(cargoDescricao?: string | null) {
 export function resolverDispensaPontoEletronico({
   cargoDescricao,
   quantidadeEquipamentosAtivosUnidade,
+  quantidadeEquipamentosAtivosOrgao,
   dispensaAdministrativa,
 }: ResolverDispensaPontoEletronicoParams): ResultadoDispensaPontoEletronico {
   const motivos: string[] = [];
@@ -43,7 +45,10 @@ export function resolverDispensaPontoEletronico({
     exigeFrequenciaManual = true;
   }
 
-  if (quantidadeEquipamentosAtivosUnidade === 0) {
+  if (
+    quantidadeEquipamentosAtivosUnidade === 0 &&
+    (quantidadeEquipamentosAtivosOrgao ?? 0) === 0
+  ) {
     motivos.push("Unidade de lotacao sem equipamento biometrico ativo.");
     exigeFrequenciaManual = true;
   }

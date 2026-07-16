@@ -35,15 +35,21 @@ type OcorrenciaEspelhoMensal = {
   tipo: string;
   descricao: string;
   minutos: number;
+  detalhes?: unknown;
 };
 
 type AfastamentoSarhEspelho = {
   id: string;
   categoria: string;
+  tipoCodigo: string | null;
   tipoDescricao: string | null;
   dataInicio: Date;
   dataFim: Date | null;
   processo: string | null;
+  observacao: string | null;
+  origemTabela: string;
+  ativo: boolean;
+  payloadSarh: unknown;
 };
 
 type ApuracaoEspelhoMensal = {
@@ -462,10 +468,15 @@ async function carregarAfastamentosSarhPeriodo(params: {
     select: {
       id: true,
       categoria: true,
+      tipoCodigo: true,
       tipoDescricao: true,
       dataInicio: true,
       dataFim: true,
       processo: true,
+      observacao: true,
+      origemTabela: true,
+      ativo: true,
+      payloadSarh: true,
     },
     orderBy: [{ dataInicio: "asc" }, { categoria: "asc" }],
   });
@@ -493,6 +504,38 @@ function descricaoAfastamento(afastamento: AfastamentoSarhEspelho) {
   return `Afastamento SARH: ${tipo}.${processo}`;
 }
 
+function afastamentoEhFerias(afastamento: AfastamentoSarhEspelho) {
+  return [afastamento.categoria, afastamento.tipoDescricao, afastamento.origemTabela]
+    .filter((valor): valor is string => Boolean(valor))
+    .some((valor) =>
+      valor
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "")
+        .toUpperCase()
+        .includes("FERIAS"),
+    );
+}
+
+function detalhesAfastamento(
+  afastamento: AfastamentoSarhEspelho,
+  dataReferencia: Date,
+) {
+  return {
+    id: afastamento.id,
+    categoria: afastamento.categoria,
+    tipoCodigo: afastamento.tipoCodigo,
+    tipoDescricao: afastamento.tipoDescricao,
+    dataInicio: afastamento.dataInicio.toISOString(),
+    dataFim: afastamento.dataFim?.toISOString() ?? null,
+    processo: afastamento.processo,
+    observacao: afastamento.observacao,
+    origemTabela: afastamento.origemTabela,
+    ativo: afastamento.ativo,
+    ehFerias: afastamentoEhFerias(afastamento),
+    dataReferencia: dataReferencia.toISOString(),
+  };
+}
+
 function aplicarAfastamentoSarh(
   item: ItemEspelhoMensalCompleto,
   afastamento: AfastamentoSarhEspelho,
@@ -509,8 +552,14 @@ function aplicarAfastamentoSarh(
       afastamentoSarh: {
         id: afastamento.id,
         categoria: afastamento.categoria,
+        tipoCodigo: afastamento.tipoCodigo,
         tipoDescricao: afastamento.tipoDescricao,
+        dataInicio: afastamento.dataInicio.toISOString(),
+        dataFim: afastamento.dataFim?.toISOString() ?? null,
         processo: afastamento.processo,
+        observacao: afastamento.observacao,
+        origemTabela: afastamento.origemTabela,
+        ativo: afastamento.ativo,
       },
     },
     ocorrencias: [
@@ -521,6 +570,7 @@ function aplicarAfastamentoSarh(
         tipo: "AFASTAMENTO",
         descricao: descricaoAfastamento(afastamento),
         minutos: item.cargaPrevistaMinutos,
+        detalhes: detalhesAfastamento(afastamento, item.dataReferencia),
       },
     ],
     minutosDebitoApurado: 0,

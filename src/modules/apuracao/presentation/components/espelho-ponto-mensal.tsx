@@ -36,6 +36,7 @@ type ApuracaoMensalItem = {
     tipo: string;
     descricao: string;
     minutos: number;
+    detalhes?: unknown;
   }[];
 };
 
@@ -226,6 +227,23 @@ export function EspelhoPontoMensal({
               const possuiAfastamento = (item.ocorrencias ?? []).some(
                 (ocorrencia) => ocorrencia.tipo === "AFASTAMENTO",
               );
+              const afastamentoPrincipal = encontrarAfastamentoPrincipal(
+                item.ocorrencias,
+              );
+              const resumoAfastamento =
+                afastamentoPrincipal && marcacoesDoDia.length === 0
+                  ? resumirAfastamentoEspelho(
+                      afastamentoPrincipal,
+                      item.dataReferencia,
+                    )
+                  : null;
+              const resumoMarcacoesMescladas =
+                !resumoAfastamento && marcacoesDoDia.length === 0
+                  ? resumirMarcacoesMescladas({
+                      diaInstitucional,
+                      solicitacao: justificativaAusenciaMesclada,
+                    })
+                  : null;
               const dicaSemaforo = montarDicaSemaforo({
                 item,
                 conferencia,
@@ -235,10 +253,7 @@ export function EspelhoPontoMensal({
               const mesclarMarcacoesOcorrencias =
                 !dispensaPonto &&
                 !trabalhoRemoto &&
-                marcacoesDoDia.length === 0 &&
-                (Boolean(diaInstitucional) ||
-                  Boolean(justificativaAusenciaMesclada)) &&
-                !ehFimDeSemanaInstitucional(diaInstitucional);
+                Boolean(resumoMarcacoesMescladas);
 
               return (
                 <tr key={item.id} className="border-b last:border-b-0">
@@ -254,38 +269,50 @@ export function EspelhoPontoMensal({
                     {formatarDataReferenciaUtc(item.dataReferencia)}
                   </td>
 
-                  {horarios.map((horario, indice) => (
-                    <td
-                      key={`${item.id}-horario-${indice}`}
-                      className="whitespace-nowrap px-5 py-4 font-mono"
-                    >
-                      {horario ? (
-                        <span
-                          className={`rounded-full border px-2 py-1 text-xs ${
-                            horario.ajustada
-                              ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
-                              : "bg-[var(--muted)]"
-                          }`}
-                          title={horario.title}
-                        >
-                          {horario.valor}
-                          {horario.ajustada ? "*" : ""}
-                        </span>
-                      ) : (
-                        <span className="text-[var(--muted-foreground)]">-</span>
-                      )}
+                  {resumoAfastamento ? (
+                    <td colSpan={4} className="px-5 py-4">
+                      <BadgeAfastamentoResumo resumo={resumoAfastamento} />
                     </td>
-                  ))}
+                  ) : resumoMarcacoesMescladas ? (
+                    <td colSpan={4} className="px-5 py-4">
+                      <BadgeResumoMarcacoesMescladas
+                        resumo={resumoMarcacoesMescladas}
+                      />
+                    </td>
+                  ) : (
+                    horarios.map((horario, indice) => (
+                      <td
+                        key={`${item.id}-horario-${indice}`}
+                        className="whitespace-nowrap px-5 py-4 font-mono"
+                      >
+                        {horario ? (
+                          <span
+                            className={`rounded-full border px-2 py-1 text-xs ${
+                              horario.ajustada
+                                ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
+                                : "bg-[var(--muted)]"
+                            }`}
+                            title={horario.title}
+                          >
+                            {horario.valor}
+                            {horario.ajustada ? "*" : ""}
+                          </span>
+                        ) : (
+                          <span className="text-[var(--muted-foreground)]">-</span>
+                        )}
+                      </td>
+                    ))
+                  )}
 
                   <td className="px-5 py-4">
-                    {mesclarMarcacoesOcorrencias ? (
-                      diaInstitucional ? (
-                        <BadgeDiaInstitucional dia={diaInstitucional} />
-                      ) : (
-                        <BadgeJustificativaAusencia
-                          solicitacao={justificativaAusenciaMesclada!}
+                    {resumoAfastamento ? (
+                      <BadgeAfastamentoTipo resumo={resumoAfastamento} />
+                    ) : mesclarMarcacoesOcorrencias ? (
+                      resumoMarcacoesMescladas ? (
+                        <BadgeTipoMarcacoesMescladas
+                          resumo={resumoMarcacoesMescladas}
                         />
-                      )
+                      ) : null
                     ) : dispensaPonto ? (
                       <span
                         className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
@@ -311,7 +338,7 @@ export function EspelhoPontoMensal({
                       <StatusResultado item={item} />
                     )}
 
-                    {!mesclarMarcacoesOcorrencias && (
+                    {!resumoAfastamento && !mesclarMarcacoesOcorrencias && (
                       <div className={possuiAfastamento ? undefined : "mt-2"}>
                         <OcorrenciasDia
                           ocultarVazio
@@ -587,7 +614,9 @@ function OcorrenciasDia({
         chave: `ocorrencia-${index}-${ocorrencia.tipo}`,
         label: rotuloOcorrenciaEspelho(ocorrencia),
         classe:
-          ocorrencia.tipo === "CREDITO" ? ("ok" as const) : ("alerta" as const),
+          ocorrencia.tipo === "CREDITO"
+            ? ("ok" as const)
+            : classeAfastamentoEspelho(ocorrencia),
         descricaoAfastamento:
           ocorrencia.tipo === "AFASTAMENTO"
             ? rotuloOcorrenciaEspelho(ocorrencia)
@@ -653,6 +682,98 @@ function OcorrenciasDia({
   );
 }
 
+type ResumoAfastamentoEspelho = {
+  tipo: "FERIAS" | "AFASTAMENTO";
+  rotuloTipo: string;
+  rotuloSituacao: string;
+  rotuloCompleto: string;
+  classe: "ok" | "alerta" | "erro" | "neutro";
+  title?: string;
+};
+
+type ResumoMarcacoesMescladas = {
+  rotuloStatus: string;
+  rotuloDescricao: string;
+  classe: "ok" | "alerta" | "erro" | "neutro";
+  title?: string;
+  iconeLazer?: boolean;
+};
+
+function BadgeAfastamentoResumo({
+  resumo,
+}: {
+  resumo: ResumoAfastamentoEspelho;
+}) {
+  return (
+    <span
+      className={`inline-flex rounded-md border px-3 py-2 text-sm font-semibold ${classesBadgeResumoAfastamento(
+        resumo.classe,
+      )}`}
+      title={resumo.title}
+    >
+      <AfastamentoTipoIcone
+        descricao={resumo.rotuloCompleto}
+        className="mr-2 mt-0.5 size-4 shrink-0"
+      />
+      {resumo.rotuloCompleto}
+    </span>
+  );
+}
+
+function BadgeAfastamentoTipo({
+  resumo,
+}: {
+  resumo: ResumoAfastamentoEspelho;
+}) {
+  return (
+    <span
+      className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${classesBadgeResumoAfastamento(
+        resumo.classe,
+      )}`}
+      title={resumo.rotuloCompleto}
+    >
+      {resumo.rotuloTipo}
+    </span>
+  );
+}
+
+function BadgeResumoMarcacoesMescladas({
+  resumo,
+}: {
+  resumo: ResumoMarcacoesMescladas;
+}) {
+  return (
+    <span
+      className={`inline-flex rounded-md border px-3 py-2 text-sm font-semibold ${classesBadgeResumo(
+        resumo.classe,
+      )}`}
+      title={resumo.title}
+    >
+      {resumo.iconeLazer && (
+        <PartyPopper className="mr-2 mt-0.5 size-4 shrink-0" aria-hidden="true" />
+      )}
+      {resumo.rotuloDescricao}
+    </span>
+  );
+}
+
+function BadgeTipoMarcacoesMescladas({
+  resumo,
+}: {
+  resumo: ResumoMarcacoesMescladas;
+}) {
+  return (
+    <span
+      className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${classesBadgeResumo(
+        resumo.classe,
+      )}`}
+      title={resumo.rotuloDescricao}
+    >
+      {resumo.rotuloStatus}
+    </span>
+  );
+}
+
 function BadgeDiaInstitucional({ dia }: { dia: DiaInstitucionalEspelho }) {
   return (
     <span
@@ -663,23 +784,6 @@ function BadgeDiaInstitucional({ dia }: { dia: DiaInstitucionalEspelho }) {
         <PartyPopper className="mr-1 size-3.5" aria-hidden="true" />
       )}
       {rotuloDiaInstitucional(dia)}
-    </span>
-  );
-}
-
-function BadgeJustificativaAusencia({
-  solicitacao,
-}: {
-  solicitacao: SolicitacaoAplicadaEspelho;
-}) {
-  return (
-    <span
-      className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
-      title={`${rotuloSolicitacaoEspelho(solicitacao.tipo)} - ${
-        solicitacao.titulo
-      }`}
-    >
-      {rotuloSolicitacaoEspelho(solicitacao.tipo)}: {solicitacao.titulo}
     </span>
   );
 }
@@ -853,9 +957,10 @@ function rotuloResultadoEspelho(resultado: string) {
 function rotuloOcorrenciaEspelho(ocorrencia: {
   tipo: string;
   descricao?: string | null;
+  detalhes?: unknown;
 }) {
   if (ocorrencia.tipo === "AFASTAMENTO") {
-    return rotuloAfastamentoEspelho(ocorrencia.descricao);
+    return resumirAfastamentoEspelho(ocorrencia, null).rotuloCompleto;
   }
 
   const rotulos: Record<string, string> = {
@@ -869,6 +974,296 @@ function rotuloOcorrenciaEspelho(ocorrencia: {
   };
 
   return rotulos[ocorrencia.tipo] ?? ocorrencia.tipo.replaceAll("_", " ");
+}
+
+function encontrarAfastamentoPrincipal(
+  ocorrencias: ApuracaoMensalItem["ocorrencias"],
+) {
+  return (ocorrencias ?? []).find(
+    (ocorrencia) => ocorrencia.tipo === "AFASTAMENTO",
+  );
+}
+
+function resumirMarcacoesMescladas({
+  diaInstitucional,
+  solicitacao,
+}: {
+  diaInstitucional: DiaInstitucionalEspelho | null;
+  solicitacao: SolicitacaoAplicadaEspelho | null;
+}): ResumoMarcacoesMescladas | null {
+  if (diaInstitucional) {
+    if (ehFimDeSemanaInstitucional(diaInstitucional)) {
+      return {
+        rotuloStatus: "Regular",
+        rotuloDescricao: "Descanso previsto na jornada",
+        classe: "neutro",
+        title: diaInstitucional.descricao,
+      };
+    }
+
+    if (diaInstitucional.tipo === "FERIADO") {
+      return {
+        rotuloStatus: "Feriado",
+        rotuloDescricao:
+          diaInstitucional.descricao &&
+          diaInstitucional.descricao !== "Feriado institucional"
+            ? `Feriado — ${diaInstitucional.descricao}`
+            : "Feriado",
+        classe: "neutro",
+        title: diaInstitucional.descricao,
+        iconeLazer: true,
+      };
+    }
+
+    if (diaInstitucional.tipo === "PONTO_FACULTATIVO") {
+      return {
+        rotuloStatus: "Regular",
+        rotuloDescricao: "Ponto facultativo",
+        classe: "neutro",
+        title: diaInstitucional.descricao,
+        iconeLazer: true,
+      };
+    }
+
+    return {
+      rotuloStatus: "Regular",
+      rotuloDescricao: rotuloDiaInstitucional(diaInstitucional),
+      classe: diaInstitucional.geraApuracaoRegular ? "alerta" : "neutro",
+      title: diaInstitucional.descricao,
+      iconeLazer: ehDiaInstitucionalLazer(diaInstitucional),
+    };
+  }
+
+  if (!solicitacao) {
+    return null;
+  }
+
+  if (["COMPENSACAO", "FOLGA_BANCO_HORAS"].includes(solicitacao.tipo)) {
+    return {
+      rotuloStatus: "Regular",
+      rotuloDescricao: "Folga por compensação",
+      classe: "ok",
+      title: solicitacao.titulo,
+    };
+  }
+
+  if (solicitacao.tipo === "ABONO_JUSTIFICATIVA") {
+    return {
+      rotuloStatus: "Regular",
+      rotuloDescricao: "Folga autorizada",
+      classe: "ok",
+      title: solicitacao.titulo,
+    };
+  }
+
+  return {
+    rotuloStatus: "Regular",
+    rotuloDescricao: rotuloSolicitacaoEspelho(solicitacao.tipo),
+    classe: "ok",
+    title: solicitacao.titulo,
+  };
+}
+
+function classeAfastamentoEspelho(ocorrencia: {
+  tipo: string;
+  descricao?: string | null;
+  detalhes?: unknown;
+}) {
+  if (ocorrencia.tipo !== "AFASTAMENTO") {
+    return "alerta" as const;
+  }
+
+  return resumirAfastamentoEspelho(ocorrencia, null).classe;
+}
+
+function resumirAfastamentoEspelho(
+  ocorrencia: {
+    tipo: string;
+    descricao?: string | null;
+    detalhes?: unknown;
+  },
+  dataReferencia: Date | string | null,
+): ResumoAfastamentoEspelho {
+  const detalhes = detalhesAfastamentoComoObjeto(ocorrencia.detalhes);
+  const rotuloBase = rotuloAfastamentoEspelho(ocorrencia.descricao);
+  const ehFerias =
+    detalhes?.ehFerias === true ||
+    textoContemFerias(rotuloBase) ||
+    textoContemFerias(String(detalhes?.categoria ?? "")) ||
+    textoContemFerias(String(detalhes?.tipoDescricao ?? ""));
+
+  if (!ehFerias) {
+    return {
+      tipo: "AFASTAMENTO",
+      rotuloTipo: "Afastamento",
+      rotuloSituacao: rotuloBase,
+      rotuloCompleto: rotuloBase,
+      classe: "neutro",
+      title: rotuloBase,
+    };
+  }
+
+  const situacao = classificarSituacaoFeriasEspelho({
+    detalhes,
+    dataReferencia,
+  });
+  const rotuloCompleto =
+    situacao.rotulo === "Em férias" ? situacao.rotulo : `Férias ${situacao.rotulo}`;
+
+  return {
+    tipo: "FERIAS",
+    rotuloTipo: "Férias",
+    rotuloSituacao: situacao.rotulo,
+    rotuloCompleto,
+    classe: situacao.classe,
+    title: montarTitleFerias(detalhes, rotuloCompleto),
+  };
+}
+
+function detalhesAfastamentoComoObjeto(valor: unknown) {
+  return valor && typeof valor === "object" && !Array.isArray(valor)
+    ? (valor as Record<string, unknown>)
+    : null;
+}
+
+function textoNormalizado(valor: string | null | undefined) {
+  return (valor ?? "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toUpperCase();
+}
+
+function textoContemFerias(valor: string) {
+  return textoNormalizado(valor).includes("FERIAS");
+}
+
+function dataReferenciaUtc(valor: Date | string | null | undefined) {
+  if (!valor) {
+    return null;
+  }
+
+  const data = valor instanceof Date ? valor : new Date(valor);
+
+  if (Number.isNaN(data.getTime())) {
+    return null;
+  }
+
+  return Date.UTC(
+    data.getUTCFullYear(),
+    data.getUTCMonth(),
+    data.getUTCDate(),
+  );
+}
+
+function hojeUtc() {
+  const hoje = new Date();
+  return Date.UTC(
+    hoje.getUTCFullYear(),
+    hoje.getUTCMonth(),
+    hoje.getUTCDate(),
+  );
+}
+
+function classificarSituacaoFeriasEspelho({
+  detalhes,
+  dataReferencia,
+}: {
+  detalhes: Record<string, unknown> | null;
+  dataReferencia: Date | string | null;
+}) {
+  const textoSituacao = textoNormalizado(
+    [
+      detalhes?.tipoCodigo,
+      detalhes?.tipoDescricao,
+      detalhes?.categoria,
+      detalhes?.observacao,
+      detalhes?.origemTabela,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+
+  if (textoSituacao.includes("CANCEL") || textoSituacao.includes("ANUL")) {
+    return { rotulo: "canceladas", classe: "erro" as const };
+  }
+
+  if (
+    textoSituacao.includes("INTERROMP") ||
+    textoSituacao.includes("SUSPENS")
+  ) {
+    return { rotulo: "interrompidas", classe: "alerta" as const };
+  }
+
+  if (
+    textoSituacao.includes("ADIAD") ||
+    textoSituacao.includes("REMARC") ||
+    textoSituacao.includes("ALTER")
+  ) {
+    return { rotulo: "adiadas", classe: "alerta" as const };
+  }
+
+  const referencia = dataReferenciaUtc(dataReferencia ?? detalhes?.dataReferencia as string | null);
+  const inicio = dataReferenciaUtc(detalhes?.dataInicio as string | null);
+  const fim = dataReferenciaUtc(detalhes?.dataFim as string | null);
+  const hoje = hojeUtc();
+
+  if (referencia !== null) {
+    if (referencia > hoje) {
+      return { rotulo: "programadas", classe: "neutro" as const };
+    }
+
+    if (
+      referencia === hoje &&
+      inicio !== null &&
+      inicio <= hoje &&
+      (fim === null || hoje <= fim)
+    ) {
+      return { rotulo: "Em férias", classe: "neutro" as const };
+    }
+
+    if (referencia < hoje) {
+      return { rotulo: "gozadas", classe: "ok" as const };
+    }
+  }
+
+  return { rotulo: "programadas", classe: "neutro" as const };
+}
+
+function montarTitleFerias(
+  detalhes: Record<string, unknown> | null,
+  rotulo: string,
+) {
+  const inicio = detalhes?.dataInicio
+    ? formatarDataReferenciaUtc(String(detalhes.dataInicio))
+    : null;
+  const fim = detalhes?.dataFim
+    ? formatarDataReferenciaUtc(String(detalhes.dataFim))
+    : null;
+  const periodo = inicio && fim ? ` (${inicio} a ${fim})` : "";
+
+  return `${rotulo}${periodo}`;
+}
+
+function classesBadgeResumoAfastamento(
+  classe: ResumoAfastamentoEspelho["classe"],
+) {
+  return classesBadgeResumo(classe);
+}
+
+function classesBadgeResumo(classe: "ok" | "alerta" | "erro" | "neutro") {
+  if (classe === "erro") {
+    return "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300";
+  }
+
+  if (classe === "alerta") {
+    return "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300";
+  }
+
+  if (classe === "ok") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300";
+  }
+
+  return "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300";
 }
 
 function rotuloAfastamentoEspelho(descricao?: string | null) {

@@ -867,7 +867,12 @@ export class SarhPrismaRepository {
   }) {
     const endpoint: TipoEndpointSarhDb = "CHEFIAS";
     const chaveExterna = `${params.payload.lotacaoId}:${params.payload.idFuncaoLotacao}`;
-    const orgao = await this.obterOrgaoPadrao();
+    const matricula = params.payload.matricula
+      ? normalizarMatricula(params.payload.matricula)
+      : null;
+    const orgao = matricula
+      ? await this.obterOrgaoPorMatricula(matricula)
+      : await this.obterOrgaoPadrao();
     const unidade = await this.prisma.unidadeOrganizacional.findFirst({
       where: { orgaoId: orgao.id, codigoExternoSarh: params.payload.lotacaoId },
       select: { id: true, sigla: true },
@@ -891,9 +896,6 @@ export class SarhPrismaRepository {
       return "ERRO" as OperacaoRegistroSarhDb;
     }
 
-    const matricula = params.payload.matricula
-      ? normalizarMatricula(params.payload.matricula)
-      : null;
     const flagAtiva = normalizarBooleanoSarh(params.payload.flagAtiva);
     const flagOcupado = normalizarBooleanoSarh(params.payload.flagOcupado);
     const situacao = limparTexto(params.payload.situacao)?.toUpperCase() ?? "";
@@ -1078,7 +1080,7 @@ export class SarhPrismaRepository {
     modoSimulacao: boolean;
   }) {
     const matricula = normalizarMatricula(params.matricula);
-    const orgao = await this.obterOrgaoPadrao();
+    const orgao = await this.obterOrgaoPorMatricula(matricula);
     const servidor = await this.prisma.servidor.findFirst({
       where: { matricula, orgaoId: orgao.id },
       select: { id: true },
@@ -1472,7 +1474,7 @@ export class SarhPrismaRepository {
     const endpoint: TipoEndpointSarhDb = "SERVIDORES";
     const matricula = normalizarMatricula(params.payload.matricula);
     const chaveExterna = matricula;
-    const orgao = await this.obterOrgaoPadrao();
+    const orgao = await this.obterOrgaoPorMatricula(matricula);
     const cargo = params.payload.cargoId
       ? await this.prisma.cargo.findUnique({
           where: { codigoExternoSarh: params.payload.cargoId },
@@ -1630,7 +1632,7 @@ export class SarhPrismaRepository {
     const chaveExterna = `${matricula}:${
       params.payload.lotacaoId ?? "sem-lotacao"
     }`;
-    const orgao = await this.obterOrgaoPadrao();
+    const orgao = await this.obterOrgaoPorMatricula(matricula);
     const servidor = await this.prisma.servidor.findFirst({
       where: { matricula, orgaoId: orgao.id },
       include: { usuario: true },
@@ -1916,6 +1918,26 @@ export class SarhPrismaRepository {
     }
 
     return orgao;
+  }
+
+  private async obterOrgaoPorMatricula(matricula: string) {
+    if (this.orgaoId) {
+      return this.obterOrgaoPadrao();
+    }
+
+    const prefixo = matricula.trim().slice(0, 2).toUpperCase();
+
+    if (/^[A-Z]{2}$/.test(prefixo)) {
+      const orgaoPorPrefixo = await this.prisma.orgao.findFirst({
+        where: { sigla: `SJ${prefixo}` },
+      });
+
+      if (orgaoPorPrefixo) {
+        return orgaoPorPrefixo;
+      }
+    }
+
+    return this.obterOrgaoPadrao();
   }
 
   private async consolidarUnidadeDuplicada(

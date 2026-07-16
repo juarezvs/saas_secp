@@ -40,6 +40,17 @@ describe("dispensa-ponto-eletronico.service", () => {
     );
   });
 
+  it("nao dispensa quando ha equipamento ativo no orgao da unidade", () => {
+    const resultado = resolverDispensaPontoEletronico({
+      cargoDescricao: "Analista Judiciario",
+      quantidadeEquipamentosAtivosUnidade: 0,
+      quantidadeEquipamentosAtivosOrgao: 2,
+    });
+
+    expect(resultado.dispensado).toBe(false);
+    expect(resultado.motivos).toEqual([]);
+  });
+
   it("nao dispensa quando nao ha enquadramento excepcional", () => {
     const resultado = resolverDispensaPontoEletronico({
       cargoDescricao: "Tecnico Judiciario",

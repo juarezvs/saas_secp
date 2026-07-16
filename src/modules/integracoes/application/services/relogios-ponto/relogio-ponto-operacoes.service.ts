@@ -283,6 +283,11 @@ export async function listarCadastrosBiometricosEquipamentoService(params: {
       where: { id: params.equipamentoId },
       select: {
         configuracao: true,
+        orgao: {
+          select: {
+            sigla: true,
+          },
+        },
         unidade: {
           select: {
             orgao: {
@@ -322,7 +327,8 @@ export async function listarCadastrosBiometricosEquipamentoService(params: {
         const matriculaNormalizada = normalizarMatriculaControlId({
           matricula: cadastro.matricula,
           fabricante: conexao.fabricante,
-          siglaOrgao: equipamento?.unidade?.orgao.sigla,
+          siglaOrgao:
+            equipamento?.orgao?.sigla ?? equipamento?.unidade?.orgao.sigla,
           configuracao,
         });
 
@@ -358,6 +364,11 @@ async function coletarMarcacoesRelogioPontoSemLock(
   const equipamento = await prisma.equipamentoBiometrico.findUniqueOrThrow({
     where: { id: params.equipamentoId },
     include: {
+      orgao: {
+        select: {
+          sigla: true,
+        },
+      },
       unidade: {
         select: {
           orgao: {
@@ -394,7 +405,7 @@ async function coletarMarcacoesRelogioPontoSemLock(
     const matriculaNormalizada = normalizarMatriculaControlId({
       matricula: marcacao.matricula,
       fabricante: conexao.fabricante,
-      siglaOrgao: equipamento.unidade?.orgao.sigla,
+      siglaOrgao: equipamento.orgao?.sigla ?? equipamento.unidade?.orgao.sigla,
       configuracao,
     });
 

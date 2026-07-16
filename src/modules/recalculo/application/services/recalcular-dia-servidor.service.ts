@@ -240,10 +240,21 @@ export async function recalcularDiaServidorService(
   const regulamentacao = await buscarRegulamentacaoPontoOrgao(
     servidor?.orgaoId,
   );
+  const quantidadeEquipamentosAtivosUnidade =
+    lotacaoVigente?.unidade?.equipamentosBiometricos.length ?? null;
+  const quantidadeEquipamentosAtivosOrgao =
+    quantidadeEquipamentosAtivosUnidade === 0 && servidor?.orgaoId
+      ? await prisma.equipamentoBiometrico.count({
+          where: {
+            ativo: true,
+            orgaoId: servidor.orgaoId,
+          },
+        })
+      : null;
   const dispensaPontoEletronico = resolverDispensaPontoEletronico({
     cargoDescricao: servidor?.cargo?.descricao,
-    quantidadeEquipamentosAtivosUnidade:
-      lotacaoVigente?.unidade?.equipamentosBiometricos.length ?? null,
+    quantidadeEquipamentosAtivosUnidade,
+    quantidadeEquipamentosAtivosOrgao,
     dispensaAdministrativa: dispensaAdministrativa
       ? {
           motivo: dispensaAdministrativa.motivo,
