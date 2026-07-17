@@ -153,9 +153,13 @@ export type SarhEndpointKey =
   | "lotacoes"
   | "cargos"
   | "servidores"
+  | "estagiarios"
+  | "prestadores"
+  | "voluntarios"
   | "lotacoesServidores"
   | "tiposAfastamento"
   | "afastamentos"
+  | "ferias"
   | "chefias"
   | "calendarios";
 

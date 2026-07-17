@@ -23,6 +23,20 @@ function lerString(configuracao: Record<string, unknown>, chave: string) {
   return typeof valor === "string" ? valor : "";
 }
 
+function pareceCaminhoWindows(valor: string) {
+  return /^[a-zA-Z]:[\\/]/.test(valor);
+}
+
+function resolverOracleHome(configurado?: string, fallback?: string) {
+  if (!configurado) return fallback ?? "";
+
+  if (process.platform !== "win32" && pareceCaminhoWindows(configurado)) {
+    return fallback ?? "";
+  }
+
+  return configurado;
+}
+
 function configAmbiente(): SarhOracleConfig {
   const username = process.env.SARH_DB_USERNAME ?? process.env.DB_USERNAME ?? "";
   const password = process.env.SARH_DB_PASSWORD ?? process.env.DB_PASSWORD ?? "";
@@ -70,7 +84,10 @@ function montarConfig(
       lerString(configuracao, "connectString") ||
       integracao.baseUrl?.replace(/^oracle:\/\//, "") ||
       fallback.connectString,
-    oracleHome: lerString(configuracao, "oracleHome") || fallback.oracleHome,
+    oracleHome: resolverOracleHome(
+      lerString(configuracao, "oracleHome"),
+      fallback.oracleHome,
+    ),
     siglaLocalidade:
       lerString(configuracao, "siglaLocalidade") || fallback.siglaLocalidade,
     possuiPassword: Boolean(password),

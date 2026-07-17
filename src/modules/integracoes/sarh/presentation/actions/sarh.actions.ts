@@ -33,15 +33,23 @@ const PERMISSOES_SINCRONIZAR_SARH = [
 
 const ENDPOINTS_COMPATIVEIS_MATRICULA = new Set<SarhEndpointKey>([
   "servidores",
+  "estagiarios",
+  "prestadores",
+  "voluntarios",
   "lotacoesServidores",
   "afastamentos",
+  "ferias",
   "chefias",
 ]);
 
 const ENDPOINTS_PADRAO_MATRICULA: SarhEndpointKey[] = [
   "servidores",
+  "estagiarios",
+  "prestadores",
+  "voluntarios",
   "lotacoesServidores",
   "afastamentos",
+  "ferias",
   "chefias",
 ];
 

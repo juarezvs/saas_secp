@@ -20,18 +20,26 @@ const endpointsDisponiveis: Array<[SarhEndpointKey, string]> = [
   ["empresas", "Empresas / Seções Judiciárias"],
   ["lotacoes", "Lotações / Departamentos"],
   ["cargos", "Cargos"],
-  ["servidores", "Pessoas"],
+  ["servidores", "Servidores"],
+  ["estagiarios", "Estagiários"],
+  ["prestadores", "Prestadores"],
+  ["voluntarios", "Voluntários"],
   ["lotacoesServidores", "Lotações dos servidores"],
   ["tiposAfastamento", "Tipos de afastamento"],
   ["afastamentos", "Afastamentos"],
+  ["ferias", "Férias"],
   ["chefias", "Chefias"],
   ["calendarios", "Calendários institucionais"],
 ];
 
 const endpointsCompativeisComMatricula = new Set<SarhEndpointKey>([
   "servidores",
+  "estagiarios",
+  "prestadores",
+  "voluntarios",
   "lotacoesServidores",
   "afastamentos",
+  "ferias",
   "chefias",
   "calendarios",
 ]);
@@ -483,8 +491,9 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
         />
         {matriculaAtiva && (
           <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-            Com filtro por matrícula, são executados servidores, lotações do
-            servidor, afastamentos, chefias e calendários institucionais.
+            Com filtro por matrícula, são executados os tipos de pessoa
+            selecionados, lotações da pessoa, afastamentos, férias, chefias e
+            calendários institucionais.
           </p>
         )}
       </div>

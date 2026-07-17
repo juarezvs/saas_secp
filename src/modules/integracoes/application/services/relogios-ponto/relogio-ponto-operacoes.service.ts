@@ -665,7 +665,7 @@ async function capturarTodasMarcacoesRelogioPontoSemLock(
         : "Coleta concluida pelo relogio.",
     });
 
-    if (!proximoNsr || resultado.marcacoes.length === 0) {
+    if (!proximoNsr) {
       break;
     }
 
@@ -694,7 +694,7 @@ async function capturarTodasMarcacoesRelogioPontoSemLock(
     ignoradasPorFiltro,
     proximoNsr,
     limiteAtingido:
-      lotesExecutados >= limiteLotes && Boolean(proximoNsr) && recebidas > 0,
+      lotesExecutados >= limiteLotes && Boolean(proximoNsr),
     reprocessamento,
   };
 }

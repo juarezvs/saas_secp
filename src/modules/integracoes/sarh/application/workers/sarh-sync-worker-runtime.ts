@@ -13,7 +13,7 @@ type SarhSyncWorkerGlobal = typeof globalThis & {
   __secpSarhSyncWorkerVersion?: string;
 };
 
-const SARH_SYNC_WORKER_VERSION = "2026-07-01-chefias-sql";
+const SARH_SYNC_WORKER_VERSION = "2026-07-17-pessoas-por-vinculo";
 
 function workerEstaAtivo(worker: Worker<SarhSyncJob>) {
   return !worker.closing;

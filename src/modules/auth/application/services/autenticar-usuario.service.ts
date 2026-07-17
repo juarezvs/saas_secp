@@ -20,6 +20,24 @@ export async function autenticarUsuarioPorCredenciais({
     return null;
   }
 
+  const senhaLocalPrimeiro =
+    process.env.AUTH_LOCAL_PASSWORD_FIRST === "true" &&
+    Boolean(usuario.senhaHash) &&
+    (await bcrypt.compare(senha, usuario.senhaHash ?? ""));
+
+  if (senhaLocalPrimeiro) {
+    return {
+      id: usuario.id,
+      matricula: usuario.matricula,
+      nome: usuario.nome,
+      email: usuario.email,
+      tipo: usuario.tipo,
+      preferenciasAcessibilidade: usuario.preferenciasAcessibilidade,
+      perfis: usuario.perfis,
+      perfilAtivo: usuario.perfilAtivo,
+    };
+  }
+
   const senhaAdValida = await autenticarNoActiveDirectory(
     usuario.matricula,
     senha,

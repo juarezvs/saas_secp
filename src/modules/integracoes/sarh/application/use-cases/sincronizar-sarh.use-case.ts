@@ -1,4 +1,5 @@
 import type {
+  SarhAfastamentoDto,
   SarhEndpointKey,
   SarhLotacaoDto,
   SarhLotacaoServidorDto,
@@ -23,6 +24,46 @@ type PrismaLike = ConstructorParameters<typeof SarhPrismaRepository>[0];
 
 function ehPessoaExternaPontoSarh(matricula: string) {
   return /(?:ES|PS|VO)$/i.test(matricula.trim());
+}
+
+function endpointPessoaSarh(matricula: string): Extract<
+  SarhEndpointKey,
+  "servidores" | "estagiarios" | "prestadores" | "voluntarios"
+> {
+  const normalizada = normalizarMatricula(matricula);
+
+  if (normalizada.endsWith("ES")) return "estagiarios";
+  if (normalizada.endsWith("PS")) return "prestadores";
+  if (normalizada.endsWith("VO")) return "voluntarios";
+
+  return "servidores";
+}
+
+function rotuloEndpointPessoaSarh(endpoint: SarhEndpointKey) {
+  const rotulos: Partial<Record<SarhEndpointKey, string>> = {
+    servidores: "servidores",
+    estagiarios: "estagiarios",
+    prestadores: "prestadores",
+    voluntarios: "voluntarios",
+  };
+
+  return rotulos[endpoint] ?? "pessoas";
+}
+
+function textoNormalizadoSarh(valor: string | null | undefined) {
+  return (valor ?? "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toUpperCase();
+}
+
+function afastamentoSarhEhFerias(afastamento: SarhAfastamentoDto) {
+  return [
+    afastamento.id,
+    afastamento.categoria,
+    afastamento.tipoDescricao,
+    afastamento.origemTabela,
+  ].some((valor) => textoNormalizadoSarh(String(valor ?? "")).includes("FERIAS"));
 }
 
 export class SincronizarSarhUseCase {
@@ -70,6 +111,9 @@ export class SincronizarSarhUseCase {
       : (input.codigosUnidadesSarhPermitidos ?? []);
     const possuiFiltroUnidadeSarh = codigosRaizUnidadesSarh.length > 0;
     let lotacoesSarhCache: SarhLotacaoDto[] | null = null;
+    let servidoresSarhCache: Awaited<
+      ReturnType<SarhOracleClient["buscarServidores"]>
+    > | null = null;
     let codigosLotacoesPermitidasCache: Set<number> | null | undefined;
     let lotacoesServidoresSarhCache: SarhLotacaoServidorDto[] | null = null;
     let matriculasPermitidasCache: Set<string> | null | undefined;
@@ -132,6 +176,11 @@ export class SincronizarSarhUseCase {
     const buscarLotacoesSarh = async () => {
       lotacoesSarhCache ??= await sarhClient.buscarLotacoes();
       return lotacoesSarhCache;
+    };
+
+    const buscarServidoresSarh = async () => {
+      servidoresSarhCache ??= await sarhClient.buscarServidores();
+      return servidoresSarhCache;
     };
 
     const buscarLotacoesServidoresSarh = async () => {
@@ -334,14 +383,22 @@ export class SincronizarSarhUseCase {
         }
       }
 
-      if (endpoints.includes("servidores")) {
+      const endpointsPessoas = endpoints.filter((endpoint) =>
+        ["servidores", "estagiarios", "prestadores", "voluntarios"].includes(
+          endpoint,
+        ),
+      );
+
+      for (const endpointPessoa of endpointsPessoas) {
+        const rotuloPessoa = rotuloEndpointPessoaSarh(endpointPessoa);
+
         await publicarProgressoEndpoint(
-          "servidores",
+          endpointPessoa,
           0,
           1,
-          "Buscando servidores",
+          `Buscando ${rotuloPessoa}`,
         );
-        const servidores = await sarhClient.buscarServidores();
+        const servidores = await buscarServidoresSarh();
 
         const matriculaFiltro = input.matricula?.toUpperCase();
         const codigosPermitidos = await resolverCodigosLotacoesPermitidas();
@@ -349,6 +406,10 @@ export class SincronizarSarhUseCase {
 
         const filtrados = servidores.filter((servidor) => {
           const matricula = normalizarMatricula(servidor.matricula);
+
+          if (endpointPessoaSarh(matricula) !== endpointPessoa) {
+            return false;
+          }
 
           if (matriculaFiltro && matricula !== matriculaFiltro) {
             return false;
@@ -376,7 +437,7 @@ export class SincronizarSarhUseCase {
         for (const servidor of filtrados) {
           const bruto = await repository.registrarPayloadBruto({
             execucaoId: execucao.id,
-            endpoint: "servidores",
+            endpoint: endpointPessoa,
             payload: servidor,
           });
 
@@ -390,10 +451,10 @@ export class SincronizarSarhUseCase {
           repository.incrementar(contadores, operacao);
           processados += 1;
           await publicarProgressoEndpoint(
-            "servidores",
+            endpointPessoa,
             processados,
             filtrados.length,
-            "Processando servidores",
+            `Processando ${rotuloPessoa}`,
           );
         }
       }
@@ -482,17 +543,26 @@ export class SincronizarSarhUseCase {
         }
       }
 
-      if (endpoints.includes("afastamentos")) {
+      const processarAfastamentosSarh = async (
+        endpoint: "afastamentos" | "ferias",
+        somenteFerias: boolean,
+      ) => {
         await publicarProgressoEndpoint(
-          "afastamentos",
+          endpoint,
           0,
           1,
-          "Buscando afastamentos",
+          somenteFerias ? "Buscando férias" : "Buscando afastamentos",
         );
         const afastamentos = await sarhClient.buscarAfastamentos();
         const matriculaFiltro = input.matricula?.toUpperCase();
         const matriculasPermitidas = await resolverMatriculasPermitidas();
         const filtrados = afastamentos.filter((afastamento) => {
+          const ehFerias = afastamentoSarhEhFerias(afastamento);
+
+          if (somenteFerias !== ehFerias) {
+            return false;
+          }
+
           const matricula = afastamento.matricula
             ? normalizarMatricula(afastamento.matricula)
             : null;
@@ -572,12 +642,20 @@ export class SincronizarSarhUseCase {
 
           processados += lote.length;
           await publicarProgressoEndpoint(
-            "afastamentos",
+            endpoint,
             processados,
             filtrados.length,
-            "Processando afastamentos",
+            somenteFerias ? "Processando férias" : "Processando afastamentos",
           );
         }
+      };
+
+      if (endpoints.includes("afastamentos")) {
+        await processarAfastamentosSarh("afastamentos", false);
+      }
+
+      if (endpoints.includes("ferias")) {
+        await processarAfastamentosSarh("ferias", true);
       }
 
       if (endpoints.includes("chefias")) {

@@ -476,6 +476,81 @@ enum TipoLiberacaoRotina {
   PERMISSAO
 }
 
+enum OvertimePaymentDestination {
+  PECUNIA
+  BANCO_DE_HORAS
+  A_DEFINIR
+}
+
+enum OvertimeRequestLifecycleStatus {
+  DRAFT
+  SUBMITTED
+  IN_WORKFLOW
+  APPROVED
+  PARTIALLY_APPROVED
+  REJECTED
+  RETURNED
+  CANCELLED
+  CLOSED
+}
+
+enum OvertimeDayDecision {
+  REQUESTED
+  APPROVED
+  PARTIALLY_APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum OvertimeDayType {
+  DIA_UTIL
+  SABADO
+  DOMINGO
+  FERIADO_NACIONAL
+  FERIADO_ESTADUAL
+  FERIADO_MUNICIPAL
+  FERIADO_REGIMENTAL
+  PONTO_FACULTATIVO
+  RECESSO
+  FOLGA_DE_ESCALA
+}
+
+enum OvertimeBudgetReviewResult {
+  AVAILABLE
+  PARTIALLY_AVAILABLE
+  UNAVAILABLE
+  NEEDS_INFORMATION
+  CANCELLED
+}
+
+enum OvertimeFinalDecisionResult {
+  APPROVED
+  PARTIALLY_APPROVED
+  REJECTED
+  RETURNED
+  CANCELLED
+}
+
+enum OvertimeAuthorizationStatus {
+  ACTIVE
+  SUPERSEDED
+  CANCELLED
+  EXPIRED
+  CLOSED
+}
+
+enum OvertimePayrollBatchStatus {
+  DRAFT
+  CALCULATING
+  PENDING_REVIEW
+  READY_TO_CLOSE
+  CLOSED
+  EXPORTED
+  SENT_TO_PAYROLL
+  PAID
+  CANCELLED
+}
+
 model Usuario {
   id                         String      @id @default(uuid()) @db.Uuid
   matricula                  String      @unique @db.VarChar(50)
@@ -685,6 +760,8 @@ model Orgao {
   integracoes               IntegracaoSistema[]
   calendariosInstitucionais CalendarioInstitucional[]
   usuariosPerfis            UsuarioPerfil[]
+  overtimePolicies          OvertimePolicy[]
+  overtimeWorkflowDefinitions OvertimeWorkflowDefinition[]
 
   @@map("orgaos")
 }
@@ -775,6 +852,10 @@ model UnidadeOrganizacional {
   equipamentosBiometricos   EquipamentoBiometrico[]
   convocacoesRecesso        ConvocacaoRecesso[]
   calendariosInstitucionais CalendarioInstitucional[]
+  overtimePoliciesScoped    OvertimePolicy[] @relation("OvertimePolicyScopeUnit")
+  overtimePolicyVersionsScoped OvertimePolicyVersion[] @relation("OvertimePolicyVersionScopeUnit")
+  overtimeWorkflowDefinitionsScoped OvertimeWorkflowDefinition[] @relation("OvertimeWorkflowDefinitionScopeUnit")
+  overtimeWorkflowVersionsScoped OvertimeWorkflowVersion[] @relation("OvertimeWorkflowVersionScopeUnit")
 
   @@unique([orgaoId, codigo])
   @@unique([orgaoId, codigoExternoSarh])
@@ -2464,4 +2545,496 @@ model HomologacaoRecesso {
   @@index([status])
   @@index([mesReferencia])
   @@map("recessos_homologacoes")
+}
+
+model OvertimePolicy {
+  id      String @id @default(uuid()) @db.Uuid
+  orgaoId String @map("orgao_id") @db.Uuid
+  scopeUnitId String? @map("scope_unit_id") @db.Uuid
+
+  code        String  @db.VarChar(120)
+  name        String  @db.VarChar(180)
+  description String? @db.Text
+  active      Boolean @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  orgao     Orgao @relation(fields: [orgaoId], references: [id], onDelete: Cascade)
+  scopeUnit UnidadeOrganizacional? @relation("OvertimePolicyScopeUnit", fields: [scopeUnitId], references: [id], onDelete: SetNull)
+  versions OvertimePolicyVersion[]
+
+  @@unique([orgaoId, code, scopeUnitId])
+  @@index([orgaoId])
+  @@index([scopeUnitId])
+  @@index([active])
+  @@map("overtime_policies")
+}
+
+model OvertimePolicyVersion {
+  id       String @id @default(uuid()) @db.Uuid
+  policyId String @map("policy_id") @db.Uuid
+  orgaoId  String @map("orgao_id") @db.Uuid
+  scopeUnitId String? @map("scope_unit_id") @db.Uuid
+
+  version             Int
+  normativeBasis      String?  @map("normative_basis") @db.Text
+  validFrom           DateTime @map("valid_from") @db.Date
+  validUntil          DateTime? @map("valid_until") @db.Date
+  priorAuthorization  Boolean  @default(true) @map("prior_authorization")
+  budgetReviewRequired Boolean @default(true) @map("budget_review_required")
+  minimumBusinessDays Int      @default(0) @map("minimum_business_days")
+  workPlanRequired    Boolean  @default(true) @map("work_plan_required")
+  justificationRequired Boolean @default(true) @map("justification_required")
+  divisorMinutes      Int      @default(12000) @map("divisor_minutes")
+  monthlyLimitMinutes Int?     @map("monthly_limit_minutes")
+  annualLimitMinutes  Int?     @map("annual_limit_minutes")
+  active              Boolean  @default(true)
+  snapshot            Json?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  policy OvertimePolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  scopeUnit UnidadeOrganizacional? @relation("OvertimePolicyVersionScopeUnit", fields: [scopeUnitId], references: [id], onDelete: SetNull)
+  rateRules OvertimeRateRule[]
+  requests OvertimeRequest[]
+
+  @@unique([policyId, version])
+  @@index([orgaoId])
+  @@index([scopeUnitId])
+  @@index([validFrom, validUntil])
+  @@index([active])
+  @@map("overtime_policy_versions")
+}
+
+model OvertimeRateRule {
+  id              String          @id @default(uuid()) @db.Uuid
+  policyVersionId String          @map("policy_version_id") @db.Uuid
+  dayType         OvertimeDayType @map("day_type")
+  ratePercent     Decimal         @map("rate_percent") @db.Decimal(7, 4)
+  dailyLimitMinutes Int?          @map("daily_limit_minutes")
+  eligibilityThresholdMinutes Int? @map("eligibility_threshold_minutes")
+  nightAdditionalPercent Decimal? @map("night_additional_percent") @db.Decimal(7, 4)
+  active          Boolean         @default(true)
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  policyVersion OvertimePolicyVersion @relation(fields: [policyVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([policyVersionId, dayType])
+  @@index([dayType])
+  @@index([active])
+  @@map("overtime_rate_rules")
+}
+
+model OvertimeWorkflowDefinition {
+  id      String @id @default(uuid()) @db.Uuid
+  orgaoId String @map("orgao_id") @db.Uuid
+  scopeUnitId String? @map("scope_unit_id") @db.Uuid
+
+  code        String  @db.VarChar(120)
+  name        String  @db.VarChar(180)
+  description String? @db.Text
+  active      Boolean @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  orgao     Orgao @relation(fields: [orgaoId], references: [id], onDelete: Cascade)
+  scopeUnit UnidadeOrganizacional? @relation("OvertimeWorkflowDefinitionScopeUnit", fields: [scopeUnitId], references: [id], onDelete: SetNull)
+  versions OvertimeWorkflowVersion[]
+
+  @@unique([orgaoId, code, scopeUnitId])
+  @@index([orgaoId])
+  @@index([scopeUnitId])
+  @@index([active])
+  @@map("overtime_workflow_definitions")
+}
+
+model OvertimeWorkflowVersion {
+  id           String @id @default(uuid()) @db.Uuid
+  definitionId String @map("definition_id") @db.Uuid
+  orgaoId      String @map("orgao_id") @db.Uuid
+  scopeUnitId  String? @map("scope_unit_id") @db.Uuid
+
+  version     Int
+  validFrom   DateTime @map("valid_from") @db.Date
+  validUntil  DateTime? @map("valid_until") @db.Date
+  initialStepCode String @map("initial_step_code") @db.VarChar(120)
+  active      Boolean @default(true)
+  snapshot    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  definition OvertimeWorkflowDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+  scopeUnit UnidadeOrganizacional? @relation("OvertimeWorkflowVersionScopeUnit", fields: [scopeUnitId], references: [id], onDelete: SetNull)
+  steps      OvertimeWorkflowStepDefinition[]
+  transitions OvertimeWorkflowTransition[]
+  requests   OvertimeRequest[]
+
+  @@unique([definitionId, version])
+  @@index([orgaoId])
+  @@index([scopeUnitId])
+  @@index([validFrom, validUntil])
+  @@index([active])
+  @@map("overtime_workflow_versions")
+}
+
+model OvertimeWorkflowStepDefinition {
+  id                String @id @default(uuid()) @db.Uuid
+  workflowVersionId String @map("workflow_version_id") @db.Uuid
+
+  code               String  @db.VarChar(120)
+  name               String  @db.VarChar(180)
+  order              Int
+  requiredPermission String? @map("required_permission") @db.VarChar(160)
+  optional           Boolean @default(false)
+  allowsReturn       Boolean @default(true) @map("allows_return")
+  allowsRejection    Boolean @default(true) @map("allows_rejection")
+  allowsPartialApproval Boolean @default(false) @map("allows_partial_approval")
+  slaHours           Int?    @map("sla_hours")
+  metadata           Json?
+
+  workflowVersion OvertimeWorkflowVersion @relation(fields: [workflowVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowVersionId, code])
+  @@index([workflowVersionId])
+  @@index([order])
+  @@map("overtime_workflow_step_definitions")
+}
+
+model OvertimeWorkflowTransition {
+  id                String @id @default(uuid()) @db.Uuid
+  workflowVersionId String @map("workflow_version_id") @db.Uuid
+
+  fromStepCode String @map("from_step_code") @db.VarChar(120)
+  toStepCode   String @map("to_step_code") @db.VarChar(120)
+  actionCode   String @map("action_code") @db.VarChar(120)
+  requiredPermission String? @map("required_permission") @db.VarChar(160)
+  metadata     Json?
+
+  workflowVersion OvertimeWorkflowVersion @relation(fields: [workflowVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowVersionId, fromStepCode, actionCode])
+  @@index([workflowVersionId])
+  @@index([fromStepCode])
+  @@index([toStepCode])
+  @@map("overtime_workflow_transitions")
+}
+
+model OvertimeResponsibilityAssignment {
+  id      String @id @default(uuid()) @db.Uuid
+  orgaoId String @map("orgao_id") @db.Uuid
+
+  responsibilityType String @map("responsibility_type") @db.VarChar(80)
+  organizationalUnitId String? @map("organizational_unit_id") @db.Uuid
+  userId String? @map("user_id") @db.Uuid
+  roleId String? @map("role_id") @db.Uuid
+  scopeUnitId String? @map("scope_unit_id") @db.Uuid
+  validFrom DateTime @map("valid_from") @db.Date
+  validUntil DateTime? @map("valid_until") @db.Date
+  priority Int @default(100)
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([orgaoId])
+  @@index([responsibilityType])
+  @@index([scopeUnitId])
+  @@index([active, validFrom, validUntil])
+  @@map("overtime_responsibility_assignments")
+}
+
+model OvertimeRequest {
+  id      String @id @default(uuid()) @db.Uuid
+  orgaoId String @map("orgao_id") @db.Uuid
+
+  requestNumber String @map("request_number") @db.VarChar(40)
+  requesterUserId String @map("requester_user_id") @db.Uuid
+  employeeId String @map("employee_id") @db.Uuid
+  organizationalUnitId String @map("organizational_unit_id") @db.Uuid
+  workUnitId String? @map("work_unit_id") @db.Uuid
+  policyVersionId String @map("policy_version_id") @db.Uuid
+  workflowVersionId String @map("workflow_version_id") @db.Uuid
+
+  periodStart DateTime @map("period_start") @db.Date
+  periodEnd DateTime @map("period_end") @db.Date
+  justification String @db.Text
+  activitiesDescription String @map("activities_description") @db.Text
+  paymentDestination OvertimePaymentDestination @default(A_DEFINIR) @map("payment_destination")
+  currentLifecycleStatus OvertimeRequestLifecycleStatus @default(DRAFT) @map("current_lifecycle_status")
+  currentWorkflowStepCode String? @map("current_workflow_step_code") @db.VarChar(120)
+  budgetReviewResult OvertimeBudgetReviewResult? @map("budget_review_result")
+  finalDecisionResult OvertimeFinalDecisionResult? @map("final_decision_result")
+  executionStatus String? @map("execution_status") @db.VarChar(80)
+  paymentStatus String? @map("payment_status") @db.VarChar(80)
+  submittedAt DateTime? @map("submitted_at")
+  returnedAt DateTime? @map("returned_at")
+  approvedAt DateTime? @map("approved_at")
+  rejectedAt DateTime? @map("rejected_at")
+  cancelledAt DateTime? @map("cancelled_at")
+  version Int @default(1)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  policyVersion OvertimePolicyVersion @relation(fields: [policyVersionId], references: [id], onDelete: Restrict)
+  workflowVersion OvertimeWorkflowVersion @relation(fields: [workflowVersionId], references: [id], onDelete: Restrict)
+  days OvertimeRequestDay[]
+  history OvertimeRequestHistory[]
+  budgetReviews OvertimeBudgetReview[]
+  finalDecisions OvertimeFinalDecision[]
+  authorizations OvertimeAuthorization[]
+
+  @@unique([orgaoId, requestNumber])
+  @@index([orgaoId])
+  @@index([employeeId])
+  @@index([organizationalUnitId])
+  @@index([periodStart, periodEnd])
+  @@index([currentLifecycleStatus])
+  @@index([currentWorkflowStepCode])
+  @@map("overtime_requests")
+}
+
+model OvertimeRequestDay {
+  id        String @id @default(uuid()) @db.Uuid
+  requestId String @map("request_id") @db.Uuid
+
+  date DateTime @db.Date
+  requestedStartTime String? @map("requested_start_time") @db.VarChar(5)
+  requestedEndTime String? @map("requested_end_time") @db.VarChar(5)
+  requestedMinutes Int @map("requested_minutes")
+  paymentDestination OvertimePaymentDestination @default(PECUNIA) @map("payment_destination")
+  approvedStartTime String? @map("approved_start_time") @db.VarChar(5)
+  approvedEndTime String? @map("approved_end_time") @db.VarChar(5)
+  approvedMinutes Int? @map("approved_minutes")
+  dayTypeSnapshot OvertimeDayType @map("day_type_snapshot")
+  ratePercentSnapshot Decimal? @map("rate_percent_snapshot") @db.Decimal(7, 4)
+  requestDecision OvertimeDayDecision @default(REQUESTED) @map("request_decision")
+  approvalReason String? @map("approval_reason") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  request OvertimeRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, date])
+  @@index([date])
+  @@index([requestDecision])
+  @@map("overtime_request_days")
+}
+
+model OvertimeRequestHistory {
+  id        String @id @default(uuid()) @db.Uuid
+  requestId String @map("request_id") @db.Uuid
+  userId    String? @map("user_id") @db.Uuid
+
+  action String @db.VarChar(120)
+  fromStatus OvertimeRequestLifecycleStatus? @map("from_status")
+  toStatus OvertimeRequestLifecycleStatus? @map("to_status")
+  fromStepCode String? @map("from_step_code") @db.VarChar(120)
+  toStepCode String? @map("to_step_code") @db.VarChar(120)
+  reason String? @db.Text
+  metadata Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  request OvertimeRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("overtime_request_history")
+}
+
+model OvertimeBudgetReview {
+  id        String @id @default(uuid()) @db.Uuid
+  requestId String @map("request_id") @db.Uuid
+  reviewerUserId String? @map("reviewer_user_id") @db.Uuid
+  budgetUnitId String? @map("budget_unit_id") @db.Uuid
+
+  result OvertimeBudgetReviewResult
+  estimatedAmount Decimal? @map("estimated_amount") @db.Decimal(14, 2)
+  availableAmount Decimal? @map("available_amount") @db.Decimal(14, 2)
+  reservedAmount Decimal? @map("reserved_amount") @db.Decimal(14, 2)
+  approvedMinutes Int? @map("approved_minutes")
+  budgetActionCode String? @map("budget_action_code") @db.VarChar(80)
+  budgetPlanCode String? @map("budget_plan_code") @db.VarChar(80)
+  commitmentReference String? @map("commitment_reference") @db.VarChar(120)
+  seiProcessReference String? @map("sei_process_reference") @db.VarChar(120)
+  notes String? @db.Text
+  reviewedAt DateTime @default(now()) @map("reviewed_at")
+  validUntil DateTime? @map("valid_until") @db.Date
+  metadata Json?
+
+  request OvertimeRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([reviewerUserId])
+  @@index([budgetUnitId])
+  @@index([result])
+  @@index([validUntil])
+  @@map("overtime_budget_reviews")
+}
+
+model OvertimeFinalDecision {
+  id        String @id @default(uuid()) @db.Uuid
+  requestId String @map("request_id") @db.Uuid
+  authorityUserId String @map("authority_user_id") @db.Uuid
+  budgetReviewId String? @map("budget_review_id") @db.Uuid
+
+  result OvertimeFinalDecisionResult
+  justification String @db.Text
+  requestedMinutes Int @map("requested_minutes")
+  approvedMinutes Int @map("approved_minutes")
+  estimatedAmount Decimal? @map("estimated_amount") @db.Decimal(14, 2)
+  seiProcessReference String? @map("sei_process_reference") @db.VarChar(120)
+  decidedAt DateTime @default(now()) @map("decided_at")
+  policySnapshot Json? @map("policy_snapshot")
+  workflowSnapshot Json? @map("workflow_snapshot")
+  metadata Json?
+
+  request OvertimeRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@index([authorityUserId])
+  @@index([budgetReviewId])
+  @@index([result])
+  @@index([decidedAt])
+  @@map("overtime_final_decisions")
+}
+
+model OvertimeAuthorization {
+  id        String @id @default(uuid()) @db.Uuid
+  orgaoId   String @map("orgao_id") @db.Uuid
+  requestId String @map("request_id") @db.Uuid
+  decisionId String @map("decision_id") @db.Uuid
+  employeeId String @map("employee_id") @db.Uuid
+
+  status OvertimeAuthorizationStatus @default(ACTIVE)
+  validFrom DateTime @map("valid_from") @db.Date
+  validUntil DateTime @map("valid_until") @db.Date
+  totalApprovedMinutes Int @map("total_approved_minutes")
+  policySnapshot Json @map("policy_snapshot")
+  workflowSnapshot Json @map("workflow_snapshot")
+  previousAuthorizationId String? @map("previous_authorization_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  request OvertimeRequest @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  days OvertimeAuthorizationDay[]
+
+  @@index([orgaoId])
+  @@index([requestId])
+  @@index([decisionId])
+  @@index([employeeId])
+  @@index([status])
+  @@index([validFrom, validUntil])
+  @@map("overtime_authorizations")
+}
+
+model OvertimeAuthorizationDay {
+  id              String @id @default(uuid()) @db.Uuid
+  authorizationId String @map("authorization_id") @db.Uuid
+  requestDayId    String? @map("request_day_id") @db.Uuid
+
+  date DateTime @db.Date
+  approvedStartTime String? @map("approved_start_time") @db.VarChar(5)
+  approvedEndTime String? @map("approved_end_time") @db.VarChar(5)
+  approvedMinutes Int @map("approved_minutes")
+  dayType OvertimeDayType @map("day_type")
+  ratePercent Decimal @map("rate_percent") @db.Decimal(7, 4)
+  metadata Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  authorization OvertimeAuthorization @relation(fields: [authorizationId], references: [id], onDelete: Cascade)
+
+  @@unique([authorizationId, date])
+  @@index([requestDayId])
+  @@index([date])
+  @@map("overtime_authorization_days")
+}
+
+model OvertimePayrollBatch {
+  id      String @id @default(uuid()) @db.Uuid
+  orgaoId String @map("orgao_id") @db.Uuid
+
+  competence String @db.VarChar(7)
+  status OvertimePayrollBatchStatus @default(DRAFT)
+  filters Json?
+  totalEmployees Int @default(0) @map("total_employees")
+  totalMinutes Int @default(0) @map("total_minutes")
+  totalAmount Decimal @default(0) @map("total_amount") @db.Decimal(14, 2)
+  checksum String? @db.VarChar(128)
+  createdByUserId String? @map("created_by_user_id") @db.Uuid
+  closedByUserId String? @map("closed_by_user_id") @db.Uuid
+  closedAt DateTime? @map("closed_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  employees OvertimePayrollBatchEmployee[]
+  lines OvertimePayrollBatchLine[]
+
+  @@index([orgaoId])
+  @@index([competence])
+  @@index([status])
+  @@index([createdByUserId])
+  @@index([closedAt])
+  @@map("overtime_payroll_batches")
+}
+
+model OvertimePayrollBatchEmployee {
+  id      String @id @default(uuid()) @db.Uuid
+  batchId String @map("batch_id") @db.Uuid
+
+  employeeId String @map("employee_id") @db.Uuid
+  registration String? @db.VarChar(50)
+  employeeName String? @map("employee_name") @db.VarChar(200)
+  organizationalUnitLabel String? @map("organizational_unit_label") @db.VarChar(200)
+  totalMinutes Int @default(0) @map("total_minutes")
+  totalAmount Decimal @default(0) @map("total_amount") @db.Decimal(14, 2)
+  metadata Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  batch OvertimePayrollBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  lines OvertimePayrollBatchLine[]
+
+  @@unique([batchId, employeeId])
+  @@index([batchId])
+  @@index([employeeId])
+  @@map("overtime_payroll_batch_employees")
+}
+
+model OvertimePayrollBatchLine {
+  id      String @id @default(uuid()) @db.Uuid
+  batchId String @map("batch_id") @db.Uuid
+  batchEmployeeId String @map("batch_employee_id") @db.Uuid
+
+  authorizationId String @map("authorization_id") @db.Uuid
+  authorizationDayId String @map("authorization_day_id") @db.Uuid
+  requestId String @map("request_id") @db.Uuid
+  employeeId String @map("employee_id") @db.Uuid
+  date DateTime @db.Date
+  competence String @db.VarChar(7)
+  minutes Int
+  ratePercent Decimal @map("rate_percent") @db.Decimal(7, 4)
+  amount Decimal @default(0) @db.Decimal(14, 2)
+  rubricaCode String? @map("rubrica_code") @db.VarChar(80)
+  metadata Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  batch OvertimePayrollBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  batchEmployee OvertimePayrollBatchEmployee @relation(fields: [batchEmployeeId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, authorizationDayId])
+  @@index([batchId])
+  @@index([batchEmployeeId])
+  @@index([employeeId])
+  @@index([authorizationId])
+  @@index([authorizationDayId])
+  @@index([competence])
+  @@map("overtime_payroll_batch_lines")
 }

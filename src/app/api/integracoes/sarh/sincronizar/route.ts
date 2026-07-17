@@ -28,25 +28,37 @@ const ENDPOINTS_VALIDOS = new Set<SarhEndpointKey>([
   "lotacoes",
   "cargos",
   "servidores",
+  "estagiarios",
+  "prestadores",
+  "voluntarios",
   "lotacoesServidores",
   "tiposAfastamento",
   "afastamentos",
+  "ferias",
   "chefias",
   "calendarios",
 ]);
 
 const ENDPOINTS_COMPATIVEIS_MATRICULA = new Set<SarhEndpointKey>([
   "servidores",
+  "estagiarios",
+  "prestadores",
+  "voluntarios",
   "lotacoesServidores",
   "afastamentos",
+  "ferias",
   "chefias",
   "calendarios",
 ]);
 
 const ENDPOINTS_PADRAO_MATRICULA: SarhEndpointKey[] = [
   "servidores",
+  "estagiarios",
+  "prestadores",
+  "voluntarios",
   "lotacoesServidores",
   "afastamentos",
+  "ferias",
   "chefias",
   "calendarios",
 ];

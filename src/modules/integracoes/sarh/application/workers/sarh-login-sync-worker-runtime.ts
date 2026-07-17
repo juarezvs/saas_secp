@@ -47,6 +47,7 @@ async function processarAtualizacaoSarhLogin(
       "lotacoesServidores",
       "tiposAfastamento",
       "afastamentos",
+      "ferias",
       "chefias",
       "calendarios",
     ],

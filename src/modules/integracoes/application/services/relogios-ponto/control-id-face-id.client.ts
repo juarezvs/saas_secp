@@ -144,6 +144,14 @@ function parseLinhaAfdIdClass(linha: string): {
   };
 }
 
+function nsrLinhaAfd(linha: string) {
+  const match = linha.match(/^(\d{9})/);
+  if (!match) return null;
+
+  const nsr = Number(match[1]);
+  return Number.isFinite(nsr) ? nsr : null;
+}
+
 function resolverProtocoloControlId(config: ControlIdConfig) {
   const protocolo = valorTexto(config.protocolo)?.toUpperCase();
 
@@ -518,19 +526,19 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
       const afd = await this.executarIdClassTexto(
         "get_afd",
         session,
-        { initial_nsr: nsrInicial },
+        { initial_nsr: nsrInicial, limit: quantidade },
         { mode: "671" },
       );
-      const registros = afd
-        .split(/\r?\n/)
-        .map((linha) => parseLinhaAfdIdClass(linha.trim()))
+      const linhas = afd.split(/\r?\n/).map((linha) => linha.trim());
+      const registros = linhas
+        .map((linha) => parseLinhaAfdIdClass(linha))
         .filter(
           (marcacao): marcacao is NonNullable<typeof marcacao> =>
             Boolean(marcacao),
         );
       const selecionados = registros.slice(0, quantidade);
-      const maiorNsr = registros.reduce(
-        (maior, marcacao) => Math.max(maior, Number(marcacao.nsr)),
+      const maiorNsr = linhas.reduce(
+        (maior, linha) => Math.max(maior, nsrLinhaAfd(linha) ?? maior),
         nsrInicial - 1,
       );
       const marcacoes = selecionados.map((marcacao) => ({

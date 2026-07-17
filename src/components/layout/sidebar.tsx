@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Activity,
   BarChart3,
   Building2,
   CalendarDays,
@@ -25,6 +26,8 @@ import {
   LayoutDashboard,
   Network,
   Palette,
+  ReceiptText,
+  Scale,
   ScanFace,
   ServerCog,
   Settings,
@@ -70,6 +73,7 @@ export type MenuItem = {
   href: string;
   icon: LucideIcon;
   permissoes?: string[];
+  perfis?: string[];
   children?: MenuItem[];
 };
 
@@ -131,6 +135,13 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
+    label: "Meu contracheque",
+    href: "/meu-contracheque",
+    icon: ReceiptText,
+    permissoes: ["contracheque:consultar:proprio"],
+    perfis: ["SERVIDOR"],
+  },
+  {
     label: "Meus afastamentos",
     href: "/meus-afastamentos",
     icon: CalendarX,
@@ -151,6 +162,63 @@ export const MENU_ITEMS: MenuItem[] = [
       "banco-horas:consultar:proprio",
       "banco-horas:consultar:chefia",
       "banco-horas:consultar:global",
+    ],
+  },
+  {
+    label: "Horas extras",
+    href: "/horas-extras",
+    icon: CalendarClock,
+    permissoes: [
+      "horas-extras:visualizar:proprio",
+      "horas-extras:solicitar:proprio",
+      "horas-extras:analisar:chefia",
+      "horas-extras:visualizar-execucao:global",
+      "horas-extras:visualizar-folha:global",
+      "horas-extras:deliberar:global",
+    ],
+    children: [
+      {
+        label: "Minhas solicitações",
+        href: "/horas-extras",
+        icon: CalendarClock,
+        permissoes: [
+          "horas-extras:visualizar:proprio",
+          "horas-extras:solicitar:proprio",
+        ],
+      },
+      {
+        label: "Gestão",
+        href: "/gestao/horas-extras",
+        icon: ClipboardList,
+        permissoes: ["horas-extras:analisar:chefia"],
+      },
+      {
+        label: "Orçamento",
+        href: "/orcamento/horas-extras",
+        icon: Landmark,
+        permissoes: ["horas-extras:responder-orcamento:global"],
+      },
+      {
+        label: "Deliberação",
+        href: "/deliberacao/horas-extras",
+        icon: Scale,
+        permissoes: ["horas-extras:deliberar:global"],
+      },
+      {
+        label: "Execução",
+        href: "/execucao/horas-extras",
+        icon: Activity,
+        permissoes: ["horas-extras:visualizar-execucao:global"],
+      },
+      {
+        label: "Folha",
+        href: "/folha/horas-extras",
+        icon: FileSpreadsheet,
+        permissoes: [
+          "horas-extras:visualizar-folha:global",
+          "horas-extras:gerar-lote:global",
+        ],
+      },
     ],
   },
   {
@@ -281,6 +349,9 @@ export const MENU_ITEMS: MenuItem[] = [
       "integracoes:gerenciar:global",
       "regulamentacao-ponto:gerenciar:global",
       "banco-horas:gerenciar:global",
+      "horas-extras:configurar-politica:global",
+      "horas-extras:configurar-workflow:global",
+      "horas-extras:configurar-responsaveis:global",
       "fusos-horarios:gerenciar:global",
       "auditoria:consultar:global",
       "auditoria:detalhar:global",
@@ -394,6 +465,16 @@ export const MENU_ITEMS: MenuItem[] = [
         permissoes: ["banco-horas:gerenciar:global"],
       },
       {
+        label: "Horas extras",
+        href: "/administracao/horas-extras",
+        icon: SlidersHorizontal,
+        permissoes: [
+          "horas-extras:configurar-politica:global",
+          "horas-extras:configurar-workflow:global",
+          "horas-extras:configurar-responsaveis:global",
+        ],
+      },
+      {
         label: "Calendário institucional",
         href: "/administracao/calendario",
         icon: CalendarDays,
@@ -462,11 +543,18 @@ function itemPodeSerExibido(item: MenuItem, perfilAtivo: PerfilNavegacao) {
     return true;
   }
 
+  const perfilPermitido = item.perfis
+    ? item.perfis.includes(perfilAtivo.codigo?.toUpperCase())
+    : true;
+
   if (!item.permissoes || item.permissoes.length === 0) {
-    return true;
+    return perfilPermitido;
   }
 
-  return possuiAlgumaPermissaoNaLista(perfilAtivo.permissoes, item.permissoes);
+  return (
+    perfilPermitido &&
+    possuiAlgumaPermissaoNaLista(perfilAtivo.permissoes, item.permissoes)
+  );
 }
 
 function itemCorrespondeAoPath(pathname: string, href: string) {

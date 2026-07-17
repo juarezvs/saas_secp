@@ -94,9 +94,13 @@ export function endpointDbFromKey(
     lotacoes: "LOTACOES",
     cargos: "CARGOS",
     servidores: "SERVIDORES",
+    estagiarios: "SERVIDORES",
+    prestadores: "SERVIDORES",
+    voluntarios: "SERVIDORES",
     lotacoesServidores: "LOTACOES_SERVIDORES",
     tiposAfastamento: "TIPOS_AFASTAMENTO",
     afastamentos: "AFASTAMENTOS",
+    ferias: "AFASTAMENTOS",
     chefias: "CHEFIAS",
     calendarios: "CALENDARIOS",
   };
@@ -111,9 +115,13 @@ export function tipoRegistroDbFromEndpoint(
     lotacoes: "LOTACAO",
     cargos: "CARGO",
     servidores: "SERVIDOR",
+    estagiarios: "SERVIDOR",
+    prestadores: "SERVIDOR",
+    voluntarios: "SERVIDOR",
     lotacoesServidores: "LOTACAO_SERVIDOR",
     tiposAfastamento: "TIPO_AFASTAMENTO",
     afastamentos: "AFASTAMENTO",
+    ferias: "AFASTAMENTO",
     chefias: "CHEFIA",
     calendarios: "CALENDARIO",
   };
@@ -124,7 +132,12 @@ export function obterChaveExterna(
   endpoint: SarhEndpointKey,
   payload: unknown,
 ): string {
-  if (endpoint === "servidores") {
+  if (
+    endpoint === "servidores" ||
+    endpoint === "estagiarios" ||
+    endpoint === "prestadores" ||
+    endpoint === "voluntarios"
+  ) {
     return normalizarMatricula((payload as SarhServidorDto).matricula);
   }
 
@@ -141,7 +154,7 @@ export function obterChaveExterna(
     return String((payload as SarhTipoAfastamentoDto).codigo);
   }
 
-  if (endpoint === "afastamentos") {
+  if (endpoint === "afastamentos" || endpoint === "ferias") {
     return String((payload as SarhAfastamentoDto).id);
   }
 

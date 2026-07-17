@@ -119,6 +119,192 @@ const codigosPermissoesSubmenusPainelExecutivo =
     (permissao) => `${permissao.recurso}:${permissao.acao}:${permissao.escopo}`,
   );
 
+const permissoesHorasExtrasSeed = [
+  {
+    recurso: "horas-extras",
+    acao: "visualizar",
+    escopo: "proprio",
+    descricao:
+      "Visualizar as proprias solicitacoes e autorizacoes de servico extraordinario.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "solicitar",
+    escopo: "proprio",
+    descricao:
+      "Criar e enviar solicitacoes proprias de servico extraordinario.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "cancelar",
+    escopo: "proprio",
+    descricao:
+      "Cancelar solicitacoes proprias de servico extraordinario ainda permitidas pelo fluxo.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "solicitar",
+    escopo: "unidade",
+    descricao:
+      "Criar solicitacoes de servico extraordinario para servidores da unidade.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "analisar",
+    escopo: "chefia",
+    descricao:
+      "Analisar solicitacoes de servico extraordinario como chefia ou delegado.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "devolver",
+    escopo: "global",
+    descricao: "Devolver solicitacoes de servico extraordinario para correcao.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "rejeitar",
+    escopo: "global",
+    descricao:
+      "Rejeitar solicitacoes de servico extraordinario conforme competencia do fluxo.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "encaminhar-orcamento",
+    escopo: "chefia",
+    descricao:
+      "Encaminhar solicitacoes de servico extraordinario para analise orcamentaria.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "responder-orcamento",
+    escopo: "global",
+    descricao: "Registrar parecer orcamentario para servico extraordinario.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "deliberar",
+    escopo: "global",
+    descricao: "Registrar deliberacao final de servico extraordinario.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "aprovar-parcial",
+    escopo: "global",
+    descricao:
+      "Aprovar parcialmente solicitacoes de servico extraordinario.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "cancelar-autorizacao",
+    escopo: "global",
+    descricao: "Cancelar ou substituir autorizacoes de servico extraordinario.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "visualizar-execucao",
+    escopo: "global",
+    descricao: "Visualizar execucao e calculos de servico extraordinario.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "analisar-excecao",
+    escopo: "global",
+    descricao: "Analisar excecoes de calculo de servico extraordinario.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "reprocessar",
+    escopo: "global",
+    descricao: "Reprocessar calculos de servico extraordinario.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "configurar-politica",
+    escopo: "global",
+    descricao:
+      "Configurar politicas versionadas de servico extraordinario.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "configurar-workflow",
+    escopo: "global",
+    descricao:
+      "Configurar workflows versionados de servico extraordinario.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "configurar-responsaveis",
+    escopo: "global",
+    descricao:
+      "Configurar responsaveis funcionais do fluxo de servico extraordinario.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "visualizar-folha",
+    escopo: "global",
+    descricao:
+      "Visualizar previa e lotes de pagamento de servico extraordinario.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "gerar-lote",
+    escopo: "global",
+    descricao: "Gerar lote mensal de pagamento de servico extraordinario.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "fechar-lote",
+    escopo: "global",
+    descricao: "Fechar lote mensal de pagamento de servico extraordinario.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "exportar",
+    escopo: "global",
+    descricao: "Exportar demonstrativos e lotes de servico extraordinario.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "auditar",
+    escopo: "global",
+    descricao:
+      "Auditar solicitacoes, calculos e lotes de servico extraordinario.",
+  },
+] as const;
+
+const codigosPermissoesHorasExtrasServidor = [
+  "horas-extras:visualizar:proprio",
+  "horas-extras:solicitar:proprio",
+  "horas-extras:cancelar:proprio",
+];
+
+const codigosPermissoesHorasExtrasChefia = [
+  "horas-extras:analisar:chefia",
+  "horas-extras:devolver:global",
+  "horas-extras:rejeitar:global",
+  "horas-extras:encaminhar-orcamento:chefia",
+];
+
+const codigosPermissoesHorasExtrasGestao = [
+  "horas-extras:solicitar:unidade",
+  "horas-extras:responder-orcamento:global",
+  "horas-extras:deliberar:global",
+  "horas-extras:aprovar-parcial:global",
+  "horas-extras:cancelar-autorizacao:global",
+  "horas-extras:visualizar-execucao:global",
+  "horas-extras:analisar-excecao:global",
+  "horas-extras:reprocessar:global",
+  "horas-extras:configurar-politica:global",
+  "horas-extras:configurar-workflow:global",
+  "horas-extras:configurar-responsaveis:global",
+  "horas-extras:visualizar-folha:global",
+  "horas-extras:gerar-lote:global",
+  "horas-extras:fechar-lote:global",
+  "horas-extras:exportar:global",
+  "horas-extras:auditar:global",
+];
+
 const permissoesIniciais = [
   // Usuários / perfis / estrutura
   {
@@ -310,6 +496,14 @@ const permissoesIniciais = [
     escopo: "proprio",
     descricao: "Visualizar próprio espelho de ponto.",
   },
+  {
+    recurso: "contracheque",
+    acao: "consultar",
+    escopo: "proprio",
+    descricao:
+      "Consultar e exportar o próprio contracheque diretamente no SARH.",
+  },
+  ...permissoesHorasExtrasSeed,
 
   // Banco de horas
   {
@@ -848,6 +1042,8 @@ const codigosPermissoesServidor = [
   "marcacoes:visualizar:proprio",
   "apuracao:consultar:proprio",
   "espelho-ponto:visualizar:proprio",
+  "contracheque:consultar:proprio",
+  ...codigosPermissoesHorasExtrasServidor,
   "banco-horas:consultar:proprio",
   "banco-horas:visualizar:proprio",
   "solicitacoes:criar:proprio",
@@ -892,6 +1088,7 @@ const codigosPermissoesChefia = [
   "apuracao:consultar:global",
   "banco-horas:consultar:chefia",
   "solicitacoes:analisar:chefia",
+  ...codigosPermissoesHorasExtrasChefia,
   "solicitacoes:consultar:global",
   "homologacao:gerenciar:chefia",
   "homologacao:consultar:global",
@@ -929,6 +1126,7 @@ const codigosPermissoesSecap = [
   "apuracao:recalcular:global",
   "banco-horas:consultar:global",
   "banco-horas:gerenciar:global",
+  ...codigosPermissoesHorasExtrasGestao,
   "solicitacoes:consultar:global",
   "homologacao:consultar:global",
   "homologacao:gerenciar:global",
@@ -948,6 +1146,7 @@ const codigosPermissoesSecad = [
   "painel-executivo:consultar:global",
   ...codigosPermissoesSubmenusPainelExecutivo,
   "servidores:consultar:global",
+  ...codigosPermissoesHorasExtrasGestao,
   "recesso:gerenciar:global",
   "recesso:consultar:global",
   "recesso:convocacao:gerenciar",
@@ -965,6 +1164,8 @@ const codigosPermissoesDiref = [
   "painel-executivo:consultar:global",
   ...codigosPermissoesSubmenusPainelExecutivo,
   "servidores:consultar:global",
+  "horas-extras:visualizar-execucao:global",
+  "horas-extras:auditar:global",
   "marcacoes:consultar:global",
   "apuracao:consultar:global",
   "banco-horas:consultar:global",
@@ -1715,6 +1916,263 @@ async function criarIntegracaoSarh() {
   return prisma.integracaoSistema.create({ data });
 }
 
+async function criarConfiguracaoHorasExtrasPadrao(orgaoId: string) {
+  const policyExistente = await prisma.overtimePolicy.findFirst({
+    where: {
+      orgaoId,
+      code: "POLITICA_HE_JF_REFERENCIA",
+      scopeUnitId: null,
+    },
+  });
+  const policy = policyExistente
+    ? await prisma.overtimePolicy.update({
+        where: { id: policyExistente.id },
+        data: {
+          name: "Politica de servico extraordinario - referencia JF",
+          description:
+            "Politica inicial editavel para servico extraordinario remunerado.",
+          active: true,
+        },
+      })
+    : await prisma.overtimePolicy.create({
+        data: {
+          orgaoId,
+          scopeUnitId: null,
+          code: "POLITICA_HE_JF_REFERENCIA",
+          name: "Politica de servico extraordinario - referencia JF",
+          description:
+            "Politica inicial editavel para servico extraordinario remunerado.",
+          active: true,
+        },
+      });
+
+  const policyVersion = await prisma.overtimePolicyVersion.upsert({
+    where: {
+      policyId_version: {
+        policyId: policy.id,
+        version: 1,
+      },
+    },
+    update: {
+      orgaoId,
+      scopeUnitId: null,
+      normativeBasis:
+        "Configuracao inicial editavel: 50% para dias uteis e sabados, 100% para domingos e feriados, limite de 2h em dias uteis, 44h mensais e 134h anuais.",
+      validFrom: new Date("2026-01-01T00:00:00.000Z"),
+      priorAuthorization: true,
+      budgetReviewRequired: true,
+      minimumBusinessDays: 0,
+      workPlanRequired: true,
+      justificationRequired: true,
+      divisorMinutes: 12000,
+      monthlyLimitMinutes: 2640,
+      annualLimitMinutes: 8040,
+      active: true,
+      snapshot: {
+        paymentDestinationDefault: "PECUNIA",
+        weekdayEligibilityThreshold: "apos_oitava_hora",
+        rounding: "minute",
+      },
+    },
+    create: {
+      policyId: policy.id,
+      orgaoId,
+      scopeUnitId: null,
+      version: 1,
+      normativeBasis:
+        "Configuracao inicial editavel: 50% para dias uteis e sabados, 100% para domingos e feriados, limite de 2h em dias uteis, 44h mensais e 134h anuais.",
+      validFrom: new Date("2026-01-01T00:00:00.000Z"),
+      priorAuthorization: true,
+      budgetReviewRequired: true,
+      minimumBusinessDays: 0,
+      workPlanRequired: true,
+      justificationRequired: true,
+      divisorMinutes: 12000,
+      monthlyLimitMinutes: 2640,
+      annualLimitMinutes: 8040,
+      active: true,
+      snapshot: {
+        paymentDestinationDefault: "PECUNIA",
+        weekdayEligibilityThreshold: "apos_oitava_hora",
+        rounding: "minute",
+      },
+    },
+  });
+
+  const rateRules = [
+    { dayType: "DIA_UTIL", ratePercent: "50", dailyLimitMinutes: 120, eligibilityThresholdMinutes: 480 },
+    { dayType: "SABADO", ratePercent: "50", dailyLimitMinutes: 480, eligibilityThresholdMinutes: 0 },
+    { dayType: "DOMINGO", ratePercent: "100", dailyLimitMinutes: 480, eligibilityThresholdMinutes: 0 },
+    { dayType: "FERIADO_NACIONAL", ratePercent: "100", dailyLimitMinutes: 480, eligibilityThresholdMinutes: 0 },
+    { dayType: "FERIADO_ESTADUAL", ratePercent: "100", dailyLimitMinutes: 480, eligibilityThresholdMinutes: 0 },
+    { dayType: "FERIADO_MUNICIPAL", ratePercent: "100", dailyLimitMinutes: 480, eligibilityThresholdMinutes: 0 },
+    { dayType: "FERIADO_REGIMENTAL", ratePercent: "100", dailyLimitMinutes: 480, eligibilityThresholdMinutes: 0 },
+  ] as const;
+
+  for (const rule of rateRules) {
+    await prisma.overtimeRateRule.upsert({
+      where: {
+        policyVersionId_dayType: {
+          policyVersionId: policyVersion.id,
+          dayType: rule.dayType,
+        },
+      },
+      update: {
+        ratePercent: rule.ratePercent,
+        dailyLimitMinutes: rule.dailyLimitMinutes,
+        eligibilityThresholdMinutes: rule.eligibilityThresholdMinutes,
+        active: true,
+      },
+      create: {
+        policyVersionId: policyVersion.id,
+        dayType: rule.dayType,
+        ratePercent: rule.ratePercent,
+        dailyLimitMinutes: rule.dailyLimitMinutes,
+        eligibilityThresholdMinutes: rule.eligibilityThresholdMinutes,
+        active: true,
+      },
+    });
+  }
+
+  const workflowDefinitionExistente =
+    await prisma.overtimeWorkflowDefinition.findFirst({
+      where: {
+        orgaoId,
+        code: "FLUXO_HE_CHEFIA_ORCAMENTO_DELIBERACAO",
+        scopeUnitId: null,
+      },
+    });
+
+  const workflowDefinition = await prisma.overtimeWorkflowDefinition.upsert({
+    where: {
+      id: workflowDefinitionExistente?.id ?? "00000000-0000-0000-0000-000000000000",
+    },
+    update: {
+      name: "Chefia, orçamento e deliberação final",
+      description:
+        "Fluxo inicial editavel para solicitacao, analise, parecer, deliberacao, execucao, fechamento e pagamento de servico extraordinario.",
+      active: true,
+    },
+    create: {
+      orgaoId,
+      scopeUnitId: null,
+      code: "FLUXO_HE_CHEFIA_ORCAMENTO_DELIBERACAO",
+      name: "Chefia, orçamento e deliberação final",
+      description:
+        "Fluxo inicial editavel para solicitacao, analise, parecer, deliberacao, execucao, fechamento e pagamento de servico extraordinario.",
+      active: true,
+    },
+  });
+
+  const workflowVersion = await prisma.overtimeWorkflowVersion.upsert({
+    where: {
+      definitionId_version: {
+        definitionId: workflowDefinition.id,
+        version: 1,
+      },
+    },
+    update: {
+      orgaoId,
+      scopeUnitId: null,
+      validFrom: new Date("2026-01-01T00:00:00.000Z"),
+      initialStepCode: "SERVIDOR_SOLICITANTE",
+      active: true,
+      snapshot: {
+        version: 1,
+        template: workflowDefinition.code,
+      },
+    },
+    create: {
+      definitionId: workflowDefinition.id,
+      orgaoId,
+      scopeUnitId: null,
+      version: 1,
+      validFrom: new Date("2026-01-01T00:00:00.000Z"),
+      initialStepCode: "SERVIDOR_SOLICITANTE",
+      active: true,
+      snapshot: {
+        version: 1,
+        template: workflowDefinition.code,
+      },
+    },
+  });
+
+  const steps = [
+    { code: "SERVIDOR_SOLICITANTE", name: "Servidor solicitante", order: 1, requiredPermission: "horas-extras:solicitar:proprio", allowsPartialApproval: false },
+    { code: "ANALISE_CHEFIA", name: "Analise da chefia", order: 2, requiredPermission: "horas-extras:analisar:chefia", allowsPartialApproval: true },
+    { code: "ANALISE_ORCAMENTARIA", name: "Analise orcamentaria", order: 3, requiredPermission: "horas-extras:responder-orcamento:global", allowsPartialApproval: true },
+    { code: "DELIBERACAO_FINAL", name: "Deliberacao final", order: 4, requiredPermission: "horas-extras:deliberar:global", allowsPartialApproval: true },
+    { code: "EXECUCAO", name: "Execucao", order: 5, requiredPermission: "horas-extras:visualizar-execucao:global", allowsPartialApproval: false },
+    { code: "FECHAMENTO", name: "Fechamento", order: 6, requiredPermission: "horas-extras:gerar-lote:global", allowsPartialApproval: false },
+    { code: "PAGAMENTO", name: "Pagamento", order: 7, requiredPermission: "horas-extras:visualizar-folha:global", allowsPartialApproval: false },
+  ] as const;
+
+  for (const step of steps) {
+    await prisma.overtimeWorkflowStepDefinition.upsert({
+      where: {
+        workflowVersionId_code: {
+          workflowVersionId: workflowVersion.id,
+          code: step.code,
+        },
+      },
+      update: {
+        name: step.name,
+        order: step.order,
+        requiredPermission: step.requiredPermission,
+        allowsPartialApproval: step.allowsPartialApproval,
+      },
+      create: {
+        workflowVersionId: workflowVersion.id,
+        code: step.code,
+        name: step.name,
+        order: step.order,
+        requiredPermission: step.requiredPermission,
+        allowsPartialApproval: step.allowsPartialApproval,
+      },
+    });
+  }
+
+  const transitions = [
+    { fromStepCode: "SERVIDOR_SOLICITANTE", toStepCode: "ANALISE_CHEFIA", actionCode: "SUBMIT", requiredPermission: "horas-extras:solicitar:proprio" },
+    { fromStepCode: "ANALISE_CHEFIA", toStepCode: "SERVIDOR_SOLICITANTE", actionCode: "RETURN", requiredPermission: "horas-extras:devolver:global" },
+    { fromStepCode: "ANALISE_CHEFIA", toStepCode: "ANALISE_ORCAMENTARIA", actionCode: "FORWARD_BUDGET", requiredPermission: "horas-extras:encaminhar-orcamento:chefia" },
+    { fromStepCode: "ANALISE_ORCAMENTARIA", toStepCode: "DELIBERACAO_FINAL", actionCode: "BUDGET_REVIEWED", requiredPermission: "horas-extras:responder-orcamento:global" },
+    { fromStepCode: "DELIBERACAO_FINAL", toStepCode: "EXECUCAO", actionCode: "APPROVE", requiredPermission: "horas-extras:deliberar:global" },
+    { fromStepCode: "EXECUCAO", toStepCode: "FECHAMENTO", actionCode: "CLOSE_EXECUTION", requiredPermission: "horas-extras:visualizar-execucao:global" },
+    { fromStepCode: "FECHAMENTO", toStepCode: "PAGAMENTO", actionCode: "CLOSE_BATCH", requiredPermission: "horas-extras:fechar-lote:global" },
+  ] as const;
+
+  for (const transition of transitions) {
+    await prisma.overtimeWorkflowTransition.upsert({
+      where: {
+        workflowVersionId_fromStepCode_actionCode: {
+          workflowVersionId: workflowVersion.id,
+          fromStepCode: transition.fromStepCode,
+          actionCode: transition.actionCode,
+        },
+      },
+      update: {
+        toStepCode: transition.toStepCode,
+        requiredPermission: transition.requiredPermission,
+      },
+      create: {
+        workflowVersionId: workflowVersion.id,
+        fromStepCode: transition.fromStepCode,
+        toStepCode: transition.toStepCode,
+        actionCode: transition.actionCode,
+        requiredPermission: transition.requiredPermission,
+      },
+    });
+  }
+
+  return {
+    policy,
+    policyVersion,
+    workflowDefinition,
+    workflowVersion,
+  };
+}
+
 async function main() {
   console.log("Iniciando seed do SECP...");
 
@@ -1813,8 +2271,11 @@ async function main() {
 
   const usuarioInicial = await criarUsuarioInicial(perfilMaster.id);
 
-  await criarEstruturaInicial();
+  const orgao = await criarEstruturaInicial();
   await criarJornadasPadrao();
+  const configuracaoHorasExtras = await criarConfiguracaoHorasExtrasPadrao(
+    orgao.id,
+  );
   const integracaoSarh = await criarIntegracaoSarh();
 
   await prisma.auditoriaEvento.create({
@@ -1840,6 +2301,10 @@ async function main() {
         ],
         estrutura: ["JFAM", "SJAM", "NUTEC", "NUCGP", "SECAD"],
         jornadas: ["JORNADA_7H", "JORNADA_8H"],
+        horasExtras: {
+          politica: configuracaoHorasExtras.policy.code,
+          workflow: configuracaoHorasExtras.workflowDefinition.code,
+        },
         integracoes: [integracaoSarh.nome],
       },
     },

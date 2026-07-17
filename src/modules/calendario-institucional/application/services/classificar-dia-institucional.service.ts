@@ -47,6 +47,7 @@ export type ClassificacaoDiaInstitucional = {
   tipo: TipoDiaInstitucional;
   descricao: string | null;
   fonte: "PADRAO" | "CALENDARIO_INSTITUCIONAL" | "RECESSO_FORENSE";
+  abrangencia?: string | null;
   contaComoDiaUtil: boolean;
   geraApuracaoRegular: boolean;
   janelaInicio?: string | null;
@@ -139,6 +140,7 @@ function classificarPorEvento(
     tipo: evento.tipo,
     descricao: evento.descricao,
     fonte: "CALENDARIO_INSTITUCIONAL",
+    abrangencia: evento.abrangencia ?? null,
     contaComoDiaUtil: evento.contaComoDiaUtil,
     geraApuracaoRegular: evento.geraApuracaoRegular,
     janelaInicio: evento.janelaInicio,

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  Accessibility,
   BookOpenText,
   Contrast,
   Moon,
@@ -193,15 +192,6 @@ export function AccessibilityToolbar({
     setFonteDislexia((ativoAtual) => !ativoAtual);
   }
 
-  function abrirVLibras() {
-    if (window.__secpAbrirVLibras) {
-      void window.__secpAbrirVLibras();
-      return;
-    }
-
-    window.dispatchEvent(new Event("secp:abrir-vlibras"));
-  }
-
   return (
     <div
       className="flex items-center gap-2"
@@ -299,15 +289,6 @@ export function AccessibilityToolbar({
         <Contrast className="size-5" aria-hidden="true" />
       </button>
 
-      <button
-        type="button"
-        onClick={abrirVLibras}
-        className={obterClasseBotao(false)}
-        aria-label="Abrir tradutor VLibras"
-        title="VLibras"
-      >
-        <Accessibility className="size-5" aria-hidden="true" />
-      </button>
     </div>
   );
 }

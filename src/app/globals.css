@@ -735,3 +735,9 @@ html[data-font-size="30"] {
   opacity: 1 !important;
   visibility: visible !important;
 }
+
+#secp-vlibras-root [vw-access-button] {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  right: -9999px !important;
+}
