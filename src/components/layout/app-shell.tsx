@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { logoutAction } from "@/modules/auth/application/actions/logout.action";
+import { escolherPerfilInicial } from "@/modules/auth/application/services/perfil-servidor-prioritario.service";
+import { buscarUsuarioParaLoginPorMatricula } from "@/modules/auth/infrastructure/repositories/usuario-auth.repository";
 import { buscarServidorPorUsuarioId } from "@/modules/marcacoes/infrastructure/repositories/marcacao.repository";
 import { contarNotificacoesUsuario } from "@/modules/notificacoes/application/notificacoes.service";
 import { buscarFotoServidorDataUrl } from "@/modules/servidores/application/services/foto-servidor.service";
@@ -81,12 +83,27 @@ export async function AppShell({ children }: AppShellProps) {
     redirect("/login");
   }
 
-  const [servidor, totalNotificacoes] = await Promise.all([
+  const [usuarioAtualizado, servidor, totalNotificacoes] = await Promise.all([
+    buscarUsuarioParaLoginPorMatricula(session.user.matricula),
     buscarServidorPorUsuarioId(session.user.id, session.user.matricula),
     contarNotificacoesUsuario(session.user.id),
   ]);
   const lotacaoAtual = servidor?.lotacoes[0];
-  const perfilAtivo = session.user.perfilAtivo ?? session.user.perfis[0];
+  const perfisNavegacao =
+    usuarioAtualizado?.perfis.length ? usuarioAtualizado.perfis : session.user.perfis;
+  const perfilPreferido =
+    perfisNavegacao.find(
+      (perfil) => perfil.codigo === session.user.perfilAtivo?.codigo,
+    ) ??
+    usuarioAtualizado?.perfilAtivo ??
+    session.user.perfilAtivo ??
+    perfisNavegacao[0];
+  const perfilAtivo =
+    escolherPerfilInicial({
+      tipoUsuario: usuarioAtualizado?.tipo ?? session.user.tipo,
+      perfis: perfisNavegacao,
+      perfilPreferido,
+    }) ?? perfilPreferido;
 
   if (!perfilAtivo) {
     redirect("/acesso-negado?motivo=sem-perfil");
@@ -114,7 +131,7 @@ export async function AppShell({ children }: AppShellProps) {
       descricao: `${perfilAtivo.permissoes.length} permissão(ões) vinculada(s)`,
       permissoes: perfilAtivo.permissoes,
     },
-    perfis: session.user.perfis.map((perfil) => ({
+    perfis: perfisNavegacao.map((perfil) => ({
       codigo: perfil.codigo,
       nome: perfil.nome,
       descricao: `${perfil.permissoes.length} permissão(ões) vinculada(s)`,
