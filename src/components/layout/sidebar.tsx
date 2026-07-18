@@ -172,7 +172,6 @@ export const MENU_ITEMS: MenuItem[] = [
           "banco-horas:visualizar:proprio",
           "banco-horas:consultar:proprio",
         ],
-        perfis: ["SERVIDOR"],
       },
       {
         label: "Banco da equipe",
