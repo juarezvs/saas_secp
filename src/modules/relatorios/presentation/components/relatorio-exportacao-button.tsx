@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type MouseEvent, useState } from "react";
 import { Download, Loader2 } from "lucide-react";
 
 type Estado = "pronto" | "enfileirando" | "processando" | "baixando" | "erro";
@@ -40,7 +40,10 @@ export function RelatorioExportacaoButton({
     URL.revokeObjectURL(url);
   }
 
-  async function iniciar() {
+  async function iniciar(event?: MouseEvent<HTMLButtonElement>) {
+    event?.preventDefault();
+    event?.stopPropagation();
+
     try {
       setEstado("enfileirando");
       const response = await fetch(href, {
@@ -49,16 +52,20 @@ export function RelatorioExportacaoButton({
         },
       });
 
-      if (!response.ok) {
-        throw new Error("Falha ao enfileirar relatorio.");
-      }
-
       const contentType = response.headers.get("content-type") ?? "";
 
       if (modo === "auto" && !contentType.includes("application/json")) {
+        if (!response.ok) {
+          throw new Error("Falha ao gerar relatório.");
+        }
+
         await baixarResponse(response);
         setEstado("pronto");
         return;
+      }
+
+      if (!response.ok) {
+        throw new Error("Falha ao enfileirar relatório.");
       }
 
       const data = (await response.json()) as {
@@ -90,17 +97,23 @@ export function RelatorioExportacaoButton({
         };
 
         if (status.estado === "completed" && status.resultado?.downloadUrl) {
-          window.location.assign(status.resultado.downloadUrl);
+          const downloadResponse = await fetch(status.resultado.downloadUrl);
+
+          if (!downloadResponse.ok) {
+            throw new Error("Falha ao baixar relatório.");
+          }
+
+          await baixarResponse(downloadResponse);
           setEstado("pronto");
           return;
         }
 
         if (status.estado === "failed") {
-          throw new Error(status.erro ?? "Relatorio falhou.");
+          throw new Error(status.erro ?? "Relatório falhou.");
         }
       }
 
-      throw new Error("Tempo limite ao gerar relatorio.");
+      throw new Error("Tempo limite ao gerar relatório.");
     } catch {
       setEstado("erro");
     }

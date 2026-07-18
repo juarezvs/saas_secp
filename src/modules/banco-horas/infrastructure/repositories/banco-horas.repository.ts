@@ -330,6 +330,7 @@ export async function listarServidoresSubordinadosComBancoHoras(params: {
 
 export async function listarServidoresGestaoBancoHoras(params: {
   orgaoIdsPermitidos?: string[];
+  unidadeIdsPermitidas?: string[];
   busca?: string;
 }) {
   const busca = params.busca?.trim();
@@ -344,6 +345,18 @@ export async function listarServidoresGestaoBancoHoras(params: {
         ? {
             orgaoId: {
               in: params.orgaoIdsPermitidos,
+            },
+          }
+        : {}),
+      ...(params.unidadeIdsPermitidas
+        ? {
+            lotacoes: {
+              some: {
+                status: "ATIVO",
+                unidadeId: {
+                  in: params.unidadeIdsPermitidas,
+                },
+              },
             },
           }
         : {}),
@@ -395,6 +408,7 @@ export async function listarServidoresGestaoBancoHoras(params: {
 export async function buscarServidorGestaoBancoHoras(params: {
   servidorId: string;
   orgaoIdsPermitidos?: string[];
+  unidadeIdsPermitidas?: string[];
 }) {
   return prisma.servidor.findFirst({
     where: {
@@ -404,6 +418,18 @@ export async function buscarServidorGestaoBancoHoras(params: {
         ? {
             orgaoId: {
               in: params.orgaoIdsPermitidos,
+            },
+          }
+        : {}),
+      ...(params.unidadeIdsPermitidas
+        ? {
+            lotacoes: {
+              some: {
+                status: "ATIVO",
+                unidadeId: {
+                  in: params.unidadeIdsPermitidas,
+                },
+              },
             },
           }
         : {}),
@@ -473,4 +499,261 @@ export async function listarConsolidadoBancoHorasPorCompetencia(params: {
     },
     orderBy: [{ anoReferencia: "desc" }, { mesReferencia: "desc" }],
   });
+}
+
+export async function listarSolicitacoesBancoHorasServidor(params: {
+  servidorId: string;
+  limite?: number;
+}) {
+  return prisma.solicitacao.findMany({
+    where: {
+      servidorId: params.servidorId,
+      tipo: {
+        in: ["COMPENSACAO", "HORA_CREDITO_PREVIA", "FOLGA_BANCO_HORAS"],
+      },
+    },
+    select: {
+      id: true,
+      tipo: true,
+      status: true,
+      titulo: true,
+      descricao: true,
+      dataInicio: true,
+      dataFim: true,
+      dadosSolicitados: true,
+      criadoEm: true,
+      analisadaEm: true,
+      justificativaAnalise: true,
+    },
+    orderBy: {
+      criadoEm: "desc",
+    },
+    take: params.limite ?? 20,
+  });
+}
+
+export async function listarVencimentosBancoHoras(params: {
+  servidorIds?: string[];
+  orgaoIdsPermitidos?: string[];
+  apenasVencidos?: boolean;
+  limite?: number;
+}) {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const ate = new Date(hoje);
+  ate.setDate(ate.getDate() + 30);
+
+  return prisma.movimentoBancoHoras.findMany({
+    where: {
+      tipo: {
+        in: ["CREDITO", "DEBITO"],
+      },
+      status: {
+        in: ["PENDENTE", "VALIDADO", "EXPIRADO"],
+      },
+      expiraEm: params.apenasVencidos
+        ? {
+            lt: hoje,
+          }
+        : {
+            not: null,
+            lte: ate,
+          },
+      ...(params.servidorIds
+        ? {
+            servidorId: {
+              in: params.servidorIds,
+            },
+          }
+        : {}),
+      ...(params.orgaoIdsPermitidos
+        ? {
+            servidor: {
+              orgaoId: {
+                in: params.orgaoIdsPermitidos,
+              },
+            },
+          }
+        : {}),
+    },
+    include: {
+      servidor: {
+        include: {
+          usuario: true,
+          orgao: {
+            select: {
+              sigla: true,
+            },
+          },
+          lotacoes: {
+            where: {
+              status: "ATIVO",
+            },
+            include: {
+              unidade: {
+                select: {
+                  sigla: true,
+                  nome: true,
+                },
+              },
+            },
+            orderBy: {
+              dataInicio: "desc",
+            },
+            take: 1,
+          },
+        },
+      },
+    },
+    orderBy: [{ expiraEm: "asc" }, { dataReferencia: "asc" }],
+    take: params.limite ?? 100,
+  });
+}
+
+export async function listarPainelChefiaBancoHoras(params: {
+  usuarioId: string;
+}) {
+  const unidadesSubordinadas = await listarIdsUnidadesSubordinadasPorUsuario(
+    params.usuarioId,
+  );
+
+  if (unidadesSubordinadas.length === 0) {
+    return {
+      servidores: [],
+      solicitacoesPendentes: [],
+      vencimentos: [],
+      movimentosSemAutorizacao: [],
+      unidadesSubordinadas,
+    };
+  }
+
+  const whereSubordinados = {
+    ativo: true,
+    usuarioId: {
+      not: params.usuarioId,
+    },
+    lotacoes: {
+      some: {
+        status: "ATIVO" as const,
+        unidadeId: {
+          in: unidadesSubordinadas,
+        },
+      },
+    },
+  };
+
+  const servidores = await prisma.servidor.findMany({
+    where: whereSubordinados,
+    include: {
+      usuario: true,
+      bancoHorasSaldo: true,
+      orgao: {
+        select: {
+          sigla: true,
+        },
+      },
+      lotacoes: {
+        where: {
+          status: "ATIVO",
+        },
+        include: {
+          unidade: true,
+        },
+        orderBy: {
+          dataInicio: "desc",
+        },
+        take: 1,
+      },
+    },
+    orderBy: {
+      matricula: "asc",
+    },
+  });
+  const servidorIds = servidores.map((servidor) => servidor.id);
+
+  const [solicitacoesPendentes, vencimentos, movimentosSemAutorizacao] =
+    await Promise.all([
+      prisma.solicitacao.findMany({
+        where: {
+          servidorId: {
+            in: servidorIds,
+          },
+          tipo: {
+            in: ["COMPENSACAO", "HORA_CREDITO_PREVIA", "FOLGA_BANCO_HORAS"],
+          },
+          status: {
+            in: ["ENVIADA", "EM_ANALISE"],
+          },
+        },
+        include: {
+          servidor: {
+            include: {
+              usuario: true,
+              lotacoes: {
+                where: {
+                  status: "ATIVO",
+                },
+                include: {
+                  unidade: true,
+                },
+                orderBy: {
+                  dataInicio: "desc",
+                },
+                take: 1,
+              },
+            },
+          },
+        },
+        orderBy: {
+          criadoEm: "asc",
+        },
+        take: 50,
+      }),
+      listarVencimentosBancoHoras({
+        servidorIds,
+        limite: 80,
+      }),
+      prisma.movimentoBancoHoras.findMany({
+        where: {
+          servidorId: {
+            in: servidorIds,
+          },
+          tipo: {
+            in: ["HORAS_NAO_AUTORIZADAS", "HORAS_ACIMA_LIMITE"],
+          },
+          status: {
+            in: ["PENDENTE", "VALIDADO"],
+          },
+        },
+        include: {
+          servidor: {
+            include: {
+              usuario: true,
+              lotacoes: {
+                where: {
+                  status: "ATIVO",
+                },
+                include: {
+                  unidade: true,
+                },
+                orderBy: {
+                  dataInicio: "desc",
+                },
+                take: 1,
+              },
+            },
+          },
+        },
+        orderBy: [{ dataReferencia: "desc" }, { criadoEm: "desc" }],
+        take: 50,
+      }),
+    ]);
+
+  return {
+    servidores,
+    solicitacoesPendentes,
+    vencimentos,
+    movimentosSemAutorizacao,
+    unidadesSubordinadas,
+  };
 }

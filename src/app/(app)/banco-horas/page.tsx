@@ -91,11 +91,17 @@ export default async function BancoHorasPage({ searchParams }: BancoHorasPagePro
             : escopoOrgao.orgaoIds,
         })
       : podeConsultarChefia && permissao.usuarioId
-        ? await listarServidoresSubordinadosComBancoHoras({
-            usuarioId: permissao.usuarioId,
-            anoReferencia,
-            mesReferencia,
-          })
+        ? [
+            await buscarServidorBancoHorasPorUsuarioId(permissao.usuarioId, {
+              anoReferencia,
+              mesReferencia,
+            }),
+            ...(await listarServidoresSubordinadosComBancoHoras({
+              usuarioId: permissao.usuarioId,
+              anoReferencia,
+              mesReferencia,
+            })),
+          ].filter(servidorEhValido)
         : permissao.usuarioId
           ? [
               await buscarServidorBancoHorasPorUsuarioId(permissao.usuarioId, {

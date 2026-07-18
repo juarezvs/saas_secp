@@ -442,23 +442,42 @@ html[data-secp-color-theme="azul"] .secp-sidebar-theme-selector {
   border-color: color-mix(in srgb, white 18%, transparent);
 }
 
-html[data-secp-color-theme="azul"] .secp-sidebar-theme-selector button:not([aria-pressed="true"]),
-html[data-secp-color-theme="verde"] .secp-sidebar-theme-selector button:not([aria-pressed="true"]),
-html[data-secp-color-theme="cinza"] .secp-sidebar-theme-selector button:not([aria-pressed="true"]) {
+.secp-sidebar-theme-selector .secp-theme-choice-inactive {
+  border-color: color-mix(in srgb, #003c88 18%, white);
+  background: #ffffff;
+  color: #334155;
+}
+
+.secp-sidebar-theme-selector .secp-theme-choice-inactive:hover {
+  border-color: color-mix(in srgb, #003c88 34%, white);
+  background: #eff6ff;
+  color: #003c88;
+}
+
+.secp-sidebar-theme-selector .secp-theme-choice-active {
+  border-color: color-mix(in srgb, #003c88 42%, white);
+  background: color-mix(in srgb, #003c88 10%, white);
+  color: #003c88;
+}
+
+html[data-secp-color-theme="azul"] .secp-sidebar-theme-selector .secp-theme-choice-inactive,
+html[data-secp-color-theme="verde"] .secp-sidebar-theme-selector .secp-theme-choice-inactive,
+html[data-secp-color-theme="cinza"] .secp-sidebar-theme-selector .secp-theme-choice-inactive {
   border-color: color-mix(in srgb, white 24%, transparent);
+  background: color-mix(in srgb, black 10%, transparent);
   color: color-mix(in srgb, white 82%, transparent);
 }
 
-html[data-secp-color-theme="azul"] .secp-sidebar-theme-selector button:not([aria-pressed="true"]):hover,
-html[data-secp-color-theme="verde"] .secp-sidebar-theme-selector button:not([aria-pressed="true"]):hover,
-html[data-secp-color-theme="cinza"] .secp-sidebar-theme-selector button:not([aria-pressed="true"]):hover {
+html[data-secp-color-theme="azul"] .secp-sidebar-theme-selector .secp-theme-choice-inactive:hover,
+html[data-secp-color-theme="verde"] .secp-sidebar-theme-selector .secp-theme-choice-inactive:hover,
+html[data-secp-color-theme="cinza"] .secp-sidebar-theme-selector .secp-theme-choice-inactive:hover {
   background: color-mix(in srgb, white 12%, transparent);
   color: #ffffff;
 }
 
-html[data-secp-color-theme="azul"] .secp-sidebar-theme-selector button[aria-pressed="true"],
-html[data-secp-color-theme="verde"] .secp-sidebar-theme-selector button[aria-pressed="true"],
-html[data-secp-color-theme="cinza"] .secp-sidebar-theme-selector button[aria-pressed="true"] {
+html[data-secp-color-theme="azul"] .secp-sidebar-theme-selector .secp-theme-choice-active,
+html[data-secp-color-theme="verde"] .secp-sidebar-theme-selector .secp-theme-choice-active,
+html[data-secp-color-theme="cinza"] .secp-sidebar-theme-selector .secp-theme-choice-active {
   border-color: color-mix(in srgb, white 58%, transparent);
   background: color-mix(in srgb, white 18%, transparent);
   color: #ffffff;

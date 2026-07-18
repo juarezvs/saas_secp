@@ -3,6 +3,13 @@ import {
   calcularDataExpiracaoCompensacao,
 } from "@/modules/banco-horas/application/services/aplicar-limites-banco-horas.service";
 import { calcularSaldoBancoHoras } from "@/modules/banco-horas/application/services/calcular-banco-horas.service";
+import { classificarHorasCreditoBancoHoras } from "@/modules/banco-horas/application/services/classificar-horas-banco-horas.service";
+import { atualizarRastreamentoFifoBancoHorasTx } from "@/modules/banco-horas/application/services/rastrear-consumo-fifo-banco-horas.service";
+import {
+  carregarCalendarioInstitucionalPeriodo,
+  classificarDiaInstitucional,
+} from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
+import type { Prisma } from "@/generated/prisma/client";
 import { normalizarFusoHorario } from "@/modules/marcacoes/application/services/data-marcacao.service";
 import { buscarRegulamentacaoPontoServidor } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
@@ -213,6 +220,10 @@ export async function regerarBancoHorasMesService({
       dataReferencia: "asc",
     },
   });
+  const calendario = await carregarCalendarioInstitucionalPeriodo({
+    inicio,
+    fimExclusivo: fim,
+  });
   const afastamentosSarh = await prisma.afastamentoSarh.findMany({
     where: {
       servidorId,
@@ -349,11 +360,54 @@ export async function regerarBancoHorasMesService({
         apuracao.minutosDebito -
           (debitosValidadosPorApuracao.get(apuracao.id) ?? 0),
       );
+      const classificacaoDia = await classificarDiaInstitucional(
+        apuracao.dataReferencia,
+        calendario,
+        servidorId,
+      );
 
       if (minutosCreditoPendentes > 0) {
         if (!regulamentacao.exigeAutorizacaoPreviaCredito) {
+          const classificacaoBancoHoras = classificarHorasCreditoBancoHoras({
+            apuracao: {
+              ...apuracao,
+              minutosCredito: minutosCreditoPendentes,
+            },
+            classificacaoDia,
+            regulamentacao,
+            temAutorizacaoPrevia: true,
+            permiteConversaoEspecial: false,
+          });
+
+          if (classificacaoBancoHoras.minutosComputaveis <= 0) {
+            await tx.movimentoBancoHoras.create({
+              data: {
+                servidorId,
+                apuracaoDiariaId: apuracao.id,
+                tipo: "HORAS_NAO_AUTORIZADAS",
+                origem: "APURACAO_DIARIA",
+                status: "DESCONSIDERADO",
+                dataReferencia: apuracao.dataReferencia,
+                mesReferencia,
+                anoReferencia,
+                minutos: classificacaoBancoHoras.minutosNaoComputaveis,
+                descricao: classificacaoBancoHoras.fundamento,
+                metadados: metadadosClassificacaoBancoHoras({
+                  origem,
+                  apuracao,
+                  classificacaoDia,
+                  classificacaoBancoHoras,
+                  regulamentacao,
+                }),
+              },
+            });
+
+            movimentosCriados++;
+            continue;
+          }
+
           const limite = aplicarLimiteCreditoMensal({
-            creditoDoDiaMinutos: minutosCreditoPendentes,
+            creditoDoDiaMinutos: classificacaoBancoHoras.minutosComputaveis,
             creditoJaComputadoNoMesMinutos: creditoComputadoNoMes,
             limiteCreditoMensalMinutos:
               regulamentacao.limiteCreditoMensalMinutos,
@@ -374,12 +428,13 @@ export async function regerarBancoHorasMesService({
                 expiraEm,
                 descricao:
                   "Crédito gerado pela apuração diária. Pendente de homologação mensal.",
-                metadados: {
+                metadados: metadadosClassificacaoBancoHoras({
                   origem,
-                  resultadoApuracao: apuracao.resultado,
-                  statusApuracao: apuracao.status,
-                  regulamentacaoPonto: regulamentacao,
-                },
+                  apuracao,
+                  classificacaoDia,
+                  classificacaoBancoHoras,
+                  regulamentacao,
+                }),
               },
             });
 
@@ -402,10 +457,20 @@ export async function regerarBancoHorasMesService({
                 descricao:
                   "Horas acima do limite ordinário mensal. Não computadas no saldo.",
                 metadados: {
-                  origem,
+                  ...metadadosClassificacaoBancoHoras({
+                    origem,
+                    apuracao,
+                    classificacaoDia,
+                    classificacaoBancoHoras,
+                    regulamentacao,
+                  }),
                   limiteMensalMinutos:
                     regulamentacao.limiteCreditoMensalMinutos,
-                  regulamentacaoPonto: regulamentacao,
+                  referendoDiref: {
+                    status: "PENDENTE_SE_APLICAVEL",
+                    descricao:
+                      "Pode ser excepcionalmente referendado pela Direção do Foro mediante justificativa e processo SEI.",
+                  },
                 },
               },
             });
@@ -424,8 +489,51 @@ export async function regerarBancoHorasMesService({
         });
 
         for (const alocacao of credito.alocacoes) {
+          const classificacaoBancoHoras = classificarHorasCreditoBancoHoras({
+            apuracao: {
+              ...apuracao,
+              minutosCredito: alocacao.minutos,
+            },
+            classificacaoDia,
+            regulamentacao,
+            temAutorizacaoPrevia: true,
+            permiteConversaoEspecial: true,
+          });
+
+          if (classificacaoBancoHoras.minutosComputaveis <= 0) {
+            await tx.movimentoBancoHoras.create({
+              data: {
+                servidorId,
+                apuracaoDiariaId: apuracao.id,
+                autorizacaoBancoHorasId: alocacao.autorizacao.id,
+                tipo: "HORAS_NAO_AUTORIZADAS",
+                origem: "APURACAO_DIARIA",
+                status: "DESCONSIDERADO",
+                dataReferencia: apuracao.dataReferencia,
+                mesReferencia,
+                anoReferencia,
+                minutos: classificacaoBancoHoras.minutosNaoComputaveis,
+                autorizadoPorUsuarioId:
+                  alocacao.autorizacao.autorizadoPorUsuarioId,
+                autorizadoEm: alocacao.autorizacao.autorizadoEm,
+                descricao: classificacaoBancoHoras.fundamento,
+                metadados: metadadosClassificacaoBancoHoras({
+                  origem,
+                  apuracao,
+                  classificacaoDia,
+                  classificacaoBancoHoras,
+                  regulamentacao,
+                  autorizacaoBancoHorasId: alocacao.autorizacao.id,
+                }),
+              },
+            });
+
+            movimentosCriados++;
+            continue;
+          }
+
           const limite = aplicarLimiteCreditoMensal({
-            creditoDoDiaMinutos: alocacao.minutos,
+            creditoDoDiaMinutos: classificacaoBancoHoras.minutosComputaveis,
             creditoJaComputadoNoMesMinutos: creditoComputadoNoMes,
             limiteCreditoMensalMinutos:
               regulamentacao.limiteCreditoMensalMinutos,
@@ -455,13 +563,14 @@ export async function regerarBancoHorasMesService({
                   alocacao.autorizacao.tipo === "COMPENSACAO_DEBITO"
                     ? "Horas trabalhadas para compensação de débito, com autorização prévia da chefia."
                     : "Crédito gerado com autorização prévia da chefia. Pendente de homologação mensal.",
-                metadados: {
+                metadados: metadadosClassificacaoBancoHoras({
                   origem,
+                  apuracao,
+                  classificacaoDia,
+                  classificacaoBancoHoras,
+                  regulamentacao,
                   autorizacaoBancoHorasId: alocacao.autorizacao.id,
-                  resultadoApuracao: apuracao.resultado,
-                  statusApuracao: apuracao.status,
-                  regulamentacaoPonto: regulamentacao,
-                },
+                }),
               },
             });
 
@@ -488,11 +597,21 @@ export async function regerarBancoHorasMesService({
                 descricao:
                   "Horas autorizadas acima do limite ordinário mensal de 16h. Não computadas no saldo.",
                 metadados: {
-                  origem,
-                  autorizacaoBancoHorasId: alocacao.autorizacao.id,
+                  ...metadadosClassificacaoBancoHoras({
+                    origem,
+                    apuracao,
+                    classificacaoDia,
+                    classificacaoBancoHoras,
+                    regulamentacao,
+                    autorizacaoBancoHorasId: alocacao.autorizacao.id,
+                  }),
                   limiteMensalMinutos:
                     regulamentacao.limiteCreditoMensalMinutos,
-                  regulamentacaoPonto: regulamentacao,
+                  referendoDiref: {
+                    status: "PENDENTE_SE_APLICAVEL",
+                    descricao:
+                      "Pode ser excepcionalmente referendado pela Direção do Foro mediante justificativa e processo SEI.",
+                  },
                 },
               },
             });
@@ -502,6 +621,16 @@ export async function regerarBancoHorasMesService({
         }
 
         if (credito.minutosSemAutorizacao > 0) {
+          const classificacaoBancoHoras = classificarHorasCreditoBancoHoras({
+            apuracao: {
+              ...apuracao,
+              minutosCredito: credito.minutosSemAutorizacao,
+            },
+            classificacaoDia,
+            regulamentacao,
+            temAutorizacaoPrevia: false,
+          });
+
           await tx.movimentoBancoHoras.create({
             data: {
               servidorId,
@@ -515,11 +644,13 @@ export async function regerarBancoHorasMesService({
               minutos: credito.minutosSemAutorizacao,
               descricao:
                 "Horas excedentes sem autorização prévia da chefia. Não computadas no saldo do banco de horas.",
-              metadados: {
+              metadados: metadadosClassificacaoBancoHoras({
                 origem,
-                motivo: "AUSENCIA_AUTORIZACAO_PREVIA",
-                regulamentacaoPonto: regulamentacao,
-              },
+                apuracao,
+                classificacaoDia,
+                classificacaoBancoHoras,
+                regulamentacao,
+              }),
             },
           });
 
@@ -558,6 +689,12 @@ export async function regerarBancoHorasMesService({
                 origem,
                 autorizacaoBancoHorasId: alocacao.autorizacao.id,
                 resultadoApuracao: apuracao.resultado,
+                classificacaoDia: {
+                  tipo: classificacaoDia.tipo,
+                  descricao: classificacaoDia.descricao,
+                  fonte: classificacaoDia.fonte,
+                  abrangencia: classificacaoDia.abrangencia ?? null,
+                },
                 regulamentacaoPonto: regulamentacao,
               },
             },
@@ -585,6 +722,12 @@ export async function regerarBancoHorasMesService({
                 origem,
                 resultadoApuracao: apuracao.resultado,
                 statusApuracao: apuracao.status,
+                classificacaoDia: {
+                  tipo: classificacaoDia.tipo,
+                  descricao: classificacaoDia.descricao,
+                  fonte: classificacaoDia.fonte,
+                  abrangencia: classificacaoDia.abrangencia ?? null,
+                },
                 regulamentacaoPonto: regulamentacao,
               },
             },
@@ -613,6 +756,11 @@ export async function regerarBancoHorasMesService({
         },
       });
     }
+
+    await atualizarRastreamentoFifoBancoHorasTx({
+      tx,
+      servidorId,
+    });
 
     const movimentos = await tx.movimentoBancoHoras.findMany({
       where: {
@@ -667,6 +815,34 @@ export async function regerarBancoHorasMesService({
       saldo,
     };
   });
+}
+
+function metadadosClassificacaoBancoHoras(params: {
+  origem: string;
+  apuracao: { resultado: string; status: string };
+  classificacaoDia: Awaited<ReturnType<typeof classificarDiaInstitucional>>;
+  classificacaoBancoHoras: ReturnType<typeof classificarHorasCreditoBancoHoras>;
+  regulamentacao: unknown;
+  autorizacaoBancoHorasId?: string;
+}): Prisma.InputJsonObject {
+  return {
+    origem: params.origem,
+    autorizacaoBancoHorasId: params.autorizacaoBancoHorasId ?? null,
+    resultadoApuracao: params.apuracao.resultado,
+    statusApuracao: params.apuracao.status,
+    classificacaoDia: {
+      tipo: params.classificacaoDia.tipo,
+      descricao: params.classificacaoDia.descricao,
+      fonte: params.classificacaoDia.fonte,
+      abrangencia: params.classificacaoDia.abrangencia ?? null,
+      eventoCalendarioId: params.classificacaoDia.eventoCalendarioId ?? null,
+      recessoForenseId: params.classificacaoDia.recessoForenseId ?? null,
+    },
+    regraBancoHoras: params.classificacaoBancoHoras,
+    regulamentacaoPonto: JSON.parse(
+      JSON.stringify(params.regulamentacao),
+    ) as Prisma.InputJsonValue,
+  };
 }
 
 function compararCompetencias(

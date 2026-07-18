@@ -163,6 +163,65 @@ export const MENU_ITEMS: MenuItem[] = [
       "banco-horas:consultar:chefia",
       "banco-horas:consultar:global",
     ],
+    children: [
+      {
+        label: "Meu banco",
+        href: "/banco-horas",
+        icon: Hourglass,
+        permissoes: [
+          "banco-horas:visualizar:proprio",
+          "banco-horas:consultar:proprio",
+        ],
+        perfis: ["SERVIDOR"],
+      },
+      {
+        label: "Banco da equipe",
+        href: "/banco-horas",
+        icon: UsersRound,
+        permissoes: ["banco-horas:consultar:chefia"],
+        perfis: ["CHEFIA"],
+      },
+      {
+        label: "Consulta de banco de horas",
+        href: "/banco-horas",
+        icon: Hourglass,
+        permissoes: ["banco-horas:consultar:global"],
+        perfis: ["ADMIN", "ADMINISTRADOR", "GESTOR", "RH"],
+      },
+      {
+        label: "Solicitacoes",
+        href: "/banco-horas/solicitacoes",
+        icon: ClipboardList,
+        permissoes: ["solicitacoes:criar:proprio"],
+      },
+      {
+        label: "Painel da chefia",
+        href: "/banco-horas/chefia",
+        icon: UsersRound,
+        permissoes: ["banco-horas:consultar:chefia"],
+      },
+      {
+        label: "Vencimentos",
+        href: "/banco-horas/vencimentos",
+        icon: CalendarClock,
+        permissoes: [
+          "banco-horas:consultar:proprio",
+          "banco-horas:consultar:chefia",
+          "banco-horas:consultar:global",
+        ],
+      },
+      {
+        label: "Relatorios",
+        href: "/banco-horas/relatorios",
+        icon: FileText,
+        permissoes: [
+          "relatorios:consultar:proprio",
+          "relatorios:consultar:global",
+          "relatorios-gerenciais:consultar:chefia",
+          "relatorios-gerenciais:consultar:global",
+        ],
+      },
+    ],
   },
   {
     label: "Horas extras",
@@ -698,9 +757,10 @@ function ThemeSelector({
               onClick={() => selecionarTema(item.valor)}
               className={[
                 "inline-flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-md border px-1.5 text-[11px] font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                "secp-theme-choice",
                 ativo
-                  ? "border-secp-blue-900 bg-secp-blue-900/10 text-secp-blue-900 dark:border-white/60 dark:bg-white/10 dark:text-white"
-                  : "border-border bg-white text-muted-foreground hover:bg-muted hover:text-foreground dark:bg-slate-950 dark:hover:bg-muted",
+                  ? "secp-theme-choice-active"
+                  : "secp-theme-choice-inactive",
                 recolhida ? "w-9 px-0" : "w-full",
               ].join(" ")}
               aria-pressed={ativo}

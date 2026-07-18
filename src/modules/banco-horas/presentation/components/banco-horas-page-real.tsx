@@ -62,6 +62,7 @@ type MovimentoBancoHoras = {
   minutos: number;
   descricao: string | null;
   expiraEm: Date | null;
+  metadados?: unknown;
 };
 
 type AutorizacaoBancoHoras = {
@@ -511,16 +512,61 @@ function SaldoMiniIndicador({
   );
 }
 
+function AtalhosBancoHoras({
+  perfilServidorAtivo,
+  podeSelecionarServidor,
+}: {
+  perfilServidorAtivo: boolean;
+  podeSelecionarServidor: boolean;
+}) {
+  return (
+    <div className="mt-4 grid gap-2">
+      {perfilServidorAtivo ? (
+        <Link
+          href="/banco-horas/solicitacoes"
+          className="secp-theme-primary-action inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm font-semibold transition"
+        >
+          Solicitar uso ou geração
+        </Link>
+      ) : null}
+      <Link
+        href="/banco-horas/vencimentos"
+        className="secp-theme-action inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm font-semibold transition"
+      >
+        Ver vencimentos
+      </Link>
+      {podeSelecionarServidor ? (
+        <Link
+          href="/banco-horas/chefia"
+          className="secp-theme-action inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm font-semibold transition"
+        >
+          Painel da chefia
+        </Link>
+      ) : null}
+      <Link
+        href="/banco-horas/relatorios"
+        className="secp-theme-action inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm font-semibold transition"
+      >
+        Relatórios
+      </Link>
+    </div>
+  );
+}
+
 function AcoesBancoHoras({
   servidorId,
   anoReferencia,
   mesReferencia,
   podeGerenciar,
+  perfilServidorAtivo,
+  podeSelecionarServidor,
 }: {
   servidorId: string;
   anoReferencia: number;
   mesReferencia: number;
   podeGerenciar: boolean;
+  perfilServidorAtivo: boolean;
+  podeSelecionarServidor: boolean;
 }) {
   if (!podeGerenciar) {
     return (
@@ -532,6 +578,10 @@ function AcoesBancoHoras({
           Consulte os movimentos abaixo para entender a composição do saldo. Em
           caso de divergência, registre uma solicitação para análise da chefia.
         </p>
+        <AtalhosBancoHoras
+          perfilServidorAtivo={perfilServidorAtivo}
+          podeSelecionarServidor={podeSelecionarServidor}
+        />
       </section>
     );
   }
@@ -582,6 +632,148 @@ function AcoesBancoHoras({
         </form>
       </div>
     </section>
+  );
+}
+
+function ResumoOperacionalBancoHoras({
+  saldoMinutos,
+  creditosMes,
+  limiteRestante,
+  creditosAVencer,
+  debitosACompensar,
+  horasNaoAutorizadasMinutos,
+  horasAcimaLimiteMinutos,
+  limiteCredito,
+  limiteDebito,
+}: {
+  saldoMinutos: number;
+  creditosMes: number;
+  limiteRestante: number;
+  creditosAVencer: number;
+  debitosACompensar: number;
+  horasNaoAutorizadasMinutos: number;
+  horasAcimaLimiteMinutos: number;
+  limiteCredito: string | null;
+  limiteDebito: string | null;
+}) {
+  const saldoNegativo = saldoMinutos < 0;
+  const pendenciasMinutos = horasNaoAutorizadasMinutos + horasAcimaLimiteMinutos;
+  const percentualLimite = Math.min(
+    100,
+    Math.round((creditosMes / LIMITE_CREDITO_MENSAL_MINUTOS) * 100),
+  );
+
+  return (
+    <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.7fr)]">
+      <div className="rounded-lg border bg-[var(--card)] p-4 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 className="text-base font-bold">Visão rápida</h2>
+            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+              O saldo é calculado a partir dos lançamentos autorizados,
+              homologados ou pendentes de validação, sem edição direta.
+            </p>
+          </div>
+          <span
+            className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${
+              saldoNegativo
+                ? "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"
+                : "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
+            }`}
+          >
+            {saldoNegativo ? "Requer compensação" : "Saldo regular"}
+          </span>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <IndicadorOperacional
+            icon={TrendingUp}
+            titulo="Limite mensal"
+            valor={`${percentualLimite}%`}
+            detalhe={`${minutosParaHoraBanco(limiteRestante)} ainda disponível`}
+          />
+          <IndicadorOperacional
+            icon={CalendarClock}
+            titulo="Créditos a vencer"
+            valor={minutosParaHoraBanco(creditosAVencer)}
+            detalhe={limiteCredito ? `Próximo prazo: ${limiteCredito}` : "Sem prazo próximo"}
+          />
+          <IndicadorOperacional
+            icon={TrendingDown}
+            titulo="Débitos a compensar"
+            valor={minutosParaHoraBanco(debitosACompensar)}
+            detalhe={limiteDebito ? `Próximo prazo: ${limiteDebito}` : "Sem prazo próximo"}
+          />
+        </div>
+      </div>
+
+      <div className="rounded-lg border bg-[var(--card)] p-4 shadow-sm">
+        <h2 className="text-base font-bold">Pendências normativas</h2>
+        <div className="mt-4 space-y-3 text-sm">
+          <LinhaPendencia
+            label="Horas não autorizadas"
+            valor={minutosParaHoraBanco(horasNaoAutorizadasMinutos)}
+            ativo={horasNaoAutorizadasMinutos > 0}
+          />
+          <LinhaPendencia
+            label="Horas acima do limite"
+            valor={minutosParaHoraBanco(horasAcimaLimiteMinutos)}
+            ativo={horasAcimaLimiteMinutos > 0}
+          />
+          <LinhaPendencia
+            label="Total a revisar"
+            valor={minutosParaHoraBanco(pendenciasMinutos)}
+            ativo={pendenciasMinutos > 0}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function IndicadorOperacional({
+  icon: Icon,
+  titulo,
+  valor,
+  detalhe,
+}: {
+  icon: LucideIcon;
+  titulo: string;
+  valor: string;
+  detalhe: string;
+}) {
+  return (
+    <div className="rounded-md border p-3">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase text-[var(--muted-foreground)]">
+        <Icon className="size-4" aria-hidden="true" />
+        {titulo}
+      </div>
+      <p className="mt-2 font-mono text-xl font-bold">{valor}</p>
+      <p className="mt-1 text-xs text-[var(--muted-foreground)]">{detalhe}</p>
+    </div>
+  );
+}
+
+function LinhaPendencia({
+  label,
+  valor,
+  ativo,
+}: {
+  label: string;
+  valor: string;
+  ativo: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+      <span className="text-[var(--muted-foreground)]">{label}</span>
+      <span
+        className={`font-mono font-bold ${
+          ativo ? "text-amber-700 dark:text-amber-300" : "text-[var(--foreground)]"
+        }`}
+      >
+        {valor}
+      </span>
+    </div>
   );
 }
 
@@ -852,6 +1044,17 @@ export function BancoHorasPageReal({
   );
   const { ano, mes } = referenciaAtual();
   const perfilServidorAtivo = perfilAtivoCodigo?.toUpperCase() === "SERVIDOR";
+  const perfilChefiaAtivo = perfilAtivoCodigo?.toUpperCase() === "CHEFIA";
+  const tituloPagina = perfilServidorAtivo
+    ? "Meu banco de horas"
+    : perfilChefiaAtivo
+      ? "Banco de horas da equipe"
+      : "Banco de horas";
+  const descricaoPagina = perfilServidorAtivo
+    ? "Acompanhe seu saldo, créditos, débitos, compensações e prazos regulamentares."
+    : perfilChefiaAtivo
+      ? "Acompanhe o próprio saldo e o banco de horas dos servidores da sua equipe."
+      : "Acompanhe saldo individual, créditos, débitos, compensações, limites mensais e prazos regulamentares.";
   const dadosSaldo = dadosSaldoPadrao(servidorSelecionado?.bancoHorasSaldo ?? null);
   const extratoAtivo = normalizarExtratoSaldo(extratoSelecionado);
 
@@ -861,8 +1064,8 @@ export function BancoHorasPageReal({
 
       <PageHeader
         icon={Hourglass}
-        titulo="Banco de horas"
-        descricao="Acompanhe saldo individual, créditos, débitos, compensações, limites mensais e prazos regulamentares."
+        titulo={tituloPagina}
+        descricao={descricaoPagina}
         artigo="Banco de horas"
         regraTitulo="Limite e compensação"
         regraDescricao="Créditos e compensações dependem de autorização prévia da chefia. O limite ordinário de crédito para fruição futura é de 16h mensais."
@@ -940,9 +1143,23 @@ export function BancoHorasPageReal({
                 anoReferencia={anoReferencia || ano}
                 mesReferencia={mesReferencia || mes}
                 podeGerenciar={podeGerenciar}
+                perfilServidorAtivo={perfilServidorAtivo}
+                podeSelecionarServidor={podeSelecionarServidor}
               />
             </div>
           </section>
+
+          <ResumoOperacionalBancoHoras
+            saldoMinutos={dadosSaldo.saldoMinutos}
+            creditosMes={creditosMes}
+            limiteRestante={limiteRestante}
+            creditosAVencer={creditosAVencer}
+            debitosACompensar={debitosACompensar}
+            horasNaoAutorizadasMinutos={dadosSaldo.horasNaoAutorizadasMinutos}
+            horasAcimaLimiteMinutos={dadosSaldo.horasAcimaLimiteMinutos}
+            limiteCredito={limiteCredito}
+            limiteDebito={limiteDebito}
+          />
 
           {extratoAtivo ? (
             <ExtratoComposicaoSaldo

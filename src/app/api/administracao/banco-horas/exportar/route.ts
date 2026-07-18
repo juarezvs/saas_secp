@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import {
-  exigirPermissaoOuRedirecionar,
+  exigirUmaDasPermissoesOuRedirecionar,
+  usuarioPossuiPermissaoNoPerfil,
 } from "@/modules/auth/application/services/permissao.service";
-import { listarServidoresGestaoBancoHoras } from "@/modules/banco-horas/infrastructure/repositories/banco-horas.repository";
+import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 import { minutosParaHoraBanco } from "@/modules/banco-horas/application/services/formatar-banco-horas.service";
+import { listarServidoresGestaoBancoHoras } from "@/modules/banco-horas/infrastructure/repositories/banco-horas.repository";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 function csv(valor: string | number | null | undefined) {
@@ -23,11 +25,47 @@ function formatarCompetencia(competencia?: string | null) {
 }
 
 export async function GET() {
-  await exigirPermissaoOuRedirecionar("banco-horas:gerenciar:global");
+  const permissao = await exigirUmaDasPermissoesOuRedirecionar([
+    "banco-horas:gerenciar:global",
+    "relatorios-gerenciais:consultar:chefia",
+    "relatorios-gerenciais:consultar:global",
+  ]);
 
   const escopo = await obterEscopoOrgaoDaSessao();
+  const podeGlobal =
+    usuarioPossuiPermissaoNoPerfil(
+      permissao.perfilAtivoCodigo,
+      permissao.permissoes,
+      "banco-horas:gerenciar:global",
+    ) ||
+    usuarioPossuiPermissaoNoPerfil(
+      permissao.perfilAtivoCodigo,
+      permissao.permissoes,
+      "relatorios-gerenciais:consultar:global",
+    );
+  const podeChefia = usuarioPossuiPermissaoNoPerfil(
+    permissao.perfilAtivoCodigo,
+    permissao.permissoes,
+    "relatorios-gerenciais:consultar:chefia",
+  );
+  const unidadeIdsPermitidas =
+    !podeGlobal && podeChefia && permissao.usuarioId
+      ? await listarIdsUnidadesSubordinadasPorUsuario(permissao.usuarioId)
+      : undefined;
+
+  if (!podeGlobal && unidadeIdsPermitidas?.length === 0) {
+    return new NextResponse("\uFEFF", {
+      headers: {
+        "content-type": "text/csv; charset=utf-8",
+        "content-disposition":
+          'attachment; filename="banco-horas-servidores.csv"',
+      },
+    });
+  }
+
   const servidores = await listarServidoresGestaoBancoHoras({
     orgaoIdsPermitidos: escopo.global ? undefined : escopo.orgaoIds,
+    unidadeIdsPermitidas,
   });
 
   const linhas = [
