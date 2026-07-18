@@ -10,6 +10,7 @@ node_modules
 npm-debug.log
 coverage
 dist
+src/generated
 tmp
 .tmp
 backups

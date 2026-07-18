@@ -50,9 +50,9 @@ ENV NODE_ENV=production
 COPY prisma ./prisma
 COPY prisma.config.ts ./prisma.config.ts
 
-RUN npx prisma generate
-
 COPY . .
+
+RUN npx prisma generate
 
 RUN npm run build
 
