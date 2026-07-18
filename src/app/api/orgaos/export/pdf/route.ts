@@ -93,6 +93,7 @@ function OrgaosPdfDocument({ orgaos }: { orgaos: OrgaoExportacao[] }) {
           React.createElement(Text, { style: styles.cellSigla }, "Sigla"),
           React.createElement(Text, { style: styles.cellNome }, "Nome"),
           React.createElement(Text, { style: styles.cellCodigo }, "SARH"),
+          React.createElement(Text, { style: styles.cellLocalidade }, "Localidade"),
           React.createElement(Text, { style: styles.cellContador }, "Unid."),
           React.createElement(Text, { style: styles.cellContador }, "Serv."),
           React.createElement(Text, { style: styles.cellFuso }, "Fuso"),
@@ -109,6 +110,13 @@ function OrgaosPdfDocument({ orgaos }: { orgaos: OrgaoExportacao[] }) {
               Text,
               { style: styles.cellCodigo },
               orgao.codigoExternoSarh ? String(orgao.codigoExternoSarh) : "-",
+            ),
+            React.createElement(
+              Text,
+              { style: styles.cellLocalidade },
+              orgao.municipio || orgao.uf
+                ? `${orgao.municipio ?? "-"} / ${orgao.uf ?? "-"}`
+                : "-",
             ),
             React.createElement(
               Text,
@@ -154,11 +162,12 @@ const styles = StyleSheet.create({
     minHeight: 22,
   },
   header: { backgroundColor: "#f3f4f6", fontWeight: 700 },
-  cellSigla: { width: "12%", padding: 5 },
-  cellNome: { width: "20%", padding: 5 },
-  cellCodigo: { width: "10%", padding: 5 },
-  cellContador: { width: "7%", padding: 5 },
-  cellFuso: { width: "18%", padding: 5 },
-  cellData: { width: "16%", padding: 5 },
-  cellStatus: { width: "10%", padding: 5 },
+  cellSigla: { width: "10%", padding: 5 },
+  cellNome: { width: "19%", padding: 5 },
+  cellCodigo: { width: "8%", padding: 5 },
+  cellLocalidade: { width: "14%", padding: 5 },
+  cellContador: { width: "6%", padding: 5 },
+  cellFuso: { width: "16%", padding: 5 },
+  cellData: { width: "14%", padding: 5 },
+  cellStatus: { width: "7%", padding: 5 },
 });

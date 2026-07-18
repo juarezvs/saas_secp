@@ -24,6 +24,9 @@ function extrairDados(formData: FormData): Partial<OrgaoInput> {
     nome: String(formData.get("nome") ?? ""),
     codigoExternoSarh: String(formData.get("codigoExternoSarh") ?? ""),
     fusoHorario: String(formData.get("fusoHorario") ?? ""),
+    uf: String(formData.get("uf") ?? ""),
+    municipio: String(formData.get("municipio") ?? ""),
+    municipioIbge: String(formData.get("municipioIbge") ?? ""),
     ativo: checkboxLigado(formData, "ativo"),
   };
 }
@@ -38,6 +41,9 @@ function dadosPersistencia(dados: OrgaoInput) {
     fusoHorario: dados.fusoHorario
       ? normalizarFusoHorario(dados.fusoHorario)
       : null,
+    uf: dados.uf || null,
+    municipio: dados.municipio || null,
+    municipioIbge: dados.municipioIbge || null,
     ativo: dados.ativo,
   };
 }
@@ -64,7 +70,7 @@ export async function criarOrgaoAction(
   if (!parsed.success) {
     return {
       sucesso: false,
-      mensagem: "Verifique os campos do orgao.",
+      mensagem: "Verifique os campos do órgão.",
       erros: parsed.error.flatten().fieldErrors,
       campos: dados,
     };
@@ -73,8 +79,8 @@ export async function criarOrgaoAction(
   if (await existeOrgaoComSigla(parsed.data.sigla)) {
     return {
       sucesso: false,
-      mensagem: "Ja existe um orgao com esta sigla.",
-      erros: { sigla: ["Ja existe um orgao com esta sigla."] },
+      mensagem: "Já existe um órgão com esta sigla.",
+      erros: { sigla: ["Já existe um órgão com esta sigla."] },
       campos: dados,
     };
   }
@@ -114,7 +120,7 @@ export async function atualizarOrgaoAction(
   if (!atual) {
     return {
       sucesso: false,
-      mensagem: "Orgao nao encontrado.",
+      mensagem: "Órgão não encontrado.",
     };
   }
 
@@ -124,7 +130,7 @@ export async function atualizarOrgaoAction(
   if (!parsed.success) {
     return {
       sucesso: false,
-      mensagem: "Verifique os campos do orgao.",
+      mensagem: "Verifique os campos do órgão.",
       erros: parsed.error.flatten().fieldErrors,
       campos: dados,
     };
@@ -133,8 +139,8 @@ export async function atualizarOrgaoAction(
   if (await existeOrgaoComSigla(parsed.data.sigla, orgaoId)) {
     return {
       sucesso: false,
-      mensagem: "Ja existe outro orgao com esta sigla.",
-      erros: { sigla: ["Ja existe outro orgao com esta sigla."] },
+      mensagem: "Já existe outro órgão com esta sigla.",
+      erros: { sigla: ["Já existe outro órgão com esta sigla."] },
       campos: dados,
     };
   }

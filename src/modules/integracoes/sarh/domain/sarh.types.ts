@@ -129,7 +129,11 @@ export type SarhCalendarioDto = {
     | "ORGAO"
     | "UNIDADE";
   uf: string | null;
+  municipio?: string | null;
+  municipioIbge?: string | null;
   secaoSubsecaoId: number | null;
+  siglaSecaoSubsecao?: string | null;
+  codigoLotacaoSarh?: number | null;
   varaId: number | null;
   ativo: boolean;
   origemTabela: string;

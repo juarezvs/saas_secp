@@ -30,7 +30,9 @@ export function normalizarCpf(
   if (cpf === null || cpf === undefined) return null;
   const somenteDigitos = String(cpf).replace(/\D/g, "");
   if (!somenteDigitos) return null;
-  return somenteDigitos.padStart(11, "0").slice(-11);
+  const normalizado = somenteDigitos.padStart(11, "0").slice(-11);
+  if (/^(\d)\1{10}$/.test(normalizado)) return null;
+  return normalizado;
 }
 
 export function obterCpfServidorSarh(payload: SarhServidorDto): string | null {

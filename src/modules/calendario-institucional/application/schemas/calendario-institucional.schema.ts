@@ -151,11 +151,11 @@ export const calendarioInstitucionalSchema = z
       });
     }
 
-    if (dados.abrangencia === "ESTADUAL" && !dados.uf) {
+    if (dados.abrangencia === "ESTADUAL" && !dados.uf && !dados.unidadeId) {
       ctx.addIssue({
         code: "custom",
-        path: ["uf"],
-        message: "Informe a UF para evento estadual.",
+        path: ["unidadeId"],
+        message: "Informe a seccional ou uma unidade com UF cadastrada.",
       });
     }
 
@@ -176,27 +176,19 @@ export const calendarioInstitucionalSchema = z
     }
 
     if (dados.abrangencia === "MUNICIPAL") {
-      if (!dados.uf) {
+      if (!dados.unidadeId && (!dados.uf || !dados.municipio)) {
         ctx.addIssue({
           code: "custom",
-          path: ["uf"],
-          message: "Informe a UF para evento municipal.",
+          path: ["unidadeId"],
+          message: "Informe a subseção ou unidade avançada de atendimento.",
         });
       }
 
-      if (!dados.municipio) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["municipio"],
-          message: "Informe o municipio para evento municipal.",
-        });
-      }
-
-      if (dados.orgaoId || dados.unidadeId) {
+      if (dados.orgaoId) {
         ctx.addIssue({
           code: "custom",
           path: ["abrangencia"],
-          message: "Evento municipal deve usar apenas UF e municipio.",
+          message: "Evento municipal deve usar uma unidade/localidade.",
         });
       }
     }
@@ -230,7 +222,7 @@ export const calendarioInstitucionalSchema = z
 
     if (
       dados.abrangencia === "UNIDADE" &&
-      (dados.uf || dados.municipio || dados.municipioIbge || dados.orgaoId)
+      (dados.orgaoId)
     ) {
       ctx.addIssue({
         code: "custom",

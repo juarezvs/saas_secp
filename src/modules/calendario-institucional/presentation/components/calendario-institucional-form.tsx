@@ -35,7 +35,15 @@ type CalendarioInstitucionalFormProps = {
     ativo?: boolean;
   };
   orgaos?: Array<{ id: string; sigla: string; nome: string }>;
-  unidades?: Array<{ id: string; sigla: string; nome: string }>;
+  unidades?: Array<{
+    id: string;
+    sigla: string;
+    nome: string;
+    tipo?: string;
+    uf?: string | null;
+    municipio?: string | null;
+    municipioIbge?: string | null;
+  }>;
   modo: "criar" | "editar";
 };
 
@@ -79,9 +87,14 @@ export function CalendarioInstitucionalForm({
   const [municipioIbge, setMunicipioIbge] = useState(
     campos?.municipioIbge ?? "",
   );
-  const ufDesabilitada =
-    abrangencia !== "ESTADUAL" && abrangencia !== "MUNICIPAL";
-  const municipioDesabilitado = abrangencia !== "MUNICIPAL";
+  const [unidadeId, setUnidadeId] = useState(campos?.unidadeId ?? "");
+  const unidadeSelecionada = unidades.find((unidade) => unidade.id === unidadeId);
+  const mostrarOrgao = abrangencia === "ORGAO";
+  const mostrarUnidade = ["ESTADUAL", "MUNICIPAL", "UNIDADE"].includes(
+    abrangencia,
+  );
+  const ufDesabilitada = false;
+  const municipioDesabilitado = false;
 
   function alterarAbrangencia(novaAbrangencia: string) {
     setAbrangencia(novaAbrangencia);
@@ -90,13 +103,20 @@ export function CalendarioInstitucionalForm({
       setUf("");
       setMunicipio("");
       setMunicipioIbge("");
-      return;
     }
 
-    if (novaAbrangencia === "ESTADUAL") {
-      setMunicipio("");
-      setMunicipioIbge("");
+    if (novaAbrangencia === "NACIONAL" || novaAbrangencia === "ORGAO") {
+      setUnidadeId("");
     }
+  }
+
+  function alterarUnidade(novaUnidadeId: string) {
+    setUnidadeId(novaUnidadeId);
+    const unidade = unidades.find((item) => item.id === novaUnidadeId);
+
+    setUf(unidade?.uf ?? "");
+    setMunicipio(unidade?.municipio ?? "");
+    setMunicipioIbge(unidade?.municipioIbge ?? "");
   }
 
   return (
@@ -211,7 +231,7 @@ export function CalendarioInstitucionalForm({
                 )}
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-[100px_1fr]">
+              <div className="hidden">
                 <div className="space-y-2">
                   <label htmlFor="uf" className="text-sm font-semibold">
                     UF
@@ -225,10 +245,6 @@ export function CalendarioInstitucionalForm({
                       setUf(event.target.value.toUpperCase())
                     }
                     disabled={ufDesabilitada}
-                    required={
-                      abrangencia === "ESTADUAL" ||
-                      abrangencia === "MUNICIPAL"
-                    }
                     placeholder="AM"
                     className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm uppercase outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20 disabled:cursor-not-allowed disabled:opacity-60"
                   />
@@ -247,7 +263,6 @@ export function CalendarioInstitucionalForm({
                     value={municipio}
                     onChange={(event) => setMunicipio(event.target.value)}
                     disabled={municipioDesabilitado}
-                    required={abrangencia === "MUNICIPAL"}
                     placeholder="Ex.: Tabatinga"
                     className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20 disabled:cursor-not-allowed disabled:opacity-60"
                   />
@@ -259,7 +274,7 @@ export function CalendarioInstitucionalForm({
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="hidden">
                 <label htmlFor="municipioIbge" className="text-sm font-semibold">
                   Código IBGE do município
                 </label>
@@ -281,7 +296,7 @@ export function CalendarioInstitucionalForm({
                 )}
               </div>
 
-              <div className="space-y-2">
+              <div className={`space-y-2 ${mostrarOrgao ? "" : "hidden"}`}>
                 <label htmlFor="orgaoId" className="text-sm font-semibold">
                   Órgão
                 </label>
@@ -308,26 +323,42 @@ export function CalendarioInstitucionalForm({
                 )}
               </div>
 
-              <div className="space-y-2 md:col-span-2">
+              <div
+                className={`space-y-2 md:col-span-2 ${
+                  mostrarUnidade ? "" : "hidden"
+                }`}
+              >
                 <label htmlFor="unidadeId" className="text-sm font-semibold">
-                  Unidade
+                  Localidade
                 </label>
                 <SearchableSelect
                   id="unidadeId"
                   name="unidadeId"
-                  defaultValue={campos?.unidadeId ?? ""}
+                  defaultValue={unidadeId}
                   placeholder="Não se aplica"
-                  searchPlaceholder="Pesquisar por sigla ou nome..."
-                  emptyMessage="Nenhuma unidade encontrada."
+                  searchPlaceholder="Pesquisar por sigla, nome, cidade ou UF..."
+                  emptyMessage="Nenhuma localidade com UF e cidade cadastradas."
+                  onValueChange={alterarUnidade}
                   options={[
                     { value: "", label: "Não se aplica" },
                     ...unidades.map((unidade) => ({
                       value: unidade.id,
-                      label: `${unidade.sigla} - ${unidade.nome}`,
-                      searchText: `${unidade.sigla} ${unidade.nome}`,
+                      label: `${unidade.sigla} - ${unidade.nome} (${unidade.municipio}/${unidade.uf})`,
+                      searchText: `${unidade.sigla} ${unidade.nome} ${unidade.uf ?? ""} ${unidade.municipio ?? ""}`,
                     })),
                   ]}
                 />
+                {unidadeSelecionada && (
+                  <p className="text-xs text-[var(--muted-foreground)]">
+                    {[
+                      unidadeSelecionada.tipo?.replaceAll("_", " "),
+                      unidadeSelecionada.uf,
+                      unidadeSelecionada.municipio,
+                    ]
+                      .filter(Boolean)
+                      .join(" - ")}
+                  </p>
+                )}
                 {erro(estado, "unidadeId") && (
                   <p className="text-sm text-red-600">
                     {erro(estado, "unidadeId")}

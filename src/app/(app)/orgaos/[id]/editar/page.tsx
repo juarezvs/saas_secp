@@ -40,8 +40,8 @@ export default async function EditarOrgaoPage({ params }: EditarOrgaoPageProps) 
 
       <PageHeader
         icon={Landmark}
-        titulo="Editar orgao"
-        descricao="Atualize os dados institucionais, status e fuso horario do orgao."
+        titulo="Editar órgão"
+        descricao="Atualize os dados institucionais, localidade, status e fuso horário do órgão."
       />
 
       <OrgaoForm
@@ -53,6 +53,9 @@ export default async function EditarOrgaoPage({ params }: EditarOrgaoPageProps) 
           nome: orgao.nome,
           codigoExternoSarh: orgao.codigoExternoSarh,
           fusoHorario: orgao.fusoHorario,
+          uf: orgao.uf,
+          municipio: orgao.municipio,
+          municipioIbge: orgao.municipioIbge,
           ativo: orgao.ativo,
         }}
       />

@@ -456,7 +456,7 @@ export async function buscarMinhaEquipe(params: {
     return {
       id: servidor.id,
       matricula: servidor.matricula,
-      cpf: servidor.cpf,
+      cpf: servidor.cpf ?? servidor.usuario.cpf,
       nome: nomeServidor(servidor) || servidor.matricula,
       unidadeId: lotacao?.unidadeId ?? "",
       unidadeSigla: lotacao?.unidade.sigla ?? "-",

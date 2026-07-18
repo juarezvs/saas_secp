@@ -9,8 +9,8 @@ import { excluirCalendarioInstitucionalAction } from "@/modules/calendario-insti
 import { buscarEventoCalendarioInstitucionalPorId } from "@/modules/calendario-institucional/infrastructure/repositories/calendario-institucional.repository";
 import { CalendarioInstitucionalForm } from "@/modules/calendario-institucional/presentation/components/calendario-institucional-form";
 import {
+  listarLocalidadesCalendarioParaSelecao,
   listarOrgaosAtivos,
-  listarUnidadesParaSelecao,
 } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
 
 type EditarCalendarioInstitucionalPageProps = {
@@ -32,7 +32,7 @@ export default async function EditarCalendarioInstitucionalPage({
   const [evento, orgaos, unidades] = await Promise.all([
     buscarEventoCalendarioInstitucionalPorId(id),
     listarOrgaosAtivos(),
-    listarUnidadesParaSelecao(),
+    listarLocalidadesCalendarioParaSelecao(),
   ]);
 
   if (!evento) {

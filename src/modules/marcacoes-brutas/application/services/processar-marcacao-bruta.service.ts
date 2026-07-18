@@ -16,6 +16,26 @@ function somenteDigitos(valor: string | null | undefined) {
   return valor?.replace(/\D/g, "") || null;
 }
 
+function cpfServidorCompativel(
+  cpfMarcacao: string | null | undefined,
+  servidor: {
+    cpf?: string | null;
+    usuario?: { cpf?: string | null } | null;
+  } | null,
+) {
+  const cpf = somenteDigitos(cpfMarcacao);
+
+  if (!cpf || !servidor) {
+    return true;
+  }
+
+  const cpfsServidor = [servidor.cpf, servidor.usuario?.cpf]
+    .map(somenteDigitos)
+    .filter(Boolean);
+
+  return cpfsServidor.includes(cpf);
+}
+
 function resolverMatriculaJuizProvavel(matricula: string | null | undefined) {
   const digitos = somenteDigitos(matricula);
 
@@ -71,6 +91,11 @@ export async function processarMarcacaoBrutaService(params: {
           id: true,
           matricula: true,
           cpf: true,
+          usuario: {
+            select: {
+              cpf: true,
+            },
+          },
         },
       })
     : await resolverServidorMarcacaoBrutaService({
@@ -78,6 +103,14 @@ export async function processarMarcacaoBrutaService(params: {
         matricula: bruta.matricula,
         equipamentoId: bruta.equipamentoId,
       });
+
+  if (!cpfServidorCompativel(bruta.cpf, servidor)) {
+    servidor = await resolverServidorMarcacaoBrutaService({
+      cpf: bruta.cpf,
+      matricula: bruta.matricula,
+      equipamentoId: bruta.equipamentoId,
+    });
+  }
 
   if (!servidor && (bruta.cpf || bruta.matricula)) {
     servidor = await resolverServidorMarcacaoBrutaService({

@@ -23,8 +23,8 @@ export default async function NovoOrgaoPage() {
 
       <PageHeader
         icon={Landmark}
-        titulo="Novo orgao"
-        descricao="Cadastre um orgao institucional para uso em unidades, servidores e integracoes."
+        titulo="Novo órgão"
+        descricao="Cadastre um órgão institucional para uso em unidades, servidores e integrações."
       />
 
       <OrgaoForm

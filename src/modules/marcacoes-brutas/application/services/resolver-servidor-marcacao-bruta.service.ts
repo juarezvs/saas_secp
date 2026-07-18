@@ -4,6 +4,20 @@ function somenteDigitos(valor: string | null | undefined) {
   return valor?.replace(/\D/g, "") || null;
 }
 
+function normalizarCpf(valor: string | null | undefined) {
+  const digitos = somenteDigitos(valor);
+
+  if (!digitos) return null;
+  if (digitos.length === 11) return digitos;
+  if (digitos.length === 12 && digitos.startsWith("0")) return digitos.slice(1);
+
+  return null;
+}
+
+function matriculaTemPrefixo(matricula: string | null) {
+  return Boolean(matricula && /[a-z]/i.test(matricula));
+}
+
 function prefixoMatriculaPorSiglaOrgao(sigla: string | null | undefined) {
   const normalizada = sigla?.trim().toUpperCase();
 
@@ -39,9 +53,8 @@ export async function resolverServidorMarcacaoBrutaService(params: {
   matricula?: string | null;
   equipamentoId?: string | null;
 }) {
-  const cpf = somenteDigitos(params.cpf);
+  const cpf = normalizarCpf(params.cpf) ?? normalizarCpf(params.matricula);
   const matricula = params.matricula?.trim() || null;
-  const filtros = [];
   const equipamento = params.equipamentoId
     ? await prisma.equipamentoBiometrico.findUnique({
         where: { id: params.equipamentoId },
@@ -67,15 +80,52 @@ export async function resolverServidorMarcacaoBrutaService(params: {
   );
 
   if (cpf) {
-    filtros.push({ cpf });
-    filtros.push({ usuario: { cpf } });
+    const filtroCpf = [{ cpf }, { usuario: { cpf } }];
+
+    if (orgaoIdEquipamento) {
+      const servidorDoOrgao = await prisma.servidor.findFirst({
+        where: {
+          ativo: true,
+          orgaoId: orgaoIdEquipamento,
+          OR: filtroCpf,
+        },
+        select: {
+          id: true,
+          matricula: true,
+          cpf: true,
+        },
+      });
+
+      if (servidorDoOrgao) {
+        return servidorDoOrgao;
+      }
+    }
+
+    return prisma.servidor.findFirst({
+      where: {
+        ativo: true,
+        OR: filtroCpf,
+      },
+      select: {
+        id: true,
+        matricula: true,
+        cpf: true,
+      },
+    });
   }
 
-  if (matricula) {
-    filtros.push({
+  if (!matricula) {
+    return null;
+  }
+
+  const filtrosMatricula = [];
+  const ehMatriculaComPrefixo = matriculaTemPrefixo(matricula);
+
+  if (ehMatriculaComPrefixo) {
+    filtrosMatricula.push({
       matricula: { equals: matricula, mode: "insensitive" as const },
     });
-    filtros.push({
+    filtrosMatricula.push({
       usuario: {
         matricula: { equals: matricula, mode: "insensitive" as const },
       },
@@ -83,17 +133,17 @@ export async function resolverServidorMarcacaoBrutaService(params: {
   }
 
   if (matriculaNoOrgao && matriculaNoOrgao !== matricula) {
-    filtros.unshift({
+    filtrosMatricula.unshift({
       matricula: { equals: matriculaNoOrgao, mode: "insensitive" as const },
     });
-    filtros.unshift({
+    filtrosMatricula.unshift({
       usuario: {
         matricula: { equals: matriculaNoOrgao, mode: "insensitive" as const },
       },
     });
   }
 
-  if (filtros.length === 0) {
+  if (filtrosMatricula.length === 0) {
     return null;
   }
 
@@ -102,7 +152,7 @@ export async function resolverServidorMarcacaoBrutaService(params: {
       where: {
         ativo: true,
         orgaoId: orgaoIdEquipamento,
-        OR: filtros,
+        OR: filtrosMatricula,
       },
       select: {
         id: true,
@@ -116,10 +166,14 @@ export async function resolverServidorMarcacaoBrutaService(params: {
     }
   }
 
+  if (!ehMatriculaComPrefixo) {
+    return null;
+  }
+
   return prisma.servidor.findFirst({
     where: {
       ativo: true,
-      OR: filtros,
+      OR: filtrosMatricula,
     },
     select: {
       id: true,

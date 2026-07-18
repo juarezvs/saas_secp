@@ -14,13 +14,13 @@ export const orgaoSchema = z.object({
     .string()
     .trim()
     .min(2, "Informe a sigla.")
-    .max(30, "A sigla deve ter no maximo 30 caracteres.")
+    .max(30, "A sigla deve ter no máximo 30 caracteres.")
     .transform((valor) => valor.toUpperCase()),
   nome: z
     .string()
     .trim()
-    .min(3, "Informe o nome do orgao.")
-    .max(200, "O nome deve ter no maximo 200 caracteres."),
+    .min(3, "Informe o nome do órgão.")
+    .max(200, "O nome deve ter no máximo 200 caracteres."),
   codigoExternoSarh: z
     .string()
     .trim()
@@ -28,7 +28,7 @@ export const orgaoSchema = z.object({
     .or(z.literal(""))
     .refine(
       (valor) => !valor || Number.isInteger(Number(valor)),
-      "Informe um codigo SARH numerico.",
+      "Informe um código SARH numérico.",
     ),
   fusoHorario: z
     .string()
@@ -37,8 +37,31 @@ export const orgaoSchema = z.object({
     .or(z.literal(""))
     .refine(
       (valor) => !valor || fusoHorarioValido(valor),
-      "Informe um fuso horario valido.",
+      "Informe um fuso horário válido.",
     ),
+  uf: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .optional()
+    .or(z.literal(""))
+    .refine((valor) => !valor || /^[A-Z]{2}$/.test(valor), {
+      message: "Informe a UF com duas letras.",
+    }),
+  municipio: z
+    .string()
+    .trim()
+    .max(120, "A cidade deve ter no máximo 120 caracteres.")
+    .optional()
+    .or(z.literal("")),
+  municipioIbge: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal(""))
+    .refine((valor) => !valor || /^\d{7}$/.test(valor), {
+      message: "Informe o código IBGE com 7 dígitos.",
+    }),
   ativo: z.coerce.boolean().default(true),
 });
 

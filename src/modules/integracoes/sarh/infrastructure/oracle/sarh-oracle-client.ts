@@ -11,6 +11,7 @@ import type {
   SarhTipoAfastamentoDto,
   SarhTipoDto,
 } from "../../domain/sarh.types";
+import { normalizarCpf } from "../../domain/sarh-normalizer";
 import type { Connection } from "oracledb";
 
 type OracleDbModule = typeof import("oracledb");
@@ -154,15 +155,50 @@ export class SarhOracleClient {
             and (mf.mvfu_dat_fim_mov is null or mf.mvfu_dat_fim_mov >= trunc(sysdate))
         )
         where rn = 1
+      ),
+      relacao_pessoas as (
+        select *
+        from (
+          select
+            vw.*,
+            row_number() over (
+              partition by upper(vw.matricula)
+              order by
+                case when vw.desligamento is null then 0 else 1 end,
+                vw.desligamento desc nulls last
+            ) as rn
+          from sarh.vw_relacao_pessoas vw
+          where vw.matricula is not null
+        )
+        where rn = 1
       )
       select
         s.nu_matr_servidor as "matricula",
         s.no_servidor as "nome",
         s.flag_ativo as "ativo",
-        f.func_pess_c_p_f as "cpf",
-        d.cape_nascimento as "dataNascimento",
+        coalesce(
+          f.func_pess_c_p_f,
+          s.cpf_servidor,
+          to_number(nullif(regexp_replace(rp.cpf, '[^0-9]', ''), '')),
+          e.esta_caes_c_p_f,
+          v.volu_nr_cpf,
+          c_ps.cont_c_p_f,
+          c_ceco.ceco_c_p_f
+        ) as "cpf",
+        coalesce(
+          d.cape_nascimento,
+          v.volu_dat_nascimento,
+          c_ps.cont_dat_nascimento,
+          c_ceco.ceco_dat_nascimento
+        ) as "dataNascimento",
         cf.cafu_cod_funcionario as "codigoFuncionario",
-        cf.cafu_cod_lotacao as "locatacaoId",
+        coalesce(
+          cf.cafu_cod_lotacao,
+          e.esta_lota_cod_lotacao,
+          v.volu_lota_cod_lotacao,
+          c_ps.cont_lota_cod_lotacao,
+          c_ceco.ceco_lota_cod_lotacao
+        ) as "locatacaoId",
         l.lota_lota_cod_lotacao_pai as "locatacaoPai",
         l.lota_dsc_lotacao as "lotacaoDescricao",
         l.lota_sigla_lotacao as "lotacaoSigla",
@@ -183,12 +219,40 @@ export class SarhOracleClient {
       from sarh.serv_pessoal s
       left join sarh.rh_funcionario f
         on f.func_matricula_folha = s.nu_matr_servidor
+      left join relacao_pessoas rp
+        on upper(rp.matricula) = upper(s.nu_matr_servidor)
+      left join sarh.rh_estagiario e
+        on upper(s.nu_matr_servidor) =
+           upper(e.esta_sesb_sigla_secao_subsecao || e.esta_matricula || 'ES')
+      left join sarh.rh_voluntario v
+        on upper(s.nu_matr_servidor) =
+           upper(v.volu_sesb_sigla_secao_subsecao || v.volu_matricula || 'VO')
+      left join sarh.rh_contratados c_ps
+        on upper(s.nu_matr_servidor) =
+           upper(c_ps.cont_sesb_sigla_secao_subsecao || c_ps.cont_matricula || 'PS')
+      left join sarh.rh_central_contratados c_ceco
+        on upper(s.nu_matr_servidor) =
+           upper(c_ceco.ceco_sesb_sigla_secao_subsecao || c_ceco.ceco_matricula || 'PS')
       left join sarh.rh_cargo_pessoal d
-        on d.cape_cpf = f.func_pess_c_p_f
+        on d.cape_cpf = coalesce(
+          f.func_pess_c_p_f,
+          s.cpf_servidor,
+          to_number(nullif(regexp_replace(rp.cpf, '[^0-9]', ''), '')),
+          e.esta_caes_c_p_f,
+          v.volu_nr_cpf,
+          c_ps.cont_c_p_f,
+          c_ceco.ceco_c_p_f
+        )
       left join sarh.rh_cargo_funcionario cf
         on cf.cafu_matricula_folha = s.nu_matr_servidor
       left join sarh.rh_lotacao l
-        on l.lota_cod_lotacao = cf.cafu_cod_lotacao
+        on l.lota_cod_lotacao = coalesce(
+          cf.cafu_cod_lotacao,
+          e.esta_lota_cod_lotacao,
+          v.volu_lota_cod_lotacao,
+          c_ps.cont_lota_cod_lotacao,
+          c_ceco.ceco_lota_cod_lotacao
+        )
       left join sarh.rh_tipo_lotacao t
         on t.tlot_tipo_lotacao = l.lota_tipo_lotacao
       left join sarh.rh_cargo c
@@ -268,7 +332,117 @@ export class SarhOracleClient {
        and s.flag_ativo = 1
       where upper(cf.cafu_matricula_folha) like upper(:siglaLocalidade) || '%'
         and ${this.filtroMatriculaPessoaPontoSarh("cf.cafu_matricula_folha")}
-      order by cf.cafu_matricula_folha
+
+      union all
+
+      select
+        e.esta_sesb_sigla_secao_subsecao || e.esta_matricula || 'ES' as "matricula",
+        e.esta_lota_cod_lotacao as "lotacaoId",
+        null as "cargoId",
+        l.lota_lota_cod_lotacao_pai as "lotacaoIdPai",
+        l.lota_dsc_lotacao as "lotacaoDescricao",
+        l.lota_sigla_lotacao as "lotacaoSigla",
+        l.lota_dat_inicio as "lotacaoDataInicio",
+        l.lota_dat_fim as "lotacaoDataFim",
+        l.lota_e_mail as "lotacaoEmail",
+        t.tlot_tipo_lotacao as "tipoId",
+        t.tlot_desc_tipo_lotacao as "tipoNome",
+        null as "cargoDescricao"
+      from sarh.rh_estagiario e
+      left join sarh.rh_lotacao l
+        on l.lota_cod_lotacao = e.esta_lota_cod_lotacao
+      left join sarh.rh_tipo_lotacao t
+        on t.tlot_tipo_lotacao = l.lota_tipo_lotacao
+      join sarh.serv_pessoal s
+        on upper(s.nu_matr_servidor) =
+           upper(e.esta_sesb_sigla_secao_subsecao || e.esta_matricula || 'ES')
+       and s.flag_ativo = 1
+      where upper(e.esta_sesb_sigla_secao_subsecao) like upper(:siglaLocalidade) || '%'
+
+      union all
+
+      select
+        v.volu_sesb_sigla_secao_subsecao || v.volu_matricula || 'VO' as "matricula",
+        v.volu_lota_cod_lotacao as "lotacaoId",
+        null as "cargoId",
+        l.lota_lota_cod_lotacao_pai as "lotacaoIdPai",
+        l.lota_dsc_lotacao as "lotacaoDescricao",
+        l.lota_sigla_lotacao as "lotacaoSigla",
+        l.lota_dat_inicio as "lotacaoDataInicio",
+        l.lota_dat_fim as "lotacaoDataFim",
+        l.lota_e_mail as "lotacaoEmail",
+        t.tlot_tipo_lotacao as "tipoId",
+        t.tlot_desc_tipo_lotacao as "tipoNome",
+        null as "cargoDescricao"
+      from sarh.rh_voluntario v
+      left join sarh.rh_lotacao l
+        on l.lota_cod_lotacao = v.volu_lota_cod_lotacao
+      left join sarh.rh_tipo_lotacao t
+        on t.tlot_tipo_lotacao = l.lota_tipo_lotacao
+      join sarh.serv_pessoal s
+        on upper(s.nu_matr_servidor) =
+           upper(v.volu_sesb_sigla_secao_subsecao || v.volu_matricula || 'VO')
+       and s.flag_ativo = 1
+      where upper(v.volu_sesb_sigla_secao_subsecao) like upper(:siglaLocalidade) || '%'
+
+      union all
+
+      select
+        c_ps.cont_sesb_sigla_secao_subsecao || c_ps.cont_matricula || 'PS' as "matricula",
+        c_ps.cont_lota_cod_lotacao as "lotacaoId",
+        null as "cargoId",
+        l.lota_lota_cod_lotacao_pai as "lotacaoIdPai",
+        l.lota_dsc_lotacao as "lotacaoDescricao",
+        l.lota_sigla_lotacao as "lotacaoSigla",
+        l.lota_dat_inicio as "lotacaoDataInicio",
+        l.lota_dat_fim as "lotacaoDataFim",
+        l.lota_e_mail as "lotacaoEmail",
+        t.tlot_tipo_lotacao as "tipoId",
+        t.tlot_desc_tipo_lotacao as "tipoNome",
+        null as "cargoDescricao"
+      from sarh.rh_contratados c_ps
+      left join sarh.rh_lotacao l
+        on l.lota_cod_lotacao = c_ps.cont_lota_cod_lotacao
+      left join sarh.rh_tipo_lotacao t
+        on t.tlot_tipo_lotacao = l.lota_tipo_lotacao
+      join sarh.serv_pessoal s
+        on upper(s.nu_matr_servidor) =
+           upper(c_ps.cont_sesb_sigla_secao_subsecao || c_ps.cont_matricula || 'PS')
+       and s.flag_ativo = 1
+      where upper(c_ps.cont_sesb_sigla_secao_subsecao) like upper(:siglaLocalidade) || '%'
+
+      union all
+
+      select
+        c_ceco.ceco_sesb_sigla_secao_subsecao || c_ceco.ceco_matricula || 'PS' as "matricula",
+        c_ceco.ceco_lota_cod_lotacao as "lotacaoId",
+        null as "cargoId",
+        l.lota_lota_cod_lotacao_pai as "lotacaoIdPai",
+        l.lota_dsc_lotacao as "lotacaoDescricao",
+        l.lota_sigla_lotacao as "lotacaoSigla",
+        l.lota_dat_inicio as "lotacaoDataInicio",
+        l.lota_dat_fim as "lotacaoDataFim",
+        l.lota_e_mail as "lotacaoEmail",
+        t.tlot_tipo_lotacao as "tipoId",
+        t.tlot_desc_tipo_lotacao as "tipoNome",
+        null as "cargoDescricao"
+      from sarh.rh_central_contratados c_ceco
+      left join sarh.rh_lotacao l
+        on l.lota_cod_lotacao = c_ceco.ceco_lota_cod_lotacao
+      left join sarh.rh_tipo_lotacao t
+        on t.tlot_tipo_lotacao = l.lota_tipo_lotacao
+      join sarh.serv_pessoal s
+        on upper(s.nu_matr_servidor) =
+           upper(c_ceco.ceco_sesb_sigla_secao_subsecao || c_ceco.ceco_matricula || 'PS')
+       and s.flag_ativo = 1
+      where upper(c_ceco.ceco_sesb_sigla_secao_subsecao) like upper(:siglaLocalidade) || '%'
+        and not exists (
+          select 1
+          from sarh.rh_contratados c_ps2
+          where upper(c_ps2.cont_sesb_sigla_secao_subsecao || c_ps2.cont_matricula || 'PS') =
+                upper(c_ceco.ceco_sesb_sigla_secao_subsecao || c_ceco.ceco_matricula || 'PS')
+        )
+      order by 1
       `,
       { siglaLocalidade: this.siglaLocalidade },
     );
@@ -607,17 +781,22 @@ export class SarhOracleClient {
   async buscarCalendarios(): Promise<SarhCalendarioDto[]> {
     const rows = await this.query<OracleRow>(`
       select
-        f.feri_num_id_pk as "id",
-        to_char(f.feri_dt_data, 'YYYY-MM-DD') as "data",
-        f.feri_dsc_motivo as "descricao",
-        f.feri_num_abrangencia as "abrangencia",
-        f.sesu_cd_secsubsec_fk as "secaoSubsecaoId",
-        f.feri_cod_uf as "uf",
-        f.feri_cod_ativo as "ativo",
-        f.var_cd_vara as "varaId"
-      from sarh.ps_apoio_feriado f
-      where f.feri_dt_data is not null
-      order by f.feri_dt_data, f.feri_num_id_pk
+        f.fead_codigo as "id",
+        to_char(f.fead_data_feriado, 'YYYY-MM-DD') as "data",
+        f.fead_descricao as "descricao",
+        f.fead_abrangencia as "abrangencia",
+        f.fead_tipo_feriado as "tipoFeriado",
+        f.fead_ano as "ano",
+        f.fead_sigla_secao_subsecao as "siglaSecaoSubsecao",
+        s.sesb_sesu_cd_secsubsec as "secaoSubsecaoId",
+        s.sesb_lota_cod_lotacao as "codigoLotacaoSarh",
+        s.sesb_uf as "uf",
+        s.sesb_municipio_secao_subsecao as "municipio"
+      from sarh.rh_feriado f
+      left join sarh.rh_secao_subsecao s
+        on s.sesb_sigla_secao_subsecao = f.fead_sigla_secao_subsecao
+      where f.fead_data_feriado is not null
+      order by f.fead_data_feriado, f.fead_codigo
     `);
 
     return rows
@@ -630,7 +809,7 @@ export class SarhOracleClient {
         }
 
         return {
-          id: `PS_APOIO_FERIADO:${row.id}`,
+          id: `RH_FERIADO:${row.id}:${data}`,
           data,
           descricao,
           tipo: this.mapearTipoCalendarioSarh(descricao),
@@ -638,17 +817,24 @@ export class SarhOracleClient {
             this.toNumberOrNull(row.abrangencia),
             this.toStringOrNull(row.uf),
             this.toNumberOrNull(row.secaoSubsecaoId),
-            this.toNumberOrNull(row.varaId),
+            null,
           ),
           uf: this.toStringOrNull(row.uf),
+          municipio: this.toStringOrNull(row.municipio),
+          municipioIbge: null,
           secaoSubsecaoId: this.toNumberOrNull(row.secaoSubsecaoId),
-          varaId: this.toNumberOrNull(row.varaId),
-          ativo: this.toBoolean(row.ativo),
-          origemTabela: "PS_APOIO_FERIADO",
+          siglaSecaoSubsecao: this.toStringOrNull(row.siglaSecaoSubsecao),
+          codigoLotacaoSarh: this.toNumberOrNull(row.codigoLotacaoSarh),
+          varaId: null,
+          ativo: true,
+          origemTabela: "RH_FERIADO",
           metadados: {
             abrangenciaSarh: this.toNumberOrNull(row.abrangencia),
+            tipoFeriadoSarh: this.toNumberOrNull(row.tipoFeriado),
+            anoSarh: this.toNumberOrNull(row.ano),
+            siglaSecaoSubsecao: this.toStringOrNull(row.siglaSecaoSubsecao),
             secaoSubsecaoId: this.toNumberOrNull(row.secaoSubsecaoId),
-            varaId: this.toNumberOrNull(row.varaId),
+            codigoLotacaoSarh: this.toNumberOrNull(row.codigoLotacaoSarh),
           },
         };
       })
@@ -702,6 +888,73 @@ export class SarhOracleClient {
       }
 
       return null;
+    } finally {
+      await connection?.close();
+    }
+  }
+
+  async buscarFotosServidores(cpfs: string[]): Promise<Map<string, Buffer>> {
+    const cpfsNormalizados = Array.from(
+      new Set(cpfs.map((cpf) => this.toCpf(cpf)).filter(Boolean)),
+    ) as string[];
+    const fotos = new Map<string, Buffer>();
+
+    if (!cpfsNormalizados.length) {
+      return fotos;
+    }
+
+    const oracledb = await this.loadOracleDb();
+    let connection: Connection | null = null;
+
+    try {
+      connection = await oracledb.getConnection({
+        user: this.username,
+        password: this.password,
+        connectString: this.connectString,
+      });
+
+      for (let inicio = 0; inicio < cpfsNormalizados.length; inicio += 500) {
+        const lote = cpfsNormalizados.slice(inicio, inicio + 500);
+        const binds = Object.fromEntries(
+          lote.map((cpf, index) => [`cpf${index}`, cpf]),
+        );
+        const bindNames = lote.map((_, index) => `:cpf${index}`).join(", ");
+        const result = await connection.execute<OracleRow>(
+          `
+          select
+            lpad(to_char(foto_pess_c_p_f), 11, '0') as "cpf",
+            foto_foto as "foto"
+          from sarh.rh_foto
+          where lpad(to_char(foto_pess_c_p_f), 11, '0') in (${bindNames})
+          `,
+          binds,
+          {
+            outFormat: oracledb.OUT_FORMAT_OBJECT,
+            fetchInfo: {
+              foto: { type: oracledb.BUFFER },
+            },
+          },
+        );
+
+        for (const row of result.rows ?? []) {
+          const cpf = this.toCpf(row.cpf);
+          const foto = row.foto;
+
+          if (!cpf || fotos.has(cpf)) {
+            continue;
+          }
+
+          if (Buffer.isBuffer(foto)) {
+            fotos.set(cpf, foto);
+          } else if (foto instanceof Uint8Array) {
+            fotos.set(cpf, Buffer.from(foto));
+          } else if (isReadableBlob(foto)) {
+            fotos.set(cpf, await bufferFromReadableBlob(foto));
+          }
+        }
+      }
+
+      return fotos;
     } finally {
       await connection?.close();
     }
@@ -864,8 +1117,7 @@ export class SarhOracleClient {
   }
 
   private toCpf(value: unknown) {
-    const text = this.toStringOrNull(value)?.replace(/\D/g, "") ?? null;
-    return text ? text.padStart(11, "0").slice(-11) : null;
+    return normalizarCpf(this.toStringOrNull(value));
   }
 
   private toDateString(value: unknown) {
@@ -924,9 +1176,10 @@ export class SarhOracleClient {
     varaId: number | null,
   ): SarhCalendarioDto["abrangencia"] {
     if (varaId) return "UNIDADE";
-    if (secaoSubsecaoId) return "ORGAO";
+    if (abrangencia === 3) return "MUNICIPAL";
+    if (abrangencia === 2) return "ESTADUAL";
+    if (secaoSubsecaoId && uf) return "ESTADUAL";
     if (uf) return "ESTADUAL";
-    if (abrangencia === 2) return "ORGAO";
     return "NACIONAL";
   }
 }

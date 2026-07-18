@@ -16,6 +16,9 @@ type OrgaoFormProps = {
     nome?: string;
     codigoExternoSarh?: number | null;
     fusoHorario?: string | null;
+    uf?: string | null;
+    municipio?: string | null;
+    municipioIbge?: string | null;
     ativo?: boolean;
   };
   fusosHorarios?: {
@@ -128,6 +131,61 @@ export function OrgaoForm({
             {erro(estado, "fusoHorario") && (
               <p className="text-sm text-red-600">
                 {erro(estado, "fusoHorario")}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="uf" className="text-sm font-semibold">
+              Estado (UF)
+            </label>
+            <input
+              id="uf"
+              name="uf"
+              maxLength={2}
+              defaultValue={campos?.uf ?? ""}
+              placeholder="AM"
+              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm uppercase outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            />
+            {erro(estado, "uf") && (
+              <p className="text-sm text-red-600">{erro(estado, "uf")}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="municipio" className="text-sm font-semibold">
+              Cidade
+            </label>
+            <input
+              id="municipio"
+              name="municipio"
+              defaultValue={campos?.municipio ?? ""}
+              placeholder="Manaus"
+              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            />
+            {erro(estado, "municipio") && (
+              <p className="text-sm text-red-600">
+                {erro(estado, "municipio")}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="municipioIbge" className="text-sm font-semibold">
+              Código IBGE
+            </label>
+            <input
+              id="municipioIbge"
+              name="municipioIbge"
+              inputMode="numeric"
+              maxLength={7}
+              defaultValue={campos?.municipioIbge ?? ""}
+              placeholder="1302603"
+              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            />
+            {erro(estado, "municipioIbge") && (
+              <p className="text-sm text-red-600">
+                {erro(estado, "municipioIbge")}
               </p>
             )}
           </div>

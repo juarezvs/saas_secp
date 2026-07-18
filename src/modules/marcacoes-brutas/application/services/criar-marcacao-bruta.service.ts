@@ -37,12 +37,14 @@ export async function criarMarcacaoBrutaService(params: {
 
   if (existente) {
     const deveAtualizarIdentificacao =
+      (!existente.cpf && params.cpf) ||
       (!existente.matricula && params.matricula) ||
       (!existente.servidorId && params.servidorId);
     const marcacaoBruta = deveAtualizarIdentificacao
       ? await prisma.marcacaoBruta.update({
           where: { id: existente.id },
           data: {
+            cpf: existente.cpf ?? params.cpf ?? null,
             matricula: existente.matricula ?? params.matricula ?? null,
             servidorId: existente.servidorId ?? params.servidorId ?? null,
           },

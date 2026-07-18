@@ -6,15 +6,15 @@ import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/servic
 import { criarCalendarioInstitucionalAction } from "@/modules/calendario-institucional/application/actions/criar-calendario-institucional.action";
 import { CalendarioInstitucionalForm } from "@/modules/calendario-institucional/presentation/components/calendario-institucional-form";
 import {
+  listarLocalidadesCalendarioParaSelecao,
   listarOrgaosAtivos,
-  listarUnidadesParaSelecao,
 } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
 
 export default async function NovoCalendarioInstitucionalPage() {
   await exigirPermissaoOuRedirecionar("configuracoes:gerenciar:global");
   const [orgaos, unidades] = await Promise.all([
     listarOrgaosAtivos(),
-    listarUnidadesParaSelecao(),
+    listarLocalidadesCalendarioParaSelecao(),
   ]);
 
   return (

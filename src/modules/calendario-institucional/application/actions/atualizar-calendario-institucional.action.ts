@@ -81,6 +81,36 @@ function dataIsoParaUtc(valor: string) {
   return new Date(`${valor}T00:00:00.000Z`);
 }
 
+async function aplicarLocalidadeDaUnidade(dados: CalendarioInstitucionalInput) {
+  if (
+    !dados.unidadeId ||
+    !["ESTADUAL", "MUNICIPAL", "UNIDADE"].includes(dados.abrangencia)
+  ) {
+    return dados;
+  }
+
+  const unidade = await prisma.unidadeOrganizacional.findUnique({
+    where: { id: dados.unidadeId },
+    select: {
+      uf: true,
+      municipio: true,
+      municipioIbge: true,
+    },
+  });
+
+  if (!unidade) {
+    return dados;
+  }
+
+  return {
+    ...dados,
+    uf: unidade.uf ?? dados.uf,
+    municipio: unidade.municipio ?? dados.municipio,
+    municipioIbge: unidade.municipioIbge ?? dados.municipioIbge,
+    orgaoId: dados.abrangencia === "UNIDADE" ? "" : dados.orgaoId,
+  };
+}
+
 function revalidarRotasRelacionadas() {
   revalidatePath("/administracao");
   revalidatePath("/administracao/calendario");
@@ -118,15 +148,41 @@ export async function atualizarCalendarioInstitucionalAction(
     };
   }
 
-  const dataReferencia = dataIsoParaUtc(parsed.data.dataReferencia);
+  const dadosValidados = await aplicarLocalidadeDaUnidade(parsed.data);
+  if (dadosValidados.abrangencia === "ESTADUAL" && !dadosValidados.uf) {
+    return {
+      sucesso: false,
+      mensagem: "A localidade selecionada não possui UF cadastrada.",
+      erros: {
+        unidadeId: ["Selecione uma localidade com UF cadastrada."],
+      },
+      campos: dados,
+    };
+  }
+
+  if (
+    dadosValidados.abrangencia === "MUNICIPAL" &&
+    (!dadosValidados.uf || !dadosValidados.municipio)
+  ) {
+    return {
+      sucesso: false,
+      mensagem: "A localidade selecionada não possui UF e município cadastrados.",
+      erros: {
+        unidadeId: ["Selecione uma localidade com UF e município cadastrados."],
+      },
+      campos: dados,
+    };
+  }
+
+  const dataReferencia = dataIsoParaUtc(dadosValidados.dataReferencia);
   const conflito = await buscarConflitoEventoCalendarioInstitucional({
     dataReferencia,
-    abrangencia: parsed.data.abrangencia,
-    uf: parsed.data.uf,
-    municipio: parsed.data.municipio,
-    municipioIbge: parsed.data.municipioIbge,
-    orgaoId: parsed.data.orgaoId,
-    unidadeId: parsed.data.unidadeId,
+    abrangencia: dadosValidados.abrangencia,
+    uf: dadosValidados.uf,
+    municipio: dadosValidados.municipio,
+    municipioIbge: dadosValidados.municipioIbge,
+    orgaoId: dadosValidados.orgaoId,
+    unidadeId: dadosValidados.unidadeId,
     ignorarId: atual.id,
   });
 
@@ -148,24 +204,24 @@ export async function atualizarCalendarioInstitucionalAction(
       where: { id: atual.id },
       data: {
         dataReferencia,
-        descricao: parsed.data.descricao,
-        tipo: parsed.data.tipo,
-        abrangencia: parsed.data.abrangencia,
-        uf: parsed.data.uf || null,
-        municipio: parsed.data.municipio || null,
-        municipioIbge: parsed.data.municipioIbge || null,
-        orgaoId: parsed.data.orgaoId || null,
-        unidadeId: parsed.data.unidadeId || null,
-        contaComoDiaUtil: parsed.data.contaComoDiaUtil,
-        geraApuracaoRegular: parsed.data.geraApuracaoRegular,
-        janelaInicio: parsed.data.janelaInicio || null,
-        janelaFim: parsed.data.janelaFim || null,
-        dataOriginal: parsed.data.dataOriginal
-          ? dataIsoParaUtc(parsed.data.dataOriginal)
+        descricao: dadosValidados.descricao,
+        tipo: dadosValidados.tipo,
+        abrangencia: dadosValidados.abrangencia,
+        uf: dadosValidados.uf || null,
+        municipio: dadosValidados.municipio || null,
+        municipioIbge: dadosValidados.municipioIbge || null,
+        orgaoId: dadosValidados.orgaoId || null,
+        unidadeId: dadosValidados.unidadeId || null,
+        contaComoDiaUtil: dadosValidados.contaComoDiaUtil,
+        geraApuracaoRegular: dadosValidados.geraApuracaoRegular,
+        janelaInicio: dadosValidados.janelaInicio || null,
+        janelaFim: dadosValidados.janelaFim || null,
+        dataOriginal: dadosValidados.dataOriginal
+          ? dataIsoParaUtc(dadosValidados.dataOriginal)
           : null,
-        dataSubstituida: parsed.data.dataSubstituida,
-        observacao: parsed.data.observacao || null,
-        ativo: parsed.data.ativo,
+        dataSubstituida: dadosValidados.dataSubstituida,
+        observacao: dadosValidados.observacao || null,
+        ativo: dadosValidados.ativo,
       },
     });
 

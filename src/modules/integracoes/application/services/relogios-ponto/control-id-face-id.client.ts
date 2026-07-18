@@ -47,6 +47,10 @@ type ControlIdUser = {
   id?: unknown;
   name?: unknown;
   registration?: unknown;
+  cpf?: unknown;
+  document?: unknown;
+  documento?: unknown;
+  pis?: unknown;
 };
 
 type IdClassSystemInformation = {
@@ -118,6 +122,26 @@ function normalizarCpf(valor: string | null) {
   if (!apenasDigitos) return null;
 
   return apenasDigitos.padStart(11, "0").slice(-11);
+}
+
+function extrairCpfCadastroControlId(usuario: ControlIdUser | undefined) {
+  if (!usuario) return null;
+
+  for (const valor of [
+    usuario.cpf,
+    usuario.document,
+    usuario.documento,
+    usuario.registration,
+  ]) {
+    const digitos = valorTexto(valor)?.replace(/\D/g, "") ?? "";
+
+    if (digitos.length === 11) return digitos;
+    if (digitos.length === 12 && digitos.startsWith("0")) {
+      return digitos.slice(1);
+    }
+  }
+
+  return null;
 }
 
 function parseCsvSimples(linha: string) {
@@ -626,12 +650,16 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
 
       const usuario =
         idUsuario === null ? undefined : usuarios.get(Math.trunc(idUsuario));
+      const cpf = extrairCpfCadastroControlId(usuario);
+      const registration = valorTexto(usuario?.registration);
+      const registrationEhCpf =
+        Boolean(cpf) && registration?.replace(/\D/g, "") === cpf;
       const matricula =
-        valorTexto(usuario?.registration) ??
+        (registrationEhCpf ? null : registration) ??
         idComoTexto(log.user_id) ??
         idComoTexto(log.identifier_id);
 
-      if (!matricula) {
+      if (!matricula && !cpf) {
         return [];
       }
 
@@ -639,7 +667,7 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
         {
           nsr,
           matricula,
-          cpf: null,
+          cpf,
           dataHora,
           codigoExterno: nsr,
           payload: {
@@ -752,13 +780,24 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
       session,
     );
     const cadastros: CadastroBiometricoEquipamento[] = usuarios
-      .map((usuario) => ({
-        codigo: idComoTexto(usuario.id),
-        matricula: valorTexto(usuario.registration) ?? idComoTexto(usuario.id) ?? "",
-        cpf: null,
-        nome: valorTexto(usuario.name),
-        payload: usuario,
-      }))
+      .map((usuario) => {
+        const cpf = extrairCpfCadastroControlId(usuario);
+        const registration = valorTexto(usuario.registration);
+        const registrationEhCpf =
+          Boolean(cpf) && registration?.replace(/\D/g, "") === cpf;
+
+        return {
+          codigo: idComoTexto(usuario.id),
+          matricula:
+            (registrationEhCpf ? null : registration) ??
+            idComoTexto(usuario.id) ??
+            cpf ??
+            "",
+          cpf,
+          nome: valorTexto(usuario.name),
+          payload: usuario,
+        };
+      })
       .filter((cadastro) => cadastro.matricula);
 
     return {

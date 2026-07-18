@@ -62,7 +62,11 @@ function criarFiltroServidor(
     const cpf = somenteDigitos(marcacao.cpf);
     const matricula = marcacao.matricula?.trim().toLowerCase();
 
-    return Boolean((cpf && cpfs.has(cpf)) || (matricula && matriculas.has(matricula)));
+    if (cpf) {
+      return cpfs.has(cpf);
+    }
+
+    return Boolean(matricula && matriculas.has(matricula));
   };
 }
 

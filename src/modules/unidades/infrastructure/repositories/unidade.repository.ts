@@ -31,6 +31,10 @@ export type UnidadeSelecaoItem = {
   tipo: string;
   orgaoId: string;
   unidadePaiId: string | null;
+  uf: string | null;
+  municipio: string | null;
+  municipioIbge: string | null;
+  codigoExternoSarh: number | null;
 };
 
 function ehUuid(valor?: string | null): valor is string {
@@ -264,6 +268,10 @@ export async function listarUnidadesParaSelecao() {
       tipo: true,
       orgaoId: true,
       unidadePaiId: true,
+      uf: true,
+      municipio: true,
+      municipioIbge: true,
+      codigoExternoSarh: true,
     },
     orderBy: [{ sigla: "asc" }, { nome: "asc" }],
   });
@@ -282,6 +290,69 @@ export async function listarUnidadesParaSelecao() {
       tipo: unidade.tipo,
       orgaoId: unidade.orgaoId,
       unidadePaiId: unidade.unidadePaiId ?? null,
+      uf: unidade.uf ?? null,
+      municipio: unidade.municipio ?? null,
+      municipioIbge: unidade.municipioIbge ?? null,
+      codigoExternoSarh: unidade.codigoExternoSarh ?? null,
+    };
+  });
+}
+
+export async function listarLocalidadesCalendarioParaSelecao() {
+  const unidades = await prisma.unidadeOrganizacional.findMany({
+    where: {
+      ativo: true,
+      tipo: {
+        in: [
+          "ORGAO",
+          "SECAO_JUDICIARIA",
+          "SUBSECAO_JUDICIARIA",
+          "UNIDADE_AVANCADA_ATENDIMENTO",
+        ],
+      },
+      uf: {
+        not: null,
+      },
+      municipio: {
+        not: null,
+      },
+    },
+    select: {
+      id: true,
+      codigo: true,
+      sigla: true,
+      nome: true,
+      tipo: true,
+      orgaoId: true,
+      unidadePaiId: true,
+      uf: true,
+      municipio: true,
+      municipioIbge: true,
+      codigoExternoSarh: true,
+    },
+    orderBy: [{ sigla: "asc" }, { nome: "asc" }],
+  });
+
+  return unidades.map((unidade) => {
+    const sigla = unidade.sigla ?? "";
+    const codigo = unidade.codigo ?? sigla ?? unidade.id;
+
+    return {
+      id: unidade.id,
+      value: unidade.id,
+      label: sigla
+        ? `${sigla} - ${unidade.nome} (${unidade.municipio}/${unidade.uf})`
+        : `${unidade.nome} (${unidade.municipio}/${unidade.uf})`,
+      codigo,
+      sigla,
+      nome: unidade.nome,
+      tipo: unidade.tipo,
+      orgaoId: unidade.orgaoId,
+      unidadePaiId: unidade.unidadePaiId ?? null,
+      uf: unidade.uf ?? null,
+      municipio: unidade.municipio ?? null,
+      municipioIbge: unidade.municipioIbge ?? null,
+      codigoExternoSarh: unidade.codigoExternoSarh ?? null,
     };
   });
 }

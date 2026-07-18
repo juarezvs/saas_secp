@@ -56,7 +56,9 @@ export async function buscarFotoServidorSarh(
   if (!cpfNormalizado) return null;
 
   const servidor = await prisma.servidor.findFirst({
-    where: { cpf: cpfNormalizado },
+    where: {
+      OR: [{ cpf: cpfNormalizado }, { usuario: { cpf: cpfNormalizado } }],
+    },
     select: { orgaoId: true },
   });
   const orgaoId = servidor?.orgaoId ?? null;
@@ -115,14 +117,73 @@ export async function buscarFotosServidoresDataUrl(
   const cpfsNormalizados = Array.from(
     new Set(cpfs.map(normalizarCpfFoto)),
   ).filter((cpf): cpf is string => Boolean(cpf));
-  const pares = await Promise.all(
-    cpfsNormalizados.map(async (cpf): Promise<[string, string | null]> => [
-      cpf,
-      await buscarFotoServidorDataUrl(cpf),
-    ]),
-  );
 
-  return new Map(
-    pares.filter((par): par is [string, string] => Boolean(par[1])),
-  );
+  if (!cpfsNormalizados.length) {
+    return new Map();
+  }
+
+  const servidores = await prisma.servidor.findMany({
+    where: {
+      OR: [
+        { cpf: { in: cpfsNormalizados } },
+        { usuario: { cpf: { in: cpfsNormalizados } } },
+      ],
+    },
+    select: {
+      cpf: true,
+      orgaoId: true,
+      usuario: { select: { cpf: true } },
+    },
+  });
+  const orgaoPorCpf = new Map<string, string | null>();
+
+  for (const servidor of servidores) {
+    const cpf =
+      normalizarCpfFoto(servidor.cpf) ??
+      normalizarCpfFoto(servidor.usuario.cpf);
+
+    if (cpf && !orgaoPorCpf.has(cpf)) {
+      orgaoPorCpf.set(cpf, servidor.orgaoId);
+    }
+  }
+
+  for (const cpf of cpfsNormalizados) {
+    if (!orgaoPorCpf.has(cpf)) {
+      orgaoPorCpf.set(cpf, null);
+    }
+  }
+
+  const cpfsPorOrgao = new Map<string, string[]>();
+  for (const [cpf, orgaoId] of orgaoPorCpf) {
+    const chave = orgaoId ?? "global";
+    const lista = cpfsPorOrgao.get(chave) ?? [];
+    lista.push(cpf);
+    cpfsPorOrgao.set(chave, lista);
+  }
+
+  const resultado = new Map<string, string>();
+
+  for (const [orgaoId, cpfsOrgao] of cpfsPorOrgao) {
+    const config = await obterConfiguracaoSarhOracle(
+      orgaoId === "global" ? null : orgaoId,
+    );
+    const fotos = await new SarhOracleClient({
+      username: config.username,
+      password: config.password,
+      connectString: config.connectString,
+      oracleHome: config.oracleHome,
+      siglaLocalidade: config.siglaLocalidade,
+    }).buscarFotosServidores(cpfsOrgao);
+
+    for (const [cpf, buffer] of fotos) {
+      resultado.set(
+        cpf,
+        `data:${detectarContentTypeFoto(buffer)};base64,${buffer.toString(
+          "base64",
+        )}`,
+      );
+    }
+  }
+
+  return resultado;
 }
