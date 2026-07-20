@@ -18,6 +18,7 @@ type FeriasEquipeCalendarioProps = {
   dataReferencia: string;
   unidadesSelecionadas: string[];
   montarHrefAno: (ano: number) => string;
+  actionPath?: string;
 };
 
 const meses = [
@@ -146,6 +147,7 @@ export function FeriasEquipeCalendario({
   dataReferencia,
   unidadesSelecionadas,
   montarHrefAno,
+  actionPath = "/minha-equipe/ferias",
 }: FeriasEquipeCalendarioProps) {
   const anoAtual = new Date().getFullYear();
   const mesesComFerias = meses.map((mes, indice) => ({
@@ -196,7 +198,7 @@ export function FeriasEquipeCalendario({
             </Link>
           </div>
 
-          <form action="/minha-equipe" className="flex items-center gap-2">
+          <form action={actionPath} className="flex items-center gap-2">
             <input type="hidden" name="data" value={dataReferencia} />
             {unidadesSelecionadas.map((unidadeId) => (
               <input

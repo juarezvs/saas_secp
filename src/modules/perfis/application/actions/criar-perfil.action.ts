@@ -18,6 +18,14 @@ function extrairDadosPerfil(formData: FormData) {
     nome: String(formData.get("nome") ?? "").trim(),
     descricao: String(formData.get("descricao") ?? "").trim(),
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
+    administrativo:
+      formData.get("administrativo") === "on" ||
+      formData.get("administrativo") === "true",
+    excecao:
+      formData.get("excecao") === "on" || formData.get("excecao") === "true",
+    perfilDestinoExcecaoId: String(
+      formData.get("perfilDestinoExcecaoId") ?? "",
+    ),
     permissoes: formData.getAll("permissoes").map(String),
   };
 }
@@ -63,6 +71,11 @@ export async function criarPerfilAction(
         nome: parsed.data.nome,
         descricao: parsed.data.descricao || null,
         ativo: parsed.data.ativo,
+        administrativo: parsed.data.administrativo,
+        excecao: parsed.data.excecao,
+        perfilDestinoExcecaoId: parsed.data.excecao
+          ? parsed.data.perfilDestinoExcecaoId || null
+          : null,
         sistema: false,
       },
     });
@@ -89,6 +102,9 @@ export async function criarPerfilAction(
           nome: novoPerfil.nome,
           descricao: novoPerfil.descricao,
           ativo: novoPerfil.ativo,
+          administrativo: novoPerfil.administrativo,
+          excecao: novoPerfil.excecao,
+          perfilDestinoExcecaoId: novoPerfil.perfilDestinoExcecaoId,
           permissoes: parsed.data.permissoes,
         },
       },

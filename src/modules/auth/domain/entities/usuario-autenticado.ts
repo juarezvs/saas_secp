@@ -5,6 +5,9 @@ export type PerfilSessao = {
     codigo: string;
     nome: string;
     permissoes: string[];
+    administrativo?: boolean;
+    excecao?: boolean;
+    perfilDestinoExcecaoId?: string | null;
     escopoGlobal?: boolean;
     orgaos?: Array<{
       id: string;

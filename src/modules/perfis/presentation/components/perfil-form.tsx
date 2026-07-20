@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Loader2, Save } from "lucide-react";
 import type { PerfilFormState } from "../../application/schemas/perfil.schema";
 import { PermissoesCheckboxList } from "./permissoes-checkbox-list";
@@ -20,11 +20,19 @@ type PerfilFormProps = {
     formData: FormData
   ) => Promise<PerfilFormState>;
   permissoes: PermissaoItem[];
+  perfisDestinoExcecao: Array<{
+    id: string;
+    codigo: string;
+    nome: string;
+  }>;
   valoresIniciais?: {
     codigo?: string;
     nome?: string;
     descricao?: string | null;
     ativo?: boolean;
+    administrativo?: boolean;
+    excecao?: boolean;
+    perfilDestinoExcecaoId?: string | null;
     permissoes?: string[];
   };
   modo: "criar" | "editar";
@@ -45,12 +53,16 @@ function obterErro(
 export function PerfilForm({
   action,
   permissoes,
+  perfisDestinoExcecao,
   valoresIniciais,
   modo,
 }: PerfilFormProps) {
   const [estado, formAction, pendente] = useActionState(action, estadoInicial);
 
   const campos = estado.campos ?? valoresIniciais;
+  const [excecaoAtiva, setExcecaoAtiva] = useState(
+    campos?.excecao ?? false,
+  );
 
   return (
     <form action={formAction} className="space-y-6">
@@ -147,6 +159,73 @@ export function PerfilForm({
               </span>
             </span>
           </label>
+
+          <label className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm">
+            <input
+              type="checkbox"
+              name="administrativo"
+              defaultChecked={campos?.administrativo ?? false}
+              className="size-4 rounded border-slate-300"
+            />
+
+            <span>
+              <span className="block font-semibold">Perfil administrativo</span>
+              <span className="text-xs text-[var(--muted-foreground)]">
+                Organiza o menu como rotina administrativa e oculta atalhos
+                operacionais individuais.
+              </span>
+            </span>
+          </label>
+
+          <label className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm md:col-span-2">
+            <input
+              type="checkbox"
+              name="excecao"
+              defaultChecked={campos?.excecao ?? false}
+              onChange={(event) => setExcecaoAtiva(event.currentTarget.checked)}
+              className="size-4 rounded border-slate-300"
+            />
+
+            <span>
+              <span className="block font-semibold">Perfil de excecao</span>
+              <span className="text-xs text-[var(--muted-foreground)]">
+                Mantem o perfil oculto na troca de perfil e injeta suas
+                permissoes no perfil nao administrativo da pessoa vinculada.
+              </span>
+            </span>
+          </label>
+
+          {excecaoAtiva ? (
+            <div className="space-y-2 md:col-span-2">
+              <label
+                htmlFor="perfilDestinoExcecaoId"
+                className="text-sm font-semibold"
+              >
+                Perfil que recebera as permissoes da excecao
+              </label>
+
+              <select
+                id="perfilDestinoExcecaoId"
+                name="perfilDestinoExcecaoId"
+                defaultValue={campos?.perfilDestinoExcecaoId ?? ""}
+                className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+                required
+              >
+                <option value="">Selecione um perfil</option>
+                {perfisDestinoExcecao.map((perfil) => (
+                  <option key={perfil.id} value={perfil.id}>
+                    {perfil.nome} ({perfil.codigo})
+                  </option>
+                ))}
+              </select>
+
+              {obterErro(estado.erros, "perfilDestinoExcecaoId") && (
+                <p className="text-sm text-red-600">
+                  {obterErro(estado.erros, "perfilDestinoExcecaoId")}
+                </p>
+              )}
+            </div>
+          ) : null}
         </div>
       </section>
 

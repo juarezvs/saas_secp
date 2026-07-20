@@ -6,6 +6,7 @@ import { escolherPerfilInicial } from "@/modules/auth/application/services/perfi
 import { buscarUsuarioParaLoginPorMatricula } from "@/modules/auth/infrastructure/repositories/usuario-auth.repository";
 import { buscarServidorPorUsuarioId } from "@/modules/marcacoes/infrastructure/repositories/marcacao.repository";
 import { contarNotificacoesUsuario } from "@/modules/notificacoes/application/notificacoes.service";
+import { buscarMenusPersonalizadosPorPerfil } from "@/modules/menus/infrastructure/repositories/menu-personalizado.repository";
 import { buscarFotoServidorDataUrl } from "@/modules/servidores/application/services/foto-servidor.service";
 import { descricaoFuncaoOuCargoServidor } from "@/modules/servidores/application/services/funcao-cargo-servidor.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
@@ -110,7 +111,10 @@ export async function AppShell({ children }: AppShellProps) {
   }
 
   const fotoCpf = servidor?.cpf;
-  const fotoUrl = await buscarFotoServidorDataUrl(fotoCpf);
+  const [fotoUrl, menusPersonalizados] = await Promise.all([
+    buscarFotoServidorDataUrl(fotoCpf),
+    buscarMenusPersonalizadosPorPerfil(perfisNavegacao.map((perfil) => perfil.id)),
+  ]);
   const orgaoInstitucional =
     lotacaoAtual?.unidade.orgao ?? perfilAtivo.orgaos?.[0] ?? null;
   const usuario = {
@@ -126,16 +130,24 @@ export async function AppShell({ children }: AppShellProps) {
     unidade: lotacaoAtual?.unidade.nome ?? lotacaoAtual?.unidade.sigla ?? "",
     instituicaoLabel: montarRotuloInstituicao(orgaoInstitucional),
     perfilAtivo: {
+      id: perfilAtivo.id,
       codigo: perfilAtivo.codigo,
       nome: perfilAtivo.nome,
       descricao: `${perfilAtivo.permissoes.length} permissão(ões) vinculada(s)`,
       permissoes: perfilAtivo.permissoes,
+      administrativo: perfilAtivo.administrativo,
+      excecao: perfilAtivo.excecao,
+      perfilDestinoExcecaoId: perfilAtivo.perfilDestinoExcecaoId,
     },
     perfis: perfisNavegacao.map((perfil) => ({
+      id: perfil.id,
       codigo: perfil.codigo,
       nome: perfil.nome,
       descricao: `${perfil.permissoes.length} permissão(ões) vinculada(s)`,
       permissoes: perfil.permissoes,
+      administrativo: perfil.administrativo,
+      excecao: perfil.excecao,
+      perfilDestinoExcecaoId: perfil.perfilDestinoExcecaoId,
     })),
   };
   const chavePerfilAtivo = [
@@ -148,6 +160,7 @@ export async function AppShell({ children }: AppShellProps) {
     <AppShellClient
       key={chavePerfilAtivo}
       usuario={usuario}
+      menusPersonalizados={menusPersonalizados}
       totalNotificacoes={totalNotificacoes}
       onLogout={logoutAction}
     >

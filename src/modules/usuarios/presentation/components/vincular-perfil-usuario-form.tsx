@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Plus } from "lucide-react";
 import { vincularPerfilUsuarioAction } from "../../application/actions/vincular-perfil-usuario.action";
 import type { VincularPerfilUsuarioFormState } from "../../application/schemas/usuario.schema";
@@ -31,10 +32,17 @@ export function VincularPerfilUsuarioForm({
   perfis: PerfilItem[];
   orgaos: OrgaoItem[];
 }) {
+  const router = useRouter();
   const [estado, formAction, pendente] = useActionState(
     vincularPerfilUsuarioAction,
     estadoInicial
   );
+
+  useEffect(() => {
+    if (estado.sucesso) {
+      router.refresh();
+    }
+  }, [estado.sucesso, router]);
 
   return (
     <form

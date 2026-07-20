@@ -21,6 +21,14 @@ function extrairDadosPerfil(formData: FormData) {
     nome: String(formData.get("nome") ?? "").trim(),
     descricao: String(formData.get("descricao") ?? "").trim(),
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
+    administrativo:
+      formData.get("administrativo") === "on" ||
+      formData.get("administrativo") === "true",
+    excecao:
+      formData.get("excecao") === "on" || formData.get("excecao") === "true",
+    perfilDestinoExcecaoId: String(
+      formData.get("perfilDestinoExcecaoId") ?? "",
+    ),
     permissoes: formData.getAll("permissoes").map(String),
   };
 }
@@ -79,6 +87,11 @@ export async function atualizarPerfilAction(
         nome: parsed.data.nome,
         descricao: parsed.data.descricao || null,
         ativo: parsed.data.ativo,
+        administrativo: parsed.data.administrativo,
+        excecao: parsed.data.excecao,
+        perfilDestinoExcecaoId: parsed.data.excecao
+          ? parsed.data.perfilDestinoExcecaoId || null
+          : null,
       },
     });
 
@@ -110,6 +123,9 @@ export async function atualizarPerfilAction(
           nome: perfilAtual.nome,
           descricao: perfilAtual.descricao,
           ativo: perfilAtual.ativo,
+          administrativo: perfilAtual.administrativo,
+          excecao: perfilAtual.excecao,
+          perfilDestinoExcecaoId: perfilAtual.perfilDestinoExcecaoId,
           permissoes: perfilAtual.permissoes.map((item) => item.permissaoId),
         },
         dadosDepois: {
@@ -118,6 +134,11 @@ export async function atualizarPerfilAction(
           nome: parsed.data.nome,
           descricao: parsed.data.descricao || null,
           ativo: parsed.data.ativo,
+          administrativo: parsed.data.administrativo,
+          excecao: parsed.data.excecao,
+          perfilDestinoExcecaoId: parsed.data.excecao
+            ? parsed.data.perfilDestinoExcecaoId || null
+            : null,
           permissoes: parsed.data.permissoes,
         },
       },

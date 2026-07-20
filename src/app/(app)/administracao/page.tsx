@@ -9,6 +9,7 @@ import {
   KeyRound,
   MessageSquare,
   Network,
+  Palette,
   Settings,
   ServerCog,
   ShieldAlert,
@@ -32,6 +33,7 @@ const PERMISSOES_ADMINISTRACAO = [
   "configuracoes:gerenciar:global",
   "banco-horas:gerenciar:global",
   "integracoes:teams:visualizar",
+  "menus:personalizar:global",
 ];
 
 export default async function AdministracaoPage() {
@@ -54,6 +56,14 @@ export default async function AdministracaoPage() {
         "Controle quais rotinas ficam disponíveis para uso, mesmo quando já constam nos perfis.",
       href: "/administracao/liberacao-rotinas",
       icon: ToggleLeft,
+    },
+    {
+      titulo: "Personalizar Menu",
+      descricao:
+        "Configure grupos, opcoes e ordem do menu lateral por perfil.",
+      href: "/administracao/personalizar-menu",
+      icon: Palette,
+      permissao: "menus:personalizar:global",
     },
     {
       titulo: "Perfis e permissões",

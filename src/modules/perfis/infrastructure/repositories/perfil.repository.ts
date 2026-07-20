@@ -245,6 +245,13 @@ export async function buscarPerfilPorId(id: string) {
       id,
     },
     include: {
+      perfilDestinoExcecao: {
+        select: {
+          id: true,
+          codigo: true,
+          nome: true,
+        },
+      },
       permissoes: {
         include: {
           permissao: true,

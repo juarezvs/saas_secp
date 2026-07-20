@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { invalidarCacheUsuarioAuthPorId } from "@/modules/auth/infrastructure/repositories/usuario-auth.repository";
 import {
   vincularPerfilUsuarioSchema,
   type VincularPerfilUsuarioFormState,
@@ -103,6 +104,8 @@ export async function vincularPerfilUsuarioAction(
 
   revalidatePath("/usuarios");
   revalidatePath(`/usuarios/${parsed.data.usuarioId}`);
+  revalidatePath("/", "layout");
+  await invalidarCacheUsuarioAuthPorId(parsed.data.usuarioId);
 
   return {
     sucesso: true,

@@ -10,6 +10,12 @@ export function minutosParaHoraBanco(minutos: number) {
   )}`;
 }
 
+export function formatarDataCivilBancoHoras(data: Date | null) {
+  return data
+    ? new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(data)
+    : "-";
+}
+
 export function rotuloTipoMovimentoBancoHoras(tipo: string) {
   const rotulos: Record<string, string> = {
     CREDITO: "Crédito",

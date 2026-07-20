@@ -73,7 +73,7 @@ function hojeNoFuso(fusoHorario?: string | null) {
   return new Date(Date.UTC(ano, mes - 1, dia));
 }
 
-function dataLimiteMovimentos(params: {
+export function dataLimiteMovimentos(params: {
   anoReferencia: number;
   mesReferencia: number;
   fusoHorario?: string | null;
@@ -92,7 +92,7 @@ function dataLimiteMovimentos(params: {
     return new Date(fim.getTime() - 1);
   }
 
-  return hoje;
+  return new Date(hoje.getTime() - 1);
 }
 
 function dataNormalizada(data: Date) {

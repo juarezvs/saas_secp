@@ -75,7 +75,7 @@ export default async function PerfilDetalhePage({
         descricao="O perfil controla quais ações gerenciais, administrativas ou de consulta cada usuário poderá executar no sistema de controle eletrônico de frequência."
       />
 
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-5">
         <div className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
           <p className="text-sm text-[var(--muted-foreground)]">Status</p>
           <h2 className="mt-2 text-2xl font-bold">
@@ -93,6 +93,24 @@ export default async function PerfilDetalhePage({
         <div className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
           <p className="text-sm text-[var(--muted-foreground)]">Usuários</p>
           <h2 className="mt-2 text-2xl font-bold">{perfil.usuarios.length}</h2>
+        </div>
+        <div className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
+          <p className="text-sm text-[var(--muted-foreground)]">Administrativo</p>
+          <h2 className="mt-2 text-2xl font-bold">
+            {perfil.administrativo ? "Sim" : "Nao"}
+          </h2>
+        </div>
+
+        <div className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
+          <p className="text-sm text-[var(--muted-foreground)]">Excecao</p>
+          <h2 className="mt-2 text-2xl font-bold">
+            {perfil.excecao ? "Sim" : "Nao"}
+          </h2>
+          {perfil.excecao && perfil.perfilDestinoExcecao ? (
+            <p className="mt-2 text-xs text-[var(--muted-foreground)]">
+              Injeta em {perfil.perfilDestinoExcecao.nome}
+            </p>
+          ) : null}
         </div>
       </section>
 

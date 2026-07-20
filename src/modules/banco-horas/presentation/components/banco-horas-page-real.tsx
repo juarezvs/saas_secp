@@ -22,6 +22,7 @@ import { incluirAjusteManualBancoHorasAction } from "../../application/actions/i
 import { recalcularSaldoBancoHorasAction } from "../../application/actions/recalcular-saldo-banco-horas.action";
 import { LIMITE_CREDITO_MENSAL_MINUTOS } from "../../application/services/aplicar-limites-banco-horas.service";
 import {
+  formatarDataCivilBancoHoras,
   minutosParaHoraBanco,
   rotuloOrigemMovimentoBancoHoras,
 } from "../../application/services/formatar-banco-horas.service";
@@ -231,7 +232,7 @@ function menorDataLimite(
 }
 
 function formatarDataLimite(data: Date | null) {
-  return data ? new Intl.DateTimeFormat("pt-BR").format(data) : null;
+  return data ? formatarDataCivilBancoHoras(data) : null;
 }
 
 function referenciaAtual() {
@@ -984,9 +985,7 @@ function ExtratoComposicaoSaldo({
                 {movimentosDetalhados.map((movimento) => (
                   <tr key={movimento.id} className="border-b last:border-0">
                     <td className="px-5 py-4">
-                      {new Intl.DateTimeFormat("pt-BR").format(
-                        movimento.dataReferencia,
-                      )}
+                      {formatarDataCivilBancoHoras(movimento.dataReferencia)}
                     </td>
                     <td className="px-5 py-4 font-semibold">
                       {rotuloOrigemMovimentoBancoHoras(movimento.origem)}
@@ -996,9 +995,7 @@ function ExtratoComposicaoSaldo({
                     </td>
                     <td className="px-5 py-4">
                       {movimento.expiraEm
-                        ? new Intl.DateTimeFormat("pt-BR").format(
-                            movimento.expiraEm,
-                          )
+                        ? formatarDataCivilBancoHoras(movimento.expiraEm)
                         : "-"}
                     </td>
                     <td className="px-5 py-4 text-right font-mono font-bold">
@@ -1600,9 +1597,9 @@ function AutorizacoesBancoHorasTable({
                     {rotulos[autorizacao.tipo] ?? autorizacao.tipo}
                   </td>
                   <td className="px-5 py-4">
-                    {new Intl.DateTimeFormat("pt-BR").format(autorizacao.dataInicio)}
+                    {formatarDataCivilBancoHoras(autorizacao.dataInicio)}
                     {" a "}
-                    {new Intl.DateTimeFormat("pt-BR").format(autorizacao.dataFim)}
+                    {formatarDataCivilBancoHoras(autorizacao.dataFim)}
                   </td>
                   <td className="px-5 py-4 font-mono">
                     {minutosParaHoraBanco(autorizacao.minutosAutorizados)}

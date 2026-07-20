@@ -17,6 +17,7 @@ import {
 } from "@/modules/banco-horas/application/services/classificar-prazo-banco-horas.service";
 import { tratarPendenciaBancoHorasAction } from "@/modules/banco-horas/application/actions/tratar-pendencia-banco-horas.action";
 import {
+  formatarDataCivilBancoHoras,
   minutosParaHoraBanco,
   rotuloTipoMovimentoBancoHoras,
 } from "@/modules/banco-horas/application/services/formatar-banco-horas.service";
@@ -295,7 +296,7 @@ export default async function BancoHorasChefiaPage() {
                     {movimento.tipo} - {minutosParaHoraBanco(movimento.minutos)}
                     {" - "}
                     {movimento.expiraEm
-                      ? new Intl.DateTimeFormat("pt-BR").format(movimento.expiraEm)
+                      ? formatarDataCivilBancoHoras(movimento.expiraEm)
                       : "sem prazo"}
                   </p>
                 </Link>
@@ -325,7 +326,7 @@ export default async function BancoHorasChefiaPage() {
                     {nomeServidor(movimento.servidor)}
                   </p>
                   <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-                    {new Intl.DateTimeFormat("pt-BR").format(movimento.dataReferencia)}
+                    {formatarDataCivilBancoHoras(movimento.dataReferencia)}
                     {" - "}
                     {rotuloTipoMovimentoBancoHoras(movimento.tipo)}
                     {" - "}

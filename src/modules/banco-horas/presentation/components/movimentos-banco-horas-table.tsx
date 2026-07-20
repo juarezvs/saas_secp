@@ -2,6 +2,7 @@ import { Trash2 } from "lucide-react";
 
 import { excluirAjusteManualBancoHorasAction } from "../../application/actions/excluir-ajuste-manual-banco-horas.action";
 import {
+  formatarDataCivilBancoHoras,
   minutosParaHoraBanco,
   rotuloOrigemMovimentoBancoHoras,
   rotuloSituacaoLoteBancoHoras,
@@ -172,9 +173,7 @@ export function MovimentosBancoHorasTable({
             {movimentos.map((movimento) => (
               <tr key={movimento.id} className="border-b align-top last:border-b-0">
                 <td className="px-4 py-3">
-                  {new Intl.DateTimeFormat("pt-BR").format(
-                    movimento.dataReferencia,
-                  )}
+                  {formatarDataCivilBancoHoras(movimento.dataReferencia)}
                 </td>
 
                 <td className="px-4 py-3 font-semibold">
@@ -201,9 +200,7 @@ export function MovimentosBancoHorasTable({
 
                 <td className="px-4 py-3">
                   {movimento.expiraEm
-                    ? new Intl.DateTimeFormat("pt-BR").format(
-                        movimento.expiraEm,
-                      )
+                    ? formatarDataCivilBancoHoras(movimento.expiraEm)
                     : "-"}
                 </td>
 

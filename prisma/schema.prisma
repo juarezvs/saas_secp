@@ -656,14 +656,63 @@ model Perfil {
   descricao String? @db.Text
   sistema   Boolean @default(false)
   ativo     Boolean @default(true)
+  administrativo Boolean @default(false)
+  excecao   Boolean @default(false) @map("excecao")
+  perfilDestinoExcecaoId String? @map("perfil_destino_excecao_id") @db.Uuid
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
   usuarios   UsuarioPerfil[]
   permissoes PerfilPermissao[]
+  menusGrupos MenuGrupoPerfil[]
+  menusItens MenuItemPerfil[]
+  perfilDestinoExcecao Perfil? @relation("PerfilExcecaoDestino", fields: [perfilDestinoExcecaoId], references: [id], onDelete: SetNull)
+  excecoesRecebidas Perfil[] @relation("PerfilExcecaoDestino")
+
+  @@index([perfilDestinoExcecaoId])
 
   @@map("perfis")
+}
+
+model MenuGrupoPerfil {
+  id String @id @default(uuid()) @db.Uuid
+
+  perfilId String @map("perfil_id") @db.Uuid
+  label    String @db.VarChar(120)
+  icone    String? @db.VarChar(80)
+  ordem    Int    @default(0)
+  ativo    Boolean @default(true)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  perfil Perfil @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+  itens  MenuItemPerfil[]
+
+  @@index([perfilId, ordem])
+  @@map("menus_grupos_perfil")
+}
+
+model MenuItemPerfil {
+  id String @id @default(uuid()) @db.Uuid
+
+  perfilId     String  @map("perfil_id") @db.Uuid
+  grupoId      String? @map("grupo_id") @db.Uuid
+  itemCatalogo String  @map("item_catalogo") @db.VarChar(160)
+  label        String? @db.VarChar(120)
+  ordem        Int     @default(0)
+  ativo        Boolean @default(true)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  perfil Perfil @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+  grupo  MenuGrupoPerfil? @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+
+  @@index([perfilId, ordem])
+  @@index([grupoId, ordem])
+  @@map("menus_itens_perfil")
 }
 
 model Permissao {

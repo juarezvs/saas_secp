@@ -1,9 +1,14 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
-import { definirCacheJson, obterCacheJson } from "@/lib/cache/redis-cache";
+import {
+  definirCacheJson,
+  obterCacheJson,
+  removerCache,
+} from "@/lib/cache/redis-cache";
 import { normalizarPreferenciasAcessibilidade } from "../../application/services/preferencias-acessibilidade.service";
 import { aplicarExcecoesRegistroPontoAoPerfilServidor } from "../../application/services/perfil-excecao-registro-ponto.service";
 import { escolherPerfilInicial } from "../../application/services/perfil-servidor-prioritario.service";
 import { filtrarPermissoesLiberadas } from "@/modules/rotinas/application/services/liberacao-rotinas.service";
+import { expandirPermissoesCompatibilidade } from "../../application/services/permissao-utils";
 import { perfilEhAdministradorSistema } from "../../domain/constants/perfis-sistema";
 import type {
   PerfilSessao,
@@ -91,6 +96,9 @@ export async function buscarUsuarioParaLoginPorMatricula(
         codigo: usuarioPerfil.perfil.codigo,
         nome: usuarioPerfil.perfil.nome,
         permissoes,
+        administrativo: usuarioPerfil.perfil.administrativo,
+        excecao: usuarioPerfil.perfil.excecao,
+        perfilDestinoExcecaoId: usuarioPerfil.perfil.perfilDestinoExcecaoId,
         escopoGlobal: usuarioPerfil.orgaoId === null,
         orgaos: usuarioPerfil.orgao ? [usuarioPerfil.orgao] : [],
       });
@@ -143,7 +151,9 @@ export async function buscarUsuarioParaLoginPorMatricula(
   const perfis = await Promise.all(
     perfisComExcecoes.map(async (perfil) => ({
       ...perfil,
-      permissoes: await filtrarPermissoesLiberadas(perfil.permissoes),
+      permissoes: expandirPermissoesCompatibilidade(
+        await filtrarPermissoesLiberadas(perfil.permissoes),
+      ),
     })),
   );
 
@@ -172,4 +182,25 @@ export async function buscarUsuarioParaLoginPorMatricula(
   }
 
   return resultado;
+}
+
+export async function invalidarCacheUsuarioAuthPorMatricula(matricula: string) {
+  const matriculaNormalizada = matricula.trim().toUpperCase();
+
+  if (!matriculaNormalizada) {
+    return;
+  }
+
+  await removerCache(`secp:auth:usuario:${matriculaNormalizada}`);
+}
+
+export async function invalidarCacheUsuarioAuthPorId(usuarioId: string) {
+  const usuario = await prisma.usuario.findUnique({
+    where: { id: usuarioId },
+    select: { matricula: true },
+  });
+
+  if (usuario?.matricula) {
+    await invalidarCacheUsuarioAuthPorMatricula(usuario.matricula);
+  }
 }

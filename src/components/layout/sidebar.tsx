@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import * as LucideIcons from "lucide-react";
 import {
   Activity,
   BarChart3,
@@ -45,6 +46,7 @@ import {
 
 import { SecpLogo } from "@/components/brand/secp-logo";
 import { possuiAlgumaPermissaoNaLista } from "@/modules/auth/application/services/permissao-utils";
+import type { MenusPersonalizadosPorPerfil } from "@/modules/menus/domain/menu-personalizado";
 import {
   PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
   PERMISSOES_ACESSO_REGISTRO_PONTO_SECP,
@@ -62,10 +64,14 @@ import type {
 } from "@/modules/auth/application/services/preferencias-acessibilidade.service";
 
 export type PerfilNavegacao = {
+  id?: string;
   codigo: string;
   nome: string;
   descricao?: string;
   permissoes?: string[];
+  administrativo?: boolean;
+  excecao?: boolean;
+  perfilDestinoExcecaoId?: string | null;
 };
 
 export type MenuItem = {
@@ -74,6 +80,8 @@ export type MenuItem = {
   icon: LucideIcon;
   permissoes?: string[];
   perfis?: string[];
+  somenteAdministrativo?: boolean;
+  ocultarQuandoAdministrativo?: boolean;
   children?: MenuItem[];
 };
 
@@ -104,6 +112,7 @@ export const MENU_ITEMS: MenuItem[] = [
     label: "Ponto de Hoje",
     href: "/marcacoes",
     icon: Clock,
+    ocultarQuandoAdministrativo: true,
     permissoes: [
       "marcacoes:consultar:proprio",
       "marcacoes:visualizar:proprio",
@@ -129,6 +138,7 @@ export const MENU_ITEMS: MenuItem[] = [
     label: "Espelho de ponto",
     href: "/espelho-ponto",
     icon: CalendarDays,
+    ocultarQuandoAdministrativo: true,
     permissoes: [
       "espelho-ponto:visualizar:proprio",
       "apuracao:consultar:global",
@@ -151,7 +161,10 @@ export const MENU_ITEMS: MenuItem[] = [
     label: "Minhas férias",
     href: "/minhas-ferias",
     icon: TreePalm,
-    permissoes: ["afastamentos:consultar:proprio"],
+    permissoes: [
+      "programacao-ferias:consultar:proprio",
+      "afastamentos:consultar:proprio",
+    ],
   },
   {
     label: "Banco de horas",
@@ -188,7 +201,7 @@ export const MENU_ITEMS: MenuItem[] = [
         perfis: ["ADMIN", "ADMINISTRADOR", "GESTOR", "RH"],
       },
       {
-        label: "Solicitacoes",
+        label: "Solicitacoes de banco de horas",
         href: "/banco-horas/solicitacoes",
         icon: ClipboardList,
         permissoes: ["solicitacoes:criar:proprio"],
@@ -280,9 +293,10 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
-    label: "Solicitações",
+    label: "Solicitacoes de ajuste",
     href: "/solicitacoes",
     icon: ClipboardList,
+    ocultarQuandoAdministrativo: true,
     permissoes: [
       "solicitacoes:criar:proprio",
       "solicitacoes:consultar:proprio",
@@ -292,9 +306,90 @@ export const MENU_ITEMS: MenuItem[] = [
   },
   {
     label: "Minha Equipe",
-    href: "/minha-equipe",
+    href: "/minha-equipe/presencas",
     icon: UsersRound,
-    permissoes: ["minha-equipe:consultar:chefia"],
+    somenteAdministrativo: true,
+    permissoes: [
+      "minha-equipe:consultar:subordinados",
+      "minha-equipe:consultar:seccional",
+      "minha-equipe:consultar:global",
+      "minha-equipe:consultar:chefia",
+    ],
+    children: [
+      {
+        label: "Programação de Férias",
+        href: "/minha-equipe/ferias",
+        icon: CalendarDays,
+        permissoes: [
+          "programacao-ferias:consultar:subordinados",
+          "programacao-ferias:consultar:seccional",
+          "programacao-ferias:consultar:global",
+        ],
+      },
+      {
+        label: "Presentes/Ausentes/Licenças",
+        href: "/minha-equipe/presencas",
+        icon: UsersRound,
+        permissoes: [
+          "minha-equipe:consultar:subordinados",
+          "minha-equipe:consultar:seccional",
+          "minha-equipe:consultar:global",
+          "minha-equipe:consultar:chefia",
+        ],
+      },
+      {
+        label: "Homologação",
+        href: "/homologacao",
+        icon: ShieldCheck,
+        permissoes: [
+          "homologacao:gerenciar:chefia",
+          "homologacao:consultar:global",
+          "homologacao:gerenciar:global",
+        ],
+      },
+      {
+        label: "Solicitacoes de ajuste",
+        href: "/solicitacoes",
+        icon: ClipboardList,
+        permissoes: [
+          "solicitacoes:criar:proprio",
+          "solicitacoes:consultar:proprio",
+          "solicitacoes:analisar:chefia",
+          "solicitacoes:consultar:global",
+        ],
+      },
+      {
+        label: "Recesso Forense",
+        href: "/recesso-forense",
+        icon: CalendarRange,
+        permissoes: [
+          "recesso:consultar:proprio",
+          "recesso:consultar:global",
+          "recesso:gerenciar:global",
+          "recesso:homologar:chefia",
+          "recesso:aceitar:secad",
+        ],
+      },
+      {
+        label: "Espelho de ponto",
+        href: "/espelho-ponto",
+        icon: CalendarDays,
+        permissoes: [
+          "espelho-ponto:visualizar:proprio",
+          "apuracao:consultar:global",
+        ],
+      },
+    ],
+  },
+  {
+    label: "Minha Equipe",
+    href: "/minha-equipe/presencas",
+    icon: UsersRound,
+    ocultarQuandoAdministrativo: true,
+    permissoes: [
+      "minha-equipe:consultar:subordinados",
+      "minha-equipe:consultar:chefia",
+    ],
   },
   {
     label: "Homologação",
@@ -413,6 +508,7 @@ export const MENU_ITEMS: MenuItem[] = [
       "fusos-horarios:gerenciar:global",
       "auditoria:consultar:global",
       "auditoria:detalhar:global",
+      "menus:personalizar:global",
       ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
     ],
     children: [
@@ -421,6 +517,12 @@ export const MENU_ITEMS: MenuItem[] = [
         href: "/administracao/liberacao-rotinas",
         icon: ToggleLeft,
         permissoes: ["configuracoes:gerenciar:global"],
+      },
+      {
+        label: "Personalizar Menu",
+        href: "/administracao/personalizar-menu",
+        icon: Palette,
+        permissoes: ["menus:personalizar:global"],
       },
       {
         label: "Perfis e permissões",
@@ -579,6 +681,7 @@ type SidebarProps = {
   recolhida: boolean;
   drawerAberto: boolean;
   perfilAtivo: PerfilNavegacao;
+  menusPersonalizados?: MenusPersonalizadosPorPerfil;
   preferenciasAcessibilidade: PreferenciasAcessibilidade;
   instituicaoLabel: string;
   onFecharDrawer: () => void;
@@ -619,18 +722,47 @@ function itemCorrespondeAoPath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function perfilEhAdministrativoNavegacao(perfilAtivo: PerfilNavegacao) {
+  return Boolean(perfilAtivo.administrativo);
+}
+
 function filtrarItensVisiveis(
   itens: MenuItem[],
   perfilAtivo: PerfilNavegacao,
+  nivel = 0,
 ): MenuItem[] {
+  const perfilAdministrativo = perfilEhAdministrativoNavegacao(perfilAtivo);
+  const hrefsMovidosParaMinhaEquipeAdministrativa = new Set([
+    "/homologacao",
+    "/recesso-forense",
+  ]);
+
   return itens
     .map((item) => ({
       ...item,
       children: item.children
-        ? filtrarItensVisiveis(item.children, perfilAtivo)
+        ? filtrarItensVisiveis(item.children, perfilAtivo, nivel + 1)
         : undefined,
     }))
-    .filter((item) => itemPodeSerExibido(item, perfilAtivo));
+    .filter((item) => {
+      if (item.somenteAdministrativo && !perfilAdministrativo) {
+        return false;
+      }
+
+      if (item.ocultarQuandoAdministrativo && perfilAdministrativo) {
+        return false;
+      }
+
+      if (
+        nivel === 0 &&
+        perfilAdministrativo &&
+        hrefsMovidosParaMinhaEquipeAdministrativa.has(item.href)
+      ) {
+        return false;
+      }
+
+      return itemPodeSerExibido(item, perfilAtivo);
+    });
 }
 
 function achatarItens(itens: MenuItem[]): MenuItem[] {
@@ -638,6 +770,114 @@ function achatarItens(itens: MenuItem[]): MenuItem[] {
     item,
     ...(item.children ? achatarItens(item.children) : []),
   ]);
+}
+
+function clonarItemMenu(item: MenuItem, label?: string | null): MenuItem {
+  return {
+    ...item,
+    label: label || item.label,
+    children: item.children?.map((child) => clonarItemMenu(child)),
+  };
+}
+
+function montarIndiceItens(itens: MenuItem[]) {
+  return new Map(achatarItens(itens).map((item) => [item.href, item]));
+}
+
+function ehComponenteIconeLucide(componente: unknown) {
+  return (
+    typeof componente === "function" ||
+    (typeof componente === "object" &&
+      componente !== null &&
+      "$$typeof" in componente)
+  );
+}
+
+function iconeGrupoPersonalizado(nome?: string | null): LucideIcon {
+  const chave = nome?.trim().toLowerCase();
+  const aliases: Record<string, string> = {
+    administracao: "Settings",
+    banco: "Hourglass",
+    calendario: "CalendarDays",
+    configurador: "Settings",
+    equipe: "UsersRound",
+    integracoes: "PlugZap",
+    menu: "Menu",
+    painel: "BarChart3",
+    relatorios: "FileText",
+    settings: "Settings",
+    users: "UsersRound",
+  };
+  const nomeIcone = chave ? (aliases[chave] ?? nome?.trim()) : undefined;
+  const iconeLucide = nomeIcone
+    ? (LucideIcons as Record<string, unknown>)[nomeIcone]
+    : undefined;
+
+  return ehComponenteIconeLucide(iconeLucide)
+    ? (iconeLucide as LucideIcon)
+    : Settings;
+}
+
+function montarItensPersonalizados(params: {
+  itensPadraoVisiveis: MenuItem[];
+  perfilAtivo: PerfilNavegacao;
+  menusPersonalizados?: MenusPersonalizadosPorPerfil;
+}): MenuItem[] {
+  const { itensPadraoVisiveis, perfilAtivo, menusPersonalizados } = params;
+  const menuPerfil = perfilAtivo.id
+    ? menusPersonalizados?.[perfilAtivo.id]
+    : undefined;
+
+  if (
+    !menuPerfil ||
+    (menuPerfil.grupos.length === 0 && menuPerfil.itensRaiz.length === 0)
+  ) {
+    return itensPadraoVisiveis;
+  }
+
+  const indiceItens = montarIndiceItens(itensPadraoVisiveis);
+  const montarItem = (item: {
+    itemCatalogo: string;
+    label?: string | null;
+    ativo: boolean;
+  }) => {
+    if (!item.ativo) {
+      return null;
+    }
+
+    const itemPadrao = indiceItens.get(item.itemCatalogo);
+
+    return itemPadrao ? clonarItemMenu(itemPadrao, item.label) : null;
+  };
+
+  const itensRaiz = [...menuPerfil.itensRaiz]
+    .sort((a, b) => a.ordem - b.ordem)
+    .map(montarItem)
+    .filter((item): item is MenuItem => Boolean(item));
+
+  const grupos = [...menuPerfil.grupos]
+    .filter((grupo) => grupo.ativo)
+    .sort((a, b) => a.ordem - b.ordem)
+    .map((grupo): MenuItem | null => {
+      const children = [...grupo.itens]
+        .sort((a, b) => a.ordem - b.ordem)
+        .map(montarItem)
+        .filter((item): item is MenuItem => Boolean(item));
+
+      if (children.length === 0) {
+        return null;
+      }
+
+      return {
+        label: grupo.label,
+        href: children[0]?.href ?? "/dashboard",
+        icon: iconeGrupoPersonalizado(grupo.icone || grupo.label),
+        children,
+      };
+    })
+    .filter((item): item is MenuItem => Boolean(item));
+
+  return [...itensRaiz, ...grupos];
 }
 
 function obterItemAtivo(pathname: string, itens: MenuItem[]) {
@@ -782,16 +1022,27 @@ function ThemeSelector({
 function MenuPrincipal({
   recolhida,
   perfilAtivo,
+  menusPersonalizados,
   onNavigate,
 }: {
   recolhida: boolean;
   perfilAtivo: PerfilNavegacao;
+  menusPersonalizados?: MenusPersonalizadosPorPerfil;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
-  const itensVisiveis = useMemo(
+  const itensPadraoVisiveis = useMemo(
     () => filtrarItensVisiveis(MENU_ITEMS, perfilAtivo),
     [perfilAtivo],
+  );
+  const itensVisiveis = useMemo(
+    () =>
+      montarItensPersonalizados({
+        itensPadraoVisiveis,
+        perfilAtivo,
+        menusPersonalizados,
+      }),
+    [itensPadraoVisiveis, perfilAtivo, menusPersonalizados],
   );
   const itemAtivo = useMemo(
     () => obterItemAtivo(pathname, itensVisiveis),
@@ -835,7 +1086,7 @@ function MenuPrincipal({
           ].join(" ");
 
           return (
-            <li key={item.href} className="space-y-1">
+            <li key={`${item.href}:${item.label}`} className="space-y-1">
               {possuiFilhos && !recolhida ? (
                 <button
                   type="button"
@@ -883,7 +1134,7 @@ function MenuPrincipal({
                     const childAtivo = child.href === hrefAtivo;
 
                     return (
-                      <li key={child.href}>
+                      <li key={`${child.href}:${child.label}`}>
                         <a
                           href={child.href}
                           onClick={onNavigate}
@@ -927,6 +1178,7 @@ export function Sidebar({
   recolhida,
   drawerAberto,
   perfilAtivo,
+  menusPersonalizados,
   preferenciasAcessibilidade,
   instituicaoLabel,
   onFecharDrawer,
@@ -988,7 +1240,11 @@ export function Sidebar({
               </div>
             )}
           </div>
-          <MenuPrincipal recolhida={recolhida} perfilAtivo={perfilAtivo} />
+          <MenuPrincipal
+            recolhida={recolhida}
+            perfilAtivo={perfilAtivo}
+            menusPersonalizados={menusPersonalizados}
+          />
           <ThemeSelector
             recolhida={recolhida}
             preferenciasAcessibilidade={preferenciasAcessibilidade}
@@ -1043,6 +1299,7 @@ export function Sidebar({
             <MenuPrincipal
               recolhida={false}
               perfilAtivo={perfilAtivo}
+              menusPersonalizados={menusPersonalizados}
               onNavigate={onFecharDrawer}
             />
             <ThemeSelector

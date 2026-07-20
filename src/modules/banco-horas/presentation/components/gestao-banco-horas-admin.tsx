@@ -3,7 +3,10 @@ import { ArrowLeft, FileDown, Save, Shuffle, UserCog } from "lucide-react";
 
 import { CompetenciaInput } from "@/components/ui";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
-import { minutosParaHoraBanco } from "../../application/services/formatar-banco-horas.service";
+import {
+  formatarDataCivilBancoHoras,
+  minutosParaHoraBanco,
+} from "../../application/services/formatar-banco-horas.service";
 import {
   configurarBancoHorasServidorAction,
   transferirSaldoBancoHorasAction,
@@ -72,7 +75,7 @@ function formatarCompetencia(competencia?: string | null) {
 }
 
 function formatarData(data: Date | null) {
-  return data ? new Intl.DateTimeFormat("pt-BR").format(data) : "-";
+  return formatarDataCivilBancoHoras(data);
 }
 
 function competenciaAtual() {

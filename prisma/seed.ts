@@ -273,6 +273,52 @@ const permissoesHorasExtrasSeed = [
   },
 ] as const;
 
+const ABRANGENCIAS_PADRAO = [
+  "proprio",
+  "subordinados",
+  "seccional",
+  "global",
+] as const;
+
+type AbrangenciaPadrao = (typeof ABRANGENCIAS_PADRAO)[number];
+
+type PermissaoSeed = {
+  codigo?: string;
+  recurso: string;
+  acao: string;
+  escopo: string;
+  descricao: string;
+};
+
+const permissoesProgramacaoFeriasSeed = [
+  {
+    recurso: "programacao-ferias",
+    acao: "consultar",
+    escopo: "proprio",
+    descricao: "Visualizar a propria programacao de ferias.",
+  },
+  {
+    recurso: "programacao-ferias",
+    acao: "consultar",
+    escopo: "subordinados",
+    descricao:
+      "Visualizar a programacao de ferias dos subordinados, respeitando a hierarquia departamental.",
+  },
+  {
+    recurso: "programacao-ferias",
+    acao: "consultar",
+    escopo: "seccional",
+    descricao:
+      "Consultar a programacao de ferias de todas as pessoas da seccional.",
+  },
+  {
+    recurso: "programacao-ferias",
+    acao: "consultar",
+    escopo: "global",
+    descricao: "Consultar a programacao de ferias de todas as pessoas do SECP.",
+  },
+] as const;
+
 const codigosPermissoesHorasExtrasServidor = [
   "horas-extras:visualizar:proprio",
   "horas-extras:solicitar:proprio",
@@ -361,6 +407,12 @@ const permissoesIniciais = [
     acao: "gerenciar",
     escopo: "global",
     descricao: "Gerenciar parâmetros gerais do SECP.",
+  },
+  {
+    recurso: "menus",
+    acao: "personalizar",
+    escopo: "global",
+    descricao: "Personalizar menus laterais por perfil.",
   },
   {
     recurso: "regulamentacao-ponto",
@@ -1240,11 +1292,108 @@ function codigoPermissao(item: {
   return item.codigo ?? `${item.recurso}:${item.acao}:${item.escopo}`;
 }
 
+function escopoPadrao(escopo: string): AbrangenciaPadrao {
+  if (escopo === "chefia" || escopo === "unidade") {
+    return "subordinados";
+  }
+
+  if (escopo === "terceiros" || escopo === "secad" || escopo === "secap") {
+    return "seccional";
+  }
+
+  if (
+    escopo === "auditoria" ||
+    escopo === "gerenciar" ||
+    escopo === "sepag" ||
+    escopo === "sistema"
+  ) {
+    return "global";
+  }
+
+  if (ABRANGENCIAS_PADRAO.includes(escopo as AbrangenciaPadrao)) {
+    return escopo as AbrangenciaPadrao;
+  }
+
+  return "global";
+}
+
+function descricaoAbrangencia(abrangencia: AbrangenciaPadrao) {
+  const descricoes: Record<AbrangenciaPadrao, string> = {
+    proprio: "Abrangencia: proprio usuario.",
+    subordinados:
+      "Abrangencia: subordinados conforme chefia, substituicao ou delegacao vigente.",
+    seccional: "Abrangencia: pessoas vinculadas a seccional do perfil.",
+    global: "Abrangencia: todas as pessoas e seccionais do SECP.",
+  };
+
+  return descricoes[abrangencia];
+}
+
+function criarPermissaoPadrao(
+  item: PermissaoSeed,
+  escopo: AbrangenciaPadrao,
+): PermissaoSeed {
+  const itemProgramacaoFerias = permissoesProgramacaoFeriasSeed.find(
+    (permissao) =>
+      permissao.recurso === item.recurso &&
+      permissao.acao === item.acao &&
+      permissao.escopo === escopo,
+  );
+
+  return {
+    recurso: item.recurso,
+    acao: item.acao,
+    escopo,
+    descricao:
+      itemProgramacaoFerias?.descricao ??
+      (escopoPadrao(item.escopo) === escopo
+        ? item.descricao
+        : `${item.descricao} ${descricaoAbrangencia(escopo)}`),
+  };
+}
+
+function montarPermissoesSeedPadronizadas() {
+  const permissoesBase: PermissaoSeed[] = [
+    ...permissoesIniciais,
+    ...permissoesProgramacaoFeriasSeed,
+  ];
+  const permissoes = new Map<string, PermissaoSeed>();
+  const bases = new Map<string, PermissaoSeed>();
+
+  for (const item of permissoesBase) {
+    bases.set(`${item.recurso}:${item.acao}`, item);
+  }
+
+  for (const item of bases.values()) {
+    for (const escopo of ABRANGENCIAS_PADRAO) {
+      const permissaoPadrao = criarPermissaoPadrao(item, escopo);
+      permissoes.set(codigoPermissao(permissaoPadrao), permissaoPadrao);
+    }
+  }
+
+  for (const item of permissoesBase) {
+    permissoes.set(codigoPermissao(item), item);
+  }
+
+  const permissoesPorTripla = new Map<string, PermissaoSeed>();
+
+  for (const item of permissoes.values()) {
+    const chave = `${item.recurso}:${item.acao}:${item.escopo}`;
+    const existente = permissoesPorTripla.get(chave);
+
+    if (!existente || item.codigo) {
+      permissoesPorTripla.set(chave, item);
+    }
+  }
+
+  return Array.from(permissoesPorTripla.values());
+}
+
 async function criarPermissoes() {
   const permissoes = [];
   const codigosCriados = new Set<string>();
 
-  for (const item of permissoesIniciais) {
+  for (const item of montarPermissoesSeedPadronizadas()) {
     const codigo = codigoPermissao(item);
 
     if (codigosCriados.has(codigo)) {
@@ -1304,6 +1453,8 @@ async function criarPerfilAdministrador() {
         "Perfil com acesso integral às configurações iniciais do SECP.",
       sistema: true,
       ativo: true,
+      administrativo: true,
+      excecao: false,
     },
     create: {
       codigo: "ADMIN",
@@ -1312,6 +1463,8 @@ async function criarPerfilAdministrador() {
         "Perfil com acesso integral às configurações iniciais do SECP.",
       sistema: true,
       ativo: true,
+      administrativo: true,
+      excecao: false,
     },
   });
 }
@@ -1325,6 +1478,8 @@ async function criarPerfilMaster() {
         "Perfil raiz com acesso global a todas as seccionais e configurações do SECP.",
       sistema: true,
       ativo: true,
+      administrativo: true,
+      excecao: false,
     },
     create: {
       codigo: "MASTER",
@@ -1333,6 +1488,8 @@ async function criarPerfilMaster() {
         "Perfil raiz com acesso global a todas as seccionais e configurações do SECP.",
       sistema: true,
       ativo: true,
+      administrativo: true,
+      excecao: false,
     },
   });
 }
@@ -1345,6 +1502,8 @@ async function criarPerfilServidor() {
       descricao: "Perfil básico para servidores utilizarem o SECP.",
       sistema: true,
       ativo: true,
+      administrativo: false,
+      excecao: false,
     },
     create: {
       codigo: "SERVIDOR",
@@ -1352,6 +1511,8 @@ async function criarPerfilServidor() {
       descricao: "Perfil básico para servidores utilizarem o SECP.",
       sistema: true,
       ativo: true,
+      administrativo: false,
+      excecao: false,
     },
   });
 }
@@ -1368,6 +1529,8 @@ async function criarPerfilPessoaPonto(params: {
       descricao: params.descricao,
       sistema: true,
       ativo: true,
+      administrativo: false,
+      excecao: false,
     },
     create: {
       codigo: params.codigo,
@@ -1375,6 +1538,8 @@ async function criarPerfilPessoaPonto(params: {
       descricao: params.descricao,
       sistema: true,
       ativo: true,
+      administrativo: false,
+      excecao: false,
     },
   });
 }
@@ -1388,6 +1553,8 @@ async function criarPerfilChefia() {
         "Perfil para chefias, gestores e substitutos analisarem solicitações, homologarem frequência e encaminharem boletins.",
       sistema: true,
       ativo: true,
+      administrativo: false,
+      excecao: false,
     },
     create: {
       codigo: "CHEFIA",
@@ -1396,6 +1563,8 @@ async function criarPerfilChefia() {
         "Perfil para chefias, gestores e substitutos analisarem solicitações, homologarem frequência e encaminharem boletins.",
       sistema: true,
       ativo: true,
+      administrativo: false,
+      excecao: false,
     },
   });
 }
@@ -1409,6 +1578,8 @@ async function criarPerfilSecap() {
         "Perfil da gestão de pessoas para acompanhar apuração, banco de horas, homologações, boletins e cadastros funcionais.",
       sistema: true,
       ativo: true,
+      administrativo: true,
+      excecao: false,
     },
     create: {
       codigo: "SECAP",
@@ -1417,6 +1588,8 @@ async function criarPerfilSecap() {
         "Perfil da gestão de pessoas para acompanhar apuração, banco de horas, homologações, boletins e cadastros funcionais.",
       sistema: true,
       ativo: true,
+      administrativo: true,
+      excecao: false,
     },
   });
 }
@@ -1430,6 +1603,8 @@ async function criarPerfilSecad() {
         "Perfil da Secretaria Administrativa para gerir e aceitar fluxos do recesso forense e consultar relatórios institucionais.",
       sistema: true,
       ativo: true,
+      administrativo: true,
+      excecao: false,
     },
     create: {
       codigo: "SECAD",
@@ -1438,6 +1613,8 @@ async function criarPerfilSecad() {
         "Perfil da Secretaria Administrativa para gerir e aceitar fluxos do recesso forense e consultar relatórios institucionais.",
       sistema: true,
       ativo: true,
+      administrativo: true,
+      excecao: false,
     },
   });
 }
@@ -1451,6 +1628,8 @@ async function criarPerfilDiref() {
         "Perfil de consulta institucional da DIREF para acompanhar frequência, banco de horas, boletins, recesso e auditoria.",
       sistema: true,
       ativo: true,
+      administrativo: true,
+      excecao: false,
     },
     create: {
       codigo: "DIREF",
@@ -1459,6 +1638,8 @@ async function criarPerfilDiref() {
         "Perfil de consulta institucional da DIREF para acompanhar frequência, banco de horas, boletins, recesso e auditoria.",
       sistema: true,
       ativo: true,
+      administrativo: true,
+      excecao: false,
     },
   });
 }
@@ -1472,6 +1653,8 @@ async function criarPerfilSuporte() {
         "Perfil técnico para monitorar integrações, importações, biometria e processamento operacional.",
       sistema: true,
       ativo: true,
+      administrativo: true,
+      excecao: false,
     },
     create: {
       codigo: "NUTEC",
@@ -1480,6 +1663,8 @@ async function criarPerfilSuporte() {
         "Perfil técnico para monitorar integrações, importações, biometria e processamento operacional.",
       sistema: true,
       ativo: true,
+      administrativo: true,
+      excecao: false,
     },
   });
 }
@@ -1493,6 +1678,8 @@ async function criarPerfilSuporteLegado() {
         "Perfil técnico legado equivalente ao NUTEC, mantido por compatibilidade.",
       sistema: true,
       ativo: true,
+      administrativo: true,
+      excecao: false,
     },
     create: {
       codigo: "SUPORTE",
@@ -1501,6 +1688,8 @@ async function criarPerfilSuporteLegado() {
         "Perfil técnico legado equivalente ao NUTEC, mantido por compatibilidade.",
       sistema: true,
       ativo: true,
+      administrativo: true,
+      excecao: false,
     },
   });
 }
@@ -1514,6 +1703,13 @@ async function criarPerfilExcecaoRegistroWeb() {
         "Perfil técnico oculto na troca de perfis. Autoriza o servidor a registrar ponto pelo SECP sem reconhecimento facial.",
       sistema: true,
       ativo: true,
+      administrativo: false,
+      excecao: true,
+      perfilDestinoExcecao: {
+        connect: {
+          codigo: "SERVIDOR",
+        },
+      },
     },
     create: {
       codigo: "EXCECAO_REGISTRO_WEB",
@@ -1522,6 +1718,13 @@ async function criarPerfilExcecaoRegistroWeb() {
         "Perfil técnico oculto na troca de perfis. Autoriza o servidor a registrar ponto pelo SECP sem reconhecimento facial.",
       sistema: true,
       ativo: true,
+      administrativo: false,
+      excecao: true,
+      perfilDestinoExcecao: {
+        connect: {
+          codigo: "SERVIDOR",
+        },
+      },
     },
   });
 }
@@ -1535,6 +1738,13 @@ async function criarPerfilExcecaoRegistroFacial() {
         "Perfil técnico oculto na troca de perfis. Autoriza o servidor a registrar ponto pelo SECP com reconhecimento facial.",
       sistema: true,
       ativo: true,
+      administrativo: false,
+      excecao: true,
+      perfilDestinoExcecao: {
+        connect: {
+          codigo: "SERVIDOR",
+        },
+      },
     },
     create: {
       codigo: "EXCECAO_REGISTRO_FACIAL",
@@ -1543,29 +1753,15 @@ async function criarPerfilExcecaoRegistroFacial() {
         "Perfil técnico oculto na troca de perfis. Autoriza o servidor a registrar ponto pelo SECP com reconhecimento facial.",
       sistema: true,
       ativo: true,
-    },
-  });
-}
-
-async function vincularPermissoesAoPerfil(
-  perfilId: string,
-  permissoes: Array<{ id: string }>,
-) {
-  for (const permissao of permissoes) {
-    await prisma.perfilPermissao.upsert({
-      where: {
-        perfilId_permissaoId: {
-          perfilId,
-          permissaoId: permissao.id,
+      administrativo: false,
+      excecao: true,
+      perfilDestinoExcecao: {
+        connect: {
+          codigo: "SERVIDOR",
         },
       },
-      update: {},
-      create: {
-        perfilId,
-        permissaoId: permissao.id,
-      },
-    });
-  }
+    },
+  });
 }
 
 async function vincularPermissoesPorCodigoAoPerfil(
@@ -1596,6 +1792,111 @@ async function vincularPermissoesPorCodigoAoPerfil(
       },
     });
   }
+}
+
+function normalizarCodigoPermissaoParaAbrangencia(
+  codigo: string,
+  abrangencia: AbrangenciaPadrao,
+) {
+  const codigosCustomizadosTeams: Record<string, string> = {
+    "teams:aprovacoes:analisar": "teams:aprovacoes:analisar",
+    "teams:homologacao:analisar": "teams:homologacao:analisar",
+  };
+
+  if (codigosCustomizadosTeams[codigo]) {
+    return `${codigosCustomizadosTeams[codigo]}:${abrangencia}`;
+  }
+
+  const partes = codigo.split(":");
+  const ultimoSegmento = partes.at(-1);
+
+  if (!ultimoSegmento) {
+    return codigo;
+  }
+
+  const escoposConhecidos = new Set([
+    ...ABRANGENCIAS_PADRAO,
+    "auditoria",
+    "chefia",
+    "gerenciar",
+    "secad",
+    "secap",
+    "sepag",
+    "sistema",
+    "terceiros",
+    "unidade",
+  ]);
+
+  if (!escoposConhecidos.has(ultimoSegmento)) {
+    return codigo;
+  }
+
+  return [...partes.slice(0, -1), abrangencia].join(":");
+}
+
+function normalizarCodigosPermissoesPerfil(
+  codigos: string[],
+  abrangencia: AbrangenciaPadrao,
+) {
+  return Array.from(
+    new Set(
+      codigos.map((codigo) =>
+        normalizarCodigoPermissaoParaAbrangencia(codigo, abrangencia),
+      ),
+    ),
+  );
+}
+
+function codigosPermissoesPorAbrangencia(
+  permissoes: Array<{ codigo: string; escopo: string }>,
+  abrangencia: AbrangenciaPadrao,
+) {
+  return permissoes
+    .filter(
+      (permissao) =>
+        permissao.escopo === abrangencia &&
+        permissao.codigo.endsWith(`:${abrangencia}`),
+    )
+    .map((permissao) => permissao.codigo);
+}
+
+async function sincronizarPermissoesPorCodigoAoPerfil(
+  perfilId: string,
+  codigos: string[],
+) {
+  const codigosUnicos = Array.from(new Set(codigos));
+  const permissoes = await prisma.permissao.findMany({
+    where: {
+      codigo: {
+        in: codigosUnicos,
+      },
+    },
+    select: {
+      id: true,
+      codigo: true,
+    },
+  });
+  const codigosEncontrados = new Set(
+    permissoes.map((permissao) => permissao.codigo),
+  );
+  const idsPermissoes = permissoes.map((permissao) => permissao.id);
+
+  for (const codigo of codigosUnicos) {
+    if (!codigosEncontrados.has(codigo)) {
+      console.warn(`PermissÃ£o nÃ£o encontrada no seed: ${codigo}`);
+    }
+  }
+
+  await prisma.perfilPermissao.deleteMany({
+    where: {
+      perfilId,
+      permissaoId: {
+        notIn: idsPermissoes,
+      },
+    },
+  });
+
+  await vincularPermissoesPorCodigoAoPerfil(perfilId, codigosUnicos);
 }
 
 async function criarUsuarioInicial(perfilId: string) {
@@ -2211,60 +2512,95 @@ async function main() {
   const perfilExcecaoRegistroWeb = await criarPerfilExcecaoRegistroWeb();
   const perfilExcecaoRegistroFacial = await criarPerfilExcecaoRegistroFacial();
 
-  await vincularPermissoesAoPerfil(perfilMaster.id, permissoes);
-  await vincularPermissoesAoPerfil(perfilAdmin.id, permissoes);
-  await vincularPermissoesPorCodigoAoPerfil(
-    perfilServidor.id,
-    codigosPermissoesServidor,
+  const codigosPermissoesGlobais = codigosPermissoesPorAbrangencia(
+    permissoes,
+    "global",
   );
-  await vincularPermissoesPorCodigoAoPerfil(
+  const codigosPermissoesSeccionais = codigosPermissoesPorAbrangencia(
+    permissoes,
+    "seccional",
+  );
+
+  await sincronizarPermissoesPorCodigoAoPerfil(
+    perfilMaster.id,
+    codigosPermissoesGlobais,
+  );
+  await sincronizarPermissoesPorCodigoAoPerfil(
+    perfilAdmin.id,
+    codigosPermissoesSeccionais,
+  );
+  await sincronizarPermissoesPorCodigoAoPerfil(
+    perfilServidor.id,
+    normalizarCodigosPermissoesPerfil(
+      [...codigosPermissoesServidor, "programacao-ferias:consultar:proprio"],
+      "proprio",
+    ),
+  );
+  await sincronizarPermissoesPorCodigoAoPerfil(
     perfilEstagiario.id,
+    normalizarCodigosPermissoesPerfil(
+      [
+        ...codigosPermissoesPessoaExterna,
+        "afastamentos:consultar:proprio",
+        "programacao-ferias:consultar:proprio",
+      ],
+      "proprio",
+    ),
+  );
+  await sincronizarPermissoesPorCodigoAoPerfil(
+    perfilPrestador.id,
+    normalizarCodigosPermissoesPerfil(
+      [...codigosPermissoesPessoaExterna, "programacao-ferias:consultar:proprio"],
+      "proprio",
+    ),
+  );
+  await sincronizarPermissoesPorCodigoAoPerfil(
+    perfilVoluntario.id,
+    normalizarCodigosPermissoesPerfil(
+      [...codigosPermissoesPessoaExterna, "programacao-ferias:consultar:proprio"],
+      "proprio",
+    ),
+  );
+  await sincronizarPermissoesPorCodigoAoPerfil(
+    perfilMagistrado.id,
+    normalizarCodigosPermissoesPerfil(
+      [...codigosPermissoesServidor, "programacao-ferias:consultar:proprio"],
+      "proprio",
+    ),
+  );
+  await sincronizarPermissoesPorCodigoAoPerfil(
+    perfilChefia.id,
     [
-      ...codigosPermissoesPessoaExterna,
-      "afastamentos:consultar:proprio",
+      ...normalizarCodigosPermissoesPerfil(codigosPermissoesServidor, "proprio"),
+      ...normalizarCodigosPermissoesPerfil(codigosPermissoesChefia, "subordinados"),
+      "programacao-ferias:consultar:subordinados",
     ],
   );
-  await vincularPermissoesPorCodigoAoPerfil(
-    perfilPrestador.id,
-    codigosPermissoesPessoaExterna,
-  );
-  await vincularPermissoesPorCodigoAoPerfil(
-    perfilVoluntario.id,
-    codigosPermissoesPessoaExterna,
-  );
-  await vincularPermissoesPorCodigoAoPerfil(
-    perfilMagistrado.id,
-    codigosPermissoesServidor,
-  );
-  await vincularPermissoesPorCodigoAoPerfil(
-    perfilChefia.id,
-    codigosPermissoesChefia,
-  );
-  await vincularPermissoesPorCodigoAoPerfil(
+  await sincronizarPermissoesPorCodigoAoPerfil(
     perfilSecap.id,
-    codigosPermissoesSecap,
+    normalizarCodigosPermissoesPerfil(codigosPermissoesSecap, "seccional"),
   );
-  await vincularPermissoesPorCodigoAoPerfil(
+  await sincronizarPermissoesPorCodigoAoPerfil(
     perfilSecad.id,
-    codigosPermissoesSecad,
+    normalizarCodigosPermissoesPerfil(codigosPermissoesSecad, "seccional"),
   );
-  await vincularPermissoesPorCodigoAoPerfil(
+  await sincronizarPermissoesPorCodigoAoPerfil(
     perfilDiref.id,
-    codigosPermissoesDiref,
+    normalizarCodigosPermissoesPerfil(codigosPermissoesDiref, "global"),
   );
-  await vincularPermissoesPorCodigoAoPerfil(
+  await sincronizarPermissoesPorCodigoAoPerfil(
     perfilSuporte.id,
-    codigosPermissoesSuporte,
+    normalizarCodigosPermissoesPerfil(codigosPermissoesSuporte, "global"),
   );
-  await vincularPermissoesPorCodigoAoPerfil(
+  await sincronizarPermissoesPorCodigoAoPerfil(
     perfilSuporteLegado.id,
-    codigosPermissoesSuporte,
+    normalizarCodigosPermissoesPerfil(codigosPermissoesSuporte, "global"),
   );
-  await vincularPermissoesPorCodigoAoPerfil(
+  await sincronizarPermissoesPorCodigoAoPerfil(
     perfilExcecaoRegistroWeb.id,
     codigosPermissoesExcecaoRegistroWeb,
   );
-  await vincularPermissoesPorCodigoAoPerfil(
+  await sincronizarPermissoesPorCodigoAoPerfil(
     perfilExcecaoRegistroFacial.id,
     codigosPermissoesExcecaoRegistroFacial,
   );

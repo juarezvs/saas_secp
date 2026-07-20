@@ -17,6 +17,7 @@ type MinhaEquipeFiltrosProps = {
   };
   unidades: UnidadeMinhaEquipe[];
   unidadesSelecionadas: string[];
+  actionPath?: string;
 };
 
 export function MinhaEquipeFiltros({
@@ -26,6 +27,7 @@ export function MinhaEquipeFiltros({
   resumo,
   unidades,
   unidadesSelecionadas,
+  actionPath = "/minha-equipe/presencas",
 }: MinhaEquipeFiltrosProps) {
   const [busca, setBusca] = useState("");
   const [selecionadas, setSelecionadas] = useState(
@@ -99,7 +101,7 @@ export function MinhaEquipeFiltros({
 
   return (
     <form
-      action="/minha-equipe"
+      action={actionPath}
       className="rounded-md border border-border bg-card p-5 shadow-card"
     >
       <input type="hidden" name="anoFerias" value={anoFerias} />
@@ -161,7 +163,7 @@ export function MinhaEquipeFiltros({
             Atualizar
           </button>
           <a
-            href="/minha-equipe"
+            href={actionPath}
             className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-border px-4 text-sm font-semibold transition hover:bg-muted"
           >
             <RotateCcw className="size-4" aria-hidden="true" />

@@ -4,13 +4,19 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { criarPerfilAction } from "@/modules/perfis/application/actions/criar-perfil.action";
-import { listarPermissoesOrdenadas } from "@/modules/perfis/infrastructure/repositories/perfil.repository";
+import {
+  listarPerfisParaFiltro,
+  listarPermissoesOrdenadas,
+} from "@/modules/perfis/infrastructure/repositories/perfil.repository";
 import { PerfilForm } from "@/modules/perfis/presentation/components/perfil-form";
 
 export default async function NovoPerfilPage() {
   await exigirPermissaoOuRedirecionar("perfis:gerenciar:global");
 
-  const permissoes = await listarPermissoesOrdenadas();
+  const [permissoes, perfisDestinoExcecao] = await Promise.all([
+    listarPermissoesOrdenadas(),
+    listarPerfisParaFiltro(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -34,9 +40,13 @@ export default async function NovoPerfilPage() {
       <PerfilForm
         action={criarPerfilAction}
         permissoes={permissoes}
+        perfisDestinoExcecao={perfisDestinoExcecao}
         modo="criar"
         valoresIniciais={{
           ativo: true,
+          administrativo: false,
+          excecao: false,
+          perfilDestinoExcecaoId: null,
           permissoes: [],
         }}
       />

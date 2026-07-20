@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-export const perfilSchema = z.object({
+export const perfilSchema = z
+  .object({
   codigo: z
     .string()
     .trim()
@@ -22,8 +23,24 @@ export const perfilSchema = z.object({
     .optional()
     .or(z.literal("")),
   ativo: z.coerce.boolean().default(true),
+  administrativo: z.coerce.boolean().default(false),
+  excecao: z.coerce.boolean().default(false),
+  perfilDestinoExcecaoId: z
+    .string()
+    .uuid("Selecione um perfil destino valido.")
+    .optional()
+    .or(z.literal("")),
   permissoes: z.array(z.string().uuid()).default([]),
-});
+  })
+  .superRefine((dados, ctx) => {
+    if (dados.excecao && !dados.perfilDestinoExcecaoId) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["perfilDestinoExcecaoId"],
+        message: "Selecione o perfil que recebera as permissoes desta excecao.",
+      });
+    }
+  });
 
 export type PerfilInput = z.infer<typeof perfilSchema>;
 
@@ -36,6 +53,9 @@ export type PerfilFormState = {
     nome?: string;
     descricao?: string;
     ativo?: boolean;
+    administrativo?: boolean;
+    excecao?: boolean;
+    perfilDestinoExcecaoId?: string | null;
     permissoes?: string[];
   };
 };

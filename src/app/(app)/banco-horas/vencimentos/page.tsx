@@ -16,6 +16,7 @@ import {
 } from "@/modules/banco-horas/application/services/classificar-prazo-banco-horas.service";
 import { tratarPendenciaBancoHorasAction } from "@/modules/banco-horas/application/actions/tratar-pendencia-banco-horas.action";
 import {
+  formatarDataCivilBancoHoras,
   minutosParaHoraBanco,
   rotuloTipoMovimentoBancoHoras,
 } from "@/modules/banco-horas/application/services/formatar-banco-horas.service";
@@ -278,7 +279,7 @@ export default async function BancoHorasVencimentosPage({
                   </td>
                   <td className="px-5 py-4">
                     {movimento.expiraEm
-                      ? new Intl.DateTimeFormat("pt-BR").format(movimento.expiraEm)
+                      ? formatarDataCivilBancoHoras(movimento.expiraEm)
                       : "-"}
                   </td>
                   <td className="px-5 py-4">

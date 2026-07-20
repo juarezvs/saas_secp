@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { Sidebar, type PerfilNavegacao } from "@/components/layout/sidebar";
 import type { PreferenciasAcessibilidade } from "@/modules/auth/application/services/preferencias-acessibilidade.service";
+import type { MenusPersonalizadosPorPerfil } from "@/modules/menus/domain/menu-personalizado";
 
 type UsuarioNavegacao = {
   nome: string;
@@ -20,6 +21,7 @@ type UsuarioNavegacao = {
 type AppShellClientProps = {
   children: React.ReactNode;
   usuario: UsuarioNavegacao;
+  menusPersonalizados?: MenusPersonalizadosPorPerfil;
   totalNotificacoes: number;
   onLogout: () => Promise<void>;
 };
@@ -27,6 +29,7 @@ type AppShellClientProps = {
 export function AppShellClient({
   children,
   usuario,
+  menusPersonalizados,
   totalNotificacoes,
   onLogout,
 }: AppShellClientProps) {
@@ -47,6 +50,7 @@ export function AppShellClient({
           recolhida={sidebarRecolhida}
           drawerAberto={drawerAberto}
           perfilAtivo={perfilAtivo}
+          menusPersonalizados={menusPersonalizados}
           preferenciasAcessibilidade={usuario.preferenciasAcessibilidade}
           instituicaoLabel={usuario.instituicaoLabel}
           onFecharDrawer={() => setDrawerAberto(false)}

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { invalidarCacheUsuarioAuthPorId } from "@/modules/auth/infrastructure/repositories/usuario-auth.repository";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 export async function desvincularPerfilUsuarioAction(
@@ -50,4 +51,6 @@ export async function desvincularPerfilUsuarioAction(
 
   revalidatePath("/usuarios");
   revalidatePath(`/usuarios/${usuarioId}`);
+  revalidatePath("/", "layout");
+  await invalidarCacheUsuarioAuthPorId(usuarioId);
 }

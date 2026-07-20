@@ -1,9 +1,4 @@
 export const CODIGOS_PERFIL_ADMINISTRADOR_SISTEMA = ["MASTER"];
-export const CODIGO_PERFIL_ADMINISTRADOR_SECCIONAL = "ADMIN";
-export const CODIGOS_PERFIL_EXCECAO_REGISTRO_PONTO = [
-  "EXCECAO_REGISTRO_WEB",
-  "EXCECAO_REGISTRO_FACIAL",
-];
 
 export const PERMISSOES_REGISTRO_PONTO_WEB = [
   "marcacoes:registrar:proprio",
@@ -18,6 +13,9 @@ export const PERMISSOES_REGISTRO_PONTO_FACIAL = [
 ];
 
 export const PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS = [
+  "biometriafacial:cadastrar:seccional",
+  "biometriafacial:recadastrar:seccional",
+  "biometriafacial:visualizar:global",
   "biometriafacial:cadastrar:terceiros",
   "biometriafacial:recadastrar:terceiros",
   "biometriafacial:visualizar:auditoria",
@@ -36,6 +34,8 @@ export const PERMISSOES_ACESSO_REGISTRO_PONTO_SECP = [
 
 type PerfilComCodigo = {
   codigo?: string | null;
+  administrativo?: boolean | null;
+  excecao?: boolean | null;
 };
 
 export function perfilEhAdministradorSistema(perfil?: PerfilComCodigo | null) {
@@ -47,17 +47,13 @@ export function perfilEhAdministradorSistema(perfil?: PerfilComCodigo | null) {
 export function perfilEhAdministradorSeccional(
   perfil?: PerfilComCodigo | null,
 ) {
-  return (
-    perfil?.codigo?.toUpperCase() === CODIGO_PERFIL_ADMINISTRADOR_SECCIONAL
-  );
+  return Boolean(perfil?.administrativo);
 }
 
 export function perfilEhExcecaoRegistroPonto(
   perfil?: PerfilComCodigo | null,
 ) {
-  return CODIGOS_PERFIL_EXCECAO_REGISTRO_PONTO.includes(
-    perfil?.codigo?.toUpperCase() ?? "",
-  );
+  return Boolean(perfil?.excecao);
 }
 
 export function perfilDeveFicarOcultoNaTrocaDePerfil(

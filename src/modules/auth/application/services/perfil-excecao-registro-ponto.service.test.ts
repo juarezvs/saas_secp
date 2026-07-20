@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { aplicarExcecoesRegistroPontoAoPerfilServidor } from "./perfil-excecao-registro-ponto.service";
 
 describe("aplicarExcecoesRegistroPontoAoPerfilServidor", () => {
-  it("oculta perfis de excecao e soma as permissoes ao perfil servidor", () => {
+  it("oculta perfis de excecao e soma as permissoes aos perfis nao administrativos", () => {
     const perfis = aplicarExcecoesRegistroPontoAoPerfilServidor([
       {
         id: "servidor",
@@ -14,6 +14,8 @@ describe("aplicarExcecoesRegistroPontoAoPerfilServidor", () => {
         id: "excecao-web",
         codigo: "EXCECAO_REGISTRO_WEB",
         nome: "Excecao - Registro web",
+        excecao: true,
+        perfilDestinoExcecaoId: "servidor",
         permissoes: [
           "marcacoes:registrar:proprio",
           "marcacoes:registrar-web:proprio",

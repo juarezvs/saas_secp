@@ -5,6 +5,7 @@ import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/servic
 import { atualizarPerfilAction } from "@/modules/perfis/application/actions/atualizar-perfil.action";
 import {
   buscarPerfilPorId,
+  listarPerfisParaFiltro,
   listarPermissoesOrdenadas,
 } from "@/modules/perfis/infrastructure/repositories/perfil.repository";
 import { PerfilForm } from "@/modules/perfis/presentation/components/perfil-form";
@@ -22,9 +23,10 @@ export default async function EditarPerfilPage({
 
   const { id } = await params;
 
-  const [perfil, permissoes] = await Promise.all([
+  const [perfil, permissoes, perfis] = await Promise.all([
     buscarPerfilPorId(id),
     listarPermissoesOrdenadas(),
+    listarPerfisParaFiltro(),
   ]);
 
   if (!perfil) {
@@ -67,12 +69,16 @@ export default async function EditarPerfilPage({
       <PerfilForm
         action={action}
         permissoes={permissoes}
+        perfisDestinoExcecao={perfis.filter((item) => item.id !== perfil.id)}
         modo="editar"
         valoresIniciais={{
           codigo: perfil.codigo,
           nome: perfil.nome,
           descricao: perfil.descricao,
           ativo: perfil.ativo,
+          administrativo: perfil.administrativo,
+          excecao: perfil.excecao,
+          perfilDestinoExcecaoId: perfil.perfilDestinoExcecaoId,
           permissoes: perfil.permissoes.map((item) => item.permissaoId),
         }}
       />
