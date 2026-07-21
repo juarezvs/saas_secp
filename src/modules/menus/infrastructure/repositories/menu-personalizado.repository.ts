@@ -1,6 +1,7 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { MENU_CATALOGO } from "../../domain/menu-catalogo";
 import type {
+  IconesItensCatalogoMenu,
   MenuPersonalizadoPerfil,
   MenusPersonalizadosPorPerfil,
 } from "../../domain/menu-personalizado";
@@ -264,4 +265,17 @@ export async function buscarMenusPersonalizadosPorPerfil(
   const menus = await Promise.all(ids.map(buscarMenuPersonalizadoPerfil));
 
   return Object.fromEntries(menus.map((menu) => [menu.perfilId, menu]));
+}
+
+export async function buscarIconesItensCatalogoMenu(): Promise<IconesItensCatalogoMenu> {
+  const configs = await prisma.menuItemCatalogoConfig.findMany({
+    select: {
+      itemCatalogo: true,
+      icone: true,
+    },
+  });
+
+  return Object.fromEntries(
+    configs.map((config) => [config.itemCatalogo, config.icone]),
+  );
 }

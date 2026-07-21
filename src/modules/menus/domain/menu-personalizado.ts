@@ -21,4 +21,11 @@ export type MenuPersonalizadoPerfil = {
   itensRaiz: MenuPersonalizadoItem[];
 };
 
+export type MenuItemCatalogoIcone = {
+  itemCatalogo: string;
+  icone?: string | null;
+};
+
+export type IconesItensCatalogoMenu = Record<string, string | null>;
+
 export type MenusPersonalizadosPorPerfil = Record<string, MenuPersonalizadoPerfil>;

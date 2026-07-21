@@ -28,6 +28,7 @@ import {
   normalizarMatricula,
   obterChaveExterna,
   obterCpfServidorSarh,
+  obterPisServidorSarh,
   tipoRegistroDbFromEndpoint,
 } from "../../domain/sarh-normalizer";
 import {
@@ -1543,6 +1544,7 @@ export class SarhPrismaRepository {
     const matricula = normalizarMatricula(params.payload.matricula);
     const chaveExterna = matricula;
     const cpf = obterCpfServidorSarh(params.payload);
+    const pis = obterPisServidorSarh(params.payload);
 
     if (!cpf) {
       await this.registrarItem(
@@ -1686,6 +1688,49 @@ export class SarhPrismaRepository {
         ],
       },
     });
+    const servidorComMesmoPis = pis
+      ? await this.prisma.servidor.findFirst({
+          where: {
+            pis,
+            ...(servidorExistente ? { NOT: { id: servidorExistente.id } } : {}),
+          },
+          select: {
+            id: true,
+            matricula: true,
+            cpf: true,
+            pis: true,
+          },
+        })
+      : null;
+
+    if (servidorComMesmoPis) {
+      await this.registrarItem(
+        params.execucaoId,
+        endpoint,
+        {
+          tipoRegistro: "SERVIDOR",
+          chaveExterna,
+          operacao: "CONFLITO",
+          status: "CONFLITO",
+          mensagem: `Pessoa ${matricula} nao sincronizada: PIS ${pis} ja esta vinculado a matricula ${servidorComMesmoPis.matricula}.`,
+          dadosAntes: {
+            servidorPorPis: servidorComMesmoPis,
+            servidor: servidorExistente,
+          },
+          dadosDepois: params.payload,
+          metadados: {
+            motivo: "PIS_VINCULADO_A_OUTRA_MATRICULA",
+            pis,
+            matriculaSarh: matricula,
+            matriculaServidorPis: servidorComMesmoPis.matricula,
+          },
+        },
+        params.registroBrutoId,
+      );
+
+      return "CONFLITO" as OperacaoRegistroSarhDb;
+    }
+
     const usuarioData = mapearUsuarioServidorSarh(params.payload);
     const servidorBaseData = mapearServidorSarh(
       params.payload,

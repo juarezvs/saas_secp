@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 from datetime import date
+from html import escape
 from pathlib import Path
 import textwrap
 
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.platypus import (
     BaseDocTemplate,
     Frame,
+    Image,
     KeepTogether,
     ListFlowable,
     ListItem,
@@ -26,90 +28,116 @@ from reportlab.platypus import (
 
 
 ROOT = Path(__file__).resolve().parents[2]
-OUTPUT = ROOT / "output" / "pdf" / "manual-implantacao-secp-producao.pdf"
+OUTPUT = ROOT / "output" / "pdf" / "manual-tecnico-implantacao-secp-linux.pdf"
+BRASAO = ROOT / "output" / "pdf" / "assets" / "brasao-republica.png"
 
-
-class NumberedCanvas:
-    pass
+BLUE = colors.HexColor("#0B2F63")
+BLUE_2 = colors.HexColor("#123F77")
+BLUE_3 = colors.HexColor("#EAF2FF")
+GOLD = colors.HexColor("#B8860B")
+INK = colors.HexColor("#172033")
+MUTED = colors.HexColor("#475569")
+LINE = colors.HexColor("#CBD5E1")
+LIGHT = colors.HexColor("#F8FAFC")
+WARN_BG = colors.HexColor("#FFF7ED")
+WARN_LINE = colors.HexColor("#FDBA74")
+OK_BG = colors.HexColor("#ECFDF5")
 
 
 def build_styles():
     base = getSampleStyleSheet()
-    styles = {
-        "Title": ParagraphStyle(
-            "Title",
+    return {
+        "CoverTitle": ParagraphStyle(
+            "CoverTitle",
             parent=base["Title"],
             fontName="Helvetica-Bold",
-            fontSize=24,
-            leading=30,
+            fontSize=25,
+            leading=31,
             alignment=TA_CENTER,
-            textColor=colors.HexColor("#0B3A75"),
-            spaceAfter=14,
+            textColor=BLUE,
+            spaceAfter=12,
         ),
-        "Subtitle": ParagraphStyle(
-            "Subtitle",
+        "CoverSubtitle": ParagraphStyle(
+            "CoverSubtitle",
             parent=base["Normal"],
             fontName="Helvetica",
             fontSize=12,
-            leading=16,
+            leading=17,
             alignment=TA_CENTER,
-            textColor=colors.HexColor("#334155"),
+            textColor=MUTED,
             spaceAfter=8,
+        ),
+        "Institution": ParagraphStyle(
+            "Institution",
+            parent=base["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=9.2,
+            leading=11,
+            alignment=TA_CENTER,
+            textColor=INK,
         ),
         "H1": ParagraphStyle(
             "H1",
             parent=base["Heading1"],
             fontName="Helvetica-Bold",
-            fontSize=17,
+            fontSize=16.5,
             leading=21,
-            textColor=colors.HexColor("#0B3A75"),
-            spaceBefore=8,
-            spaceAfter=8,
+            textColor=BLUE,
+            spaceBefore=10,
+            spaceAfter=7,
         ),
         "H2": ParagraphStyle(
             "H2",
             parent=base["Heading2"],
             fontName="Helvetica-Bold",
-            fontSize=12.5,
-            leading=16,
-            textColor=colors.HexColor("#134E8E"),
-            spaceBefore=8,
-            spaceAfter=5,
+            fontSize=11.5,
+            leading=15,
+            textColor=BLUE_2,
+            spaceBefore=7,
+            spaceAfter=4,
         ),
         "Body": ParagraphStyle(
             "Body",
             parent=base["BodyText"],
             fontName="Helvetica",
-            fontSize=9.2,
-            leading=12.4,
-            alignment=TA_LEFT,
-            textColor=colors.HexColor("#172033"),
-            spaceAfter=5,
+            fontSize=8.8,
+            leading=12.1,
+            alignment=TA_JUSTIFY,
+            textColor=INK,
+            spaceAfter=4.6,
         ),
         "Small": ParagraphStyle(
             "Small",
             parent=base["BodyText"],
             fontName="Helvetica",
-            fontSize=7.8,
-            leading=10,
-            textColor=colors.HexColor("#334155"),
+            fontSize=7.4,
+            leading=9.5,
+            textColor=INK,
+        ),
+        "Tiny": ParagraphStyle(
+            "Tiny",
+            parent=base["BodyText"],
+            fontName="Helvetica",
+            fontSize=6.8,
+            leading=8.4,
+            textColor=MUTED,
         ),
         "TableHeader": ParagraphStyle(
             "TableHeader",
             parent=base["BodyText"],
             fontName="Helvetica-Bold",
-            fontSize=7.8,
-            leading=9.6,
+            fontSize=7.2,
+            leading=8.8,
             textColor=colors.white,
         ),
         "Note": ParagraphStyle(
             "Note",
             parent=base["BodyText"],
             fontName="Helvetica",
-            fontSize=8.5,
-            leading=11.2,
-            backColor=colors.HexColor("#EEF6FF"),
-            borderColor=colors.HexColor("#BFDBFE"),
+            fontSize=8.2,
+            leading=10.8,
+            backColor=BLUE_3,
+            borderColor=colors.HexColor("#93C5FD"),
             borderWidth=0.7,
             borderPadding=6,
             textColor=colors.HexColor("#0F2747"),
@@ -120,13 +148,27 @@ def build_styles():
             "Warn",
             parent=base["BodyText"],
             fontName="Helvetica-Bold",
-            fontSize=8.5,
-            leading=11.2,
-            backColor=colors.HexColor("#FFF7ED"),
-            borderColor=colors.HexColor("#FDBA74"),
+            fontSize=8.15,
+            leading=10.8,
+            backColor=WARN_BG,
+            borderColor=WARN_LINE,
             borderWidth=0.7,
             borderPadding=6,
             textColor=colors.HexColor("#7C2D12"),
+            spaceBefore=4,
+            spaceAfter=7,
+        ),
+        "Ok": ParagraphStyle(
+            "Ok",
+            parent=base["BodyText"],
+            fontName="Helvetica",
+            fontSize=8.15,
+            leading=10.8,
+            backColor=OK_BG,
+            borderColor=colors.HexColor("#86EFAC"),
+            borderWidth=0.7,
+            borderPadding=6,
+            textColor=colors.HexColor("#064E3B"),
             spaceBefore=4,
             spaceAfter=7,
         ),
@@ -134,142 +176,250 @@ def build_styles():
             "Code",
             parent=base["Code"],
             fontName="Courier",
-            fontSize=7.2,
-            leading=9.1,
+            fontSize=6.75,
+            leading=8.35,
             textColor=colors.HexColor("#0F172A"),
             backColor=colors.HexColor("#F8FAFC"),
-            borderColor=colors.HexColor("#CBD5E1"),
-            borderWidth=0.4,
+            borderColor=LINE,
+            borderWidth=0.45,
             borderPadding=5,
             spaceBefore=3,
             spaceAfter=6,
         ),
+        "Right": ParagraphStyle(
+            "Right",
+            parent=base["BodyText"],
+            fontName="Helvetica-Bold",
+            fontSize=8.0,
+            leading=10,
+            alignment=TA_RIGHT,
+            textColor=BLUE,
+        ),
+        "Bullet": ParagraphStyle(
+            "Bullet",
+            parent=base["BodyText"],
+            fontName="Helvetica",
+            fontSize=8.8,
+            leading=12.1,
+            alignment=TA_LEFT,
+            textColor=INK,
+            spaceAfter=4.6,
+        ),
     }
-    return styles
 
 
 S = build_styles()
 
 
-def p(text: str, style: str = "Body"):
+def para(text: str, style: str = "Body"):
     return Paragraph(text, S[style])
 
 
 def h1(text: str):
-    return Paragraph(text, S["H1"])
+    return Paragraph(escape(text), S["H1"])
 
 
 def h2(text: str):
-    return Paragraph(text, S["H2"])
+    return Paragraph(escape(text), S["H2"])
 
 
 def code(text: str):
-    wrapped = []
-    for line in text.strip().splitlines():
-        if len(line) <= 92:
-            wrapped.append(line)
-            continue
-
-        wrapped.extend(
-            textwrap.wrap(
-                line,
-                width=92,
-                subsequent_indent="  ",
-                break_long_words=False,
-                break_on_hyphens=False,
+    lines: list[str] = []
+    for raw in text.strip("\n").splitlines():
+        if len(raw) <= 98:
+            lines.append(raw)
+        else:
+            lines.extend(
+                textwrap.wrap(
+                    raw,
+                    width=98,
+                    subsequent_indent="  ",
+                    break_long_words=False,
+                    break_on_hyphens=False,
+                )
             )
-        )
-
-    return Preformatted("\n".join(wrapped), S["Code"])
+    return Preformatted("\n".join(lines), S["Code"])
 
 
 def bullets(items: list[str]):
     return ListFlowable(
-        [ListItem(p(item), leftIndent=10) for item in items],
+        [ListItem(Paragraph(item, S["Bullet"]), leftIndent=12) for item in items],
         bulletType="bullet",
-        start="circle",
         leftIndent=14,
+        bulletFontName="Helvetica-Bold",
         bulletFontSize=6,
-        bulletColor=colors.HexColor("#0B3A75"),
+        bulletColor=BLUE,
     )
 
 
 def numbered(items: list[str]):
     return ListFlowable(
-        [ListItem(p(item), leftIndent=14) for item in items],
+        [ListItem(para(item), leftIndent=15) for item in items],
         bulletType="1",
-        leftIndent=16,
+        leftIndent=18,
         bulletFontName="Helvetica-Bold",
-        bulletFontSize=8.8,
-        bulletColor=colors.HexColor("#0B3A75"),
+        bulletFontSize=8,
+        bulletColor=BLUE,
     )
 
 
-def table(data, widths):
-    if data:
-        header = []
-        for cell in data[0]:
-            if isinstance(cell, Paragraph):
-                header.append(Paragraph(cell.getPlainText(), S["TableHeader"]))
-            else:
-                header.append(Paragraph(str(cell), S["TableHeader"]))
-        data = [header, *data[1:]]
+def table(data, widths, font_size=7.25, header=True, zebra=True):
+    rows = []
+    for row_index, row in enumerate(data):
+        style = "TableHeader" if header and row_index == 0 else "Small"
+        rows.append([cell if isinstance(cell, Paragraph) else Paragraph(str(cell), S[style]) for cell in row])
+    t = Table(rows, colWidths=widths, hAlign="LEFT", repeatRows=1 if header else 0)
+    commands = [
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
+        ("FONTSIZE", (0, 0), (-1, -1), font_size),
+        ("LEADING", (0, 0), (-1, -1), font_size + 1.8),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("GRID", (0, 0), (-1, -1), 0.35, LINE),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4.5),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4.5),
+        ("TOPPADDING", (0, 0), (-1, -1), 3.8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3.8),
+    ]
+    if header:
+        commands += [
+            ("BACKGROUND", (0, 0), (-1, 0), BLUE),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ]
+    if zebra and len(data) > 1:
+        commands.append(("ROWBACKGROUNDS", (0, 1 if header else 0), (-1, -1), [colors.white, LIGHT]))
+    t.setStyle(TableStyle(commands))
+    return t
 
-    t = Table(data, colWidths=widths, hAlign="LEFT", repeatRows=1)
+
+def metric_cards(items):
+    cells = []
+    for title, body in items:
+        cells.append(
+            [
+                Paragraph(escape(title), ParagraphStyle("CardTitle", parent=S["Small"], fontName="Helvetica-Bold", textColor=BLUE, fontSize=8.2, leading=10)),
+                Paragraph(body, S["Tiny"]),
+            ]
+        )
+    rows = [
+        [
+            Table([[cell[0]], [cell[1]]], colWidths=[4.35 * cm], style=[("BOTTOMPADDING", (0, 0), (-1, -1), 1)])
+            for cell in cells[i : i + 4]
+        ]
+        for i in range(0, len(cells), 4)
+    ]
+    t = Table(rows, colWidths=[4.35 * cm] * 4, hAlign="LEFT")
     t.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0B3A75")),
-                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("FONTSIZE", (0, 0), (-1, -1), 7.6),
-                ("LEADING", (0, 0), (-1, -1), 9.2),
-                ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
-                ("TEXTCOLOR", (0, 1), (-1, -1), colors.HexColor("#172033")),
-                ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#FFFFFF")),
-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F8FAFC")]),
-                ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#CBD5E1")),
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F8FBFF")),
+                ("BOX", (0, 0), (-1, -1), 0.35, LINE),
+                ("INNERGRID", (0, 0), (-1, -1), 0.35, LINE),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 5),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 5),
-                ("TOPPADDING", (0, 0), (-1, -1), 4),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
             ]
         )
     )
     return t
 
 
-def on_page(canvas, doc):
+def draw_header(canvas, doc):
     canvas.saveState()
     width, height = A4
-    canvas.setFillColor(colors.HexColor("#0B3A75"))
-    canvas.rect(0, height - 0.55 * cm, width, 0.55 * cm, fill=True, stroke=False)
     canvas.setFillColor(colors.white)
-    canvas.setFont("Helvetica-Bold", 7.5)
-    canvas.drawString(1.4 * cm, height - 0.36 * cm, "SECP - Manual de Implantacao em Producao")
-    canvas.setFillColor(colors.HexColor("#64748B"))
-    canvas.setFont("Helvetica", 7.5)
-    canvas.drawString(1.4 * cm, 0.65 * cm, "Documento operacional - uso interno")
-    canvas.drawRightString(width - 1.4 * cm, 0.65 * cm, f"Pagina {doc.page}")
+    canvas.rect(0, height - 1.52 * cm, width, 1.52 * cm, fill=True, stroke=False)
+    canvas.setStrokeColor(LINE)
+    canvas.line(1.15 * cm, height - 1.52 * cm, width - 1.15 * cm, height - 1.52 * cm)
+
+    if BRASAO.exists():
+        canvas.drawImage(str(BRASAO), 1.22 * cm, height - 1.33 * cm, width=0.88 * cm, height=0.88 * cm, preserveAspectRatio=True, mask="auto")
+
+    x = width / 2
+    canvas.setFillColor(INK)
+    canvas.setFont("Helvetica-Bold", 7.6)
+    canvas.drawCentredString(x, height - 0.46 * cm, "JUSTIÇA FEDERAL DO AMAZONAS")
+    canvas.setFont("Helvetica", 7.2)
+    canvas.drawCentredString(x, height - 0.75 * cm, "SEÇÃO JUDICIÁRIA DO AMAZONAS")
+    canvas.drawCentredString(x, height - 1.04 * cm, "Núcleo de Tecnologia da Informação - NUTEC")
+    canvas.setFillColor(BLUE)
+    canvas.setFont("Helvetica-Bold", 7.0)
+    canvas.drawRightString(width - 1.25 * cm, height - 0.74 * cm, "Manual Técnico")
+    canvas.setFillColor(MUTED)
+    canvas.setFont("Helvetica", 7.2)
+    canvas.drawString(1.25 * cm, 0.70 * cm, "SECP - Sistema Eletrônico de Controle de Ponto")
+    canvas.drawRightString(width - 1.25 * cm, 0.70 * cm, f"Página {doc.page}")
     canvas.restoreState()
 
 
-def make_doc():
+def build_doc():
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     doc = BaseDocTemplate(
         str(OUTPUT),
         pagesize=A4,
-        rightMargin=1.35 * cm,
-        leftMargin=1.35 * cm,
-        topMargin=1.35 * cm,
-        bottomMargin=1.25 * cm,
-        title="Manual de Implantacao do SECP em Producao",
-        author="SECP",
+        rightMargin=1.25 * cm,
+        leftMargin=1.25 * cm,
+        topMargin=1.85 * cm,
+        bottomMargin=1.15 * cm,
+        title="Manual Técnico de Implantação do SECP em Linux",
+        author="Núcleo de Tecnologia da Informação - NUTEC",
+        subject="Implantação, operação, atualização e integração do SECP",
     )
     frame = Frame(doc.leftMargin, doc.bottomMargin, doc.width, doc.height, id="normal")
-    doc.addPageTemplates([PageTemplate(id="default", frames=[frame], onPage=on_page)])
+    doc.addPageTemplates([PageTemplate(id="default", frames=[frame], onPage=draw_header)])
     return doc
+
+
+CONTAINERS = [
+    ["Container", "Imagem/target", "Porta/volume", "Função operacional"],
+    ["secp-web", "secp-web:${APP_VERSION} / target runner", "3000:3000; uploads; relatórios; docker.sock ro", "Aplicação Next.js em produção. Expõe interface web, APIs, health, ready e métricas protegidas por token."],
+    ["secp-postgres", "postgres:18-alpine", "volume secp_postgres_data; ./backups:/backups", "Banco de dados PostgreSQL do SECP. Nunca remover volume em produção."],
+    ["secp-pgbouncer", "edoburu/pgbouncer:latest", "127.0.0.1:6432:6432", "Pool de conexões usado pela aplicação e workers para reduzir pressão sobre o PostgreSQL."],
+    ["secp-redis", "redis:7-alpine", "volume secp_redis_data", "Filas BullMQ, cache, jobs assíncronos e coordenação de workers."],
+    ["secp-migrator", "secp-migrator:${APP_VERSION} / target migrator", "profile tools", "Container temporário para executar prisma migrate deploy."],
+    ["secp-seeder", "secp-seeder:${APP_VERSION} / target seeder", "profile tools", "Container temporário para executar prisma db seed. O seed usa upsert e deve preservar dados reais."],
+    ["secp-worker-afd", "secp-worker:${APP_VERSION}", "volume uploads", "Processamento assíncrono de arquivos AFD importados."],
+    ["secp-worker-sarh", "secp-worker:${APP_VERSION}", "sem porta pública", "Sincronização SARH: servidores, vínculos, lotações, cargos, afastamentos e férias, conforme escopo configurado."],
+    ["secp-worker-sarh-login", "secp-worker:${APP_VERSION}", "sem porta pública", "Sincronização de dados de login/perfil oriundos do SARH."],
+    ["secp-worker-reprocessamento", "secp-worker:${APP_VERSION}", "sem porta pública", "Reprocessamento global de marcações e apurações."],
+    ["secp-worker-calendario", "secp-worker:${APP_VERSION}", "sem porta pública", "Atualização de calendário institucional, feriados e regras de expediente."],
+    ["secp-worker-henry-coleta", "secp-worker:${APP_VERSION}", "sem porta pública", "Coleta ativa de relógios Henry e protocolos compatíveis."],
+    ["secp-worker-henry-online", "secp-worker:${APP_VERSION}", "3001:3001", "Listener/serviço online para integração Henry, quando usado pelo equipamento."],
+    ["secp-worker-coleta-relogio", "secp-worker:${APP_VERSION}", "sem porta pública", "Coleta progressiva de equipamentos biométricos, NSR e protocolos Control iD/Dimep/Genérico."],
+    ["secp-worker-relatorio-exportacao", "secp-worker:${APP_VERSION}", "volume relatórios", "Geração assíncrona de PDFs, planilhas e relatórios pesados."],
+    ["secp-pgadmin", "dpage/pgadmin4:9.8", "5050:80; profile admin", "Administração opcional do PostgreSQL. Não publicar sem controle de rede e credenciais fortes."],
+]
+
+
+PROFILES = [
+    ["Código", "Nome", "Tipo", "Abrangência padrão", "Finalidade"],
+    ["MASTER", "MASTER", "Administrativo", "Global", "Perfil raiz com acesso global a todas as seccionais e configurações do SECP."],
+    ["ADMIN", "Administrador do Sistema", "Administrativo", "Seccional", "Configurações iniciais e administração do sistema na seccional."],
+    ["SERVIDOR", "Servidor", "Pessoa", "Próprio", "Uso básico: ponto, espelho, banco de horas, solicitações, férias, afastamentos e contracheque."],
+    ["ESTAGIARIO", "Estagiário", "Pessoa", "Próprio", "Uso básico do SECP para estagiários."],
+    ["PRESTADOR", "Prestador", "Pessoa", "Próprio", "Uso básico do SECP para prestadores."],
+    ["VOLUNTARIO", "Voluntário", "Pessoa", "Próprio", "Uso básico do SECP para voluntários."],
+    ["MAGISTRADO", "Magistrado", "Pessoa", "Próprio", "Uso básico do SECP para magistrados."],
+    ["CHEFIA", "Chefia/Gestor de Unidade", "Funcional", "Subordinados/Chefia", "Análise de solicitações, homologação de frequência, equipe e boletins."],
+    ["SECAP", "SECAP/NUCGP", "Administrativo", "Seccional", "Gestão de pessoas: apuração, banco de horas, homologações, boletins e cadastros funcionais."],
+    ["SECAD", "SECAD", "Administrativo", "Seccional", "Secretaria Administrativa: fluxos do recesso forense e relatórios institucionais."],
+    ["DIREF", "Direção do Foro", "Administrativo", "Seccional", "Consulta institucional de frequência, banco de horas, boletins, recesso e auditoria."],
+    ["NUTEC", "NUTEC", "Administrativo/Técnico", "Seccional", "Monitoramento de integrações, importações, biometria e processamento operacional."],
+    ["SUPORTE", "Suporte técnico", "Administrativo/Técnico", "Seccional", "Perfil técnico legado equivalente ao NUTEC, mantido por compatibilidade."],
+    ["EXCECAO_REGISTRO_WEB", "Exceção - Registro web", "Exceção", "Injetado em SERVIDOR", "Permite registro web para usuário pessoa sem aparecer como perfil selecionável."],
+    ["EXCECAO_REGISTRO_FACIAL", "Exceção - Registro facial", "Exceção", "Injetado em SERVIDOR", "Permite registro facial para usuário pessoa sem aparecer como perfil selecionável."],
+]
+
+
+INTEGRATION_FIELDS = [
+    ["Integração", "Campos essenciais", "Validação"],
+    ["SARH - Oracle", "Seccional, nome, usuário Oracle, senha Oracle, string/TNS, Oracle Home/libDir, sigla localidade SARH, ativo.", "Salvar em Administração > Integrações > SARH, executar sincronização de lote pequeno e acompanhar worker-sarh."],
+    ["Active Directory - API HTTP", "Órgão autenticador, nome, modo API HTTP do AD, URL da API de autenticação, timeout, ativo.", "Testar login de matrícula conhecida. Se a integração falhar, o sistema pode usar senha local conforme configuração."],
+    ["Active Directory - LDAP Bind", "Endpoint LDAP/LDAPS, domínio NetBIOS ou UPN, Base DN, Bind DN técnico, senha de bind, padrão DN opcional, filtro de busca, timeout.", "Validar porta 389 ou 636 a partir do servidor, autenticar matrícula conhecida e revisar logs do web."],
+    ["Equipamentos biométricos", "Código, nome, órgão, unidade, fabricante, modelo, série, localização, IP, porta, protocolo, credenciais de coleta/configuração, próximo NSR, token webhook.", "Cadastrar equipamento de teste, validar conectividade, coletar marcações e conferir marcacoes_brutas/eventos."],
+]
 
 
 def story():
@@ -277,90 +427,106 @@ def story():
     elems = []
 
     elems += [
-        Spacer(1, 2.1 * cm),
-        p("Manual de Implantacao do SECP em Producao", "Title"),
-        p("Guia definitivo para instalacao, configuracao, validacao e operacao inicial em unidades interessadas", "Subtitle"),
-        Spacer(1, 0.35 * cm),
+        Spacer(1, 1.05 * cm),
+        Image(str(BRASAO), width=2.25 * cm, height=2.25 * cm) if BRASAO.exists() else Spacer(1, 2.25 * cm),
+        Spacer(1, 0.22 * cm),
+        para("JUSTIÇA FEDERAL DO AMAZONAS", "Institution"),
+        para("SEÇÃO JUDICIÁRIA DO AMAZONAS", "Institution"),
+        para("Núcleo de Tecnologia da Informação - NUTEC", "Institution"),
+        Spacer(1, 1.05 * cm),
+        para("Manual Técnico de Implantação do SECP em Linux", "CoverTitle"),
+        para("Implantação, certificado digital com Caddy, distribuição por GPO, atualização de versão, operação de containers e integrações institucionais", "CoverSubtitle"),
+        Spacer(1, 0.55 * cm),
         table(
             [
-                [p("Sistema", "Small"), p("SECP - Sistema Eletronico de Controle de Ponto", "Small")],
-                [p("Ambiente alvo", "Small"), p("Servidor Linux Ubuntu com Docker Compose", "Small")],
-                [p("Data de emissao", "Small"), p(today, "Small")],
-                [p("Classificacao", "Small"), p("Uso interno - nao incluir senhas reais neste documento", "Small")],
+                ["Sistema", "SECP - Sistema Eletrônico de Controle de Ponto"],
+                ["Ambiente alvo", "Servidor Linux Ubuntu com Docker Engine, Docker Compose v2, PostgreSQL, PgBouncer, Redis e Caddy"],
+                ["Público-alvo", "Técnicos de informática, administradores de sistemas e equipe de infraestrutura"],
+                ["Data de emissão", today],
+                ["Classificação", "Uso interno - não inserir senhas reais em cópias deste manual"],
             ],
-            [4.0 * cm, 11.7 * cm],
+            [4.0 * cm, 12.0 * cm],
+            header=False,
         ),
         Spacer(1, 0.55 * cm),
-        p(
-            "Este manual consolida o procedimento recomendado para implantar o SECP em producao. "
-            "Ele foi escrito para equipes de infraestrutura e suporte tecnico, com foco em comandos reproduziveis, "
-            "validacoes objetivas e operacao segura.",
-            "Note",
-        ),
+        para("Versão premium: este manual foi estruturado para permitir implantação reproduzível, atualização segura e operação assistida do SECP em ambiente Linux, sem zerar banco de produção e com separação clara entre aplicação, banco, proxy, integrações e workers.", "Note"),
         PageBreak(),
     ]
 
     elems += [
-        h1("1. Escopo e Premissas"),
-        p("O procedimento cobre a implantacao do SECP usando os arquivos Docker presentes no projeto: <b>compose.prod.yaml</b>, <b>Dockerfile</b>, <b>.env.production</b>, PgBouncer, PostgreSQL, Redis, workers e observabilidade opcional."),
-        bullets(
+        h1("1. Visão geral"),
+        para("O SECP é uma aplicação web Next.js com banco PostgreSQL, fila Redis, PgBouncer para pool de conexões e workers especializados. Em produção, a aplicação deve ser publicada atrás de HTTPS, preferencialmente por Caddy no próprio servidor Linux ou por proxy institucional equivalente."),
+        metric_cards(
             [
-                "A unidade deve possuir servidor Ubuntu dedicado ou VM equivalente, com acesso administrativo.",
-                "O banco principal fica no container <b>secp-postgres</b> e a aplicacao usa preferencialmente PgBouncer via <b>secp-pgbouncer</b>.",
-                "Workers rodam em containers separados para evitar que rotinas pesadas concorram com a interface web.",
-                "Credenciais, tokens, segredos e URLs internas devem ser definidos localmente pela unidade. Nunca versionar esses valores.",
+                ("Aplicação", "Next.js 16, Node.js 22, Auth.js/NextAuth, Prisma 7."),
+                ("Banco", "PostgreSQL 18 em volume persistente Docker."),
+                ("Filas", "Redis 7 para jobs assíncronos e processamento pesado."),
+                ("Integrações", "SARH Oracle/API, Active Directory, LDAP e equipamentos biométricos."),
+                ("Certificado", "Caddy com TLS público ou CA interna distribuída por GPO."),
+                ("Operação", "Atualização por APP_VERSION, migrations Prisma e recriação seletiva de containers."),
+                ("Segurança", "Segredos fora do Git, backups antes de migrations e tokens de webhook fortes."),
+                ("Escopo", "Perfis com abrangência próprio, subordinados, seccional e global."),
             ]
         ),
-        p("Ponto de atencao: este manual nao substitui politicas institucionais de seguranca, backup, firewall e mudanca. Use janela de manutencao para primeira implantacao, migrations e alteracoes de infraestrutura.", "Warn"),
-        h2("Arquitetura resumida"),
-        table(
-            [
-                [p("Componente", "Small"), p("Container/servico", "Small"), p("Funcao", "Small")],
-                [p("Aplicacao web", "Small"), p("secp-web", "Small"), p("Next.js em producao, porta interna 3000.", "Small")],
-                [p("Banco", "Small"), p("secp-postgres", "Small"), p("PostgreSQL 18, volume persistente secp_postgres_data.", "Small")],
-                [p("Pool de conexoes", "Small"), p("secp-pgbouncer", "Small"), p("PgBouncer na porta 6432, exposto apenas em 127.0.0.1.", "Small")],
-                [p("Filas/cache", "Small"), p("secp-redis", "Small"), p("Redis 7 com appendonly habilitado.", "Small")],
-                [p("Workers", "Small"), p("secp-worker-*", "Small"), p("AFD, SARH, login SARH, reprocessamento, calendario, relatorios e relogios.", "Small")],
-                [p("Admin opcional", "Small"), p("secp-pgadmin", "Small"), p("pgAdmin no profile admin, nao recomendado expor sem controle.", "Small")],
-            ],
-            [3.2 * cm, 4.6 * cm, 7.7 * cm],
+        Spacer(1, 0.35 * cm),
+        para("Regra de ouro: em produção, nunca executar docker compose down -v, prisma migrate reset, db push --force-reset ou qualquer comando que remova volumes. Dados reais devem ser preservados.", "Warn"),
+        h2("Topologia recomendada"),
+        code(
+            """
+Cliente Windows -> DNS interno -> Caddy :443 -> secp-web :3000
+secp-web        -> PgBouncer :6432 -> PostgreSQL :5432
+secp-web        -> Redis :6379
+workers         -> PgBouncer + Redis + SARH + equipamentos biométricos
+Caddy           -> emite/renova certificado e faz proxy reverso HTTPS
+GPO             -> distribui a CA interna aos clientes Windows, se o certificado não for público
+"""
         ),
     ]
 
     elems += [
-        h1("2. Requisitos Minimos"),
+        h1("2. Requisitos do servidor"),
         table(
             [
-                [p("Item", "Small"), p("Minimo recomendado", "Small"), p("Observacao", "Small")],
-                [p("Sistema operacional", "Small"), p("Ubuntu Server LTS 22.04 ou 24.04", "Small"), p("Manter atualizacoes de seguranca aplicadas.", "Small")],
-                [p("CPU", "Small"), p("4 vCPU", "Small"), p("Aumentar se houver muitos relogios, SARH frequente ou relatorios intensos.", "Small")],
-                [p("Memoria", "Small"), p("8 GB RAM", "Small"), p("O compose limita web e workers, mas o PostgreSQL tambem precisa folga.", "Small")],
-                [p("Disco", "Small"), p("100 GB SSD", "Small"), p("Separar volumes/backups quando possivel. Monitorar crescimento de banco e relatorios.", "Small")],
-                [p("Rede", "Small"), p("Acesso aos relogios, AD, SARH e DNS institucional", "Small"), p("Liberar portas conforme topologia da unidade.", "Small")],
-                [p("Runtime", "Small"), p("Docker Engine e Docker Compose v2", "Small"), p("Node nao precisa estar instalado no host para producao Docker.", "Small")],
+                ["Item", "Recomendado", "Observação"],
+                ["Sistema operacional", "Ubuntu Server LTS 22.04 ou 24.04", "Manter atualizações de segurança aplicadas."],
+                ["CPU", "4 vCPU ou mais", "Aumentar se houver muitos equipamentos, relatórios ou sincronizações SARH concorrentes."],
+                ["Memória", "8 GB RAM ou mais", "A aplicação web e workers têm limites; PostgreSQL e Docker também precisam folga."],
+                ["Disco", "100 GB SSD ou mais", "Monitorar volume do banco, relatórios e backups. Usar snapshots quando possível."],
+                ["Rede", "Acesso a SARH, AD/LDAP, equipamentos e DNS", "Liberar portas de saída conforme integração."],
+                ["Runtime", "Docker Engine + Docker Compose v2", "O host não precisa de Node.js para rodar produção Docker."],
+                ["Acesso", "Usuário técnico com sudo", "Evitar operar diretamente como root; registrar mudanças."],
             ],
-            [3.6 * cm, 5.0 * cm, 6.9 * cm],
+            [3.4 * cm, 5.0 * cm, 7.6 * cm],
         ),
-        h2("Portas usuais"),
-        bullets(
+        h2("Portas"),
+        table(
             [
-                "<b>3000/tcp</b>: SECP web no host, normalmente atras de proxy reverso, IIS/ARR ou DNS interno.",
-                "<b>3001/tcp</b>: worker Henry online, quando usado.",
-                "<b>6432/tcp</b>: PgBouncer restrito a 127.0.0.1 no compose.",
-                "<b>5050/tcp</b>: pgAdmin somente se profile admin for ativado.",
-                "<b>3100/9090</b>: Grafana/Prometheus se observabilidade for habilitada e publicada.",
-            ]
+                ["Porta", "Origem/Destino", "Uso"],
+                ["80/tcp", "Cliente -> Caddy", "Redirecionamento HTTP para HTTPS e desafio ACME quando aplicável."],
+                ["443/tcp", "Cliente -> Caddy", "Acesso HTTPS oficial ao SECP."],
+                ["3000/tcp", "Caddy/IIS/ARR -> secp-web", "Aplicação web publicada pelo compose."],
+                ["3001/tcp", "Equipamento/integração -> worker-henry-online", "Integração Henry online, quando necessária."],
+                ["6432/tcp", "Host local -> PgBouncer", "Exposto apenas em 127.0.0.1 no compose."],
+                ["5050/tcp", "Admin -> pgAdmin", "Somente quando profile admin for usado."],
+            ],
+            [2.6 * cm, 5.2 * cm, 8.2 * cm],
         ),
     ]
 
     elems += [
-        h1("3. Preparacao do Servidor Ubuntu"),
-        h2("Atualizar pacotes e instalar dependencias"),
+        h1("3. Containers utilizados"),
+        para("A tabela abaixo lista os containers previstos no compose de produção. Os serviços migrate e seed são ferramentas temporárias executadas por profile tools; os workers rodam por profile workers."),
+        table(CONTAINERS, [3.15 * cm, 3.85 * cm, 3.95 * cm, 6.05 * cm], font_size=6.6),
+    ]
+
+    elems += [
+        h1("4. Preparação do Ubuntu"),
+        h2("Atualizar sistema e instalar dependências"),
         code(
             """
 sudo apt-get update
 sudo apt-get upgrade -y
-sudo apt-get install -y ca-certificates curl git openssl unzip sshpass
+sudo apt-get install -y ca-certificates curl gnupg git openssl unzip rsync
 """
         ),
         h2("Instalar Docker Engine e Compose v2"),
@@ -373,89 +539,63 @@ docker version
 docker compose version
 """
         ),
-        p("Em ambientes com politica restritiva, instale Docker pelo repositorio homologado da unidade. O requisito tecnico e que <b>docker compose version</b> responda com Compose v2.", "Note"),
-        h2("Criar diretorio padrao"),
+        h2("Criar estrutura padrão"),
         code(
             """
 sudo mkdir -p /opt/secp
 sudo chown -R $USER:$USER /opt/secp
 cd /opt/secp
-"""
-        ),
-    ]
-
-    elems += [
-        h1("4. Obter o Codigo e Preparar Arquivos"),
-        h2("Clonar ou atualizar o repositorio"),
-        code(
-            """
-cd /opt/secp
 git clone <URL_DO_REPOSITORIO_SECP> secp-app
 cd /opt/secp/secp-app
-git checkout <BRANCH_OU_TAG_DE_PRODUCAO>
+git checkout <TAG_OU_COMMIT_APROVADO>
+mkdir -p backups observability/secrets
 """
         ),
-        p("Recomendacao: implantar por tag ou commit fixo. Evite apontar producao diretamente para uma branch movel sem registro de mudanca.", "Warn"),
-        h2("Estrutura esperada"),
-        code(
-            """
-/opt/secp/secp-app/
-  compose.prod.yaml
-  Dockerfile
-  .env.production
-  docker/pgbouncer/pgbouncer.ini
-  docker/pgbouncer/userlist.txt
-  docker/oracle/instantclient-basiclite-linuxx64.zip   # opcional
-  backups/
-  observability/
-"""
-        ),
+        para("Implante por tag ou commit aprovado. Evite usar produção apontando para branch móvel sem registro de mudança.", "Warn"),
     ]
 
     elems += [
-        h1("5. Configurar .env.production"),
-        p("Crie o arquivo <b>.env.production</b> no diretorio raiz do projeto. Use valores reais apenas no servidor. O exemplo abaixo usa placeholders."),
+        h1("5. Configuração do .env.production"),
+        para("Crie o arquivo .env.production no diretório /opt/secp/secp-app. Não versionar este arquivo. Os valores abaixo são modelo e devem ser substituídos por credenciais reais da unidade."),
         code(
             """
-APP_VERSION=20260716_unidade
+APP_VERSION=20260720_unidade
 
 POSTGRES_USER=secp
 POSTGRES_PASSWORD=<SENHA_FORTE_DO_POSTGRES>
 POSTGRES_DB=secp_prod
-DATABASE_URL=postgresql://secp:<SENHA_FORTE_DO_POSTGRES>@postgres:5432/secp_prod?schema=public
-DATABASE_URL_POOLED=postgresql://secp:<SENHA_FORTE_DO_POSTGRES>@pgbouncer:6432/secp_prod?schema=public
+DATABASE_URL=postgresql://secp:<SENHA>@postgres:5432/secp_prod?schema=public
+DATABASE_URL_POOLED=postgresql://secp:<SENHA>@pgbouncer:6432/secp_prod?schema=public
 
-AUTH_SECRET=<GERAR_COM_OPENSSL_RAND_HEX_32>
-NEXTAUTH_SECRET=<MESMO_VALOR_OU_OUTRO_SEGREDO_FORTE>
-AUTH_URL=https://<DNS_DO_SECP>
-NEXTAUTH_URL=https://<DNS_DO_SECP>
+AUTH_SECRET=<openssl rand -hex 32>
+NEXTAUTH_SECRET=<openssl rand -hex 32>
+AUTH_URL=https://secp.<dominio-interno>
+NEXTAUTH_URL=https://secp.<dominio-interno>
 AUTH_TRUST_HOST=true
 
 SECP_ADMIN_MATRICULA=secp
 SECP_ADMIN_SENHA=<SENHA_INICIAL_TEMPORARIA>
 SECP_ADMIN_NOME=Administrador SECP
-SECP_ADMIN_EMAIL=<EMAIL_SUPORTE>
+SECP_ADMIN_EMAIL=suporte@<dominio>
 
-AD_AUTH_URL=<URL_DA_API_DE_LOGIN_AD>
+AD_AUTH_URL=http://login.ad.integracao.am.trf1.gov.br/auth/login
 NODE_ENV=production
 APP_TIMEZONE=America/Manaus
 TZ=America/Manaus
 
 SARH_MOCK=false
-SARH_BASE_URL=<URL_BASE_SARH>
-SARH_API_BASE_URL=<URL_API_SARH>
-SARH_API_TOKEN=<TOKEN_SARH_SE_APLICAVEL>
+SARH_BASE_URL=http://sarh.integracao.am.trf1.gov.br
 SARH_TIMEOUT_MS=30000
 SARH_ORACLE_HOME=/opt/oracle/instantclient
 
-SECP_EQUIPAMENTO_WEBHOOK_TOKEN=<TOKEN_FORTE_WEBHOOK_EQUIPAMENTOS>
+SECP_EQUIPAMENTO_WEBHOOK_TOKEN=<openssl rand -hex 32>
 REDIS_HOST=redis
 REDIS_PORT=6379
 REDIS_URL=redis://redis:6379
 AFD_UPLOAD_DIR=import/_upload/afd
 
-BIOMETRIA_FACIAL_ENCRYPTION_KEY=<CHAVE_BASE64_32_BYTES>
-BIOMETRIA_FACIAL_TEMPLATE_PEPPER=<PEPPER_FORTE>
+BIOMETRIA_FACIAL_ENCRYPTION_KEY=<openssl rand -base64 32>
+BIOMETRIA_FACIAL_TEMPLATE_PEPPER=<openssl rand -hex 32>
 BIOMETRIA_FACIAL_ALLOW_RAW_IMAGE_STORAGE=false
 
 SECP_AUTO_WORKERS=false
@@ -468,10 +608,12 @@ SARH_LOGIN_SYNC_AUTO_WORKER=false
 SARH_SYNC_AUTO_WORKER=false
 
 LOG_LEVEL=info
-DOCKER_SOCKET_GID=<GID_DO_DOCKER_SOCKET>
+DOCKER_SOCKET_GID=<stat -c '%g' /var/run/docker.sock>
+SECP_WEB_CPUS=2.0
+SECP_WEB_MEM_LIMIT=2g
 """
         ),
-        h2("Gerar segredos"),
+        h2("Gerar segredos e GID do Docker"),
         code(
             """
 openssl rand -hex 32
@@ -479,40 +621,47 @@ openssl rand -base64 32
 stat -c '%g' /var/run/docker.sock
 """
         ),
-        p("Use o GID retornado pelo ultimo comando em <b>DOCKER_SOCKET_GID</b>. Isso permite que a tela administrativa leia o estado dos containers quando necessario.", "Note"),
+        para("Depois de alterar AUTH_URL, NEXTAUTH_URL, segredos, tokens ou variáveis de integração, recrie o container web para carregar o novo ambiente.", "Note"),
     ]
 
     elems += [
-        h1("6. PgBouncer e Oracle Instant Client"),
+        h1("6. PgBouncer, segredos e Oracle Instant Client"),
         h2("PgBouncer"),
-        p("Antes de subir a stack, crie <b>docker/pgbouncer/userlist.txt</b> fora do Git."),
+        para("O PgBouncer exige docker/pgbouncer/userlist.txt fora do Git. O hash é md5 da senha concatenada com o usuário."),
         code(
             """
 cd /opt/secp/secp-app
 printf '%s%s' '<SENHA_FORTE_DO_POSTGRES>' 'secp' | md5sum
-sudo install -m 600 /dev/null docker/pgbouncer/userlist.txt
-printf '\"secp\" \"md5<HASH_GERADO>\"\\n' > docker/pgbouncer/userlist.txt
+install -m 600 /dev/null docker/pgbouncer/userlist.txt
+printf '"secp" "md5<HASH_GERADO>"\\n' > docker/pgbouncer/userlist.txt
 """
         ),
-        p("O valor final precisa ser a palavra <b>md5</b> concatenada com o hash MD5 de senha + usuario.", "Note"),
-        h2("Oracle Instant Client para SARH"),
+        h2("Secret de métricas"),
+        code(
+            """
+mkdir -p observability/secrets
+openssl rand -hex 32 > observability/secrets/secp_metrics_token
+chmod 600 observability/secrets/secp_metrics_token
+"""
+        ),
+        h2("Oracle Instant Client"),
         bullets(
             [
-                "Se o build tiver internet, o Dockerfile baixa automaticamente o pacote Linux x64 da Oracle.",
-                "Para unidade sem internet no build, coloque o arquivo <b>docker/oracle/instantclient-basiclite-linuxx64.zip</b> antes de construir as imagens.",
-                "Nao use client Windows dentro do container Linux.",
+                "O Dockerfile procura primeiro por docker/oracle/instantclient-basiclite-linux*x64*.zip.",
+                "Se o ZIP Linux x64 não existir, o build tenta baixar o Instant Client da Oracle.",
+                "Em ambiente sem internet, coloque previamente o arquivo docker/oracle/instantclient-basiclite-linuxx64.zip.",
+                "Não usar cliente Oracle Windows dentro do container Linux.",
             ]
         ),
     ]
 
     elems += [
-        h1("7. Subida Inicial em Producao"),
+        h1("7. Implantação inicial"),
         h2("Validar compose"),
         code(
             """
 cd /opt/secp/secp-app
-export DOCKER_SOCKET_GID=$(stat -c '%g' /var/run/docker.sock)
-docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production config >/tmp/secp-prod-compose.yaml
+docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production config -q
 """
         ),
         h2("Construir imagens"),
@@ -521,22 +670,22 @@ docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production conf
 docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production build
 """
         ),
-        h2("Subir infraestrutura basica"),
+        h2("Subir infraestrutura"),
         code(
             """
 docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production up -d postgres redis pgbouncer
 docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production ps
 """
         ),
-        h2("Executar migrations e seed inicial"),
+        h2("Executar migrations e seed"),
         code(
             """
 docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production --profile tools run --rm migrate
 docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production --profile tools run --rm seed
 """
         ),
-        p("Execute seed inicial apenas na primeira implantacao ou quando houver orientacao explicita. Em atualizacoes comuns, migrations bastam.", "Warn"),
-        h2("Subir aplicacao e workers"),
+        para("Na primeira implantação, o seed cria perfis, permissões, parâmetros e usuário inicial. Em atualizações, rode seed somente quando houver orientação ou quando o release incluir permissões/menu/parametrizações novas.", "Warn"),
+        h2("Subir web e workers"),
         code(
             """
 docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production up -d web
@@ -547,101 +696,281 @@ docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production ps
     ]
 
     elems += [
-        h1("8. Validacao Tecnica Pos-Subida"),
-        h2("Saude da aplicacao"),
+        h1("8. Certificado digital e Caddy"),
+        para("O Caddy é recomendado para encerrar TLS e encaminhar tráfego para o secp-web. Ele pode usar certificado público automaticamente via ACME quando o DNS e a porta 80/443 forem públicos, ou certificado interno emitido por uma CA institucional."),
+        h2("Instalar Caddy no Ubuntu"),
+        code(
+            """
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
+  | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \
+  | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update
+sudo apt install -y caddy
+systemctl status caddy --no-pager
+"""
+        ),
+        h2("Opção A - HTTPS automático com CA pública"),
+        para("Use quando o nome DNS for resolvível e a autoridade certificadora pública puder validar o domínio. O servidor precisa receber tráfego nas portas 80 e 443."),
+        code(
+            """
+sudo tee /etc/caddy/Caddyfile >/dev/null <<'EOF'
+secp.<dominio-interno-ou-publico> {
+  encode gzip zstd
+  reverse_proxy 127.0.0.1:3000
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "SAMEORIGIN"
+    Referrer-Policy "strict-origin-when-cross-origin"
+  }
+}
+EOF
+
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+"""
+        ),
+        h2("Opção B - CA interna do Caddy para rede local"),
+        para("Use quando o SECP for publicado apenas em rede interna sem validação por CA pública. Nesse caso, os clientes Windows devem confiar no certificado raiz da CA local do Caddy, distribuído por GPO."),
+        code(
+            """
+sudo tee /etc/caddy/Caddyfile >/dev/null <<'EOF'
+secp.am.trf1.jus.br {
+  tls internal
+  encode gzip zstd
+  reverse_proxy 127.0.0.1:3000
+}
+EOF
+
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+sudo caddy trust
+sudo find /var/lib/caddy/.local/share/caddy/pki/authorities/local -name root.crt -print
+"""
+        ),
+        h2("Exportar certificado raiz para distribuição"),
+        code(
+            """
+sudo cp /var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt /tmp/secp-caddy-root.crt
+sudo chmod 644 /tmp/secp-caddy-root.crt
+openssl x509 -in /tmp/secp-caddy-root.crt -outform DER -out /tmp/secp-caddy-root.cer
+openssl x509 -in /tmp/secp-caddy-root.crt -noout -subject -issuer -dates -fingerprint -sha256
+"""
+        ),
+        para("Guarde o arquivo .cer em compartilhamento seguro acessível ao controlador de domínio. Não distribua a chave privada da CA. Distribua apenas o certificado raiz público.", "Warn"),
+    ]
+
+    elems += [
+        h1("9. Distribuição do certificado por GPO"),
+        para("Quando for usada CA interna, os computadores Windows precisam confiar no certificado raiz. A forma recomendada em domínio Active Directory é distribuir o certificado por Group Policy Object."),
+        numbered(
+            [
+                "No controlador de domínio ou estação com RSAT, abrir Group Policy Management.",
+                "Criar uma GPO específica, por exemplo GPO-SECP-Caddy-Root-CA, ou usar uma GPO existente aprovada.",
+                "Vincular a GPO ao domínio, site ou OU que contém os computadores clientes que acessarão o SECP.",
+                "Editar a GPO e navegar para Computer Configuration > Policies > Windows Settings > Security Settings > Public Key Policies.",
+                "Clicar com o botão direito em Trusted Root Certification Authorities e escolher Import.",
+                "Selecionar o arquivo secp-caddy-root.cer exportado do Caddy.",
+                "Escolher Place all certificates in the following store e confirmar Trusted Root Certification Authorities.",
+                "Finalizar o assistente e aguardar replicação da política.",
+            ]
+        ),
+        h2("Forçar atualização e validar no cliente"),
+        code(
+            """
+gpupdate /force
+certutil -store root | findstr /i "Caddy SECP"
+certutil -urlcache * delete
+"""
+        ),
+        para("Em alguns ambientes, o nome exibido no repositório de certificados pode ser o Common Name da CA local do Caddy. Valide pelo SHA256 fingerprint anotado no servidor.", "Note"),
+        h2("Testes do navegador"),
+        bullets(
+            [
+                "Abrir https://secp.<dominio> em estação de domínio.",
+                "Confirmar que o navegador não apresenta alerta de certificado.",
+                "Conferir se o certificado do site encadeia até a CA importada via GPO.",
+                "Executar gpresult /r ou gpresult /h relatorio.html se a política não aparecer.",
+            ]
+        ),
+    ]
+
+    elems += [
+        h1("10. Validação pós-implantação"),
+        h2("Healthchecks"),
         code(
             """
 curl -fsS http://127.0.0.1:3000/api/health
 curl -fsS http://127.0.0.1:3000/api/ready
 docker inspect secp-web --format '{{.State.Health.Status}}'
+docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production ps
 """
         ),
         h2("Banco, Redis e PgBouncer"),
         code(
             """
-docker exec secp-postgres pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" -h localhost
+docker exec secp-postgres pg_isready -U secp -d secp_prod -h localhost
 docker exec secp-redis redis-cli ping
-docker exec secp-pgbouncer pg_isready -h 127.0.0.1 -p 6432 -U "$POSTGRES_USER" -d "$POSTGRES_DB"
-"""
-        ),
-        h2("Logs essenciais"),
-        code(
-            """
-docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production logs --tail=120 web
-docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production --profile workers logs --tail=120 worker-sarh
-docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production --profile workers logs --tail=120 worker-coleta-relogio
+docker exec secp-pgbouncer pg_isready -h 127.0.0.1 -p 6432 -U secp -d secp_prod
 """
         ),
         h2("Checklist funcional"),
         bullets(
             [
-                "Acessar a URL oficial do SECP e autenticar com usuario administrador inicial.",
-                "Alterar a senha inicial temporaria ou desabilitar acesso local conforme politica da unidade.",
-                "Validar cadastro de orgao/seccional, unidades, perfis e permissao administrativa.",
-                "Executar sincronizacao SARH em lote pequeno e conferir servidores, afastamentos e ferias.",
-                "Cadastrar um equipamento biometrico de teste e confirmar coleta de marcacoes brutas.",
-                "Abrir /espelho-ponto para servidor conhecido e conferir competencia atual.",
+                "Login administrativo inicial efetuado e senha temporária alterada conforme política local.",
+                "Perfis e permissões exibidos corretamente em /perfis.",
+                "Menu lateral compatível com o perfil ativo e personalização disponível apenas para perfis autorizados.",
+                "SARH validado em lote pequeno antes de carga ampla.",
+                "Equipamento biométrico de teste cadastrado e coleta validada.",
+                "Espelho de ponto e banco de horas conferidos para servidor conhecido.",
+                "Caddy respondendo em HTTPS sem alerta de certificado.",
             ]
         ),
     ]
 
     elems += [
-        h1("9. Publicacao por DNS ou Proxy Reverso"),
-        p("O compose publica o SECP na porta <b>3000</b> do host. Em producao, recomenda-se publicar via DNS interno e proxy reverso com TLS institucional."),
-        h2("Exemplo de proxy generico"),
+        h1("11. Atualização de versão"),
+        para("A atualização deve preservar dados reais. Antes de qualquer migration, gere backup do PostgreSQL e confirme que o arquivo foi criado com tamanho plausível."),
+        h2("Backup pré-atualização"),
         code(
             """
-# Exemplo conceitual. Adapte para IIS/ARR, Nginx, Caddy ou balanceador institucional.
-https://secp.<unidade>.jus.br  ->  http://IP_DO_SERVIDOR:3000
-
-Cabecalhos importantes:
-  X-Forwarded-Proto: https
-  X-Forwarded-Host: secp.<unidade>.jus.br
-  X-Forwarded-For: <IP_CLIENTE>
+cd /opt/secp/secp-app
+mkdir -p backups
+docker exec secp-postgres pg_dump -U secp -d secp_prod -Fc > backups/predeploy_${APP_VERSION}_$(date +%Y%m%d%H%M%S).dump
+ls -lh backups/*.dump | tail
 """
         ),
-        p("Depois de publicar, ajuste <b>AUTH_URL</b> e <b>NEXTAUTH_URL</b> para a URL oficial HTTPS e recrie o container web.", "Note"),
+        h2("Atualizar código e imagens"),
         code(
             """
-docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production up -d --no-deps --force-recreate web
+cd /opt/secp/secp-app
+git fetch --all --tags
+git checkout <TAG_OU_COMMIT_APROVADO>
+sed -i 's/^APP_VERSION=.*/APP_VERSION=<NOVO_TAG>/' .env.production
+docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production config -q
+docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production build web migrate seed worker-afd
+docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production --profile tools run --rm migrate
+docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production --profile tools run --rm seed
 """
+        ),
+        h2("Recriar somente o necessário"),
+        code(
+            """
+# Somente web
+docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production up -d --no-deps --force-recreate web
+
+# Um worker específico
+docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production --profile workers up -d --no-deps --force-recreate worker-sarh
+
+# Todos os workers
+docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production --profile workers up -d --no-deps --force-recreate \
+  worker-afd worker-sarh worker-sarh-login worker-reprocessamento worker-calendario \
+  worker-henry-coleta worker-henry-online worker-coleta-relogio worker-relatorio-exportacao
+"""
+        ),
+        h2("Retenção simples dos últimos 2 backups"),
+        code(
+            """
+cd /opt/secp/secp-app
+ls -1t backups/*.dump | tail -n +3 | xargs -r rm -f
+ls -lh backups/*.dump
+"""
+        ),
+        para("Não remova backups fora da política aprovada. Se houver retenção institucional externa, mantenha cópia fora do servidor antes de excluir arquivos locais.", "Warn"),
+    ]
+
+    elems += [
+        h1("12. Operação de containers"),
+        h2("Subir, parar e reiniciar seletivamente"),
+        code(
+            """
+cd /opt/secp/secp-app
+
+# Status
+docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production ps
+
+# Reiniciar apenas web
+docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production restart web
+
+# Subir apenas pgAdmin, se necessário
+docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production --profile admin up -d pgadmin
+
+# Parar worker de coleta sem afetar web
+docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production --profile workers stop worker-coleta-relogio
+
+# Logs
+docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production logs --tail=150 web
+docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production --profile workers logs --tail=150 worker-sarh
+"""
+        ),
+        h2("Comandos proibidos em produção sem plano formal"),
+        bullets(
+            [
+                "docker compose down -v",
+                "docker volume rm secp-prod_secp_postgres_data",
+                "npx prisma migrate reset",
+                "npx prisma db push --force-reset",
+                "rm -rf /opt/secp/secp-app/backups sem cópia externa validada",
+            ]
         ),
     ]
 
     elems += [
-        h1("10. Integracoes"),
+        h1("13. Integrações"),
+        table(INTEGRATION_FIELDS, [3.25 * cm, 7.0 * cm, 6.75 * cm], font_size=6.9),
         h2("SARH"),
         bullets(
             [
-                "Confirmar conectividade do servidor SECP ate o SARH/API ou Oracle, conforme ambiente da unidade.",
-                "Manter <b>SARH_MOCK=false</b> em producao.",
-                "Validar rotinas separadas quando disponiveis: servidores, afastamentos, ferias e demais endpoints.",
-                "Acompanhar logs dos containers <b>secp-worker-sarh</b> e <b>secp-worker-sarh-login</b>.",
+                "Manter SARH_MOCK=false em produção.",
+                "Se a unidade usa Oracle direto, configurar conexão em Administração > Integrações > SARH.",
+                "Se usa API HTTP, validar URL base, token, timeout e endpoints disponibilizados.",
+                "Sincronizações devem começar por escopo pequeno, conferindo servidores, vínculos, lotações, chefias, afastamentos e férias.",
+                "Logs principais: secp-worker-sarh e secp-worker-sarh-login.",
             ]
         ),
-        h2("Equipamentos biometricos"),
+        h2("Active Directory"),
         bullets(
             [
-                "Confirmar IP, porta, fabricante, modelo, orgao e unidade antes da primeira coleta.",
-                "Para relogios Control iD FACE ID, usar protocolo Access API quando o endpoint <b>load_objects.fcgi</b> responder.",
-                "Para Control iD idClass Bio, usar protocolo REP/AFD em HTTPS 443 quando <b>get_afd.fcgi</b> responder.",
-                "Se o relogio pertencer a um orgao, o processamento deve normalizar matriculas numericas com o prefixo do orgao.",
-                "Acompanhar <b>marcacoes_brutas</b>, eventos do equipamento e logs do <b>worker-coleta-relogio</b>.",
+                "Modo API HTTP: informar a URL do serviço autenticador AD.",
+                "Modo LDAP Bind: informar LDAP/LDAPS, domínio, Base DN, Bind DN, senha técnica e filtro.",
+                "Preferir LDAPS 636 quando a infraestrutura oferecer certificado confiável.",
+                "Manter conta técnica com permissão mínima de leitura/autenticação.",
             ]
         ),
-        h2("AD/autenticacao"),
+        h2("Equipamentos eletrônicos de ponto"),
         bullets(
             [
-                "Validar a URL <b>AD_AUTH_URL</b> a partir do servidor.",
-                "Definir plano de contingencia para login local administrativo.",
-                "Evitar expor credenciais LDAP ou tokens em chamados, prints ou scripts compartilhados.",
+                "Protocolos suportados no cadastro: Genérico/webhook, Henry Linha ADV, Henry Lumen Balcão LT/Primme Acesso 8X, Dimep Smart Print, Control iD FACE ID e Control iD idClass Bio.",
+                "Cada equipamento deve ter órgão vinculado; unidade operacional é recomendada quando o relógio pertence a uma unidade específica.",
+                "Campos de usuário/senha podem ser separados por finalidade: padrão, dados/coleta e configuração.",
+                "A coleta progressiva usa próximo NSR quando o protocolo fornece essa informação.",
+                "Para webhook, use token forte e valide logs de entrada antes de liberar produção.",
             ]
         ),
     ]
 
     elems += [
-        h1("11. Backup e Restauracao"),
-        h2("Backup manual do PostgreSQL"),
+        h1("14. Perfis padrão"),
+        para("O seed padrão cria perfis institucionais com flags administrativo e exceção. Perfis de exceção não aparecem como perfil ativo; suas permissões são injetadas no perfil de destino definido no cadastro."),
+        table(PROFILES, [2.7 * cm, 3.9 * cm, 3.0 * cm, 3.2 * cm, 4.2 * cm], font_size=6.65),
+        h2("Abrangências de permissão"),
+        table(
+            [
+                ["Abrangência", "Significado"],
+                ["próprio", "Permite ação apenas sobre os próprios dados do usuário autenticado."],
+                ["subordinados", "Permite ação sobre pessoas subordinadas, respeitando hierarquia, chefia ou delegação vigente."],
+                ["seccional", "Permite ação sobre pessoas e dados da seccional/órgão do perfil."],
+                ["global", "Permite ação em todo o SECP, normalmente reservada ao MASTER e rotinas centrais."],
+            ],
+            [3.2 * cm, 13.8 * cm],
+        ),
+    ]
+
+    elems += [
+        h1("15. Backup, restauração e rollback"),
+        h2("Backup do PostgreSQL"),
         code(
             """
 cd /opt/secp/secp-app
@@ -649,7 +978,7 @@ mkdir -p backups
 docker exec secp-postgres pg_dump -U secp -d secp_prod -Fc > backups/secp_prod_$(date +%Y%m%d_%H%M%S).dump
 """
         ),
-        h2("Backup de arquivos persistentes"),
+        h2("Backup dos volumes de arquivos"),
         code(
             """
 docker run --rm -v secp-prod_secp_uploads_data:/data -v "$PWD/backups:/backups" alpine \
@@ -659,78 +988,22 @@ docker run --rm -v secp-prod_secp_relatorios_data:/data -v "$PWD/backups:/backup
   tar czf /backups/relatorios_$(date +%Y%m%d_%H%M%S).tar.gz -C /data .
 """
         ),
-        h2("Restauracao em ambiente controlado"),
+        h2("Rollback de imagem sem restaurar banco"),
         code(
             """
-# Exemplo: restaurar dump em banco vazio. Nao executar em producao sem janela e aprovacao.
-docker exec -i secp-postgres pg_restore -U secp -d secp_prod --clean --if-exists < backups/ARQUIVO.dump
-"""
-        ),
-        p("Regra operacional: antes de migrations, atualizacoes relevantes ou manutencoes no banco, gerar backup e validar que o arquivo foi criado com tamanho plausivel.", "Warn"),
-    ]
-
-    elems += [
-        h1("12. Atualizacao de Versao"),
-        numbered(
-            [
-                "Registrar versao atual: <b>git rev-parse HEAD</b> e <b>docker images | grep secp</b>.",
-                "Gerar backup do PostgreSQL e dos volumes de uploads/relatorios.",
-                "Atualizar codigo para tag ou commit aprovado.",
-                "Atualizar <b>APP_VERSION</b> no <b>.env.production</b>.",
-                "Rodar <b>docker compose config</b> para validar variaveis.",
-                "Construir imagens e executar migrations.",
-                "Recriar web e workers.",
-                "Validar health, ready, login, SARH, espelho de ponto e coleta de relogio.",
-            ]
-        ),
-        code(
-            """
-cd /opt/secp/secp-app
-git fetch --all --tags
-git checkout <TAG_OU_COMMIT_APROVADO>
-docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production build
-docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production --profile tools run --rm migrate
+git checkout <TAG_ANTERIOR>
+sed -i 's/^APP_VERSION=.*/APP_VERSION=<TAG_ANTERIOR>/' .env.production
+docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production build web worker-afd
 docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production up -d --no-deps --force-recreate web
 docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production --profile workers up -d --no-deps --force-recreate
 """
         ),
+        para("Se a versão nova aplicou migration incompatível com a versão anterior, rollback de imagem pode não bastar. Nesse caso, parar web/workers e restaurar dump em janela formal de manutenção.", "Warn"),
     ]
 
     elems += [
-        h1("13. Rollback"),
-        p("Rollback deve ter escopo claro. Se houve migration destrutiva, o rollback de imagem pode nao bastar; talvez seja necessario restaurar backup."),
-        h2("Rollback de imagem/codigo sem restaurar banco"),
-        code(
-            """
-cd /opt/secp/secp-app
-git checkout <TAG_OU_COMMIT_ANTERIOR>
-docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production build web worker-afd worker-sarh worker-coleta-relogio
-docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production up -d --no-deps --force-recreate web
-docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production --profile workers up -d --no-deps --force-recreate
-"""
-        ),
-        h2("Rollback com restauracao de banco"),
-        bullets(
-            [
-                "Parar web e workers para evitar escrita durante restauracao.",
-                "Restaurar dump aprovado em janela de manutencao.",
-                "Subir web e workers da versao compativel com o dump.",
-                "Validar login, health, ready e dados essenciais.",
-            ]
-        ),
-    ]
-
-    elems += [
-        h1("14. Observabilidade Opcional"),
-        p("O projeto possui stack de observabilidade com Prometheus, Grafana, Alertmanager, Tempo, Loki, Promtail e exporters."),
-        h2("Preflight"),
-        code(
-            """
-cd /opt/secp/secp-app
-bash scripts/observability/preflight.sh
-"""
-        ),
-        h2("Preparar secrets e subir"),
+        h1("16. Observabilidade e auditoria operacional"),
+        para("O projeto possui stack opcional de observabilidade com Prometheus, Grafana, Alertmanager, Tempo, Loki, Promtail e exporters. A aplicação expõe /api/metrics protegido por token."),
         code(
             """
 cd /opt/secp/secp-app/observability
@@ -738,96 +1011,87 @@ cp .env.example .env
 mkdir -p secrets
 openssl rand -hex 32 > secrets/secp_metrics_token
 openssl rand -base64 32 > secrets/grafana_admin_password
-printf 'https://SEU-WEBHOOK-ALERTMANAGER.example/secp\\n' > secrets/alertmanager_webhook_url
+printf 'https://webhook-institucional.example/secp\\n' > secrets/alertmanager_webhook_url
 bash scripts/validate.sh
 bash scripts/start.sh
 bash scripts/status.sh
 """
         ),
-        p("O endpoint <b>/api/metrics</b> exige token Bearer. Nao publique Prometheus ou Grafana sem autenticacao e controle de rede.", "Warn"),
-    ]
-
-    elems += [
-        h1("15. Operacao Diaria e Diagnostico Rapido"),
-        h2("Comandos de rotina"),
-        code(
-            """
-docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production ps
-docker stats --no-stream
-df -h
-docker system df
-curl -fsS http://127.0.0.1:3000/api/health
-curl -fsS http://127.0.0.1:3000/api/ready
-"""
-        ),
-        h2("Quando a aplicacao nao responde"),
-        numbered(
+        h2("Diagnóstico rápido"),
+        table(
             [
-                "Verificar se <b>secp-web</b> esta Up/healthy.",
-                "Consultar logs recentes do <b>web</b>.",
-                "Validar PostgreSQL, PgBouncer e Redis.",
-                "Verificar uso de disco e memoria.",
-                "Testar acesso local <b>curl http://127.0.0.1:3000/api/health</b> antes de culpar proxy ou DNS.",
-            ]
-        ),
-        h2("Quando filas ou workers atrasam"),
-        bullets(
-            [
-                "Verificar logs do worker especifico.",
-                "Conferir Redis com <b>redis-cli ping</b>.",
-                "Avaliar se relogios biometricos estao online e se o cursor NSR esta muito atrasado.",
-                "Evitar aumentar concorrencia sem medir CPU, memoria, banco e rede.",
-            ]
-        ),
-        h2("Quando o banco apresenta erro"),
-        bullets(
-            [
-                "Testar <b>pg_isready</b> no PostgreSQL e no PgBouncer.",
-                "Nao rodar <b>vacuum full</b>, migrations manuais ou reset sem backup e janela.",
-                "Verificar conexoes, tamanho do banco e logs do container.",
-            ]
+                ["Sintoma", "Verificar", "Comando inicial"],
+                ["SECP não abre", "Caddy, secp-web, DNS, firewall", "curl -vk https://secp.<dominio>"],
+                ["Login falhando", "AD_AUTH_URL, LDAP, usuário local, logs do web", "docker logs --tail=150 secp-web"],
+                ["Banco indisponível", "PostgreSQL, PgBouncer, disco", "docker exec secp-postgres pg_isready -U secp -d secp_prod"],
+                ["Filas paradas", "Redis e workers", "docker logs --tail=150 secp-worker-sarh"],
+                ["Coleta de relógio falhando", "IP, porta, protocolo, credenciais e NSR", "docker logs --tail=150 secp-worker-coleta-relogio"],
+                ["Certificado inválido", "Caddyfile, cadeia, GPO, DNS", "openssl s_client -connect secp.<dominio>:443 -servername secp.<dominio>"],
+            ],
+            [3.7 * cm, 6.2 * cm, 7.1 * cm],
+            font_size=6.7,
         ),
     ]
 
     elems += [
-        h1("16. Checklist de Entrega da Implantacao"),
+        h1("17. Checklist de entrega"),
         table(
             [
-                [p("Item", "Small"), p("Validado", "Small"), p("Observacao", "Small")],
-                [p("Servidor Ubuntu atualizado e com Docker Compose v2", "Small"), p("( )", "Small"), p("", "Small")],
-                [p("Repositorio em tag/commit aprovado", "Small"), p("( )", "Small"), p("", "Small")],
-                [p(".env.production criado sem valores padrao inseguros", "Small"), p("( )", "Small"), p("", "Small")],
-                [p("PgBouncer userlist.txt criado", "Small"), p("( )", "Small"), p("", "Small")],
-                [p("Migrations executadas com sucesso", "Small"), p("( )", "Small"), p("", "Small")],
-                [p("Web e workers rodando", "Small"), p("( )", "Small"), p("", "Small")],
-                [p("/api/health e /api/ready respondendo", "Small"), p("( )", "Small"), p("", "Small")],
-                [p("Login administrativo validado", "Small"), p("( )", "Small"), p("", "Small")],
-                [p("SARH validado em lote pequeno", "Small"), p("( )", "Small"), p("", "Small")],
-                [p("Equipamento biometrico de teste validado", "Small"), p("( )", "Small"), p("", "Small")],
-                [p("Backup inicial gerado e armazenado", "Small"), p("( )", "Small"), p("", "Small")],
-                [p("DNS/proxy/TLS validado", "Small"), p("( )", "Small"), p("", "Small")],
-                [p("Responsaveis de operacao definidos", "Small"), p("( )", "Small"), p("", "Small")],
+                ["Item", "OK", "Observação"],
+                ["Ubuntu atualizado, Docker e Compose v2 instalados", "( )", ""],
+                ["Código em tag/commit aprovado", "( )", ""],
+                [".env.production criado sem senhas fracas ou placeholders", "( )", ""],
+                ["PgBouncer userlist.txt criado e protegido", "( )", ""],
+                ["Secret de métricas criado", "( )", ""],
+                ["Oracle Instant Client disponível para build SARH", "( )", ""],
+                ["Migrations aplicadas", "( )", ""],
+                ["Seed executado quando necessário", "( )", ""],
+                ["Web e workers no APP_VERSION correto", "( )", ""],
+                ["/api/health e /api/ready OK", "( )", ""],
+                ["Caddy com HTTPS validado", "( )", ""],
+                ["Certificado raiz distribuído por GPO, se CA interna", "( )", ""],
+                ["SARH validado em lote pequeno", "( )", ""],
+                ["AD/LDAP validado com usuário real", "( )", ""],
+                ["Equipamento de teste coletando marcações", "( )", ""],
+                ["Backup inicial armazenado e documentado", "( )", ""],
             ],
-            [9.2 * cm, 2.0 * cm, 4.3 * cm],
+            [10.0 * cm, 1.6 * cm, 5.4 * cm],
+            font_size=6.9,
         ),
-        Spacer(1, 0.4 * cm),
+        Spacer(1, 0.35 * cm),
         table(
             [
-                [p("Unidade", "Small"), p("", "Small")],
-                [p("Responsavel tecnico", "Small"), p("", "Small")],
-                [p("Data da implantacao", "Small"), p("", "Small")],
-                [p("Commit/tag implantado", "Small"), p("", "Small")],
-                [p("URL oficial", "Small"), p("", "Small")],
+                ["Unidade", ""],
+                ["Responsável técnico", ""],
+                ["Data da implantação", ""],
+                ["Commit/tag implantado", ""],
+                ["URL oficial", ""],
+                ["Observações", ""],
             ],
-            [5.0 * cm, 10.5 * cm],
+            [4.5 * cm, 12.5 * cm],
+            header=False,
         ),
+    ]
+
+    elems += [
+        h1("18. Referências técnicas"),
+        bullets(
+            [
+                "Caddy Documentation - Install: https://caddyserver.com/docs/install",
+                "Microsoft Learn - Distribute certificates to Windows devices by using Group Policy: https://learn.microsoft.com/en-us/windows-server/identity/ad-cs/distribute-certificates-group-policy",
+                "Microsoft Learn - Distribute Certificates to Client Computers by Using Group Policy: https://learn.microsoft.com/en-us/windows-server/identity/ad-fs/deployment/distribute-certificates-to-client-computers-by-using-group-policy",
+                "Wikimedia Commons - Coat of arms of Brazil.svg: https://commons.wikimedia.org/wiki/File:Coat_of_arms_of_Brazil.svg",
+                "Arquivos do SECP usados como fonte: compose.prod.yaml, Dockerfile, prisma/seed.ts, docker/pgbouncer/README.md, docker/oracle/README.md e módulos de integração.",
+            ]
+        ),
+        para("As orientações de Caddy e GPO foram conferidas em 20/07/2026. Em ambientes com política institucional própria de certificados, firewall, proxy reverso ou hardening, prevalecem as normas da Justiça Federal e da unidade responsável.", "Note"),
     ]
 
     return elems
 
 
 def main():
-    doc = make_doc()
+    doc = build_doc()
     doc.build(story())
     print(OUTPUT)
 

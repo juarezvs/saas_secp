@@ -18,6 +18,7 @@
     "worker:sarh-login-sync": "tsx workers/sarh-login-sync.worker.ts",
     "worker:coleta-relogio-progressiva": "tsx workers/coleta-relogio-progressiva.worker.ts",
     "worker:relatorio-exportacao": "tsx workers/relatorio-exportacao.worker.ts",
+    "sanear:marcacoes-idclass-afd": "tsx scripts/sanear-marcacoes-idclass-afd.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",

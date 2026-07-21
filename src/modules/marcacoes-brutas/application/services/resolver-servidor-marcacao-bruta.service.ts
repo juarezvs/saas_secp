@@ -14,6 +14,16 @@ function normalizarCpf(valor: string | null | undefined) {
   return null;
 }
 
+function normalizarPis(valor: string | null | undefined) {
+  const digitos = somenteDigitos(valor);
+
+  if (!digitos) return null;
+
+  const semZeros = digitos.replace(/^0+/, "") || "0";
+
+  return semZeros.length >= 10 && semZeros.length <= 12 ? semZeros : null;
+}
+
 function matriculaTemPrefixo(matricula: string | null) {
   return Boolean(matricula && /[a-z]/i.test(matricula));
 }
@@ -50,10 +60,12 @@ function normalizarMatriculaPorOrgao(
 
 export async function resolverServidorMarcacaoBrutaService(params: {
   cpf?: string | null;
+  pis?: string | null;
   matricula?: string | null;
   equipamentoId?: string | null;
 }) {
   const cpf = normalizarCpf(params.cpf) ?? normalizarCpf(params.matricula);
+  const pis = normalizarPis(params.pis);
   const matricula = params.matricula?.trim() || null;
   const equipamento = params.equipamentoId
     ? await prisma.equipamentoBiometrico.findUnique({
@@ -93,6 +105,7 @@ export async function resolverServidorMarcacaoBrutaService(params: {
           id: true,
           matricula: true,
           cpf: true,
+          pis: true,
         },
       });
 
@@ -110,6 +123,42 @@ export async function resolverServidorMarcacaoBrutaService(params: {
         id: true,
         matricula: true,
         cpf: true,
+        pis: true,
+      },
+    });
+  }
+
+  if (pis) {
+    if (orgaoIdEquipamento) {
+      const servidorDoOrgao = await prisma.servidor.findFirst({
+        where: {
+          ativo: true,
+          orgaoId: orgaoIdEquipamento,
+          pis,
+        },
+        select: {
+          id: true,
+          matricula: true,
+          cpf: true,
+          pis: true,
+        },
+      });
+
+      if (servidorDoOrgao) {
+        return servidorDoOrgao;
+      }
+    }
+
+    return prisma.servidor.findFirst({
+      where: {
+        ativo: true,
+        pis,
+      },
+      select: {
+        id: true,
+        matricula: true,
+        cpf: true,
+        pis: true,
       },
     });
   }
@@ -158,6 +207,7 @@ export async function resolverServidorMarcacaoBrutaService(params: {
         id: true,
         matricula: true,
         cpf: true,
+        pis: true,
       },
     });
 
@@ -179,6 +229,7 @@ export async function resolverServidorMarcacaoBrutaService(params: {
       id: true,
       matricula: true,
       cpf: true,
+      pis: true,
     },
   });
 }

@@ -11,6 +11,7 @@ import {
   excluirPersonalizacaoMenuAction,
 } from "@/modules/menus/application/actions/personalizar-menu.actions";
 import {
+  buscarIconesItensCatalogoMenu,
   buscarMenuPersonalizadoPerfil,
   inicializarMenuPersonalizadoPerfilSeVazio,
 } from "@/modules/menus/infrastructure/repositories/menu-personalizado.repository";
@@ -48,7 +49,7 @@ export default async function PersonalizarMenuPage({
     await inicializarMenuPersonalizadoPerfilSeVazio(perfilSelecionado.id);
   }
 
-  const [menu, perfilCarregado] = await Promise.all([
+  const [menu, perfilCarregado, iconesItensCatalogo] = await Promise.all([
     buscarMenuPersonalizadoPerfil(perfilSelecionado.id),
     prisma.perfil.findUnique({
       where: { id: perfilSelecionado.id },
@@ -68,6 +69,7 @@ export default async function PersonalizarMenuPage({
         },
       },
     }),
+    buscarIconesItensCatalogoMenu(),
   ]);
 
   return (
@@ -155,6 +157,7 @@ export default async function PersonalizarMenuPage({
             key={perfilSelecionado.id}
             perfilId={perfilSelecionado.id}
             menu={menu}
+            iconesItensCatalogo={iconesItensCatalogo}
             editarGrupoIdInicial={params?.editarGrupoId}
             perfilCarregado={{
               id: perfilCarregado?.id ?? perfilSelecionado.id,

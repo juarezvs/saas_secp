@@ -46,7 +46,10 @@ import {
 
 import { SecpLogo } from "@/components/brand/secp-logo";
 import { possuiAlgumaPermissaoNaLista } from "@/modules/auth/application/services/permissao-utils";
-import type { MenusPersonalizadosPorPerfil } from "@/modules/menus/domain/menu-personalizado";
+import type {
+  IconesItensCatalogoMenu,
+  MenusPersonalizadosPorPerfil,
+} from "@/modules/menus/domain/menu-personalizado";
 import {
   PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
   PERMISSOES_ACESSO_REGISTRO_PONTO_SECP,
@@ -682,6 +685,7 @@ type SidebarProps = {
   drawerAberto: boolean;
   perfilAtivo: PerfilNavegacao;
   menusPersonalizados?: MenusPersonalizadosPorPerfil;
+  iconesItensCatalogo?: IconesItensCatalogoMenu;
   preferenciasAcessibilidade: PreferenciasAcessibilidade;
   instituicaoLabel: string;
   onFecharDrawer: () => void;
@@ -816,6 +820,43 @@ function iconeGrupoPersonalizado(nome?: string | null): LucideIcon {
   return ehComponenteIconeLucide(iconeLucide)
     ? (iconeLucide as LucideIcon)
     : Settings;
+}
+
+function iconeItemCatalogoPersonalizado(
+  nome: string | null | undefined,
+  fallback: LucideIcon,
+): LucideIcon {
+  const chave = nome?.trim();
+
+  if (!chave) {
+    return fallback;
+  }
+
+  const iconeLucide = (LucideIcons as Record<string, unknown>)[chave];
+
+  return ehComponenteIconeLucide(iconeLucide)
+    ? (iconeLucide as LucideIcon)
+    : fallback;
+}
+
+function aplicarIconesItensCatalogo(
+  itens: MenuItem[],
+  iconesItensCatalogo?: IconesItensCatalogoMenu,
+): MenuItem[] {
+  if (!iconesItensCatalogo || Object.keys(iconesItensCatalogo).length === 0) {
+    return itens;
+  }
+
+  return itens.map((item) => ({
+    ...item,
+    icon: iconeItemCatalogoPersonalizado(
+      iconesItensCatalogo[item.href],
+      item.icon,
+    ),
+    children: item.children
+      ? aplicarIconesItensCatalogo(item.children, iconesItensCatalogo)
+      : undefined,
+  }));
 }
 
 function montarItensPersonalizados(params: {
@@ -1023,17 +1064,23 @@ function MenuPrincipal({
   recolhida,
   perfilAtivo,
   menusPersonalizados,
+  iconesItensCatalogo,
   onNavigate,
 }: {
   recolhida: boolean;
   perfilAtivo: PerfilNavegacao;
   menusPersonalizados?: MenusPersonalizadosPorPerfil;
+  iconesItensCatalogo?: IconesItensCatalogoMenu;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const itensPadraoComIcones = useMemo(
+    () => aplicarIconesItensCatalogo(MENU_ITEMS, iconesItensCatalogo),
+    [iconesItensCatalogo],
+  );
   const itensPadraoVisiveis = useMemo(
-    () => filtrarItensVisiveis(MENU_ITEMS, perfilAtivo),
-    [perfilAtivo],
+    () => filtrarItensVisiveis(itensPadraoComIcones, perfilAtivo),
+    [itensPadraoComIcones, perfilAtivo],
   );
   const itensVisiveis = useMemo(
     () =>
@@ -1179,6 +1226,7 @@ export function Sidebar({
   drawerAberto,
   perfilAtivo,
   menusPersonalizados,
+  iconesItensCatalogo,
   preferenciasAcessibilidade,
   instituicaoLabel,
   onFecharDrawer,
@@ -1244,6 +1292,7 @@ export function Sidebar({
             recolhida={recolhida}
             perfilAtivo={perfilAtivo}
             menusPersonalizados={menusPersonalizados}
+            iconesItensCatalogo={iconesItensCatalogo}
           />
           <ThemeSelector
             recolhida={recolhida}
@@ -1300,6 +1349,7 @@ export function Sidebar({
               recolhida={false}
               perfilAtivo={perfilAtivo}
               menusPersonalizados={menusPersonalizados}
+              iconesItensCatalogo={iconesItensCatalogo}
               onNavigate={onFecharDrawer}
             />
             <ThemeSelector

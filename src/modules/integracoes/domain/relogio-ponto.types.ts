@@ -34,11 +34,32 @@ export type DadosConexaoRelogioPonto = {
 export type MarcacaoRelogioPonto = {
   nsr?: string | null;
   cpf?: string | null;
+  pis?: string | null;
   matricula?: string | null;
   dataHora: Date;
   codigoExterno?: string | null;
   linhaOriginal?: string | null;
   payload?: unknown;
+};
+
+export type TipoRegistroAfdRelogioPonto = "MARCACAO" | "CADASTRO";
+
+export type TipoIdentificadorAfdRelogioPonto =
+  | "CPF"
+  | "PIS"
+  | "DESCONHECIDO";
+
+export type IdentificadorAfdRelogioPonto = {
+  nsr: string;
+  dataHora: Date;
+  tipoRegistro: TipoRegistroAfdRelogioPonto;
+  identificador: string;
+  tipoIdentificador: TipoIdentificadorAfdRelogioPonto;
+  cpf?: string | null;
+  pis?: string | null;
+  nome?: string | null;
+  operacao?: "INCLUSAO" | "EXCLUSAO" | null;
+  linhaOriginal?: string | null;
 };
 
 export type BiometriaServidorRelogioPonto = {
@@ -85,6 +106,13 @@ export type ResultadoColetaRelogioPonto = {
   payload?: unknown;
 };
 
+export type ResultadoAnaliseAfdRelogioPonto = {
+  registros: IdentificadorAfdRelogioPonto[];
+  proximoNsr?: string | null;
+  mensagem: string;
+  payload?: unknown;
+};
+
 export type ResultadoEnvioBiometriaRelogioPonto = {
   sucesso: boolean;
   mensagem: string;
@@ -105,6 +133,10 @@ export interface RelogioPontoProvider {
     nsrInicial: string | number;
     quantidade?: number;
   }): Promise<ResultadoColetaRelogioPonto>;
+  analisarAfdDesdeNsr?(params: {
+    nsrInicial: string | number;
+    quantidade?: number;
+  }): Promise<ResultadoAnaliseAfdRelogioPonto>;
   enviarBiometrias(
     servidores: BiometriaServidorRelogioPonto[],
   ): Promise<ResultadoEnvioBiometriaRelogioPonto>;

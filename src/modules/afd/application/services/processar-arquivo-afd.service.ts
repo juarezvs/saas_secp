@@ -122,7 +122,7 @@ export async function processarArquivoAfdService(params: {
 
     let trailerEncontrado = false;
     let trailerInvalido = false;
-    const servidorPorCpf = new Map<
+    const servidorPorIdentificador = new Map<
       string,
       Awaited<ReturnType<typeof resolverServidorMarcacaoBrutaService>>
     >();
@@ -166,17 +166,22 @@ export async function processarArquivoAfdService(params: {
       }
 
       try {
-        let servidor = servidorPorCpf.get(parseada.cpf);
+        const chaveServidor =
+          parseada.cpf ? `cpf:${parseada.cpf}` : `pis:${parseada.pis}`;
+        let servidor = servidorPorIdentificador.get(chaveServidor);
 
         if (servidor === undefined) {
           servidor = await resolverServidorMarcacaoBrutaService({
             cpf: parseada.cpf,
+            pis: parseada.pis,
+            equipamentoId: equipamentoIdentificado?.id ?? null,
           });
-          servidorPorCpf.set(parseada.cpf, servidor);
+          servidorPorIdentificador.set(chaveServidor, servidor);
         }
 
         const resultadoBruta = await criarMarcacaoBrutaService({
           cpf: parseada.cpf,
+          pis: parseada.pis,
           matricula: servidor?.matricula ?? null,
           servidorId: servidor?.id ?? null,
           dataHora: parseada.dataHora,

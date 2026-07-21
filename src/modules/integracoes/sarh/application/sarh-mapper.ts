@@ -13,6 +13,7 @@ import {
   normalizarMatricula,
   obterCpfServidorSarh,
   obterDataNascimentoServidorSarh,
+  obterPisServidorSarh,
 } from "../domain/sarh-normalizer";
 
 export function mapearCargoSarh(payload: SarhCargoDto) {
@@ -137,6 +138,7 @@ export function mapearServidorSarh(
     orgaoId,
     matricula: normalizarMatricula(payload.matricula),
     cpf: obterCpfServidorSarh(payload),
+    pis: obterPisServidorSarh(payload),
     nomeFuncional: limparTexto(payload.nomeSocial) ?? limparTexto(payload.nome),
     vinculo: mapearVinculoServidorSarh(payload),
     ativo: payload.ativo,

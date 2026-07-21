@@ -5,7 +5,9 @@ import type {
   BiometriaServidorRelogioPonto,
   CadastroBiometricoEquipamento,
   DadosConexaoRelogioPonto,
+  IdentificadorAfdRelogioPonto,
   RelogioPontoProvider,
+  ResultadoAnaliseAfdRelogioPonto,
   ResultadoColetaRelogioPonto,
   ResultadoEnvioBiometriaRelogioPonto,
   ResultadoLeituraCadastrosBiometricos,
@@ -116,12 +118,42 @@ function dataUnixSegundos(valor: unknown) {
   return Number.isNaN(data.getTime()) ? null : data;
 }
 
-function normalizarCpf(valor: string | null) {
+function cpfValido(cpf: string) {
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) {
+    return false;
+  }
+
+  for (const tamanho of [9, 10]) {
+    let soma = 0;
+
+    for (let indice = 0; indice < tamanho; indice += 1) {
+      soma += Number(cpf[indice]) * (tamanho + 1 - indice);
+    }
+
+    let digito = (soma * 10) % 11;
+    if (digito === 10) digito = 0;
+
+    if (digito !== Number(cpf[tamanho])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function normalizarCpfControlId(valor: string | null) {
   const apenasDigitos = valor?.replace(/\D/g, "") ?? "";
 
   if (!apenasDigitos) return null;
 
-  return apenasDigitos.padStart(11, "0").slice(-11);
+  const cpf =
+    apenasDigitos.length === 12 && apenasDigitos.startsWith("0")
+      ? apenasDigitos.slice(1)
+      : apenasDigitos.length === 11
+        ? apenasDigitos
+        : null;
+
+  return cpf && cpfValido(cpf) ? cpf : null;
 }
 
 function extrairCpfCadastroControlId(usuario: ControlIdUser | undefined) {
@@ -135,9 +167,9 @@ function extrairCpfCadastroControlId(usuario: ControlIdUser | undefined) {
   ]) {
     const digitos = valorTexto(valor)?.replace(/\D/g, "") ?? "";
 
-    if (digitos.length === 11) return digitos;
+    if (digitos.length === 11) return normalizarCpfControlId(digitos);
     if (digitos.length === 12 && digitos.startsWith("0")) {
-      return digitos.slice(1);
+      return normalizarCpfControlId(digitos);
     }
   }
 
@@ -148,12 +180,15 @@ function parseCsvSimples(linha: string) {
   return linha.split(";").map((valor) => valor.trim());
 }
 
-function parseLinhaAfdIdClass(linha: string): {
+export function parseLinhaAfdIdClass(linha: string): {
   nsr: string;
   dataHora: Date;
-  cpf: string;
+  cpf: string | null;
+  pis: string | null;
+  matricula: string | null;
+  identificador: string;
 } | null {
-  const match = linha.match(/^(\d{9})3(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4})(\d{11})/);
+  const match = linha.match(/^(\d{9})3(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4})(\d{12})/);
 
   if (!match) return null;
 
@@ -161,11 +196,71 @@ function parseLinhaAfdIdClass(linha: string): {
 
   if (Number.isNaN(dataHora.getTime())) return null;
 
+  const identificador = match[3];
+  const cpf = normalizarCpfControlId(identificador);
+  const pis = cpf ? null : identificador.replace(/^0+/, "") || identificador;
+
   return {
     nsr: String(Number(match[1])),
     dataHora,
-    cpf: normalizarCpf(match[3]) ?? match[3],
+    cpf,
+    pis,
+    matricula: null,
+    identificador,
   };
+}
+
+export function parseLinhaCadastroAfdIdClass(
+  linha: string,
+): IdentificadorAfdRelogioPonto | null {
+  const match = linha.match(
+    /^(\d{9})5(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4})([IE])(\d{12})(.*)$/,
+  );
+
+  if (!match) return null;
+
+  const dataHora = new Date(match[2].replace(/([+-]\d{2})(\d{2})$/, "$1:$2"));
+
+  if (Number.isNaN(dataHora.getTime())) return null;
+
+  const identificador = match[4];
+  const cpf = normalizarCpfControlId(identificador);
+  const pis = cpf ? null : identificador.replace(/^0+/, "") || identificador;
+  const nome = match[5].slice(0, 52).replace(/\s+/g, " ").trim() || null;
+
+  return {
+    nsr: String(Number(match[1])),
+    dataHora,
+    tipoRegistro: "CADASTRO",
+    identificador,
+    tipoIdentificador: cpf ? "CPF" : pis ? "PIS" : "DESCONHECIDO",
+    cpf,
+    pis,
+    nome,
+    operacao: match[3] === "E" ? "EXCLUSAO" : "INCLUSAO",
+    linhaOriginal: linha,
+  };
+}
+
+function parseLinhaIdentificadorAfdIdClass(
+  linha: string,
+): IdentificadorAfdRelogioPonto | null {
+  const marcacao = parseLinhaAfdIdClass(linha);
+
+  if (marcacao) {
+    return {
+      nsr: marcacao.nsr,
+      dataHora: marcacao.dataHora,
+      tipoRegistro: "MARCACAO",
+      identificador: marcacao.identificador,
+      tipoIdentificador: marcacao.cpf ? "CPF" : marcacao.pis ? "PIS" : "DESCONHECIDO",
+      cpf: marcacao.cpf,
+      pis: marcacao.pis,
+      linhaOriginal: linha,
+    };
+  }
+
+  return parseLinhaCadastroAfdIdClass(linha);
 }
 
 function nsrLinhaAfd(linha: string) {
@@ -568,12 +663,20 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
       const marcacoes = selecionados.map((marcacao) => ({
         nsr: marcacao.nsr,
         cpf: marcacao.cpf,
-        matricula: null,
+        pis: marcacao.pis,
+        matricula: marcacao.matricula,
         dataHora: marcacao.dataHora,
         codigoExterno: marcacao.nsr,
         payload: {
           protocolo: this.protocolo,
           origem: "AFD_671",
+          identificadorAfd: marcacao.identificador,
+          tipoIdentificadorAfd: marcacao.cpf
+            ? "CPF"
+            : marcacao.pis
+              ? "PIS"
+              : "DESCONHECIDO",
+          pisAfd: marcacao.pis,
         },
       }));
 
@@ -692,6 +795,49 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
     };
   }
 
+  async analisarAfdDesdeNsr(params: {
+    nsrInicial: string | number;
+    quantidade?: number;
+  }): Promise<ResultadoAnaliseAfdRelogioPonto> {
+    if (this.protocolo !== "CONTROL_ID_IDCLASS_BIO") {
+      throw new Error("Analise AFD 671 disponivel apenas para Control iD idClass Bio.");
+    }
+
+    const session = await this.login();
+    const nsrInicial = Math.max(Number(params.nsrInicial || 1), 1);
+    const quantidade = Math.min(Math.max(Number(params.quantidade ?? 100), 1), 500);
+    const afd = await this.executarIdClassTexto(
+      "get_afd",
+      session,
+      { initial_nsr: nsrInicial, limit: quantidade },
+      { mode: "671" },
+    );
+    const linhas = afd.split(/\r?\n/).map((linha) => linha.trim());
+    const registros = linhas
+      .map((linha) => parseLinhaIdentificadorAfdIdClass(linha))
+      .filter((registro): registro is IdentificadorAfdRelogioPonto =>
+        Boolean(registro),
+      );
+    const maiorNsr = linhas.reduce(
+      (maior, linha) => Math.max(maior, nsrLinhaAfd(linha) ?? maior),
+      nsrInicial - 1,
+    );
+
+    return {
+      registros,
+      proximoNsr:
+        maiorNsr >= nsrInicial ? String(maiorNsr + 1) : String(nsrInicial),
+      mensagem: `${registros.length} registro(s) AFD 671 analisado(s) do ${this.rotulo}.`,
+      payload: {
+        protocolo: this.protocolo,
+        formato: "AFD_671",
+        nsrInicial,
+        quantidade,
+        linhas: linhas.filter(Boolean).length,
+      },
+    };
+  }
+
   async enviarBiometrias(
     servidores: BiometriaServidorRelogioPonto[],
   ): Promise<ResultadoEnvioBiometriaRelogioPonto> {
@@ -741,9 +887,9 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
           ] = parseCsvSimples(linha);
 
           return {
-            codigo: codigo || matricula || normalizarCpf(cpf),
-            matricula: matricula || codigo || normalizarCpf(cpf) || "",
-            cpf: normalizarCpf(cpf),
+            codigo: codigo || matricula || normalizarCpfControlId(cpf),
+            matricula: matricula || codigo || normalizarCpfControlId(cpf) || "",
+            cpf: normalizarCpfControlId(cpf),
             nome: nome || null,
             cartoes: [rfid, barras].filter(Boolean),
             payload: {

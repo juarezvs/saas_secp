@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 
 export function gerarHashMarcacaoBruta(params: {
   cpf?: string | null;
+  pis?: string | null;
   matricula?: string | null;
   dataHora: Date;
   equipamentoCodigo?: string | null;
@@ -15,6 +16,7 @@ export function gerarHashMarcacaoBruta(params: {
     params.nsr ?? "",
     params.codigoExterno ?? "",
     params.cpf ?? "",
+    params.pis ?? "",
     params.matricula ?? "",
     params.dataHora.toISOString(),
   ].join("|");

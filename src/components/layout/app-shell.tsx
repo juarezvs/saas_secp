@@ -6,7 +6,10 @@ import { escolherPerfilInicial } from "@/modules/auth/application/services/perfi
 import { buscarUsuarioParaLoginPorMatricula } from "@/modules/auth/infrastructure/repositories/usuario-auth.repository";
 import { buscarServidorPorUsuarioId } from "@/modules/marcacoes/infrastructure/repositories/marcacao.repository";
 import { contarNotificacoesUsuario } from "@/modules/notificacoes/application/notificacoes.service";
-import { buscarMenusPersonalizadosPorPerfil } from "@/modules/menus/infrastructure/repositories/menu-personalizado.repository";
+import {
+  buscarIconesItensCatalogoMenu,
+  buscarMenusPersonalizadosPorPerfil,
+} from "@/modules/menus/infrastructure/repositories/menu-personalizado.repository";
 import { buscarFotoServidorDataUrl } from "@/modules/servidores/application/services/foto-servidor.service";
 import { descricaoFuncaoOuCargoServidor } from "@/modules/servidores/application/services/funcao-cargo-servidor.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
@@ -111,9 +114,10 @@ export async function AppShell({ children }: AppShellProps) {
   }
 
   const fotoCpf = servidor?.cpf;
-  const [fotoUrl, menusPersonalizados] = await Promise.all([
+  const [fotoUrl, menusPersonalizados, iconesItensCatalogo] = await Promise.all([
     buscarFotoServidorDataUrl(fotoCpf),
     buscarMenusPersonalizadosPorPerfil(perfisNavegacao.map((perfil) => perfil.id)),
+    buscarIconesItensCatalogoMenu(),
   ]);
   const orgaoInstitucional =
     lotacaoAtual?.unidade.orgao ?? perfilAtivo.orgaos?.[0] ?? null;
@@ -161,6 +165,7 @@ export async function AppShell({ children }: AppShellProps) {
       key={chavePerfilAtivo}
       usuario={usuario}
       menusPersonalizados={menusPersonalizados}
+      iconesItensCatalogo={iconesItensCatalogo}
       totalNotificacoes={totalNotificacoes}
       onLogout={logoutAction}
     >

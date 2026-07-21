@@ -715,6 +715,18 @@ model MenuItemPerfil {
   @@map("menus_itens_perfil")
 }
 
+model MenuItemCatalogoConfig {
+  id String @id @default(uuid()) @db.Uuid
+
+  itemCatalogo String  @unique @map("item_catalogo") @db.VarChar(160)
+  icone        String? @db.VarChar(80)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  @@map("menus_itens_catalogo_config")
+}
+
 model Permissao {
   id        String  @id @default(uuid()) @db.Uuid
   codigo    String  @unique @db.VarChar(160)
@@ -952,6 +964,7 @@ model Servidor {
 
   matricula     String              @unique @db.VarChar(50)
   cpf           String?             @unique @db.VarChar(11)
+  pis           String?             @unique @db.VarChar(20)
   nomeFuncional String?             @map("nome_funcional") @db.VarChar(200)
   vinculo       TipoVinculoServidor @default(EFETIVO)
   ativo         Boolean             @default(true)
@@ -1013,6 +1026,7 @@ model Servidor {
 
   @@index([orgaoId])
   @@index([cargoId])
+  @@index([pis])
   @@index([codigoLotacaoSarh])
   @@index([origemSarh])
   @@map("servidores")
@@ -2297,6 +2311,7 @@ model MarcacaoBruta {
   id String @id @default(uuid()) @db.Uuid
 
   cpf       String?  @db.VarChar(14)
+  pis       String?  @db.VarChar(20)
   matricula String?  @db.VarChar(50)
   dataHora  DateTime @map("data_hora")
 
@@ -2326,6 +2341,7 @@ model MarcacaoBruta {
   arquivoAfd   ArquivoAfd? @relation(fields: [arquivoAfdId], references: [id], onDelete: SetNull)
 
   @@index([cpf])
+  @@index([pis])
   @@index([matricula])
   @@index([dataHora])
   @@index([equipamentoCodigo])

@@ -105,6 +105,36 @@ describe("resolverServidorMarcacaoBrutaService", () => {
     );
   });
 
+  it("resolve servidor por PIS dentro do orgao do equipamento", async () => {
+    prismaMock.equipamentoBiometrico.findUnique.mockResolvedValue({
+      orgaoId: "orgao-ma",
+      orgao: { sigla: "SJMA" },
+      unidade: null,
+    });
+    prismaMock.servidor.findFirst.mockResolvedValueOnce({
+      id: "servidor-pis",
+      matricula: "MA9203",
+      cpf: "50526596368",
+      pis: "17050352959",
+    });
+
+    const servidor = await resolverServidorMarcacaoBrutaService({
+      pis: "017050352959",
+      equipamentoId: "equipamento-1",
+    });
+
+    expect(servidor?.id).toBe("servidor-pis");
+    expect(prismaMock.servidor.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          ativo: true,
+          orgaoId: "orgao-ma",
+          pis: "17050352959",
+        }),
+      }),
+    );
+  });
+
   it("nao resolve matricula numerica global sem orgao do equipamento", async () => {
     prismaMock.equipamentoBiometrico.findUnique.mockResolvedValue(null);
 

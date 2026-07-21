@@ -29,6 +29,11 @@ export type SarhServidorDto = {
   nomeSocial?: string | null;
   ativo: boolean;
   cpf?: string | number | null;
+  pis?: string | number | null;
+  pasep?: string | number | null;
+  nit?: string | number | null;
+  numeroPis?: string | number | null;
+  pisPasep?: string | number | null;
   dataNascimento?: string | null;
   cpfServidor?: {
     cpf?: string | number | null;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { createElement, useMemo, useState, useTransition } from "react";
 import type { ElementType } from "react";
 import * as LucideIcons from "lucide-react";
 import {
@@ -23,6 +23,7 @@ import {
   adicionarItemMenuAction,
   alternarGrupoMenuAction,
   alternarItemMenuAction,
+  atualizarIconeItemCatalogoMenuAction,
   atualizarIconeGrupoMenuAction,
   atualizarRotuloGrupoMenuAction,
   atualizarRotuloItemMenuAction,
@@ -40,7 +41,10 @@ import {
   buscarItemCatalogoMenu,
   type MenuCatalogoItem,
 } from "@/modules/menus/domain/menu-catalogo";
-import type { MenuPersonalizadoPerfil } from "@/modules/menus/domain/menu-personalizado";
+import type {
+  IconesItensCatalogoMenu,
+  MenuPersonalizadoPerfil,
+} from "@/modules/menus/domain/menu-personalizado";
 import { MENU_ITEMS, type MenuItem } from "@/components/layout/sidebar";
 import { MenuCatalogoCombobox } from "./menu-catalogo-combobox";
 
@@ -63,6 +67,7 @@ type OpcaoMenuEfetiva = {
 type DragItem =
   | { tipo: "grupo"; id: string }
   | { tipo: "item"; id: string; grupoId: string | null };
+type IconeMenuAction = (formData: FormData) => void | Promise<void>;
 
 const ALIASES_ICONES: Record<string, string> = {
   administracao: "Settings",
@@ -168,6 +173,16 @@ function listarIconesLucide(pesquisa: string) {
     });
 }
 
+function obterIconeLucide(valor: string | null | undefined, fallback: ElementType) {
+  const chave = valor?.trim();
+
+  if (!chave) {
+    return fallback;
+  }
+
+  return ICONES_LUCIDE_MAP[nomeIconeLucide(chave)] ?? fallback;
+}
+
 function CamposPerfil({ perfilId }: { perfilId: string }) {
   return <input type="hidden" name="perfilId" value={perfilId} />;
 }
@@ -241,7 +256,10 @@ function achatarFilhosPrimeiro(itens: MenuItem[]): MenuItem[] {
   ]);
 }
 
-function montarOpcoesEfetivasPerfil(perfil: PerfilCarregado) {
+function montarOpcoesEfetivasPerfil(
+  perfil: PerfilCarregado,
+  iconesItensCatalogo: IconesItensCatalogoMenu,
+) {
   const opcoesVisiveis = achatarFilhosPrimeiro(
     filtrarItensMenuReal(MENU_ITEMS, perfil),
   );
@@ -253,7 +271,7 @@ function montarOpcoesEfetivasPerfil(perfil: PerfilCarregado) {
         id: item.href,
         href: item.href,
         label: item.label,
-        icon: item.icon,
+        icon: obterIconeLucide(iconesItensCatalogo[item.href], item.icon),
         permissoes: (item.permissoes ?? []).filter((permissao) =>
           perfil.permissoes.includes(permissao),
         ),
@@ -272,7 +290,7 @@ function montarOpcoesEfetivasPerfil(perfil: PerfilCarregado) {
           id: catalogo.id,
           href: catalogo.href,
           label: catalogo.label,
-          icon: MenuIcon,
+          icon: obterIconeLucide(iconesItensCatalogo[catalogo.id], MenuIcon),
           permissoes,
         });
       }
@@ -569,17 +587,26 @@ function RotuloEditavelGrupo({
   );
 }
 
-function SeletorIconeGrupo({
-  perfilId,
-  grupo,
+function SeletorIconeMenu({
+  titulo,
+  contexto,
+  ariaLabel,
+  iconeAtual,
+  iconeSelecionado,
+  action,
+  campos,
 }: {
-  perfilId: string;
-  grupo: GrupoMenu;
+  titulo: string;
+  contexto: string;
+  ariaLabel: string;
+  iconeAtual: ElementType;
+  iconeSelecionado?: string | null;
+  action: IconeMenuAction;
+  campos: Record<string, string>;
 }) {
   const [aberto, setAberto] = useState(false);
   const [pesquisa, setPesquisa] = useState("");
-  const IconeAtual =
-    ICONES_LUCIDE_MAP[nomeIconeLucide(grupo.icone || grupo.label)] ?? Settings;
+  const IconeAtual = iconeAtual;
   const icones = listarIconesLucide(pesquisa);
 
   return (
@@ -593,8 +620,8 @@ function SeletorIconeGrupo({
           setAberto(true);
         }}
         className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border bg-card text-muted-foreground transition hover:border-secp-blue-900 hover:text-secp-blue-900"
-        title="Escolher icone do grupo"
-        aria-label="Escolher icone do grupo"
+        title={ariaLabel}
+        aria-label={ariaLabel}
       >
         <IconeAtual className="size-4" aria-hidden="true" />
       </button>
@@ -604,15 +631,15 @@ function SeletorIconeGrupo({
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4"
           role="dialog"
           aria-modal="true"
-          aria-label="Escolher icone do grupo"
+          aria-label={ariaLabel}
           onClick={(event) => event.stopPropagation()}
         >
           <div className="flex max-h-[min(42rem,88vh)] w-full max-w-3xl flex-col rounded-lg border bg-white text-slate-950 shadow-floating dark:bg-slate-950 dark:text-slate-50">
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-800">
               <div className="min-w-0">
-                <h3 className="text-sm font-bold">Icone do grupo</h3>
+                <h3 className="text-sm font-bold">{titulo}</h3>
                 <p className="truncate text-xs text-muted-foreground">
-                  {grupo.label}
+                  {contexto}
                 </p>
               </div>
               <button
@@ -641,12 +668,13 @@ function SeletorIconeGrupo({
             </div>
             <div className="grid flex-1 grid-cols-2 gap-2 overflow-y-auto bg-slate-100 p-4 dark:bg-slate-900 sm:grid-cols-3 md:grid-cols-4">
               {icones.map(([nome, Icone]) => {
-                const selecionado = nomeIconeLucide(grupo.icone) === nome;
+                const selecionado = Boolean(iconeSelecionado) && nomeIconeLucide(iconeSelecionado) === nome;
 
                 return (
-                  <form key={nome} action={atualizarIconeGrupoMenuAction}>
-                    <CamposPerfil perfilId={perfilId} />
-                    <input type="hidden" name="grupoId" value={grupo.id} />
+                  <form key={nome} action={action}>
+                    {Object.entries(campos).map(([campo, valor]) => (
+                      <input key={campo} type="hidden" name={campo} value={valor} />
+                    ))}
                     <input type="hidden" name="icone" value={nome} />
                     <button
                       type="submit"
@@ -687,6 +715,52 @@ function SeletorIconeGrupo({
   );
 }
 
+function SeletorIconeGrupo({
+  perfilId,
+  grupo,
+}: {
+  perfilId: string;
+  grupo: GrupoMenu;
+}) {
+  return (
+    <SeletorIconeMenu
+      titulo="Icone do grupo"
+      contexto={grupo.label}
+      ariaLabel="Escolher icone do grupo"
+      iconeAtual={obterIconeLucide(grupo.icone || grupo.label, Settings)}
+      iconeSelecionado={grupo.icone}
+      action={atualizarIconeGrupoMenuAction}
+      campos={{ perfilId, grupoId: grupo.id }}
+    />
+  );
+}
+
+function SeletorIconeItemCatalogo({
+  perfilId,
+  item,
+  label,
+  iconeAtual,
+  iconeSelecionado,
+}: {
+  perfilId: string;
+  item: ItemMenu;
+  label: string;
+  iconeAtual: ElementType;
+  iconeSelecionado?: string | null;
+}) {
+  return (
+    <SeletorIconeMenu
+      titulo="Icone da opcao"
+      contexto={label}
+      ariaLabel="Escolher icone da opcao"
+      iconeAtual={iconeAtual}
+      iconeSelecionado={iconeSelecionado}
+      action={atualizarIconeItemCatalogoMenuAction}
+      campos={{ perfilId, itemCatalogo: item.itemCatalogo }}
+    />
+  );
+}
+
 function moverArray<T extends { id: string }>(itens: T[], origemId: string, destinoId: string) {
   const origem = itens.findIndex((item) => item.id === origemId);
   const destino = itens.findIndex((item) => item.id === destinoId);
@@ -706,6 +780,7 @@ function LinhaItemMenu({
   perfilId,
   item,
   opcaoEfetiva,
+  iconesItensCatalogo,
   nivel = 0,
   grupoId = null,
   dragging,
@@ -715,6 +790,7 @@ function LinhaItemMenu({
   perfilId: string;
   item: ItemMenu;
   opcaoEfetiva?: OpcaoMenuEfetiva;
+  iconesItensCatalogo: IconesItensCatalogoMenu;
   nivel?: number;
   grupoId?: string | null;
   dragging?: boolean;
@@ -723,7 +799,8 @@ function LinhaItemMenu({
 }) {
   const catalogo = buscarItemCatalogoMenu(item.itemCatalogo);
   const label = item.label || opcaoEfetiva?.label || catalogo?.label || item.itemCatalogo;
-  const IconeItem = opcaoEfetiva?.icon ?? MenuIcon;
+  const iconeItem = iconesItensCatalogo[item.itemCatalogo];
+  const IconeItem = obterIconeLucide(iconeItem, opcaoEfetiva?.icon ?? MenuIcon);
   const hrefItem = opcaoEfetiva?.href ?? catalogo?.href ?? item.itemCatalogo;
   const contextoItem =
     catalogo?.label && catalogo.label !== label
@@ -764,13 +841,23 @@ function LinhaItemMenu({
         >
           <GripVertical className="size-4" aria-hidden="true" />
         </span>
-        <IconeItem className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        {createElement(IconeItem, {
+          className: "mt-0.5 size-4 shrink-0",
+          "aria-hidden": true,
+        })}
         <span className="min-w-0 flex-1">
           <RotuloEditavelItem perfilId={perfilId} item={item} label={label} />
           <span className="mt-1 block truncate text-[11px] font-medium leading-none text-slate-500 dark:text-slate-400">
             {contextoItem}
           </span>
         </span>
+        <SeletorIconeItemCatalogo
+          perfilId={perfilId}
+          item={item}
+          label={label}
+          iconeAtual={IconeItem}
+          iconeSelecionado={iconeItem}
+        />
       </div>
       <AcoesItem perfilId={perfilId} item={item} />
     </div>
@@ -782,6 +869,7 @@ function GrupoMenu({
   grupo,
   opcoesEfetivas,
   opcoesDisponiveis,
+  iconesItensCatalogo,
   aberto,
   adicionandoItem,
   onAlternar,
@@ -797,6 +885,7 @@ function GrupoMenu({
   grupo: GrupoMenu;
   opcoesEfetivas: Map<string, OpcaoMenuEfetiva>;
   opcoesDisponiveis: MenuCatalogoItem[];
+  iconesItensCatalogo: IconesItensCatalogoMenu;
   aberto: boolean;
   adicionandoItem: boolean;
   onAlternar: () => void;
@@ -885,6 +974,7 @@ function GrupoMenu({
               perfilId={perfilId}
               item={item}
               opcaoEfetiva={opcoesEfetivas.get(item.itemCatalogo)}
+              iconesItensCatalogo={iconesItensCatalogo}
               nivel={1}
               grupoId={grupo.id}
               onDragStart={onDragStart}
@@ -920,11 +1010,13 @@ function GrupoMenu({
 export function MenuLateralPersonalizacao({
   perfilId,
   menu,
+  iconesItensCatalogo,
   editarGrupoIdInicial,
   perfilCarregado,
 }: {
   perfilId: string;
   menu: MenuPersonalizadoPerfil;
+  iconesItensCatalogo: IconesItensCatalogoMenu;
   editarGrupoIdInicial?: string;
   perfilCarregado: PerfilCarregado;
 }) {
@@ -946,8 +1038,8 @@ export function MenuLateralPersonalizacao({
     [grupos, itensRaiz],
   );
   const opcoesEfetivas = useMemo(
-    () => montarOpcoesEfetivasPerfil(perfilCarregado),
-    [perfilCarregado],
+    () => montarOpcoesEfetivasPerfil(perfilCarregado, iconesItensCatalogo),
+    [perfilCarregado, iconesItensCatalogo],
   );
   const opcoesDisponiveis = Array.from(opcoesEfetivas.values()).filter(
     (item) => !idsNoMenu.has(item.id),
@@ -1179,6 +1271,7 @@ export function MenuLateralPersonalizacao({
               perfilId={perfilId}
               item={item}
               opcaoEfetiva={opcoesEfetivas.get(item.itemCatalogo)}
+              iconesItensCatalogo={iconesItensCatalogo}
               grupoId={null}
               dragging={dragItem?.tipo === "item" && dragItem.id === item.id}
               onDragStart={setDragItem}
@@ -1211,6 +1304,7 @@ export function MenuLateralPersonalizacao({
               grupo={grupo}
               opcoesEfetivas={opcoesEfetivas}
               opcoesDisponiveis={opcoesDisponiveisCatalogo}
+              iconesItensCatalogo={iconesItensCatalogo}
               aberto={grupoAberto(grupo)}
               adicionandoItem={grupoAdicionandoItemId === grupo.id}
               onAlternar={() => alternarGrupo(grupo)}

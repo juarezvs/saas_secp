@@ -240,6 +240,38 @@ export async function atualizarIconeGrupoMenuAction(formData: FormData) {
   redirect(destino(perfilId));
 }
 
+export async function atualizarIconeItemCatalogoMenuAction(formData: FormData) {
+  const permissao = await exigirAcesso();
+  const perfilId = texto(formData, "perfilId");
+  const itemCatalogo = texto(formData, "itemCatalogo");
+  const icone = texto(formData, "icone");
+  const itemExiste = MENU_CATALOGO.some((item) => item.id === itemCatalogo);
+
+  if (!itemExiste) {
+    redirect(destino(perfilId));
+  }
+
+  const config = await prisma.menuItemCatalogoConfig.upsert({
+    where: { itemCatalogo },
+    update: { icone: icone || null },
+    create: { itemCatalogo, icone: icone || null },
+  });
+
+  await prisma.auditoriaEvento.create({
+    data: {
+      usuarioId: permissao.usuarioId,
+      entidade: "MenuItemCatalogoConfig",
+      entidadeId: config.id,
+      acao: "MENU_ITEM_CATALOGO_ICONE_ATUALIZADO",
+      dadosDepois: { itemCatalogo, icone: icone || null },
+    },
+  });
+
+  revalidatePath("/");
+  revalidatePath(PATH_PERSONALIZAR_MENU);
+  redirect(destino(perfilId));
+}
+
 export async function removerGrupoMenuAction(formData: FormData) {
   await exigirAcesso();
   const perfilId = texto(formData, "perfilId");

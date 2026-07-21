@@ -74,7 +74,7 @@ export async function processarMarcacaoBrutaService(params: {
     };
   }
 
-  if (!bruta.matricula && !bruta.cpf && !bruta.servidorId) {
+  if (!bruta.matricula && !bruta.cpf && !bruta.pis && !bruta.servidorId) {
     return {
       sucesso: false,
       mensagem: "Marcação bruta sem CPF ou matrícula. Ela ficará pendente.",
@@ -91,15 +91,17 @@ export async function processarMarcacaoBrutaService(params: {
           id: true,
           matricula: true,
           cpf: true,
+          pis: true,
           usuario: {
             select: {
               cpf: true,
             },
           },
         },
-      })
+    })
     : await resolverServidorMarcacaoBrutaService({
         cpf: bruta.cpf,
+        pis: bruta.pis,
         matricula: bruta.matricula,
         equipamentoId: bruta.equipamentoId,
       });
@@ -107,14 +109,16 @@ export async function processarMarcacaoBrutaService(params: {
   if (!cpfServidorCompativel(bruta.cpf, servidor)) {
     servidor = await resolverServidorMarcacaoBrutaService({
       cpf: bruta.cpf,
+      pis: bruta.pis,
       matricula: bruta.matricula,
       equipamentoId: bruta.equipamentoId,
     });
   }
 
-  if (!servidor && (bruta.cpf || bruta.matricula)) {
+  if (!servidor && (bruta.cpf || bruta.pis || bruta.matricula)) {
     servidor = await resolverServidorMarcacaoBrutaService({
       cpf: bruta.cpf,
+      pis: bruta.pis,
       matricula: bruta.matricula,
       equipamentoId: bruta.equipamentoId,
     });
@@ -181,7 +185,8 @@ export async function processarMarcacaoBrutaService(params: {
   if (
     bruta.servidorId !== servidor.id ||
     bruta.matricula !== servidor.matricula ||
-    (!bruta.cpf && servidor.cpf)
+    (!bruta.cpf && servidor.cpf) ||
+    (!bruta.pis && servidor.pis)
   ) {
     await prisma.marcacaoBruta.update({
       where: { id: bruta.id },
@@ -189,6 +194,7 @@ export async function processarMarcacaoBrutaService(params: {
         servidorId: servidor.id,
         matricula: servidor.matricula,
         cpf: bruta.cpf ?? servidor.cpf,
+        pis: bruta.pis ?? servidor.pis,
       },
     });
   }

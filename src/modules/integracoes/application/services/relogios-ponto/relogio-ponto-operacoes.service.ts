@@ -348,6 +348,26 @@ export async function listarCadastrosBiometricosEquipamentoService(params: {
   });
 }
 
+export async function analisarAfdRelogioPontoService(params: {
+  equipamentoId: string;
+  nsrInicial?: string | number | null;
+  quantidade?: number | null;
+}) {
+  return executarComLockEquipamento(params.equipamentoId, async () => {
+    const conexao = await obterConexaoEquipamento(params.equipamentoId);
+    const provider = criarRelogioPontoProvider(conexao);
+
+    if (!provider.analisarAfdDesdeNsr) {
+      throw new Error("Este protocolo ainda nao possui analise direta do AFD.");
+    }
+
+    return provider.analisarAfdDesdeNsr({
+      nsrInicial: params.nsrInicial ?? 1,
+      quantidade: params.quantidade ?? undefined,
+    });
+  });
+}
+
 type ColetarMarcacoesRelogioPontoParams = {
   equipamentoId: string;
   nsrInicial?: string | number | null;
@@ -411,6 +431,7 @@ async function coletarMarcacoesRelogioPontoSemLock(
 
     const bruta = await criarMarcacaoBrutaService({
       cpf: marcacao.cpf ? somenteDigitos(marcacao.cpf) : null,
+      pis: marcacao.pis ? somenteDigitos(marcacao.pis) : null,
       matricula: matriculaNormalizada,
       dataHora: marcacao.dataHora,
       equipamentoCodigo: equipamento.codigo,
@@ -507,6 +528,7 @@ export async function reprocessarMarcacoesRelogioPontoService(params: {
   equipamentoId: string;
   limite?: number | null;
   usuarioIdAuditoria?: string | null;
+  sanearAntes?: boolean | null;
 }) {
   const limite = Math.min(Math.max(Number(params.limite ?? 5000), 1), 50000);
   const pendentes = await prisma.marcacaoBruta.findMany({
@@ -517,12 +539,51 @@ export async function reprocessarMarcacoesRelogioPontoService(params: {
     },
     select: {
       id: true,
+      nsr: true,
     },
     orderBy: {
       criadoEm: "asc",
     },
     take: limite,
   });
+  const nsrsPendentes = pendentes
+    .map((bruta) => Number(bruta.nsr))
+    .filter((nsr) => Number.isFinite(nsr) && nsr > 0);
+  let saneamentoAutomatico: unknown = null;
+
+  if (params.sanearAntes !== false && nsrsPendentes.length > 0) {
+    const nsrInicial = Math.min(...nsrsPendentes);
+    const nsrFinal = Math.max(...nsrsPendentes);
+    const limiteLotes = Math.min(
+      Math.ceil((nsrFinal - nsrInicial + 1) / 500) + 2,
+      500,
+    );
+
+    try {
+      const { sanearMarcacoesIdClassAfdService } = await import(
+        "@/modules/marcacoes-brutas/application/services/sanear-marcacoes-idclass-afd.service"
+      );
+
+      saneamentoAutomatico = await sanearMarcacoesIdClassAfdService({
+        equipamentoId: params.equipamentoId,
+        nsrInicial,
+        nsrFinal,
+        quantidadePorLote: 500,
+        limiteLotes,
+        aplicar: true,
+        reprocessar: false,
+        usuarioIdAuditoria: params.usuarioIdAuditoria ?? null,
+      });
+    } catch (error) {
+      saneamentoAutomatico = {
+        ignorado: true,
+        motivo:
+          error instanceof Error
+            ? error.message
+            : "Nao foi possivel executar saneamento automatico.",
+      };
+    }
+  }
 
   let processadas = 0;
   let aindaPendentes = 0;
@@ -559,6 +620,7 @@ export async function reprocessarMarcacoesRelogioPontoService(params: {
     aindaPendentes,
     erros,
     pendentesRestantes,
+    saneamentoAutomatico,
   };
 }
 
@@ -681,6 +743,7 @@ async function capturarTodasMarcacoesRelogioPontoSemLock(
         equipamentoId: params.equipamentoId,
         limite: Math.min(recebidas + criadas + 500, 50000),
         usuarioIdAuditoria: params.usuarioIdAuditoria,
+        sanearAntes: false,
       })
     : null;
 

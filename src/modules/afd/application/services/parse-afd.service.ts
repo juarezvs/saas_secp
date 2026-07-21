@@ -1,7 +1,8 @@
 import { validarCrc16Kermit } from "./crc16-kermit.service";
 
 export type MarcacaoAfdParseada = {
-  cpf: string;
+  cpf: string | null;
+  pis: string | null;
   matricula?: string | null;
   dataHora: Date;
   nsr: string;
@@ -44,6 +45,36 @@ function normalizarCpfAfd(cpf12: string) {
   }
 
   return cpf;
+}
+
+function cpfValido(cpf: string) {
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) {
+    return false;
+  }
+
+  for (const tamanho of [9, 10]) {
+    let soma = 0;
+
+    for (let indice = 0; indice < tamanho; indice += 1) {
+      soma += Number(cpf[indice]) * (tamanho + 1 - indice);
+    }
+
+    let digito = (soma * 10) % 11;
+    if (digito === 10) digito = 0;
+
+    if (digito !== Number(cpf[tamanho])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function normalizarPisAfd(identificador12: string) {
+  const digitos = somenteDigitos(identificador12);
+  const pis = digitos.replace(/^0+/, "") || digitos;
+
+  return pis.length >= 10 && pis.length <= 12 ? pis : null;
 }
 
 function parseDataHoraDh(valor: string) {
@@ -181,17 +212,19 @@ export function parseLinhaAfd(linha: string): MarcacaoAfdParseada | null {
 
   const linhaSemCrc = original.slice(0, 46);
   const dataHoraTexto = original.slice(10, 34);
-  const cpfTexto = original.slice(34, 46);
+  const identificadorTexto = original.slice(34, 46);
   const crc = original.slice(46, 50);
 
   const dataHora = parseDataHoraDh(dataHoraTexto);
-  const cpf = normalizarCpfAfd(cpfTexto);
+  const cpfCandidato = normalizarCpfAfd(identificadorTexto);
+  const cpf = cpfValido(cpfCandidato) ? cpfCandidato : null;
+  const pis = cpf ? null : normalizarPisAfd(identificadorTexto);
 
   if (!dataHora) {
     return null;
   }
 
-  if (cpf.length !== 11) {
+  if (!cpf && !pis) {
     return null;
   }
 
@@ -202,6 +235,7 @@ export function parseLinhaAfd(linha: string): MarcacaoAfdParseada | null {
 
   return {
     cpf,
+    pis,
     matricula: null,
     dataHora,
     nsr: nsr.trim(),

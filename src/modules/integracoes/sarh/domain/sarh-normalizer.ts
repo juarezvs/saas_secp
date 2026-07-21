@@ -35,9 +35,32 @@ export function normalizarCpf(
   return normalizado;
 }
 
+export function normalizarPis(
+  pis: string | number | null | undefined,
+): string | null {
+  if (pis === null || pis === undefined) return null;
+  const somenteDigitos = String(pis).replace(/\D/g, "");
+  if (!somenteDigitos) return null;
+  const normalizado = somenteDigitos.replace(/^0+/, "") || "0";
+
+  return normalizado.length >= 10 && normalizado.length <= 12
+    ? normalizado
+    : null;
+}
+
 export function obterCpfServidorSarh(payload: SarhServidorDto): string | null {
   return normalizarCpf(
     payload.cpf ?? payload.cpfServidor?.cpf ?? payload.cpfServidor?.dados?.cpf,
+  );
+}
+
+export function obterPisServidorSarh(payload: SarhServidorDto): string | null {
+  return normalizarPis(
+    payload.pis ??
+      payload.pasep ??
+      payload.pisPasep ??
+      payload.numeroPis ??
+      payload.nit,
   );
 }
 
