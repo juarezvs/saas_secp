@@ -219,7 +219,8 @@ export async function registrarEquipamentoBiometricoAction(
         unidadeId: unidade?.id ?? null,
         fabricante:
           parsed.data.protocolo === "HENRY" ||
-          parsed.data.protocolo === "HENRY_LUMEN_BALCAO"
+          parsed.data.protocolo === "HENRY_LUMEN_BALCAO" ||
+          parsed.data.protocolo === "HENRY_REP_WEB_SERVER"
             ? "HENRY"
             : parsed.data.protocolo === "DIMEP_SMART_PRINT"
               ? "DIMEP"

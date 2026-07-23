@@ -18,6 +18,7 @@ type CalcularPrazoParams = {
   mesReferencia: number;
   concluidoEm?: Date | null;
   hoje?: Date;
+  diaLimiteMesSeguinte?: number;
 };
 
 const formatadorDataPtBr = new Intl.DateTimeFormat("pt-BR", {
@@ -194,11 +195,19 @@ export function calcularPrazoHomologacaoCompetencia(
     params.anoReferencia,
     params.mesReferencia,
   );
-  const dataLimite = obterDiaUtilDoMes({
-    ano: referenciaSeguinte.ano,
-    mes: referenciaSeguinte.mes,
-    ordem: 2,
-  });
+  const dataLimite = params.diaLimiteMesSeguinte
+    ? ajustarParaDiaUtilSeguinte(
+        new Date(
+          referenciaSeguinte.ano,
+          referenciaSeguinte.mes - 1,
+          params.diaLimiteMesSeguinte,
+        ),
+      )
+    : obterDiaUtilDoMes({
+        ano: referenciaSeguinte.ano,
+        mes: referenciaSeguinte.mes,
+        ordem: 2,
+      });
 
   return calcularPrazo({
     dataLimite,
@@ -217,7 +226,7 @@ export function calcularPrazoEncaminhamentoBoletimCompetencia(
   const dataBase = new Date(
     referenciaSeguinte.ano,
     referenciaSeguinte.mes - 1,
-    10,
+    params.diaLimiteMesSeguinte ?? 10,
   );
 
   return calcularPrazo({
@@ -234,11 +243,19 @@ export async function calcularPrazoHomologacaoCompetenciaComCalendario(
     params.anoReferencia,
     params.mesReferencia,
   );
-  const dataLimite = await obterDiaUtilDoMesComCalendario({
-    ano: referenciaSeguinte.ano,
-    mes: referenciaSeguinte.mes,
-    ordem: 2,
-  });
+  const dataLimite = params.diaLimiteMesSeguinte
+    ? await ajustarParaDiaUtilSeguinteComCalendario(
+        new Date(
+          referenciaSeguinte.ano,
+          referenciaSeguinte.mes - 1,
+          params.diaLimiteMesSeguinte,
+        ),
+      )
+    : await obterDiaUtilDoMesComCalendario({
+        ano: referenciaSeguinte.ano,
+        mes: referenciaSeguinte.mes,
+        ordem: 2,
+      });
 
   return calcularPrazo({
     dataLimite,
@@ -257,7 +274,7 @@ export async function calcularPrazoEncaminhamentoBoletimCompetenciaComCalendario
   const dataBase = new Date(
     referenciaSeguinte.ano,
     referenciaSeguinte.mes - 1,
-    10,
+    params.diaLimiteMesSeguinte ?? 10,
   );
 
   return calcularPrazo({

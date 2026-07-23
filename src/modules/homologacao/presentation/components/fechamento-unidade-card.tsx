@@ -6,11 +6,13 @@ import {
   formatarDataPrazoRegulatorio,
   rotuloSituacaoPrazoRegulatorio,
 } from "@/modules/frequencia/application/services/prazo-regulatorio-frequencia.service";
+import { buscarRegulamentacaoPontoOrgao } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 type FechamentoUnidadeCardProps = {
   fechamento: {
     unidade: {
+      orgaoId: string;
       sigla: string;
       nome: string;
     };
@@ -40,10 +42,14 @@ export async function FechamentoUnidadeCard({
   const homologados = fechamento.servidores.filter((item) =>
     ["HOMOLOGADO", "HOMOLOGADO_COM_RESSALVA"].includes(item.status),
   ).length;
+  const regulamentacao = await buscarRegulamentacaoPontoOrgao(
+    fechamento.unidade.orgaoId,
+  );
   const prazo = await calcularPrazoHomologacaoCompetenciaComCalendario({
     anoReferencia: fechamento.anoReferencia,
     mesReferencia: fechamento.mesReferencia,
     concluidoEm: fechamento.homologadoEm,
+    diaLimiteMesSeguinte: regulamentacao.prazoHomologacaoDiaMesSeguinte,
   });
 
   return (

@@ -2,6 +2,7 @@ import { DimepSmartPrintClient } from "./dimep-smart-print.client";
 import { ControlIdFaceIdClient } from "./control-id-face-id.client";
 import { HenryProtocoloLinhaAdvClient } from "./henry-protocolo-linha-adv.client";
 import { HenryLumenBalcaoClient } from "./henry-lumen-balcao.client";
+import { HenryRepWebServerClient } from "./henry-rep-web-server.client";
 import type {
   DadosConexaoRelogioPonto,
   RelogioPontoProvider,
@@ -27,6 +28,27 @@ function usarHenryLumenBalcao(conexao: DadosConexaoRelogioPonto) {
   );
 }
 
+function protocoloHenry(conexao: DadosConexaoRelogioPonto) {
+  const configuracao =
+    conexao.configuracao && typeof conexao.configuracao === "object"
+      ? (conexao.configuracao as Record<string, unknown>)
+      : {};
+
+  return typeof configuracao.protocolo === "string"
+    ? configuracao.protocolo.toUpperCase()
+    : "";
+}
+
+function usarHenryRepWebServer(conexao: DadosConexaoRelogioPonto) {
+  const protocolo = protocoloHenry(conexao);
+  const modelo = conexao.modelo?.toUpperCase() ?? "";
+
+  return (
+    protocolo === "HENRY_REP_WEB_SERVER" ||
+    modelo.includes("REP WEB SERVER")
+  );
+}
+
 export function criarRelogioPontoProvider(
   conexao: DadosConexaoRelogioPonto,
 ): RelogioPontoProvider {
@@ -39,6 +61,10 @@ export function criarRelogioPontoProvider(
   }
 
   if (conexao.fabricante === "HENRY") {
+    if (usarHenryRepWebServer(conexao)) {
+      return new HenryRepWebServerClient(conexao);
+    }
+
     if (usarHenryLumenBalcao(conexao)) {
       return new HenryLumenBalcaoClient(conexao);
     }

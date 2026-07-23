@@ -19,7 +19,19 @@ type RegrasFormulario = {
   toleranciaCreditoMinutos: number;
   toleranciaDebitoMinutos: number;
   jornada7hCreditoMinimoMinutos: number;
+  jornada7hCargoComissionadoCreditoMinimoMinutos: number;
   jornada7hIntervaloMinimoMinutos: number;
+  jornada7hCreditoExigeIntervalo: boolean;
+  expedientePadraoInicio: string;
+  expedientePadraoFim: string;
+  entradaMinimaPermitida: string;
+  saidaMaximaPermitida: string;
+  prazoHomologacaoDiaMesSeguinte: number;
+  prazoAjustePontoDiaMesSeguinte: number;
+  percentualCreditoSabado: number;
+  percentualCreditoDomingoFeriado: number;
+  percentualCreditoRecesso: number;
+  recessoIgnoraLimiteMensal: boolean;
   exigeAutorizacaoPreviaCredito: boolean;
   horasForaExpedienteInconsistente: boolean;
 };
@@ -36,6 +48,13 @@ function competenciaAtual() {
     2,
     "0",
   )}`;
+}
+
+function formatarMinutosComoHora(minutos: number) {
+  const horas = Math.floor(minutos / 60);
+  const resto = minutos % 60;
+
+  return `${String(horas).padStart(2, "0")}:${String(resto).padStart(2, "0")}`;
 }
 
 export function RegulamentacaoPontoForm({
@@ -100,11 +119,17 @@ export function RegulamentacaoPontoForm({
           </span>
           <input
             name="limiteCreditoMensalMinutos"
-            type="number"
-            min={0}
-            max={6000}
-            defaultValue={valores.limiteCreditoMensalMinutos}
-            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            type="text"
+            inputMode="numeric"
+            pattern="\d{2,3}:[0-5]\d"
+            minLength={5}
+            maxLength={6}
+            placeholder="hh:mm"
+            title="Informe no formato hh:mm."
+            defaultValue={formatarMinutosComoHora(
+              valores.limiteCreditoMensalMinutos,
+            )}
+            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 font-mono text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
           />
         </label>
 
@@ -136,11 +161,17 @@ export function RegulamentacaoPontoForm({
           </span>
           <input
             name="toleranciaCreditoMinutos"
-            type="number"
-            min={0}
-            max={120}
-            defaultValue={valores.toleranciaCreditoMinutos}
-            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            type="text"
+            inputMode="numeric"
+            pattern="\d{2,3}:[0-5]\d"
+            minLength={5}
+            maxLength={6}
+            placeholder="hh:mm"
+            title="Informe no formato hh:mm."
+            defaultValue={formatarMinutosComoHora(
+              valores.toleranciaCreditoMinutos,
+            )}
+            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 font-mono text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
           />
         </label>
 
@@ -154,11 +185,17 @@ export function RegulamentacaoPontoForm({
           </span>
           <input
             name="toleranciaDebitoMinutos"
-            type="number"
-            min={0}
-            max={120}
-            defaultValue={valores.toleranciaDebitoMinutos}
-            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            type="text"
+            inputMode="numeric"
+            pattern="\d{2,3}:[0-5]\d"
+            minLength={5}
+            maxLength={6}
+            placeholder="hh:mm"
+            title="Informe no formato hh:mm."
+            defaultValue={formatarMinutosComoHora(
+              valores.toleranciaDebitoMinutos,
+            )}
+            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 font-mono text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
           />
         </label>
 
@@ -167,16 +204,22 @@ export function RegulamentacaoPontoForm({
             Mínimo trabalhado para gerar crédito em jornada de 7h
           </span>
           <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
-            Total de minutos trabalhados no dia para que excedente de jornada
-            de 7h seja considerado crédito.
+            Total de minutos trabalhados no dia para que excedente de jornada de
+            7h seja considerado crédito.
           </span>
           <input
             name="jornada7hCreditoMinimoMinutos"
-            type="number"
-            min={420}
-            max={720}
-            defaultValue={valores.jornada7hCreditoMinimoMinutos}
-            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            type="text"
+            inputMode="numeric"
+            pattern="\d{2,3}:[0-5]\d"
+            minLength={5}
+            maxLength={6}
+            placeholder="hh:mm"
+            title="Informe no formato hh:mm."
+            defaultValue={formatarMinutosComoHora(
+              valores.jornada7hCreditoMinimoMinutos,
+            )}
+            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 font-mono text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
           />
         </label>
 
@@ -190,12 +233,205 @@ export function RegulamentacaoPontoForm({
           </span>
           <input
             name="jornada7hIntervaloMinimoMinutos"
+            type="text"
+            inputMode="numeric"
+            pattern="\d{2,3}:[0-5]\d"
+            minLength={5}
+            maxLength={6}
+            placeholder="hh:mm"
+            title="Informe no formato hh:mm."
+            defaultValue={formatarMinutosComoHora(
+              valores.jornada7hIntervaloMinimoMinutos,
+            )}
+            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 font-mono text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+          />
+        </label>
+
+        <label className="space-y-2">
+          <span className="text-sm font-semibold">
+            Mínimo para FC/CJ em jornada de 7h
+          </span>
+          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+            Tempo a partir do qual ocupantes de FC/CJ geram crédito quando
+            cumprem jornada de 7h.
+          </span>
+          <input
+            name="jornada7hCargoComissionadoCreditoMinimoMinutos"
+            type="text"
+            inputMode="numeric"
+            pattern="\d{2,3}:[0-5]\d"
+            minLength={5}
+            maxLength={6}
+            placeholder="hh:mm"
+            title="Informe no formato hh:mm."
+            defaultValue={formatarMinutosComoHora(
+              valores.jornada7hCargoComissionadoCreditoMinimoMinutos,
+            )}
+            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 font-mono text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+          />
+        </label>
+
+        <label className="space-y-2">
+          <span className="text-sm font-semibold">Expediente padrão</span>
+          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+            Janela ordinária usada para apurar tempo dentro do expediente.
+          </span>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              name="expedientePadraoInicio"
+              type="time"
+              defaultValue={valores.expedientePadraoInicio}
+              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 font-mono text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            />
+            <input
+              name="expedientePadraoFim"
+              type="time"
+              defaultValue={valores.expedientePadraoFim}
+              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 font-mono text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            />
+          </div>
+        </label>
+
+        <label className="space-y-2">
+          <span className="text-sm font-semibold">
+            Janela permitida para flexibilização
+          </span>
+          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+            Limites mínimo e máximo para horário diferenciado ou compensação.
+          </span>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              name="entradaMinimaPermitida"
+              type="time"
+              defaultValue={valores.entradaMinimaPermitida}
+              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 font-mono text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            />
+            <input
+              name="saidaMaximaPermitida"
+              type="time"
+              defaultValue={valores.saidaMaximaPermitida}
+              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 font-mono text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            />
+          </div>
+        </label>
+
+        <label className="space-y-2">
+          <span className="text-sm font-semibold">Prazo de homologação</span>
+          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+            Dia do mês subsequente para encerramento da homologação.
+          </span>
+          <input
+            name="prazoHomologacaoDiaMesSeguinte"
             type="number"
-            min={0}
-            max={180}
-            defaultValue={valores.jornada7hIntervaloMinimoMinutos}
+            min={1}
+            max={31}
+            defaultValue={valores.prazoHomologacaoDiaMesSeguinte}
             className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
           />
+        </label>
+
+        <label className="space-y-2">
+          <span className="text-sm font-semibold">
+            Prazo para ajuste de ponto
+          </span>
+          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+            Dia do mês subsequente até o qual a correção de marcação fica
+            permitida.
+          </span>
+          <input
+            name="prazoAjustePontoDiaMesSeguinte"
+            type="number"
+            min={1}
+            max={31}
+            defaultValue={valores.prazoAjustePontoDiaMesSeguinte}
+            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+          />
+        </label>
+
+        <label className="space-y-2">
+          <span className="text-sm font-semibold">
+            Acréscimo para sábado (%)
+          </span>
+          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+            Percentual somado ao tempo trabalhado em sábados autorizados.
+          </span>
+          <input
+            name="percentualCreditoSabado"
+            type="number"
+            min={0}
+            max={300}
+            defaultValue={valores.percentualCreditoSabado}
+            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+          />
+        </label>
+
+        <label className="space-y-2">
+          <span className="text-sm font-semibold">
+            Acréscimo para domingo/feriado (%)
+          </span>
+          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+            Percentual somado ao tempo trabalhado em domingos e feriados.
+          </span>
+          <input
+            name="percentualCreditoDomingoFeriado"
+            type="number"
+            min={0}
+            max={300}
+            defaultValue={valores.percentualCreditoDomingoFeriado}
+            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+          />
+        </label>
+
+        <label className="space-y-2">
+          <span className="text-sm font-semibold">
+            Acréscimo para recesso (%)
+          </span>
+          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+            Percentual somado ao tempo trabalhado em recesso forense.
+          </span>
+          <input
+            name="percentualCreditoRecesso"
+            type="number"
+            min={0}
+            max={300}
+            defaultValue={valores.percentualCreditoRecesso}
+            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+          />
+        </label>
+
+        <label className="flex items-center gap-3 rounded-md border bg-[var(--muted)] p-4 text-sm">
+          <input
+            type="checkbox"
+            name="jornada7hCreditoExigeIntervalo"
+            defaultChecked={valores.jornada7hCreditoExigeIntervalo}
+            className="size-4 rounded border-slate-300"
+          />
+          <span>
+            <span className="block font-semibold">
+              Exigir intervalo para crédito na jornada de 7h
+            </span>
+            <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+              Quando desmarcado, o excedente da jornada de 7h pode gerar
+              crédito sem intervalo.
+            </span>
+          </span>
+        </label>
+
+        <label className="flex items-center gap-3 rounded-md border bg-[var(--muted)] p-4 text-sm">
+          <input
+            type="checkbox"
+            name="recessoIgnoraLimiteMensal"
+            defaultChecked={valores.recessoIgnoraLimiteMensal}
+            className="size-4 rounded border-slate-300"
+          />
+          <span>
+            <span className="block font-semibold">
+              Recesso não se submete ao teto mensal
+            </span>
+            <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+              Mantém separada a regra especial de recesso forense.
+            </span>
+          </span>
         </label>
 
         <label className="flex items-center gap-3 rounded-md border bg-[var(--muted)] p-4 text-sm">

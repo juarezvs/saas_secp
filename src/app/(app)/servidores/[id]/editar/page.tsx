@@ -84,6 +84,12 @@ export default async function EditarServidorPage({
           funcaoDescricao: descricaoFuncaoServidor(servidor),
           descricaoProvimentoSarh: servidor.descricaoProvimentoSarh,
           descricaoSituacaoSarh: servidor.descricaoSituacaoSarh,
+          sinalizacaoForaExpediente:
+            servidor.horasForaExpedienteInconsistente === null
+              ? "PADRAO"
+              : servidor.horasForaExpedienteInconsistente
+                ? "SINALIZAR"
+                : "NAO_SINALIZAR",
           ativo: servidor.ativo,
         }}
       />

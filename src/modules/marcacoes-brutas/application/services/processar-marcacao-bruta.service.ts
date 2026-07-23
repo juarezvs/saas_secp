@@ -227,6 +227,7 @@ export async function processarMarcacaoBrutaService(params: {
     where: {
       servidorId: servidor.id,
       ativo: true,
+      status: "ATIVO",
       dataInicio: {
         lte: dataReferencia,
       },
@@ -262,6 +263,7 @@ export async function processarMarcacaoBrutaService(params: {
         where: {
           servidorId: servidor.id,
           ativo: true,
+          status: "ATIVO",
           dataInicio: { lte: dataReferencia },
           OR: [{ dataFim: null }, { dataFim: { gte: dataReferencia } }],
         },
@@ -282,6 +284,7 @@ export async function processarMarcacaoBrutaService(params: {
       where: {
         servidorId: servidor.id,
         ativo: true,
+        status: "ATIVO",
         dataInicio: { lte: dataReferencia },
         OR: [{ dataFim: null }, { dataFim: { gte: dataReferencia } }],
       },

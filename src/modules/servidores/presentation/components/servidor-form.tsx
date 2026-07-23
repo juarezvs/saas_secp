@@ -33,6 +33,7 @@ type ServidorFormProps = {
     funcaoDescricao?: string | null;
     descricaoProvimentoSarh?: string | null;
     descricaoSituacaoSarh?: string | null;
+    sinalizacaoForaExpediente?: string | null;
     ativo?: boolean;
   };
   modo: "criar" | "editar";
@@ -310,6 +311,37 @@ export function ServidorForm({
               </span>
             </span>
           </label>
+
+          <div className="space-y-2 md:col-span-2">
+            <label
+              htmlFor="sinalizacaoForaExpediente"
+              className="text-sm font-semibold"
+            >
+              Marcação fora do expediente
+            </label>
+
+            <select
+              id="sinalizacaoForaExpediente"
+              name="sinalizacaoForaExpediente"
+              defaultValue={campos?.sinalizacaoForaExpediente ?? "PADRAO"}
+              className="h-11 w-full rounded-md border bg-(--card) px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            >
+              <option value="PADRAO">Seguir padrão do órgão</option>
+              <option value="NAO_SINALIZAR">Não sinalizar</option>
+              <option value="SINALIZAR">Sinalizar como inconsistência</option>
+            </select>
+
+            <p className="text-xs leading-5 text-[var(--muted-foreground)]">
+              Use a opção individual apenas para casos excepcionais; o padrão do
+              SECP é não sinalizar marcações fora do expediente.
+            </p>
+
+            {obterErro(estado.erros, "sinalizacaoForaExpediente") && (
+              <p className="text-sm text-red-600">
+                {obterErro(estado.erros, "sinalizacaoForaExpediente")}
+              </p>
+            )}
+          </div>
         </div>
       </section>
 

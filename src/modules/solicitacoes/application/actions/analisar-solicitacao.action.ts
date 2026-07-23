@@ -11,7 +11,10 @@ import { recalcularPosSolicitacaoService } from "@/modules/recalculo/application
 import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
-import { buscarSolicitacaoPorId } from "../../infrastructure/repositories/solicitacao.repository";
+import {
+  buscarSolicitacaoPorId,
+  usuarioPodeAcessarSolicitacaoComoChefia,
+} from "../../infrastructure/repositories/solicitacao.repository";
 import {
   analisarSolicitacaoSchema,
   type AnalisarSolicitacaoFormState,
@@ -188,11 +191,14 @@ export async function analisarSolicitacaoAction(
 
   const permissoes = session.user.perfilAtivo?.permissoes ?? [];
 
-  const podeAnalisar =
-    permissoes.includes("solicitacoes:analisar:chefia") ||
-    permissoes.includes("solicitacoes:consultar:global");
+  const podeConsultarGlobal = permissoes.includes(
+    "solicitacoes:consultar:global",
+  );
+  const podeAnalisarComoChefia = permissoes.includes(
+    "solicitacoes:analisar:chefia",
+  );
 
-  if (!podeAnalisar) {
+  if (!podeAnalisarComoChefia && !podeConsultarGlobal) {
     return {
       sucesso: false,
       mensagem: "Você não possui permissão para analisar solicitações.",
@@ -205,6 +211,19 @@ export async function analisarSolicitacaoAction(
     return {
       sucesso: false,
       mensagem: "Solicitação não encontrada.",
+    };
+  }
+
+  if (
+    !podeConsultarGlobal &&
+    !(await usuarioPodeAcessarSolicitacaoComoChefia({
+      usuarioId: session.user.id,
+      solicitacaoId,
+    }))
+  ) {
+    return {
+      sucesso: false,
+      mensagem: "Esta solicitação não pertence aos seus subordinados.",
     };
   }
 

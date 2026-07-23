@@ -30,6 +30,13 @@ type JornadaExpediente = {
   saidaMaximaDiferenciada: string | null;
 };
 
+type RegulamentacaoExpediente = {
+  expedientePadraoInicio: string;
+  expedientePadraoFim: string;
+  entradaMinimaPermitida: string;
+  saidaMaximaPermitida: string;
+};
+
 export type JanelaExpediente = {
   inicio: string;
   fim: string;
@@ -154,22 +161,6 @@ export function calcularCargaPrevistaComJanela(
   return Math.min(cargaDiariaMinutos, duracaoJanela);
 }
 
-function minutosLocais(data: Date, fusoHorario?: string | null) {
-  const partes = new Intl.DateTimeFormat("pt-BR", {
-    timeZone: fusoHorario ?? "America/Manaus",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(data);
-
-  const horas = Number(partes.find((parte) => parte.type === "hour")?.value);
-  const minutos = Number(
-    partes.find((parte) => parte.type === "minute")?.value,
-  );
-
-  return horas * 60 + minutos;
-}
-
 function dataLocalAbsolutaEmMinutos(
   data: Date,
   fusoHorario?: string | null,
@@ -195,13 +186,26 @@ function dataLocalAbsolutaEmMinutos(
 export function resolverJanelaExpediente(
   jornada: JornadaExpediente,
   janelaInstitucional?: { inicio: string; fim: string } | null,
+  regulamentacao?: RegulamentacaoExpediente | null,
 ): JanelaExpediente {
+  const expedientePadrao = {
+    inicio: regulamentacao?.expedientePadraoInicio ?? EXPEDIENTE_PADRAO.inicio,
+    fim: regulamentacao?.expedientePadraoFim ?? EXPEDIENTE_PADRAO.fim,
+  };
+  const limiteDiferenciado = {
+    inicio:
+      regulamentacao?.entradaMinimaPermitida ??
+      EXPEDIENTE_DIFERENCIADO_LIMITE.inicio,
+    fim:
+      regulamentacao?.saidaMaximaPermitida ??
+      EXPEDIENTE_DIFERENCIADO_LIMITE.fim,
+  };
   const diferenciada =
     jornada.horarioDiferenciadoPermitido &&
     jornada.horarioDiferenciadoAutorizado;
 
   if (!diferenciada) {
-    const janela = combinarJanelas(EXPEDIENTE_PADRAO, janelaInstitucional);
+    const janela = combinarJanelas(expedientePadrao, janelaInstitucional);
 
     return {
       ...janela,
@@ -213,10 +217,10 @@ export function resolverJanelaExpediente(
     {
       inicio:
         jornada.entradaMinimaDiferenciada ??
-        EXPEDIENTE_DIFERENCIADO_LIMITE.inicio,
+        limiteDiferenciado.inicio,
       fim:
         jornada.saidaMaximaDiferenciada ??
-        EXPEDIENTE_DIFERENCIADO_LIMITE.fim,
+        limiteDiferenciado.fim,
     },
     janelaInstitucional,
   );
@@ -229,11 +233,17 @@ export function resolverJanelaExpediente(
 
 export function resolverExpedienteInstitucional(
   diaInstitucional?: DiaInstitucionalExpediente | null,
+  regulamentacao?: RegulamentacaoExpediente | null,
 ): ExpedienteInstitucional {
+  const expedientePadrao = {
+    inicio: regulamentacao?.expedientePadraoInicio ?? EXPEDIENTE_PADRAO.inicio,
+    fim: regulamentacao?.expedientePadraoFim ?? EXPEDIENTE_PADRAO.fim,
+  };
+
   if (!diaInstitucional) {
     return {
       temExpedienteOrdinario: true,
-      janelaPadrao: EXPEDIENTE_PADRAO,
+      janelaPadrao: expedientePadrao,
       motivoSemExpediente: null,
     };
   }
@@ -254,7 +264,7 @@ export function resolverExpedienteInstitucional(
   return {
     temExpedienteOrdinario,
     janelaPadrao: temExpedienteOrdinario
-      ? janelaInstitucional ?? EXPEDIENTE_PADRAO
+      ? janelaInstitucional ?? expedientePadrao
       : null,
     motivoSemExpediente: temExpedienteOrdinario
       ? null

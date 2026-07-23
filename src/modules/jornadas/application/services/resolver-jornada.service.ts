@@ -9,6 +9,12 @@ export type JornadaVigente = {
   nome: string;
   tipo: string;
   cargaDiariaMinutos: number;
+  cargaSemanalMinutos: number | null;
+  cargaMensalMinutos: number | null;
+  controlaHorario: boolean;
+  permiteFlexibilidade: boolean;
+  permiteBancoHoras: boolean;
+  permiteHoraExtra: boolean;
   exigeIntervalo: boolean;
   intervaloMinimoMinutos: number | null;
   intervaloMaximoMinutos: number | null;
@@ -16,6 +22,11 @@ export type JornadaVigente = {
   horarioDiferenciadoAutorizado: boolean;
   entradaMinimaDiferenciada: string | null;
   saidaMaximaDiferenciada: string | null;
+  cruzaMeiaNoite: boolean;
+  fundamentoNormativo: string | null;
+  versao: number;
+  tipoVinculacao: string;
+  status: string;
   dataInicio: Date;
   dataFim: Date | null;
 };
@@ -31,6 +42,7 @@ export async function resolverJornadaVigenteDoServidor(
     where: {
       servidorId,
       ativo: true,
+      status: "ATIVO",
       dataInicio: {
         lte: inicioDia,
       },
@@ -66,6 +78,12 @@ export async function resolverJornadaVigenteDoServidor(
     nome: jornadaServidor.jornada.nome,
     tipo: jornadaServidor.jornada.tipo,
     cargaDiariaMinutos: jornadaServidor.jornada.cargaDiariaMinutos,
+    cargaSemanalMinutos: jornadaServidor.jornada.cargaSemanalMinutos,
+    cargaMensalMinutos: jornadaServidor.jornada.cargaMensalMinutos,
+    controlaHorario: jornadaServidor.jornada.controlaHorario,
+    permiteFlexibilidade: jornadaServidor.jornada.permiteFlexibilidade,
+    permiteBancoHoras: jornadaServidor.jornada.permiteBancoHoras,
+    permiteHoraExtra: jornadaServidor.jornada.permiteHoraExtra,
     exigeIntervalo: jornadaServidor.jornada.exigeIntervalo,
     intervaloMinimoMinutos: jornadaServidor.jornada.intervaloMinimoMinutos,
     intervaloMaximoMinutos: jornadaServidor.jornada.intervaloMaximoMinutos,
@@ -77,6 +95,11 @@ export async function resolverJornadaVigenteDoServidor(
       jornadaServidor.jornada.entradaMinimaDiferenciada,
     saidaMaximaDiferenciada:
       jornadaServidor.jornada.saidaMaximaDiferenciada,
+    cruzaMeiaNoite: jornadaServidor.jornada.cruzaMeiaNoite,
+    fundamentoNormativo: jornadaServidor.jornada.fundamentoNormativo,
+    versao: jornadaServidor.jornada.versao,
+    tipoVinculacao: jornadaServidor.tipoVinculacao,
+    status: jornadaServidor.status,
     dataInicio: jornadaServidor.dataInicio,
     dataFim: jornadaServidor.dataFim,
   };

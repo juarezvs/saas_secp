@@ -1,6 +1,14 @@
 import { z } from "zod";
 
-export const tiposEscala = ["SEMANAL", "REVEZAMENTO", "INDIVIDUAL"] as const;
+export const tiposEscala = [
+  "SEMANAL",
+  "REVEZAMENTO",
+  "INDIVIDUAL",
+  "CICLICA",
+  "PLANEJADA",
+  "TURNO_FIXO",
+  "TURNO_ALTERNANTE",
+] as const;
 
 export const diasSemana = [
   "DOMINGO",
@@ -13,13 +21,18 @@ export const diasSemana = [
 ] as const;
 
 export const escalaDiaSchema = z.object({
-  diaSemana: z.enum(diasSemana),
+  diaSemana: z.enum(diasSemana).optional().or(z.literal("")),
+  posicaoCiclo: z.coerce.number().int().min(1).optional().nullable(),
+  tipoDia: z
+    .enum(["TRABALHO", "FOLGA", "PLANTAO", "COMPENSADO", "SEM_EXPEDIENTE"])
+    .default("TRABALHO"),
   trabalha: z.coerce.boolean().default(false),
   horarioEntrada: z.string().optional().or(z.literal("")),
   horarioSaida: z.string().optional().or(z.literal("")),
   intervaloInicio: z.string().optional().or(z.literal("")),
   intervaloFim: z.string().optional().or(z.literal("")),
   cargaPrevistaMinutos: z.coerce.number().int().min(0).max(720),
+  cruzaMeiaNoite: z.coerce.boolean().default(false),
 });
 
 export const escalaSchema = z
@@ -40,8 +53,12 @@ export const escalaSchema = z
     tipo: z.enum(tiposEscala, {
       error: "Informe o tipo da escala.",
     }),
+    quantidadeDiasCiclo: z.coerce.number().int().min(1).max(90).optional().nullable(),
+    dataAncoragem: z.string().optional().or(z.literal("")),
+    primeiroDiaTrabalho: z.string().optional().or(z.literal("")),
+    timezone: z.string().trim().max(80).optional().or(z.literal("")),
     ativo: z.coerce.boolean().default(true),
-    dias: z.array(escalaDiaSchema).length(7),
+    dias: z.array(escalaDiaSchema).min(1).max(90),
   })
   .superRefine((data, ctx) => {
     if (!data.dias.some((dia) => dia.trabalha)) {
@@ -49,6 +66,46 @@ export const escalaSchema = z
         code: "custom",
         path: ["dias"],
         message: "Informe pelo menos um dia trabalhado na escala.",
+      });
+    }
+
+    const escalaCiclica = ["CICLICA", "REVEZAMENTO", "TURNO_ALTERNANTE"].includes(
+      data.tipo,
+    );
+
+    if (escalaCiclica && !data.quantidadeDiasCiclo) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["quantidadeDiasCiclo"],
+        message: "Informe a quantidade de dias do ciclo.",
+      });
+    }
+
+    if (escalaCiclica && !data.dataAncoragem && !data.primeiroDiaTrabalho) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["dataAncoragem"],
+        message: "Informe a data de ancoragem do ciclo.",
+      });
+    }
+
+    if (!escalaCiclica && data.dias.length !== 7) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["dias"],
+        message: "Escala semanal deve conter os 7 dias da semana.",
+      });
+    }
+
+    if (
+      escalaCiclica &&
+      data.quantidadeDiasCiclo &&
+      data.dias.length !== data.quantidadeDiasCiclo
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["dias"],
+        message: "A quantidade de dias deve corresponder ao tamanho do ciclo.",
       });
     }
   });

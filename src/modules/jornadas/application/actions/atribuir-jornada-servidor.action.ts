@@ -17,11 +17,36 @@ function extrairDados(formData: FormData) {
     escalaId: String(formData.get("escalaId") ?? ""),
     dataInicio: String(formData.get("dataInicio") ?? ""),
     dataFim: String(formData.get("dataFim") ?? ""),
+    tipoVinculacao: String(formData.get("tipoVinculacao") ?? "PERMANENTE"),
+    motivo: String(formData.get("motivo") ?? "").trim(),
+    fundamentoDocumental: String(
+      formData.get("fundamentoDocumental") ?? "",
+    ).trim(),
+    documentoSei: String(formData.get("documentoSei") ?? "").trim(),
+    autoridadeResponsavel: String(
+      formData.get("autoridadeResponsavel") ?? "",
+    ).trim(),
     horarioDiferenciadoAutorizado:
       formData.get("horarioDiferenciadoAutorizado") === "on" ||
       formData.get("horarioDiferenciadoAutorizado") === "true",
     justificativa: String(formData.get("justificativa") ?? "").trim(),
   };
+}
+
+const DATA_FIM_ABERTA = new Date("9999-12-31T00:00:00");
+
+function adicionarDias(data: Date, dias: number) {
+  const proxima = new Date(data);
+  proxima.setDate(proxima.getDate() + dias);
+  return proxima;
+}
+
+function menorOuIgual(a: Date, b: Date) {
+  return a.getTime() <= b.getTime();
+}
+
+function maiorOuIgual(a: Date, b: Date) {
+  return a.getTime() >= b.getTime();
 }
 
 export async function atribuirJornadaServidorAction(
@@ -159,16 +184,121 @@ export async function atribuirJornadaServidorAction(
   }
 
   await prisma.$transaction(async (tx) => {
-    if (!dataFim) {
-      await tx.jornadaServidor.updateMany({
+    const dataFimComparacao = dataFim ?? DATA_FIM_ABERTA;
+    const vinculosSobrepostos = await tx.jornadaServidor.findMany({
+      where: {
+        servidorId: parsed.data.servidorId,
+        ativo: true,
+        status: "ATIVO",
+        dataInicio: {
+          lte: dataFimComparacao,
+        },
+        OR: [
+          {
+            dataFim: null,
+          },
+          {
+            dataFim: {
+              gte: dataInicio,
+            },
+          },
+        ],
+      },
+      orderBy: {
+        dataInicio: "asc",
+      },
+    });
+
+    for (const existente of vinculosSobrepostos) {
+      const fimExistente = existente.dataFim ?? DATA_FIM_ABERTA;
+      const comecaAntesDoNovo = existente.dataInicio < dataInicio;
+      const terminaDepoisDoNovo = fimExistente > dataFimComparacao;
+      const fimAntesDoNovo = adicionarDias(dataInicio, -1);
+      const inicioDepoisDoNovo = dataFim
+        ? adicionarDias(dataFim, 1)
+        : null;
+
+      if (comecaAntesDoNovo && terminaDepoisDoNovo && inicioDepoisDoNovo) {
+        await tx.jornadaServidor.update({
+          where: {
+            id: existente.id,
+          },
+          data: {
+            dataFim: fimAntesDoNovo,
+          },
+        });
+
+        await tx.jornadaServidor.create({
+          data: {
+            servidorId: existente.servidorId,
+            jornadaId: existente.jornadaId,
+            escalaId: existente.escalaId,
+            dataInicio: inicioDepoisDoNovo,
+            dataFim: existente.dataFim,
+            ativo: true,
+            status: "ATIVO",
+            tipoVinculacao: existente.tipoVinculacao,
+            motivo: existente.motivo,
+            fundamentoDocumental: existente.fundamentoDocumental,
+            documentoSei: existente.documentoSei,
+            autoridadeResponsavel: existente.autoridadeResponsavel,
+            justificativa: existente.justificativa,
+            horarioDiferenciadoAutorizado:
+              existente.horarioDiferenciadoAutorizado,
+            autorizadoPorUsuarioId: existente.autorizadoPorUsuarioId,
+            autorizadoEm: existente.autorizadoEm,
+          },
+        });
+        continue;
+      }
+
+      if (comecaAntesDoNovo && maiorOuIgual(fimExistente, dataInicio)) {
+        if (maiorOuIgual(fimAntesDoNovo, existente.dataInicio)) {
+          await tx.jornadaServidor.update({
+            where: {
+              id: existente.id,
+            },
+            data: {
+              dataFim: fimAntesDoNovo,
+            },
+          });
+        } else {
+          await tx.jornadaServidor.update({
+            where: {
+              id: existente.id,
+            },
+            data: {
+              ativo: false,
+              status: "SUBSTITUIDA",
+            },
+          });
+        }
+        continue;
+      }
+
+      if (
+        inicioDepoisDoNovo &&
+        menorOuIgual(existente.dataInicio, dataFimComparacao) &&
+        terminaDepoisDoNovo
+      ) {
+        await tx.jornadaServidor.update({
+          where: {
+            id: existente.id,
+          },
+          data: {
+            dataInicio: inicioDepoisDoNovo,
+          },
+        });
+        continue;
+      }
+
+      await tx.jornadaServidor.update({
         where: {
-          servidorId: parsed.data.servidorId,
-          ativo: true,
-          dataFim: null,
+          id: existente.id,
         },
         data: {
           ativo: false,
-          dataFim: dataInicio,
+          status: "SUBSTITUIDA",
         },
       });
     }
@@ -180,7 +310,13 @@ export async function atribuirJornadaServidorAction(
         escalaId: parsed.data.escalaId || null,
         dataInicio,
         dataFim,
-        ativo: !dataFim,
+        ativo: true,
+        status: "ATIVO",
+        tipoVinculacao: parsed.data.tipoVinculacao,
+        motivo: parsed.data.motivo || null,
+        fundamentoDocumental: parsed.data.fundamentoDocumental || null,
+        documentoSei: parsed.data.documentoSei || null,
+        autoridadeResponsavel: parsed.data.autoridadeResponsavel || null,
         justificativa: parsed.data.justificativa || null,
         horarioDiferenciadoAutorizado:
           parsed.data.horarioDiferenciadoAutorizado,
@@ -206,6 +342,12 @@ export async function atribuirJornadaServidorAction(
           escalaId: vinculo.escalaId,
           dataInicio: vinculo.dataInicio,
           dataFim: vinculo.dataFim,
+          tipoVinculacao: vinculo.tipoVinculacao,
+          motivo: vinculo.motivo,
+          fundamentoDocumental: vinculo.fundamentoDocumental,
+          documentoSei: vinculo.documentoSei,
+          autoridadeResponsavel: vinculo.autoridadeResponsavel,
+          status: vinculo.status,
           justificativa: vinculo.justificativa,
           horarioDiferenciadoAutorizado:
             vinculo.horarioDiferenciadoAutorizado,

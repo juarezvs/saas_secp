@@ -9,18 +9,55 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 import { enfileirarRecalculoRegulamentacaoPonto } from "../queues/recalcular-regulamentacao-ponto-queue";
 import { garantirRecalcularRegulamentacaoPontoWorkerAutomatico } from "../workers/recalcular-regulamentacao-ponto-worker-runtime";
 
+function converterHoraMinutoParaMinutos(valor: unknown) {
+  if (typeof valor !== "string") {
+    return valor;
+  }
+
+  const match = /^(\d{1,3}):([0-5]\d)$/.exec(valor.trim());
+
+  if (!match) {
+    return valor;
+  }
+
+  const [, horas, minutos] = match;
+
+  return Number(horas) * 60 + Number(minutos);
+}
+
+function minutosSchema(min: number, max: number) {
+  return z.preprocess(
+    converterHoraMinutoParaMinutos,
+    z.coerce.number().int().min(min).max(max),
+  );
+}
+
+const horaSchema = z.string().regex(/^\d{2}:[0-5]\d$/, "Informe hh:mm.");
+
 const regulamentacaoSchema = z.object({
   orgaoId: z.string().uuid("Informe o órgão."),
   numeroPortaria: z.string().trim().max(120).optional().or(z.literal("")),
   descricao: z.string().trim().max(2000).optional().or(z.literal("")),
-  limiteCreditoMensalMinutos: z.coerce.number().int().min(0).max(6000),
+  limiteCreditoMensalMinutos: minutosSchema(0, 6000),
   mesesExpiracaoCompensacao: z.coerce.number().int().min(1).max(24),
-  toleranciaCreditoMinutos: z.coerce.number().int().min(0).max(120),
-  toleranciaDebitoMinutos: z.coerce.number().int().min(0).max(120),
-  jornada7hCreditoMinimoMinutos: z.coerce.number().int().min(420).max(720),
-  jornada7hIntervaloMinimoMinutos: z.coerce.number().int().min(0).max(180),
+  toleranciaCreditoMinutos: minutosSchema(0, 120),
+  toleranciaDebitoMinutos: minutosSchema(0, 120),
+  jornada7hCreditoMinimoMinutos: minutosSchema(420, 720),
+  jornada7hCargoComissionadoCreditoMinimoMinutos: minutosSchema(420, 720),
+  jornada7hIntervaloMinimoMinutos: minutosSchema(0, 180),
+  jornada7hCreditoExigeIntervalo: z.coerce.boolean().default(false),
+  expedientePadraoInicio: horaSchema,
+  expedientePadraoFim: horaSchema,
+  entradaMinimaPermitida: horaSchema,
+  saidaMaximaPermitida: horaSchema,
+  prazoHomologacaoDiaMesSeguinte: z.coerce.number().int().min(1).max(31),
+  prazoAjustePontoDiaMesSeguinte: z.coerce.number().int().min(1).max(31),
+  percentualCreditoSabado: z.coerce.number().int().min(0).max(300),
+  percentualCreditoDomingoFeriado: z.coerce.number().int().min(0).max(300),
+  percentualCreditoRecesso: z.coerce.number().int().min(0).max(300),
+  recessoIgnoraLimiteMensal: z.coerce.boolean().default(true),
   exigeAutorizacaoPreviaCredito: z.coerce.boolean().default(true),
-  horasForaExpedienteInconsistente: z.coerce.boolean().default(true),
+  horasForaExpedienteInconsistente: z.coerce.boolean().default(false),
   ativo: z.coerce.boolean().default(true),
   recalcularCompetencia: z.coerce.boolean().default(false),
   competencia: z
@@ -44,8 +81,34 @@ function extrairDados(formData: FormData) {
     jornada7hCreditoMinimoMinutos: formData.get(
       "jornada7hCreditoMinimoMinutos",
     ),
+    jornada7hCargoComissionadoCreditoMinimoMinutos: formData.get(
+      "jornada7hCargoComissionadoCreditoMinimoMinutos",
+    ),
     jornada7hIntervaloMinimoMinutos: formData.get(
       "jornada7hIntervaloMinimoMinutos",
+    ),
+    jornada7hCreditoExigeIntervalo: checkboxLigado(
+      formData,
+      "jornada7hCreditoExigeIntervalo",
+    ),
+    expedientePadraoInicio: String(formData.get("expedientePadraoInicio") ?? ""),
+    expedientePadraoFim: String(formData.get("expedientePadraoFim") ?? ""),
+    entradaMinimaPermitida: String(formData.get("entradaMinimaPermitida") ?? ""),
+    saidaMaximaPermitida: String(formData.get("saidaMaximaPermitida") ?? ""),
+    prazoHomologacaoDiaMesSeguinte: formData.get(
+      "prazoHomologacaoDiaMesSeguinte",
+    ),
+    prazoAjustePontoDiaMesSeguinte: formData.get(
+      "prazoAjustePontoDiaMesSeguinte",
+    ),
+    percentualCreditoSabado: formData.get("percentualCreditoSabado"),
+    percentualCreditoDomingoFeriado: formData.get(
+      "percentualCreditoDomingoFeriado",
+    ),
+    percentualCreditoRecesso: formData.get("percentualCreditoRecesso"),
+    recessoIgnoraLimiteMensal: checkboxLigado(
+      formData,
+      "recessoIgnoraLimiteMensal",
     ),
     exigeAutorizacaoPreviaCredito: checkboxLigado(
       formData,

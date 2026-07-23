@@ -9,8 +9,10 @@ import {
   type CalendarioInstitucionalPrecarregado,
 } from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
 import { normalizarMarcacoesSemIntervaloService } from "@/modules/marcacoes/application/services/normalizar-marcacoes-sem-intervalo.service";
-import { buscarRegulamentacaoPontoOrgao } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
+import { buscarRegulamentacaoPontoServidor } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 import { resolverFusoHorarioUnidade } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
+import { servidorExigeDedicacaoIntegral } from "@/modules/jornadas/application/services/dedicacao-integral.service";
+import { resolverPrevisaoJornadaDia } from "@/modules/jornadas/application/services/resolver-previsao-jornada-dia.service";
 import { aplicarSolicitacoesDeferidasApuracao } from "@/modules/solicitacoes/application/services/aplicar-solicitacoes-deferidas-apuracao.service";
 import { TIPOS_SOLICITACAO_COM_EFEITO_APURACAO } from "@/modules/solicitacoes/application/services/periodo-solicitacao.service";
 
@@ -71,6 +73,7 @@ export async function recalcularDiaServidorService(
         where: {
           servidorId,
           ativo: true,
+          status: "ATIVO",
           dataInicio: {
             lte: dataNormalizada,
           },
@@ -86,7 +89,24 @@ export async function recalcularDiaServidorService(
           ],
         },
         include: {
-          jornada: true,
+          escala: {
+            include: {
+              dias: true,
+            },
+          },
+          jornada: {
+            include: {
+              dias: {
+                include: {
+                  faixas: {
+                    orderBy: {
+                      ordem: "asc",
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
         orderBy: {
           dataInicio: "desc",
@@ -157,6 +177,9 @@ export async function recalcularDiaServidorService(
         },
         select: {
           orgaoId: true,
+          funcaoAtualCategoriaSarh: true,
+          funcaoAtualCodigoSarh: true,
+          funcaoAtualDescricao: true,
           cargo: {
             select: {
               descricao: true,
@@ -237,9 +260,18 @@ export async function recalcularDiaServidorService(
     lotacaoVigente?.unidade ?? null,
   );
   const fusoHorario = resolverFusoHorarioUnidade(lotacaoVigente?.unidade);
-  const regulamentacao = await buscarRegulamentacaoPontoOrgao(
-    servidor?.orgaoId,
-  );
+  const regulamentacao = await buscarRegulamentacaoPontoServidor(servidorId);
+  const servidorDedicacaoIntegral = servidorExigeDedicacaoIntegral({
+    descricaoCargoServidor:
+      [
+        servidor?.funcaoAtualCategoriaSarh,
+        servidor?.funcaoAtualCodigoSarh,
+        servidor?.funcaoAtualDescricao,
+        servidor?.cargo?.descricao,
+      ]
+        .filter(Boolean)
+        .join(" ") || null,
+  });
   const quantidadeEquipamentosAtivosUnidade =
     lotacaoVigente?.unidade?.equipamentosBiometricos.length ?? null;
   const quantidadeEquipamentosAtivosOrgao =
@@ -263,18 +295,38 @@ export async function recalcularDiaServidorService(
         }
       : null,
   });
-
-  const marcacoesNormalizadas =
-    jornadaServidor && !jornadaServidor.jornada.exigeIntervalo
-      ? await normalizarMarcacoesSemIntervaloService(prisma, marcacoes)
-      : marcacoes;
-
-  const calculoBase = calcularApuracaoDiaria({
-    marcacoes: marcacoesNormalizadas,
-    jornada: jornadaServidor
-      ? {
-          jornadaServidorId: jornadaServidor.id,
+  const previsaoJornadaDia = jornadaServidor
+    ? resolverPrevisaoJornadaDia({
+        jornada: jornadaServidor.jornada,
+        escala: jornadaServidor.escala,
+        dataReferencia: dataNormalizada,
+      })
+    : null;
+  const jornadaVigenteSnapshot = jornadaServidor
+    ? {
+        jornadaServidorId: jornadaServidor.id,
+        jornadaId: jornadaServidor.jornadaId,
+        escalaId: jornadaServidor.escalaId,
+        tipoVinculacao: jornadaServidor.tipoVinculacao,
+        dataInicio: jornadaServidor.dataInicio,
+        dataFim: jornadaServidor.dataFim,
+        jornada: {
+          codigo: jornadaServidor.jornada.codigo,
+          nome: jornadaServidor.jornada.nome,
+          tipo: jornadaServidor.jornada.tipo,
+          versao: jornadaServidor.jornada.versao,
+          orgaoId: jornadaServidor.jornada.orgaoId,
           cargaDiariaMinutos: jornadaServidor.jornada.cargaDiariaMinutos,
+          cargaSemanalMinutos: jornadaServidor.jornada.cargaSemanalMinutos,
+          cargaMensalMinutos: jornadaServidor.jornada.cargaMensalMinutos,
+          cargaMinimaDiariaMinutos:
+            jornadaServidor.jornada.cargaMinimaDiariaMinutos,
+          cargaMaximaDiariaMinutos:
+            jornadaServidor.jornada.cargaMaximaDiariaMinutos,
+          controlaHorario: jornadaServidor.jornada.controlaHorario,
+          permiteFlexibilidade: jornadaServidor.jornada.permiteFlexibilidade,
+          permiteBancoHoras: jornadaServidor.jornada.permiteBancoHoras,
+          permiteHoraExtra: jornadaServidor.jornada.permiteHoraExtra,
           exigeIntervalo: jornadaServidor.jornada.exigeIntervalo,
           intervaloMinimoMinutos:
             jornadaServidor.jornada.intervaloMinimoMinutos,
@@ -288,6 +340,66 @@ export async function recalcularDiaServidorService(
             jornadaServidor.jornada.entradaMinimaDiferenciada,
           saidaMaximaDiferenciada:
             jornadaServidor.jornada.saidaMaximaDiferenciada,
+          horarioEntradaPadrao:
+            jornadaServidor.jornada.horarioEntradaPadrao,
+          horarioSaidaPadrao: jornadaServidor.jornada.horarioSaidaPadrao,
+          nucleoObrigatorioInicio:
+            jornadaServidor.jornada.nucleoObrigatorioInicio,
+          nucleoObrigatorioFim:
+            jornadaServidor.jornada.nucleoObrigatorioFim,
+          permanenciaMaximaMinutos:
+            jornadaServidor.jornada.permanenciaMaximaMinutos,
+          horarioLimiteVirada:
+            jornadaServidor.jornada.horarioLimiteVirada,
+          cruzaMeiaNoite: jornadaServidor.jornada.cruzaMeiaNoite,
+          fundamentoNormativo:
+            jornadaServidor.jornada.fundamentoNormativo,
+          vigenciaInicio: jornadaServidor.jornada.vigenciaInicio,
+          vigenciaFim: jornadaServidor.jornada.vigenciaFim,
+        },
+        previsaoDia: previsaoJornadaDia,
+      }
+    : null;
+
+  const marcacoesNormalizadas =
+    jornadaServidor && !jornadaServidor.jornada.exigeIntervalo
+      ? await normalizarMarcacoesSemIntervaloService(prisma, marcacoes)
+      : marcacoes;
+
+  const calculoBase = calcularApuracaoDiaria({
+    marcacoes: marcacoesNormalizadas,
+    jornada: jornadaServidor
+        ? {
+          jornadaServidorId: jornadaServidor.id,
+          cargaDiariaMinutos: jornadaServidor.jornada.cargaDiariaMinutos,
+          cargaPrevistaMinutos:
+            previsaoJornadaDia?.cargaPrevistaMinutos ??
+            jornadaServidor.jornada.cargaDiariaMinutos,
+          trabalhaNoDia: previsaoJornadaDia?.trabalha ?? true,
+          controlaHorario: jornadaServidor.jornada.controlaHorario,
+          janelaPrevista: previsaoJornadaDia?.janela
+            ? {
+                inicio: previsaoJornadaDia.janela.inicio,
+                fim: previsaoJornadaDia.janela.fim,
+                diferenciada:
+                  jornadaServidor.jornada.horarioDiferenciadoPermitido &&
+                  jornadaServidor.horarioDiferenciadoAutorizado,
+              }
+            : null,
+          exigeIntervalo: jornadaServidor.jornada.exigeIntervalo,
+          intervaloMinimoMinutos:
+            jornadaServidor.jornada.intervaloMinimoMinutos,
+          intervaloMaximoMinutos:
+            jornadaServidor.jornada.intervaloMaximoMinutos,
+          horarioDiferenciadoPermitido:
+            jornadaServidor.jornada.horarioDiferenciadoPermitido,
+          horarioDiferenciadoAutorizado:
+            jornadaServidor.horarioDiferenciadoAutorizado,
+          entradaMinimaDiferenciada:
+            jornadaServidor.jornada.entradaMinimaDiferenciada,
+          saidaMaximaDiferenciada:
+            jornadaServidor.jornada.saidaMaximaDiferenciada,
+          servidorDedicacaoIntegral,
         }
       : null,
     diaInstitucional,
@@ -371,6 +483,9 @@ export async function recalcularDiaServidorService(
           expedienteUnidade,
           fusoHorario,
           regulamentacaoPonto: regulamentacao,
+          jornadaVigente: jornadaVigenteSnapshot,
+          jornadaSnapshotApuracao: jornadaVigenteSnapshot,
+          previsaoJornadaDia,
           minutosForaExpediente: calculo.minutosForaExpediente,
           dispensaPontoEletronico: calculo.dispensaPontoEletronico,
           dispensaPontoAdministrativa: dispensaAdministrativa,
@@ -419,6 +534,9 @@ export async function recalcularDiaServidorService(
           expedienteUnidade,
           fusoHorario,
           regulamentacaoPonto: regulamentacao,
+          jornadaVigente: jornadaVigenteSnapshot,
+          jornadaSnapshotApuracao: jornadaVigenteSnapshot,
+          previsaoJornadaDia,
           minutosForaExpediente: calculo.minutosForaExpediente,
           dispensaPontoEletronico: calculo.dispensaPontoEletronico,
           dispensaPontoAdministrativa: dispensaAdministrativa,

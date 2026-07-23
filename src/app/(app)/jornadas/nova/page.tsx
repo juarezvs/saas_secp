@@ -21,10 +21,10 @@ export default async function NovaJornadaPage() {
       <PageHeader
         icon={CalendarClock}
         titulo="Nova jornada"
-        descricao="Cadastre jornadas ordinarias ou especiais que poderao ser atribuidas aos servidores."
+        descricao="Cadastre jornadas ordinárias, especiais, flexíveis ou cíclicas que poderão ser atribuídas aos servidores."
         artigo="Art. 4"
         regraTitulo="Jornada de 7h ou 8h"
-        regraDescricao="A Portaria prevê jornada de 7 horas ininterruptas ou de 8 horas em dois turnos, com intervalo regulamentar para repouso e alimentacao."
+        regraDescricao="A Portaria prevê jornada de 7 horas ininterruptas ou de 8 horas em dois turnos, com intervalo regulamentar para repouso e alimentação."
       />
 
       <JornadaForm

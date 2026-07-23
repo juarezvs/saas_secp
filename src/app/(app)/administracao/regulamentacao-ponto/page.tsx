@@ -9,8 +9,11 @@ import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/servic
 import { REGULAMENTACAO_PONTO_PADRAO } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
-function minutosParaHoras(minutos: number) {
-  return Number((minutos / 60).toFixed(2));
+function minutosParaHoraMinuto(minutos: number) {
+  const horas = Math.floor(minutos / 60);
+  const resto = minutos % 60;
+
+  return `${String(horas).padStart(2, "0")}:${String(resto).padStart(2, "0")}`;
 }
 
 function montarHrefPagina() {
@@ -82,7 +85,7 @@ export default async function RegulamentacaoPontoPage() {
         icon={SlidersHorizontal}
         titulo="Configurador de regulamentacao do ponto"
         descricao="Consulte os orgaos e acesse a configuracao propria de cada regulamentacao."
-        artigo="Portaria SJAM-DIREF 135/2025"
+        artigo="Resolução Presi TRF1-SECGE 10119147/2020"
         regraTitulo="Regra por orgao"
         regraDescricao="Cada orgao mantem parametros proprios sem interferir nos calculos dos demais orgaos."
       />
@@ -101,10 +104,9 @@ export default async function RegulamentacaoPontoPage() {
             Credito mensal padrao
           </p>
           <p className="mt-2 text-3xl font-black">
-            {minutosParaHoras(
+            {minutosParaHoraMinuto(
               REGULAMENTACAO_PONTO_PADRAO.limiteCreditoMensalMinutos,
             )}
-            h
           </p>
         </div>
         <div className="rounded-lg border bg-[var(--card)] p-5 text-[var(--card-foreground)]">
@@ -171,7 +173,9 @@ export default async function RegulamentacaoPontoPage() {
                       {regras.numeroPortaria || "-"}
                     </td>
                     <td className="px-5 py-4">
-                      {minutosParaHoras(regras.limiteCreditoMensalMinutos)}h
+                      {minutosParaHoraMinuto(
+                        regras.limiteCreditoMensalMinutos,
+                      )}
                     </td>
                     <td className="px-5 py-4">
                       {regras.mesesExpiracaoCompensacao} meses

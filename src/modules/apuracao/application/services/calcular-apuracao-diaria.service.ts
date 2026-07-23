@@ -20,6 +20,14 @@ type MarcacaoCalculo = {
 type JornadaCalculo = {
   jornadaServidorId: string;
   cargaDiariaMinutos: number;
+  cargaPrevistaMinutos?: number | null;
+  trabalhaNoDia?: boolean;
+  controlaHorario?: boolean;
+  janelaPrevista?: {
+    inicio: string;
+    fim: string;
+    diferenciada?: boolean;
+  } | null;
   exigeIntervalo: boolean;
   intervaloMinimoMinutos: number | null;
   intervaloMaximoMinutos: number | null;
@@ -27,6 +35,7 @@ type JornadaCalculo = {
   horarioDiferenciadoAutorizado: boolean;
   entradaMinimaDiferenciada: string | null;
   saidaMaximaDiferenciada: string | null;
+  servidorDedicacaoIntegral?: boolean;
 };
 
 type DiaInstitucionalCalculo = {
@@ -151,10 +160,18 @@ export function calcularApuracaoDiaria(params: {
     regulamentacao = REGULAMENTACAO_PONTO_PADRAO,
   } = params;
   const regras = regulamentacao ?? REGULAMENTACAO_PONTO_PADRAO;
-  const expedienteInstitucional =
-    resolverExpedienteInstitucional(diaInstitucional);
+  const expedienteInstitucional = resolverExpedienteInstitucional(
+    diaInstitucional,
+    regras,
+  );
+  const jornadaSemExpediente =
+    jornada &&
+    (jornada.trabalhaNoDia === false ||
+      jornada.controlaHorario === false ||
+      jornada.cargaPrevistaMinutos === 0);
   const diaSemExpediente =
-    !expedienteInstitucional.temExpedienteOrdinario;
+    !expedienteInstitucional.temExpedienteOrdinario ||
+    Boolean(jornadaSemExpediente);
 
   if (!jornada) {
     if (diaSemExpediente && marcacoes.length === 0 && diaInstitucional) {
@@ -191,10 +208,11 @@ export function calcularApuracaoDiaria(params: {
     };
   }
 
+  const cargaBaseDia = jornada.cargaPrevistaMinutos ?? jornada.cargaDiariaMinutos;
   const cargaPrevistaDia = diaSemExpediente
     ? 0
     : calcularCargaPrevistaComJanela(
-        jornada.cargaDiariaMinutos,
+        cargaBaseDia,
         expedienteInstitucional.janelaPadrao,
       );
   const janelaInstitucionalEspecial =
@@ -206,7 +224,13 @@ export function calcularApuracaoDiaria(params: {
       : null;
   const janelaExpedienteDia = diaSemExpediente
     ? null
-    : resolverJanelaExpediente(jornada, janelaInstitucionalEspecial);
+    : jornada.janelaPrevista
+      ? {
+          inicio: jornada.janelaPrevista.inicio,
+          fim: jornada.janelaPrevista.fim,
+          diferenciada: Boolean(jornada.janelaPrevista.diferenciada),
+        }
+      : resolverJanelaExpediente(jornada, janelaInstitucionalEspecial, regras);
 
   const ordenadas = marcacoes
     .filter((m) =>
@@ -225,10 +249,14 @@ export function calcularApuracaoDiaria(params: {
   const janelaExpediente = janelaExpedienteDia;
 
   if (ordenadas.length === 0) {
-    if (diaSemExpediente && diaInstitucional) {
+    if (diaSemExpediente) {
       return criarResultadoSemExpediente({
         marcacoes: ordenadas,
-        diaInstitucional,
+        diaInstitucional: diaInstitucional ?? {
+          tipo: "SEM_EXPEDIENTE",
+          contaComoDiaUtil: false,
+          geraApuracaoRegular: false,
+        },
       });
     }
 
@@ -480,27 +508,31 @@ export function calcularApuracaoDiaria(params: {
     !jornada.exigeIntervalo &&
     minutosTrabalhados > cargaPrevistaDia
   ) {
+    const creditoMinimoJornada7h = jornada.servidorDedicacaoIntegral
+      ? regras.jornada7hCargoComissionadoCreditoMinimoMinutos
+      : regras.jornada7hCreditoMinimoMinutos;
     const intervaloCumprido =
-      saidaIntervalo &&
-      retornoIntervalo &&
-      minutosIntervalo >= regras.jornada7hIntervaloMinimoMinutos;
+      !regras.jornada7hCreditoExigeIntervalo ||
+      Boolean(
+        saidaIntervalo &&
+          retornoIntervalo &&
+          minutosIntervalo >= regras.jornada7hIntervaloMinimoMinutos,
+      );
 
     minutosCredito = intervaloCumprido
-      ? Math.max(0, minutosTrabalhados - regras.jornada7hCreditoMinimoMinutos)
+      ? Math.max(0, minutosTrabalhados - creditoMinimoJornada7h)
       : 0;
     minutosDebito = 0;
 
     if (
-      minutosTrabalhados >= regras.jornada7hCreditoMinimoMinutos &&
+      minutosTrabalhados >= creditoMinimoJornada7h &&
       !intervaloCumprido
     ) {
       ocorrencias.push({
         tipo: "INTERVALO_INVALIDO",
         descricao: `A jornada de 7 horas somente gera credito apos ${Math.floor(
-          regras.jornada7hCreditoMinimoMinutos / 60,
-        )} horas efetivas e com intervalo minimo de ${
-          regras.jornada7hIntervaloMinimoMinutos
-        } minutos.`,
+          creditoMinimoJornada7h / 60,
+        )} horas efetivas e com intervalo minimo de ${regras.jornada7hIntervaloMinimoMinutos} minutos.`,
         minutos: minutosIntervalo,
       });
     }

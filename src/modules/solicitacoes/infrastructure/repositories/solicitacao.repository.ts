@@ -1,5 +1,6 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import type { Prisma } from "@/generated/prisma/client";
+import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 
 type FiltrosSolicitacao = {
   servidor?: string;
@@ -21,13 +22,39 @@ function whereSolicitacoesDoUsuario(usuarioId: string) {
   } satisfies Prisma.SolicitacaoWhereInput;
 }
 
-function whereSolicitacoesParaChefia(usuarioId: string) {
+function whereSolicitacoesParaUnidadesChefia(params: {
+  usuarioId: string;
+  unidadeIds: string[];
+}) {
+  const filtrosUnidades: Prisma.SolicitacaoWhereInput[] =
+    params.unidadeIds.length > 0
+      ? [
+          {
+            unidadeId: {
+              in: params.unidadeIds,
+            },
+          },
+          {
+            servidor: {
+              lotacoes: {
+                some: {
+                  status: "ATIVO",
+                  unidadeId: {
+                    in: params.unidadeIds,
+                  },
+                },
+              },
+            },
+          },
+        ]
+      : [];
+
   return {
     OR: [
       {
         chefiaResponsavel: {
           servidor: {
-            usuarioId,
+            usuarioId: params.usuarioId,
           },
         },
       },
@@ -36,7 +63,7 @@ function whereSolicitacoesParaChefia(usuarioId: string) {
           gestores: {
             some: {
               servidor: {
-                usuarioId,
+                usuarioId: params.usuarioId,
               },
               ativo: true,
               dataFim: null,
@@ -51,8 +78,18 @@ function whereSolicitacoesParaChefia(usuarioId: string) {
           },
         },
       },
+      ...filtrosUnidades,
     ],
   } satisfies Prisma.SolicitacaoWhereInput;
+}
+
+async function whereSolicitacoesParaChefia(usuarioId: string) {
+  const unidadeIds = await listarIdsUnidadesSubordinadasPorUsuario(usuarioId);
+
+  return whereSolicitacoesParaUnidadesChefia({
+    usuarioId,
+    unidadeIds,
+  });
 }
 
 function filtroServidorSolicitacao(
@@ -183,8 +220,10 @@ export async function listarSolicitacoesParaChefia(
   usuarioId: string,
   filtros?: FiltrosSolicitacao,
 ) {
+  const whereChefia = await whereSolicitacoesParaChefia(usuarioId);
+
   return prisma.solicitacao.findMany({
-    where: aplicarFiltrosSolicitacao(whereSolicitacoesParaChefia(usuarioId), filtros),
+    where: aplicarFiltrosSolicitacao(whereChefia, filtros),
     include: includeSolicitacaoListagem,
     orderBy: {
       criadoEm: "desc",
@@ -250,9 +289,9 @@ export async function listarServidoresFiltroSolicitacoesDoUsuario(
 export async function listarServidoresFiltroSolicitacoesParaChefia(
   usuarioId: string,
 ) {
-  return listarServidoresParaFiltroSolicitacoes(
-    whereSolicitacoesParaChefia(usuarioId),
-  );
+  const whereChefia = await whereSolicitacoesParaChefia(usuarioId);
+
+  return listarServidoresParaFiltroSolicitacoes(whereChefia);
 }
 
 export async function listarServidoresFiltroSolicitacoesGlobais() {
@@ -308,4 +347,27 @@ export async function buscarSolicitacaoPorId(id: string) {
       },
     },
   });
+}
+
+export async function usuarioPodeAcessarSolicitacaoComoChefia(params: {
+  usuarioId: string;
+  solicitacaoId: string;
+}) {
+  const whereChefia = await whereSolicitacoesParaChefia(params.usuarioId);
+
+  const solicitacao = await prisma.solicitacao.findFirst({
+    where: {
+      AND: [
+        {
+          id: params.solicitacaoId,
+        },
+        whereChefia,
+      ],
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return Boolean(solicitacao);
 }

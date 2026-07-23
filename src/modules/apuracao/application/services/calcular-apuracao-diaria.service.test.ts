@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { REGULAMENTACAO_PONTO_PADRAO } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
+
 import { calcularApuracaoDiaria } from "./calcular-apuracao-diaria.service";
 
 const jornada7h = {
@@ -26,6 +28,17 @@ const jornada8h = {
   saidaMaximaDiferenciada: "19:00",
 };
 
+const regulamentacaoLocalLegada = {
+  ...REGULAMENTACAO_PONTO_PADRAO,
+  jornada7hCreditoMinimoMinutos: 8 * 60,
+  jornada7hCreditoExigeIntervalo: true,
+  expedientePadraoInicio: "08:00",
+  expedientePadraoFim: "18:00",
+  entradaMinimaPermitida: "06:00",
+  saidaMaximaPermitida: "19:00",
+  horasForaExpedienteInconsistente: true,
+};
+
 function data(hora: string) {
   return new Date(`2026-06-01T${hora}:00-04:00`);
 }
@@ -42,7 +55,7 @@ describe("calcularApuracaoDiaria", () => {
   it("calcula jornada de 7h regular sem intervalo", () => {
     const resultado = calcularApuracaoDiaria({
       jornada: jornada7h,
-      marcacoes: [marcacao("ENTRADA", "08:00"), marcacao("SAIDA", "15:00")],
+      marcacoes: [marcacao("ENTRADA", "09:00"), marcacao("SAIDA", "16:00")],
     });
 
     expect(resultado.resultado).toBe("REGULAR");
@@ -56,6 +69,7 @@ describe("calcularApuracaoDiaria", () => {
     const resultado = calcularApuracaoDiaria({
       jornada: jornada7h,
       marcacoes: [marcacao("ENTRADA", "08:00"), marcacao("SAIDA", "16:00")],
+      regulamentacao: regulamentacaoLocalLegada,
     });
 
     expect(resultado.resultado).toBe("REGULAR");
@@ -74,6 +88,7 @@ describe("calcularApuracaoDiaria", () => {
         marcacao("RETORNO_INTERVALO", "13:00"),
         marcacao("SAIDA", "18:00"),
       ],
+      regulamentacao: regulamentacaoLocalLegada,
     });
 
     expect(resultado.resultado).toBe("CREDITO");
@@ -88,6 +103,7 @@ describe("calcularApuracaoDiaria", () => {
     const resultado = calcularApuracaoDiaria({
       jornada: jornada7h,
       marcacoes: [marcacao("ENTRADA", "08:00"), marcacao("SAIDA", "17:00")],
+      regulamentacao: regulamentacaoLocalLegada,
     });
 
     expect(resultado.resultado).toBe("REGULAR");
@@ -105,6 +121,7 @@ describe("calcularApuracaoDiaria", () => {
     const resultado = calcularApuracaoDiaria({
       jornada: jornada7h,
       marcacoes: [marcacao("ENTRADA", "08:00"), marcacao("SAIDA", "14:30")],
+      regulamentacao: regulamentacaoLocalLegada,
     });
 
     expect(resultado.resultado).toBe("DEBITO");
@@ -131,6 +148,7 @@ describe("calcularApuracaoDiaria", () => {
         marcacao("RETORNO_INTERVALO", "13:00"),
         marcacao("SAIDA", "17:00"),
       ],
+      regulamentacao: regulamentacaoLocalLegada,
     });
 
     expect(resultado.resultado).toBe("REGULAR");
@@ -150,6 +168,7 @@ describe("calcularApuracaoDiaria", () => {
         marcacao("RETORNO_INTERVALO", "12:30"),
         marcacao("SAIDA", "17:00"),
       ],
+      regulamentacao: regulamentacaoLocalLegada,
     });
 
     expect(resultado.resultado).toBe("REGULAR");
@@ -234,6 +253,7 @@ describe("calcularApuracaoDiaria", () => {
     const resultado = calcularApuracaoDiaria({
       jornada: jornada7h,
       marcacoes: [marcacao("ENTRADA", "08:00"), marcacao("SAIDA", "15:00")],
+      regulamentacao: regulamentacaoLocalLegada,
       dispensaPontoEletronico: {
         ativa: true,
         motivos: ["Dispensa administrativa de ponto."],
@@ -288,10 +308,11 @@ describe("calcularApuracaoDiaria", () => {
     expect(resultado.minutosDebito).toBe(0);
   });
 
-  it("mantem expediente ordinario das 08:00 as 18:00 em dia util", () => {
+  it("mantem expediente ordinario configurado em dia util", () => {
     const resultado = calcularApuracaoDiaria({
       jornada: jornada7h,
       marcacoes: [marcacao("ENTRADA", "07:30"), marcacao("SAIDA", "18:30")],
+      regulamentacao: regulamentacaoLocalLegada,
       diaInstitucional: {
         tipo: "UTIL",
         contaComoDiaUtil: true,
@@ -358,6 +379,7 @@ describe("calcularApuracaoDiaria", () => {
     const resultado = calcularApuracaoDiaria({
       jornada: jornada7h,
       marcacoes: [marcacao("ENTRADA", "07:00"), marcacao("SAIDA", "15:00")],
+      regulamentacao: regulamentacaoLocalLegada,
     });
 
     expect(resultado.minutosTrabalhados).toBe(480);
@@ -381,6 +403,7 @@ describe("calcularApuracaoDiaria", () => {
         horarioDiferenciadoAutorizado: true,
       },
       marcacoes: [marcacao("ENTRADA", "06:00"), marcacao("SAIDA", "13:00")],
+      regulamentacao: regulamentacaoLocalLegada,
     });
 
     expect(resultado.minutosTrabalhados).toBe(420);
@@ -401,6 +424,7 @@ describe("calcularApuracaoDiaria", () => {
         horarioDiferenciadoAutorizado: true,
       },
       marcacoes: [marcacao("ENTRADA", "05:30"), marcacao("SAIDA", "13:00")],
+      regulamentacao: regulamentacaoLocalLegada,
     });
 
     expect(resultado.minutosTrabalhados).toBe(450);
@@ -417,6 +441,7 @@ describe("calcularApuracaoDiaria", () => {
         marcacao("RETORNO_INTERVALO", "13:00"),
         marcacao("SAIDA", "18:00"),
       ],
+      regulamentacao: regulamentacaoLocalLegada,
     });
 
     expect(resultado.minutosTrabalhados).toBe(600);
@@ -451,11 +476,51 @@ describe("calcularApuracaoDiaria", () => {
         },
       ],
       fusoHorario: "America/Manaus",
+      regulamentacao: regulamentacaoLocalLegada,
     });
 
     expect(resultado.minutosTrabalhados).toBe(634);
     expect(resultado.minutosCredito).toBe(154);
     expect(resultado.minutosDebito).toBe(0);
     expect(resultado.resultado).toBe("CREDITO");
+  });
+
+  it("nao gera falta em folga prevista por escala ou jornada", () => {
+    const resultado = calcularApuracaoDiaria({
+      jornada: {
+        ...jornada7h,
+        trabalhaNoDia: false,
+        cargaPrevistaMinutos: 0,
+      },
+      marcacoes: [],
+    });
+
+    expect(resultado.resultado).toBe("SEM_EXPEDIENTE");
+    expect(resultado.status).toBe("CALCULADA");
+    expect(resultado.minutosDebito).toBe(0);
+  });
+
+  it("usa carga e janela previstas do dia na apuracao", () => {
+    const resultado = calcularApuracaoDiaria({
+      jornada: {
+        ...jornada7h,
+        cargaPrevistaMinutos: 360,
+        janelaPrevista: {
+          inicio: "09:00",
+          fim: "15:00",
+        },
+      },
+      marcacoes: [marcacao("ENTRADA", "09:00"), marcacao("SAIDA", "15:00")],
+      regulamentacao: regulamentacaoLocalLegada,
+    });
+
+    expect(resultado.cargaPrevistaMinutos).toBe(360);
+    expect(resultado.minutosTrabalhados).toBe(360);
+    expect(resultado.resultado).toBe("REGULAR");
+    expect(resultado.janelaExpediente).toEqual({
+      inicio: "09:00",
+      fim: "15:00",
+      diferenciada: false,
+    });
   });
 });

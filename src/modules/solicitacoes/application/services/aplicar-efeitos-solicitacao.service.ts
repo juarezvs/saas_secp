@@ -112,6 +112,7 @@ async function calcularMinutosFolgaBancoHoras(params: {
       where: {
         servidorId: params.servidorId,
         ativo: true,
+        status: "ATIVO",
         dataInicio: {
           lte: dataReferencia,
         },

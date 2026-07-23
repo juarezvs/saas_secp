@@ -12,6 +12,15 @@ import {
 } from "../schemas/escala.schema";
 
 type TipoEscala = EscalaInput["tipo"];
+type TipoDiaEscala = EscalaInput["dias"][number]["tipoDia"];
+
+const tiposDiaEscala: TipoDiaEscala[] = [
+  "TRABALHO",
+  "FOLGA",
+  "PLANTAO",
+  "COMPENSADO",
+  "SEM_EXPEDIENTE",
+];
 
 function validarHoraHHMM(valor: string | undefined | null) {
   if (!valor) return false;
@@ -34,22 +43,53 @@ function normalizarTipoEscala(
     : undefined;
 }
 
+function normalizarTipoDiaEscala(valor: FormDataEntryValue | null) {
+  const tipo = String(valor ?? "TRABALHO");
+
+  return tiposDiaEscala.includes(tipo as TipoDiaEscala)
+    ? (tipo as TipoDiaEscala)
+    : "TRABALHO";
+}
+
 function extrairDadosEscala(
   jornadaId: string,
   formData: FormData,
 ): Partial<EscalaInput> {
+  const tipo = normalizarTipoEscala(formData.get("tipo"));
+  const escalaCiclica = ["CICLICA", "REVEZAMENTO", "TURNO_ALTERNANTE"].includes(
+    tipo ?? "",
+  );
+  const quantidadeDiasCiclo = escalaCiclica
+    ? Number(formData.get("quantidadeDiasCiclo") ?? 1)
+    : null;
+  const chavesDias = escalaCiclica
+    ? Array.from({ length: quantidadeDiasCiclo ?? 1 }, (_, indice) =>
+        String(indice + 1),
+      )
+    : [...diasSemana];
+
   return {
     jornadaId,
     codigo: String(formData.get("codigo") ?? "").trim().toUpperCase(),
     nome: String(formData.get("nome") ?? "").trim(),
     descricao: String(formData.get("descricao") ?? "").trim(),
-    tipo: normalizarTipoEscala(formData.get("tipo")),
+    tipo,
+    quantidadeDiasCiclo,
+    dataAncoragem: String(formData.get("dataAncoragem") ?? "").trim(),
+    primeiroDiaTrabalho: String(
+      formData.get("primeiroDiaTrabalho") ?? "",
+    ).trim(),
+    timezone: String(formData.get("timezone") ?? "").trim(),
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
-    dias: diasSemana.map((diaSemana) => {
-      const prefixo = `dias.${diaSemana}`;
+    dias: chavesDias.map((chave) => {
+      const prefixo = escalaCiclica ? `dias.${chave}` : `dias.${chave}`;
 
       return {
-        diaSemana,
+        diaSemana: (escalaCiclica
+          ? ""
+          : chave) as EscalaInput["dias"][number]["diaSemana"],
+        posicaoCiclo: escalaCiclica ? Number(chave) : null,
+        tipoDia: normalizarTipoDiaEscala(formData.get(`${prefixo}.tipoDia`)),
         trabalha:
           formData.get(`${prefixo}.trabalha`) === "on" ||
           formData.get(`${prefixo}.trabalha`) === "true",
@@ -64,13 +104,20 @@ function extrairDadosEscala(
         cargaPrevistaMinutos: Number(
           formData.get(`${prefixo}.cargaPrevistaMinutos`) ?? 0,
         ),
+        cruzaMeiaNoite:
+          formData.get(`${prefixo}.cruzaMeiaNoite`) === "on" ||
+          formData.get(`${prefixo}.cruzaMeiaNoite`) === "true",
       };
     }),
   };
 }
 
-function erroDia(diaSemana: string, campo: string) {
-  return `dias.${diaSemana}.${campo}`;
+function erroDia(dia: EscalaInput["dias"][number], campo: string) {
+  return `dias.${dia.posicaoCiclo ?? dia.diaSemana}.${campo}`;
+}
+
+function valorOpcionalData(valor?: string | null) {
+  return valor ? new Date(`${valor}T00:00:00`) : null;
 }
 
 export async function criarEscalaAction(
@@ -123,25 +170,25 @@ export async function criarEscalaAction(
     const intervaloFim = horaParaMinutos(dia.intervaloFim);
 
     if (entrada === null) {
-      erros[erroDia(dia.diaSemana, "horarioEntrada")] = [
+      erros[erroDia(dia, "horarioEntrada")] = [
         "Informe a entrada do dia trabalhado.",
       ];
     }
 
     if (saida === null) {
-      erros[erroDia(dia.diaSemana, "horarioSaida")] = [
+      erros[erroDia(dia, "horarioSaida")] = [
         "Informe a saida do dia trabalhado.",
       ];
     }
 
-    if (entrada !== null && saida !== null && saida <= entrada) {
-      erros[erroDia(dia.diaSemana, "horarioSaida")] = [
+    if (entrada !== null && saida !== null && saida <= entrada && !dia.cruzaMeiaNoite) {
+      erros[erroDia(dia, "horarioSaida")] = [
         "A saida deve ser posterior a entrada.",
       ];
     }
 
     if (dia.cargaPrevistaMinutos <= 0) {
-      erros[erroDia(dia.diaSemana, "cargaPrevistaMinutos")] = [
+      erros[erroDia(dia, "cargaPrevistaMinutos")] = [
         "Informe a carga prevista do dia trabalhado.",
       ];
     }
@@ -153,18 +200,18 @@ export async function criarEscalaAction(
       jornada.exigeIntervalo &&
       (intervaloInicio === null || intervaloFim === null)
     ) {
-      erros[erroDia(dia.diaSemana, "intervaloInicio")] = [
+      erros[erroDia(dia, "intervaloInicio")] = [
         "Informe o intervalo da jornada neste dia.",
       ];
     } else if (informouInicioIntervalo !== informouFimIntervalo) {
-      erros[erroDia(dia.diaSemana, "intervaloInicio")] = [
+      erros[erroDia(dia, "intervaloInicio")] = [
         "Informe inicio e fim do intervalo.",
       ];
     }
 
     if (intervaloInicio !== null && intervaloFim !== null) {
       if (intervaloFim <= intervaloInicio) {
-        erros[erroDia(dia.diaSemana, "intervaloFim")] = [
+        erros[erroDia(dia, "intervaloFim")] = [
           "O fim do intervalo deve ser posterior ao inicio.",
         ];
       }
@@ -175,7 +222,7 @@ export async function criarEscalaAction(
         jornada.intervaloMinimoMinutos &&
         duracaoIntervalo < jornada.intervaloMinimoMinutos
       ) {
-        erros[erroDia(dia.diaSemana, "intervaloInicio")] = [
+        erros[erroDia(dia, "intervaloInicio")] = [
           `O intervalo minimo e de ${jornada.intervaloMinimoMinutos} minutos.`,
         ];
       }
@@ -184,7 +231,7 @@ export async function criarEscalaAction(
         jornada.intervaloMaximoMinutos &&
         duracaoIntervalo > jornada.intervaloMaximoMinutos
       ) {
-        erros[erroDia(dia.diaSemana, "intervaloFim")] = [
+        erros[erroDia(dia, "intervaloFim")] = [
           `O intervalo maximo e de ${jornada.intervaloMaximoMinutos} minutos.`,
         ];
       }
@@ -224,10 +271,18 @@ export async function criarEscalaAction(
         nome: parsed.data.nome,
         descricao: parsed.data.descricao || null,
         tipo: parsed.data.tipo,
+        quantidadeDiasCiclo: parsed.data.quantidadeDiasCiclo ?? null,
+        dataAncoragem: valorOpcionalData(parsed.data.dataAncoragem),
+        primeiroDiaTrabalho: valorOpcionalData(
+          parsed.data.primeiroDiaTrabalho,
+        ),
+        timezone: parsed.data.timezone || null,
         ativo: parsed.data.ativo,
         dias: {
           create: parsed.data.dias.map((dia) => ({
-            diaSemana: dia.diaSemana,
+            diaSemana: dia.diaSemana || null,
+            posicaoCiclo: dia.posicaoCiclo ?? null,
+            tipoDia: dia.tipoDia,
             trabalha: dia.trabalha,
             horarioEntrada: dia.trabalha ? dia.horarioEntrada || null : null,
             horarioSaida: dia.trabalha ? dia.horarioSaida || null : null,
@@ -236,6 +291,7 @@ export async function criarEscalaAction(
             cargaPrevistaMinutos: dia.trabalha
               ? dia.cargaPrevistaMinutos
               : 0,
+            cruzaMeiaNoite: dia.cruzaMeiaNoite,
           })),
         },
       },

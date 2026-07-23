@@ -99,6 +99,7 @@ export default async function NovoServidorPage({
           ativo: true,
           tipoUsuario,
           vinculo: "EFETIVO",
+          sinalizacaoForaExpediente: "PADRAO",
         }}
       />
     </div>

@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { tiposJornada } from "../../application/schemas/jornada.schema";
 
 export type ListarJornadasParams = {
   pagina?: number;
@@ -12,7 +13,7 @@ export type ListarJornadasParams = {
 };
 
 function ehTipoJornada(valor?: string | null) {
-  return ["SETE_HORAS", "OITO_HORAS", "ESPECIAL"].includes(valor ?? "");
+  return tiposJornada.includes((valor ?? "") as never);
 }
 
 export function montarWhereJornadas(params: ListarJornadasParams) {
@@ -139,6 +140,7 @@ export async function listarJornadasAtivas() {
   return prisma.jornada.findMany({
     where: {
       ativo: true,
+      situacao: "ATIVA",
     },
     orderBy: {
       codigo: "asc",
@@ -156,10 +158,20 @@ export async function buscarJornadaPorId(id: string) {
         include: {
           dias: {
             orderBy: {
-              diaSemana: "asc",
+              posicaoCiclo: "asc",
             },
           },
         },
+      },
+      dias: {
+        include: {
+          faixas: {
+            orderBy: {
+              ordem: "asc",
+            },
+          },
+        },
+        orderBy: [{ ordemNoCiclo: "asc" }, { diaSemana: "asc" }],
       },
       servidores: {
         include: {
@@ -220,7 +232,7 @@ export async function listarServidoresAtivosParaJornada(params?: {
       jornadas: {
         where: {
           ativo: true,
-          dataFim: null,
+          status: "ATIVO",
         },
         include: {
           jornada: true,
@@ -250,11 +262,27 @@ export async function listarEscalasAtivasPorJornada(jornadaId: string) {
 }
 
 export async function buscarJornadaServidorAtiva(servidorId: string) {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
   return prisma.jornadaServidor.findFirst({
     where: {
       servidorId,
       ativo: true,
-      dataFim: null,
+      status: "ATIVO",
+      dataInicio: {
+        lte: hoje,
+      },
+      OR: [
+        {
+          dataFim: null,
+        },
+        {
+          dataFim: {
+            gte: hoje,
+          },
+        },
+      ],
     },
     include: {
       jornada: true,

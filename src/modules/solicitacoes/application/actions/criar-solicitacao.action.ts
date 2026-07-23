@@ -200,6 +200,7 @@ export async function criarSolicitacaoAction(
         });
         await verificarPrazoAjustePontoComCalendario({
           dataReferencia,
+          orgaoId: servidor.orgaoId,
         });
       } catch (error) {
         if (error instanceof PeriodoHomologadoError) {

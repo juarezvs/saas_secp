@@ -16,6 +16,12 @@ export const tiposUsuarioPessoaPonto = [
   "VOLUNTARIO",
 ] as const;
 
+export const opcoesSinalizacaoForaExpediente = [
+  "PADRAO",
+  "SINALIZAR",
+  "NAO_SINALIZAR",
+] as const;
+
 const cpfSchema = z
   .preprocess((valor) => {
     if (valor === undefined || valor === null) {
@@ -57,6 +63,11 @@ export const servidorSchema = z.object({
   vinculo: z.enum(tiposVinculoServidor, {
     error: "Informe um tipo de vínculo válido.",
   }),
+  sinalizacaoForaExpediente: z
+    .enum(opcoesSinalizacaoForaExpediente, {
+      error: "Informe como tratar marcações fora do expediente.",
+    })
+    .default("PADRAO"),
   ativo: z.coerce.boolean().default(true),
 });
 

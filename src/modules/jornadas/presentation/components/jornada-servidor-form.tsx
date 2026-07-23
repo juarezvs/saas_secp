@@ -157,6 +157,79 @@ export function JornadaServidorForm({
           />
         </div>
 
+        <div className="space-y-2">
+          <label htmlFor="tipoVinculacao" className="text-sm font-semibold">
+            Tipo de vinculacao
+          </label>
+          <select
+            id="tipoVinculacao"
+            name="tipoVinculacao"
+            defaultValue={estado.campos?.tipoVinculacao ?? "PERMANENTE"}
+            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+          >
+            <option value="PERMANENTE">Permanente</option>
+            <option value="TEMPORARIA">Temporaria</option>
+            <option value="CARGO_CATEGORIA">Por cargo/categoria</option>
+            <option value="UNIDADE">Por unidade</option>
+            <option value="SECCIONAL">Por seccional</option>
+            <option value="PADRAO_ORGAO">Padrao do orgao</option>
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="documentoSei" className="text-sm font-semibold">
+            Documento SEI
+          </label>
+          <input
+            id="documentoSei"
+            name="documentoSei"
+            defaultValue={estado.campos?.documentoSei ?? ""}
+            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+          />
+        </div>
+
+        <div className="space-y-2 md:col-span-2">
+          <label htmlFor="fundamentoDocumental" className="text-sm font-semibold">
+            Fundamento documental
+          </label>
+          <input
+            id="fundamentoDocumental"
+            name="fundamentoDocumental"
+            defaultValue={estado.campos?.fundamentoDocumental ?? ""}
+            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            placeholder="Portaria, decisao, processo ou ato que fundamenta a vinculacao"
+          />
+          {erro(estado, "fundamentoDocumental") && (
+            <p className="text-sm text-red-600">
+              {erro(estado, "fundamentoDocumental")}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="motivo" className="text-sm font-semibold">
+            Motivo
+          </label>
+          <input
+            id="motivo"
+            name="motivo"
+            defaultValue={estado.campos?.motivo ?? ""}
+            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="autoridadeResponsavel" className="text-sm font-semibold">
+            Autoridade responsavel
+          </label>
+          <input
+            id="autoridadeResponsavel"
+            name="autoridadeResponsavel"
+            defaultValue={estado.campos?.autoridadeResponsavel ?? ""}
+            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+          />
+        </div>
+
         <label className="flex items-start gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm md:col-span-2">
           <input
             type="checkbox"

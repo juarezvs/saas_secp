@@ -406,12 +406,21 @@ export async function regerarBancoHorasMesService({
             continue;
           }
 
-          const limite = aplicarLimiteCreditoMensal({
-            creditoDoDiaMinutos: classificacaoBancoHoras.minutosComputaveis,
-            creditoJaComputadoNoMesMinutos: creditoComputadoNoMes,
-            limiteCreditoMensalMinutos:
-              regulamentacao.limiteCreditoMensalMinutos,
-          });
+          const limite =
+            classificacaoDia.tipo === "RECESSO_FORENSE" &&
+            regulamentacao.recessoIgnoraLimiteMensal
+              ? {
+                  minutosComputaveis:
+                    classificacaoBancoHoras.minutosComputaveis,
+                  minutosAcimaLimite: 0,
+                }
+              : aplicarLimiteCreditoMensal({
+                  creditoDoDiaMinutos:
+                    classificacaoBancoHoras.minutosComputaveis,
+                  creditoJaComputadoNoMesMinutos: creditoComputadoNoMes,
+                  limiteCreditoMensalMinutos:
+                    regulamentacao.limiteCreditoMensalMinutos,
+                });
 
           if (limite.minutosComputaveis > 0) {
             await tx.movimentoBancoHoras.create({
@@ -439,7 +448,14 @@ export async function regerarBancoHorasMesService({
             });
 
             movimentosCriados++;
-            creditoComputadoNoMes += limite.minutosComputaveis;
+            if (
+              !(
+                classificacaoDia.tipo === "RECESSO_FORENSE" &&
+                regulamentacao.recessoIgnoraLimiteMensal
+              )
+            ) {
+              creditoComputadoNoMes += limite.minutosComputaveis;
+            }
           }
 
           if (limite.minutosAcimaLimite > 0) {
@@ -532,12 +548,21 @@ export async function regerarBancoHorasMesService({
             continue;
           }
 
-          const limite = aplicarLimiteCreditoMensal({
-            creditoDoDiaMinutos: classificacaoBancoHoras.minutosComputaveis,
-            creditoJaComputadoNoMesMinutos: creditoComputadoNoMes,
-            limiteCreditoMensalMinutos:
-              regulamentacao.limiteCreditoMensalMinutos,
-          });
+          const limite =
+            classificacaoDia.tipo === "RECESSO_FORENSE" &&
+            regulamentacao.recessoIgnoraLimiteMensal
+              ? {
+                  minutosComputaveis:
+                    classificacaoBancoHoras.minutosComputaveis,
+                  minutosAcimaLimite: 0,
+                }
+              : aplicarLimiteCreditoMensal({
+                  creditoDoDiaMinutos:
+                    classificacaoBancoHoras.minutosComputaveis,
+                  creditoJaComputadoNoMesMinutos: creditoComputadoNoMes,
+                  limiteCreditoMensalMinutos:
+                    regulamentacao.limiteCreditoMensalMinutos,
+                });
 
           if (limite.minutosComputaveis > 0) {
             await tx.movimentoBancoHoras.create({
@@ -575,7 +600,14 @@ export async function regerarBancoHorasMesService({
             });
 
             movimentosCriados++;
-            creditoComputadoNoMes += limite.minutosComputaveis;
+            if (
+              !(
+                classificacaoDia.tipo === "RECESSO_FORENSE" &&
+                regulamentacao.recessoIgnoraLimiteMensal
+              )
+            ) {
+              creditoComputadoNoMes += limite.minutosComputaveis;
+            }
           }
 
           if (limite.minutosAcimaLimite > 0) {

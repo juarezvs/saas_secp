@@ -37,7 +37,8 @@ const rotulosDia: Record<string, string> = {
 };
 
 function descreverDiaEscala(dia: {
-  diaSemana: string;
+  diaSemana: string | null;
+  posicaoCiclo?: number | null;
   trabalha: boolean;
   horarioEntrada: string | null;
   horarioSaida: string | null;
@@ -46,7 +47,11 @@ function descreverDiaEscala(dia: {
   cargaPrevistaMinutos: number;
 }) {
   if (!dia.trabalha) {
-    return `${rotulosDia[dia.diaSemana] ?? dia.diaSemana}: folga`;
+    const rotulo = dia.posicaoCiclo
+      ? `Dia ${dia.posicaoCiclo}`
+      : rotulosDia[dia.diaSemana ?? ""] ?? dia.diaSemana;
+
+    return `${rotulo}: folga`;
   }
 
   const intervalo =
@@ -54,7 +59,11 @@ function descreverDiaEscala(dia: {
       ? `, intervalo ${dia.intervaloInicio}-${dia.intervaloFim}`
       : "";
 
-  return `${rotulosDia[dia.diaSemana] ?? dia.diaSemana}: ${
+  const rotulo = dia.posicaoCiclo
+    ? `Dia ${dia.posicaoCiclo}`
+    : rotulosDia[dia.diaSemana ?? ""] ?? dia.diaSemana;
+
+  return `${rotulo}: ${
     dia.horarioEntrada ?? "-"
   }-${dia.horarioSaida ?? "-"}${intervalo}, ${minutosParaHoras(
     dia.cargaPrevistaMinutos,
@@ -170,6 +179,45 @@ export default async function JornadaDetalhePage({
             label="Saída máxima diferenciada"
             value={jornada.saidaMaximaDiferenciada ?? "-"}
           />
+        </div>
+      </section>
+
+      <section className="rounded-xl border bg-[var(--card)] shadow-sm">
+        <div className="flex items-center gap-2 border-b p-5">
+          <ListChecks className="size-5 text-blue-900 dark:text-blue-300" />
+          <h2 className="text-lg font-bold">Previsao da jornada</h2>
+        </div>
+
+        <div className="grid gap-3 p-5 md:grid-cols-2 xl:grid-cols-3">
+          {jornada.dias.map((dia) => {
+            const faixaTrabalho = dia.faixas.find(
+              (faixa) => faixa.tipo === "TRABALHO",
+            );
+            const rotulo = dia.ordemNoCiclo
+              ? `Dia ${dia.ordemNoCiclo}`
+              : rotulosDia[dia.diaSemana ?? ""] ?? dia.diaSemana ?? "-";
+
+            return (
+              <div
+                key={dia.id}
+                className="rounded-lg border bg-[var(--muted)] px-3 py-2 text-sm"
+              >
+                <p className="font-semibold">{rotulo}</p>
+                <p className="mt-1 text-[var(--muted-foreground)]">
+                  {dia.tipoDia} · {minutosParaHoras(dia.cargaPrevistaMinutos)}
+                  {faixaTrabalho
+                    ? ` · ${faixaTrabalho.horaInicio}-${faixaTrabalho.horaFim}`
+                    : ""}
+                </p>
+              </div>
+            );
+          })}
+
+          {jornada.dias.length === 0 && (
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Sem previsao diaria configurada.
+            </p>
+          )}
         </div>
       </section>
 

@@ -77,12 +77,29 @@ enum TipoJornada {
   SETE_HORAS
   OITO_HORAS
   ESPECIAL
+  FIXA_SEMANAL
+  FLEXIVEL
+  CARGA_DIARIA
+  CARGA_SEMANAL
+  CARGA_MENSAL
+  ESCALA_CICLICA
+  ESCALA_VARIAVEL
+  TURNO_FIXO
+  TURNO_REVEZAMENTO
+  NOTURNA
+  PARCIAL
+  PLANTAO_EVENTUAL
+  SEM_CONTROLE_CONVENCIONAL
 }
 
 enum TipoEscala {
   SEMANAL
   REVEZAMENTO
   INDIVIDUAL
+  CICLICA
+  PLANEJADA
+  TURNO_FIXO
+  TURNO_ALTERNANTE
 }
 
 enum DiaSemana {
@@ -650,44 +667,43 @@ model DocumentoAutenticacao {
 }
 
 model Perfil {
-  id        String  @id @default(uuid()) @db.Uuid
-  codigo    String  @unique @db.VarChar(80)
-  nome      String  @db.VarChar(120)
-  descricao String? @db.Text
-  sistema   Boolean @default(false)
-  ativo     Boolean @default(true)
-  administrativo Boolean @default(false)
-  excecao   Boolean @default(false) @map("excecao")
+  id                     String  @id @default(uuid()) @db.Uuid
+  codigo                 String  @unique @db.VarChar(80)
+  nome                   String  @db.VarChar(120)
+  descricao              String? @db.Text
+  sistema                Boolean @default(false)
+  ativo                  Boolean @default(true)
+  administrativo         Boolean @default(false)
+  excecao                Boolean @default(false) @map("excecao")
   perfilDestinoExcecaoId String? @map("perfil_destino_excecao_id") @db.Uuid
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  usuarios   UsuarioPerfil[]
-  permissoes PerfilPermissao[]
-  menusGrupos MenuGrupoPerfil[]
-  menusItens MenuItemPerfil[]
-  perfilDestinoExcecao Perfil? @relation("PerfilExcecaoDestino", fields: [perfilDestinoExcecaoId], references: [id], onDelete: SetNull)
-  excecoesRecebidas Perfil[] @relation("PerfilExcecaoDestino")
+  usuarios             UsuarioPerfil[]
+  permissoes           PerfilPermissao[]
+  menusGrupos          MenuGrupoPerfil[]
+  menusItens           MenuItemPerfil[]
+  perfilDestinoExcecao Perfil?           @relation("PerfilExcecaoDestino", fields: [perfilDestinoExcecaoId], references: [id], onDelete: SetNull)
+  excecoesRecebidas    Perfil[]          @relation("PerfilExcecaoDestino")
 
   @@index([perfilDestinoExcecaoId])
-
   @@map("perfis")
 }
 
 model MenuGrupoPerfil {
   id String @id @default(uuid()) @db.Uuid
 
-  perfilId String @map("perfil_id") @db.Uuid
-  label    String @db.VarChar(120)
+  perfilId String  @map("perfil_id") @db.Uuid
+  label    String  @db.VarChar(120)
   icone    String? @db.VarChar(80)
-  ordem    Int    @default(0)
+  ordem    Int     @default(0)
   ativo    Boolean @default(true)
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  perfil Perfil @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+  perfil Perfil           @relation(fields: [perfilId], references: [id], onDelete: Cascade)
   itens  MenuItemPerfil[]
 
   @@index([perfilId, ordem])
@@ -707,7 +723,7 @@ model MenuItemPerfil {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  perfil Perfil @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+  perfil Perfil           @relation(fields: [perfilId], references: [id], onDelete: Cascade)
   grupo  MenuGrupoPerfil? @relation(fields: [grupoId], references: [id], onDelete: Cascade)
 
   @@index([perfilId, ordem])
@@ -826,6 +842,7 @@ model Orgao {
   usuariosPerfis              UsuarioPerfil[]
   overtimePolicies            OvertimePolicy[]
   overtimeWorkflowDefinitions OvertimeWorkflowDefinition[]
+  jornadas                    Jornada[]
 
   @@index([uf])
   @@index([municipioIbge])
@@ -855,15 +872,27 @@ model RegulamentacaoPontoOrgao {
   numeroPortaria String? @map("numero_portaria") @db.VarChar(120)
   descricao      String? @db.Text
 
-  limiteCreditoMensalMinutos       Int     @default(960) @map("limite_credito_mensal_minutos")
-  mesesExpiracaoCompensacao        Int     @default(3) @map("meses_expiracao_compensacao")
-  toleranciaCreditoMinutos         Int     @default(0) @map("tolerancia_credito_minutos")
-  toleranciaDebitoMinutos          Int     @default(0) @map("tolerancia_debito_minutos")
-  jornada7hCreditoMinimoMinutos    Int     @default(480) @map("jornada_7h_credito_minimo_minutos")
-  jornada7hIntervaloMinimoMinutos  Int     @default(60) @map("jornada_7h_intervalo_minimo_minutos")
-  exigeAutorizacaoPreviaCredito    Boolean @default(true) @map("exige_autorizacao_previa_credito")
-  horasForaExpedienteInconsistente Boolean @default(true) @map("horas_fora_expediente_inconsistente")
-  ativo                            Boolean @default(true)
+  limiteCreditoMensalMinutos                     Int     @default(960) @map("limite_credito_mensal_minutos")
+  mesesExpiracaoCompensacao                      Int     @default(3) @map("meses_expiracao_compensacao")
+  toleranciaCreditoMinutos                       Int     @default(0) @map("tolerancia_credito_minutos")
+  toleranciaDebitoMinutos                        Int     @default(0) @map("tolerancia_debito_minutos")
+  jornada7hCreditoMinimoMinutos                  Int     @default(480) @map("jornada_7h_credito_minimo_minutos")
+  jornada7hCargoComissionadoCreditoMinimoMinutos Int     @default(480) @map("jornada_7h_cargo_comissionado_credito_minimo_minutos")
+  jornada7hIntervaloMinimoMinutos                Int     @default(60) @map("jornada_7h_intervalo_minimo_minutos")
+  jornada7hCreditoExigeIntervalo                 Boolean @default(false) @map("jornada_7h_credito_exige_intervalo")
+  expedientePadraoInicio                         String  @default("09:00") @map("expediente_padrao_inicio") @db.VarChar(5)
+  expedientePadraoFim                            String  @default("18:00") @map("expediente_padrao_fim") @db.VarChar(5)
+  entradaMinimaPermitida                         String  @default("07:00") @map("entrada_minima_permitida") @db.VarChar(5)
+  saidaMaximaPermitida                           String  @default("19:00") @map("saida_maxima_permitida") @db.VarChar(5)
+  prazoHomologacaoDiaMesSeguinte                 Int     @default(10) @map("prazo_homologacao_dia_mes_seguinte")
+  prazoAjustePontoDiaMesSeguinte                 Int     @default(10) @map("prazo_ajuste_ponto_dia_mes_seguinte")
+  percentualCreditoSabado                        Int     @default(50) @map("percentual_credito_sabado")
+  percentualCreditoDomingoFeriado                Int     @default(100) @map("percentual_credito_domingo_feriado")
+  percentualCreditoRecesso                       Int     @default(100) @map("percentual_credito_recesso")
+  recessoIgnoraLimiteMensal                      Boolean @default(true) @map("recesso_ignora_limite_mensal")
+  exigeAutorizacaoPreviaCredito                  Boolean @default(true) @map("exige_autorizacao_previa_credito")
+  horasForaExpedienteInconsistente               Boolean @default(false) @map("horas_fora_expediente_inconsistente")
+  ativo                                          Boolean @default(true)
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
@@ -969,27 +998,28 @@ model Servidor {
   vinculo       TipoVinculoServidor @default(EFETIVO)
   ativo         Boolean             @default(true)
 
-  cargoId                  String?   @map("cargo_id") @db.Uuid
-  dataNascimento           DateTime? @map("data_nascimento") @db.Date
-  nomeCompletoSarh         String?   @map("nome_completo_sarh") @db.VarChar(200)
-  nomeSocialSarh           String?   @map("nome_social_sarh") @db.VarChar(200)
-  codigoLotacaoSarh        Int?      @map("codigo_lotacao_sarh")
-  codigoLotacaoPaiSarh     Int?      @map("codigo_lotacao_pai_sarh")
-  codigoFuncionarioSarh    Int?      @map("codigo_funcionario_sarh")
-  codigoProvimentoSarh     Int?      @map("codigo_provimento_sarh")
-  descricaoProvimentoSarh  String?   @map("descricao_provimento_sarh") @db.VarChar(200)
-  codigoSituacaoSarh       Int?      @map("codigo_situacao_sarh")
-  descricaoSituacaoSarh    String?   @map("descricao_situacao_sarh") @db.VarChar(250)
-  perfilTipoSarh           String?   @map("perfil_tipo_sarh") @db.VarChar(20)
-  funcaoAtualGrupoSarh     String?   @map("funcao_atual_grupo_sarh") @db.VarChar(20)
-  funcaoAtualCategoriaSarh String?   @map("funcao_atual_categoria_sarh") @db.VarChar(30)
-  funcaoAtualCodigoSarh    String?   @map("funcao_atual_codigo_sarh") @db.VarChar(50)
-  funcaoAtualDescricao     String?   @map("funcao_atual_descricao") @db.VarChar(250)
-  funcaoAtualSituacaoSarh  String?   @map("funcao_atual_situacao_sarh") @db.VarChar(100)
-  funcaoAtualInicioSarh    DateTime? @map("funcao_atual_inicio_sarh") @db.Date
-  origemSarh               Boolean   @default(false) @map("origem_sarh")
-  ultimaSincronizacaoSarh  DateTime? @map("ultima_sincronizacao_sarh")
-  payloadSarh              Json?     @map("payload_sarh")
+  cargoId                          String?   @map("cargo_id") @db.Uuid
+  dataNascimento                   DateTime? @map("data_nascimento") @db.Date
+  nomeCompletoSarh                 String?   @map("nome_completo_sarh") @db.VarChar(200)
+  nomeSocialSarh                   String?   @map("nome_social_sarh") @db.VarChar(200)
+  codigoLotacaoSarh                Int?      @map("codigo_lotacao_sarh")
+  codigoLotacaoPaiSarh             Int?      @map("codigo_lotacao_pai_sarh")
+  codigoFuncionarioSarh            Int?      @map("codigo_funcionario_sarh")
+  codigoProvimentoSarh             Int?      @map("codigo_provimento_sarh")
+  descricaoProvimentoSarh          String?   @map("descricao_provimento_sarh") @db.VarChar(200)
+  codigoSituacaoSarh               Int?      @map("codigo_situacao_sarh")
+  descricaoSituacaoSarh            String?   @map("descricao_situacao_sarh") @db.VarChar(250)
+  perfilTipoSarh                   String?   @map("perfil_tipo_sarh") @db.VarChar(20)
+  funcaoAtualGrupoSarh             String?   @map("funcao_atual_grupo_sarh") @db.VarChar(20)
+  funcaoAtualCategoriaSarh         String?   @map("funcao_atual_categoria_sarh") @db.VarChar(30)
+  funcaoAtualCodigoSarh            String?   @map("funcao_atual_codigo_sarh") @db.VarChar(50)
+  funcaoAtualDescricao             String?   @map("funcao_atual_descricao") @db.VarChar(250)
+  funcaoAtualSituacaoSarh          String?   @map("funcao_atual_situacao_sarh") @db.VarChar(100)
+  funcaoAtualInicioSarh            DateTime? @map("funcao_atual_inicio_sarh") @db.Date
+  horasForaExpedienteInconsistente Boolean?  @map("horas_fora_expediente_inconsistente")
+  origemSarh                       Boolean   @default(false) @map("origem_sarh")
+  ultimaSincronizacaoSarh          DateTime? @map("ultima_sincronizacao_sarh")
+  payloadSarh                      Json?     @map("payload_sarh")
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
@@ -1225,11 +1255,20 @@ model AuditoriaEvento {
 
 model Jornada {
   id                           String      @id @default(uuid()) @db.Uuid
+  orgaoId                      String?     @map("orgao_id") @db.Uuid
   codigo                       String      @unique @db.VarChar(80)
   nome                         String      @db.VarChar(150)
   descricao                    String?     @db.Text
   tipo                         TipoJornada
   cargaDiariaMinutos           Int         @map("carga_diaria_minutos")
+  cargaSemanalMinutos          Int?        @map("carga_semanal_minutos")
+  cargaMensalMinutos           Int?        @map("carga_mensal_minutos")
+  cargaMinimaDiariaMinutos     Int?        @map("carga_minima_diaria_minutos")
+  cargaMaximaDiariaMinutos     Int?        @map("carga_maxima_diaria_minutos")
+  controlaHorario              Boolean     @default(true) @map("controla_horario")
+  permiteFlexibilidade         Boolean     @default(false) @map("permite_flexibilidade")
+  permiteBancoHoras            Boolean     @default(true) @map("permite_banco_horas")
+  permiteHoraExtra             Boolean     @default(false) @map("permite_hora_extra")
   exigeIntervalo               Boolean     @default(false) @map("exige_intervalo")
   intervaloMinimoMinutos       Int?        @map("intervalo_minimo_minutos")
   intervaloMaximoMinutos       Int?        @map("intervalo_maximo_minutos")
@@ -1238,25 +1277,87 @@ model Jornada {
   horarioDiferenciadoPermitido Boolean     @default(false) @map("horario_diferenciado_permitido")
   entradaMinimaDiferenciada    String?     @map("entrada_minima_diferenciada") @db.VarChar(5)
   saidaMaximaDiferenciada      String?     @map("saida_maxima_diferenciada") @db.VarChar(5)
+  nucleoObrigatorioInicio      String?     @map("nucleo_obrigatorio_inicio") @db.VarChar(5)
+  nucleoObrigatorioFim         String?     @map("nucleo_obrigatorio_fim") @db.VarChar(5)
+  permanenciaMaximaMinutos     Int?        @map("permanencia_maxima_minutos")
+  horarioLimiteVirada          String?     @map("horario_limite_virada") @db.VarChar(5)
+  cruzaMeiaNoite               Boolean     @default(false) @map("cruza_meia_noite")
+  fundamentoNormativo          String?     @map("fundamento_normativo") @db.VarChar(250)
+  versao                       Int         @default(1)
+  vigenciaInicio               DateTime?   @map("vigencia_inicio") @db.Date
+  vigenciaFim                  DateTime?   @map("vigencia_fim") @db.Date
+  situacao                     String      @default("ATIVA") @db.VarChar(30)
   ativo                        Boolean     @default(true)
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
+  orgao      Orgao?                @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+  dias       JornadaDia[]
+  faixas     JornadaFaixaHorario[]
   escalas    Escala[]
   servidores JornadaServidor[]
 
+  @@index([orgaoId])
+  @@index([tipo])
+  @@index([situacao])
   @@map("jornadas")
 }
 
+model JornadaDia {
+  id                   String     @id @default(uuid()) @db.Uuid
+  jornadaId            String     @map("jornada_id") @db.Uuid
+  diaSemana            DiaSemana? @map("dia_semana")
+  ordemNoCiclo         Int?       @map("ordem_no_ciclo")
+  tipoDia              String     @default("TRABALHO") @map("tipo_dia") @db.VarChar(30)
+  cargaPrevistaMinutos Int        @default(0) @map("carga_prevista_minutos")
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  jornada Jornada               @relation(fields: [jornadaId], references: [id], onDelete: Cascade)
+  faixas  JornadaFaixaHorario[]
+
+  @@index([jornadaId])
+  @@index([jornadaId, diaSemana])
+  @@index([jornadaId, ordemNoCiclo])
+  @@map("jornadas_dias")
+}
+
+model JornadaFaixaHorario {
+  id             String  @id @default(uuid()) @db.Uuid
+  jornadaId      String  @map("jornada_id") @db.Uuid
+  jornadaDiaId   String? @map("jornada_dia_id") @db.Uuid
+  tipo           String  @default("TRABALHO") @db.VarChar(30)
+  horaInicio     String  @map("hora_inicio") @db.VarChar(5)
+  horaFim        String  @map("hora_fim") @db.VarChar(5)
+  cruzaMeiaNoite Boolean @default(false) @map("cruza_meia_noite")
+  obrigatoria    Boolean @default(true)
+  ordem          Int     @default(1)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  jornada    Jornada     @relation(fields: [jornadaId], references: [id], onDelete: Cascade)
+  jornadaDia JornadaDia? @relation(fields: [jornadaDiaId], references: [id], onDelete: Cascade)
+
+  @@index([jornadaId])
+  @@index([jornadaDiaId])
+  @@map("jornadas_faixas_horarios")
+}
+
 model Escala {
-  id        String     @id @default(uuid()) @db.Uuid
-  jornadaId String     @map("jornada_id") @db.Uuid
-  codigo    String     @unique @db.VarChar(80)
-  nome      String     @db.VarChar(150)
-  descricao String?    @db.Text
-  tipo      TipoEscala @default(SEMANAL)
-  ativo     Boolean    @default(true)
+  id                  String     @id @default(uuid()) @db.Uuid
+  jornadaId           String     @map("jornada_id") @db.Uuid
+  codigo              String     @unique @db.VarChar(80)
+  nome                String     @db.VarChar(150)
+  descricao           String?    @db.Text
+  tipo                TipoEscala @default(SEMANAL)
+  quantidadeDiasCiclo Int?       @map("quantidade_dias_ciclo")
+  dataAncoragem       DateTime?  @map("data_ancoragem") @db.Date
+  primeiroDiaTrabalho DateTime?  @map("primeiro_dia_trabalho") @db.Date
+  timezone            String?    @db.VarChar(80)
+  ativo               Boolean    @default(true)
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
@@ -1272,21 +1373,24 @@ model Escala {
 model EscalaDia {
   id                   String    @id @default(uuid()) @db.Uuid
   escalaId             String    @map("escala_id") @db.Uuid
-  diaSemana            DiaSemana @map("dia_semana")
+  diaSemana            DiaSemana? @map("dia_semana")
+  posicaoCiclo         Int?      @map("posicao_ciclo")
+  tipoDia              String    @default("TRABALHO") @map("tipo_dia") @db.VarChar(30)
   trabalha             Boolean   @default(true)
   horarioEntrada       String?   @map("horario_entrada") @db.VarChar(5)
   horarioSaida         String?   @map("horario_saida") @db.VarChar(5)
   intervaloInicio      String?   @map("intervalo_inicio") @db.VarChar(5)
   intervaloFim         String?   @map("intervalo_fim") @db.VarChar(5)
   cargaPrevistaMinutos Int       @default(0) @map("carga_prevista_minutos")
+  cruzaMeiaNoite       Boolean   @default(false) @map("cruza_meia_noite")
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
   escala Escala @relation(fields: [escalaId], references: [id], onDelete: Cascade)
 
-  @@unique([escalaId, diaSemana])
   @@index([escalaId])
+  @@index([escalaId, posicaoCiclo])
   @@map("escalas_dias")
 }
 
@@ -1301,6 +1405,12 @@ model JornadaServidor {
   ativo      Boolean   @default(true)
 
   justificativa                 String?   @db.Text
+  tipoVinculacao                String    @default("PERMANENTE") @map("tipo_vinculacao") @db.VarChar(40)
+  motivo                        String?   @db.VarChar(250)
+  fundamentoDocumental          String?   @map("fundamento_documental") @db.VarChar(250)
+  documentoSei                  String?   @map("documento_sei") @db.VarChar(80)
+  autoridadeResponsavel         String?   @map("autoridade_responsavel") @db.VarChar(150)
+  status                        String    @default("ATIVO") @db.VarChar(30)
   horarioDiferenciadoAutorizado Boolean   @default(false) @map("horario_diferenciado_autorizado")
   autorizadoPorUsuarioId        String?   @map("autorizado_por_usuario_id") @db.Uuid
   autorizadoEm                  DateTime? @map("autorizado_em")
@@ -1321,6 +1431,7 @@ model JornadaServidor {
   @@index([autorizadoPorUsuarioId])
   @@index([ativo])
   @@index([servidorId, ativo, dataInicio, dataFim])
+  @@index([servidorId, status, dataInicio, dataFim])
   @@map("jornadas_servidores")
 }
 

@@ -14,6 +14,7 @@ import {
   usuarioMatriculaExiste,
 } from "../../infrastructure/repositories/servidor.repository";
 import {
+  opcoesSinalizacaoForaExpediente,
   servidorSchema,
   tiposUsuarioPessoaPonto,
   tiposVinculoServidor,
@@ -35,6 +36,9 @@ function normalizarVinculoServidor(
 
 function extrairDadosServidor(formData: FormData): Partial<ServidorInput> {
   const tipoUsuario = String(formData.get("tipoUsuario") ?? "SERVIDOR");
+  const sinalizacaoForaExpediente = String(
+    formData.get("sinalizacaoForaExpediente") ?? "PADRAO",
+  );
 
   return {
     orgaoId: String(formData.get("orgaoId") ?? ""),
@@ -51,6 +55,11 @@ function extrairDadosServidor(formData: FormData): Partial<ServidorInput> {
       .toLowerCase(),
     nomeFuncional: String(formData.get("nomeFuncional") ?? "").trim(),
     vinculo: normalizarVinculoServidor(formData.get("vinculo")),
+    sinalizacaoForaExpediente: opcoesSinalizacaoForaExpediente.includes(
+      sinalizacaoForaExpediente as ServidorInput["sinalizacaoForaExpediente"],
+    )
+      ? (sinalizacaoForaExpediente as ServidorInput["sinalizacaoForaExpediente"])
+      : "PADRAO",
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
   };
 }
@@ -139,6 +148,10 @@ export async function criarServidorAction(
         cpf: parsed.data.cpf || null,
         nomeFuncional: parsed.data.nomeFuncional || parsed.data.nome,
         vinculo: parsed.data.vinculo,
+        horasForaExpedienteInconsistente:
+          parsed.data.sinalizacaoForaExpediente === "PADRAO"
+            ? null
+            : parsed.data.sinalizacaoForaExpediente === "SINALIZAR",
         ativo: parsed.data.ativo,
       },
     });
@@ -158,6 +171,8 @@ export async function criarServidorAction(
             cpf: novoServidor.cpf,
             orgaoId: novoServidor.orgaoId,
             vinculo: novoServidor.vinculo,
+            horasForaExpedienteInconsistente:
+              novoServidor.horasForaExpedienteInconsistente,
             ativo: novoServidor.ativo,
           },
           usuario: {

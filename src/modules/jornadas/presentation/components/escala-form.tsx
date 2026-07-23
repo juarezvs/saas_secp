@@ -31,6 +31,10 @@ const rotulosTipo: Record<string, string> = {
   SEMANAL: "Semanal",
   REVEZAMENTO: "Revezamento",
   INDIVIDUAL: "Individual",
+  CICLICA: "Ciclica",
+  PLANEJADA: "Planejada",
+  TURNO_FIXO: "Turno fixo",
+  TURNO_ALTERNANTE: "Turno alternante",
 };
 
 const rotulosDia: Record<string, string> = {
@@ -53,16 +57,20 @@ function diaTrabalhadoPadrao(diaSemana: string) {
 
 function obterValorDia(
   estado: EscalaFormState,
-  diaSemana: string,
+  chave: string,
   campo: string,
   valorPadrao: string | number | boolean,
 ) {
-  const dia = estado.campos?.dias?.find((item) => item.diaSemana === diaSemana);
+  const dia = estado.campos?.dias?.find(
+    (item) => item.diaSemana === chave || String(item.posicaoCiclo) === chave,
+  );
 
   if (!dia || !(campo in dia)) return valorPadrao;
 
   return dia[campo as keyof typeof dia] ?? valorPadrao;
 }
+
+const posicoesCiclo = Array.from({ length: 31 }, (_, indice) => indice + 1);
 
 function errosDetalhados(estado: EscalaFormState) {
   return Object.entries(estado.erros ?? {}).filter(
@@ -172,6 +180,56 @@ export function EscalaForm({ action, valoresPadrao }: EscalaFormProps) {
             </span>
           </label>
 
+          <div className="space-y-2">
+            <label htmlFor="quantidadeDiasCiclo" className="text-sm font-semibold">
+              Dias do ciclo
+            </label>
+            <input
+              id="quantidadeDiasCiclo"
+              name="quantidadeDiasCiclo"
+              type="number"
+              min={1}
+              max={31}
+              defaultValue={estado.campos?.quantidadeDiasCiclo ?? 2}
+              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            />
+            {erro(estado, "quantidadeDiasCiclo") && (
+              <p className="text-sm text-red-600">
+                {erro(estado, "quantidadeDiasCiclo")}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="dataAncoragem" className="text-sm font-semibold">
+              Data de ancoragem
+            </label>
+            <input
+              id="dataAncoragem"
+              name="dataAncoragem"
+              type="date"
+              defaultValue={estado.campos?.dataAncoragem ?? ""}
+              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            />
+            {erro(estado, "dataAncoragem") && (
+              <p className="text-sm text-red-600">
+                {erro(estado, "dataAncoragem")}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="timezone" className="text-sm font-semibold">
+              Fuso horario
+            </label>
+            <input
+              id="timezone"
+              name="timezone"
+              defaultValue={estado.campos?.timezone ?? "America/Manaus"}
+              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            />
+          </div>
+
           <div className="space-y-2 md:col-span-2">
             <label htmlFor="descricao" className="text-sm font-semibold">
               Descrição
@@ -183,6 +241,154 @@ export function EscalaForm({ action, valoresPadrao }: EscalaFormProps) {
               rows={3}
               className="w-full rounded-md border bg-[var(--card)] px-3 py-2 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
             />
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold">Ciclo por posicao</h3>
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="w-full min-w-[920px] text-left text-sm">
+              <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
+                <tr>
+                  <th className="px-3 py-3">Posicao</th>
+                  <th className="px-3 py-3">Trabalha</th>
+                  <th className="px-3 py-3">Entrada</th>
+                  <th className="px-3 py-3">Saida</th>
+                  <th className="px-3 py-3">Inicio intervalo</th>
+                  <th className="px-3 py-3">Fim intervalo</th>
+                  <th className="px-3 py-3">Carga min.</th>
+                  <th className="px-3 py-3">Vira dia</th>
+                </tr>
+              </thead>
+              <tbody>
+                {posicoesCiclo.map((posicao) => {
+                  const chave = String(posicao);
+                  const prefixo = `dias.${chave}`;
+                  const trabalhaPadrao = posicao % 2 === 1;
+
+                  return (
+                    <tr key={posicao} className="border-b last:border-b-0">
+                      <td className="px-3 py-3 font-semibold">Dia {posicao}</td>
+                      <td className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          name={`${prefixo}.trabalha`}
+                          defaultChecked={Boolean(
+                            obterValorDia(
+                              estado,
+                              chave,
+                              "trabalha",
+                              trabalhaPadrao && posicao <= 2,
+                            ),
+                          )}
+                          className="size-4 rounded border-slate-300"
+                        />
+                      </td>
+                      <td className="px-3 py-3">
+                        <input
+                          type="time"
+                          name={`${prefixo}.horarioEntrada`}
+                          defaultValue={String(
+                            obterValorDia(
+                              estado,
+                              chave,
+                              "horarioEntrada",
+                              trabalhaPadrao && posicao <= 2 ? entradaPadrao : "",
+                            ),
+                          )}
+                          className="h-10 w-full rounded-md border bg-[var(--card)] px-2 text-sm"
+                        />
+                      </td>
+                      <td className="px-3 py-3">
+                        <input
+                          type="time"
+                          name={`${prefixo}.horarioSaida`}
+                          defaultValue={String(
+                            obterValorDia(
+                              estado,
+                              chave,
+                              "horarioSaida",
+                              trabalhaPadrao && posicao <= 2 ? saidaPadrao : "",
+                            ),
+                          )}
+                          className="h-10 w-full rounded-md border bg-[var(--card)] px-2 text-sm"
+                        />
+                      </td>
+                      <td className="px-3 py-3">
+                        <input
+                          type="time"
+                          name={`${prefixo}.intervaloInicio`}
+                          defaultValue={String(
+                            obterValorDia(
+                              estado,
+                              chave,
+                              "intervaloInicio",
+                              valoresPadrao?.exigeIntervalo &&
+                                trabalhaPadrao &&
+                                posicao <= 2
+                                ? "12:00"
+                                : "",
+                            ),
+                          )}
+                          className="h-10 w-full rounded-md border bg-[var(--card)] px-2 text-sm"
+                        />
+                      </td>
+                      <td className="px-3 py-3">
+                        <input
+                          type="time"
+                          name={`${prefixo}.intervaloFim`}
+                          defaultValue={String(
+                            obterValorDia(
+                              estado,
+                              chave,
+                              "intervaloFim",
+                              valoresPadrao?.exigeIntervalo &&
+                                trabalhaPadrao &&
+                                posicao <= 2
+                                ? `13:${String(intervaloMinimo % 60).padStart(2, "0")}`
+                                : "",
+                            ),
+                          )}
+                          className="h-10 w-full rounded-md border bg-[var(--card)] px-2 text-sm"
+                        />
+                      </td>
+                      <td className="px-3 py-3">
+                        <input
+                          type="number"
+                          min={0}
+                          max={720}
+                          name={`${prefixo}.cargaPrevistaMinutos`}
+                          defaultValue={Number(
+                            obterValorDia(
+                              estado,
+                              chave,
+                              "cargaPrevistaMinutos",
+                              trabalhaPadrao && posicao <= 2 ? cargaPadrao : 0,
+                            ),
+                          )}
+                          className="h-10 w-full rounded-md border bg-[var(--card)] px-2 text-sm"
+                        />
+                      </td>
+                      <td className="px-3 py-3">
+                        <input
+                          type="checkbox"
+                          name={`${prefixo}.cruzaMeiaNoite`}
+                          defaultChecked={Boolean(
+                            obterValorDia(
+                              estado,
+                              chave,
+                              "cruzaMeiaNoite",
+                              false,
+                            ),
+                          )}
+                          className="size-4 rounded border-slate-300"
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
 

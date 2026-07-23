@@ -6,6 +6,12 @@ import type { ClassificacaoDiaInstitucional } from "@/modules/calendario-institu
 const regulamentacao = {
   jornada7hCreditoMinimoMinutos: 8 * 60,
   jornada7hIntervaloMinimoMinutos: 60,
+  jornada7hCreditoExigeIntervalo: true,
+  entradaMinimaPermitida: "06:00",
+  saidaMaximaPermitida: "19:00",
+  percentualCreditoSabado: 50,
+  percentualCreditoDomingoFeriado: 100,
+  percentualCreditoRecesso: 100,
 };
 
 function classificacao(tipo: ClassificacaoDiaInstitucional["tipo"]) {

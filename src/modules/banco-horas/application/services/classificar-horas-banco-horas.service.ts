@@ -3,6 +3,12 @@ import type { ClassificacaoDiaInstitucional } from "@/modules/calendario-institu
 type RegulamentacaoBancoHoras = {
   jornada7hCreditoMinimoMinutos: number;
   jornada7hIntervaloMinimoMinutos: number;
+  jornada7hCreditoExigeIntervalo: boolean;
+  entradaMinimaPermitida: string;
+  saidaMaximaPermitida: string;
+  percentualCreditoSabado: number;
+  percentualCreditoDomingoFeriado: number;
+  percentualCreditoRecesso: number;
 };
 
 type ApuracaoBancoHoras = {
@@ -46,11 +52,28 @@ function arredondarMinutos(valor: number) {
   return Math.max(0, Math.round(valor));
 }
 
-function horaForaPeriodoOrdinario(apuracao: ApuracaoBancoHoras) {
+function horaParaMinutos(valor: string) {
+  const [horas, minutos] = valor.split(":").map(Number);
+  return horas * 60 + minutos;
+}
+
+function multiplicadorPercentual(percentual: number) {
+  return 1 + percentual / 100;
+}
+
+function horaForaPeriodoOrdinario(
+  apuracao: ApuracaoBancoHoras,
+  regulamentacao: RegulamentacaoBancoHoras,
+) {
   const entrada = minutosDoDia(apuracao.primeiraEntrada);
   const saida = minutosDoDia(apuracao.ultimaSaida);
+  const entradaMinima = horaParaMinutos(regulamentacao.entradaMinimaPermitida);
+  const saidaMaxima = horaParaMinutos(regulamentacao.saidaMaximaPermitida);
 
-  return Boolean((entrada !== null && entrada < 6 * 60) || (saida !== null && saida > 19 * 60));
+  return Boolean(
+    (entrada !== null && entrada < entradaMinima) ||
+      (saida !== null && saida > saidaMaxima),
+  );
 }
 
 function resultadoNaoComputavel(params: {
@@ -82,11 +105,14 @@ export function classificarHorasCreditoBancoHoras(params: {
   const { apuracao, classificacaoDia, regulamentacao } = params;
   const minutosApurados = Math.max(0, apuracao.minutosCredito);
   const alertas: string[] = [];
-  const exigeJustificativaEspecifica = horaForaPeriodoOrdinario(apuracao);
+  const exigeJustificativaEspecifica = horaForaPeriodoOrdinario(
+    apuracao,
+    regulamentacao,
+  );
 
   if (exigeJustificativaEspecifica) {
     alertas.push(
-      "Há registro antes das 6h ou depois das 19h; a chefia deve registrar justificativa específica.",
+      `Há registro antes das ${regulamentacao.entradaMinimaPermitida} ou depois das ${regulamentacao.saidaMaximaPermitida}; a chefia deve registrar justificativa específica.`,
     );
   }
 
@@ -102,25 +128,38 @@ export function classificarHorasCreditoBancoHoras(params: {
   }
 
   if (classificacaoDia.tipo === "RECESSO_FORENSE") {
-    return resultadoNaoComputavel({
-      minutos: minutosApurados,
-      codigoFundamento: "RECESSO_FORENSE_REGRA_ESPECIFICA",
-      fundamento:
-        "Trabalho em recesso forense deve seguir regulamentação específica e não é convertido automaticamente em banco de horas ordinário.",
-      alertas,
-      exigeJustificativaEspecifica,
-    });
-  }
-
-  if (classificacaoDia.tipo === "SABADO") {
+    const multiplicador = multiplicadorPercentual(
+      regulamentacao.percentualCreditoRecesso,
+    );
     const computaveis = params.permiteConversaoEspecial
-      ? arredondarMinutos(minutosApurados * 1.5)
+      ? arredondarMinutos(minutosApurados * multiplicador)
       : 0;
 
     return {
       minutosComputaveis: computaveis,
       minutosNaoComputaveis: Math.max(0, minutosApurados - computaveis),
-      multiplicadorAplicado: computaveis > 0 ? 1.5 : 1,
+      multiplicadorAplicado: computaveis > 0 ? multiplicador : 1,
+      codigoFundamento: "RECESSO_FORENSE_REGRA_ESPECIFICA",
+      fundamento:
+        "Recesso forense com conversão administrativa autorizada, conforme regulamentação própria do órgão.",
+      alertas,
+      exigeJustificativaEspecifica,
+      exigeReferendoDiref: false,
+    };
+  }
+
+  if (classificacaoDia.tipo === "SABADO") {
+    const multiplicador = multiplicadorPercentual(
+      regulamentacao.percentualCreditoSabado,
+    );
+    const computaveis = params.permiteConversaoEspecial
+      ? arredondarMinutos(minutosApurados * multiplicador)
+      : 0;
+
+    return {
+      minutosComputaveis: computaveis,
+      minutosNaoComputaveis: Math.max(0, minutosApurados - computaveis),
+      multiplicadorAplicado: computaveis > 0 ? multiplicador : 1,
       codigoFundamento: "SABADO_CONVERSAO_AUTORIZADA",
       fundamento:
         "Sábado com conversão administrativa autorizada; aplica-se acréscimo de 50% ao tempo trabalhado.",
@@ -131,14 +170,17 @@ export function classificarHorasCreditoBancoHoras(params: {
   }
 
   if (classificacaoDia.tipo === "DOMINGO" || classificacaoDia.tipo === "FERIADO") {
+    const multiplicador = multiplicadorPercentual(
+      regulamentacao.percentualCreditoDomingoFeriado,
+    );
     const computaveis = params.permiteConversaoEspecial
-      ? arredondarMinutos(minutosApurados * 2)
+      ? arredondarMinutos(minutosApurados * multiplicador)
       : 0;
 
     return {
       minutosComputaveis: computaveis,
       minutosNaoComputaveis: Math.max(0, minutosApurados - computaveis),
-      multiplicadorAplicado: computaveis > 0 ? 2 : 1,
+      multiplicadorAplicado: computaveis > 0 ? multiplicador : 1,
       codigoFundamento: "DOMINGO_FERIADO_CONVERSAO_AUTORIZADA",
       fundamento:
         "Domingo ou feriado com conversão administrativa autorizada; aplica-se crédito em dobro ao tempo trabalhado.",
@@ -149,7 +191,10 @@ export function classificarHorasCreditoBancoHoras(params: {
   }
 
   if (classificacaoDia.tipo === "PONTO_FACULTATIVO") {
-    if (apuracao.minutosIntervalo < regulamentacao.jornada7hIntervaloMinimoMinutos) {
+    if (
+      regulamentacao.jornada7hCreditoExigeIntervalo &&
+      apuracao.minutosIntervalo < regulamentacao.jornada7hIntervaloMinimoMinutos
+    ) {
       return resultadoNaoComputavel({
         minutos: minutosApurados,
         codigoFundamento: "PONTO_FACULTATIVO_SEM_INTERVALO_MINIMO",
@@ -164,14 +209,19 @@ export function classificarHorasCreditoBancoHoras(params: {
       0,
       apuracao.minutosTrabalhados - regulamentacao.jornada7hCreditoMinimoMinutos,
     );
+    const multiplicador = multiplicadorPercentual(
+      regulamentacao.percentualCreditoSabado,
+    );
     const computaveis = params.permiteConversaoEspecial
-      ? arredondarMinutos(Math.min(excedenteAposOitavaHora, minutosApurados) * 1.5)
+      ? arredondarMinutos(
+          Math.min(excedenteAposOitavaHora, minutosApurados) * multiplicador,
+        )
       : 0;
 
     return {
       minutosComputaveis: computaveis,
       minutosNaoComputaveis: Math.max(0, minutosApurados - computaveis),
-      multiplicadorAplicado: computaveis > 0 ? 1.5 : 1,
+      multiplicadorAplicado: computaveis > 0 ? multiplicador : 1,
       codigoFundamento: "PONTO_FACULTATIVO_APOS_OITAVA_HORA",
       fundamento:
         "Ponto facultativo autorizado; somente o tempo após a oitava hora é convertido com acréscimo de 50%.",
@@ -182,7 +232,10 @@ export function classificarHorasCreditoBancoHoras(params: {
   }
 
   if (apuracao.cargaPrevistaMinutos === 7 * 60) {
-    if (apuracao.minutosIntervalo < regulamentacao.jornada7hIntervaloMinimoMinutos) {
+    if (
+      regulamentacao.jornada7hCreditoExigeIntervalo &&
+      apuracao.minutosIntervalo < regulamentacao.jornada7hIntervaloMinimoMinutos
+    ) {
       return resultadoNaoComputavel({
         minutos: minutosApurados,
         codigoFundamento: "JORNADA_7H_SEM_INTERVALO_MINIMO",

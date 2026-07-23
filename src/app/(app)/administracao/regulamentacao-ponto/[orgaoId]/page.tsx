@@ -15,8 +15,11 @@ type RegulamentacaoPontoOrgaoPageProps = {
   }>;
 };
 
-function minutosParaHoras(minutos: number) {
-  return Number((minutos / 60).toFixed(2));
+function minutosParaHoraMinuto(minutos: number) {
+  const horas = Math.floor(minutos / 60);
+  const resto = minutos % 60;
+
+  return `${String(horas).padStart(2, "0")}:${String(resto).padStart(2, "0")}`;
 }
 
 export default async function RegulamentacaoPontoOrgaoPage({
@@ -57,7 +60,7 @@ export default async function RegulamentacaoPontoOrgaoPage({
         items={[
           { label: "Administração", href: "/administracao" },
           {
-            label: "Regulamentacao do ponto",
+            label: "Regulamentação do ponto",
             href: "/administracao/regulamentacao-ponto",
           },
           { label: orgao.sigla },
@@ -66,11 +69,13 @@ export default async function RegulamentacaoPontoOrgaoPage({
 
       <PageHeader
         icon={SlidersHorizontal}
-        titulo={`Regulamentacao do ponto - ${orgao.sigla}`}
-        descricao="Configure limites de credito, tolerancias, autorizacao previa e criterios de banco de horas aplicados somente a este orgao."
-        artigo={regras.numeroPortaria || "Portaria SJAM-DIREF 135/2025"}
-        regraTitulo="Aplicacao restrita ao orgao"
-        regraDescricao="Ao salvar com recalculo, o sistema reprocessa espelho de ponto e banco de horas apenas dos servidores vinculados a este orgao."
+        titulo={`Regulamentação do ponto - ${orgao.sigla}`}
+        descricao="Configure limites de crédito, tolerâncias, autorização prévia e critérios de banco de horas aplicados somente a este órgão."
+        artigo={
+          regras.numeroPortaria || "Resolução Presi TRF1-SECGE 10119147/2020"
+        }
+        regraTitulo="Aplicação restrita ao órgão"
+        regraDescricao="Ao salvar com recálculo, o sistema reprocessa espelho de ponto e banco de horas apenas dos servidores vinculados a este órgão."
       />
 
       <section className="grid gap-4 lg:grid-cols-3">
@@ -82,7 +87,7 @@ export default async function RegulamentacaoPontoOrgaoPage({
             {orgao._count.servidores}
           </p>
           <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-            Total de servidores atualmente vinculados ao orgao.
+            Total de servidores atualmente vinculados ao órgão.
           </p>
         </div>
         <div className="rounded-lg border bg-[var(--card)] p-5 text-[var(--card-foreground)]">
@@ -90,21 +95,21 @@ export default async function RegulamentacaoPontoOrgaoPage({
             Teto mensal de banco de horas
           </p>
           <p className="mt-2 text-3xl font-black">
-            {minutosParaHoras(regras.limiteCreditoMensalMinutos)}h
+            {minutosParaHoraMinuto(regras.limiteCreditoMensalMinutos)}
           </p>
           <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-            Maximo de credito acumulavel por competencia.
+            Máximo de crédito acumulável por competência.
           </p>
         </div>
         <div className="rounded-lg border bg-[var(--card)] p-5 text-[var(--card-foreground)]">
           <p className="text-sm font-semibold text-[var(--muted-foreground)]">
-            Validade do credito autorizado
+            Validade do crédito autorizado
           </p>
           <p className="mt-2 text-3xl font-black">
             {regras.mesesExpiracaoCompensacao} meses
           </p>
           <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-            Prazo para utilizar a compensacao deferida.
+            Prazo para utilizar a compensação deferida.
           </p>
         </div>
       </section>

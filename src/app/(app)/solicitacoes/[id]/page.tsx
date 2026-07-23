@@ -18,7 +18,10 @@ import {
   dataPeriodoSolicitacaoParaExibicao,
   solicitacaoUsaPeriodoDiaInteiro,
 } from "@/modules/solicitacoes/application/services/periodo-solicitacao.service";
-import { buscarSolicitacaoPorId } from "@/modules/solicitacoes/infrastructure/repositories/solicitacao.repository";
+import {
+  buscarSolicitacaoPorId,
+  usuarioPodeAcessarSolicitacaoComoChefia,
+} from "@/modules/solicitacoes/infrastructure/repositories/solicitacao.repository";
 import { AnalisarSolicitacaoForm } from "@/modules/solicitacoes/presentation/components/analisar-solicitacao-form";
 import { SolicitacaoStepper } from "@/modules/solicitacoes/presentation/components/solicitacao-stepper";
 import { SolicitacaoTimeline } from "@/modules/solicitacoes/presentation/components/solicitacao-timeline";
@@ -115,10 +118,28 @@ export default async function SolicitacaoDetalhePage({
   }
 
   const permissoes = session?.user.perfilAtivo?.permissoes ?? [];
+  const podeConsultarGlobal = permissoes.includes(
+    "solicitacoes:consultar:global",
+  );
+  const podeAcessarComoChefia = session?.user.id
+    ? permissoes.includes("solicitacoes:analisar:chefia") &&
+      (await usuarioPodeAcessarSolicitacaoComoChefia({
+        usuarioId: session.user.id,
+        solicitacaoId: solicitacao.id,
+      }))
+    : false;
+  const podeAcessarComoProprio =
+    solicitacao.usuarioSolicitanteId === session?.user.id &&
+    (permissoes.includes("solicitacoes:consultar:proprio") ||
+      permissoes.includes("solicitacoes:visualizar:proprio"));
+
+  if (!podeConsultarGlobal && !podeAcessarComoChefia && !podeAcessarComoProprio) {
+    notFound();
+  }
+
   const podeAnalisar =
     solicitacaoPodeSerAnalisada(solicitacao.status) &&
-    (permissoes.includes("solicitacoes:analisar:chefia") ||
-      permissoes.includes("solicitacoes:consultar:global"));
+    (podeAcessarComoChefia || podeConsultarGlobal);
   const podeExcluir = perfilEhAdministradorSistema(session?.user.perfilAtivo);
   const action = analisarSolicitacaoAction.bind(null, solicitacao.id);
   const excluirAction = excluirSolicitacaoAction.bind(null, solicitacao.id);

@@ -13,6 +13,7 @@ import {
   usuarioMatriculaExiste,
 } from "../../infrastructure/repositories/servidor.repository";
 import {
+  opcoesSinalizacaoForaExpediente,
   servidorSchema,
   tiposVinculoServidor,
   type ServidorFormState,
@@ -32,6 +33,10 @@ function normalizarVinculoServidor(
 }
 
 function extrairDadosServidor(formData: FormData): Partial<ServidorInput> {
+  const sinalizacaoForaExpediente = String(
+    formData.get("sinalizacaoForaExpediente") ?? "PADRAO",
+  );
+
   return {
     orgaoId: String(formData.get("orgaoId") ?? ""),
     matricula: String(formData.get("matricula") ?? "").trim(),
@@ -42,6 +47,11 @@ function extrairDadosServidor(formData: FormData): Partial<ServidorInput> {
       .toLowerCase(),
     nomeFuncional: String(formData.get("nomeFuncional") ?? "").trim(),
     vinculo: normalizarVinculoServidor(formData.get("vinculo")),
+    sinalizacaoForaExpediente: opcoesSinalizacaoForaExpediente.includes(
+      sinalizacaoForaExpediente as ServidorInput["sinalizacaoForaExpediente"],
+    )
+      ? (sinalizacaoForaExpediente as ServidorInput["sinalizacaoForaExpediente"])
+      : "PADRAO",
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
   };
 }
@@ -124,6 +134,10 @@ export async function atualizarServidorAction(
         cpf: parsed.data.cpf || null,
         nomeFuncional: parsed.data.nomeFuncional || null,
         vinculo: parsed.data.vinculo,
+        horasForaExpedienteInconsistente:
+          parsed.data.sinalizacaoForaExpediente === "PADRAO"
+            ? null
+            : parsed.data.sinalizacaoForaExpediente === "SINALIZAR",
         ativo: parsed.data.ativo,
       },
     });
@@ -142,6 +156,8 @@ export async function atualizarServidorAction(
             orgaoId: servidorAtual.orgaoId,
             vinculo: servidorAtual.vinculo,
             nomeFuncional: servidorAtual.nomeFuncional,
+            horasForaExpedienteInconsistente:
+              servidorAtual.horasForaExpedienteInconsistente,
             ativo: servidorAtual.ativo,
           },
           usuario: {
@@ -161,6 +177,10 @@ export async function atualizarServidorAction(
             orgaoId: parsed.data.orgaoId,
             vinculo: parsed.data.vinculo,
             nomeFuncional: parsed.data.nomeFuncional || null,
+            horasForaExpedienteInconsistente:
+              parsed.data.sinalizacaoForaExpediente === "PADRAO"
+                ? null
+                : parsed.data.sinalizacaoForaExpediente === "SINALIZAR",
             ativo: parsed.data.ativo,
           },
           usuario: {

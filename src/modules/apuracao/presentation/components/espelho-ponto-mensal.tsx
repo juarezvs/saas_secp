@@ -343,8 +343,6 @@ export function EspelhoPontoMensal({
                         <OcorrenciasDia
                           ocultarVazio
                           ocultarDispensaPonto={dispensaPonto}
-                          ausente={classificacao.ausente}
-                          ausenciaParcial={classificacao.ausenciaParcial}
                           dispensaPonto={classificacao.dispensaPonto}
                           diaInstitucional={diaInstitucional}
                           ocorrencias={item.ocorrencias ?? []}
@@ -541,8 +539,6 @@ function EspelhoPontoMensalCompacto({
 function OcorrenciasDia({
   ocultarVazio = false,
   ocultarDispensaPonto = false,
-  ausente,
-  ausenciaParcial,
   dispensaPonto,
   diaInstitucional,
   ocorrencias,
@@ -550,8 +546,6 @@ function OcorrenciasDia({
 }: {
   ocultarVazio?: boolean;
   ocultarDispensaPonto?: boolean;
-  ausente: boolean;
-  ausenciaParcial: boolean;
   dispensaPonto: boolean;
   diaInstitucional: DiaInstitucionalEspelho | null;
   ocorrencias: ApuracaoMensalItem["ocorrencias"];
@@ -571,26 +565,6 @@ function OcorrenciasDia({
           },
         ]
       : []),
-    ...(ausente
-      ? [
-          {
-            chave: "ausencia",
-            label: "Ausência",
-            classe: "erro" as const,
-            title: "Ausência integral.",
-          },
-        ]
-      : []),
-    ...(ausenciaParcial
-      ? [
-          {
-            chave: "ausencia-parcial",
-            label: "Ausência parcial",
-            classe: "alerta" as const,
-            title: "Ausência parcial.",
-          },
-        ]
-      : []),
     ...(dispensaPonto && !ocultarDispensaPonto
       ? [
           {
@@ -604,7 +578,13 @@ function OcorrenciasDia({
     ...(ocorrencias ?? [])
       .filter(
         (ocorrencia) =>
-          !["FALTA", "DEBITO"].includes(ocorrencia.tipo) &&
+          ![
+            "FALTA",
+            "DEBITO",
+            "CREDITO",
+            "MARCACAO_INCOMPLETA",
+            "HORA_NAO_AUTORIZADA",
+          ].includes(ocorrencia.tipo) &&
           !(
             diaInstitucional &&
             ["SEM_EXPEDIENTE", diaInstitucional.tipo].includes(ocorrencia.tipo)
@@ -789,17 +769,25 @@ function BadgeDiaInstitucional({ dia }: { dia: DiaInstitucionalEspelho }) {
 }
 
 function StatusResultado({ item }: { item: ApuracaoMensalItem }) {
+  if (item.resultado === "INCOMPLETA") {
+    return null;
+  }
+
   const rotulo =
     item.cargaPrevistaMinutos === 0 &&
     item.minutosTrabalhados === 0 &&
     item.minutosCredito === 0 &&
     item.minutosDebito === 0
       ? "Folga"
+      : ["CREDITO", "DEBITO"].includes(item.resultado)
+        ? "Regular"
       : rotuloResultadoEspelho(item.resultado);
   const tipo =
-    item.resultado === "REGULAR" || item.resultado === "CREDITO"
+    item.resultado === "REGULAR" ||
+    item.resultado === "CREDITO" ||
+    item.resultado === "DEBITO"
       ? "ok"
-      : item.resultado === "DEBITO" || item.resultado === "INCOMPLETA"
+      : item.resultado === "INCOMPLETA"
         ? "alerta"
         : item.resultado === "FALTA"
           ? "erro"

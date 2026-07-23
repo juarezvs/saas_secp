@@ -58,6 +58,7 @@ export async function buscarJornadaVigenteParaData(params: {
     where: {
       servidorId: params.servidorId,
       ativo: true,
+      status: "ATIVO",
       dataInicio: {
         lte: params.dataReferencia,
       },
@@ -151,6 +152,7 @@ export async function listarApuracoesDoServidorNoMes(params: {
       where: {
         servidorId: params.servidorId,
         ativo: true,
+        status: "ATIVO",
         dataInicio: {
           lt: fim,
         },

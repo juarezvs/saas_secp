@@ -62,6 +62,7 @@ async function buscarJornadaServidor(params: {
     where: {
       servidorId: params.servidorId,
       ativo: true,
+      status: "ATIVO",
       dataInicio: {
         lte: params.dataReferencia,
       },

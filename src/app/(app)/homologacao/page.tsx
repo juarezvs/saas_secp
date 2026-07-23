@@ -14,6 +14,7 @@ import {
   formatarDataPrazoRegulatorio,
   rotuloSituacaoPrazoRegulatorio,
 } from "@/modules/frequencia/application/services/prazo-regulatorio-frequencia.service";
+import { buscarRegulamentacaoPontoOrgao } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 
 type HomologacaoPageProps = {
   searchParams?: Promise<{
@@ -111,12 +112,17 @@ export default async function HomologacaoPage({
   >();
 
   for (const fechamento of resultado.fechamentos) {
+    const regulamentacao = await buscarRegulamentacaoPontoOrgao(
+      fechamento.unidade.orgaoId,
+    );
     prazosPorFechamento.set(
       fechamento.id,
       await calcularPrazoHomologacaoCompetenciaComCalendario({
         anoReferencia: fechamento.anoReferencia,
         mesReferencia: fechamento.mesReferencia,
         concluidoEm: fechamento.homologadoEm,
+        diaLimiteMesSeguinte:
+          regulamentacao.prazoHomologacaoDiaMesSeguinte,
       }),
     );
   }
