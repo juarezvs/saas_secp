@@ -1,9 +1,10 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays,
-  Check,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   ClipboardCheck,
@@ -69,6 +70,21 @@ const etapas = [
 
 type EtapaIndice = 0 | 1 | 2 | 3;
 
+type SolicitacaoPreview = {
+  tipo: string;
+  titulo: string;
+  periodo: string;
+  detalhe: string;
+  justificativa: string;
+  encaminhamento: string;
+};
+
+type TipoSolicitacao = (typeof tiposSolicitacao)[number];
+
+type SolicitacaoFormProps = {
+  tipoInicial?: TipoSolicitacao;
+};
+
 function erro(estado: CriarSolicitacaoFormState, campo: string) {
   return estado.erros?.[campo]?.[0];
 }
@@ -115,12 +131,7 @@ function obterConfiguracaoTipo(tipo: string) {
     {
       resumo: string;
       periodo: "DATA_REFERENCIA" | "INTERVALO";
-      detalhes:
-        | "AJUSTE"
-        | "BANCO_HORAS"
-        | "REMOTO"
-        | "CAPACITACAO"
-        | "SIMPLES";
+      detalhes: "AJUSTE" | "BANCO_HORAS" | "REMOTO" | "CAPACITACAO" | "SIMPLES";
     }
   > = {
     AJUSTE_PONTO: {
@@ -245,6 +256,204 @@ function validarEtapaFormulario(etapa: number, formData: FormData) {
   return falhas;
 }
 
+function formatarValorAusente(valor: FormDataEntryValue | null) {
+  const texto = String(valor ?? "").trim();
+  return texto || "Não informado";
+}
+
+function rotuloMarcacao(tipo: string) {
+  const rotulos: Record<string, string> = {
+    ENTRADA: "Entrada",
+    SAIDA_INTERVALO: "Saída para intervalo",
+    RETORNO_INTERVALO: "Retorno do intervalo",
+    SAIDA: "Saída",
+  };
+
+  return (rotulos[tipo] ?? tipo) || "Não informado";
+}
+
+function rotuloCompensacao(tipo: string) {
+  const rotulos: Record<string, string> = {
+    UTILIZAR_CREDITO: "Utilizar crédito para compensar débito",
+    COMPENSAR_DEBITO: "Trabalhar horas para compensar débito",
+  };
+
+  return (rotulos[tipo] ?? tipo) || "Não informado";
+}
+
+function rotuloRegimeRemoto(tipo: string) {
+  const rotulos: Record<string, string> = {
+    NAO_SE_APLICA: "Dispensa sem teletrabalho",
+    TOTAL: "Teletrabalho 100%",
+    HIBRIDO: "Regime híbrido",
+  };
+
+  return (rotulos[tipo] ?? tipo) || "Não informado";
+}
+
+function rotuloModalidadeCapacitacao(modalidade: string) {
+  const rotulos: Record<string, string> = {
+    EXTERNA: "Capacitação externa",
+    INTERNA: "Capacitação interna",
+  };
+
+  return (rotulos[modalidade] ?? modalidade) || "Não informado";
+}
+
+function montarPeriodoPreview(formData: FormData, tipo: string) {
+  if (tipo === "AJUSTE_PONTO") {
+    return `Data de referência: ${formatarValorAusente(
+      formData.get("dataReferencia"),
+    )}`;
+  }
+
+  const inicio = formatarValorAusente(formData.get("dataInicio"));
+  const fim = formatarValorAusente(formData.get("dataFim"));
+  return `${inicio} até ${fim}`;
+}
+
+function montarDetalhePreview(formData: FormData, tipo: string) {
+  if (tipo === "AJUSTE_PONTO") {
+    return `${rotuloMarcacao(
+      String(formData.get("tipoMarcacao") ?? ""),
+    )} às ${formatarValorAusente(formData.get("horaAjuste"))}`;
+  }
+
+  if (tipo === "COMPENSACAO") {
+    return rotuloCompensacao(String(formData.get("tipoCompensacao") ?? ""));
+  }
+
+  if (tipo === "HORA_CREDITO_PREVIA") {
+    return `${formatarValorAusente(formData.get("horasSolicitadas"))} hora(s) solicitada(s)`;
+  }
+
+  if (tipo === "DISPENSA_PONTO") {
+    const regime = String(formData.get("regimeTrabalhoRemotoTipo") ?? "");
+    const dias = formData
+      .getAll("diasRemotos")
+      .map((dia) => rotuloDiaSemana(String(dia)));
+    return dias.length > 0
+      ? `${rotuloRegimeRemoto(regime)}: ${dias.join(", ")}`
+      : rotuloRegimeRemoto(regime);
+  }
+
+  if (tipo === "CAPACITACAO") {
+    return rotuloModalidadeCapacitacao(
+      String(formData.get("modalidadeCapacitacao") ?? ""),
+    );
+  }
+
+  return "Sem parametrização adicional.";
+}
+
+function criarPreviewInicial(
+  campos?: CriarSolicitacaoFormState["campos"],
+): SolicitacaoPreview {
+  const tipo = campos?.tipo ?? "AJUSTE_PONTO";
+  const formData = new FormData();
+
+  Object.entries(campos ?? {}).forEach(([chave, valor]) => {
+    if (Array.isArray(valor)) {
+      valor.forEach((item) => formData.append(chave, String(item)));
+      return;
+    }
+
+    if (valor !== undefined && valor !== null) {
+      formData.set(chave, String(valor));
+    }
+  });
+
+  formData.set("tipo", tipo);
+
+  return {
+    tipo: rotuloTipoSolicitacao(tipo),
+    titulo: campos?.titulo || "Ainda sem título",
+    periodo: montarPeriodoPreview(formData, tipo),
+    detalhe: montarDetalhePreview(formData, tipo),
+    justificativa: campos?.descricao || "A justificativa aparecerá aqui.",
+    encaminhamento:
+      "Após o envio, a solicitação seguirá para análise da chefia.",
+  };
+}
+
+function classePainel(etapaAtual: number, etapa: number) {
+  return [
+    "rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm",
+    etapaAtual === etapa ? "block" : "hidden",
+  ].join(" ");
+}
+
+function CabecalhoEtapa({
+  numero,
+  titulo,
+  descricao,
+}: {
+  numero: string;
+  titulo: string;
+  descricao: string;
+}) {
+  return (
+    <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-start">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-900 text-sm font-bold text-white">
+        {numero}
+      </span>
+      <div className="space-y-1">
+        <h2 className="text-lg font-bold">{titulo}</h2>
+        <p className="max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">
+          {descricao}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function CampoAjuda({ children }: { children: ReactNode }) {
+  return (
+    <p className="text-xs leading-5 text-[var(--muted-foreground)]">
+      {children}
+    </p>
+  );
+}
+
+function PreviewSolicitacao({ preview }: { preview: SolicitacaoPreview }) {
+  const itens = [
+    ["Tipo", preview.tipo],
+    ["Período", preview.periodo],
+    ["Detalhes", preview.detalhe],
+    ["Encaminhamento", preview.encaminhamento],
+  ];
+
+  return (
+    <aside className="xl:sticky xl:top-24 xl:self-start">
+      <div className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
+        <div className="flex items-center gap-2">
+          <FileText className="size-5 text-blue-900" aria-hidden="true" />
+          <h2 className="text-base font-bold">Pré-visualização</h2>
+        </div>
+        <div className="mt-4 rounded-lg border bg-[var(--muted)] p-4">
+          <p className="text-xs font-semibold uppercase text-[var(--muted-foreground)]">
+            Título
+          </p>
+          <p className="mt-1 text-sm font-bold">{preview.titulo}</p>
+        </div>
+        <dl className="mt-4 space-y-3">
+          {itens.map(([label, valor]) => (
+            <div key={label} className="rounded-lg border p-3">
+              <dt className="text-xs font-semibold uppercase text-[var(--muted-foreground)]">
+                {label}
+              </dt>
+              <dd className="mt-1 text-sm leading-6">{valor}</dd>
+            </div>
+          ))}
+        </dl>
+        <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100">
+          {preview.justificativa}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 function StepperSolicitacao({
   etapaAtual,
   setEtapaAtual,
@@ -258,78 +467,55 @@ function StepperSolicitacao({
 }) {
   return (
     <nav
-      aria-label="Progresso da solicitacao"
-      className="rounded-lg border bg-[var(--card)] p-4 shadow-sm"
+      aria-label="Progresso da solicitação"
+      className="rounded-xl border bg-[var(--card)] p-4 text-[var(--card-foreground)] shadow-sm"
     >
-      <ol className="grid gap-3 md:grid-cols-4">
+      <ol className="flex flex-col gap-3 lg:flex-row">
         {etapas.map((etapa, indice) => {
           const Icon = etapa.icon;
           const concluida = indice < etapaAtual;
           const ativa = indice === etapaAtual;
           const liberada = indice <= etapaMaxima;
           const comErro = etapaComErro === indice;
-          const linhaAnteriorAtiva = indice <= etapaAtual;
-          const linhaProximaAtiva = indice < etapaAtual;
 
           return (
-            <li key={etapa.id} className="min-w-0">
+            <li key={etapa.id} className="min-w-0 flex-1">
               <button
                 type="button"
                 onClick={() => liberada && setEtapaAtual(indice as EtapaIndice)}
                 disabled={!liberada}
-                className={`group flex w-full flex-col gap-3 rounded-md p-2 text-left transition ${
+                className={[
+                  "flex min-h-20 w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition",
                   ativa
-                    ? "bg-blue-50 text-blue-950 dark:bg-blue-950 dark:text-blue-100"
-                    : "hover:bg-[var(--muted)]"
-                } ${!liberada ? "cursor-not-allowed opacity-50" : ""}`}
+                    ? "border-blue-800 bg-blue-50 text-blue-950 shadow-sm dark:border-blue-500 dark:bg-blue-950 dark:text-blue-100"
+                    : "border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)] hover:border-blue-300",
+                  !liberada ? "cursor-not-allowed opacity-50" : "",
+                  comErro ? "border-red-500 bg-red-50 text-red-700" : "",
+                ].join(" ")}
               >
-                <span className="flex w-full items-center gap-2">
-                  {indice > 0 && (
-                    <span
-                      aria-hidden="true"
-                      className={`h-0.5 min-w-4 flex-1 rounded-full transition-colors ${
-                        linhaAnteriorAtiva
-                          ? "bg-blue-900 dark:bg-blue-300"
-                          : "bg-slate-200 dark:bg-slate-700"
-                      }`}
-                    />
-                  )}
-
-                  <span
-                    className={`inline-flex size-11 shrink-0 items-center justify-center rounded-full border text-sm font-bold shadow-sm transition-colors ${
-                      comErro
-                        ? "border-red-500 bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"
-                        : concluida
-                          ? "border-blue-900 bg-blue-900 text-white dark:border-blue-300 dark:bg-blue-300 dark:text-blue-950"
-                          : ativa
-                            ? "border-blue-900 bg-white text-blue-900 dark:border-blue-300 dark:bg-blue-950 dark:text-blue-200"
-                            : "border-slate-300 bg-[var(--card)] text-[var(--muted-foreground)] group-hover:border-slate-400 dark:border-slate-700"
-                    }`}
-                  >
-                    {concluida ? (
-                      <Check className="size-5" aria-hidden="true" />
-                    ) : (
-                      <Icon className="size-5" aria-hidden="true" />
-                    )}
-                  </span>
-
-                  {indice < etapas.length - 1 && (
-                    <span
-                      aria-hidden="true"
-                      className={`h-0.5 min-w-4 flex-1 rounded-full transition-colors ${
-                        linhaProximaAtiva
-                          ? "bg-blue-900 dark:bg-blue-300"
-                          : "bg-slate-200 dark:bg-slate-700"
-                      }`}
-                    />
+                <span
+                  className={[
+                    "flex size-10 shrink-0 items-center justify-center rounded-full border",
+                    ativa
+                      ? "border-blue-800 bg-blue-900 text-white"
+                      : concluida
+                        ? "border-emerald-600 bg-emerald-600 text-white"
+                        : "border-[var(--border)] bg-[var(--card)]",
+                    comErro ? "border-red-500 bg-red-600 text-white" : "",
+                  ].join(" ")}
+                >
+                  {concluida ? (
+                    <CheckCircle2 className="size-5" aria-hidden="true" />
+                  ) : (
+                    <Icon className="size-5" aria-hidden="true" />
                   )}
                 </span>
 
                 <span className="min-w-0">
-                  <span className="block text-sm font-bold leading-5">
-                    {etapa.titulo}
+                  <span className="block text-sm font-bold">
+                    {indice + 1}. {etapa.titulo}
                   </span>
-                  <span className="mt-0.5 block text-xs text-[var(--muted-foreground)]">
+                  <span className="block text-xs leading-5">
                     {etapa.descricao}
                   </span>
                 </span>
@@ -342,7 +528,7 @@ function StepperSolicitacao({
   );
 }
 
-export function SolicitacaoForm() {
+export function SolicitacaoForm({ tipoInicial }: SolicitacaoFormProps = {}) {
   const formRef = useRef<HTMLFormElement>(null);
   const [estado, formAction, pendente] = useActionState(
     criarSolicitacaoAction,
@@ -353,7 +539,7 @@ export function SolicitacaoForm() {
   const [etapaMaxima, setEtapaMaxima] = useState(0);
   const [falhasEtapa, setFalhasEtapa] = useState<string[]>([]);
   const [tipoSelecionado, setTipoSelecionado] = useState<string>(
-    campos?.tipo ?? "AJUSTE_PONTO",
+    campos?.tipo ?? tipoInicial ?? "AJUSTE_PONTO",
   );
   const [tipoMarcacao, setTipoMarcacao] = useState<string>(
     campos?.tipoMarcacao ?? "",
@@ -370,6 +556,9 @@ export function SolicitacaoForm() {
   const [modalidadeCapacitacao, setModalidadeCapacitacao] = useState<string>(
     campos?.modalidadeCapacitacao ?? "EXTERNA",
   );
+  const [preview, setPreview] = useState<SolicitacaoPreview>(() =>
+    criarPreviewInicial(campos ?? { tipo: tipoInicial ?? "AJUSTE_PONTO" }),
+  );
 
   const configuracaoTipo = obterConfiguracaoTipo(tipoSelecionado);
   const exigePeriodo = configuracaoTipo.periodo === "INTERVALO";
@@ -378,7 +567,7 @@ export function SolicitacaoForm() {
     [estado],
   );
 
-  /* eslint-disable react-hooks/set-state-in-effect -- Server action state restores the failed step and controlled selects after validation errors. */
+  /* eslint-disable react-hooks/set-state-in-effect -- Server action state restores the failed step and controlled fields after validation errors. */
   useEffect(() => {
     if (etapaErroServidor !== null) {
       setEtapaAtual(etapaErroServidor);
@@ -400,8 +589,30 @@ export function SolicitacaoForm() {
     setRegimeRemoto(campos.regimeTrabalhoRemotoTipo ?? "NAO_SE_APLICA");
     setDiasRemotos(campos.diasRemotos ?? []);
     setModalidadeCapacitacao(campos.modalidadeCapacitacao || "EXTERNA");
+    setPreview(criarPreviewInicial(campos));
   }, [campos]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  function atualizarPreview(tipo = tipoSelecionado) {
+    if (!formRef.current) {
+      return;
+    }
+
+    const formData = new FormData(formRef.current);
+    formData.set("tipo", tipo);
+
+    setPreview({
+      tipo: rotuloTipoSolicitacao(tipo),
+      titulo: String(formData.get("titulo") ?? "").trim() || "Ainda sem título",
+      periodo: montarPeriodoPreview(formData, tipo),
+      detalhe: montarDetalhePreview(formData, tipo),
+      justificativa:
+        String(formData.get("descricao") ?? "").trim() ||
+        "A justificativa aparecerá aqui.",
+      encaminhamento:
+        "Após o envio, a solicitação seguirá para análise da chefia.",
+    });
+  }
 
   function avancar() {
     const form = formRef.current;
@@ -428,7 +639,13 @@ export function SolicitacaoForm() {
   }
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-5">
+    <form
+      ref={formRef}
+      action={formAction}
+      className="space-y-6"
+      onChange={() => atualizarPreview()}
+      onInput={() => atualizarPreview()}
+    >
       <StepperSolicitacao
         etapaAtual={etapaAtual}
         setEtapaAtual={setEtapaAtual}
@@ -452,471 +669,555 @@ export function SolicitacaoForm() {
         </div>
       )}
 
-      <section
-        className={`rounded-lg border bg-[var(--card)] p-5 shadow-sm ${
-          etapaAtual === 0 ? "block" : "hidden"
-        }`}
-      >
-        <div className="max-w-3xl space-y-2">
-          <h2 className="text-lg font-bold">Tipo de solicitacao</h2>
-          <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-            Escolha a natureza do pedido para abrir apenas os campos aplicaveis.
-          </p>
-        </div>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-6">
+          <section
+            id="solicitacao-etapa-tipo"
+            className={classePainel(etapaAtual, 0)}
+          >
+            <CabecalhoEtapa
+              numero="1"
+              titulo="Escolha o tipo da solicitação"
+              descricao="Defina a natureza do pedido. Essa escolha orienta o período, os dados específicos e o fluxo de análise."
+            />
 
-        <div className="mt-5 grid gap-5 md:grid-cols-2">
-          <div className="space-y-2 md:col-span-2">
-            <label htmlFor="tipo" className="text-sm font-semibold">
-              Tipo
-            </label>
-            <select
-              id="tipo"
-              name="tipo"
-              value={tipoSelecionado}
-              onChange={(event) => {
-                setTipoSelecionado(event.target.value);
-                if (event.target.value !== "DISPENSA_PONTO") {
-                  setRegimeRemoto("NAO_SE_APLICA");
-                  setDiasRemotos([]);
-                }
-              }}
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-              required
-            >
-              {tiposSolicitacao.map((tipo) => (
-                <option key={tipo} value={tipo}>
-                  {rotuloTipoSolicitacao(tipo)}
-                </option>
-              ))}
-            </select>
-            {erro(estado, "tipo") && (
-              <p className="text-sm text-red-600">{erro(estado, "tipo")}</p>
-            )}
-          </div>
-
-          <div className="rounded-lg border bg-[var(--muted)] p-4 text-sm leading-6 text-[var(--muted-foreground)] md:col-span-2">
-            {configuracaoTipo.resumo}
-          </div>
-        </div>
-      </section>
-
-      <section
-        className={`rounded-lg border bg-[var(--card)] p-5 shadow-sm ${
-          etapaAtual === 1 ? "block" : "hidden"
-        }`}
-      >
-        <div className="max-w-3xl space-y-2">
-          <h2 className="text-lg font-bold">Período de incidência</h2>
-          <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-            Para ajuste pontual, informe a data de referencia; para eventos por
-            periodo, informe inicio e fim.
-          </p>
-        </div>
-
-        <div className="mt-5 grid gap-5 md:grid-cols-2">
-          {configuracaoTipo.periodo === "DATA_REFERENCIA" ? (
-            <div className="space-y-2">
-              <label htmlFor="dataReferencia" className="text-sm font-semibold">
-                Data de referencia
-              </label>
-              <input
-                id="dataReferencia"
-                name="dataReferencia"
-                type="date"
-                defaultValue={campos?.dataReferencia ?? ""}
-                className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-                aria-required
-              />
-              {erro(estado, "dataReferencia") && (
-                <p className="text-sm text-red-600">
-                  {erro(estado, "dataReferencia")}
-                </p>
-              )}
-            </div>
-          ) : (
-            <>
-              <div className="space-y-2">
-                <label htmlFor="dataInicio" className="text-sm font-semibold">
-                  {usaPeriodoPorData(tipoSelecionado)
-                    ? "Data inicial"
-                    : "Data/hora inicial"}
+            <div className="mt-5 grid gap-5 md:grid-cols-2">
+              <div className="space-y-2 md:col-span-2">
+                <label htmlFor="tipo" className="text-sm font-semibold">
+                  Tipo
                 </label>
-                <input
-                  id="dataInicio"
-                  name="dataInicio"
-                  type={
-                    usaPeriodoPorData(tipoSelecionado)
-                      ? "date"
-                      : "datetime-local"
-                  }
-                  defaultValue={campos?.dataInicio ?? ""}
-                  className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-                  aria-required={exigePeriodo}
-                />
-                {erro(estado, "dataInicio") && (
-                  <p className="text-sm text-red-600">
-                    {erro(estado, "dataInicio")}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="dataFim" className="text-sm font-semibold">
-                  {usaPeriodoPorData(tipoSelecionado)
-                    ? "Data final"
-                    : "Data/hora final"}
-                </label>
-                <input
-                  id="dataFim"
-                  name="dataFim"
-                  type={
-                    usaPeriodoPorData(tipoSelecionado)
-                      ? "date"
-                      : "datetime-local"
-                  }
-                  defaultValue={campos?.dataFim ?? ""}
-                  className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-                  aria-required={exigePeriodo}
-                />
-                {erro(estado, "dataFim") && (
-                  <p className="text-sm text-red-600">{erro(estado, "dataFim")}</p>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </section>
-
-      <section
-        className={`rounded-lg border bg-[var(--card)] p-5 shadow-sm ${
-          etapaAtual === 2 ? "block" : "hidden"
-        }`}
-      >
-        <div className="max-w-3xl space-y-2">
-          <h2 className="text-lg font-bold">Dados especificos</h2>
-          <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-            Complete apenas o bloco correspondente ao tipo selecionado.
-          </p>
-        </div>
-
-        <div className="mt-5 grid gap-5 md:grid-cols-2">
-          {configuracaoTipo.detalhes === "AJUSTE" && (
-            <>
-              <div className="space-y-2">
-                <label htmlFor="tipoMarcacao" className="text-sm font-semibold">
-                  Tipo de marcacao para ajuste
-                </label>
+                <CampoAjuda>
+                  Indica o efeito esperado na apuração: ajuste pontual, abono,
+                  banco de horas, viagem, capacitação ou dispensa.
+                </CampoAjuda>
                 <select
-                  id="tipoMarcacao"
-                  name="tipoMarcacao"
-                  value={tipoMarcacao}
-                  onChange={(event) => setTipoMarcacao(event.target.value)}
-                  className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+                  id="tipo"
+                  name="tipo"
+                  defaultValue={tipoSelecionado}
+                  onChange={(event) => {
+                    const novoTipo = event.target.value;
+                    setTipoSelecionado(novoTipo);
+                    if (novoTipo !== "DISPENSA_PONTO") {
+                      setRegimeRemoto("NAO_SE_APLICA");
+                      setDiasRemotos([]);
+                    }
+                    window.requestAnimationFrame(() =>
+                      atualizarPreview(novoTipo),
+                    );
+                  }}
+                  className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+                  required
                 >
-                  <option value="">Selecione</option>
-                  {tiposMarcacaoAjuste.map((tipo) => (
+                  {tiposSolicitacao.map((tipo) => (
                     <option key={tipo} value={tipo}>
-                      {tipo}
+                      {rotuloTipoSolicitacao(tipo)}
                     </option>
                   ))}
                 </select>
-                {erro(estado, "tipoMarcacao") && (
-                  <p className="text-sm text-red-600">
-                    {erro(estado, "tipoMarcacao")}
-                  </p>
+                {erro(estado, "tipo") && (
+                  <p className="text-sm text-red-600">{erro(estado, "tipo")}</p>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="horaAjuste" className="text-sm font-semibold">
-                  Hora solicitada
-                </label>
-                <input
-                  id="horaAjuste"
-                  name="horaAjuste"
-                  type="time"
-                  defaultValue={campos?.horaAjuste ?? ""}
-                  className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-                />
-                {erro(estado, "horaAjuste") && (
-                  <p className="text-sm text-red-600">
-                    {erro(estado, "horaAjuste")}
-                  </p>
-                )}
+              <div className="rounded-lg border bg-[var(--muted)] p-4 text-sm leading-6 text-[var(--muted-foreground)] md:col-span-2">
+                {configuracaoTipo.resumo}
               </div>
-            </>
-          )}
+            </div>
+          </section>
 
-          {configuracaoTipo.detalhes === "BANCO_HORAS" && (
-            <>
-              {tipoSelecionado === "COMPENSACAO" && (
-                <div className="space-y-2">
-                  <label htmlFor="tipoCompensacao" className="text-sm font-semibold">
-                    Modalidade da compensacao
-                  </label>
-                  <select
-                    id="tipoCompensacao"
-                    name="tipoCompensacao"
-                    value={tipoCompensacao}
-                    onChange={(event) => setTipoCompensacao(event.target.value)}
-                    className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-                  >
-                    {tiposCompensacaoBancoHoras.map((tipo) => (
-                      <option key={tipo} value={tipo}>
-                        {tipo === "UTILIZAR_CREDITO"
-                          ? "Utilizar credito para compensar debito"
-                          : "Trabalhar horas para compensar debito"}
-                      </option>
-                    ))}
-                  </select>
-                  {erro(estado, "tipoCompensacao") && (
-                    <p className="text-sm text-red-600">
-                      {erro(estado, "tipoCompensacao")}
-                    </p>
-                  )}
-                </div>
-              )}
+          <section
+            id="solicitacao-etapa-periodo"
+            className={classePainel(etapaAtual, 1)}
+          >
+            <CabecalhoEtapa
+              numero="2"
+              titulo="Informe o período de incidência"
+              descricao="Para ajuste pontual, informe a data de referência. Para eventos por período, informe início e fim."
+            />
+            <div className="hidden">
+              <h2 className="text-lg font-bold">Período de incidência</h2>
+              <p className="text-sm leading-6 text-[var(--muted-foreground)]">
+                Para ajuste pontual, informe a data de referencia; para eventos
+                por periodo, informe inicio e fim.
+              </p>
+            </div>
 
-              {tipoSelecionado === "HORA_CREDITO_PREVIA" ? (
+            <div className="mt-5 grid gap-5 md:grid-cols-2">
+              {configuracaoTipo.periodo === "DATA_REFERENCIA" ? (
                 <div className="space-y-2">
                   <label
-                    htmlFor="horasSolicitadas"
+                    htmlFor="dataReferencia"
                     className="text-sm font-semibold"
                   >
-                    Quantidade de horas
+                    Data de referencia
                   </label>
+                  <CampoAjuda>
+                    Dia em que a marcação deverá ser corrigida na frequência.
+                  </CampoAjuda>
                   <input
-                    id="horasSolicitadas"
-                    name="horasSolicitadas"
-                    type="number"
-                    min="0.25"
-                    max="16"
-                    step="0.25"
-                    defaultValue={campos?.horasSolicitadas ?? ""}
+                    id="dataReferencia"
+                    name="dataReferencia"
+                    type="date"
+                    defaultValue={campos?.dataReferencia ?? ""}
                     className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+                    aria-required
                   />
-                  {erro(estado, "horasSolicitadas") && (
+                  {erro(estado, "dataReferencia") && (
                     <p className="text-sm text-red-600">
-                      {erro(estado, "horasSolicitadas")}
+                      {erro(estado, "dataReferencia")}
                     </p>
                   )}
                 </div>
               ) : (
-                <div className="rounded-lg border bg-[var(--muted)] p-4 text-sm leading-6 text-[var(--muted-foreground)] md:col-span-2">
-                  O sistema calculara os minutos aplicaveis a partir do periodo
-                  informado e das pendencias/reflexos da apuracao.
+                <>
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="dataInicio"
+                      className="text-sm font-semibold"
+                    >
+                      {usaPeriodoPorData(tipoSelecionado)
+                        ? "Data inicial"
+                        : "Data/hora inicial"}
+                    </label>
+                    <CampoAjuda>
+                      Início do evento que terá efeito na apuração da
+                      frequência.
+                    </CampoAjuda>
+                    <input
+                      id="dataInicio"
+                      name="dataInicio"
+                      type={
+                        usaPeriodoPorData(tipoSelecionado)
+                          ? "date"
+                          : "datetime-local"
+                      }
+                      defaultValue={campos?.dataInicio ?? ""}
+                      className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+                      aria-required={exigePeriodo}
+                    />
+                    {erro(estado, "dataInicio") && (
+                      <p className="text-sm text-red-600">
+                        {erro(estado, "dataInicio")}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="dataFim" className="text-sm font-semibold">
+                      {usaPeriodoPorData(tipoSelecionado)
+                        ? "Data final"
+                        : "Data/hora final"}
+                    </label>
+                    <CampoAjuda>
+                      Fim do evento. Para intervalos, deve ser posterior ao
+                      início.
+                    </CampoAjuda>
+                    <input
+                      id="dataFim"
+                      name="dataFim"
+                      type={
+                        usaPeriodoPorData(tipoSelecionado)
+                          ? "date"
+                          : "datetime-local"
+                      }
+                      defaultValue={campos?.dataFim ?? ""}
+                      className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+                      aria-required={exigePeriodo}
+                    />
+                    {erro(estado, "dataFim") && (
+                      <p className="text-sm text-red-600">
+                        {erro(estado, "dataFim")}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </section>
+
+          <section
+            id="solicitacao-etapa-detalhes"
+            className={classePainel(etapaAtual, 2)}
+          >
+            <CabecalhoEtapa
+              numero="3"
+              titulo="Configure os dados específicos"
+              descricao="Complete apenas o bloco correspondente ao tipo selecionado. Os campos sem efeito prático ficam fora do caminho."
+            />
+            <div className="hidden">
+              <h2 className="text-lg font-bold">Dados especificos</h2>
+              <p className="text-sm leading-6 text-[var(--muted-foreground)]">
+                Complete apenas o bloco correspondente ao tipo selecionado.
+              </p>
+            </div>
+
+            <div className="mt-5 grid gap-5 md:grid-cols-2">
+              {configuracaoTipo.detalhes === "AJUSTE" && (
+                <>
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="tipoMarcacao"
+                      className="text-sm font-semibold"
+                    >
+                      Tipo de marcacao para ajuste
+                    </label>
+                    <CampoAjuda>
+                      Escolha qual batida será criada ou corrigida no espelho.
+                    </CampoAjuda>
+                    <select
+                      id="tipoMarcacao"
+                      name="tipoMarcacao"
+                      value={tipoMarcacao}
+                      onChange={(event) => setTipoMarcacao(event.target.value)}
+                      className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+                    >
+                      <option value="">Selecione</option>
+                      {tiposMarcacaoAjuste.map((tipo) => (
+                        <option key={tipo} value={tipo}>
+                          {tipo}
+                        </option>
+                      ))}
+                    </select>
+                    {erro(estado, "tipoMarcacao") && (
+                      <p className="text-sm text-red-600">
+                        {erro(estado, "tipoMarcacao")}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="horaAjuste"
+                      className="text-sm font-semibold"
+                    >
+                      Hora solicitada
+                    </label>
+                    <CampoAjuda>
+                      Horário que deverá constar como marcação após aprovação.
+                    </CampoAjuda>
+                    <input
+                      id="horaAjuste"
+                      name="horaAjuste"
+                      type="time"
+                      defaultValue={campos?.horaAjuste ?? ""}
+                      className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+                    />
+                    {erro(estado, "horaAjuste") && (
+                      <p className="text-sm text-red-600">
+                        {erro(estado, "horaAjuste")}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {configuracaoTipo.detalhes === "BANCO_HORAS" && (
+                <>
+                  {tipoSelecionado === "COMPENSACAO" && (
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="tipoCompensacao"
+                        className="text-sm font-semibold"
+                      >
+                        Modalidade da compensacao
+                      </label>
+                      <CampoAjuda>
+                        Define se a compensação usa crédito existente ou
+                        trabalho posterior para quitar débito.
+                      </CampoAjuda>
+                      <select
+                        id="tipoCompensacao"
+                        name="tipoCompensacao"
+                        value={tipoCompensacao}
+                        onChange={(event) =>
+                          setTipoCompensacao(event.target.value)
+                        }
+                        className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+                      >
+                        {tiposCompensacaoBancoHoras.map((tipo) => (
+                          <option key={tipo} value={tipo}>
+                            {tipo === "UTILIZAR_CREDITO"
+                              ? "Utilizar credito para compensar debito"
+                              : "Trabalhar horas para compensar debito"}
+                          </option>
+                        ))}
+                      </select>
+                      {erro(estado, "tipoCompensacao") && (
+                        <p className="text-sm text-red-600">
+                          {erro(estado, "tipoCompensacao")}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {tipoSelecionado === "HORA_CREDITO_PREVIA" ? (
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="horasSolicitadas"
+                        className="text-sm font-semibold"
+                      >
+                        Quantidade de horas
+                      </label>
+                      <CampoAjuda>
+                        Total de horas que dependem de autorização prévia.
+                      </CampoAjuda>
+                      <input
+                        id="horasSolicitadas"
+                        name="horasSolicitadas"
+                        type="number"
+                        min="0.25"
+                        max="16"
+                        step="0.25"
+                        defaultValue={campos?.horasSolicitadas ?? ""}
+                        className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+                      />
+                      {erro(estado, "horasSolicitadas") && (
+                        <p className="text-sm text-red-600">
+                          {erro(estado, "horasSolicitadas")}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border bg-[var(--muted)] p-4 text-sm leading-6 text-[var(--muted-foreground)] md:col-span-2">
+                      O sistema calculara os minutos aplicaveis a partir do
+                      periodo informado e das pendencias/reflexos da apuracao.
+                    </div>
+                  )}
+                </>
+              )}
+
+              {configuracaoTipo.detalhes === "REMOTO" && (
+                <div className="space-y-4 rounded-lg border bg-[var(--muted)] p-4 md:col-span-2">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="regimeTrabalhoRemotoTipo"
+                        className="text-sm font-semibold"
+                      >
+                        Regime remoto
+                      </label>
+                      <CampoAjuda>
+                        Indica se a dispensa terá efeito de teletrabalho total,
+                        híbrido ou apenas afastamento do ponto.
+                      </CampoAjuda>
+                      <select
+                        id="regimeTrabalhoRemotoTipo"
+                        name="regimeTrabalhoRemotoTipo"
+                        value={regimeRemoto}
+                        onChange={(event) => {
+                          setRegimeRemoto(event.target.value);
+                          if (event.target.value !== "HIBRIDO") {
+                            setDiasRemotos([]);
+                          }
+                        }}
+                        className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+                      >
+                        <option value="NAO_SE_APLICA">
+                          Dispensa sem teletrabalho
+                        </option>
+                        <option value="TOTAL">Teletrabalho 100%</option>
+                        <option value="HIBRIDO">Regime hibrido</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold">Dias remotos</p>
+                      <CampoAjuda>
+                        No regime híbrido, informe em quais dias o trabalho será
+                        remoto.
+                      </CampoAjuda>
+                      <div className="flex flex-wrap gap-2">
+                        {diasSemanaRegimeHibrido.map((dia) => (
+                          <label
+                            key={dia}
+                            className={`inline-flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-semibold ${
+                              regimeRemoto === "HIBRIDO"
+                                ? "bg-[var(--card)]"
+                                : "cursor-not-allowed opacity-50"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              name="diasRemotos"
+                              value={dia}
+                              checked={diasRemotos.includes(dia)}
+                              onChange={(event) => {
+                                setDiasRemotos((atuais) =>
+                                  event.target.checked
+                                    ? [...atuais, dia]
+                                    : atuais.filter((item) => item !== dia),
+                                );
+                              }}
+                              disabled={regimeRemoto !== "HIBRIDO"}
+                              className="size-4 accent-blue-900"
+                            />
+                            {rotuloDiaSemana(dia)}
+                          </label>
+                        ))}
+                      </div>
+                      {erro(estado, "diasRemotos") && (
+                        <p className="text-sm text-red-600">
+                          {erro(estado, "diasRemotos")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
-            </>
-          )}
 
-          {configuracaoTipo.detalhes === "REMOTO" && (
-            <div className="space-y-4 rounded-lg border bg-[var(--muted)] p-4 md:col-span-2">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label
-                    htmlFor="regimeTrabalhoRemotoTipo"
-                    className="text-sm font-semibold"
-                  >
-                    Regime remoto
-                  </label>
-                  <select
-                    id="regimeTrabalhoRemotoTipo"
-                    name="regimeTrabalhoRemotoTipo"
-                    value={regimeRemoto}
-                    onChange={(event) => {
-                      setRegimeRemoto(event.target.value);
-                      if (event.target.value !== "HIBRIDO") {
-                        setDiasRemotos([]);
-                      }
-                    }}
-                    className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-                  >
-                    <option value="NAO_SE_APLICA">Dispensa sem teletrabalho</option>
-                    <option value="TOTAL">Teletrabalho 100%</option>
-                    <option value="HIBRIDO">Regime hibrido</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold">Dias remotos</p>
-                  <div className="flex flex-wrap gap-2">
-                    {diasSemanaRegimeHibrido.map((dia) => (
+              {configuracaoTipo.detalhes === "CAPACITACAO" && (
+                <div className="space-y-4 rounded-lg border bg-[var(--muted)] p-4 md:col-span-2">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
                       <label
-                        key={dia}
-                        className={`inline-flex items-center gap-2 rounded-md border px-3 py-2 text-xs font-semibold ${
-                          regimeRemoto === "HIBRIDO"
-                            ? "bg-[var(--card)]"
-                            : "cursor-not-allowed opacity-50"
-                        }`}
+                        htmlFor="modalidadeCapacitacao"
+                        className="text-sm font-semibold"
                       >
-                        <input
-                          type="checkbox"
-                          name="diasRemotos"
-                          value={dia}
-                          checked={diasRemotos.includes(dia)}
-                          onChange={(event) => {
-                            setDiasRemotos((atuais) =>
-                              event.target.checked
-                                ? [...atuais, dia]
-                                : atuais.filter((item) => item !== dia),
-                            );
-                          }}
-                          disabled={regimeRemoto !== "HIBRIDO"}
-                          className="size-4 accent-blue-900"
-                        />
-                        {rotuloDiaSemana(dia)}
+                        Modalidade da capacitacao
                       </label>
-                    ))}
+                      <CampoAjuda>
+                        Define como a capacitação será interpretada na apuração
+                        do dia.
+                      </CampoAjuda>
+                      <select
+                        id="modalidadeCapacitacao"
+                        name="modalidadeCapacitacao"
+                        value={modalidadeCapacitacao}
+                        onChange={(event) =>
+                          setModalidadeCapacitacao(event.target.value)
+                        }
+                        className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+                      >
+                        {modalidadesCapacitacao.map((modalidade) => (
+                          <option key={modalidade} value={modalidade}>
+                            {modalidade === "EXTERNA"
+                              ? "Capacitacao externa"
+                              : "Capacitacao interna"}
+                          </option>
+                        ))}
+                      </select>
+                      {erro(estado, "modalidadeCapacitacao") && (
+                        <p className="text-sm text-red-600">
+                          {erro(estado, "modalidadeCapacitacao")}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="rounded-md border bg-[var(--card)] p-3 text-sm leading-6 text-[var(--muted-foreground)]">
+                      {modalidadeCapacitacao === "INTERNA"
+                        ? "A capacitacao interna sera considerada apenas quando houver registro biometrico no dia."
+                        : "Capacitacao externa com quatro horas ou mais cobre a jornada; abaixo disso exige complementacao."}
+                    </div>
                   </div>
-                  {erro(estado, "diasRemotos") && (
-                    <p className="text-sm text-red-600">
-                      {erro(estado, "diasRemotos")}
-                    </p>
-                  )}
                 </div>
-              </div>
-            </div>
-          )}
+              )}
 
-          {configuracaoTipo.detalhes === "CAPACITACAO" && (
-            <div className="space-y-4 rounded-lg border bg-[var(--muted)] p-4 md:col-span-2">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label
-                    htmlFor="modalidadeCapacitacao"
-                    className="text-sm font-semibold"
-                  >
-                    Modalidade da capacitacao
-                  </label>
-                  <select
-                    id="modalidadeCapacitacao"
-                    name="modalidadeCapacitacao"
-                    value={modalidadeCapacitacao}
-                    onChange={(event) =>
-                      setModalidadeCapacitacao(event.target.value)
-                    }
-                    className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-                  >
-                    {modalidadesCapacitacao.map((modalidade) => (
-                      <option key={modalidade} value={modalidade}>
-                        {modalidade === "EXTERNA"
-                          ? "Capacitacao externa"
-                          : "Capacitacao interna"}
-                      </option>
-                    ))}
-                  </select>
-                  {erro(estado, "modalidadeCapacitacao") && (
-                    <p className="text-sm text-red-600">
-                      {erro(estado, "modalidadeCapacitacao")}
-                    </p>
-                  )}
+              {configuracaoTipo.detalhes === "SIMPLES" && (
+                <div className="rounded-lg border bg-[var(--muted)] p-4 text-sm text-[var(--muted-foreground)] md:col-span-2">
+                  Este tipo usa apenas periodo, titulo e justificativa.
                 </div>
-
-                <div className="rounded-md border bg-[var(--card)] p-3 text-sm leading-6 text-[var(--muted-foreground)]">
-                  {modalidadeCapacitacao === "INTERNA"
-                    ? "A capacitacao interna sera considerada apenas quando houver registro biometrico no dia."
-                    : "Capacitacao externa com quatro horas ou mais cobre a jornada; abaixo disso exige complementacao."}
-                </div>
-              </div>
+              )}
             </div>
-          )}
+          </section>
 
-          {configuracaoTipo.detalhes === "SIMPLES" && (
-            <div className="rounded-lg border bg-[var(--muted)] p-4 text-sm text-[var(--muted-foreground)] md:col-span-2">
-              Este tipo usa apenas periodo, titulo e justificativa.
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section
-        className={`rounded-lg border bg-[var(--card)] p-5 shadow-sm ${
-          etapaAtual === 3 ? "block" : "hidden"
-        }`}
-      >
-        <div className="max-w-3xl space-y-2">
-          <h2 className="text-lg font-bold">Justificativa e envio</h2>
-          <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-            Registre um titulo objetivo e a justificativa que sera analisada pela chefia.
-          </p>
-        </div>
-
-        <div className="mt-5 grid gap-5">
-          <div className="space-y-2">
-            <label htmlFor="titulo" className="text-sm font-semibold">
-              Título
-            </label>
-            <input
-              id="titulo"
-              name="titulo"
-              defaultValue={campos?.titulo ?? ""}
-              placeholder="Ex.: Ajuste de ponto de entrada"
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-              required
+          <section
+            id="solicitacao-etapa-justificativa"
+            className={classePainel(etapaAtual, 3)}
+          >
+            <CabecalhoEtapa
+              numero="4"
+              titulo="Revise e envie"
+              descricao="Registre um título objetivo e a justificativa que será analisada pela chefia."
             />
-            {erro(estado, "titulo") && (
-              <p className="text-sm text-red-600">{erro(estado, "titulo")}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="descricao" className="text-sm font-semibold">
-              Justificativa / descricao
-            </label>
-            <textarea
-              id="descricao"
-              name="descricao"
-              rows={6}
-              defaultValue={campos?.descricao ?? ""}
-              placeholder="Explique o ocorrido de forma objetiva."
-              className="w-full rounded-md border bg-[var(--card)] px-3 py-2 text-sm"
-              required
-            />
-            {erro(estado, "descricao") && (
-              <p className="text-sm text-red-600">
-                {erro(estado, "descricao")}
+            <div className="hidden">
+              <h2 className="text-lg font-bold">Justificativa e envio</h2>
+              <p className="text-sm leading-6 text-[var(--muted-foreground)]">
+                Registre um titulo objetivo e a justificativa que sera analisada
+                pela chefia.
               </p>
+            </div>
+
+            <div className="mt-5 grid gap-5">
+              <div className="space-y-2">
+                <label htmlFor="titulo" className="text-sm font-semibold">
+                  Título
+                </label>
+                <input
+                  id="titulo"
+                  name="titulo"
+                  defaultValue={campos?.titulo ?? ""}
+                  placeholder="Ex.: Ajuste de ponto de entrada"
+                  className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+                  required
+                />
+                {erro(estado, "titulo") && (
+                  <p className="text-sm text-red-600">
+                    {erro(estado, "titulo")}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="descricao" className="text-sm font-semibold">
+                  Justificativa / descricao
+                </label>
+                <textarea
+                  id="descricao"
+                  name="descricao"
+                  rows={6}
+                  defaultValue={campos?.descricao ?? ""}
+                  placeholder="Explique o ocorrido de forma objetiva."
+                  className="w-full rounded-md border bg-[var(--card)] px-3 py-2 text-sm"
+                  required
+                />
+                {erro(estado, "descricao") && (
+                  <p className="text-sm text-red-600">
+                    {erro(estado, "descricao")}
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <div className="flex flex-col-reverse justify-between gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={voltar}
+              disabled={etapaAtual === 0 || pendente}
+              className="inline-flex items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ChevronLeft className="size-4" aria-hidden="true" />
+              Voltar
+            </button>
+
+            {etapaAtual < etapas.length - 1 ? (
+              <button
+                type="button"
+                onClick={avancar}
+                disabled={pendente}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                Avancar
+                <ChevronRight className="size-4" aria-hidden="true" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={pendente}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {pendente ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Send className="size-4" aria-hidden="true" />
+                )}
+                Enviar solicitacao
+              </button>
             )}
           </div>
         </div>
-      </section>
 
-      <div className="flex flex-col-reverse justify-between gap-3 sm:flex-row">
-        <button
-          type="button"
-          onClick={voltar}
-          disabled={etapaAtual === 0 || pendente}
-          className="inline-flex items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <ChevronLeft className="size-4" aria-hidden="true" />
-          Voltar
-        </button>
-
-        {etapaAtual < etapas.length - 1 ? (
-          <button
-            type="button"
-            onClick={avancar}
-            disabled={pendente}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            Avancar
-            <ChevronRight className="size-4" aria-hidden="true" />
-          </button>
-        ) : (
-          <button
-            type="submit"
-            disabled={pendente}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {pendente ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-            ) : (
-              <Send className="size-4" aria-hidden="true" />
-            )}
-            Enviar solicitacao
-          </button>
-        )}
+        <PreviewSolicitacao preview={preview} />
       </div>
     </form>
   );

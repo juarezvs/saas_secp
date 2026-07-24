@@ -50,7 +50,7 @@ export default function LoginPage() {
                     SECP
                   </p>
                   <p className="mt-2 text-sm font-bold uppercase tracking-normal text-cyan-100 xl:text-base">
-                    Justiça Federal do Amazonas
+                    Sistema Eletrônico de Controle de Ponto
                   </p>
                 </div>
               </div>
@@ -102,7 +102,7 @@ export default function LoginPage() {
                     SECP
                   </p>
                   <p className="text-xs font-bold uppercase tracking-normal text-slate-500">
-                    Justiça Federal do Amazonas
+                    Justiça Federal
                   </p>
                 </div>
               </div>

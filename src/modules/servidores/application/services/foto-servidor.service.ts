@@ -173,7 +173,16 @@ export async function buscarFotosServidoresDataUrl(
       connectString: config.connectString,
       oracleHome: config.oracleHome,
       siglaLocalidade: config.siglaLocalidade,
-    }).buscarFotosServidores(cpfsOrgao);
+    })
+      .buscarFotosServidores(cpfsOrgao)
+      .catch((error) => {
+        console.warn(
+          `Nao foi possivel buscar fotos dos servidores no SARH: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+        return new Map<string, Buffer>();
+      });
 
     for (const [cpf, buffer] of fotos) {
       resultado.set(

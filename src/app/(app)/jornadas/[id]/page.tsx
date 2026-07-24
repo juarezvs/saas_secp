@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarClock, Edit, ListChecks, UsersRound } from "lucide-react";
+import { Edit, ListChecks, UsersRound } from "lucide-react";
+
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import { criarEscalaAction } from "@/modules/jornadas/application/actions/criar-escala.action";
 import { buscarJornadaPorId } from "@/modules/jornadas/infrastructure/repositories/jornada.repository";
-import { EscalaForm } from "@/modules/jornadas/presentation/components/escala-form";
+import { JornadaForm } from "@/modules/jornadas/presentation/components/jornada-form";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 type JornadaDetalhePageProps = {
@@ -46,28 +46,20 @@ function descreverDiaEscala(dia: {
   intervaloFim: string | null;
   cargaPrevistaMinutos: number;
 }) {
-  if (!dia.trabalha) {
-    const rotulo = dia.posicaoCiclo
-      ? `Dia ${dia.posicaoCiclo}`
-      : rotulosDia[dia.diaSemana ?? ""] ?? dia.diaSemana;
+  const rotulo = dia.posicaoCiclo
+    ? `Dia ${dia.posicaoCiclo}`
+    : rotulosDia[dia.diaSemana ?? ""] ?? dia.diaSemana ?? "-";
 
-    return `${rotulo}: folga`;
-  }
+  if (!dia.trabalha) return `${rotulo}: folga`;
 
   const intervalo =
     dia.intervaloInicio && dia.intervaloFim
       ? `, intervalo ${dia.intervaloInicio}-${dia.intervaloFim}`
       : "";
 
-  const rotulo = dia.posicaoCiclo
-    ? `Dia ${dia.posicaoCiclo}`
-    : rotulosDia[dia.diaSemana ?? ""] ?? dia.diaSemana;
-
-  return `${rotulo}: ${
-    dia.horarioEntrada ?? "-"
-  }-${dia.horarioSaida ?? "-"}${intervalo}, ${minutosParaHoras(
-    dia.cargaPrevistaMinutos,
-  )}`;
+  return `${rotulo}: ${dia.horarioEntrada ?? "-"}-${
+    dia.horarioSaida ?? "-"
+  }${intervalo}, ${minutosParaHoras(dia.cargaPrevistaMinutos)}`;
 }
 
 export default async function JornadaDetalhePage({
@@ -81,8 +73,6 @@ export default async function JornadaDetalhePage({
   if (!jornada) {
     notFound();
   }
-
-  const actionEscala = criarEscalaAction.bind(null, jornada.id);
 
   return (
     <div className="space-y-6">
@@ -118,117 +108,57 @@ export default async function JornadaDetalhePage({
       <RegraPortariaCard
         artigo="Arts. 4º, §6º, e 8º"
         titulo="Carga diária e intervalo"
-        descricao="A jornada cadastrada será usada para comparar a carga mensal esperada com as horas efetivamente registradas pelo servidor."
+        descricao="A jornada cadastrada será usada para comparar a carga mensal esperada com as horas efetivamente registradas pela pessoa."
       />
 
-      <section className="grid gap-4 md:grid-cols-4">
-        <div className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
-          <p className="text-sm text-[var(--muted-foreground)]">Tipo</p>
-          <h2 className="mt-2 text-base font-bold">{jornada.tipo}</h2>
-        </div>
-        <div className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
-          <p className="text-sm text-[var(--muted-foreground)]">Carga diária</p>
-          <h2 className="mt-2 text-2xl font-bold">
-            {minutosParaHoras(jornada.cargaDiariaMinutos)}
-          </h2>
-        </div>
-        <div className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
-          <p className="text-sm text-[var(--muted-foreground)]">Intervalo</p>
-          <h2 className="mt-2 text-base font-bold">
-            {jornada.exigeIntervalo ? "Exigido" : "Não exigido"}
-          </h2>
-        </div>
-        <div className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
-          <p className="text-sm text-[var(--muted-foreground)]">Status</p>
-          <h2 className="mt-2 text-2xl font-bold">
-            {jornada.ativo ? "Ativa" : "Inativa"}
-          </h2>
-        </div>
-      </section>
-
-      <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
-        <div className="flex items-center gap-2">
-          <CalendarClock className="size-5 text-blue-900 dark:text-blue-300" />
-          <h2 className="text-lg font-bold">Parâmetros da jornada</h2>
-        </div>
-
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <Info label="Entrada padrão" value={jornada.horarioEntradaPadrao ?? "-"} />
-          <Info label="Saída padrão" value={jornada.horarioSaidaPadrao ?? "-"} />
-          <Info
-            label="Intervalo mínimo"
-            value={
-              jornada.intervaloMinimoMinutos
-                ? `${jornada.intervaloMinimoMinutos} min`
-                : "-"
-            }
-          />
-          <Info
-            label="Intervalo máximo"
-            value={
-              jornada.intervaloMaximoMinutos
-                ? `${jornada.intervaloMaximoMinutos} min`
-                : "-"
-            }
-          />
-          <Info
-            label="Entrada mínima diferenciada"
-            value={jornada.entradaMinimaDiferenciada ?? "-"}
-          />
-          <Info
-            label="Saída máxima diferenciada"
-            value={jornada.saidaMaximaDiferenciada ?? "-"}
-          />
-        </div>
-      </section>
-
-      <section className="rounded-xl border bg-[var(--card)] shadow-sm">
-        <div className="flex items-center gap-2 border-b p-5">
-          <ListChecks className="size-5 text-blue-900 dark:text-blue-300" />
-          <h2 className="text-lg font-bold">Previsao da jornada</h2>
-        </div>
-
-        <div className="grid gap-3 p-5 md:grid-cols-2 xl:grid-cols-3">
-          {jornada.dias.map((dia) => {
-            const faixaTrabalho = dia.faixas.find(
-              (faixa) => faixa.tipo === "TRABALHO",
-            );
-            const rotulo = dia.ordemNoCiclo
-              ? `Dia ${dia.ordemNoCiclo}`
-              : rotulosDia[dia.diaSemana ?? ""] ?? dia.diaSemana ?? "-";
-
-            return (
-              <div
-                key={dia.id}
-                className="rounded-lg border bg-[var(--muted)] px-3 py-2 text-sm"
-              >
-                <p className="font-semibold">{rotulo}</p>
-                <p className="mt-1 text-[var(--muted-foreground)]">
-                  {dia.tipoDia} · {minutosParaHoras(dia.cargaPrevistaMinutos)}
-                  {faixaTrabalho
-                    ? ` · ${faixaTrabalho.horaInicio}-${faixaTrabalho.horaFim}`
-                    : ""}
-                </p>
-              </div>
-            );
-          })}
-
-          {jornada.dias.length === 0 && (
-            <p className="text-sm text-[var(--muted-foreground)]">
-              Sem previsao diaria configurada.
-            </p>
-          )}
-        </div>
-      </section>
-
-      <EscalaForm
-        action={actionEscala}
-        valoresPadrao={{
-          horarioEntradaPadrao: jornada.horarioEntradaPadrao,
-          horarioSaidaPadrao: jornada.horarioSaidaPadrao,
+      <JornadaForm
+        modo="editar"
+        somenteLeitura
+        valoresIniciais={{
+          orgaoId: jornada.orgaoId,
+          codigo: jornada.codigo,
+          nome: jornada.nome,
+          descricao: jornada.descricao,
+          tipo: jornada.tipo,
           cargaDiariaMinutos: jornada.cargaDiariaMinutos,
           exigeIntervalo: jornada.exigeIntervalo,
           intervaloMinimoMinutos: jornada.intervaloMinimoMinutos,
+          intervaloMaximoMinutos: jornada.intervaloMaximoMinutos,
+          horarioEntradaPadrao: jornada.horarioEntradaPadrao,
+          horarioSaidaPadrao: jornada.horarioSaidaPadrao,
+          horarioDiferenciadoPermitido: jornada.horarioDiferenciadoPermitido,
+          entradaMinimaDiferenciada: jornada.entradaMinimaDiferenciada,
+          saidaMaximaDiferenciada: jornada.saidaMaximaDiferenciada,
+          cargaSemanalMinutos: jornada.cargaSemanalMinutos,
+          cargaMensalMinutos: jornada.cargaMensalMinutos,
+          cargaMinimaDiariaMinutos: jornada.cargaMinimaDiariaMinutos,
+          cargaMaximaDiariaMinutos: jornada.cargaMaximaDiariaMinutos,
+          controlaHorario: jornada.controlaHorario,
+          permiteFlexibilidade: jornada.permiteFlexibilidade,
+          permiteBancoHoras: jornada.permiteBancoHoras,
+          permiteHoraExtra: jornada.permiteHoraExtra,
+          nucleoObrigatorioInicio: jornada.nucleoObrigatorioInicio,
+          nucleoObrigatorioFim: jornada.nucleoObrigatorioFim,
+          permanenciaMaximaMinutos: jornada.permanenciaMaximaMinutos,
+          horarioLimiteVirada: jornada.horarioLimiteVirada,
+          cruzaMeiaNoite: jornada.cruzaMeiaNoite,
+          fundamentoNormativo: jornada.fundamentoNormativo,
+          versao: jornada.versao,
+          vigenciaInicio: jornada.vigenciaInicio,
+          vigenciaFim: jornada.vigenciaFim,
+          situacao: jornada.situacao,
+          ativo: jornada.ativo,
+          dias: jornada.dias.map((dia) => ({
+            diaSemana: dia.diaSemana,
+            tipoDia: dia.tipoDia,
+            cargaPrevistaMinutos: dia.cargaPrevistaMinutos,
+            faixas: dia.faixas.map((faixa) => ({
+              tipo: faixa.tipo,
+              horaInicio: faixa.horaInicio,
+              horaFim: faixa.horaFim,
+              cruzaMeiaNoite: faixa.cruzaMeiaNoite,
+            })),
+          })),
         }}
       />
 
@@ -294,7 +224,7 @@ export default async function JornadaDetalhePage({
       <section className="rounded-xl border bg-[var(--card)] shadow-sm">
         <div className="flex items-center gap-2 border-b p-5">
           <UsersRound className="size-5 text-blue-900 dark:text-blue-300" />
-          <h2 className="text-lg font-bold">Servidores vinculados</h2>
+          <h2 className="text-lg font-bold">Pessoas vinculadas</h2>
         </div>
 
         <div className="divide-y">
@@ -314,8 +244,8 @@ export default async function JornadaDetalhePage({
                 </p>
                 <p className="mt-2 text-xs font-semibold">
                   {vinculo.horarioDiferenciadoAutorizado
-                    ? "Horário diferenciado autorizado (06:00–19:00)"
-                    : "Expediente padrão (08:00–18:00)"}
+                    ? "Horário diferenciado autorizado (06:00-19:00)"
+                    : "Expediente padrão (08:00-18:00)"}
                 </p>
                 {vinculo.horarioDiferenciadoAutorizado &&
                   vinculo.justificativa && (
@@ -339,20 +269,11 @@ export default async function JornadaDetalhePage({
 
           {jornada.servidores.length === 0 && (
             <div className="p-8 text-center text-sm text-[var(--muted-foreground)]">
-              Nenhum servidor vinculado a esta jornada.
+              Nenhuma pessoa vinculada a esta jornada.
             </div>
           )}
         </div>
       </section>
-    </div>
-  );
-}
-
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border bg-[var(--muted)] p-4">
-      <p className="text-sm text-[var(--muted-foreground)]">{label}</p>
-      <p className="mt-1 font-semibold">{value}</p>
     </div>
   );
 }

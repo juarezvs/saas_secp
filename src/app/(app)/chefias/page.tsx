@@ -1,17 +1,11 @@
 import Link from "next/link";
-import { Building2, Filter, Network, UserCheck } from "lucide-react";
+import { Building2, Filter, Network, Plus, UserCheck } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import { vincularGestorUnidadeAction } from "@/modules/chefias/application/actions/vincular-gestor-unidade.action";
-import {
-  listarServidoresAtivosParaGestao,
-  listarUnidadesAtivasParaGestao,
-  listarUnidadesComGestores,
-} from "@/modules/chefias/infrastructure/repositories/chefia.repository";
-import { GestorUnidadeForm } from "@/modules/chefias/presentation/components/gestor-unidade-form";
+import { listarUnidadesComGestores } from "@/modules/chefias/infrastructure/repositories/chefia.repository";
 
 function contarGestoresPorPapel(
   gestores: {
@@ -28,6 +22,7 @@ type ChefiasPageProps = {
     orgao?: string;
     superior?: string;
     chefia?: string;
+    apenasComChefia?: string;
   }>;
 };
 
@@ -53,12 +48,11 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
   const orgaoIdsPermitidos = escopoOrgao.global
     ? undefined
     : escopoOrgao.orgaoIds;
-  const [unidades, servidores, unidadesComGestores] = await Promise.all([
-    listarUnidadesAtivasParaGestao({ orgaoIdsPermitidos }),
-    listarServidoresAtivosParaGestao({ orgaoIdsPermitidos }),
-    listarUnidadesComGestores({ orgaoIdsPermitidos }),
-  ]);
+  const unidadesComGestores = await listarUnidadesComGestores({
+    orgaoIdsPermitidos,
+  });
   const buscaNormalizada = normalizarBusca(params.busca);
+  const apenasComChefia = params.apenasComChefia === "1";
   const unidadesFiltradas = unidadesComGestores.filter((unidade) => {
     const titular = obterTitular(unidade);
     const textoBusca = normalizarBusca(
@@ -94,6 +88,10 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
       return false;
     }
 
+    if (apenasComChefia && unidade.gestores.length === 0) {
+      return false;
+    }
+
     return true;
   });
   const orgaosFiltro = Array.from(
@@ -111,20 +109,24 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "Chefias" }]} />
 
-      <PageHeader
-        icon={Network}
-        titulo="Chefias, gestores e delegacoes"
-        descricao="Cadastre gestores titulares, substitutos e delegados responsáveis por autorizações, validações e futuras homologações de frequência."
-        artigo="Art. 16, §§ 1º e 2º"
-        regraTitulo="Homologação e delegacao de competência"
-        regraDescricao="A frequência mensal é homologada pelo superior hierárquico, que poderá delegar competência a servidor lotado na unidade, sem afastar sua responsabilidade e a responsabilidade pessoal do delegado."
-      />
+      <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+        <PageHeader
+          icon={Network}
+          titulo="Chefias, gestores e delegações"
+          descricao="Consulte unidades com gestores titulares, substitutos e delegados responsáveis por autorizações, validações e homologações de frequência."
+          artigo="Art. 16, §§ 1º e 2º"
+          regraTitulo="Homologação e delegação de competência"
+          regraDescricao="A frequência mensal é homologada pelo superior hierárquico, que poderá delegar competência a servidor lotado na unidade, sem afastar sua responsabilidade e a responsabilidade pessoal do delegado."
+        />
 
-      <GestorUnidadeForm
-        action={vincularGestorUnidadeAction}
-        unidades={unidades}
-        servidores={servidores}
-      />
+        <Link
+          href="/chefias/vincular"
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          <Plus className="size-4" aria-hidden="true" />
+          Vincular chefia
+        </Link>
+      </section>
 
       <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
         <div className="space-y-4 border-b p-5">
@@ -133,12 +135,12 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
             <h2 className="text-lg font-bold">Unidades e chefias ativas</h2>
           </div>
 
-          <form method="GET" className="grid gap-3 lg:grid-cols-6">
+          <form method="GET" className="grid gap-3 lg:grid-cols-7">
             <input
               type="text"
               name="busca"
               defaultValue={params.busca ?? ""}
-              placeholder="Unidade, chefe ou matricula"
+              placeholder="Unidade, chefe ou matrícula"
               className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm lg:col-span-2"
             />
             <select
@@ -146,7 +148,7 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
               defaultValue={params.orgao ?? ""}
               className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
             >
-              <option value="">Todos os orgaos</option>
+              <option value="">Todos os órgãos</option>
               {orgaosFiltro.map((orgao) => (
                 <option key={orgao} value={orgao}>
                   {orgao}
@@ -174,6 +176,16 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
               <option value="com">Com chefia titular</option>
               <option value="sem">Sem chefia titular</option>
             </select>
+            <label className="flex min-h-10 items-center gap-2 rounded-md border px-3 text-sm font-semibold">
+              <input
+                type="checkbox"
+                name="apenasComChefia"
+                value="1"
+                defaultChecked={apenasComChefia}
+                className="size-4 accent-blue-900"
+              />
+              Só unidades com chefia
+            </label>
             <div className="flex gap-2">
               <button
                 type="submit"
@@ -233,39 +245,45 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
                         </div>
                       ) : (
                         <span className="text-[var(--muted-foreground)]">
-                          Nao designado
+                          Não designado
                         </span>
                       )}
                     </td>
 
-                  <td className="px-5 py-4">{unidade.orgao.sigla}</td>
-                  <td className="px-5 py-4">
-                    {unidade.unidadePai?.sigla ?? "-"}
-                  </td>
-                  <td className="px-5 py-4">
-                    {contarGestoresPorPapel(unidade.gestores, "GESTOR_TITULAR")}
-                  </td>
-                  <td className="px-5 py-4">
-                    {contarGestoresPorPapel(
-                      unidade.gestores,
-                      "GESTOR_SUBSTITUTO",
-                    )}
-                  </td>
-                  <td className="px-5 py-4">
-                    {contarGestoresPorPapel(unidade.gestores, "DELEGADO_CHEFIA")}
-                  </td>
-                  <td className="px-5 py-4">{unidade._count.lotacoes}</td>
+                    <td className="px-5 py-4">{unidade.orgao.sigla}</td>
+                    <td className="px-5 py-4">
+                      {unidade.unidadePai?.sigla ?? "-"}
+                    </td>
+                    <td className="px-5 py-4">
+                      {contarGestoresPorPapel(
+                        unidade.gestores,
+                        "GESTOR_TITULAR",
+                      )}
+                    </td>
+                    <td className="px-5 py-4">
+                      {contarGestoresPorPapel(
+                        unidade.gestores,
+                        "GESTOR_SUBSTITUTO",
+                      )}
+                    </td>
+                    <td className="px-5 py-4">
+                      {contarGestoresPorPapel(
+                        unidade.gestores,
+                        "DELEGADO_CHEFIA",
+                      )}
+                    </td>
+                    <td className="px-5 py-4">{unidade._count.lotacoes}</td>
 
-                  <td className="px-5 py-4 text-right">
-                    <Link
-                      href={`/unidades/${unidade.id}/chefias`}
-                      className="inline-flex items-center gap-2 text-sm font-semibold text-blue-900 hover:underline dark:text-blue-300"
-                    >
-                      <Building2 className="size-4" aria-hidden="true" />
-                      Gerenciar
-                    </Link>
-                  </td>
-                </tr>
+                    <td className="px-5 py-4 text-right">
+                      <Link
+                        href={`/unidades/${unidade.id}/chefias`}
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-blue-900 hover:underline dark:text-blue-300"
+                      >
+                        <Building2 className="size-4" aria-hidden="true" />
+                        Gerenciar
+                      </Link>
+                    </td>
+                  </tr>
                 );
               })}
 
@@ -275,7 +293,7 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
                     colSpan={9}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
-                    Nenhuma unidade cadastrada.
+                    Nenhuma unidade encontrada para os filtros informados.
                   </td>
                 </tr>
               )}

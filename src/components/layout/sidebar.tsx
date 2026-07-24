@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as LucideIcons from "lucide-react";
 import {
@@ -103,6 +103,63 @@ const TEMAS_VISUAIS: Array<{
   { valor: "cinza", label: "Cinza", classe: "bg-[#97999b]" },
 ];
 
+const SUBITENS_SOLICITACOES_PONTO: MenuItem[] = [
+  {
+    label: "Ajuste de ponto",
+    href: "/solicitacoes/nova?tipo=AJUSTE_PONTO",
+    icon: ClipboardList,
+    permissoes: ["solicitacoes:criar:proprio"],
+  },
+  {
+    label: "Compensação",
+    href: "/solicitacoes/nova?tipo=COMPENSACAO",
+    icon: ClipboardList,
+    permissoes: ["solicitacoes:criar:proprio"],
+  },
+  {
+    label: "Abono/justificativa",
+    href: "/solicitacoes/nova?tipo=ABONO_JUSTIFICATIVA",
+    icon: ClipboardList,
+    permissoes: ["solicitacoes:criar:proprio"],
+  },
+  {
+    label: "Atividade externa",
+    href: "/solicitacoes/nova?tipo=ATIVIDADE_EXTERNA",
+    icon: ClipboardList,
+    permissoes: ["solicitacoes:criar:proprio"],
+  },
+  {
+    label: "Viagem a serviço",
+    href: "/solicitacoes/nova?tipo=VIAGEM_SERVICO",
+    icon: ClipboardList,
+    permissoes: ["solicitacoes:criar:proprio"],
+  },
+  {
+    label: "Capacitação",
+    href: "/solicitacoes/nova?tipo=CAPACITACAO",
+    icon: ClipboardList,
+    permissoes: ["solicitacoes:criar:proprio"],
+  },
+  {
+    label: "Dispensa de ponto",
+    href: "/solicitacoes/nova?tipo=DISPENSA_PONTO",
+    icon: ClipboardList,
+    permissoes: ["solicitacoes:criar:proprio"],
+  },
+  {
+    label: "Hora crédito prévia",
+    href: "/solicitacoes/nova?tipo=HORA_CREDITO_PREVIA",
+    icon: ClipboardList,
+    permissoes: ["solicitacoes:criar:proprio"],
+  },
+  {
+    label: "Folga banco de horas",
+    href: "/solicitacoes/nova?tipo=FOLGA_BANCO_HORAS",
+    icon: ClipboardList,
+    permissoes: ["solicitacoes:criar:proprio"],
+  },
+];
+
 export const MENU_ITEMS: MenuItem[] = [
   { label: "Início", href: "/dashboard", icon: LayoutDashboard },
   {
@@ -126,10 +183,7 @@ export const MENU_ITEMS: MenuItem[] = [
     label: "Histórico de Marcações",
     href: "/historico-marcacoes",
     icon: History,
-    permissoes: [
-      "marcacoes:consultar:proprio",
-      "marcacoes:visualizar:proprio",
-    ],
+    permissoes: ["marcacoes:consultar:proprio", "marcacoes:visualizar:proprio"],
   },
   {
     label: "Marcações brutas",
@@ -296,7 +350,7 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
-    label: "Solicitacoes de ajuste",
+    label: "Solicitações de Ponto",
     href: "/solicitacoes",
     icon: ClipboardList,
     ocultarQuandoAdministrativo: true,
@@ -305,6 +359,20 @@ export const MENU_ITEMS: MenuItem[] = [
       "solicitacoes:consultar:proprio",
       "solicitacoes:analisar:chefia",
       "solicitacoes:consultar:global",
+    ],
+    children: [
+      {
+        label: "Minhas solicitações",
+        href: "/solicitacoes",
+        icon: ClipboardList,
+        permissoes: [
+          "solicitacoes:criar:proprio",
+          "solicitacoes:consultar:proprio",
+          "solicitacoes:analisar:chefia",
+          "solicitacoes:consultar:global",
+        ],
+      },
+      ...SUBITENS_SOLICITACOES_PONTO,
     ],
   },
   {
@@ -351,7 +419,7 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
-        label: "Solicitacoes de ajuste",
+        label: "Solicitações de Ponto",
         href: "/solicitacoes",
         icon: ClipboardList,
         permissoes: [
@@ -359,6 +427,20 @@ export const MENU_ITEMS: MenuItem[] = [
           "solicitacoes:consultar:proprio",
           "solicitacoes:analisar:chefia",
           "solicitacoes:consultar:global",
+        ],
+        children: [
+          {
+            label: "Minhas solicitações",
+            href: "/solicitacoes",
+            icon: ClipboardList,
+            permissoes: [
+              "solicitacoes:criar:proprio",
+              "solicitacoes:consultar:proprio",
+              "solicitacoes:analisar:chefia",
+              "solicitacoes:consultar:global",
+            ],
+          },
+          ...SUBITENS_SOLICITACOES_PONTO,
         ],
       },
       {
@@ -722,8 +804,26 @@ function itemPodeSerExibido(item: MenuItem, perfilAtivo: PerfilNavegacao) {
   );
 }
 
-function itemCorrespondeAoPath(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
+function itemCorrespondeAoPath(
+  pathname: string,
+  href: string,
+  searchParams?: URLSearchParams,
+) {
+  const [hrefPath, hrefQuery] = href.split("?");
+
+  if (hrefQuery) {
+    if (pathname !== hrefPath) {
+      return false;
+    }
+
+    const paramsHref = new URLSearchParams(hrefQuery);
+
+    return Array.from(paramsHref.entries()).every(
+      ([chave, valor]) => searchParams?.get(chave) === valor,
+    );
+  }
+
+  return pathname === hrefPath || pathname.startsWith(`${hrefPath}/`);
 }
 
 function perfilEhAdministrativoNavegacao(perfilAtivo: PerfilNavegacao) {
@@ -921,9 +1021,13 @@ function montarItensPersonalizados(params: {
   return [...itensRaiz, ...grupos];
 }
 
-function obterItemAtivo(pathname: string, itens: MenuItem[]) {
+function obterItemAtivo(
+  pathname: string,
+  itens: MenuItem[],
+  searchParams?: URLSearchParams,
+) {
   return achatarItens(itens)
-    .filter((item) => itemCorrespondeAoPath(pathname, item.href))
+    .filter((item) => itemCorrespondeAoPath(pathname, item.href, searchParams))
     .sort((a, b) => {
       const diferencaTamanho = b.href.length - a.href.length;
 
@@ -1048,7 +1152,9 @@ function ThemeSelector({
               title={`Tema ${item.label}`}
             >
               <span
-                className={["size-2.5 shrink-0 rounded-full", item.classe].join(" ")}
+                className={["size-2.5 shrink-0 rounded-full", item.classe].join(
+                  " ",
+                )}
                 aria-hidden="true"
               />
               {!recolhida && <span className="truncate">{item.label}</span>}
@@ -1074,6 +1180,7 @@ function MenuPrincipal({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const itensPadraoComIcones = useMemo(
     () => aplicarIconesItensCatalogo(MENU_ITEMS, iconesItensCatalogo),
     [iconesItensCatalogo],
@@ -1092,8 +1199,8 @@ function MenuPrincipal({
     [itensPadraoVisiveis, perfilAtivo, menusPersonalizados],
   );
   const itemAtivo = useMemo(
-    () => obterItemAtivo(pathname, itensVisiveis),
-    [pathname, itensVisiveis],
+    () => obterItemAtivo(pathname, itensVisiveis, searchParams),
+    [pathname, searchParams, itensVisiveis],
   );
   const hrefAtivo = itemAtivo?.href;
   const [gruposAlternados, setGruposAlternados] = useState<

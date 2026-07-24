@@ -128,7 +128,7 @@ export default function HomePage() {
                   SECP
                 </p>
                 <p className="mt-2 text-sm font-bold uppercase tracking-normal text-cyan-100 md:text-base">
-                  Justiça Federal do Amazonas
+                  Poder Judiciário Federal 
                 </p>
               </div>
             </div>

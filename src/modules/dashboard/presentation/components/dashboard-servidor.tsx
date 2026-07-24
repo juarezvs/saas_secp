@@ -49,40 +49,41 @@ export function DashboardServidor({
     permissoesPerfil,
     PERMISSOES_ACESSO_REGISTRO_PONTO_SECP,
   );
+  const podeRegistrarPontoWeb = usuarioPossuiAlgumaPermissaoNoPerfil(
+    perfilAtivoCodigo,
+    permissoesPerfil,
+    ["marcacoes:registrar-web:proprio"],
+  );
   const podeRegistrarPontoFacial = usuarioPossuiAlgumaPermissaoNoPerfil(
     perfilAtivoCodigo,
     permissoesPerfil,
     ["marcacoes:registrar-facial:proprio"],
   );
+  const deveRegistrarPontoFacial =
+    !podeRegistrarPontoWeb && podeRegistrarPontoFacial;
   const dados = {
     ...dashboardServidorConfig,
     servidor: {
       ...dashboardServidorConfig.servidor,
       ...cabecalho,
     },
-    frequenciaMes:
-      frequenciaMes ?? {
-        mes: "Competência atual",
-        diasUteis: 0,
-        regular: 0,
-        pendente: 0,
-        falta: 0,
-        recesso: 0,
-        aguardando: 0,
+    frequenciaMes: frequenciaMes ?? {
+      mes: "Competência atual",
+      diasUteis: 0,
+      regular: 0,
+      pendente: 0,
+      falta: 0,
+      recesso: 0,
+      aguardando: 0,
+    },
+    metricas: metricas ?? [],
+    alertas: alertas ?? [
+      {
+        tipo: "info" as const,
+        titulo: "Sem dados apurados",
+        descricao: "Ainda não há apuração registrada para a competência atual.",
       },
-    metricas:
-      metricas ??
-      [],
-    alertas:
-      alertas ??
-      [
-        {
-          tipo: "info" as const,
-          titulo: "Sem dados apurados",
-          descricao:
-            "Ainda não há apuração registrada para a competência atual.",
-        },
-      ],
+    ],
     marcacoes: marcacoesDia,
   };
   const acessos = dados.acessos.filter((acesso) => {
@@ -96,7 +97,7 @@ export function DashboardServidor({
       acesso.permissoes,
     );
   });
-  const proximaAcao = podeRegistrarPontoFacial
+  const proximaAcao = deveRegistrarPontoFacial
     ? dados.proximaAcao
     : {
         ...dados.proximaAcao,
@@ -165,7 +166,6 @@ export function DashboardServidor({
           <AlertasEAvisosCard alertas={dados.alertas} />
         </div>
       </section>
-
     </div>
   );
 }

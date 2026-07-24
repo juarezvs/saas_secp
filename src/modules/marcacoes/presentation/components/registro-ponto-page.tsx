@@ -20,9 +20,9 @@ import { OrigemMarcacaoIcon } from "./origem-marcacao-icon";
 
 const ValidacaoFacialCard = dynamic(
   () =>
-    import(
-      "@/modules/biometria/presentation/components/validacao-facial-card"
-    ).then((modulo) => modulo.ValidacaoFacialCard),
+    import("@/modules/biometria/presentation/components/validacao-facial-card").then(
+      (modulo) => modulo.ValidacaoFacialCard,
+    ),
   {
     ssr: false,
     loading: () => (
@@ -67,6 +67,8 @@ export function RegistroPontoPage({
   podeRegistrarFacial,
 }: RegistroPontoPageProps) {
   const [reconhecimentoAberto, setReconhecimentoAberto] = useState(false);
+  const deveRegistrarWeb = podeRegistrarWeb;
+  const deveRegistrarFacial = !deveRegistrarWeb && podeRegistrarFacial;
 
   return (
     <div className="space-y-6">
@@ -106,7 +108,7 @@ export function RegistroPontoPage({
                     <h2 className="mt-1 text-2xl font-bold">
                       {fluxoConcluido
                         ? "Jornada registrada"
-                        : proximaMarcacao ?? "Aguardando classificacao"}
+                        : (proximaMarcacao ?? "Aguardando classificacao")}
                     </h2>
                   </div>
                   <Badge variant={fluxoConcluido ? "regular" : "pendente"}>
@@ -138,28 +140,18 @@ export function RegistroPontoPage({
                       </div>
                       <div>
                         <p className="font-semibold">
-                          {podeRegistrarFacial
+                          {deveRegistrarFacial
                             ? "Confirmação facial obrigatória"
                             : "Registro web autorizado"}
                         </p>
                         <p className="mt-1 max-w-xl text-sm leading-6 text-muted-foreground">
-                          {podeRegistrarFacial
+                          {deveRegistrarFacial
                             ? "Ao continuar, a câmera será aberta em uma janela compacta para validar sua identidade."
                             : "Ao registrar, o SECP gravará a marcação atual como registro web autorizado e processará a frequência."}
                         </p>
                       </div>
                     </div>
-                    {podeRegistrarFacial ? (
-                      <Button
-                        size="lg"
-                        onClick={() => setReconhecimentoAberto(true)}
-                        leftIcon={
-                          <ScanFace className="size-5" aria-hidden="true" />
-                        }
-                      >
-                        Registrar com reconhecimento facial
-                      </Button>
-                    ) : podeRegistrarWeb ? (
+                    {deveRegistrarWeb ? (
                       <form action={registrarMarcacaoWebAutorizadaAction}>
                         <Button
                           type="submit"
@@ -171,6 +163,16 @@ export function RegistroPontoPage({
                           Registrar via sistema web
                         </Button>
                       </form>
+                    ) : deveRegistrarFacial ? (
+                      <Button
+                        size="lg"
+                        onClick={() => setReconhecimentoAberto(true)}
+                        leftIcon={
+                          <ScanFace className="size-5" aria-hidden="true" />
+                        }
+                      >
+                        Registrar com reconhecimento facial
+                      </Button>
                     ) : (
                       <Badge variant="pendente">
                         Registro pelo SECP não autorizado
@@ -225,7 +227,10 @@ export function RegistroPontoPage({
                       </p>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                         <span>
-                          {formatarHora(marcacao.dataHora, marcacao.fusoHorario)}
+                          {formatarHora(
+                            marcacao.dataHora,
+                            marcacao.fusoHorario,
+                          )}
                         </span>
                         <OrigemMarcacaoIcon origem={marcacao.fonte} />
                       </div>
