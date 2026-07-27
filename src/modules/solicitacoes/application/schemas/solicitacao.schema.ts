@@ -190,7 +190,7 @@ export const criarSolicitacaoSchema = z
   });
 
 export const analisarSolicitacaoSchema = z.object({
-  resultado: z.enum(["DEFERIR", "INDEFERIR"], {
+  resultado: z.enum(["DEFERIR", "INDEFERIR", "DEVOLVER_AJUSTES"], {
     error: "Informe o resultado da analise.",
   }),
   justificativaAnalise: z
@@ -201,7 +201,9 @@ export const analisarSolicitacaoSchema = z.object({
 });
 
 export type CriarSolicitacaoInput = z.infer<typeof criarSolicitacaoSchema>;
-export type AnalisarSolicitacaoInput = z.infer<typeof analisarSolicitacaoSchema>;
+export type AnalisarSolicitacaoInput = z.infer<
+  typeof analisarSolicitacaoSchema
+>;
 
 export type CriarSolicitacaoFormState = {
   sucesso: boolean;

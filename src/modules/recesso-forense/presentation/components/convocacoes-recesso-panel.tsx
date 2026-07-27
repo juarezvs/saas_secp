@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Pencil } from "lucide-react";
 
 import { ConvocadoRecessoForm } from "./convocado-recesso-form";
 import { RecessoStatusBadge } from "./recesso-status-badge";
@@ -71,18 +72,16 @@ function agruparConvocadosPorServidor(
 
   convocados.forEach((item) => {
     const servidorId = item.servidor.id;
-    const grupo =
-      grupos.get(servidorId) ??
-      {
-        servidorId,
-        nome: nomeServidor(item.servidor),
-        matricula: item.servidor.matricula,
-        unidade: item.servidor.lotacoes[0]?.unidade.sigla ?? "-",
-        pecunia: [],
-        folga: [],
-        statuses: [],
-        dias: [],
-      };
+    const grupo = grupos.get(servidorId) ?? {
+      servidorId,
+      nome: nomeServidor(item.servidor),
+      matricula: item.servidor.matricula,
+      unidade: item.servidor.lotacoes[0]?.unidade.sigla ?? "-",
+      pecunia: [],
+      folga: [],
+      statuses: [],
+      dias: [],
+    };
 
     if (item.escolha === "FOLGA") {
       grupo.folga.push(item.dataConvocacao);
@@ -98,7 +97,9 @@ function agruparConvocadosPorServidor(
     grupos.set(servidorId, grupo);
   });
 
-  return Array.from(grupos.values()).sort((a, b) => a.nome.localeCompare(b.nome));
+  return Array.from(grupos.values()).sort((a, b) =>
+    a.nome.localeCompare(b.nome),
+  );
 }
 
 function formatarDatas(datas: Date[]) {
@@ -158,10 +159,10 @@ export function ConvocacoesRecessoPanel({
                     {convocacao.dataPortaria
                       ? formatarDataRecesso(convocacao.dataPortaria)
                       : "Sem data"}{" "}
-                    - {convocacao.unidade?.sigla ?? "Unidade não informada"} -
+                    - {convocacao.unidade?.sigla ?? "Unidade n?o informada"} -
                     Chefia:{" "}
                     {convocacao.chefiaResponsavel?.usuario.nome ??
-                      "não definida"}
+                      "n?o definida"}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -211,7 +212,10 @@ export function ConvocacoesRecessoPanel({
                 </thead>
                 <tbody>
                   {convocadosAgrupados.map((item) => (
-                    <tr key={item.servidorId} className="border-b last:border-b-0">
+                    <tr
+                      key={item.servidorId}
+                      className="border-b last:border-b-0"
+                    >
                       <td className="px-5 py-4">
                         <div className="font-semibold">{item.nome}</div>
                         <div className="font-mono text-xs text-[var(--muted-foreground)]">
@@ -226,14 +230,17 @@ export function ConvocacoesRecessoPanel({
                         {formatarDatas(item.folga)}
                       </td>
                       <td className="px-5 py-4">
-                        <RecessoStatusBadge status={statusConsolidado(item.statuses)} />
+                        <RecessoStatusBadge
+                          status={statusConsolidado(item.statuses)}
+                        />
                       </td>
                       {podeGerenciarConvocados && (
                         <td className="px-5 py-4">
                           <Link
                             href={`/recesso-forense/${recesso.id}/convocacoes?convocacao=${convocacao.id}&servidor=${item.servidorId}#convocado-form-${convocacao.id}`}
-                            className="inline-flex rounded-md border px-3 py-1.5 text-xs font-semibold text-blue-900 transition hover:bg-[var(--muted)] dark:text-blue-300"
+                            className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-semibold text-blue-900 transition hover:bg-[var(--muted)] dark:text-blue-300"
                           >
+                            <Pencil className="size-3.5" aria-hidden="true" />
                             Editar
                           </Link>
                         </td>

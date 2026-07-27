@@ -4,6 +4,7 @@ import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
 import { atualizarUsuarioAction } from "@/modules/usuarios/application/actions/atualizar-usuario.action";
+import { resolverEscopoGestaoUsuarios } from "@/modules/usuarios/application/services/escopo-gestao-usuarios.service";
 import {
   buscarUsuarioPorId,
   listarPerfisAtivosParaUsuario,
@@ -19,14 +20,21 @@ type EditarUsuarioPageProps = {
 export default async function EditarUsuarioPage({
   params,
 }: EditarUsuarioPageProps) {
-  await exigirPermissaoOuRedirecionar("usuarios:gerenciar:global");
+  const permissao = await exigirPermissaoOuRedirecionar(
+    "usuarios:gerenciar:global",
+  );
+  const escopoGestaoUsuarios = await resolverEscopoGestaoUsuarios(permissao);
 
   const { id } = await params;
 
   const [usuario, perfis, orgaos] = await Promise.all([
     buscarUsuarioPorId(id),
     listarPerfisAtivosParaUsuario(),
-    listarOrgaosAtivos(),
+    listarOrgaosAtivos(
+      escopoGestaoUsuarios.permitirEscopoGlobal
+        ? {}
+        : { orgaoIdsPermitidos: escopoGestaoUsuarios.orgaoIdsPermitidos },
+    ),
   ]);
 
   if (!usuario) {
@@ -70,6 +78,7 @@ export default async function EditarUsuarioPage({
         action={action}
         perfis={perfis}
         orgaos={orgaos}
+        permitirEscopoGlobal={escopoGestaoUsuarios.permitirEscopoGlobal}
         modo="editar"
         valoresIniciais={{
           matricula: usuario.matricula,

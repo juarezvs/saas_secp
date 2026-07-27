@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { CalendarDays, CalendarRange, FileCheck2, Plus } from "lucide-react";
+import {
+  CalendarDays,
+  CalendarRange,
+  Eye,
+  FileCheck2,
+  Plus,
+} from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
@@ -201,8 +207,9 @@ export function RecessoForenseDashboardReal({
                         <td className="px-5 py-4">
                           <Link
                             href={`/recesso-forense/${recesso.id}`}
-                            className="font-semibold text-blue-900 hover:underline dark:text-blue-300"
+                            className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold text-blue-900 transition hover:bg-[var(--muted)] dark:text-blue-300"
                           >
+                            <Eye className="size-4" aria-hidden="true" />
                             Abrir
                           </Link>
                         </td>

@@ -43,8 +43,10 @@
   --sidebar-foreground: #e2e8f0;
   --sidebar-muted: #1e293b;
 
-  --font-secp-sans: var(--font-geist-sans), Inter, "Segoe UI", Arial, sans-serif;
-  --font-secp-mono: var(--font-geist-mono), "SFMono-Regular", Consolas, monospace;
+  --font-geist-sans: Inter, "Segoe UI", Arial, sans-serif;
+  --font-geist-mono: "SFMono-Regular", Consolas, monospace;
+  --font-secp-sans: var(--font-geist-sans);
+  --font-secp-mono: var(--font-geist-mono);
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;

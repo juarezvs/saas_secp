@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Header } from "@/components/layout/header";
+import { PageTitlePersonalizadoProvider } from "@/components/layout/page-title-personalizado";
 import { Sidebar, type PerfilNavegacao } from "@/components/layout/sidebar";
 import type { PreferenciasAcessibilidade } from "@/modules/auth/application/services/preferencias-acessibilidade.service";
 import type {
@@ -86,7 +87,12 @@ export function AppShellClient({
             tabIndex={-1}
             className="flex-1 scroll-mt-20 px-3 py-5 focus:outline-none sm:px-4 lg:px-5 xl:px-6"
           >
-            <div className="w-full">{children}</div>
+            <PageTitlePersonalizadoProvider
+              perfilAtivoId={perfilAtivo.id}
+              menusPersonalizados={menusPersonalizados}
+            >
+              <div className="w-full">{children}</div>
+            </PageTitlePersonalizadoProvider>
           </main>
         </div>
       </div>

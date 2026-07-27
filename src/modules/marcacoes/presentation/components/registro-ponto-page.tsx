@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import {
   BadgeCheck,
   Clock3,
   Fingerprint,
+  PenLine,
   ScanFace,
   UserRound,
 } from "lucide-react";
@@ -152,17 +153,9 @@ export function RegistroPontoPage({
                       </div>
                     </div>
                     {deveRegistrarWeb ? (
-                      <form action={registrarMarcacaoWebAutorizadaAction}>
-                        <Button
-                          type="submit"
-                          size="lg"
-                          leftIcon={
-                            <Clock3 className="size-5" aria-hidden="true" />
-                          }
-                        >
-                          Registrar via sistema web
-                        </Button>
-                      </form>
+                      <RegistrarMarcacaoWebAssinaturaModal
+                        proximaMarcacao={proximaMarcacao}
+                      />
                     ) : deveRegistrarFacial ? (
                       <Button
                         size="lg"
@@ -288,6 +281,98 @@ export function RegistroPontoPage({
         </>
       )}
     </div>
+  );
+}
+
+function RegistrarMarcacaoWebAssinaturaModal({
+  proximaMarcacao,
+}: {
+  proximaMarcacao: string | null;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [estado, formAction, pendente] = useActionState(
+    registrarMarcacaoWebAutorizadaAction,
+    { erro: null, sucesso: null },
+  );
+  const rotuloMarcacao = proximaMarcacao?.toLowerCase() ?? "o horário atual";
+
+  return (
+    <>
+      <Button
+        type="button"
+        size="lg"
+        onClick={() => setAberto(true)}
+        leftIcon={<Clock3 className="size-5" aria-hidden="true" />}
+      >
+        Registrar via sistema web
+      </Button>
+
+      <Modal
+        open={aberto}
+        onOpenChange={setAberto}
+        title="Assinatura de Documento"
+        description={`Assine para registrar ${rotuloMarcacao} pelo sistema web.`}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setAberto(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              loading={pendente}
+              leftIcon={<PenLine className="size-4" aria-hidden="true" />}
+              onClick={(event) => {
+                const modal = event.currentTarget.closest('[role="dialog"]');
+                const form = modal?.querySelector("form");
+                if (form instanceof HTMLFormElement) {
+                  form.requestSubmit();
+                }
+              }}
+            >
+              Assinar e registrar
+            </Button>
+          </>
+        }
+      >
+        <form action={formAction} className="space-y-4">
+          <div>
+            <label
+              htmlFor="senhaAssinaturaMarcacaoWeb"
+              className="text-sm font-semibold"
+            >
+              Senha
+            </label>
+            <input
+              id="senhaAssinaturaMarcacaoWeb"
+              name="senhaAssinatura"
+              type="password"
+              required
+              autoComplete="current-password"
+              className="mt-2 h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+            />
+            {estado.erro ? (
+              <p className="mt-2 text-sm font-semibold text-red-700 dark:text-red-300">
+                {estado.erro}
+              </p>
+            ) : null}
+            {estado.sucesso ? (
+              <p className="mt-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                {estado.sucesso}
+              </p>
+            ) : null}
+          </div>
+        </form>
+
+        <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100">
+          A marcação será gravada com data e hora atuais, origem web autorizada
+          e assinatura eletrônica do usuário logado.
+        </div>
+      </Modal>
+    </>
   );
 }
 

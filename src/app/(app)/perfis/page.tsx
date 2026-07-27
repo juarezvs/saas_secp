@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, ShieldAlert } from "lucide-react";
+import { Plus, ShieldAlert, Eye } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
@@ -32,17 +32,19 @@ export default async function PerfisPage({ searchParams }: PerfisPageProps) {
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
 
-  const orgaoIdsPermitidos = escopoOrgao.global ? undefined : escopoOrgao.orgaoIds;
+  const orgaoIdsPermitidos = escopoOrgao.global
+    ? undefined
+    : escopoOrgao.orgaoIds;
   const [resultado, perfisFiltro, permissoesFiltro] = await Promise.all([
     listarPerfisPaginado({
-    busca: params.busca ?? "",
-    codigo: params.codigo ?? "",
-    nome: params.nome ?? "",
-    permissao: params.permissao ?? "",
-    status: params.status ?? "",
-    orgaoIdsPermitidos: escopoOrgao.global ? undefined : escopoOrgao.orgaoIds,
-    pagina,
-    itensPorPagina,
+      busca: params.busca ?? "",
+      codigo: params.codigo ?? "",
+      nome: params.nome ?? "",
+      permissao: params.permissao ?? "",
+      status: params.status ?? "",
+      orgaoIdsPermitidos: escopoOrgao.global ? undefined : escopoOrgao.orgaoIds,
+      pagina,
+      itensPorPagina,
     }),
     listarPerfisParaFiltro({ orgaoIdsPermitidos }),
     listarPermissoesParaFiltro(),
@@ -185,8 +187,9 @@ export default async function PerfisPage({ searchParams }: PerfisPageProps) {
                   <td className="px-5 py-4 text-right">
                     <Link
                       href={`/perfis/${perfil.id}`}
-                      className="text-sm font-semibold text-blue-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:text-blue-300"
+                      className="inline-flex items-center justify-end gap-2 rounded-md border px-3 py-2 text-sm font-semibold text-blue-900 transition hover:bg-[var(--muted)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:text-blue-300"
                     >
+                      <Eye className="size-4" aria-hidden="true" />
                       Detalhar
                     </Link>
                   </td>

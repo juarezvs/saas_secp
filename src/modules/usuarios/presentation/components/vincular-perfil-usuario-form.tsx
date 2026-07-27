@@ -27,15 +27,17 @@ export function VincularPerfilUsuarioForm({
   usuarioId,
   perfis,
   orgaos,
+  permitirEscopoGlobal,
 }: {
   usuarioId: string;
   perfis: PerfilItem[];
   orgaos: OrgaoItem[];
+  permitirEscopoGlobal: boolean;
 }) {
   const router = useRouter();
   const [estado, formAction, pendente] = useActionState(
     vincularPerfilUsuarioAction,
-    estadoInicial
+    estadoInicial,
   );
 
   useEffect(() => {
@@ -86,8 +88,13 @@ export function VincularPerfilUsuarioForm({
           name="orgaoId"
           defaultValue=""
           className="h-10 flex-1 rounded-md border bg-[var(--card)] px-3 text-sm"
+          required={!permitirEscopoGlobal}
         >
-          <option value="">Global (somente MASTER)</option>
+          <option value="">
+            {permitirEscopoGlobal
+              ? "Global (somente MASTER)"
+              : "Selecione a seccional"}
+          </option>
           {orgaos.map((orgao) => (
             <option key={orgao.id} value={orgao.id}>
               {orgao.sigla} - {orgao.nome}

@@ -5,6 +5,7 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
+import { resolverEscopoGestaoUsuarios } from "@/modules/usuarios/application/services/escopo-gestao-usuarios.service";
 import {
   buscarUsuarioPorId,
   listarPerfisAtivosParaUsuario,
@@ -21,14 +22,21 @@ type UsuarioDetalhePageProps = {
 export default async function UsuarioDetalhePage({
   params,
 }: UsuarioDetalhePageProps) {
-  await exigirPermissaoOuRedirecionar("usuarios:gerenciar:global");
+  const permissao = await exigirPermissaoOuRedirecionar(
+    "usuarios:gerenciar:global",
+  );
+  const escopoGestaoUsuarios = await resolverEscopoGestaoUsuarios(permissao);
 
   const { id } = await params;
 
   const [usuario, perfisAtivos, orgaos] = await Promise.all([
     buscarUsuarioPorId(id),
     listarPerfisAtivosParaUsuario(),
-    listarOrgaosAtivos(),
+    listarOrgaosAtivos(
+      escopoGestaoUsuarios.permitirEscopoGlobal
+        ? {}
+        : { orgaoIdsPermitidos: escopoGestaoUsuarios.orgaoIdsPermitidos },
+    ),
   ]);
 
   if (!usuario) {
@@ -124,6 +132,7 @@ export default async function UsuarioDetalhePage({
         usuarioId={usuario.id}
         perfis={perfisAtivos}
         orgaos={orgaos}
+        permitirEscopoGlobal={escopoGestaoUsuarios.permitirEscopoGlobal}
       />
     </div>
   );

@@ -17,6 +17,7 @@ export const configurarPoliticaHorasExtrasSchema = z.object({
   rateSabado: z.coerce.number().min(0),
   rateDomingo: z.coerce.number().min(0),
   rateFeriado: z.coerce.number().min(0),
+  workflowConfig: z.string().optional(),
 });
 
 export type ConfigurarPoliticaHorasExtrasInput = z.infer<

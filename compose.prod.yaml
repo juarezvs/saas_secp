@@ -89,6 +89,9 @@ services:
     env_file:
       - .env.production
 
+    volumes:
+      - /opt/secp/certs/host-ca-certificates.crt:/etc/secp/certs/host-ca-certificates.crt:ro
+
     depends_on:
       postgres:
         condition: service_healthy
@@ -111,6 +114,9 @@ services:
 
     env_file:
       - .env.production
+
+    volumes:
+      - /opt/secp/certs/host-ca-certificates.crt:/etc/secp/certs/host-ca-certificates.crt:ro
 
     depends_on:
       postgres:
@@ -176,6 +182,7 @@ services:
       - secp_relatorios_data:/app/.storage/relatorios
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
+      - /opt/secp/certs/host-ca-certificates.crt:/etc/secp/certs/host-ca-certificates.crt:ro
     secrets:
       - secp_metrics_token
 
@@ -223,6 +230,7 @@ services:
     volumes:
       - secp_uploads_data:/app/import/_upload/afd
 
+      - /opt/secp/certs/host-ca-certificates.crt:/etc/secp/certs/host-ca-certificates.crt:ro
     depends_on:
       pgbouncer:
         condition: service_healthy
@@ -246,6 +254,9 @@ services:
     container_name: secp-worker-sarh
     restart: unless-stopped
     command: ["npm", "run", "worker:sarh-sync"]
+    volumes:
+      - /opt/secp/certs/host-ca-certificates.crt:/etc/secp/certs/host-ca-certificates.crt:ro
+
     profiles: ["workers"]
 
     env_file:
@@ -281,6 +292,9 @@ services:
     container_name: secp-worker-sarh-login
     restart: unless-stopped
     command: ["npm", "run", "worker:sarh-login-sync"]
+    volumes:
+      - /opt/secp/certs/host-ca-certificates.crt:/etc/secp/certs/host-ca-certificates.crt:ro
+
     profiles: ["workers"]
 
     env_file:
@@ -315,6 +329,9 @@ services:
     container_name: secp-worker-reprocessamento
     restart: unless-stopped
     command: ["npm", "run", "worker:reprocessamento-global"]
+    volumes:
+      - /opt/secp/certs/host-ca-certificates.crt:/etc/secp/certs/host-ca-certificates.crt:ro
+
     profiles: ["workers"]
 
     env_file:
@@ -349,6 +366,9 @@ services:
     container_name: secp-worker-calendario
     restart: unless-stopped
     command: ["npm", "run", "worker:calendario-institucional"]
+    volumes:
+      - /opt/secp/certs/host-ca-certificates.crt:/etc/secp/certs/host-ca-certificates.crt:ro
+
     profiles: ["workers"]
 
     env_file:
@@ -383,6 +403,9 @@ services:
     container_name: secp-worker-henry-coleta
     restart: unless-stopped
     command: ["npm", "run", "worker:henry-coleta"]
+    volumes:
+      - /opt/secp/certs/host-ca-certificates.crt:/etc/secp/certs/host-ca-certificates.crt:ro
+
     profiles: ["workers"]
 
     env_file:
@@ -418,6 +441,9 @@ services:
     container_name: secp-worker-henry-online
     restart: unless-stopped
     command: ["npm", "run", "worker:henry-online"]
+    volumes:
+      - /opt/secp/certs/host-ca-certificates.crt:/etc/secp/certs/host-ca-certificates.crt:ro
+
     profiles: ["workers"]
 
     env_file:
@@ -454,6 +480,9 @@ services:
     container_name: secp-worker-coleta-relogio
     restart: unless-stopped
     command: ["npm", "run", "worker:coleta-relogio-progressiva"]
+    volumes:
+      - /opt/secp/certs/host-ca-certificates.crt:/etc/secp/certs/host-ca-certificates.crt:ro
+
     profiles: ["workers"]
 
     env_file:
@@ -502,6 +531,7 @@ services:
     volumes:
       - secp_relatorios_data:/app/.storage/relatorios
 
+      - /opt/secp/certs/host-ca-certificates.crt:/etc/secp/certs/host-ca-certificates.crt:ro
     depends_on:
       pgbouncer:
         condition: service_healthy

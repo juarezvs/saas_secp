@@ -29,11 +29,7 @@ import {
 type ResultadoAnalise = AnalisarSolicitacaoInput["resultado"];
 
 type JsonInputValue =
-  | string
-  | number
-  | boolean
-  | JsonInputObject
-  | JsonInputArray;
+  string | number | boolean | JsonInputObject | JsonInputArray;
 
 type JsonInputObject = {
   [key: string]: JsonInputValue | null;
@@ -46,7 +42,11 @@ function normalizarResultadoAnalise(
 ): ResultadoAnalise | undefined {
   const resultado = String(valor ?? "");
 
-  if (resultado === "DEFERIR" || resultado === "INDEFERIR") {
+  if (
+    resultado === "DEFERIR" ||
+    resultado === "INDEFERIR" ||
+    resultado === "DEVOLVER_AJUSTES"
+  ) {
     return resultado;
   }
 
@@ -247,7 +247,12 @@ export async function analisarSolicitacaoAction(
   }
 
   const novoStatus =
-    parsed.data.resultado === "DEFERIR" ? "DEFERIDA" : "INDEFERIDA";
+    parsed.data.resultado === "DEFERIR"
+      ? "DEFERIDA"
+      : parsed.data.resultado === "INDEFERIR"
+        ? "INDEFERIDA"
+        : "ENVIADA";
+  const devolvendoParaAjustes = parsed.data.resultado === "DEVOLVER_AJUSTES";
 
   if (
     novoStatus === "DEFERIDA" &&
@@ -316,8 +321,8 @@ export async function analisarSolicitacaoAction(
       },
       data: {
         status: novoStatus,
-        analisadaPorUsuarioId: session.user.id,
-        analisadaEm: new Date(),
+        analisadaPorUsuarioId: devolvendoParaAjustes ? null : session.user.id,
+        analisadaEm: devolvendoParaAjustes ? null : new Date(),
         justificativaAnalise: parsed.data.justificativaAnalise,
         dadosResultado,
       },
@@ -327,11 +332,18 @@ export async function analisarSolicitacaoAction(
       data: {
         solicitacaoId,
         usuarioId: session.user.id,
-        tipo: novoStatus === "DEFERIDA" ? "DEFERIDA" : "INDEFERIDA",
+        tipo:
+          novoStatus === "DEFERIDA"
+            ? "DEFERIDA"
+            : novoStatus === "INDEFERIDA"
+              ? "INDEFERIDA"
+              : "COMENTARIO",
         descricao:
           novoStatus === "DEFERIDA"
-            ? "Solicitação deferida pela chefia."
-            : "Solicitação indeferida pela chefia.",
+            ? "Solicitacao deferida pela chefia."
+            : novoStatus === "INDEFERIDA"
+              ? "Solicitacao indeferida pela chefia."
+              : "Solicitacao devolvida para ajustes pela chefia.",
         metadados: {
           justificativaAnalise: parsed.data.justificativaAnalise,
         },
@@ -346,7 +358,9 @@ export async function analisarSolicitacaoAction(
         acao:
           novoStatus === "DEFERIDA"
             ? "SOLICITACAO_DEFERIDA"
-            : "SOLICITACAO_INDEFERIDA",
+            : novoStatus === "INDEFERIDA"
+              ? "SOLICITACAO_INDEFERIDA"
+              : "SOLICITACAO_DEVOLVIDA_AJUSTES",
         dadosAntes: {
           status: solicitacaoAtual.status,
         },
@@ -387,7 +401,9 @@ export async function analisarSolicitacaoAction(
     sucesso: true,
     mensagem:
       novoStatus === "DEFERIDA"
-        ? "Solicitação deferida e recálculo executado com sucesso."
-        : "Solicitação indeferida com sucesso.",
+        ? "Solicitacao deferida e recalculo executado com sucesso."
+        : novoStatus === "INDEFERIDA"
+          ? "Solicitacao indeferida com sucesso."
+          : "Solicitacao devolvida para ajustes com sucesso.",
   };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { CompetenciaInput, SearchableSelect } from "@/components/ui";
 
@@ -37,7 +37,17 @@ export function EspelhoPontoFiltrosAuto({
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [pendente, iniciarTransicao] = useTransition();
+  const searchParamsKey = useMemo(
+    () => searchParams.toString(),
+    [searchParams],
+  );
+  const [navegando, setNavegando] = useState(false);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setNavegando(false), 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [pathname, searchParamsKey]);
 
   function atualizarFiltros(novosFiltros: {
     competencia?: string;
@@ -59,9 +69,14 @@ export function EspelhoPontoFiltrosAuto({
       }
     }
 
-    iniciarTransicao(() => {
-      router.push(`${pathname}?${query.toString()}`);
-    });
+    const destino = `${pathname}?${query.toString()}`;
+
+    if (destino === `${pathname}?${searchParamsKey}`) {
+      return;
+    }
+
+    setNavegando(true);
+    router.push(destino);
   }
 
   function aoTrocarCompetencia(novaCompetencia: string) {
@@ -72,11 +87,11 @@ export function EspelhoPontoFiltrosAuto({
 
   return (
     <div className="relative min-h-[4.625rem]">
-      <div className={className} aria-busy={pendente}>
+      <div className={className} aria-busy={navegando}>
         <CompetenciaInput
           key={competencia}
           defaultValue={competencia}
-          disabled={pendente}
+          disabled={navegando}
           onValueChange={aoTrocarCompetencia}
         />
 
@@ -93,7 +108,7 @@ export function EspelhoPontoFiltrosAuto({
               id="servidorId"
               name="servidorId"
               defaultValue={servidorId}
-              disabled={!podeSelecionarServidor || pendente}
+              disabled={!podeSelecionarServidor || navegando}
               className="mt-2"
               searchPlaceholder="Pesquisar por matricula ou nome..."
               emptyMessage="Nenhuma pessoa encontrada."
@@ -105,7 +120,7 @@ export function EspelhoPontoFiltrosAuto({
         )}
       </div>
 
-      {pendente && (
+      {navegando && (
         <div
           className="pointer-events-none absolute inset-x-0 -bottom-2 h-1 overflow-hidden rounded-full bg-muted"
           aria-hidden="true"

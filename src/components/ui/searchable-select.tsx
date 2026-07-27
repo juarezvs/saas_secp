@@ -50,9 +50,9 @@ export function SearchableSelect({
   const [aberto, setAberto] = useState(false);
   const [valor, setValor] = useState(defaultValue);
   const [busca, setBusca] = useState("");
-  const [opcoesRemotas, setOpcoesRemotas] = useState<
-    SearchableSelectOption[]
-  >([]);
+  const [opcoesRemotas, setOpcoesRemotas] = useState<SearchableSelectOption[]>(
+    [],
+  );
   const [carregando, setCarregando] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const opcoes = useMemo(() => {
@@ -86,14 +86,7 @@ export function SearchableSelect({
         termo,
       ),
     );
-  }, [
-    asyncSearchUrl,
-    busca,
-    minSearchLength,
-    opcoes,
-    opcoesRemotas,
-    options,
-  ]);
+  }, [asyncSearchUrl, busca, minSearchLength, opcoes, opcoesRemotas, options]);
 
   useEffect(() => {
     function fecharAoClicarFora(event: MouseEvent) {
@@ -193,21 +186,21 @@ export function SearchableSelect({
 
             {!carregando &&
               filtradas.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                role="option"
-                aria-selected={option.value === valor}
-                onClick={() => {
-                  setValor(option.value);
-                  onValueChange?.(option.value);
-                  setBusca("");
-                  setAberto(false);
-                }}
-                className="block w-full rounded px-3 py-2 text-left text-sm hover:bg-[var(--muted)]"
-              >
-                {option.label}
-              </button>
+                <button
+                  key={option.value}
+                  type="button"
+                  role="option"
+                  aria-selected={option.value === valor}
+                  onClick={() => {
+                    setValor(option.value);
+                    onValueChange?.(option.value);
+                    setBusca("");
+                    setAberto(false);
+                  }}
+                  className="block w-full rounded px-3 py-2 text-left text-sm hover:bg-[var(--muted)]"
+                >
+                  {option.label}
+                </button>
               ))}
 
             {!carregando && filtradas.length === 0 && (

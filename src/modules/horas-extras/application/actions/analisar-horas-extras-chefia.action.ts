@@ -17,7 +17,9 @@ function texto(formData: FormData, campo: string) {
   return String(formData.get(campo) ?? "").trim();
 }
 
-function extrairDados(formData: FormData): Partial<AnalisarHorasExtrasChefiaInput> {
+function extrairDados(
+  formData: FormData,
+): Partial<AnalisarHorasExtrasChefiaInput> {
   const action = texto(formData, "action");
 
   return {
@@ -69,6 +71,37 @@ function destinoPorAcao(action: AnalisarHorasExtrasChefiaInput["action"]) {
   };
 }
 
+async function aplicarDestinoConfigurado(params: {
+  workflowVersionId: string;
+  fromStepCode: string;
+  action: AnalisarHorasExtrasChefiaInput["action"];
+  destinoPadrao: ReturnType<typeof destinoPorAcao>;
+}) {
+  if (params.action === "REJECT") {
+    return params.destinoPadrao;
+  }
+
+  const transition = await prisma.overtimeWorkflowTransition.findFirst({
+    where: {
+      workflowVersionId: params.workflowVersionId,
+      fromStepCode: params.fromStepCode,
+      actionCode: params.action,
+    },
+    select: {
+      toStepCode: true,
+    },
+  });
+
+  if (!transition) {
+    return params.destinoPadrao;
+  }
+
+  return {
+    ...params.destinoPadrao,
+    step: transition.toStepCode,
+  };
+}
+
 export async function analisarHorasExtrasChefiaAction(
   _estadoAnterior: AnalisarHorasExtrasChefiaFormState,
   formData: FormData,
@@ -87,7 +120,6 @@ export async function analisarHorasExtrasChefiaAction(
 
   const permissaoNecessaria = permissaoPorAcao(parsed.data.action);
   const permissao = await exigirPermissao(permissaoNecessaria);
-  const destino = destinoPorAcao(parsed.data.action);
   const now = new Date();
 
   const request = await prisma.overtimeRequest.findUnique({
@@ -123,17 +155,26 @@ export async function analisarHorasExtrasChefiaAction(
   }
 
   if (!permissao.perfilAtivoEscopoGlobal && permissao.usuarioId) {
-    const unidadesSubordinadas =
-      await listarIdsUnidadesSubordinadasPorUsuario(permissao.usuarioId);
+    const unidadesSubordinadas = await listarIdsUnidadesSubordinadasPorUsuario(
+      permissao.usuarioId,
+    );
 
     if (!unidadesSubordinadas.includes(request.organizationalUnitId)) {
       return {
         sucesso: false,
-        mensagem: "A solicitação pertence a uma unidade fora da sua responsabilidade.",
+        mensagem:
+          "A solicitação pertence a uma unidade fora da sua responsabilidade.",
         campos: parsed.data,
       };
     }
   }
+
+  const destino = await aplicarDestinoConfigurado({
+    workflowVersionId: request.workflowVersionId,
+    fromStepCode: request.currentWorkflowStepCode,
+    action: parsed.data.action,
+    destinoPadrao: destinoPorAcao(parsed.data.action),
+  });
 
   await prisma.$transaction(async (tx) => {
     const data =

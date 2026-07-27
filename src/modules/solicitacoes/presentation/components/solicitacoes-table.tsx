@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   Check,
   Clock3,
+  Eye,
   FileCheck2,
   FileClock,
   FileX2,
@@ -167,11 +168,12 @@ export function SolicitacoesTable({
     rotuloTipoSolicitacao(a).localeCompare(rotuloTipoSolicitacao(b), "pt-BR"),
   );
   const exibirFiltroServidor = mostrarFiltroServidor !== false;
-  const hrefTodosTipos = servidorAtivo && exibirFiltroServidor
-    ? `/solicitacoes?${new URLSearchParams({
-        servidor: servidorAtivo,
-      }).toString()}`
-    : "/solicitacoes";
+  const hrefTodosTipos =
+    servidorAtivo && exibirFiltroServidor
+      ? `/solicitacoes?${new URLSearchParams({
+          servidor: servidorAtivo,
+        }).toString()}`
+      : "/solicitacoes";
 
   return (
     <section className="space-y-4">
@@ -181,9 +183,21 @@ export function SolicitacoesTable({
           label="Total"
           valor={solicitacoesFiltradas.length}
         />
-        <ResumoItem icon={FileClock} label="Pendentes" valor={resumo.pendentes} />
-        <ResumoItem icon={FileCheck2} label="Deferidas" valor={resumo.deferidas} />
-        <ResumoItem icon={FileX2} label="Indeferidas" valor={resumo.indeferidas} />
+        <ResumoItem
+          icon={FileClock}
+          label="Pendentes"
+          valor={resumo.pendentes}
+        />
+        <ResumoItem
+          icon={FileCheck2}
+          label="Deferidas"
+          valor={resumo.deferidas}
+        />
+        <ResumoItem
+          icon={FileX2}
+          label="Indeferidas"
+          valor={resumo.indeferidas}
+        />
       </div>
 
       <div className="rounded-lg border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
@@ -329,7 +343,9 @@ export function SolicitacoesTable({
                     </div>
                   </td>
 
-                  <td className="px-5 py-4">{solicitacao.unidade?.sigla ?? "-"}</td>
+                  <td className="px-5 py-4">
+                    {solicitacao.unidade?.sigla ?? "-"}
+                  </td>
 
                   <td className="px-5 py-4">
                     {rotuloTipoSolicitacao(solicitacao.tipo)}
@@ -352,8 +368,9 @@ export function SolicitacoesTable({
                   <td className="px-5 py-4 text-right">
                     <Link
                       href={`/solicitacoes/${solicitacao.id}`}
-                      className="text-sm font-semibold text-blue-900 hover:underline dark:text-blue-300"
+                      className="inline-flex items-center justify-end gap-2 rounded-md border px-3 py-2 text-sm font-semibold text-blue-900 transition hover:bg-[var(--muted)] dark:text-blue-300"
                     >
+                      <Eye className="size-4" aria-hidden="true" />
                       Detalhar
                     </Link>
                   </td>

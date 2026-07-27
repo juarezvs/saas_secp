@@ -20,11 +20,11 @@ export async function verificarPeriodoHomologado(params: {
   servidorId: string;
   dataReferencia: Date;
 }) {
-  const anoReferencia = params.dataReferencia.getFullYear();
-  const mesReferencia = params.dataReferencia.getMonth() + 1;
+  const anoReferencia = params.dataReferencia.getUTCFullYear();
+  const mesReferencia = params.dataReferencia.getUTCMonth() + 1;
 
-  const inicio = new Date(anoReferencia, mesReferencia - 1, 1);
-  const fim = new Date(anoReferencia, mesReferencia, 1);
+  const inicio = new Date(Date.UTC(anoReferencia, mesReferencia - 1, 1));
+  const fim = new Date(Date.UTC(anoReferencia, mesReferencia, 1));
 
   const homologacao = await prisma.homologacaoServidorMes.findFirst({
     where: {

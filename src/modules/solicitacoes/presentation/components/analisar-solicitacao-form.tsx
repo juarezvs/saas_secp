@@ -7,7 +7,7 @@ import type { AnalisarSolicitacaoFormState } from "../../application/schemas/sol
 type AnalisarSolicitacaoFormProps = {
   action: (
     state: AnalisarSolicitacaoFormState,
-    formData: FormData
+    formData: FormData,
   ) => Promise<AnalisarSolicitacaoFormState>;
 };
 
@@ -64,6 +64,7 @@ export function AnalisarSolicitacaoForm({
         >
           <option value="DEFERIR">Deferir</option>
           <option value="INDEFERIR">Indeferir</option>
+          <option value="DEVOLVER_AJUSTES">Devolver para ajustes</option>
         </select>
 
         {erro(estado, "resultado") && (

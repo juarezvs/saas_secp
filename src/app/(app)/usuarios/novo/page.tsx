@@ -5,15 +5,23 @@ import { PageHeader } from "@/components/layout/page-header";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
 import { criarUsuarioAction } from "@/modules/usuarios/application/actions/criar-usuario.action";
+import { resolverEscopoGestaoUsuarios } from "@/modules/usuarios/application/services/escopo-gestao-usuarios.service";
 import { listarPerfisAtivosParaUsuario } from "@/modules/usuarios/infrastructure/repositories/usuario.repository";
 import { UsuarioForm } from "@/modules/usuarios/presentation/components/usuario-form";
 
 export default async function NovoUsuarioPage() {
-  await exigirPermissaoOuRedirecionar("usuarios:gerenciar:global");
+  const permissao = await exigirPermissaoOuRedirecionar(
+    "usuarios:gerenciar:global",
+  );
+  const escopoGestaoUsuarios = await resolverEscopoGestaoUsuarios(permissao);
 
   const [perfis, orgaos] = await Promise.all([
     listarPerfisAtivosParaUsuario(),
-    listarOrgaosAtivos(),
+    listarOrgaosAtivos(
+      escopoGestaoUsuarios.permitirEscopoGlobal
+        ? {}
+        : { orgaoIdsPermitidos: escopoGestaoUsuarios.orgaoIdsPermitidos },
+    ),
   ]);
 
   return (
@@ -39,6 +47,7 @@ export default async function NovoUsuarioPage() {
         action={criarUsuarioAction}
         perfis={perfis}
         orgaos={orgaos}
+        permitirEscopoGlobal={escopoGestaoUsuarios.permitirEscopoGlobal}
         modo="criar"
         valoresIniciais={{
           tipo: "SERVIDOR",

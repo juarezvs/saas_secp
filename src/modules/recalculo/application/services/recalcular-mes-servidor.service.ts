@@ -2,12 +2,18 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 import { recalcularDiaServidorService } from "./recalcular-dia-servidor.service";
 import { regerarBancoHorasMesService } from "./regerar-banco-horas-mes.service";
 import { carregarCalendarioInstitucionalPeriodo } from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
-import { normalizarFusoHorario } from "@/modules/marcacoes/application/services/data-marcacao.service";
+import {
+  normalizarFusoHorario,
+  obterDataReferencia,
+} from "@/modules/marcacoes/application/services/data-marcacao.service";
+import { resolverDataReferenciaOperacionalMarcacaoService } from "@/modules/marcacoes/application/services/resolver-data-referencia-operacional-marcacao.service";
 import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import {
   listarDatasImpactadasSolicitacao,
   TIPOS_SOLICITACAO_COM_EFEITO_APURACAO,
 } from "@/modules/solicitacoes/application/services/periodo-solicitacao.service";
+import { verificarPeriodoHomologado } from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
+import type { FonteMarcacao, Prisma } from "@/generated/prisma/client";
 
 export type RecalcularMesServidorParams = {
   servidorId: string;
@@ -35,6 +41,142 @@ function quantidadeMarcacoesMetadados(metadados: unknown) {
 
 function clonarData(data: Date) {
   return new Date(data.getTime());
+}
+
+function dataNoIntervalo(data: Date, inicio: Date, fimExclusivo: Date) {
+  return data >= inicio && data < fimExclusivo;
+}
+
+function metadadosComoObjeto(
+  metadados: Prisma.JsonValue | null,
+): Prisma.JsonObject {
+  if (
+    typeof metadados !== "object" ||
+    metadados === null ||
+    Array.isArray(metadados)
+  ) {
+    return {};
+  }
+
+  return metadados;
+}
+
+function origemOperacionalMarcacao(params: {
+  fonte: FonteMarcacao;
+  metadados: Prisma.JsonValue | null;
+}) {
+  const metadados = metadadosComoObjeto(params.metadados);
+  const origemBruta = metadados.origemBruta;
+
+  if (typeof origemBruta === "string" && origemBruta.length > 0) {
+    return origemBruta;
+  }
+
+  return params.fonte;
+}
+
+async function normalizarDatasOperacionaisMarcacoesMes(params: {
+  servidorId: string;
+  inicio: Date;
+  fim: Date;
+  fimRecalculo: Date;
+  fusoHorario: string;
+}) {
+  const inicioBusca = clonarData(params.inicio);
+  inicioBusca.setUTCDate(inicioBusca.getUTCDate() - 1);
+  const fimBusca = clonarData(params.fim);
+  fimBusca.setUTCDate(fimBusca.getUTCDate() + 1);
+  const datasImpactadas = new Map<string, Date>();
+  let marcacoesReclassificadas = 0;
+
+  const marcacoes = await prisma.marcacao.findMany({
+    where: {
+      servidorId: params.servidorId,
+      dataHora: {
+        gte: inicioBusca,
+        lt: fimBusca,
+      },
+      status: {
+        in: ["VALIDA", "PENDENTE", "AJUSTADA"],
+      },
+      fonte: {
+        in: ["EQUIPAMENTO_BIOMETRICO", "AFD", "IMPORTACAO"],
+      },
+    },
+    orderBy: {
+      dataHora: "asc",
+    },
+    select: {
+      id: true,
+      dataHora: true,
+      dataReferencia: true,
+      fusoHorario: true,
+      fonte: true,
+      metadados: true,
+    },
+  });
+
+  for (const marcacao of marcacoes) {
+    const fusoHorarioMarcacao =
+      marcacao.fusoHorario || params.fusoHorario;
+    const dataReferenciaCivil = obterDataReferencia(
+      marcacao.dataHora,
+      fusoHorarioMarcacao,
+    );
+    const resolucao =
+      await resolverDataReferenciaOperacionalMarcacaoService(prisma, {
+        servidorId: params.servidorId,
+        dataHora: marcacao.dataHora,
+        dataReferenciaCivil,
+        fusoHorario: fusoHorarioMarcacao,
+        origem: origemOperacionalMarcacao(marcacao),
+      });
+
+    if (
+      chaveData(resolucao.dataReferencia) ===
+      chaveData(marcacao.dataReferencia)
+    ) {
+      continue;
+    }
+
+    await verificarPeriodoHomologado({
+      servidorId: params.servidorId,
+      dataReferencia: marcacao.dataReferencia,
+    });
+    await verificarPeriodoHomologado({
+      servidorId: params.servidorId,
+      dataReferencia: resolucao.dataReferencia,
+    });
+
+    await prisma.marcacao.update({
+      where: {
+        id: marcacao.id,
+      },
+      data: {
+        dataReferencia: resolucao.dataReferencia,
+        metadados: {
+          ...metadadosComoObjeto(marcacao.metadados),
+          dataReferenciaCivil: resolucao.dataReferenciaCivil,
+          dataReferenciaOperacionalAjustada:
+            resolucao.ajustadaParaDiaAnterior,
+          motivoAjusteDataReferencia: resolucao.motivo ?? null,
+        },
+      },
+    });
+
+    for (const data of [marcacao.dataReferencia, resolucao.dataReferencia]) {
+      if (dataNoIntervalo(data, params.inicio, params.fimRecalculo)) {
+        datasImpactadas.set(chaveData(data), data);
+      }
+    }
+
+    marcacoesReclassificadas += 1;
+  }
+
+  return {
+    marcacoesReclassificadas,
+    datasImpactadas,
+  };
 }
 
 function adicionarDatasNoIntervalo(
@@ -142,6 +284,14 @@ export async function recalcularMesServidorService({
     fim,
     fusoHorario,
   });
+  const normalizacaoMarcacoes =
+    await normalizarDatasOperacionaisMarcacoesMes({
+      servidorId,
+      inicio,
+      fim,
+      fimRecalculo,
+      fusoHorario,
+    });
   const [
     marcacoes,
     apuracoesExistentes,
@@ -260,6 +410,10 @@ export async function recalcularMesServidorService({
 
   const datas = new Map<string, Date>();
 
+  for (const dataImpactada of normalizacaoMarcacoes.datasImpactadas.values()) {
+    datas.set(chaveData(dataImpactada), dataImpactada);
+  }
+
   for (const jornada of jornadasVigentes) {
     const inicioJornada =
       jornada.dataInicio > inicio ? jornada.dataInicio : inicio;
@@ -333,6 +487,8 @@ export async function recalcularMesServidorService({
 
     return {
       diasRecalculados: 0,
+      marcacoesReclassificadas:
+        normalizacaoMarcacoes.marcacoesReclassificadas,
       apuracoesAutomaticasRemovidas,
       bancoHoras,
     };
@@ -368,6 +524,8 @@ export async function recalcularMesServidorService({
 
   return {
     diasRecalculados: resultadosDias.length,
+    marcacoesReclassificadas:
+      normalizacaoMarcacoes.marcacoesReclassificadas,
     apuracoesAutomaticasRemovidas,
     bancoHoras,
   };

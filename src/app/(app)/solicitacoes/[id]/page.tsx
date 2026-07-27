@@ -1,3 +1,4 @@
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { auth } from "@/auth";
@@ -23,10 +24,12 @@ import {
   usuarioPodeAcessarSolicitacaoComoChefia,
 } from "@/modules/solicitacoes/infrastructure/repositories/solicitacao.repository";
 import { AnalisarSolicitacaoForm } from "@/modules/solicitacoes/presentation/components/analisar-solicitacao-form";
+import { PreviewSolicitacao } from "@/modules/solicitacoes/presentation/components/solicitacao-form";
 import { SolicitacaoStepper } from "@/modules/solicitacoes/presentation/components/solicitacao-stepper";
 import { SolicitacaoTimeline } from "@/modules/solicitacoes/presentation/components/solicitacao-timeline";
 import { resolverFusoHorarioUnidade } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
+import { Pencil, RefreshCw, Trash2 } from "lucide-react";
 
 type SolicitacaoDetalhePageProps = {
   params: Promise<{
@@ -34,22 +37,10 @@ type SolicitacaoDetalhePageProps = {
   }>;
 };
 
-function obterDadosBancoHoras(dados: unknown) {
-  if (!dados || typeof dados !== "object") {
-    return null;
-  }
-
-  const registro = dados as Record<string, unknown>;
-  const minutosSolicitados = Number(registro.minutosSolicitados);
-
-  if (!Number.isFinite(minutosSolicitados) || minutosSolicitados <= 0) {
-    return null;
-  }
-
-  return {
-    minutosSolicitados,
-    tipoCompensacao: String(registro.tipoCompensacao ?? ""),
-  };
+function dadosComoRegistro(dados: unknown) {
+  return dados && typeof dados === "object"
+    ? (dados as Record<string, unknown>)
+    : {};
 }
 
 function formatarHoras(minutos: number) {
@@ -99,6 +90,82 @@ function formatarDataPeriodoSolicitacao(params: {
   }).format(dataExibicao);
 }
 
+function rotuloMarcacao(tipo: string) {
+  const rotulos: Record<string, string> = {
+    ENTRADA: "Entrada",
+    SAIDA_INTERVALO: "Saída para intervalo",
+    RETORNO_INTERVALO: "Retorno do intervalo",
+    SAIDA: "Saída",
+  };
+
+  return (rotulos[tipo] ?? tipo) || "Não informado";
+}
+
+function rotuloCompensacao(tipo: string) {
+  const rotulos: Record<string, string> = {
+    UTILIZAR_CREDITO: "Utilizar crédito para compensar débito",
+    COMPENSAR_DEBITO: "Trabalhar horas para compensar débito",
+  };
+
+  return (rotulos[tipo] ?? tipo) || "Não informado";
+}
+
+function rotuloRegimeRemoto(tipo: string) {
+  const rotulos: Record<string, string> = {
+    NAO_SE_APLICA: "Dispensa sem teletrabalho",
+    TOTAL: "Teletrabalho 100%",
+    HIBRIDO: "Regime híbrido",
+  };
+
+  return (rotulos[tipo] ?? tipo) || "Não informado";
+}
+
+function rotuloModalidadeCapacitacao(modalidade: string) {
+  const rotulos: Record<string, string> = {
+    EXTERNA: "Capacitação externa",
+    INTERNA: "Capacitação interna",
+  };
+
+  return (rotulos[modalidade] ?? modalidade) || "Não informado";
+}
+
+function montarDetalhePreview(solicitacao: {
+  tipo: string;
+  dadosSolicitados: unknown;
+}) {
+  const dados = dadosComoRegistro(solicitacao.dadosSolicitados);
+
+  if (solicitacao.tipo === "AJUSTE_PONTO") {
+    return `${rotuloMarcacao(String(dados.tipoMarcacao ?? ""))} às ${
+      String(dados.horaAjuste ?? "").trim() || "Não informado"
+    }`;
+  }
+
+  if (solicitacao.tipo === "COMPENSACAO") {
+    return rotuloCompensacao(String(dados.tipoCompensacao ?? ""));
+  }
+
+  if (solicitacao.tipo === "HORA_CREDITO_PREVIA") {
+    const horas = Number(dados.horasSolicitadas);
+    return Number.isFinite(horas)
+      ? `${horas.toLocaleString("pt-BR")} hora(s) solicitada(s)`
+      : "Quantidade não informada";
+  }
+
+  if (solicitacao.tipo === "DISPENSA_PONTO") {
+    const regime = dadosComoRegistro(dados.regimeTrabalhoRemoto);
+    return rotuloRegimeRemoto(String(regime.tipo ?? "NAO_SE_APLICA"));
+  }
+
+  if (solicitacao.tipo === "CAPACITACAO") {
+    return rotuloModalidadeCapacitacao(
+      String(dados.modalidadeCapacitacao ?? ""),
+    );
+  }
+
+  return "Sem parametrização adicional.";
+}
+
 export default async function SolicitacaoDetalhePage({
   params,
 }: SolicitacaoDetalhePageProps) {
@@ -133,17 +200,24 @@ export default async function SolicitacaoDetalhePage({
     (permissoes.includes("solicitacoes:consultar:proprio") ||
       permissoes.includes("solicitacoes:visualizar:proprio"));
 
-  if (!podeConsultarGlobal && !podeAcessarComoChefia && !podeAcessarComoProprio) {
+  if (
+    !podeConsultarGlobal &&
+    !podeAcessarComoChefia &&
+    !podeAcessarComoProprio
+  ) {
     notFound();
   }
 
   const podeAnalisar =
     solicitacaoPodeSerAnalisada(solicitacao.status) &&
     (podeAcessarComoChefia || podeConsultarGlobal);
+  const podeEditar =
+    !podeAcessarComoChefia &&
+    solicitacao.usuarioSolicitanteId === session?.user.id &&
+    ["ENVIADA", "EM_ANALISE"].includes(solicitacao.status);
   const podeExcluir = perfilEhAdministradorSistema(session?.user.perfilAtivo);
   const action = analisarSolicitacaoAction.bind(null, solicitacao.id);
   const excluirAction = excluirSolicitacaoAction.bind(null, solicitacao.id);
-  const dadosBancoHoras = obterDadosBancoHoras(solicitacao.dadosSolicitados);
   const fusoHorario = resolverFusoHorarioUnidade(solicitacao.unidade);
 
   return (
@@ -169,13 +243,24 @@ export default async function SolicitacaoDetalhePage({
           </p>
         </div>
 
-        <span
-          className={`w-fit rounded-full px-3 py-1 text-sm font-semibold ${classeStatusSolicitacao(
-            solicitacao.status,
-          )}`}
-        >
-          {rotuloStatusSolicitacao(solicitacao.status)}
-        </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <span
+            className={`w-fit rounded-full px-3 py-1 text-sm font-semibold ${classeStatusSolicitacao(
+              solicitacao.status,
+            )}`}
+          >
+            {rotuloStatusSolicitacao(solicitacao.status)}
+          </span>
+          {podeEditar && (
+            <Link
+              href={`/solicitacoes/${solicitacao.id}/editar`}
+              className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-(--muted)"
+            >
+              <Pencil className="size-4" aria-hidden="true" />
+              Editar solicitação
+            </Link>
+          )}
+        </div>
       </section>
 
       <RegraPortariaCard
@@ -186,98 +271,73 @@ export default async function SolicitacaoDetalhePage({
 
       <SolicitacaoStepper status={solicitacao.status} />
 
-      <section className="rounded-xl border bg-(--card) p-5 text-(--card-foreground) shadow-sm">
-        <h2 className="text-lg font-bold">Detalhes da solicitação</h2>
+      <div
+        className={
+          podeAnalisar ? "grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]" : ""
+        }
+      >
+        <div className="space-y-5">
+          <PreviewSolicitacao
+            titulo="Solicitação a ser analisada"
+            preview={{
+              tipo: rotuloTipoSolicitacao(solicitacao.tipo),
+              titulo: solicitacao.titulo,
+              periodo: solicitacao.dataReferencia
+                ? `Data de referência: ${formatarDataReferencia(
+                    solicitacao.dataReferencia,
+                  )}`
+                : `${formatarDataPeriodoSolicitacao({
+                    tipo: solicitacao.tipo,
+                    data: solicitacao.dataInicio,
+                    parte: "inicio",
+                    fusoHorario,
+                  })} até ${formatarDataPeriodoSolicitacao({
+                    tipo: solicitacao.tipo,
+                    data: solicitacao.dataFim,
+                    parte: "fim",
+                    fusoHorario,
+                  })}`,
+              detalhe: montarDetalhePreview(solicitacao),
+              justificativa: solicitacao.descricao,
+              encaminhamento:
+                "A chefia deve registrar a decisão ou devolver para ajustes.",
+            }}
+          />
 
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <Info label="Tipo" value={rotuloTipoSolicitacao(solicitacao.tipo)} />
-          <Info label="Unidade" value={solicitacao.unidade?.sigla ?? "-"} />
-          <Info
-            label="Data de referência"
-            value={formatarDataReferencia(solicitacao.dataReferencia)}
-          />
-          <Info
-            label="Chefia responsável"
-            value={
-              nomeServidor(solicitacao.chefiaResponsavel?.servidor) ||
-              "Não identificada"
-            }
-          />
-          {solicitacao.dataInicio && (
-            <Info
-              label="Início do período"
-              value={formatarDataPeriodoSolicitacao({
-                tipo: solicitacao.tipo,
-                data: solicitacao.dataInicio,
-                parte: "inicio",
-                fusoHorario,
-              })}
-            />
+          {solicitacao.justificativaAnalise && (
+            <div className="rounded-xl border bg-(--card) p-5 text-(--card-foreground) shadow-sm">
+              <p className="text-sm font-semibold">Justificativa da análise</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-(--muted-foreground)">
+                {solicitacao.justificativaAnalise}
+              </p>
+            </div>
           )}
-          {solicitacao.dataFim && (
-            <Info
-              label="Fim do período"
-              value={formatarDataPeriodoSolicitacao({
-                tipo: solicitacao.tipo,
-                data: solicitacao.dataFim,
-                parte: "fim",
-                fusoHorario,
-              })}
-            />
-          )}
-          {dadosBancoHoras && (
-            <Info
-              label="Quantidade solicitada"
-              value={formatarHoras(dadosBancoHoras.minutosSolicitados)}
-            />
-          )}
-          {dadosBancoHoras?.tipoCompensacao && (
-            <Info
-              label="Modalidade"
-              value={
-                dadosBancoHoras.tipoCompensacao === "COMPENSAR_DEBITO"
-                  ? "Trabalhar horas para compensar débito"
-                  : "Utilizar crédito para compensar débito"
-              }
-            />
+
+          {solicitacao.autorizacaoBancoHoras && (
+            <div className="rounded-xl border border-green-200 bg-green-50 p-5 text-green-900 shadow-sm dark:border-green-900 dark:bg-green-950 dark:text-green-100">
+              <p className="text-sm font-bold">Autorização prévia registrada</p>
+              <p className="mt-2 text-sm leading-6">
+                {formatarHoras(
+                  solicitacao.autorizacaoBancoHoras.minutosAutorizados,
+                )}{" "}
+                autorizadas por{" "}
+                {solicitacao.autorizacaoBancoHoras.autorizadoPor.nome} em{" "}
+                {new Intl.DateTimeFormat("pt-BR", {
+                  dateStyle: "short",
+                  timeStyle: "short",
+                }).format(solicitacao.autorizacaoBancoHoras.autorizadoEm)}
+                . Status: {solicitacao.autorizacaoBancoHoras.status}.
+              </p>
+            </div>
           )}
         </div>
 
-        <div className="mt-5 rounded-lg border bg-(--muted) p-4">
-          <p className="text-sm font-semibold">Descrição</p>
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-(--muted-foreground)">
-            {solicitacao.descricao}
-          </p>
-        </div>
-
-        {solicitacao.justificativaAnalise && (
-          <div className="mt-5 rounded-lg border bg-(--muted) p-4">
-            <p className="text-sm font-semibold">Justificativa da análise</p>
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-(--muted-foreground)">
-              {solicitacao.justificativaAnalise}
-            </p>
-          </div>
+        {podeAnalisar && (
+          <aside className="xl:sticky xl:top-24 xl:self-start">
+            <AnalisarSolicitacaoForm action={action} />
+          </aside>
         )}
-
-        {solicitacao.autorizacaoBancoHoras && (
-          <div className="mt-5 rounded-lg border border-green-200 bg-green-50 p-4 text-green-900 dark:border-green-900 dark:bg-green-950 dark:text-green-100">
-            <p className="text-sm font-bold">Autorização prévia registrada</p>
-            <p className="mt-2 text-sm leading-6">
-              {formatarHoras(
-                solicitacao.autorizacaoBancoHoras.minutosAutorizados,
-              )} autorizadas por{" "}
-              {solicitacao.autorizacaoBancoHoras.autorizadoPor.nome} em{" "}
-              {new Intl.DateTimeFormat("pt-BR", {
-                dateStyle: "short",
-                timeStyle: "short",
-              }).format(solicitacao.autorizacaoBancoHoras.autorizadoEm)}
-              . Status: {solicitacao.autorizacaoBancoHoras.status}.
-            </p>
-          </div>
-        )}
-      </section>
-
-      {podeAnalisar && <AnalisarSolicitacaoForm action={action} />}
+      </div>
 
       {podeExcluir && (
         <section className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-950 shadow-sm dark:border-red-900 dark:bg-red-950 dark:text-red-100">
@@ -290,8 +350,9 @@ export default async function SolicitacaoDetalhePage({
           <form action={excluirAction} className="mt-4">
             <button
               type="submit"
-              className="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-800"
+              className="inline-flex items-center gap-2 rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-800"
             >
+              <Trash2 className="size-4" aria-hidden="true" />
               Excluir solicitação e recalcular efeitos
             </button>
           </form>
@@ -309,11 +370,16 @@ export default async function SolicitacaoDetalhePage({
               solicitação deferida.
             </p>
             <form action={recalcularPosSolicitacaoAction} className="mt-4">
-              <input type="hidden" name="solicitacaoId" value={solicitacao.id} />
+              <input
+                type="hidden"
+                name="solicitacaoId"
+                value={solicitacao.id}
+              />
               <button
                 type="submit"
-                className="rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-(--muted)"
+                className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-(--muted)"
               >
+                <RefreshCw className="size-4" aria-hidden="true" />
                 Recalcular efeitos da solicitação
               </button>
             </form>
@@ -321,17 +387,6 @@ export default async function SolicitacaoDetalhePage({
         )}
 
       <SolicitacaoTimeline eventos={solicitacao.eventos} />
-    </div>
-  );
-}
-
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border bg-(--muted) p-4">
-      <p className="text-xs font-semibold uppercase text-(--muted-foreground)">
-        {label}
-      </p>
-      <p className="mt-2 font-semibold">{value}</p>
     </div>
   );
 }

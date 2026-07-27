@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, Eye } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
@@ -88,7 +88,10 @@ function ProvidenciaVencimento({
 
   return (
     <div className="flex flex-col gap-2">
-      <form action={tratarPendenciaBancoHorasAction} className="flex flex-col gap-2">
+      <form
+        action={tratarPendenciaBancoHorasAction}
+        className="flex flex-col gap-2"
+      >
         <input type="hidden" name="movimentoId" value={movimentoId} />
         <input type="hidden" name="acao" value="NOTIFICAR_DEBITO" />
         <input
@@ -103,7 +106,10 @@ function ProvidenciaVencimento({
           Notificar
         </button>
       </form>
-      <form action={tratarPendenciaBancoHorasAction} className="flex flex-col gap-2">
+      <form
+        action={tratarPendenciaBancoHorasAction}
+        className="flex flex-col gap-2"
+      >
         <input type="hidden" name="movimentoId" value={movimentoId} />
         <input type="hidden" name="acao" value="ENCAMINHAR_FOLHA" />
         <input
@@ -222,7 +228,8 @@ export default async function BancoHorasVencimentosPage({
           <div>
             <h2 className="text-lg font-bold">Agenda de prazos</h2>
             <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-              {vencimentos.length} movimento{vencimentos.length === 1 ? "" : "s"} encontrado
+              {vencimentos.length} movimento
+              {vencimentos.length === 1 ? "" : "s"} encontrado
               {vencimentos.length === 1 ? "" : "s"}.
             </p>
           </div>
@@ -262,9 +269,12 @@ export default async function BancoHorasVencimentosPage({
               {vencimentos.map((movimento) => (
                 <tr key={movimento.id} className="border-b last:border-0">
                   <td className="px-5 py-4">
-                    <div className="font-semibold">{nomeServidor(movimento.servidor)}</div>
+                    <div className="font-semibold">
+                      {nomeServidor(movimento.servidor)}
+                    </div>
                     <div className="font-mono text-xs text-[var(--muted-foreground)]">
-                      {movimento.servidor.matricula} - {movimento.servidor.orgao.sigla}
+                      {movimento.servidor.matricula} -{" "}
+                      {movimento.servidor.orgao.sigla}
                     </div>
                   </td>
                   <td className="px-5 py-4">
@@ -297,8 +307,9 @@ export default async function BancoHorasVencimentosPage({
                       href={`/banco-horas?servidorId=${movimento.servidorId}&competencia=${movimento.anoReferencia}-${String(
                         movimento.mesReferencia,
                       ).padStart(2, "0")}`}
-                      className="font-semibold text-[var(--secp-theme-accent)] underline-offset-4 hover:underline"
+                      className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold text-[var(--secp-theme-accent)] transition hover:bg-[var(--muted)]"
                     >
+                      <Eye className="size-4" aria-hidden="true" />
                       Abrir extrato
                     </Link>
                   </td>

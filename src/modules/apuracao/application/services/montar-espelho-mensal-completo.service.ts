@@ -3,7 +3,7 @@ import {
   classificarDiaInstitucional,
   type CalendarioInstitucionalPrecarregado,
 } from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
-import { calcularCargaMensalEsperada } from "@/modules/homologacao/application/services/calcular-carga-mensal-esperada.service";
+import { calcularCargaPrevistaComJanela } from "@/modules/apuracao/application/services/expediente.service";
 import { normalizarFusoHorario } from "@/modules/marcacoes/application/services/data-marcacao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
@@ -378,6 +378,24 @@ function ajustarApuracaoPorCompensacao(
   };
 }
 
+function jornadaVigenteNoDia(
+  jornadas: JornadaEspelhoMensal[],
+  dataReferencia: Date,
+) {
+  const dataNormalizada = normalizarDataReferencia(dataReferencia);
+
+  return jornadas
+    .filter((jornada) => {
+      const inicio = normalizarDataReferencia(jornada.dataInicio);
+      const fim = jornada.dataFim
+        ? normalizarDataReferencia(jornada.dataFim)
+        : null;
+
+      return inicio <= dataNormalizada && (!fim || fim >= dataNormalizada);
+    })
+    .sort((a, b) => b.dataInicio.getTime() - a.dataInicio.getTime())[0];
+}
+
 async function preencherDiasDaCompetencia(params: {
   anoReferencia: number;
   mesReferencia: number;
@@ -387,19 +405,7 @@ async function preencherDiasDaCompetencia(params: {
 }) {
   const inicio = inicioCompetencia(params.anoReferencia, params.mesReferencia);
   const fim = fimCompetencia(params.anoReferencia, params.mesReferencia);
-  const cargaMensal = await calcularCargaMensalEsperada({
-    anoReferencia: params.anoReferencia,
-    mesReferencia: params.mesReferencia,
-    jornadas: params.jornadas,
-    calendario: params.calendario,
-    servidorId: params.servidorId,
-  });
-  const cargaPorData = new Map(
-    cargaMensal.dias.map((dia) => [
-      chaveData(dia.dataReferencia),
-      dia.cargaPrevistaMinutos,
-    ]),
-  );
+  let cargaPrevistaMensalMinutos = 0;
   const dias: Array<{
     dataReferencia: Date;
     cargaPrevistaMinutos: number;
@@ -417,10 +423,27 @@ async function preencherDiasDaCompetencia(params: {
       params.calendario,
       params.servidorId,
     );
+    const jornada =
+      classificacao.contaComoDiaUtil && classificacao.geraApuracaoRegular
+        ? jornadaVigenteNoDia(params.jornadas, dataReferencia)
+        : null;
+    const cargaPrevistaMinutos = jornada
+      ? calcularCargaPrevistaComJanela(
+          jornada.jornada.cargaDiariaMinutos,
+          classificacao.janelaInicio && classificacao.janelaFim
+            ? {
+                inicio: classificacao.janelaInicio,
+                fim: classificacao.janelaFim,
+              }
+            : null,
+        )
+      : 0;
+
+    cargaPrevistaMensalMinutos += cargaPrevistaMinutos;
 
     dias.push({
       dataReferencia,
-      cargaPrevistaMinutos: cargaPorData.get(chaveData(dataReferencia)) ?? 0,
+      cargaPrevistaMinutos,
       tipoDiaInstitucional: classificacao.tipo,
       descricaoDiaInstitucional: classificacao.descricao,
       contaComoDiaUtil: classificacao.contaComoDiaUtil,
@@ -432,7 +455,7 @@ async function preencherDiasDaCompetencia(params: {
 
   return {
     dias,
-    cargaPrevistaMensalMinutos: cargaMensal.cargaPrevistaMinutos,
+    cargaPrevistaMensalMinutos,
   };
 }
 
@@ -505,7 +528,11 @@ function descricaoAfastamento(afastamento: AfastamentoSarhEspelho) {
 }
 
 function afastamentoEhFerias(afastamento: AfastamentoSarhEspelho) {
-  return [afastamento.categoria, afastamento.tipoDescricao, afastamento.origemTabela]
+  return [
+    afastamento.categoria,
+    afastamento.tipoDescricao,
+    afastamento.origemTabela,
+  ]
     .filter((valor): valor is string => Boolean(valor))
     .some((valor) =>
       valor

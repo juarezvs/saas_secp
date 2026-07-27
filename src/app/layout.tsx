@@ -1,17 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { VlibrasGlobal } from "@/components/accessibility/vlibras-global";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: {
@@ -48,10 +37,7 @@ try {
           }}
         />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        data-dyslexia-font="false"
-      >
+      <body className="antialiased" data-dyslexia-font="false">
         {children}
         <VlibrasGlobal />
       </body>

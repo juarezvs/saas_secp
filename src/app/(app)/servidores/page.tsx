@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, Users } from "lucide-react";
+import { Plus, Users, Eye } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
@@ -174,7 +174,9 @@ export default async function ServidoresPage({
       })
     : [];
   const servidorProprio = perfilChefiaAtivo
-    ? await buscarServidorComUsuarioPorUsuarioId(permissoesSessao.usuarioId ?? "")
+    ? await buscarServidorComUsuarioPorUsuarioId(
+        permissoesSessao.usuarioId ?? "",
+      )
     : null;
   const servidorIdsPermitidosChefia = perfilChefiaAtivo
     ? Array.from(
@@ -206,23 +208,24 @@ export default async function ServidoresPage({
     escopoOrgao,
   );
 
-  const orgaoIdsPermitidos = escopoOrgao.global ? undefined : escopoOrgao.orgaoIds;
-  const [orgaos, resultado, servidoresFiltro, lotacoesFiltro] = await Promise.all([
-    listarOrgaosAtivos(
-      aplicarEscopoOrgaoId({ orgaoId: "" }, escopoOrgao),
-    ),
-    listarServidoresPaginado(filtrosEscopados),
-    listarServidoresParaFiltro({
-      orgaoIdsPermitidos,
-      servidorIdsPermitidos: servidorIdsPermitidosChefia,
-      tipoUsuario,
-    }),
-    listarLotacoesAtivasParaFiltro({
-      orgaoIdsPermitidos,
-      servidorIdsPermitidos: servidorIdsPermitidosChefia,
-      tipoUsuario,
-    }),
-  ]);
+  const orgaoIdsPermitidos = escopoOrgao.global
+    ? undefined
+    : escopoOrgao.orgaoIds;
+  const [orgaos, resultado, servidoresFiltro, lotacoesFiltro] =
+    await Promise.all([
+      listarOrgaosAtivos(aplicarEscopoOrgaoId({ orgaoId: "" }, escopoOrgao)),
+      listarServidoresPaginado(filtrosEscopados),
+      listarServidoresParaFiltro({
+        orgaoIdsPermitidos,
+        servidorIdsPermitidos: servidorIdsPermitidosChefia,
+        tipoUsuario,
+      }),
+      listarLotacoesAtivasParaFiltro({
+        orgaoIdsPermitidos,
+        servidorIdsPermitidos: servidorIdsPermitidosChefia,
+        tipoUsuario,
+      }),
+    ]);
   const servidoresOptions = servidoresFiltro.map((servidor) => {
     const nome = nomeServidor(servidor) || servidor.matricula;
     const lotacao = servidor.lotacoes[0]?.unidade;
@@ -442,8 +445,9 @@ export default async function ServidoresPage({
                     <td className="px-5 py-4 text-right">
                       <Link
                         href={`/servidores/${servidor.id}`}
-                        className="text-sm font-semibold text-blue-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:text-blue-300"
+                        className="inline-flex items-center justify-end gap-2 rounded-md border px-3 py-2 text-sm font-semibold text-blue-900 transition hover:bg-[var(--muted)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:text-blue-300"
                       >
+                        <Eye className="size-4" aria-hidden="true" />
                         Detalhar
                       </Link>
                     </td>

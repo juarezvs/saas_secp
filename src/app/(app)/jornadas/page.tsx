@@ -1,13 +1,11 @@
 import Link from "next/link";
-import { CalendarClock, Plus } from "lucide-react";
+import { CalendarClock, Plus, Eye } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import {
-  listarJornadasPaginado,
-} from "@/modules/jornadas/infrastructure/repositories/jornada.repository";
+import { listarJornadasPaginado } from "@/modules/jornadas/infrastructure/repositories/jornada.repository";
 import { JornadasListagemControles } from "@/modules/jornadas/presentation/components/jornadas-listagem-controles";
 
 type JornadasPageProps = {
@@ -54,13 +52,7 @@ export default async function JornadasPage({
 
   const exportParams = new URLSearchParams();
 
-  for (const chave of [
-    "busca",
-    "codigo",
-    "nome",
-    "tipo",
-    "status",
-  ] as const) {
+  for (const chave of ["busca", "codigo", "nome", "tipo", "status"] as const) {
     if (params[chave]) {
       exportParams.set(chave, params[chave]!);
     }
@@ -190,8 +182,9 @@ export default async function JornadasPage({
                   <td className="px-5 py-4 text-right">
                     <Link
                       href={`/jornadas/${jornada.id}`}
-                      className="text-sm font-semibold text-blue-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:text-blue-300"
+                      className="inline-flex items-center justify-end gap-2 rounded-md border px-3 py-2 text-sm font-semibold text-blue-900 transition hover:bg-[var(--muted)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:text-blue-300"
                     >
+                      <Eye className="size-4" aria-hidden="true" />
                       Detalhar
                     </Link>
                   </td>

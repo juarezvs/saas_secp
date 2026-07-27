@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { PageHeaderTitle } from "./page-title-personalizado";
 
 type PageHeaderProps = {
   icon: LucideIcon;
@@ -34,7 +35,7 @@ export function PageHeader({
             </div>
 
             <h1 className="min-w-0 text-3xl font-bold tracking-tight">
-              {titulo}
+              <PageHeaderTitle titulo={titulo} />
             </h1>
           </div>
 

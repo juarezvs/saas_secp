@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, UserCog } from "lucide-react";
+import { Plus, UserCog, Eye } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
@@ -31,7 +31,9 @@ type UsuariosPageProps = {
   }>;
 };
 
-export default async function UsuariosPage({ searchParams }: UsuariosPageProps) {
+export default async function UsuariosPage({
+  searchParams,
+}: UsuariosPageProps) {
   await exigirPermissaoOuRedirecionar("usuarios:gerenciar:global");
 
   const params = searchParams ? await searchParams : {};
@@ -41,21 +43,23 @@ export default async function UsuariosPage({ searchParams }: UsuariosPageProps) 
   const statusFiltro = params.status ?? "ativo";
 
   const filtrosEscopados = aplicarEscopoOrgaoId(
-      {
-        busca: params.busca ?? "",
-        matricula: params.matricula ?? "",
-        nome: params.nome ?? "",
-        email: params.email ?? "",
-        tipo: params.tipo ?? "",
-        lotacao: params.lotacao ?? "",
-        perfil: params.perfil ?? "",
-        status: statusFiltro,
-        pagina,
-        itensPorPagina,
-      },
-      escopoOrgao,
-    );
-  const orgaoIdsPermitidos = escopoOrgao.global ? undefined : escopoOrgao.orgaoIds;
+    {
+      busca: params.busca ?? "",
+      matricula: params.matricula ?? "",
+      nome: params.nome ?? "",
+      email: params.email ?? "",
+      tipo: params.tipo ?? "",
+      lotacao: params.lotacao ?? "",
+      perfil: params.perfil ?? "",
+      status: statusFiltro,
+      pagina,
+      itensPorPagina,
+    },
+    escopoOrgao,
+  );
+  const orgaoIdsPermitidos = escopoOrgao.global
+    ? undefined
+    : escopoOrgao.orgaoIds;
   const [resultado, servidoresFiltro, lotacoesFiltro] = await Promise.all([
     listarUsuariosPaginado(filtrosEscopados),
     listarServidoresParaFiltro({ orgaoIdsPermitidos }),
@@ -220,8 +224,9 @@ export default async function UsuariosPage({ searchParams }: UsuariosPageProps) 
                     <td className="px-5 py-4 text-right">
                       <Link
                         href={`/usuarios/${usuario.id}`}
-                        className="text-sm font-semibold text-blue-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:text-blue-300"
+                        className="inline-flex items-center justify-end gap-2 rounded-md border px-3 py-2 text-sm font-semibold text-blue-900 transition hover:bg-[var(--muted)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:text-blue-300"
                       >
+                        <Eye className="size-4" aria-hidden="true" />
                         Detalhar
                       </Link>
                     </td>

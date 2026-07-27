@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Eye } from "lucide-react";
 import {
   formatarDataHoraAuditoria,
   rotuloEntidadeAuditoria,
@@ -111,8 +112,9 @@ export function AuditoriaTable({
                 <td className="px-5 py-4 text-right">
                   <a
                     href={`/auditoria/${evento.id}`}
-                    className="text-sm font-semibold text-blue-900 hover:underline dark:text-blue-300"
+                    className="inline-flex items-center justify-end gap-2 rounded-md border px-3 py-2 text-sm font-semibold text-blue-900 transition hover:bg-[var(--muted)] dark:text-blue-300"
                   >
+                    <Eye className="size-4" aria-hidden="true" />
                     Detalhar
                   </a>
                 </td>

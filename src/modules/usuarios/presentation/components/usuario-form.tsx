@@ -23,10 +23,11 @@ type OrgaoItem = {
 type UsuarioFormProps = {
   action: (
     state: UsuarioFormState,
-    formData: FormData
+    formData: FormData,
   ) => Promise<UsuarioFormState>;
   perfis: PerfilItem[];
   orgaos: OrgaoItem[];
+  permitirEscopoGlobal?: boolean;
   valoresIniciais?: {
     matricula?: string;
     nome?: string;
@@ -53,10 +54,7 @@ const rotulosTipoUsuario: Record<string, string> = {
   VOLUNTARIO: "Voluntário",
 };
 
-function obterErro(
-  erros: Record<string, string[]> | undefined,
-  campo: string
-) {
+function obterErro(erros: Record<string, string[]> | undefined, campo: string) {
   return erros?.[campo]?.[0];
 }
 
@@ -64,6 +62,7 @@ export function UsuarioForm({
   action,
   perfis,
   orgaos,
+  permitirEscopoGlobal = false,
   valoresIniciais,
   modo,
 }: UsuarioFormProps) {
@@ -259,7 +258,7 @@ export function UsuarioForm({
                     className="h-10 w-full rounded-md border bg-[var(--card)] px-3 text-xs outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
                   >
                     <option value="">
-                      {perfil.codigo === "MASTER"
+                      {perfil.codigo === "MASTER" && permitirEscopoGlobal
                         ? "Global - todas as seccionais"
                         : "Selecione a seccional"}
                     </option>

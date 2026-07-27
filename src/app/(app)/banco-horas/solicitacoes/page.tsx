@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarClock, Send } from "lucide-react";
+import { CalendarClock, Eye, Send } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
@@ -120,9 +120,15 @@ export default async function BancoHorasSolicitacoesPage({
                 className="mt-1 h-10 w-full rounded-md border bg-[var(--background)] px-3 text-sm"
                 defaultValue="GERAR_CREDITO"
               >
-                <option value="GERAR_CREDITO">Gerar credito previamente autorizado</option>
-                <option value="UTILIZAR_SALDO">Utilizar saldo disponivel</option>
-                <option value="COMPENSAR_DEBITO">Compensar debito pendente</option>
+                <option value="GERAR_CREDITO">
+                  Gerar credito previamente autorizado
+                </option>
+                <option value="UTILIZAR_SALDO">
+                  Utilizar saldo disponivel
+                </option>
+                <option value="COMPENSAR_DEBITO">
+                  Compensar debito pendente
+                </option>
               </select>
             </label>
 
@@ -246,12 +252,15 @@ export default async function BancoHorasSolicitacoesPage({
                             extrairMinutos(solicitacao.dadosSolicitados) ?? 0,
                           )}
                     </td>
-                    <td className="px-5 py-4">{rotuloStatus(solicitacao.status)}</td>
+                    <td className="px-5 py-4">
+                      {rotuloStatus(solicitacao.status)}
+                    </td>
                     <td className="px-5 py-4">
                       <Link
                         href={`/solicitacoes/${solicitacao.id}`}
-                        className="font-semibold text-[var(--secp-theme-accent)] underline-offset-4 hover:underline"
+                        className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold text-[var(--secp-theme-accent)] transition hover:bg-[var(--muted)]"
                       >
+                        <Eye className="size-4" aria-hidden="true" />
                         Abrir
                       </Link>
                     </td>

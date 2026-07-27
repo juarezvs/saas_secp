@@ -1,4 +1,4 @@
-import { ScrollText } from "lucide-react";
+import { ScrollText, Eye } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
@@ -178,8 +178,9 @@ export default async function AuditoriaPage({
                   <td className="px-5 py-4 text-right">
                     <a
                       href={`/auditoria/${evento.id}`}
-                      className="text-sm font-semibold text-blue-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:text-blue-300"
+                      className="inline-flex items-center justify-end gap-2 rounded-md border px-3 py-2 text-sm font-semibold text-blue-900 transition hover:bg-[var(--muted)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:text-blue-300"
                     >
+                      <Eye className="size-4" aria-hidden="true" />
                       Detalhar
                     </a>
                   </td>

@@ -1,4 +1,4 @@
-import { FileText } from "lucide-react";
+import { Eye, FileText } from "lucide-react";
 
 import { Button, Card } from "@/components/ui";
 import type { EspelhoDia } from "../data/espelho-banco-horas.mock";
@@ -14,7 +14,9 @@ export function EspelhoPontoTable({ dias }: EspelhoPontoTableProps) {
       <div className="flex flex-col justify-between gap-3 border-b border-border p-5 sm:flex-row sm:items-center">
         <div>
           <h2 className="text-lg font-semibold">Espelho de ponto mensal</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Consulta visual com dados mockados.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Consulta visual com dados mockados.
+          </p>
         </div>
         <Button
           leftIcon={<FileText className="size-4" aria-hidden="true" />}
@@ -49,17 +51,40 @@ export function EspelhoPontoTable({ dias }: EspelhoPontoTableProps) {
                 <td className="px-5 py-4">{dia.jornadaPrevista}</td>
                 <td className="px-5 py-4">
                   <div className="flex flex-wrap gap-1.5">
-                    {dia.marcacoes.length ? dia.marcacoes.map((hora) => (
-                      <span key={hora} className="rounded-sm bg-muted px-2 py-1 font-mono text-xs">{hora}</span>
-                    )) : <span className="text-muted-foreground">Sem marcação</span>}
+                    {dia.marcacoes.length ? (
+                      dia.marcacoes.map((hora) => (
+                        <span
+                          key={hora}
+                          className="rounded-sm bg-muted px-2 py-1 font-mono text-xs"
+                        >
+                          {hora}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-muted-foreground">
+                        Sem marcação
+                      </span>
+                    )}
                   </div>
                 </td>
                 <td className="px-5 py-4">{dia.resultado}</td>
-                <td className="px-5 py-4 font-mono text-secp-green-700">{dia.credito}</td>
-                <td className="px-5 py-4 font-mono text-secp-danger">{dia.debito}</td>
-                <td className="px-5 py-4"><StatusFrequenciaBadge status={dia.situacao} /></td>
+                <td className="px-5 py-4 font-mono text-secp-green-700">
+                  {dia.credito}
+                </td>
+                <td className="px-5 py-4 font-mono text-secp-danger">
+                  {dia.debito}
+                </td>
                 <td className="px-5 py-4">
-                  <Button variant="outline" size="sm">Detalhar</Button>
+                  <StatusFrequenciaBadge status={dia.situacao} />
+                </td>
+                <td className="px-5 py-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<Eye className="size-4" aria-hidden="true" />}
+                  >
+                    Detalhar
+                  </Button>
                 </td>
               </tr>
             ))}

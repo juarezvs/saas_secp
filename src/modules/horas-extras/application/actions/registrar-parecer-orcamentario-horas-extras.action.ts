@@ -48,12 +48,35 @@ function extrairDados(
   };
 }
 
-function proximaEtapa(result: RegistrarParecerOrcamentarioHorasExtrasInput["result"]) {
+function proximaEtapa(
+  result: RegistrarParecerOrcamentarioHorasExtrasInput["result"],
+) {
   if (result === "NEEDS_INFORMATION") {
     return "ANALISE_CHEFIA";
   }
 
   return "DELIBERACAO_FINAL";
+}
+
+async function proximaEtapaConfigurada(params: {
+  workflowVersionId: string;
+  fromStepCode: string;
+  result: RegistrarParecerOrcamentarioHorasExtrasInput["result"];
+}) {
+  const actionCode =
+    params.result === "NEEDS_INFORMATION" ? "RETURN" : "BUDGET_REVIEWED";
+  const transition = await prisma.overtimeWorkflowTransition.findFirst({
+    where: {
+      workflowVersionId: params.workflowVersionId,
+      fromStepCode: params.fromStepCode,
+      actionCode,
+    },
+    select: {
+      toStepCode: true,
+    },
+  });
+
+  return transition?.toStepCode ?? proximaEtapa(params.result);
 }
 
 export async function registrarParecerOrcamentarioHorasExtrasAction(
@@ -64,8 +87,7 @@ export async function registrarParecerOrcamentarioHorasExtrasAction(
     "horas-extras:responder-orcamento:global",
   );
   const dados = extrairDados(formData);
-  const parsed =
-    registrarParecerOrcamentarioHorasExtrasSchema.safeParse(dados);
+  const parsed = registrarParecerOrcamentarioHorasExtrasSchema.safeParse(dados);
 
   if (!parsed.success) {
     return {
@@ -110,7 +132,11 @@ export async function registrarParecerOrcamentarioHorasExtrasAction(
     };
   }
 
-  const nextStep = proximaEtapa(parsed.data.result);
+  const nextStep = await proximaEtapaConfigurada({
+    workflowVersionId: request.workflowVersionId,
+    fromStepCode: request.currentWorkflowStepCode,
+    result: parsed.data.result,
+  });
   const nextStatus = "IN_WORKFLOW" as const;
 
   await prisma.$transaction(async (tx) => {
@@ -194,4 +220,3 @@ export async function registrarParecerOrcamentarioHorasExtrasAction(
   revalidatePath("/gestao/horas-extras");
   redirect("/orcamento/horas-extras");
 }
-

@@ -5,6 +5,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import type { EscopoGestaoUsuarios } from "../services/escopo-gestao-usuarios.service";
+import {
+  orgaoEstaNoEscopoGestaoUsuarios,
+  resolverEscopoGestaoUsuarios,
+} from "../services/escopo-gestao-usuarios.service";
 import {
   usuarioSchema,
   type UsuarioFormState,
@@ -26,7 +31,9 @@ function extrairDadosUsuario(formData: FormData) {
   return {
     matricula: String(formData.get("matricula") ?? "").trim(),
     nome: String(formData.get("nome") ?? "").trim(),
-    email: String(formData.get("email") ?? "").trim().toLowerCase(),
+    email: String(formData.get("email") ?? "")
+      .trim()
+      .toLowerCase(),
     tipo: String(formData.get("tipo") ?? ""),
     senha: String(formData.get("senha") ?? "").trim(),
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
@@ -38,6 +45,7 @@ function extrairDadosUsuario(formData: FormData) {
 async function normalizarEscoposPerfis(
   perfis: string[],
   perfisEscopos: Record<string, string>,
+  escopoGestaoUsuarios: EscopoGestaoUsuarios,
 ) {
   const perfisSelecionados = await prisma.perfil.findMany({
     where: { id: { in: perfis } },
@@ -46,6 +54,16 @@ async function normalizarEscoposPerfis(
   const escoposNormalizados = new Map<string, string | null>();
 
   for (const perfil of perfisSelecionados) {
+    if (
+      !escopoGestaoUsuarios.permitirEscopoGlobal &&
+      perfil.codigo === "MASTER"
+    ) {
+      return {
+        erro: "Apenas o perfil ativo MASTER pode atribuir o perfil MASTER.",
+        escopos: escoposNormalizados,
+      };
+    }
+
     if (perfil.codigo === "MASTER") {
       escoposNormalizados.set(perfil.id, null);
       continue;
@@ -58,6 +76,19 @@ async function normalizarEscoposPerfis(
       };
     }
 
+    if (
+      !escopoGestaoUsuarios.permitirEscopoGlobal &&
+      !orgaoEstaNoEscopoGestaoUsuarios(
+        perfisEscopos[perfil.id],
+        escopoGestaoUsuarios,
+      )
+    ) {
+      return {
+        erro: `Selecione uma seccional permitida para o perfil ${perfil.nome}.`,
+        escopos: escoposNormalizados,
+      };
+    }
+
     escoposNormalizados.set(perfil.id, perfisEscopos[perfil.id]);
   }
 
@@ -66,10 +97,10 @@ async function normalizarEscoposPerfis(
 
 export async function criarUsuarioAction(
   _estadoAnterior: UsuarioFormState,
-  formData: FormData
+  formData: FormData,
 ): Promise<UsuarioFormState> {
   const permissao = await exigirPermissaoOuRedirecionar(
-    "usuarios:gerenciar:global"
+    "usuarios:gerenciar:global",
   );
 
   const dados = extrairDadosUsuario(formData);
@@ -107,9 +138,11 @@ export async function criarUsuarioAction(
     };
   }
 
+  const escopoGestaoUsuarios = await resolverEscopoGestaoUsuarios(permissao);
   const escoposPerfis = await normalizarEscoposPerfis(
     parsed.data.perfis,
     dados.perfisEscopos,
+    escopoGestaoUsuarios,
   );
 
   if (escoposPerfis.erro) {

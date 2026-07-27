@@ -12,12 +12,7 @@ import {
 } from "../schemas/horas-extras-deliberacao.schema";
 
 type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | JsonValue[]
-  | { [key: string]: JsonValue };
+  string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 function texto(formData: FormData, campo: string) {
   return String(formData.get(campo) ?? "").trim();
@@ -151,6 +146,24 @@ async function buscarRequest(id: string) {
   });
 }
 
+async function proximaEtapaAprovacaoConfigurada(params: {
+  workflowVersionId: string;
+  fromStepCode: string;
+}) {
+  const transition = await prisma.overtimeWorkflowTransition.findFirst({
+    where: {
+      workflowVersionId: params.workflowVersionId,
+      fromStepCode: params.fromStepCode,
+      actionCode: "APPROVE",
+    },
+    select: {
+      toStepCode: true,
+    },
+  });
+
+  return transition?.toStepCode ?? "EXECUCAO";
+}
+
 export async function registrarDeliberacaoHorasExtrasAction(
   _estadoAnterior: RegistrarDeliberacaoHorasExtrasFormState,
   formData: FormData,
@@ -171,7 +184,8 @@ export async function registrarDeliberacaoHorasExtrasAction(
   if (!permissao.usuarioId) {
     return {
       sucesso: false,
-      mensagem: "Usuario autenticado nao identificado para registrar a deliberacao.",
+      mensagem:
+        "Usuario autenticado nao identificado para registrar a deliberacao.",
       campos: parsed.data,
     };
   }
@@ -213,16 +227,24 @@ export async function registrarDeliberacaoHorasExtrasAction(
   );
   const parecer = request.budgetReviews[0];
 
-  if (!parecer || parecer.result === "NEEDS_INFORMATION") {
+  const exigeParecerOrcamentario = request.policyVersion.budgetReviewRequired;
+
+  if (
+    exigeParecerOrcamentario &&
+    (!parecer || parecer.result === "NEEDS_INFORMATION")
+  ) {
     return {
       sucesso: false,
-      mensagem: "Registre um parecer orcamentario conclusivo antes da deliberacao.",
+      mensagem:
+        "Registre um parecer orcamentario conclusivo antes da deliberacao.",
       campos: parsed.data,
     };
   }
 
   const limiteOrcamentario =
-    parecer.result === "UNAVAILABLE" ? 0 : (parecer.approvedMinutes ?? totalSolicitado);
+    parecer?.result === "UNAVAILABLE"
+      ? 0
+      : (parecer?.approvedMinutes ?? totalSolicitado);
   const aprovando =
     parsed.data.result === "APPROVED" ||
     parsed.data.result === "PARTIALLY_APPROVED";
@@ -269,13 +291,17 @@ export async function registrarDeliberacaoHorasExtrasAction(
   const diasAutorizados = aprovando
     ? calcularDiasAutorizados(request, parsed.data.approvedMinutes)
     : [];
+  const etapaAposAprovacao = await proximaEtapaAprovacaoConfigurada({
+    workflowVersionId: request.workflowVersionId,
+    fromStepCode: request.currentWorkflowStepCode,
+  });
 
   await prisma.$transaction(async (tx) => {
     const decision = await tx.overtimeFinalDecision.create({
       data: {
         requestId: request.id,
         authorityUserId: usuarioId,
-        budgetReviewId: parecer.id,
+        budgetReviewId: parecer?.id ?? null,
         result: resultadoFinal,
         justification: parsed.data.justification,
         requestedMinutes: totalSolicitado,
@@ -285,8 +311,8 @@ export async function registrarDeliberacaoHorasExtrasAction(
         policySnapshot,
         workflowSnapshot,
         metadata: {
-          budgetReviewResult: parecer.result,
-          budgetApprovedMinutes: parecer.approvedMinutes,
+          budgetReviewResult: parecer?.result ?? null,
+          budgetApprovedMinutes: parecer?.approvedMinutes ?? null,
           permissao: "horas-extras:deliberar:global",
           perfilAtivo: permissao.perfilAtivoCodigo,
         },
@@ -302,7 +328,7 @@ export async function registrarDeliberacaoHorasExtrasAction(
             ? "RETURNED"
             : "REJECTED";
     const novaEtapa = aprovando
-      ? "EXECUCAO"
+      ? etapaAposAprovacao
       : resultadoFinal === "RETURNED"
         ? "ANALISE_CHEFIA"
         : null;

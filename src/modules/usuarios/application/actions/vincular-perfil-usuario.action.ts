@@ -5,6 +5,10 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { invalidarCacheUsuarioAuthPorId } from "@/modules/auth/infrastructure/repositories/usuario-auth.repository";
 import {
+  orgaoEstaNoEscopoGestaoUsuarios,
+  resolverEscopoGestaoUsuarios,
+} from "../services/escopo-gestao-usuarios.service";
+import {
   vincularPerfilUsuarioSchema,
   type VincularPerfilUsuarioFormState,
 } from "../schemas/usuario.schema";
@@ -20,10 +24,10 @@ function extrairDados(formData: FormData) {
 
 export async function vincularPerfilUsuarioAction(
   _estadoAnterior: VincularPerfilUsuarioFormState,
-  formData: FormData
+  formData: FormData,
 ): Promise<VincularPerfilUsuarioFormState> {
   const permissao = await exigirPermissaoOuRedirecionar(
-    "usuarios:gerenciar:global"
+    "usuarios:gerenciar:global",
   );
 
   const dados = extrairDados(formData);
@@ -59,7 +63,33 @@ export async function vincularPerfilUsuarioAction(
     };
   }
 
-  const orgaoId = perfil.codigo === "MASTER" ? null : parsed.data.orgaoId || null;
+  const escopoGestaoUsuarios = await resolverEscopoGestaoUsuarios(permissao);
+
+  if (
+    !escopoGestaoUsuarios.permitirEscopoGlobal &&
+    perfil.codigo === "MASTER"
+  ) {
+    return {
+      sucesso: false,
+      mensagem: "Apenas o perfil ativo MASTER pode vincular o perfil MASTER.",
+      campos: dados,
+    };
+  }
+
+  if (
+    !escopoGestaoUsuarios.permitirEscopoGlobal &&
+    parsed.data.orgaoId &&
+    !orgaoEstaNoEscopoGestaoUsuarios(parsed.data.orgaoId, escopoGestaoUsuarios)
+  ) {
+    return {
+      sucesso: false,
+      mensagem: "Selecione uma seccional permitida para o seu perfil ativo.",
+      campos: dados,
+    };
+  }
+
+  const orgaoId =
+    perfil.codigo === "MASTER" ? null : parsed.data.orgaoId || null;
   const vinculoExistente = await buscarUsuarioPerfil({
     usuarioId: parsed.data.usuarioId,
     perfilId: parsed.data.perfilId,

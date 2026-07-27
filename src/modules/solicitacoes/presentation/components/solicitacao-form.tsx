@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { ReactNode } from "react";
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
@@ -83,6 +83,13 @@ type TipoSolicitacao = (typeof tiposSolicitacao)[number];
 
 type SolicitacaoFormProps = {
   tipoInicial?: TipoSolicitacao;
+  valoresIniciais?: CriarSolicitacaoFormState["campos"];
+  action?: (
+    state: CriarSolicitacaoFormState,
+    formData: FormData,
+  ) => Promise<CriarSolicitacaoFormState>;
+  submitLabel?: string;
+  hiddenFields?: Record<string, string>;
 };
 
 function erro(estado: CriarSolicitacaoFormState, campo: string) {
@@ -261,6 +268,24 @@ function formatarValorAusente(valor: FormDataEntryValue | null) {
   return texto || "Não informado";
 }
 
+function formatarDataPreview(valor: FormDataEntryValue | null) {
+  const texto = String(valor ?? "").trim();
+
+  if (!texto) {
+    return "Não informado";
+  }
+
+  const [data, hora] = texto.split("T");
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(data);
+
+  if (!match) {
+    return texto;
+  }
+
+  const dataFormatada = `${match[3]}/${match[2]}/${match[1]}`;
+  return hora ? `${dataFormatada} ${hora.slice(0, 5)}` : dataFormatada;
+}
+
 function rotuloMarcacao(tipo: string) {
   const rotulos: Record<string, string> = {
     ENTRADA: "Entrada",
@@ -302,14 +327,14 @@ function rotuloModalidadeCapacitacao(modalidade: string) {
 
 function montarPeriodoPreview(formData: FormData, tipo: string) {
   if (tipo === "AJUSTE_PONTO") {
-    return `Data de referência: ${formatarValorAusente(
+    return `Data de referencia: ${formatarDataPreview(
       formData.get("dataReferencia"),
     )}`;
   }
 
-  const inicio = formatarValorAusente(formData.get("dataInicio"));
-  const fim = formatarValorAusente(formData.get("dataFim"));
-  return `${inicio} até ${fim}`;
+  const inicio = formatarDataPreview(formData.get("dataInicio"));
+  const fim = formatarDataPreview(formData.get("dataFim"));
+  return `${inicio} ate ${fim}`;
 }
 
 function montarDetalhePreview(formData: FormData, tipo: string) {
@@ -415,7 +440,13 @@ function CampoAjuda({ children }: { children: ReactNode }) {
   );
 }
 
-function PreviewSolicitacao({ preview }: { preview: SolicitacaoPreview }) {
+export function PreviewSolicitacao({
+  preview,
+  titulo = "Pré-visualização",
+}: {
+  preview: SolicitacaoPreview;
+  titulo?: string;
+}) {
   const itens = [
     ["Tipo", preview.tipo],
     ["Período", preview.periodo],
@@ -428,7 +459,7 @@ function PreviewSolicitacao({ preview }: { preview: SolicitacaoPreview }) {
       <div className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
         <div className="flex items-center gap-2">
           <FileText className="size-5 text-blue-900" aria-hidden="true" />
-          <h2 className="text-base font-bold">Pré-visualização</h2>
+          <h2 className="text-base font-bold">{titulo}</h2>
         </div>
         <div className="mt-4 rounded-lg border bg-[var(--muted)] p-4">
           <p className="text-xs font-semibold uppercase text-[var(--muted-foreground)]">
@@ -528,13 +559,16 @@ function StepperSolicitacao({
   );
 }
 
-export function SolicitacaoForm({ tipoInicial }: SolicitacaoFormProps = {}) {
+export function SolicitacaoForm({
+  tipoInicial,
+  valoresIniciais,
+  action = criarSolicitacaoAction,
+  submitLabel = "Enviar solicitacao",
+  hiddenFields,
+}: SolicitacaoFormProps = {}) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [estado, formAction, pendente] = useActionState(
-    criarSolicitacaoAction,
-    estadoInicial,
-  );
-  const campos = estado.campos;
+  const [estado, formAction, pendente] = useActionState(action, estadoInicial);
+  const campos = estado.campos ?? valoresIniciais;
   const [etapaAtual, setEtapaAtual] = useState<EtapaIndice>(0);
   const [etapaMaxima, setEtapaMaxima] = useState(0);
   const [falhasEtapa, setFalhasEtapa] = useState<string[]>([]);
@@ -646,6 +680,10 @@ export function SolicitacaoForm({ tipoInicial }: SolicitacaoFormProps = {}) {
       onChange={() => atualizarPreview()}
       onInput={() => atualizarPreview()}
     >
+      {Object.entries(hiddenFields ?? {}).map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ))}
+
       <StepperSolicitacao
         etapaAtual={etapaAtual}
         setEtapaAtual={setEtapaAtual}
@@ -1211,7 +1249,7 @@ export function SolicitacaoForm({ tipoInicial }: SolicitacaoFormProps = {}) {
                 ) : (
                   <Send className="size-4" aria-hidden="true" />
                 )}
-                Enviar solicitacao
+                {submitLabel}
               </button>
             )}
           </div>
