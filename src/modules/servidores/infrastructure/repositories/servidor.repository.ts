@@ -661,10 +661,15 @@ export async function buscarNomeServidorPorUsuarioId(usuarioId: string) {
   });
 }
 
-export async function listarUnidadesAtivasParaLotacao() {
+export async function listarUnidadesAtivasParaLotacao(params?: {
+  orgaoIdsPermitidos?: string[];
+}) {
   return prisma.unidadeOrganizacional.findMany({
     where: {
       ativo: true,
+      ...(params?.orgaoIdsPermitidos?.length
+        ? { orgaoId: { in: params.orgaoIdsPermitidos } }
+        : {}),
     },
     orderBy: [
       {
@@ -683,10 +688,15 @@ export async function listarUnidadesAtivasParaLotacao() {
   });
 }
 
-export async function listarOrgaosAtivosParaServidor() {
+export async function listarOrgaosAtivosParaServidor(params?: {
+  orgaoIdsPermitidos?: string[];
+}) {
   return prisma.orgao.findMany({
     where: {
       ativo: true,
+      ...(params?.orgaoIdsPermitidos?.length
+        ? { id: { in: params.orgaoIdsPermitidos } }
+        : {}),
     },
     orderBy: {
       sigla: "asc",

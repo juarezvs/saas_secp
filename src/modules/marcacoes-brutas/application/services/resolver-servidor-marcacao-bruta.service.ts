@@ -19,9 +19,13 @@ function normalizarPis(valor: string | null | undefined) {
 
   if (!digitos) return null;
 
-  const semZeros = digitos.replace(/^0+/, "") || "0";
+  const normalizado =
+    digitos.length <= 11 ? digitos.padStart(11, "0") : digitos;
 
-  return semZeros.length >= 10 && semZeros.length <= 12 ? semZeros : null;
+  if (normalizado.length < 11 || normalizado.length > 12) return null;
+  if (/^(\d)\1+$/.test(normalizado)) return null;
+
+  return normalizado;
 }
 
 function matriculaTemPrefixo(matricula: string | null) {

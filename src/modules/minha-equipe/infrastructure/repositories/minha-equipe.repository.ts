@@ -425,7 +425,7 @@ export async function buscarMinhaEquipe(params: {
     const afastamento = afastamentoPorServidor.get(servidor.id);
     const primeiraMarcacao = marcacoesServidor[0] ?? null;
     const ultimaMarcacao =
-      marcacoesServidor.length > 0
+      marcacoesServidor.length > 1
         ? marcacoesServidor[marcacoesServidor.length - 1]
         : null;
     const temPresenca =
@@ -445,6 +445,8 @@ export async function buscarMinhaEquipe(params: {
               : "Apuração com presença",
             primeiraMarcacao && ultimaMarcacao
               ? `${formatarHora(primeiraMarcacao)} - ${formatarHora(ultimaMarcacao)}`
+              : primeiraMarcacao
+                ? `${formatarHora(primeiraMarcacao)} - aguardando saída`
               : null,
           ]
             .filter(Boolean)

@@ -7,8 +7,12 @@ import {
   formatarDataRecesso,
   formatarPeriodoRecesso,
 } from "../../application/services/recesso-forense.service";
-import { fecharRecessoForenseAction } from "../../application/actions/recesso-forense.actions";
+import {
+  excluirRecessoForenseAction,
+  fecharRecessoForenseAction,
+} from "../../application/actions/recesso-forense.actions";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
+import { ExcluirRecessoForenseButton } from "./excluir-recesso-forense-button";
 import { RecessoStatusBadge } from "./recesso-status-badge";
 
 type RecessoDetalheProps = {
@@ -166,6 +170,13 @@ export function RecessoDetalhe({
                   Fechar recesso
                 </button>
               </form>
+            )}
+            {podeGerenciarRecesso && (
+              <ExcluirRecessoForenseButton
+                action={excluirRecessoForenseAction}
+                recessoId={recesso.id}
+                ano={recesso.ano}
+              />
             )}
           </div>
         }

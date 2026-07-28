@@ -41,11 +41,15 @@ export function normalizarPis(
   if (pis === null || pis === undefined) return null;
   const somenteDigitos = String(pis).replace(/\D/g, "");
   if (!somenteDigitos) return null;
-  const normalizado = somenteDigitos.replace(/^0+/, "") || "0";
+  const normalizado =
+    somenteDigitos.length <= 11
+      ? somenteDigitos.padStart(11, "0")
+      : somenteDigitos;
 
-  return normalizado.length >= 10 && normalizado.length <= 12
-    ? normalizado
-    : null;
+  if (normalizado.length < 11 || normalizado.length > 12) return null;
+  if (/^(\d)\1+$/.test(normalizado)) return null;
+
+  return normalizado;
 }
 
 export function obterCpfServidorSarh(payload: SarhServidorDto): string | null {

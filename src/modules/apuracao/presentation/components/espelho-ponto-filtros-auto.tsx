@@ -1,7 +1,7 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 
 import { CompetenciaInput, SearchableSelect } from "@/components/ui";
 
@@ -35,19 +35,17 @@ export function EspelhoPontoFiltrosAuto({
   className = "grid gap-4 md:grid-cols-[220px_minmax(0,1fr)] md:items-end",
 }: EspelhoPontoFiltrosAutoProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const searchParamsKey = useMemo(
     () => searchParams.toString(),
     [searchParams],
   );
-  const [navegando, setNavegando] = useState(false);
-
-  useEffect(() => {
-    const timeout = window.setTimeout(() => setNavegando(false), 0);
-
-    return () => window.clearTimeout(timeout);
-  }, [pathname, searchParamsKey]);
+  const [destinoPendente, setDestinoPendente] = useState<string | null>(null);
+  const urlAtual = useMemo(
+    () => (searchParamsKey ? `${pathname}?${searchParamsKey}` : pathname),
+    [pathname, searchParamsKey],
+  );
+  const navegando = Boolean(destinoPendente);
 
   function atualizarFiltros(novosFiltros: {
     competencia?: string;
@@ -69,14 +67,15 @@ export function EspelhoPontoFiltrosAuto({
       }
     }
 
-    const destino = `${pathname}?${query.toString()}`;
+    const queryString = query.toString();
+    const destino = queryString ? `${pathname}?${queryString}` : pathname;
 
-    if (destino === `${pathname}?${searchParamsKey}`) {
+    if (destino === urlAtual) {
       return;
     }
 
-    setNavegando(true);
-    router.push(destino);
+    setDestinoPendente(destino);
+    window.location.assign(destino);
   }
 
   function aoTrocarCompetencia(novaCompetencia: string) {

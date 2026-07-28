@@ -58,6 +58,19 @@ function minutosDisponiveis(autorizacao: AutorizacaoDisponivel) {
   return Math.max(0, autorizacao.minutosAutorizados - utilizados);
 }
 
+function minutosCreditoRegulamentarBase(apuracao: {
+  cargaPrevistaMinutos: number;
+  minutosTrabalhados: number;
+  minutosCredito: number;
+}) {
+  const excedenteReal = Math.max(
+    0,
+    apuracao.minutosTrabalhados - apuracao.cargaPrevistaMinutos,
+  );
+
+  return Math.min(Math.max(0, apuracao.minutosCredito), excedenteReal);
+}
+
 function hojeNoFuso(fusoHorario?: string | null) {
   const partes = new Intl.DateTimeFormat("en-CA", {
     timeZone: normalizarFusoHorario(fusoHorario),
@@ -352,7 +365,7 @@ export async function regerarBancoHorasMesService({
 
       const minutosCreditoPendentes = Math.max(
         0,
-        apuracao.minutosCredito -
+        minutosCreditoRegulamentarBase(apuracao) -
           (creditosValidadosPorApuracao.get(apuracao.id) ?? 0),
       );
       const minutosDebitoPendentes = Math.max(
@@ -380,6 +393,10 @@ export async function regerarBancoHorasMesService({
           });
 
           if (classificacaoBancoHoras.minutosComputaveis <= 0) {
+            if (classificacaoBancoHoras.minutosNaoComputaveis <= 0) {
+              continue;
+            }
+
             await tx.movimentoBancoHoras.create({
               data: {
                 servidorId,
@@ -517,6 +534,10 @@ export async function regerarBancoHorasMesService({
           });
 
           if (classificacaoBancoHoras.minutosComputaveis <= 0) {
+            if (classificacaoBancoHoras.minutosNaoComputaveis <= 0) {
+              continue;
+            }
+
             await tx.movimentoBancoHoras.create({
               data: {
                 servidorId,
@@ -663,6 +684,8 @@ export async function regerarBancoHorasMesService({
             temAutorizacaoPrevia: false,
           });
 
+          if (classificacaoBancoHoras.minutosNaoComputaveis > 0) {
+
           await tx.movimentoBancoHoras.create({
             data: {
               servidorId,
@@ -673,7 +696,7 @@ export async function regerarBancoHorasMesService({
               dataReferencia: apuracao.dataReferencia,
               mesReferencia,
               anoReferencia,
-              minutos: credito.minutosSemAutorizacao,
+              minutos: classificacaoBancoHoras.minutosNaoComputaveis,
               descricao:
                 "Horas excedentes sem autorização prévia da chefia. Não computadas no saldo do banco de horas.",
               metadados: metadadosClassificacaoBancoHoras({
@@ -687,6 +710,7 @@ export async function regerarBancoHorasMesService({
           });
 
           movimentosCriados++;
+          }
         }
       }
 

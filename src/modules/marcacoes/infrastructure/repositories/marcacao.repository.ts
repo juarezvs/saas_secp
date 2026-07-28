@@ -158,6 +158,7 @@ export async function listarHistoricoMarcacoesDoUsuario(params: {
     return {
       servidor: null,
       marcacoes: [],
+      apuracoes: [],
     };
   }
 
@@ -171,30 +172,44 @@ export async function listarHistoricoMarcacoesDoUsuario(params: {
     params.anoReferencia && params.mesReferencia
       ? new Date(Date.UTC(params.anoReferencia, params.mesReferencia, 1))
       : null;
-  const marcacoes = await prisma.marcacao.findMany({
-    take: inicioCompetencia ? undefined : (params.limite ?? 100),
-    where: {
-      servidorId: servidor.id,
-      dataReferencia: inicioCompetencia
-        ? {
-            gte: inicioCompetencia,
-            lt: fimCompetencia!,
-          }
-        : {
-            lt: dataReferenciaHoje,
-          },
-      status: {
-        in: ["VALIDA", "PENDENTE"],
+  const whereDataReferencia = inicioCompetencia
+    ? {
+        gte: inicioCompetencia,
+        lt: fimCompetencia!,
+      }
+    : {
+        lt: dataReferenciaHoje,
+      };
+  const [marcacoes, apuracoes] = await Promise.all([
+    prisma.marcacao.findMany({
+      take: inicioCompetencia ? undefined : (params.limite ?? 100),
+      where: {
+        servidorId: servidor.id,
+        dataReferencia: whereDataReferencia,
+        status: {
+          in: ["VALIDA", "PENDENTE"],
+        },
       },
-    },
-    orderBy: {
-      dataHora: "desc",
-    },
-  });
+      orderBy: {
+        dataHora: "desc",
+      },
+    }),
+    prisma.apuracaoDiaria.findMany({
+      where: {
+        servidorId: servidor.id,
+        dataReferencia: whereDataReferencia,
+      },
+      select: {
+        dataReferencia: true,
+        metadados: true,
+      },
+    }),
+  ]);
 
   return {
     servidor,
     marcacoes,
+    apuracoes,
   };
 }
 

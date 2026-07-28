@@ -905,8 +905,11 @@ export function SolicitacaoForm({
                     <select
                       id="tipoMarcacao"
                       name="tipoMarcacao"
-                      value={tipoMarcacao}
-                      onChange={(event) => setTipoMarcacao(event.target.value)}
+                      defaultValue={tipoMarcacao}
+                      onChange={(event) => {
+                        setTipoMarcacao(event.currentTarget.value);
+                        window.requestAnimationFrame(() => atualizarPreview());
+                      }}
                       className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
                     >
                       <option value="">Selecione</option>
@@ -966,10 +969,13 @@ export function SolicitacaoForm({
                       <select
                         id="tipoCompensacao"
                         name="tipoCompensacao"
-                        value={tipoCompensacao}
-                        onChange={(event) =>
-                          setTipoCompensacao(event.target.value)
-                        }
+                        defaultValue={tipoCompensacao}
+                        onChange={(event) => {
+                          setTipoCompensacao(event.currentTarget.value);
+                          window.requestAnimationFrame(() =>
+                            atualizarPreview(),
+                          );
+                        }}
                         className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
                       >
                         {tiposCompensacaoBancoHoras.map((tipo) => (
@@ -1041,12 +1047,16 @@ export function SolicitacaoForm({
                       <select
                         id="regimeTrabalhoRemotoTipo"
                         name="regimeTrabalhoRemotoTipo"
-                        value={regimeRemoto}
+                        defaultValue={regimeRemoto}
                         onChange={(event) => {
-                          setRegimeRemoto(event.target.value);
-                          if (event.target.value !== "HIBRIDO") {
+                          const novoRegime = event.currentTarget.value;
+                          setRegimeRemoto(novoRegime);
+                          if (novoRegime !== "HIBRIDO") {
                             setDiasRemotos([]);
                           }
+                          window.requestAnimationFrame(() =>
+                            atualizarPreview(),
+                          );
                         }}
                         className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
                       >
@@ -1120,10 +1130,13 @@ export function SolicitacaoForm({
                       <select
                         id="modalidadeCapacitacao"
                         name="modalidadeCapacitacao"
-                        value={modalidadeCapacitacao}
-                        onChange={(event) =>
-                          setModalidadeCapacitacao(event.target.value)
-                        }
+                        defaultValue={modalidadeCapacitacao}
+                        onChange={(event) => {
+                          setModalidadeCapacitacao(event.currentTarget.value);
+                          window.requestAnimationFrame(() =>
+                            atualizarPreview(),
+                          );
+                        }}
                         className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
                       >
                         {modalidadesCapacitacao.map((modalidade) => (

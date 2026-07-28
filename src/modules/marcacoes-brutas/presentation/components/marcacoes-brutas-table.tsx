@@ -127,6 +127,29 @@ function cpfExibicao(item: MarcacaoBrutaItem) {
   return normalizarCpf(item.cpf) ?? extrairCpfDePayload(item.payloadOriginal);
 }
 
+function objetoPayload(valor: unknown): Record<string, unknown> | null {
+  return valor && typeof valor === "object" && !Array.isArray(valor)
+    ? (valor as Record<string, unknown>)
+    : null;
+}
+
+function origemWebDoPayload(valor: unknown) {
+  const payload = objetoPayload(valor);
+  const origem = objetoPayload(payload?.equipamentoOrigem);
+
+  if (!origem) {
+    return null;
+  }
+
+  return {
+    nome: typeof origem.nome === "string" ? origem.nome : null,
+    ip: typeof origem.ip === "string" ? origem.ip : null,
+    nomeMaquina:
+      typeof origem.nomeMaquina === "string" ? origem.nomeMaquina : null,
+    userAgent: typeof origem.userAgent === "string" ? origem.userAgent : null,
+  };
+}
+
 export function MarcacoesBrutasTable({
   marcacoes,
 }: {
@@ -159,6 +182,7 @@ export function MarcacoesBrutasTable({
           <tbody>
             {marcacoes.map((item) => {
               const cpf = cpfExibicao(item);
+              const origemWeb = origemWebDoPayload(item.payloadOriginal);
 
               return (
               <tr key={item.id} className="border-b last:border-b-0">
@@ -214,7 +238,26 @@ export function MarcacoesBrutasTable({
                       )}
                     </div>
                   ) : (
-                    item.equipamentoCodigo ?? "-"
+                    <div className="space-y-1">
+                      <div className="font-semibold">
+                        {item.equipamentoCodigo ?? origemWeb?.nome ?? "-"}
+                      </div>
+                      {origemWeb?.ip ? (
+                        <div className="font-sans text-[var(--muted-foreground)]">
+                          IP: {origemWeb.ip}
+                        </div>
+                      ) : null}
+                      {origemWeb?.nomeMaquina ? (
+                        <div className="font-sans text-[var(--muted-foreground)]">
+                          Máquina: {origemWeb.nomeMaquina}
+                        </div>
+                      ) : null}
+                      {origemWeb?.userAgent ? (
+                        <div className="max-w-56 truncate font-sans text-[var(--muted-foreground)]">
+                          {origemWeb.userAgent}
+                        </div>
+                      ) : null}
+                    </div>
                   )}
                 </td>
 

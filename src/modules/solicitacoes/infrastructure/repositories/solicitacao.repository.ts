@@ -1,9 +1,15 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
-import type { Prisma } from "@/generated/prisma/client";
+import type { Prisma, TipoSolicitacao } from "@/generated/prisma/client";
 import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 
 type FiltrosSolicitacao = {
   servidor?: string;
+  tipo?: string;
+};
+
+type PaginacaoSolicitacaoParams = {
+  pagina?: number;
+  itensPorPagina?: number;
 };
 
 const includeSolicitacaoListagem = {
@@ -139,18 +145,70 @@ function filtroServidorSolicitacao(
   };
 }
 
+function filtroTipoSolicitacao(
+  tipo?: string,
+): Prisma.SolicitacaoWhereInput | undefined {
+  const valor = tipo?.trim();
+
+  if (!valor) {
+    return undefined;
+  }
+
+  return {
+    tipo: valor as TipoSolicitacao,
+  };
+}
+
 function aplicarFiltrosSolicitacao(
   where: Prisma.SolicitacaoWhereInput,
   filtros?: FiltrosSolicitacao,
 ): Prisma.SolicitacaoWhereInput {
   const filtroServidor = filtroServidorSolicitacao(filtros?.servidor);
+  const filtroTipo = filtroTipoSolicitacao(filtros?.tipo);
+  const filtrosAtivos = [filtroServidor, filtroTipo].filter(
+    (filtro): filtro is Prisma.SolicitacaoWhereInput => Boolean(filtro),
+  );
 
-  if (!filtroServidor) {
+  if (filtrosAtivos.length === 0) {
     return where;
   }
 
   return {
-    AND: [where, filtroServidor],
+    AND: [where, ...filtrosAtivos],
+  };
+}
+
+async function listarSolicitacoesPaginadas(
+  where: Prisma.SolicitacaoWhereInput,
+  filtros?: FiltrosSolicitacao,
+  paginacao?: PaginacaoSolicitacaoParams,
+) {
+  const pagina = Math.max(Number(paginacao?.pagina ?? 1), 1);
+  const itensPorPagina = Math.min(
+    Math.max(Number(paginacao?.itensPorPagina ?? 10), 5),
+    100,
+  );
+  const whereFinal = aplicarFiltrosSolicitacao(where, filtros);
+
+  const [total, solicitacoes] = await Promise.all([
+    prisma.solicitacao.count({ where: whereFinal }),
+    prisma.solicitacao.findMany({
+      where: whereFinal,
+      include: includeSolicitacaoListagem,
+      orderBy: {
+        criadoEm: "desc",
+      },
+      skip: (pagina - 1) * itensPorPagina,
+      take: itensPorPagina,
+    }),
+  ]);
+
+  return {
+    solicitacoes,
+    total,
+    pagina,
+    itensPorPagina,
+    totalPaginas: Math.max(Math.ceil(total / itensPorPagina), 1),
   };
 }
 
@@ -216,6 +274,18 @@ export async function listarSolicitacoesDoUsuario(
   });
 }
 
+export async function listarSolicitacoesDoUsuarioPaginado(
+  usuarioId: string,
+  filtros?: FiltrosSolicitacao,
+  paginacao?: PaginacaoSolicitacaoParams,
+) {
+  return listarSolicitacoesPaginadas(
+    whereSolicitacoesDoUsuario(usuarioId),
+    filtros,
+    paginacao,
+  );
+}
+
 export async function listarSolicitacoesParaChefia(
   usuarioId: string,
   filtros?: FiltrosSolicitacao,
@@ -231,6 +301,16 @@ export async function listarSolicitacoesParaChefia(
   });
 }
 
+export async function listarSolicitacoesParaChefiaPaginado(
+  usuarioId: string,
+  filtros?: FiltrosSolicitacao,
+  paginacao?: PaginacaoSolicitacaoParams,
+) {
+  const whereChefia = await whereSolicitacoesParaChefia(usuarioId);
+
+  return listarSolicitacoesPaginadas(whereChefia, filtros, paginacao);
+}
+
 export async function listarSolicitacoesGlobais(filtros?: FiltrosSolicitacao) {
   return prisma.solicitacao.findMany({
     where: aplicarFiltrosSolicitacao({}, filtros),
@@ -240,6 +320,13 @@ export async function listarSolicitacoesGlobais(filtros?: FiltrosSolicitacao) {
     },
     take: 100,
   });
+}
+
+export async function listarSolicitacoesGlobaisPaginado(
+  filtros?: FiltrosSolicitacao,
+  paginacao?: PaginacaoSolicitacaoParams,
+) {
+  return listarSolicitacoesPaginadas({}, filtros, paginacao);
 }
 
 async function listarServidoresParaFiltroSolicitacoes(

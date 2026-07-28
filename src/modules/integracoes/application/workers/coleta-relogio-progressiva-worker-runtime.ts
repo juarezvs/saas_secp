@@ -14,6 +14,13 @@ function somenteDigitos(valor: string | null | undefined) {
   return (valor ?? "").replace(/\D/g, "");
 }
 
+function normalizarDataPeriodo(valor: string | null | undefined) {
+  if (!valor) return null;
+  const data = new Date(valor);
+
+  return Number.isNaN(data.getTime()) ? null : data;
+}
+
 async function buscarServidorParaColeta(busca: string) {
   const texto = busca.trim();
   const digitos = somenteDigitos(texto);
@@ -23,7 +30,10 @@ async function buscarServidorParaColeta(busca: string) {
       ativo: true,
       OR: [
         digitos ? { cpf: digitos } : undefined,
-        texto ? { matricula: { equals: texto, mode: "insensitive" } } : undefined,
+        digitos ? { pis: digitos } : undefined,
+        texto
+          ? { matricula: { equals: texto, mode: "insensitive" } }
+          : undefined,
         digitos ? { usuario: { cpf: digitos } } : undefined,
         texto
           ? { usuario: { matricula: { equals: texto, mode: "insensitive" } } }
@@ -35,6 +45,7 @@ async function buscarServidorParaColeta(busca: string) {
       nomeFuncional: true,
       nomeCompletoSarh: true,
       cpf: true,
+      pis: true,
       matricula: true,
       usuario: {
         select: {
@@ -48,6 +59,10 @@ async function buscarServidorParaColeta(busca: string) {
 
 function criarFiltroServidor(
   servidor: Awaited<ReturnType<typeof buscarServidorParaColeta>>,
+  periodo?: {
+    dataInicio?: Date | null;
+    dataFim?: Date | null;
+  },
 ) {
   const cpfs = new Set(
     [servidor?.cpf, servidor?.usuario?.cpf].map(somenteDigitos).filter(Boolean),
@@ -57,16 +72,26 @@ function criarFiltroServidor(
       .map((item) => item?.trim().toLowerCase())
       .filter((item): item is string => Boolean(item)),
   );
+  const pises = new Set([servidor?.pis].map(somenteDigitos).filter(Boolean));
 
   return (marcacao: MarcacaoRelogioPonto) => {
-    const cpf = somenteDigitos(marcacao.cpf);
-    const matricula = marcacao.matricula?.trim().toLowerCase();
-
-    if (cpf) {
-      return cpfs.has(cpf);
+    if (periodo?.dataInicio && marcacao.dataHora < periodo.dataInicio) {
+      return false;
     }
 
-    return Boolean(matricula && matriculas.has(matricula));
+    if (periodo?.dataFim && marcacao.dataHora > periodo.dataFim) {
+      return false;
+    }
+
+    const cpf = somenteDigitos(marcacao.cpf);
+    const pis = somenteDigitos(marcacao.pis);
+    const matricula = marcacao.matricula?.trim().toLowerCase();
+
+    return Boolean(
+      (cpf && cpfs.has(cpf)) ||
+      (pis && pises.has(pis)) ||
+      (matricula && matriculas.has(matricula)),
+    );
   };
 }
 
@@ -75,38 +100,45 @@ function coletaAutomaticaHabilitada() {
 }
 
 function fabricanteNormalizado(valor: string | null) {
-  return valor?.trim().toUpperCase().replace(/[\s-]+/g, "_") ?? "";
+  return (
+    valor
+      ?.trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, "_") ?? ""
+  );
 }
 
 async function listarEquipamentosParaColetaAutomatica() {
   const incluirHenry =
     process.env.COLETA_RELOGIO_AUTOMATICA_INCLUIR_HENRY === "true";
 
-  return prisma.equipamentoBiometrico.findMany({
-    where: {
-      ativo: true,
-      ip: { not: null },
-    },
-    select: {
-      id: true,
-      codigo: true,
-      fabricante: true,
-      ip: true,
-    },
-    orderBy: {
-      codigo: "asc",
-    },
-  }).then((equipamentos) =>
-    equipamentos.filter((equipamento) => {
-      const fabricante = fabricanteNormalizado(equipamento.fabricante);
+  return prisma.equipamentoBiometrico
+    .findMany({
+      where: {
+        ativo: true,
+        ip: { not: null },
+      },
+      select: {
+        id: true,
+        codigo: true,
+        fabricante: true,
+        ip: true,
+      },
+      orderBy: {
+        codigo: "asc",
+      },
+    })
+    .then((equipamentos) =>
+      equipamentos.filter((equipamento) => {
+        const fabricante = fabricanteNormalizado(equipamento.fabricante);
 
-      if (!incluirHenry && fabricante === "HENRY") {
-        return false;
-      }
+        if (!incluirHenry && fabricante === "HENRY") {
+          return false;
+        }
 
-      return Boolean(fabricante);
-    }),
-  );
+        return Boolean(fabricante);
+      }),
+    );
 }
 
 export function iniciarAgendadorColetaRelogioPeriodica() {
@@ -213,8 +245,15 @@ async function processarColetaRelogio(
       : null;
 
   if (job.data.modo === "SERVIDOR" && !servidor) {
-    throw new Error("Servidor nao encontrado para o CPF ou matricula informada.");
+    throw new Error(
+      "Servidor nao encontrado para o CPF ou matricula informada.",
+    );
   }
+
+  const periodo = {
+    dataInicio: normalizarDataPeriodo(job.data.dataInicio),
+    dataFim: normalizarDataPeriodo(job.data.dataFim),
+  };
 
   const resultado = await capturarTodasMarcacoesRelogioPontoService({
     equipamentoId: job.data.equipamentoId,
@@ -224,7 +263,9 @@ async function processarColetaRelogio(
     reprocessarAoFinal: job.data.reprocessarAoFinal,
     usuarioIdAuditoria: job.data.usuarioIdAuditoria,
     atualizarCursor: job.data.modo === "TODAS",
-    filtroMarcacao: servidor ? criarFiltroServidor(servidor) : undefined,
+    filtroMarcacao: servidor
+      ? criarFiltroServidor(servidor, periodo)
+      : undefined,
     onProgress: async (progresso) => {
       await job.updateProgress(progresso);
     },
@@ -260,7 +301,10 @@ export function criarColetaRelogioProgressivaWorker() {
     processarColetaRelogio,
     {
       connection: coletaRelogioProgressivaConnection,
-      concurrency: Math.max(Number(process.env.COLETA_RELOGIO_CONCURRENCY ?? "1"), 1),
+      concurrency: Math.max(
+        Number(process.env.COLETA_RELOGIO_CONCURRENCY ?? "1"),
+        1,
+      ),
     },
   );
 }

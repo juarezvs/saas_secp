@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarFusosHorariosAtivos } from "@/modules/fusos-horarios/infrastructure/repositories/fuso-horario.repository";
 import { atualizarUnidadeAction } from "@/modules/unidades/application/actions/atualizar-unidade.action";
@@ -23,11 +24,17 @@ export default async function EditarUnidadePage({
   await exigirPermissaoOuRedirecionar("unidades:gerenciar:global");
 
   const { id } = await params;
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const orgaoIdsPermitidos = escopoOrgao.global
+    ? undefined
+    : escopoOrgao.orgaoIds.length
+      ? escopoOrgao.orgaoIds
+      : ["00000000-0000-4000-8000-000000000000"];
 
   const [unidade, orgaos, unidades, fusosHorarios] = await Promise.all([
     buscarUnidadePorId(id),
-    listarOrgaosAtivos(),
-    listarUnidadesParaSelecao(),
+    listarOrgaosAtivos({ orgaoIdsPermitidos }),
+    listarUnidadesParaSelecao({ orgaoIdsPermitidos }),
     listarFusosHorariosAtivos(),
   ]);
 

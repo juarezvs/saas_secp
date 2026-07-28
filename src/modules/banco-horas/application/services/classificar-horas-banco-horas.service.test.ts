@@ -44,6 +44,23 @@ describe("classificarHorasCreditoBancoHoras", () => {
     expect(resultado.codigoFundamento).toBe("SEM_AUTORIZACAO_PREVIA");
   });
 
+  it("nao gera horas extras quando a jornada prevista nao foi cumprida", () => {
+    const resultado = classificarHorasCreditoBancoHoras({
+      apuracao: {
+        cargaPrevistaMinutos: 480,
+        minutosTrabalhados: 420,
+        minutosIntervalo: 60,
+        minutosCredito: 60,
+      },
+      classificacaoDia: classificacao("UTIL"),
+      regulamentacao,
+      temAutorizacaoPrevia: true,
+    });
+
+    expect(resultado.minutosComputaveis).toBe(0);
+    expect(resultado.minutosNaoComputaveis).toBe(0);
+  });
+
   it("para jornada de 7h computa apenas o que excede a oitava hora", () => {
     const resultado = classificarHorasCreditoBancoHoras({
       apuracao: {

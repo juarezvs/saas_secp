@@ -66,6 +66,14 @@ const etapasOrdinarias: MarcacaoEtapaConfig[] = [
   },
 ];
 
+const etapasSemIntervalo: MarcacaoEtapaConfig[] = [
+  etapasOrdinarias[0],
+  {
+    ...etapasOrdinarias[3],
+    subtitulo: "Encerramento da jornada",
+  },
+];
+
 const tiposExtras: Record<string, { icon: LucideIcon; className: string }> = {
   MANUAL: {
     icon: Wrench,
@@ -117,13 +125,18 @@ function primeiraMarcacaoPorTipo(
 export function MarcacoesStepper({
   marcacoes,
   vazioTexto = "Nenhuma marcação registrada.",
+  variante = "cards",
+  exigeIntervalo = true,
 }: {
   marcacoes: MarcacaoStepperItem[];
   vazioTexto?: string;
+  variante?: "cards" | "minimalista";
+  exigeIntervalo?: boolean;
 }) {
+  const etapas = exigeIntervalo ? etapasOrdinarias : etapasSemIntervalo;
   const extras = ordenarMarcacoes(marcacoes).filter(
     (marcacao) =>
-      !etapasOrdinarias.some((etapa) => etapa.tipo === marcacao.tipo),
+      !etapas.some((etapa) => etapa.tipo === marcacao.tipo),
   );
 
   if (marcacoes.length === 0) {
@@ -134,11 +147,25 @@ export function MarcacoesStepper({
     );
   }
 
+  if (variante === "minimalista") {
+    return (
+      <MarcacoesStepperMinimalista
+        marcacoes={marcacoes}
+        extras={extras}
+        etapas={etapas}
+      />
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="overflow-x-auto pb-1">
-        <ol className="grid min-w-[58rem] grid-cols-4 gap-0">
-          {etapasOrdinarias.map((etapa, indice) => {
+        <ol
+          className={`grid gap-0 ${
+            exigeIntervalo ? "min-w-[58rem] grid-cols-4" : "min-w-[28rem] grid-cols-2"
+          }`}
+        >
+          {etapas.map((etapa, indice) => {
             const marcacao = primeiraMarcacaoPorTipo(marcacoes, etapa.tipo);
 
             return (
@@ -147,6 +174,7 @@ export function MarcacoesStepper({
                 etapa={etapa}
                 marcacao={marcacao}
                 indice={indice}
+                total={etapas.length}
               />
             );
           })}
@@ -164,14 +192,117 @@ export function MarcacoesStepper({
   );
 }
 
-function MarcacaoStepperEtapa({
+function MarcacoesStepperMinimalista({
+  marcacoes,
+  extras,
+  etapas,
+}: {
+  marcacoes: MarcacaoStepperItem[];
+  extras: MarcacaoStepperItem[];
+  etapas: MarcacaoEtapaConfig[];
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto pb-2">
+        <ol
+          className={`grid ${
+            etapas.length === 4 ? "min-w-[42rem] grid-cols-4" : "min-w-[22rem] grid-cols-2"
+          }`}
+        >
+          {etapas.map((etapa, indice) => {
+            const marcacao = primeiraMarcacaoPorTipo(marcacoes, etapa.tipo);
+
+            return (
+              <MarcacaoStepperEtapaMinimalista
+                key={etapa.tipo}
+                etapa={etapa}
+                marcacao={marcacao}
+                indice={indice}
+                total={etapas.length}
+              />
+            );
+          })}
+        </ol>
+      </div>
+
+      {extras.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {extras.map((marcacao) => (
+            <MarcacaoExtra key={marcacao.id} marcacao={marcacao} />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function MarcacaoStepperEtapaMinimalista({
   etapa,
   marcacao,
   indice,
+  total,
 }: {
   etapa: MarcacaoEtapaConfig;
   marcacao?: MarcacaoStepperItem;
   indice: number;
+  total: number;
+}) {
+  const Icon = etapa.icon;
+  const registrada = marcacao && statusEhRegistrado(marcacao.status);
+  const invalida = marcacao && !statusEhRegistrado(marcacao.status);
+  const estadoClasse = invalida
+    ? "border-red-300 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
+    : registrada
+      ? etapa.className
+      : "border-slate-300 bg-[var(--card)] text-slate-500 dark:border-slate-700 dark:text-slate-400";
+
+  return (
+    <li className="relative px-2 text-center">
+      {indice < total - 1 ? (
+        <div className="absolute left-1/2 right-[-50%] top-5 h-px bg-border" />
+      ) : null}
+
+      <div className="relative z-10 mx-auto flex size-10 items-center justify-center rounded-full border bg-[var(--card)] shadow-sm">
+        <span
+          className={`flex size-8 items-center justify-center rounded-full border ${estadoClasse}`}
+        >
+          <Icon className="size-4" aria-hidden="true" />
+        </span>
+      </div>
+
+      <div className="mx-auto mt-2 max-w-[10rem]">
+        <p className="truncate text-xs font-bold text-foreground">
+          {etapa.titulo}
+        </p>
+        <p className="mt-0.5 font-mono text-sm font-black tracking-normal">
+          {marcacao
+            ? formatarHoraMarcacao(marcacao.dataHora, marcacao.fusoHorario)
+            : "--:--"}
+        </p>
+        <div className="mt-1 flex justify-center">
+          {marcacao ? (
+            <OrigemMarcacaoIcon origem={marcacao.fonte} compacta />
+          ) : (
+            <span className="text-[11px] font-semibold text-muted-foreground">
+              Aguardando
+            </span>
+          )}
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function MarcacaoStepperEtapa({
+  etapa,
+  marcacao,
+  indice,
+  total,
+}: {
+  etapa: MarcacaoEtapaConfig;
+  marcacao?: MarcacaoStepperItem;
+  indice: number;
+  total: number;
 }) {
   const Icon = etapa.icon;
   const invalida = marcacao && !statusEhRegistrado(marcacao.status);
@@ -183,7 +314,7 @@ function MarcacaoStepperEtapa({
 
   return (
     <li className="relative px-2 first:pl-0 last:pr-0">
-      {indice < etapasOrdinarias.length - 1 ? (
+      {indice < total - 1 ? (
         <div className="absolute left-[calc(50%+2.25rem)] right-0 top-8 h-px bg-border" />
       ) : null}
 

@@ -1,7 +1,9 @@
 "use server";
 
 import crypto from "node:crypto";
+import { reverse } from "node:dns/promises";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { auth } from "@/auth";
 import { validarAssinaturaDocumento } from "@/modules/documentos-autenticacao/application/services/validar-assinatura-documento.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
@@ -11,7 +13,33 @@ import { processarMarcacaoBrutaService } from "../services/processar-marcacao-br
 type RegistrarMarcacaoWebActionState = {
   erro?: string | null;
   sucesso?: string | null;
+  marcacaoId?: string | null;
 };
+
+function primeiroValorCabecalho(valor: string | null) {
+  return valor?.split(",")[0]?.trim() || null;
+}
+
+function normalizarIp(valor: string | null) {
+  if (!valor) {
+    return null;
+  }
+
+  return valor.replace(/^::ffff:/, "").trim() || null;
+}
+
+async function resolverNomeMaquinaPorIp(ip: string | null) {
+  if (!ip) {
+    return null;
+  }
+
+  try {
+    const nomes = await reverse(ip);
+    return nomes[0] ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export async function registrarMarcacaoWebAutorizadaAction(
   _state: RegistrarMarcacaoWebActionState,
@@ -61,16 +89,34 @@ export async function registrarMarcacaoWebAutorizadaAction(
     return { erro: "Servidor ativo não localizado para o usuário atual." };
   }
 
+  const requestHeaders = await headers();
+  const ipOrigem = normalizarIp(
+    primeiroValorCabecalho(requestHeaders.get("x-forwarded-for")) ??
+      requestHeaders.get("x-real-ip") ??
+      requestHeaders.get("cf-connecting-ip"),
+  );
+  const nomeMaquina = await resolverNomeMaquinaPorIp(ipOrigem);
+  const userAgent = requestHeaders.get("user-agent");
+
   const resultado = await criarMarcacaoBrutaService({
     matricula: servidor.matricula,
     cpf: servidor.cpf ?? null,
     dataHora: new Date(),
     origem: "WEB_AUTORIZADO",
+    equipamentoCodigo: "SISTEMA_WEB",
     codigoExterno: crypto.randomUUID(),
     payloadOriginal: {
       usuarioId: session.user.id,
       origem: "WEB_AUTORIZADO",
-      userAgent: "SECP_WEB",
+      equipamentoOrigem: {
+        tipo: "SISTEMA_WEB",
+        codigo: "SISTEMA_WEB",
+        nome: "Sistema Web SECP",
+        ip: ipOrigem,
+        nomeMaquina,
+        userAgent,
+        capturadoEm: new Date().toISOString(),
+      },
       assinatura: {
         usuarioId: assinatura.usuarioId,
         matricula: assinatura.matricula,
@@ -80,7 +126,7 @@ export async function registrarMarcacaoWebAutorizadaAction(
     },
   });
 
-  await processarMarcacaoBrutaService({
+  const processamento = await processarMarcacaoBrutaService({
     marcacaoBrutaId: resultado.marcacaoBruta.id,
     usuarioIdAuditoria: session.user.id,
   });
@@ -90,5 +136,8 @@ export async function registrarMarcacaoWebAutorizadaAction(
   revalidatePath("/espelho-ponto");
   revalidatePath("/banco-horas");
 
-  return { sucesso: "Marcação assinada e registrada com sucesso." };
+  return {
+    sucesso: "Marcação assinada e registrada com sucesso.",
+    marcacaoId: processamento.marcacaoId ?? null,
+  };
 }

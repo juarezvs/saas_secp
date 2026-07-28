@@ -947,3 +947,50 @@ export async function fecharRecessoForenseAction(formData: FormData) {
   revalidatePath("/recesso-forense");
   revalidatePath(`/recesso-forense/${recesso.id}`);
 }
+
+export async function excluirRecessoForenseAction(formData: FormData) {
+  const permissao = await exigirUmaDasPermissoesOuRedirecionar([
+    "recesso:excluir:global",
+    "recesso:gerenciar:global",
+  ]);
+
+  const recessoId = texto(formData, "recessoId");
+
+  await prisma.$transaction(async (tx) => {
+    const recesso = await tx.recessoForense.findUnique({
+      where: { id: recessoId },
+      include: {
+        convocacoes: { select: { id: true } },
+        convocados: { select: { id: true } },
+        homologacoes: { select: { id: true } },
+      },
+    });
+
+    if (!recesso) {
+      return;
+    }
+
+    await registrarAuditoria(
+      tx,
+      permissao.usuarioId,
+      "RecessoForense",
+      recesso.id,
+      "RECESSO_FORENSE_EXCLUIDO",
+      {
+        id: recesso.id,
+        ano: recesso.ano,
+        status: recesso.status,
+        convocacoes: recesso.convocacoes.length,
+        convocados: recesso.convocados.length,
+        homologacoes: recesso.homologacoes.length,
+      },
+    );
+
+    await tx.recessoForense.delete({
+      where: { id: recesso.id },
+    });
+  });
+
+  revalidatePath("/recesso-forense");
+  redirect("/recesso-forense");
+}

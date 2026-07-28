@@ -43,7 +43,7 @@ export function RegistrarPontoCard() {
       <Modal
         open={aberto}
         onOpenChange={setAberto}
-        title="Assinatura de Documento"
+        title="Assinatura para registrar marcação"
         description="Assine para registrar a marcação pelo sistema web."
         footer={
           <>

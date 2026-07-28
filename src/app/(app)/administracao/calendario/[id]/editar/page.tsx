@@ -3,6 +3,7 @@ import { CalendarDays, Trash2 } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { atualizarCalendarioInstitucionalAction } from "@/modules/calendario-institucional/application/actions/atualizar-calendario-institucional.action";
 import { excluirCalendarioInstitucionalAction } from "@/modules/calendario-institucional/application/actions/excluir-calendario-institucional.action";
@@ -29,10 +30,16 @@ export default async function EditarCalendarioInstitucionalPage({
   await exigirPermissaoOuRedirecionar("configuracoes:gerenciar:global");
 
   const { id } = await params;
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const orgaoIdsPermitidos = escopoOrgao.global
+    ? undefined
+    : escopoOrgao.orgaoIds.length
+      ? escopoOrgao.orgaoIds
+      : ["00000000-0000-4000-8000-000000000000"];
   const [evento, orgaos, unidades] = await Promise.all([
     buscarEventoCalendarioInstitucionalPorId(id),
-    listarOrgaosAtivos(),
-    listarLocalidadesCalendarioParaSelecao(),
+    listarOrgaosAtivos({ orgaoIdsPermitidos }),
+    listarLocalidadesCalendarioParaSelecao({ orgaoIdsPermitidos }),
   ]);
 
   if (!evento) {

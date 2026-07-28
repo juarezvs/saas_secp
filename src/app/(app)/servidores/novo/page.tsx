@@ -2,6 +2,7 @@ import { Users } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { criarServidorAction } from "@/modules/servidores/application/actions/criar-servidor.action";
 import { listarOrgaosAtivosParaServidor } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
@@ -69,7 +70,13 @@ export default async function NovoServidorPage({
   const params = searchParams ? await searchParams : {};
   const tipoUsuario = normalizarTipoUsuario(params.tipoUsuario);
   const contexto = contextoNovoCadastro(tipoUsuario);
-  const orgaos = await listarOrgaosAtivosParaServidor();
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const orgaoIdsPermitidos = escopoOrgao.global
+    ? undefined
+    : escopoOrgao.orgaoIds.length
+      ? escopoOrgao.orgaoIds
+      : ["00000000-0000-4000-8000-000000000000"];
+  const orgaos = await listarOrgaosAtivosParaServidor({ orgaoIdsPermitidos });
 
   return (
     <div className="space-y-6">

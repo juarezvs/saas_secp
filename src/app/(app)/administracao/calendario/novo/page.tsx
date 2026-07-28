@@ -2,6 +2,7 @@ import { CalendarPlus } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { criarCalendarioInstitucionalAction } from "@/modules/calendario-institucional/application/actions/criar-calendario-institucional.action";
 import { CalendarioInstitucionalForm } from "@/modules/calendario-institucional/presentation/components/calendario-institucional-form";
@@ -12,9 +13,15 @@ import {
 
 export default async function NovoCalendarioInstitucionalPage() {
   await exigirPermissaoOuRedirecionar("configuracoes:gerenciar:global");
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const orgaoIdsPermitidos = escopoOrgao.global
+    ? undefined
+    : escopoOrgao.orgaoIds.length
+      ? escopoOrgao.orgaoIds
+      : ["00000000-0000-4000-8000-000000000000"];
   const [orgaos, unidades] = await Promise.all([
-    listarOrgaosAtivos(),
-    listarLocalidadesCalendarioParaSelecao(),
+    listarOrgaosAtivos({ orgaoIdsPermitidos }),
+    listarLocalidadesCalendarioParaSelecao({ orgaoIdsPermitidos }),
   ]);
 
   return (

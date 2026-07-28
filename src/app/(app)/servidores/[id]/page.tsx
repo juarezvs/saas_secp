@@ -99,10 +99,15 @@ export default async function ServidorDetalhePage({
   const paginaOutros = Number(query.paginaOutros ?? 1);
   const paginaAfastamentos =
     abaAfastamentos === "ferias" ? paginaFerias : paginaOutros;
+  const orgaoIdsPermitidos = permissoesSessao.perfilAtivoEscopoGlobal
+    ? undefined
+    : permissoesSessao.orgaoIds?.length
+      ? permissoesSessao.orgaoIds
+      : ["00000000-0000-4000-8000-000000000000"];
 
   const [servidor, unidades, resumoBiometria] = await Promise.all([
     buscarServidorPorId(id),
-    listarUnidadesAtivasParaLotacao(),
+    listarUnidadesAtivasParaLotacao({ orgaoIdsPermitidos }),
     buscarResumoBiometriaFacialServidor(id),
   ]);
 

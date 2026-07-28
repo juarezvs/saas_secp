@@ -61,6 +61,13 @@ function multiplicadorPercentual(percentual: number) {
   return 1 + percentual / 100;
 }
 
+function minutosExcedentesReais(apuracao: ApuracaoBancoHoras) {
+  return Math.max(
+    0,
+    apuracao.minutosTrabalhados - apuracao.cargaPrevistaMinutos,
+  );
+}
+
 function horaForaPeriodoOrdinario(
   apuracao: ApuracaoBancoHoras,
   regulamentacao: RegulamentacaoBancoHoras,
@@ -103,7 +110,10 @@ export function classificarHorasCreditoBancoHoras(params: {
   permiteConversaoEspecial?: boolean;
 }): ClassificacaoHorasBancoHoras {
   const { apuracao, classificacaoDia, regulamentacao } = params;
-  const minutosApurados = Math.max(0, apuracao.minutosCredito);
+  const minutosApurados = Math.min(
+    Math.max(0, apuracao.minutosCredito),
+    minutosExcedentesReais(apuracao),
+  );
   const alertas: string[] = [];
   const exigeJustificativaEspecifica = horaForaPeriodoOrdinario(
     apuracao,

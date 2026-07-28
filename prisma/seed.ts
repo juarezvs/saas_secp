@@ -1019,6 +1019,12 @@ const permissoesIniciais = [
   },
   {
     recurso: "recesso",
+    acao: "excluir",
+    escopo: "global",
+    descricao: "Excluir recesso forense cadastrado.",
+  },
+  {
+    recurso: "recesso",
     acao: "consultar",
     escopo: "global",
     descricao: "Consultar recessos forenses de todas as unidades.",
@@ -1200,6 +1206,7 @@ const codigosPermissoesSecad = [
   "servidores:consultar:global",
   ...codigosPermissoesHorasExtrasGestao,
   "recesso:gerenciar:global",
+  "recesso:excluir:global",
   "recesso:consultar:global",
   "recesso:convocacao:gerenciar",
   "recesso:aceitar:secad",

@@ -2,6 +2,7 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 
 type EscopoServidoresRecesso = {
   servidorIdsPermitidos?: string[];
+  orgaoIdsPermitidos?: string[];
   exibirTodasConvocacoes?: boolean;
 };
 
@@ -127,9 +128,16 @@ export async function listarRecessosForensesNoPeriodo(
   });
 }
 
-export async function listarUnidadesParaRecesso() {
+export async function listarUnidadesParaRecesso(params: {
+  orgaoIdsPermitidos?: string[];
+} = {}) {
   return prisma.unidadeOrganizacional.findMany({
-    where: { ativo: true },
+    where: {
+      ativo: true,
+      ...(params.orgaoIdsPermitidos?.length
+        ? { orgaoId: { in: params.orgaoIdsPermitidos } }
+        : {}),
+    },
     orderBy: [{ sigla: "asc" }],
   });
 }
@@ -142,6 +150,9 @@ export async function listarServidoresParaRecesso(
       ativo: true,
       ...(params.servidorIdsPermitidos
         ? { id: { in: params.servidorIdsPermitidos } }
+        : {}),
+      ...(params.orgaoIdsPermitidos?.length
+        ? { orgaoId: { in: params.orgaoIdsPermitidos } }
         : {}),
     },
     include: {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Header } from "@/components/layout/header";
 import { PageTitlePersonalizadoProvider } from "@/components/layout/page-title-personalizado";
 import { Sidebar, type PerfilNavegacao } from "@/components/layout/sidebar";
@@ -31,6 +31,9 @@ type AppShellClientProps = {
   onLogout: () => Promise<void>;
 };
 
+const AUTO_COLLAPSE_SIDEBAR_LOGIN_KEY = "secp.sidebar.autoCollapseAfterLogin";
+const AUTO_COLLAPSE_SIDEBAR_DELAY_MS = 3000;
+
 export function AppShellClient({
   children,
   usuario,
@@ -42,6 +45,43 @@ export function AppShellClient({
   const [sidebarRecolhida, setSidebarRecolhida] = useState(false);
   const [drawerAberto, setDrawerAberto] = useState(false);
   const [perfilAtivo, setPerfilAtivo] = useState(usuario.perfilAtivo);
+  const usuarioInteragiuSidebarRef = useRef(false);
+
+  useEffect(() => {
+    let deveRecolher = false;
+
+    try {
+      const marcador = window.sessionStorage.getItem(
+        AUTO_COLLAPSE_SIDEBAR_LOGIN_KEY,
+      );
+      const matriculaUsuario = usuario.matricula.trim().toUpperCase();
+
+      deveRecolher = marcador === "1" || marcador === matriculaUsuario;
+
+      if (deveRecolher) {
+        window.sessionStorage.removeItem(AUTO_COLLAPSE_SIDEBAR_LOGIN_KEY);
+      }
+    } catch {
+      deveRecolher = false;
+    }
+
+    if (!deveRecolher) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      if (!usuarioInteragiuSidebarRef.current) {
+        setSidebarRecolhida(true);
+      }
+    }, AUTO_COLLAPSE_SIDEBAR_DELAY_MS);
+
+    return () => window.clearTimeout(timeout);
+  }, [usuario.matricula]);
+
+  function alternarSidebar() {
+    usuarioInteragiuSidebarRef.current = true;
+    setSidebarRecolhida((valor) => !valor);
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -74,7 +114,7 @@ export function AppShellClient({
             perfilAtivo={perfilAtivo}
             onPerfilAtivoChange={setPerfilAtivo}
             onLogout={onLogout}
-            onToggleSidebar={() => setSidebarRecolhida((valor) => !valor)}
+            onToggleSidebar={alternarSidebar}
             onOpenMobileMenu={() => setDrawerAberto(true)}
             sidebarRecolhida={sidebarRecolhida}
             drawerAberto={drawerAberto}

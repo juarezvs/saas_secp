@@ -11,6 +11,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import {
+  DataTablePageSize,
+  DataTablePagination,
+} from "@/components/listagens";
+import {
   classeStatusSolicitacao,
   rotuloStatusSolicitacao,
   rotuloTipoSolicitacao,
@@ -51,6 +55,18 @@ type ServidorFiltroItem = {
     nome: string;
   };
 };
+
+const tiposSolicitacao = [
+  "AJUSTE_PONTO",
+  "COMPENSACAO",
+  "ABONO_JUSTIFICATIVA",
+  "ATIVIDADE_EXTERNA",
+  "VIAGEM_SERVICO",
+  "CAPACITACAO",
+  "DISPENSA_PONTO",
+  "HORA_CREDITO_PREVIA",
+  "FOLGA_BANCO_HORAS",
+];
 
 function formatarData(data: Date | null, fusoHorario?: string | null) {
   if (!data) {
@@ -146,34 +162,42 @@ export function SolicitacoesTable({
   servidorFiltro,
   servidoresFiltro,
   mostrarFiltroServidor,
+  paginacao,
 }: {
   solicitacoes: SolicitacaoItem[];
   tipoSelecionado?: string;
   servidorFiltro?: string;
   servidoresFiltro?: ServidorFiltroItem[];
   mostrarFiltroServidor?: boolean;
+  paginacao?: {
+    total: number;
+    pagina: number;
+    totalPaginas: number;
+    itensPorPagina: number;
+    montarHrefPagina: (pagina: number) => string;
+  };
 }) {
   const servidorAtivo = servidorFiltro?.trim() || "";
-  const tipoAtivo = solicitacoes.some(
-    (solicitacao) => solicitacao.tipo === tipoSelecionado,
-  )
-    ? tipoSelecionado
-    : undefined;
-  const solicitacoesFiltradas = tipoAtivo
-    ? solicitacoes.filter((solicitacao) => solicitacao.tipo === tipoAtivo)
-    : solicitacoes;
-  const resumo = contarStatus(solicitacoesFiltradas);
+  const tipoAtivo = tipoSelecionado?.trim() || undefined;
+  const resumo = contarStatus(solicitacoes);
   const contagemPorTipo = contarPorTipo(solicitacoes);
-  const tipos = Array.from(contagemPorTipo.keys()).sort((a, b) =>
+  const tipos = tiposSolicitacao.sort((a, b) =>
     rotuloTipoSolicitacao(a).localeCompare(rotuloTipoSolicitacao(b), "pt-BR"),
   );
   const exibirFiltroServidor = mostrarFiltroServidor !== false;
-  const hrefTodosTipos =
-    servidorAtivo && exibirFiltroServidor
-      ? `/solicitacoes?${new URLSearchParams({
-          servidor: servidorAtivo,
-        }).toString()}`
-      : "/solicitacoes";
+  const paramsTodosTipos = new URLSearchParams();
+
+  if (servidorAtivo && exibirFiltroServidor) {
+    paramsTodosTipos.set("servidor", servidorAtivo);
+  }
+
+  if (paginacao?.itensPorPagina) {
+    paramsTodosTipos.set("itensPorPagina", String(paginacao.itensPorPagina));
+  }
+
+  paramsTodosTipos.set("pagina", "1");
+
+  const hrefTodosTipos = `/solicitacoes?${paramsTodosTipos.toString()}`;
 
   return (
     <section className="space-y-4">
@@ -181,7 +205,7 @@ export function SolicitacoesTable({
         <ResumoItem
           icon={Clock3}
           label="Total"
-          valor={solicitacoesFiltradas.length}
+          valor={paginacao?.total ?? solicitacoes.length}
         />
         <ResumoItem
           icon={FileClock}
@@ -227,6 +251,14 @@ export function SolicitacoesTable({
                 {tipoAtivo ? (
                   <input type="hidden" name="tipo" value={tipoAtivo} />
                 ) : null}
+                {paginacao?.itensPorPagina ? (
+                  <input
+                    type="hidden"
+                    name="itensPorPagina"
+                    value={paginacao.itensPorPagina}
+                  />
+                ) : null}
+                <input type="hidden" name="pagina" value="1" />
                 <label className="sr-only" htmlFor="servidor">
                   Filtrar por servidor
                 </label>
@@ -284,6 +316,13 @@ export function SolicitacoesTable({
                   if (servidorAtivo && exibirFiltroServidor) {
                     query.set("servidor", servidorAtivo);
                   }
+                  if (paginacao?.itensPorPagina) {
+                    query.set(
+                      "itensPorPagina",
+                      String(paginacao.itensPorPagina),
+                    );
+                  }
+                  query.set("pagina", "1");
 
                   return (
                     <Link
@@ -322,7 +361,7 @@ export function SolicitacoesTable({
             </thead>
 
             <tbody>
-              {solicitacoesFiltradas.map((solicitacao) => (
+              {solicitacoes.map((solicitacao) => (
                 <tr key={solicitacao.id} className="border-b last:border-b-0">
                   <td className="px-5 py-4">
                     {new Intl.DateTimeFormat("pt-BR").format(
@@ -377,7 +416,7 @@ export function SolicitacoesTable({
                 </tr>
               ))}
 
-              {solicitacoesFiltradas.length === 0 && (
+              {solicitacoes.length === 0 && (
                 <tr>
                   <td
                     colSpan={8}
@@ -390,6 +429,22 @@ export function SolicitacoesTable({
             </tbody>
           </table>
         </div>
+
+        {paginacao ? (
+          <div className="flex flex-col gap-3 border-t px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-[var(--muted-foreground)]">
+              {paginacao.total} registro(s) encontrado(s)
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <DataTablePageSize value={paginacao.itensPorPagina} />
+              <DataTablePagination
+                pagina={paginacao.pagina}
+                totalPaginas={paginacao.totalPaginas}
+                montarHrefPagina={paginacao.montarHrefPagina}
+              />
+            </div>
+          </div>
+        ) : null}
       </div>
     </section>
   );

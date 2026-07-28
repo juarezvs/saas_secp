@@ -13,6 +13,8 @@ export type ColetaRelogioProgressivaJobData = {
   limiteLotes?: number | null;
   reprocessarAoFinal?: boolean | null;
   servidorBusca?: string | null;
+  dataInicio?: string | null;
+  dataFim?: string | null;
   usuarioIdAuditoria?: string | null;
 };
 
@@ -72,7 +74,19 @@ export function progressoColetaAgendada(
 export async function enfileirarColetaRelogioProgressiva(
   data: ColetaRelogioProgressivaJobData,
 ) {
-  const jobId = `coleta-relogio-${data.equipamentoId}`;
+  const partesJob = [
+    "coleta-relogio",
+    data.equipamentoId,
+    data.modo,
+    data.servidorBusca ?? "todos",
+    data.dataInicio ?? "sem-inicio",
+    data.dataFim ?? "sem-fim",
+    data.nsrInicial ?? "cursor",
+  ];
+  const jobId = partesJob
+    .join("-")
+    .replace(/[^a-zA-Z0-9_.:-]+/g, "_")
+    .slice(0, 180);
   const existente = await coletaRelogioProgressivaQueue.getJob(jobId);
 
   if (existente) {

@@ -2,6 +2,7 @@ import { DatabaseZap } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarMarcacoesBrutasPaginado } from "@/modules/marcacoes-brutas/infrastructure/repositories/marcacao-bruta.repository";
 import { MarcacoesBrutasListagemControles } from "@/modules/marcacoes-brutas/presentation/components/marcacoes-brutas-listagem-controles";
@@ -30,6 +31,12 @@ export default async function MarcacoesBrutasPage({
     "marcacoes:gerenciar:global",
     "afd:importar:global",
   ]);
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const orgaoIdsPermitidos = escopoOrgao.global
+    ? undefined
+    : escopoOrgao.orgaoIds.length
+      ? escopoOrgao.orgaoIds
+      : ["00000000-0000-4000-8000-000000000000"];
 
   const params = searchParams ? await searchParams : {};
   const pagina = Number(params.pagina ?? 1);
@@ -46,6 +53,9 @@ export default async function MarcacoesBrutasPage({
     prisma.servidor.findMany({
       where: {
         ativo: true,
+        ...(orgaoIdsPermitidos?.length
+          ? { orgaoId: { in: orgaoIdsPermitidos } }
+          : {}),
       },
       select: {
         id: true,
@@ -55,7 +65,7 @@ export default async function MarcacoesBrutasPage({
       },
       orderBy: [{ nomeFuncional: "asc" }, { matricula: "asc" }],
     }),
-    listarUnidadesParaSelecao(),
+    listarUnidadesParaSelecao({ orgaoIdsPermitidos }),
   ]);
 
   const exportParams = new URLSearchParams();

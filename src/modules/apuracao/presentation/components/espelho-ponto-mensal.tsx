@@ -183,27 +183,93 @@ export function EspelhoPontoMensal({
         <EspelhoPontoMensalCompacto apuracoes={apuracoes} marcacoes={marcacoes} />
       ) : (
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1580px] text-left text-sm">
-          <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
-            <tr>
-              <th className="w-14 px-5 py-3 text-center">Sit.</th>
-              <th className="px-5 py-3">Data</th>
-              <th className="px-5 py-3">1ª entrada</th>
-              <th className="px-5 py-3">1ª saída</th>
-              <th className="px-5 py-3">2ª entrada</th>
-              <th className="px-5 py-3">2ª saída</th>
-              <th className="px-5 py-3">Status</th>
-              <th className="px-5 py-3">Previsto</th>
-              <th className="px-5 py-3">Intervalo</th>
-              <th className="px-5 py-3">Trabalhado</th>
-              <th className="px-5 py-3">Crédito</th>
-              <th className="px-5 py-3">Débito</th>
-              <th className="px-5 py-3">HE autorizada</th>
-              <th className="px-5 py-3">HE não autorizada</th>
-              <th className="px-5 py-3">Banco de horas</th>
+        <table className="w-full min-w-[1580px] border-separate border-spacing-0 text-left text-sm">
+          <thead className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)]">
+            <tr className="bg-[var(--card)]">
+              <th
+                className="w-14 rounded-tl-xl border-b border-r px-5 py-4 text-center align-middle font-bold"
+                rowSpan={2}
+              >
+                Sit.
+              </th>
+              <th
+                className="border-b px-5 py-4 align-middle font-bold"
+                rowSpan={2}
+              >
+                Data
+              </th>
+              <th className="border-b px-2 py-3 text-center" colSpan={4}>
+                <span className="inline-flex rounded-full border bg-[var(--muted)] px-3 py-1 text-[10px] font-black tracking-wide text-foreground shadow-sm">
+                  Marcações
+                </span>
+              </th>
+              <th
+                className="border-b border-l px-5 py-4 align-middle font-bold"
+                rowSpan={2}
+              >
+                Resumo
+              </th>
+              <th className="border-b border-l px-2 py-3 text-center" colSpan={3}>
+                <span className="inline-flex rounded-full border bg-[var(--muted)] px-3 py-1 text-[10px] font-black tracking-wide text-foreground shadow-sm">
+                  Jornada
+                </span>
+              </th>
+              <th className="border-b border-l px-2 py-3 text-center" colSpan={3}>
+                <span className="inline-flex rounded-full border bg-emerald-50 px-3 py-1 text-[10px] font-black tracking-wide text-emerald-800 shadow-sm dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
+                  Banco de Horas
+                </span>
+              </th>
+              <th className="border-b border-l px-2 py-3 text-center" colSpan={2}>
+                <span className="inline-flex rounded-full border bg-amber-50 px-3 py-1 text-[10px] font-black tracking-wide text-amber-800 shadow-sm dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+                  Horas Extras
+                </span>
+              </th>
               {acoesBancoHoras?.habilitadas ? (
-                <th className="px-5 py-3">Ações</th>
+                <th
+                  className="rounded-tr-xl border-b border-l px-5 py-4 align-middle font-bold"
+                  rowSpan={2}
+                >
+                  Ações
+                </th>
               ) : null}
+            </tr>
+            <tr className="border-b bg-[var(--muted)]/70">
+              <th className="border-b px-5 py-3 font-bold text-foreground">
+                Entrada
+              </th>
+              <th className="border-b px-5 py-3 font-bold text-foreground">
+                Saída
+              </th>
+              <th className="border-b px-5 py-3 font-bold text-foreground">
+                Retorno
+              </th>
+              <th className="border-b px-5 py-3 font-bold text-foreground">
+                Saída final
+              </th>
+              <th className="border-b border-l px-5 py-3 font-bold text-foreground">
+                Previsto
+              </th>
+              <th className="border-b px-5 py-3 font-bold text-foreground">
+                Intervalo
+              </th>
+              <th className="border-b px-5 py-3 font-bold text-foreground">
+                Trabalhado
+              </th>
+              <th className="border-b border-l px-5 py-3 font-bold text-emerald-700 dark:text-emerald-300">
+                Crédito
+              </th>
+              <th className="border-b px-5 py-3 font-bold text-red-700 dark:text-red-300">
+                Débito
+              </th>
+              <th className="border-b px-5 py-3 font-bold text-foreground">
+                Saldo
+              </th>
+              <th className="border-b border-l px-5 py-3 font-bold text-foreground">
+                Autorizada
+              </th>
+              <th className="border-b px-5 py-3 font-bold text-foreground">
+                Não autorizada
+              </th>
             </tr>
           </thead>
 
@@ -213,7 +279,11 @@ export function EspelhoPontoMensal({
                 item.dataReferencia,
               );
               const marcacoesDoDia = marcacoesPorDia.get(chaveReferencia) ?? [];
-              const horarios = distribuirMarcacoesNasColunas(marcacoesDoDia);
+              const exigeIntervalo = extrairExigeIntervalo(item.metadados);
+              const horarios = distribuirMarcacoesNasColunas(
+                marcacoesDoDia,
+                exigeIntervalo,
+              );
               const trabalhoRemoto = extrairTrabalhoRemoto(item.metadados);
               const classificacao = classificarDiaEspelho(item);
               const diaInstitucional = extrairDiaInstitucional(item.metadados);
@@ -386,6 +456,10 @@ export function EspelhoPontoMensal({
                   </td>
 
                   <td className="px-5 py-4">
+                    <ValorSaldoBancoHoras minutos={item.minutosBancoHoras ?? 0} />
+                  </td>
+
+                  <td className="px-5 py-4">
                     <ValorTempo
                       tipo="credito"
                       minutos={item.minutosHoraExtraAutorizada ?? 0}
@@ -402,10 +476,6 @@ export function EspelhoPontoMensal({
                           : undefined
                       }
                     />
-                  </td>
-
-                  <td className="px-5 py-4">
-                    <ValorSaldoBancoHoras minutos={item.minutosBancoHoras ?? 0} />
                   </td>
 
                   {acoesBancoHoras?.habilitadas ? (
@@ -473,7 +543,11 @@ function EspelhoPontoMensalCompacto({
           {apuracoes.map((item) => {
             const chaveReferencia = chaveDataReferenciaUtc(item.dataReferencia);
             const marcacoesDoDia = marcacoesPorDia.get(chaveReferencia) ?? [];
-            const horarios = distribuirMarcacoesNasColunas(marcacoesDoDia);
+            const exigeIntervalo = extrairExigeIntervalo(item.metadados);
+            const horarios = distribuirMarcacoesNasColunas(
+              marcacoesDoDia,
+              exigeIntervalo,
+            );
 
             return (
               <tr key={item.id} className="border-b last:border-b-0">
@@ -840,7 +914,7 @@ function formatarDescricaoOcorrenciaHint(
     return undefined;
   }
 
-  const texto = descricao
+  const texto = corrigirGrafiaHint(descricao)
     .replaceAll("Ausencia", "Ausência")
     .replaceAll("autorizacao", "autorização")
     .replaceAll("horario", "horário")
@@ -861,6 +935,33 @@ function formatarDescricaoOcorrenciaHint(
   ).padStart(2, "0")}`;
 
   return texto.replace(/\b\d+\s+minuto\(s\)/i, formatado);
+}
+
+function corrigirGrafiaHint(texto: string) {
+  return texto
+    .replaceAll("Conferencia", "Conferência")
+    .replaceAll("Marcacoes", "Marcações")
+    .replaceAll("marcacoes", "marcações")
+    .replaceAll("Credito", "Crédito")
+    .replaceAll("Debito", "Débito")
+    .replaceAll("Ausencia", "Ausência")
+    .replaceAll("Nao", "Não")
+    .replaceAll(" nao ", " não ")
+    .replaceAll("autorizacao", "autorização")
+    .replaceAll("horario", "horário")
+    .replaceAll("padrao", "padrão")
+    .replaceAll("saida", "saída")
+    .replaceAll("Saida", "Saída")
+    .replaceAll("competencia", "competência")
+    .replaceAll("HÃ¡", "Há")
+    .replaceAll("padrÃ£o", "padrão")
+    .replaceAll("autorizaÃ§Ã£o", "autorização")
+    .replaceAll("horÃ¡rio", "horário")
+    .replaceAll("ConferÃªncia", "Conferência")
+    .replaceAll("nÃ£o", "não")
+    .replaceAll("saÃ­da", "saída")
+    .replaceAll("CrÃ©dito", "Crédito")
+    .replaceAll("DÃ©bito", "Débito");
 }
 
 function ehFimDeSemanaInstitucional(dia: DiaInstitucionalEspelho | null) {
@@ -1339,7 +1440,7 @@ function montarDicaSemaforo({
     linhas.push(`${titulo} (${cobertura}).`);
   }
 
-  return linhas.filter(Boolean).join("\n");
+  return linhas.filter(Boolean).map(corrigirGrafiaHint).join("\n");
 }
 
 function IconeSemaforo({
@@ -1409,6 +1510,22 @@ function extrairTrabalhoRemoto(metadados: unknown) {
     descricao:
       typeof dados.descricao === "string" ? dados.descricao : "Trabalho remoto",
   };
+}
+
+function metadadosComoObjeto(valor: unknown) {
+  return valor && typeof valor === "object" && !Array.isArray(valor)
+    ? (valor as Record<string, unknown>)
+    : {};
+}
+
+function extrairExigeIntervalo(metadados: unknown) {
+  const dados = metadadosComoObjeto(metadados);
+  const jornadaSnapshot = metadadosComoObjeto(
+    dados.jornadaSnapshotApuracao ?? dados.jornadaVigente,
+  );
+  const jornada = metadadosComoObjeto(jornadaSnapshot.jornada);
+
+  return jornada.exigeIntervalo === false ? false : true;
 }
 
 function Resumo({
@@ -1518,6 +1635,9 @@ function AcoesBancoHorasDia({
       />
       <input type="hidden" name="minutosMaximos" value={minutosNaoAutorizados} />
       <TempoAutorizadoInput
+        key={`${servidorId}-${chaveDataReferenciaUtc(
+          dataReferencia,
+        )}-${minutosNaoAutorizados}`}
         name="tempoAutorizado"
         minutos={minutosNaoAutorizados}
         minutosMaximos={minutosNaoAutorizados}
@@ -1553,18 +1673,28 @@ function agruparMarcacoesPorDia(marcacoes: MarcacaoItem[]) {
   return mapa;
 }
 
-function distribuirMarcacoesNasColunas(marcacoes: MarcacaoItem[]) {
+function distribuirMarcacoesNasColunas(
+  marcacoes: MarcacaoItem[],
+  exigeIntervalo = true,
+) {
   const horarios: Array<{
     valor: string;
     ajustada: boolean;
     title: string;
   } | null> = [null, null, null, null];
-  const indicePorTipo: Record<string, number> = {
-    ENTRADA: 0,
-    SAIDA_INTERVALO: 1,
-    RETORNO_INTERVALO: 2,
-    SAIDA: 3,
-  };
+  const indicePorTipo: Record<string, number> = exigeIntervalo
+    ? {
+        ENTRADA: 0,
+        SAIDA_INTERVALO: 1,
+        RETORNO_INTERVALO: 2,
+        SAIDA: 3,
+      }
+    : {
+        ENTRADA: 0,
+        SAIDA: 1,
+        SAIDA_INTERVALO: 1,
+        RETORNO_INTERVALO: 2,
+      };
   const restantes: MarcacaoItem[] = [];
 
   for (const marcacao of marcacoes) {

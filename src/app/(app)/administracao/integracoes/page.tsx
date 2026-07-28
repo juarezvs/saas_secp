@@ -92,9 +92,7 @@ function FluxoCard({
   camposTeste?: ReactNode;
 }) {
   return (
-    <article
-      className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950"
-    >
+    <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="secp-theme-icon flex size-10 shrink-0 items-center justify-center rounded-lg">
@@ -222,7 +220,8 @@ export default async function AdministracaoIntegracoesPage({
     : escopoOrgao.orgaos;
   const orgaoSelecionado =
     orgaos.find((orgao) => orgao.id === params.orgaoId)?.id ??
-    (orgaos[0]?.id ?? null);
+    orgaos[0]?.id ??
+    null;
   const orgaoAtual =
     orgaos.find((orgao) => orgao.id === orgaoSelecionado) ?? null;
 
@@ -241,11 +240,19 @@ export default async function AdministracaoIntegracoesPage({
     }),
     prisma.equipamentoBiometrico.findMany({
       where: {
-        unidade: orgaoSelecionado ? { orgaoId: orgaoSelecionado } : undefined,
+        ...(orgaoSelecionado
+          ? {
+              OR: [
+                { orgaoId: orgaoSelecionado },
+                { unidade: { orgaoId: orgaoSelecionado } },
+              ],
+            }
+          : {}),
       },
       select: {
         ativo: true,
         ultimoHeartbeatEm: true,
+        ultimaSincronizacaoEm: true,
       },
     }),
     prisma.integracaoSarhExecucao.findFirst({
@@ -260,9 +267,16 @@ export default async function AdministracaoIntegracoesPage({
   const limiteOnline = new Date();
   limiteOnline.setMinutes(limiteOnline.getMinutes() - 5);
   const equipamentosAtivos = equipamentos.filter((item) => item.ativo);
-  const equipamentosOnline = equipamentosAtivos.filter(
-    (item) => item.ultimoHeartbeatEm && item.ultimoHeartbeatEm >= limiteOnline,
-  );
+  const equipamentosOnline = equipamentosAtivos.filter((item) => {
+    const ultimaComunicacao = [
+      item.ultimoHeartbeatEm,
+      item.ultimaSincronizacaoEm,
+    ]
+      .filter((data): data is Date => Boolean(data))
+      .sort((a, b) => b.getTime() - a.getTime())[0];
+
+    return Boolean(ultimaComunicacao && ultimaComunicacao >= limiteOnline);
+  });
   const integracaoSarh = integracoes.find((item) => item.tipo === "SARH");
   const integracaoLdap = integracoes.find((item) => item.tipo === "LDAP");
   const integracaoRelogios = integracoes.find(
@@ -270,7 +284,9 @@ export default async function AdministracaoIntegracoesPage({
   );
   const sarhPronto =
     sarhConfig.ativo &&
-    Boolean(sarhConfig.username && sarhConfig.password && sarhConfig.connectString);
+    Boolean(
+      sarhConfig.username && sarhConfig.password && sarhConfig.connectString,
+    );
   const ldapPronto =
     ldapConfig.ativo && Boolean(ldapConfig.authUrl || ldapConfig.ldapUrl);
   const relogiosProntos = equipamentosAtivos.length > 0;
@@ -280,21 +296,24 @@ export default async function AdministracaoIntegracoesPage({
     !relogiosProntos,
     !integracaoRelogios,
   ].filter(Boolean).length;
-  const sarhStatus: StatusVisual = integracaoSarh?.status === "ERRO"
-    ? "atencao"
-    : sarhPronto
-      ? "ok"
-      : "pendente";
-  const ldapStatus: StatusVisual = integracaoLdap?.status === "ERRO"
-    ? "atencao"
-    : ldapPronto
-      ? "ok"
-      : "pendente";
-  const relogiosStatus: StatusVisual = integracaoRelogios?.status === "ERRO"
-    ? "atencao"
-    : relogiosProntos
-      ? "ok"
-      : "pendente";
+  const sarhStatus: StatusVisual =
+    integracaoSarh?.status === "ERRO"
+      ? "atencao"
+      : sarhPronto
+        ? "ok"
+        : "pendente";
+  const ldapStatus: StatusVisual =
+    integracaoLdap?.status === "ERRO"
+      ? "atencao"
+      : ldapPronto
+        ? "ok"
+        : "pendente";
+  const relogiosStatus: StatusVisual =
+    integracaoRelogios?.status === "ERRO"
+      ? "atencao"
+      : relogiosProntos
+        ? "ok"
+        : "pendente";
   const labelTipoTeste: Record<string, string> = {
     SARH: "Conexão Oracle SARH",
     LDAP: "Active Directory",
@@ -445,7 +464,9 @@ export default async function AdministracaoIntegracoesPage({
             `Seccional: ${orgaoAtual?.sigla ?? "-"}`,
             `Status: ${integracaoSarh?.status ?? "não configurada"}`,
             `Localidade: ${sarhConfig.siglaLocalidade ?? "-"}`,
-            sarhConfig.connectString ? "String Oracle cadastrada" : "String Oracle pendente",
+            sarhConfig.connectString
+              ? "String Oracle cadastrada"
+              : "String Oracle pendente",
             integracaoSarh?.ultimoErro
               ? `Erro: ${integracaoSarh.ultimoErro}`
               : integracaoSarh?.ultimoSucessoEm

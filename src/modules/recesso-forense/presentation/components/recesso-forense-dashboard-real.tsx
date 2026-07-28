@@ -13,6 +13,8 @@ import {
   formatarDataRecesso,
   formatarPeriodoRecesso,
 } from "../../application/services/recesso-forense.service";
+import { excluirRecessoForenseAction } from "../../application/actions/recesso-forense.actions";
+import { ExcluirRecessoForenseButton } from "./excluir-recesso-forense-button";
 import { RecessoStatusBadge } from "./recesso-status-badge";
 
 type RecessoResumo = {
@@ -205,13 +207,22 @@ export function RecessoForenseDashboardReal({
                           {recesso.convocados.length}
                         </td>
                         <td className="px-5 py-4">
-                          <Link
-                            href={`/recesso-forense/${recesso.id}`}
-                            className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold text-blue-900 transition hover:bg-[var(--muted)] dark:text-blue-300"
-                          >
-                            <Eye className="size-4" aria-hidden="true" />
-                            Abrir
-                          </Link>
+                          <div className="flex flex-wrap justify-end gap-2">
+                            <Link
+                              href={`/recesso-forense/${recesso.id}`}
+                              className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold text-blue-900 transition hover:bg-[var(--muted)] dark:text-blue-300"
+                            >
+                              <Eye className="size-4" aria-hidden="true" />
+                              Abrir
+                            </Link>
+                            {podeGerenciar ? (
+                              <ExcluirRecessoForenseButton
+                                action={excluirRecessoForenseAction}
+                                recessoId={recesso.id}
+                                ano={recesso.ano}
+                              />
+                            ) : null}
+                          </div>
                         </td>
                       </>
                     )}

@@ -15,6 +15,7 @@ import {
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { perfilAtivoEhChefia } from "@/modules/auth/application/services/perfil-chefia.service";
 import { RecalcularMesForm } from "@/modules/recalculo/presentation/components/recalcular-mes-form";
+import { recalcularMesServidorService } from "@/modules/recalculo/application/services/recalcular-mes-servidor.service";
 import {
   montarOpcoesCargoFuncaoAssinatura,
   resolverSeccionalAssinatura,
@@ -39,6 +40,7 @@ import {
 } from "@/modules/homologacao/infrastructure/repositories/homologacao.repository";
 import { EnviarEspelhoHomologacaoModal } from "@/modules/homologacao/presentation/components/enviar-espelho-homologacao-modal";
 import { RelatorioExportacaoButton } from "@/modules/relatorios/presentation/components/relatorio-exportacao-button";
+import { prisma } from "@/shared/infrastructure/database/prisma";
 
 type EspelhoPontoPageProps = {
   searchParams: Promise<{
@@ -102,6 +104,100 @@ function obterCompetenciaAtual(fusoHorario: string) {
   const mes = partes.find((parte) => parte.type === "month")?.value;
 
   return `${ano}-${mes}`;
+}
+
+function inicioCompetencia(anoReferencia: number, mesReferencia: number) {
+  return new Date(Date.UTC(anoReferencia, mesReferencia - 1, 1));
+}
+
+function fimCompetencia(anoReferencia: number, mesReferencia: number) {
+  return new Date(Date.UTC(anoReferencia, mesReferencia, 1));
+}
+
+function hojeNoFuso(fusoHorario: string) {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: fusoHorario,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const ano = Number(partes.find((parte) => parte.type === "year")?.value);
+  const mes = Number(partes.find((parte) => parte.type === "month")?.value);
+  const dia = Number(partes.find((parte) => parte.type === "day")?.value);
+
+  return new Date(Date.UTC(ano, mes - 1, dia));
+}
+
+function fimExclusivoCalculavel(params: {
+  anoReferencia: number;
+  mesReferencia: number;
+  fusoHorario: string;
+}) {
+  const inicio = inicioCompetencia(params.anoReferencia, params.mesReferencia);
+  const fim = fimCompetencia(params.anoReferencia, params.mesReferencia);
+  const hoje = hojeNoFuso(params.fusoHorario);
+
+  if (hoje < inicio) {
+    return inicio;
+  }
+
+  if (hoje >= fim) {
+    return fim;
+  }
+
+  const fimHoje = new Date(hoje);
+  fimHoje.setUTCDate(fimHoje.getUTCDate() + 1);
+  return fimHoje;
+}
+
+function quantidadeDiasEntre(inicio: Date, fimExclusivo: Date) {
+  return Math.max(
+    0,
+    Math.round((fimExclusivo.getTime() - inicio.getTime()) / 86_400_000),
+  );
+}
+
+async function garantirEspelhoMensalCalculado(params: {
+  servidorId: string;
+  anoReferencia: number;
+  mesReferencia: number;
+  fusoHorario: string;
+}) {
+  const inicio = inicioCompetencia(params.anoReferencia, params.mesReferencia);
+  const fimCalculavel = fimExclusivoCalculavel(params);
+
+  if (fimCalculavel <= inicio) {
+    return;
+  }
+
+  const diasCalculaveis = quantidadeDiasEntre(inicio, fimCalculavel);
+  const diasComApuracao = await prisma.apuracaoDiaria.count({
+    where: {
+      servidorId: params.servidorId,
+      dataReferencia: {
+        gte: inicio,
+        lt: fimCalculavel,
+      },
+    },
+  });
+
+  if (diasComApuracao >= diasCalculaveis) {
+    return;
+  }
+
+  await recalcularMesServidorService({
+    servidorId: params.servidorId,
+    anoReferencia: params.anoReferencia,
+    mesReferencia: params.mesReferencia,
+    origem: "ESPELHO_PONTO_AUTO",
+  }).catch((error: unknown) => {
+    console.warn("[ESPELHO_PONTO_AUTO] Nao foi possivel recalcular o mes", {
+      servidorId: params.servidorId,
+      anoReferencia: params.anoReferencia,
+      mesReferencia: params.mesReferencia,
+      erro: error instanceof Error ? error.message : String(error),
+    });
+  });
 }
 
 function paramsPossuemCompetencia(params: {
@@ -248,6 +344,20 @@ export default async function EspelhoPontoPage({
     redirect(`/espelho-ponto?${query.toString()}`);
   }
 
+  if (servidorSelecionado) {
+    const fusoHorario = await resolverFusoHorarioServidorNoBanco({
+      servidorId: servidorSelecionado.id,
+      dataReferencia: inicioCompetencia(anoReferencia, mesReferencia),
+    });
+
+    await garantirEspelhoMensalCalculado({
+      servidorId: servidorSelecionado.id,
+      anoReferencia,
+      mesReferencia,
+      fusoHorario,
+    });
+  }
+
   const [apuracoes, marcacoes, homologacaoServidor] = servidorSelecionado
     ? await Promise.all([
         listarApuracoesDoServidorNoMes({
@@ -338,6 +448,7 @@ export default async function EspelhoPontoPage({
 
       {servidorSelecionado ? (
         <EspelhoPontoMensal
+          key={`${servidorSelecionado.id}-${competenciaInput}`}
           apuracoes={apuracoes}
           marcacoes={marcacoes}
           modoCompactoPessoaExterna={perfilPessoaExternaAtivo}

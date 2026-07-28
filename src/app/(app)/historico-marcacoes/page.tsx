@@ -78,6 +78,22 @@ function formatarDiaSemana(data: Date) {
   }).format(data);
 }
 
+function metadadosComoObjeto(valor: unknown) {
+  return valor && typeof valor === "object" && !Array.isArray(valor)
+    ? (valor as Record<string, unknown>)
+    : {};
+}
+
+function exigeIntervaloDaApuracao(metadados: unknown) {
+  const dados = metadadosComoObjeto(metadados);
+  const jornadaSnapshot = metadadosComoObjeto(
+    dados.jornadaSnapshotApuracao ?? dados.jornadaVigente,
+  );
+  const jornada = metadadosComoObjeto(jornadaSnapshot.jornada);
+
+  return jornada.exigeIntervalo === false ? false : true;
+}
+
 function agruparPorDataReferencia(marcacoes: HistoricoMarcacao[]) {
   const grupos = new Map<
     string,
@@ -125,8 +141,14 @@ export default async function HistoricoMarcacoesPage({
         anoReferencia,
         mesReferencia,
       })
-    : { servidor: null, marcacoes: [] };
+    : { servidor: null, marcacoes: [], apuracoes: [] };
   const grupos = agruparPorDataReferencia(resultado.marcacoes);
+  const exigeIntervaloPorData = new Map(
+    (resultado.apuracoes ?? []).map((apuracao) => [
+      chaveDataReferencia(apuracao.dataReferencia),
+      exigeIntervaloDaApuracao(apuracao.metadados),
+    ]),
+  );
   const totalMarcacoes = resultado.marcacoes.length;
 
   return (
@@ -181,7 +203,15 @@ export default async function HistoricoMarcacoesPage({
                   </p>
                 </div>
 
-                <MarcacoesStepper marcacoes={grupo.marcacoes} />
+                <MarcacoesStepper
+                  marcacoes={grupo.marcacoes}
+                  variante="minimalista"
+                  exigeIntervalo={
+                    exigeIntervaloPorData.get(
+                      chaveDataReferencia(grupo.dataReferencia),
+                    ) ?? true
+                  }
+                />
               </section>
             ))}
           </div>

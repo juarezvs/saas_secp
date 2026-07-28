@@ -6,9 +6,9 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
-  listarSolicitacoesDoUsuario,
-  listarSolicitacoesGlobais,
-  listarSolicitacoesParaChefia,
+  listarSolicitacoesDoUsuarioPaginado,
+  listarSolicitacoesGlobaisPaginado,
+  listarSolicitacoesParaChefiaPaginado,
   listarServidoresFiltroSolicitacoesDoUsuario,
   listarServidoresFiltroSolicitacoesGlobais,
   listarServidoresFiltroSolicitacoesParaChefia,
@@ -19,6 +19,8 @@ type SolicitacoesPageProps = {
   searchParams: Promise<{
     tipo?: string;
     servidor?: string;
+    pagina?: string;
+    itensPorPagina?: string;
   }>;
 };
 
@@ -44,18 +46,38 @@ export default async function SolicitacoesPage({
   const perfilAtivoServidor =
     session?.user.perfilAtivo?.codigo?.toUpperCase() === "SERVIDOR";
   const servidorFiltro = perfilAtivoServidor ? undefined : params.servidor;
+  const pagina = Number(params.pagina ?? 1);
+  const itensPorPagina = Number(params.itensPorPagina ?? 10);
+  const filtros = {
+    servidor: servidorFiltro,
+    tipo: params.tipo,
+  };
+  const paginacao = {
+    pagina,
+    itensPorPagina,
+  };
 
-  const solicitacoes = session?.user
+  const resultado = session?.user
     ? podeConsultarGlobal
-      ? await listarSolicitacoesGlobais({ servidor: servidorFiltro })
+      ? await listarSolicitacoesGlobaisPaginado(filtros, paginacao)
       : podeAnalisarChefia
-        ? await listarSolicitacoesParaChefia(session.user.id, {
-            servidor: servidorFiltro,
-          })
-        : await listarSolicitacoesDoUsuario(session.user.id, {
-            servidor: servidorFiltro,
-          })
-    : [];
+        ? await listarSolicitacoesParaChefiaPaginado(
+            session.user.id,
+            filtros,
+            paginacao,
+          )
+        : await listarSolicitacoesDoUsuarioPaginado(
+            session.user.id,
+            filtros,
+            paginacao,
+          )
+    : {
+        solicitacoes: [],
+        total: 0,
+        pagina: 1,
+        itensPorPagina,
+        totalPaginas: 1,
+      };
   const servidoresFiltro =
     session?.user && !perfilAtivoServidor
       ? podeConsultarGlobal
@@ -64,6 +86,23 @@ export default async function SolicitacoesPage({
           ? await listarServidoresFiltroSolicitacoesParaChefia(session.user.id)
           : await listarServidoresFiltroSolicitacoesDoUsuario(session.user.id)
       : [];
+  const baseParams = new URLSearchParams();
+
+  if (params.tipo) {
+    baseParams.set("tipo", params.tipo);
+  }
+
+  if (servidorFiltro) {
+    baseParams.set("servidor", servidorFiltro);
+  }
+
+  baseParams.set("itensPorPagina", String(resultado.itensPorPagina));
+
+  function montarHrefPagina(novaPagina: number) {
+    const query = new URLSearchParams(baseParams);
+    query.set("pagina", String(novaPagina));
+    return `/solicitacoes?${query.toString()}`;
+  }
 
   return (
     <div className="space-y-6">
@@ -88,11 +127,18 @@ export default async function SolicitacoesPage({
       />
 
       <SolicitacoesTable
-        solicitacoes={solicitacoes}
+        solicitacoes={resultado.solicitacoes}
         tipoSelecionado={params.tipo}
         servidorFiltro={servidorFiltro}
         servidoresFiltro={servidoresFiltro}
         mostrarFiltroServidor={!perfilAtivoServidor}
+        paginacao={{
+          total: resultado.total,
+          pagina: resultado.pagina,
+          totalPaginas: resultado.totalPaginas,
+          itensPorPagina: resultado.itensPorPagina,
+          montarHrefPagina,
+        }}
       />
     </div>
   );

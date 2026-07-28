@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { atualizarServidorAction } from "@/modules/servidores/application/actions/atualizar-servidor.action";
 import {
@@ -25,10 +26,16 @@ export default async function EditarServidorPage({
   await exigirPermissaoOuRedirecionar("servidores:gerenciar:global");
 
   const { id } = await params;
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const orgaoIdsPermitidos = escopoOrgao.global
+    ? undefined
+    : escopoOrgao.orgaoIds.length
+      ? escopoOrgao.orgaoIds
+      : ["00000000-0000-4000-8000-000000000000"];
 
   const [servidor, orgaos] = await Promise.all([
     buscarServidorPorId(id),
-    listarOrgaosAtivosParaServidor(),
+    listarOrgaosAtivosParaServidor({ orgaoIdsPermitidos }),
   ]);
 
   if (!servidor) {

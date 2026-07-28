@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { criarSolicitacaoBancoHorasAction } from "@/modules/banco-horas/application/actions/criar-solicitacao-banco-horas.action";
 import { minutosParaHoraBanco } from "@/modules/banco-horas/application/services/formatar-banco-horas.service";
+import { ModalidadeBancoHorasField } from "@/modules/banco-horas/presentation/components/modalidade-banco-horas-field";
 import {
   buscarServidorBancoHorasPorUsuarioId,
   listarSolicitacoesBancoHorasServidor,
@@ -112,25 +113,7 @@ export default async function BancoHorasSolicitacoesPage({
           </div>
 
           <div className="mt-5 space-y-4">
-            <label className="block text-sm font-semibold">
-              Modalidade
-              <select
-                name="modalidade"
-                required
-                className="mt-1 h-10 w-full rounded-md border bg-[var(--background)] px-3 text-sm"
-                defaultValue="GERAR_CREDITO"
-              >
-                <option value="GERAR_CREDITO">
-                  Gerar credito previamente autorizado
-                </option>
-                <option value="UTILIZAR_SALDO">
-                  Utilizar saldo disponivel
-                </option>
-                <option value="COMPENSAR_DEBITO">
-                  Compensar debito pendente
-                </option>
-              </select>
-            </label>
+            <ModalidadeBancoHorasField />
 
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm font-semibold">

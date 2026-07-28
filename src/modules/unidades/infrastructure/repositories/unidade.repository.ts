@@ -229,10 +229,15 @@ export async function listarUnidadesOrganizacionaisParaExportacao(
   });
 }
 
-export async function listarOrgaosAtivos(): Promise<OrgaoSelecaoItem[]> {
+export async function listarOrgaosAtivos(
+  params: { orgaoIdsPermitidos?: string[] } = {},
+): Promise<OrgaoSelecaoItem[]> {
   const orgaos = await prisma.orgao.findMany({
     where: {
       ativo: true,
+      ...(params.orgaoIdsPermitidos?.length
+        ? { id: { in: params.orgaoIdsPermitidos } }
+        : {}),
     },
     orderBy: [{ sigla: "asc" }, { nome: "asc" }],
     select: {
@@ -255,10 +260,15 @@ export async function listarOrgaosAtivos(): Promise<OrgaoSelecaoItem[]> {
   });
 }
 
-export async function listarUnidadesParaSelecao() {
+export async function listarUnidadesParaSelecao(params?: {
+  orgaoIdsPermitidos?: string[];
+}) {
   const unidades = await prisma.unidadeOrganizacional.findMany({
     where: {
       ativo: true,
+      ...(params?.orgaoIdsPermitidos?.length
+        ? { orgaoId: { in: params.orgaoIdsPermitidos } }
+        : {}),
     },
     select: {
       id: true,
@@ -298,10 +308,15 @@ export async function listarUnidadesParaSelecao() {
   });
 }
 
-export async function listarLocalidadesCalendarioParaSelecao() {
+export async function listarLocalidadesCalendarioParaSelecao(params?: {
+  orgaoIdsPermitidos?: string[];
+}) {
   const unidades = await prisma.unidadeOrganizacional.findMany({
     where: {
       ativo: true,
+      ...(params?.orgaoIdsPermitidos?.length
+        ? { orgaoId: { in: params.orgaoIdsPermitidos } }
+        : {}),
       tipo: {
         in: [
           "ORGAO",
