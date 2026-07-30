@@ -1,18 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
   Building2,
+  Check,
+  ChevronDown,
   LogOut,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
   ShieldCheck,
   UserRound,
+  WandSparkles,
 } from "lucide-react";
 import { AccessibilityToolbar } from "@/components/accessibility/accessibility-toolbar";
 import type { PerfilNavegacao } from "@/components/layout/sidebar";
@@ -34,6 +37,7 @@ type HeaderProps = {
   drawerAberto: boolean;
   totalNotificacoes: number;
   preferenciasAcessibilidade: PreferenciasAcessibilidade;
+  onStartTour?: () => void;
 };
 
 export function Header({
@@ -52,12 +56,15 @@ export function Header({
   drawerAberto,
   totalNotificacoes,
   preferenciasAcessibilidade,
+  onStartTour,
 }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [totalNotificacoesAtual, setTotalNotificacoesAtual] =
     useState(totalNotificacoes);
+  const [seletorPerfilAberto, setSeletorPerfilAberto] = useState(false);
   const [perfilPendente, startTransition] = useTransition();
+  const seletorPerfilRef = useRef<HTMLDivElement | null>(null);
 
   const buscarTotalNotificacoes = useCallback(async () => {
     try {
@@ -104,10 +111,37 @@ export function Header({
     };
   }, [buscarTotalNotificacoes]);
 
+  useEffect(() => {
+    if (!seletorPerfilAberto) {
+      return;
+    }
+
+    function fecharAoClicarFora(event: MouseEvent) {
+      if (!seletorPerfilRef.current?.contains(event.target as Node)) {
+        setSeletorPerfilAberto(false);
+      }
+    }
+
+    function fecharComEsc(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setSeletorPerfilAberto(false);
+      }
+    }
+
+    document.addEventListener("mousedown", fecharAoClicarFora);
+    document.addEventListener("keydown", fecharComEsc);
+
+    return () => {
+      document.removeEventListener("mousedown", fecharAoClicarFora);
+      document.removeEventListener("keydown", fecharComEsc);
+    };
+  }, [seletorPerfilAberto]);
+
   function selecionarPerfil(codigo: string) {
     const novoPerfil = perfis.find((perfil) => perfil.codigo === codigo);
 
     if (novoPerfil) {
+      setSeletorPerfilAberto(false);
       startTransition(async () => {
         const response = await fetch("/api/sessao/perfil-ativo", {
           method: "POST",
@@ -189,26 +223,124 @@ export function Header({
             </div>
           )}
 
-          <label className="hidden min-w-48 items-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 py-2 shadow-sm backdrop-blur transition focus-within:border-white/40 lg:flex">
-            <ShieldCheck
-              className="size-4 shrink-0 text-white/85"
-              aria-hidden="true"
-            />
-            <span className="sr-only">Perfil ativo</span>
-            <select
-              value={perfilAtivo.codigo}
-              onChange={(event) => selecionarPerfil(event.target.value)}
+          <div
+            ref={seletorPerfilRef}
+            className="relative hidden min-w-56 lg:block"
+            data-tour="perfil-ativo"
+          >
+            <button
+              type="button"
+              onClick={() => setSeletorPerfilAberto((aberto) => !aberto)}
               disabled={perfilPendente}
-              className="w-full bg-transparent text-xs font-semibold text-white outline-none [&>option]:text-slate-950"
+              className="flex h-11 w-full items-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 text-left shadow-sm backdrop-blur transition hover:border-white/35 hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-70"
               aria-label="Selecionar perfil ativo"
+              aria-haspopup="listbox"
+              aria-expanded={seletorPerfilAberto}
             >
-              {perfis.map((perfil) => (
-                <option key={perfil.codigo} value={perfil.codigo}>
-                  {perfil.nome}
-                </option>
-              ))}
-            </select>
-          </label>
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white text-secp-blue-900 shadow-sm ring-1 ring-white/40">
+                <ShieldCheck className="size-4" aria-hidden="true" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[10px] font-semibold uppercase leading-none text-white/65">
+                  Perfil ativo
+                </span>
+                <span className="mt-1 block truncate text-xs font-semibold text-white">
+                  {perfilAtivo.nome}
+                </span>
+              </span>
+              <ChevronDown
+                className={`size-4 shrink-0 text-white/80 transition ${
+                  seletorPerfilAberto ? "rotate-180" : ""
+                }`}
+                aria-hidden="true"
+              />
+            </button>
+
+            {seletorPerfilAberto && (
+              <div
+                className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-80 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--card-foreground)] shadow-2xl shadow-slate-950/25 ring-1 ring-white/70"
+                role="listbox"
+                aria-label="Perfis disponiveis"
+              >
+                <div className="border-b border-[var(--border)] bg-gradient-to-r from-secp-blue-900 via-secp-blue-800 to-secp-blue-700 px-4 py-3 text-white">
+                  <p className="text-xs font-semibold uppercase text-white/70">
+                    Alternar perfil
+                  </p>
+                  <p className="mt-1 truncate text-sm font-semibold">
+                    {nomeUsuario}
+                  </p>
+                </div>
+
+                <div className="max-h-80 overflow-y-auto p-2">
+                  {perfis.map((perfil) => {
+                    const ativo = perfil.codigo === perfilAtivo.codigo;
+                    const detalhePerfil = perfil.descricao;
+
+                    return (
+                      <button
+                        key={perfil.codigo}
+                        type="button"
+                        onClick={() => selecionarPerfil(perfil.codigo)}
+                        disabled={perfilPendente || ativo}
+                        className={`group flex w-full items-start gap-3 rounded-md px-3 py-2.5 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--secp-theme-accent)] ${
+                          ativo
+                            ? "bg-[var(--secp-theme-soft)] text-[var(--secp-theme-strong)]"
+                            : "text-foreground hover:bg-muted"
+                        } disabled:cursor-default`}
+                        role="option"
+                        aria-selected={ativo}
+                      >
+                        <span
+                          className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border ${
+                            ativo
+                              ? "border-[var(--secp-theme-border)] bg-white text-[var(--secp-theme-strong)]"
+                              : "border-[var(--border)] bg-background text-muted-foreground group-hover:text-[var(--secp-theme-strong)]"
+                          }`}
+                        >
+                          {ativo ? (
+                            <Check className="size-4" aria-hidden="true" />
+                          ) : (
+                            <ShieldCheck
+                              className="size-4"
+                              aria-hidden="true"
+                            />
+                          )}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold">
+                            {perfil.nome}
+                          </span>
+                          {detalhePerfil && (
+                            <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                              {detalhePerfil}
+                            </span>
+                          )}
+                        </span>
+                        {ativo && (
+                          <span className="mt-1 rounded bg-white px-1.5 py-0.5 text-[10px] font-semibold uppercase text-[var(--secp-theme-strong)] ring-1 ring-[var(--secp-theme-border)]">
+                            Atual
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {onStartTour && perfilAtivo.codigo.toUpperCase() === "SERVIDOR" && (
+            <button
+              type="button"
+              onClick={onStartTour}
+              className="inline-flex size-10 items-center justify-center rounded-md border border-white/20 bg-white/10 shadow-sm backdrop-blur transition hover:border-white/35 hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              aria-label="Iniciar tour explicativo do SECP"
+              title="Tour explicativo"
+              data-tour="tour-secp"
+            >
+              <WandSparkles className="size-5" aria-hidden="true" />
+            </button>
+          )}
 
           <AccessibilityToolbar
             preferenciasIniciais={preferenciasAcessibilidade}

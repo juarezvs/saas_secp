@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { exigirPermissao } from "@/modules/auth/application/services/permissao.service";
+import { validarERegistrarProcedimentoFrequencia } from "@/modules/procedimentos-frequencia/application/services/motor-procedimentos-frequencia.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 import {
@@ -297,6 +298,33 @@ export async function registrarDeliberacaoHorasExtrasAction(
   });
 
   await prisma.$transaction(async (tx) => {
+    const procedimento = aprovando
+      ? await validarERegistrarProcedimentoFrequencia({
+          tx,
+          categoria: "HORA_EXTRA",
+          servidorId: request.employeeId,
+          usuarioId,
+          permissoesUsuario: permissao.permissoes,
+          dataInicio: request.periodStart,
+          dataFim: request.periodEnd,
+          processoSei: parsed.data.seiProcessReference,
+          documentoSei: parsed.data.seiProcessReference,
+          autoridade: permissao.usuarioNome ?? permissao.usuarioMatricula,
+          justificativa: parsed.data.justification,
+          titulo: "Deliberação final de horas extras",
+          impactoMinutos: parsed.data.approvedMinutes,
+          exigePermissao: "autorizar",
+          exigeRecalculo: false,
+          validarDocumentos: true,
+          dadosEntrada: {
+            origem: "HORAS_EXTRAS_DELIBERACAO_FINAL",
+            requestId: request.id,
+            totalSolicitado,
+            approvedMinutes: parsed.data.approvedMinutes,
+            resultadoFinal,
+          },
+        })
+      : null;
     const decision = await tx.overtimeFinalDecision.create({
       data: {
         requestId: request.id,
@@ -315,6 +343,9 @@ export async function registrarDeliberacaoHorasExtrasAction(
           budgetApprovedMinutes: parecer?.approvedMinutes ?? null,
           permissao: "horas-extras:deliberar:global",
           perfilAtivo: permissao.perfilAtivoCodigo,
+          procedimentoFrequenciaId: procedimento?.procedimento.id ?? null,
+          procedimentoFrequenciaExecucaoId: procedimento?.execucao?.id ?? null,
+          procedimentoFrequenciaCodigo: procedimento?.procedimento.codigo ?? null,
         },
       },
     });
@@ -424,6 +455,7 @@ export async function registrarDeliberacaoHorasExtrasAction(
           approvedMinutes: parsed.data.approvedMinutes,
           permissao: "horas-extras:deliberar:global",
           perfilAtivo: permissao.perfilAtivoCodigo,
+          procedimentoFrequenciaExecucaoId: procedimento?.execucao?.id ?? null,
         },
       },
     });
@@ -446,6 +478,9 @@ export async function registrarDeliberacaoHorasExtrasAction(
           authorizationId,
           status: atualizado.currentLifecycleStatus,
           step: atualizado.currentWorkflowStepCode,
+          procedimentoFrequenciaId: procedimento?.procedimento.id ?? null,
+          procedimentoFrequenciaExecucaoId: procedimento?.execucao?.id ?? null,
+          procedimentoFrequenciaCodigo: procedimento?.procedimento.codigo ?? null,
         },
         metadados: {
           permissao: "horas-extras:deliberar:global",

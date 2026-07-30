@@ -1,7 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useActionState } from "react";
 import { Loader2, Plus } from "lucide-react";
+
+import { SearchableSelect } from "@/components/ui";
 import {
   tiposLotacao,
   type LotacaoFormState,
@@ -29,8 +31,8 @@ const estadoInicial: LotacaoFormState = {
 
 const rotulosLotacao: Record<string, string> = {
   TITULAR: "Titular",
-  PROVISORIA: "Provisória",
-  SUBSTITUICAO: "Substituição",
+  PROVISORIA: "ProvisÃ³ria",
+  SUBSTITUICAO: "SubstituiÃ§Ã£o",
 };
 
 function obterErro(
@@ -46,10 +48,10 @@ export function LotacaoForm({ action, unidades }: LotacaoFormProps) {
   return (
     <form action={formAction} className="space-y-4 rounded-xl border bg-[var(--card)] p-5 shadow-sm">
       <div>
-        <h2 className="text-lg font-bold">Nova lotação</h2>
+        <h2 className="text-lg font-bold">Nova lotaÃ§Ã£o</h2>
         <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-          Ao criar uma lotação sem data final, as lotações abertas anteriores
-          serão encerradas automaticamente.
+          Ao criar uma lotaÃ§Ã£o sem data final, as lotaÃ§Ãµes abertas anteriores
+          serÃ£o encerradas automaticamente.
         </p>
       </div>
 
@@ -72,21 +74,20 @@ export function LotacaoForm({ action, unidades }: LotacaoFormProps) {
             Unidade
           </label>
 
-          <select
+          <SearchableSelect
             id="unidadeId"
             name="unidadeId"
             defaultValue={estado.campos?.unidadeId ?? ""}
-            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            placeholder="Selecione a unidade"
+            searchPlaceholder="Pesquisar unidade..."
+            emptyMessage="Nenhuma unidade encontrada."
+            options={unidades.map((unidade) => ({
+              value: unidade.id,
+              label: `${unidade.sigla} - ${unidade.nome}`,
+              searchText: `${unidade.sigla} ${unidade.nome} ${unidade.tipo}`,
+            }))}
             required
-          >
-            <option value="">Selecione</option>
-
-            {unidades.map((unidade) => (
-              <option key={unidade.id} value={unidade.id}>
-                {unidade.sigla} — {unidade.nome}
-              </option>
-            ))}
-          </select>
+          />
 
           {obterErro(estado.erros, "unidadeId") && (
             <p className="text-sm text-red-600">
@@ -100,19 +101,20 @@ export function LotacaoForm({ action, unidades }: LotacaoFormProps) {
             Tipo
           </label>
 
-          <select
+          <SearchableSelect
             id="tipo"
             name="tipo"
             defaultValue={estado.campos?.tipo ?? "TITULAR"}
-            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            placeholder="Selecione o tipo"
+            searchPlaceholder="Pesquisar tipo..."
+            emptyMessage="Nenhum tipo encontrado."
+            options={tiposLotacao.map((tipo) => ({
+              value: tipo,
+              label: rotulosLotacao[tipo] ?? tipo,
+              searchText: tipo,
+            }))}
             required
-          >
-            {tiposLotacao.map((tipo) => (
-              <option key={tipo} value={tipo}>
-                {rotulosLotacao[tipo] ?? tipo}
-              </option>
-            ))}
-          </select>
+          />
 
           {obterErro(estado.erros, "tipo") && (
             <p className="text-sm text-red-600">
@@ -123,7 +125,7 @@ export function LotacaoForm({ action, unidades }: LotacaoFormProps) {
 
         <div className="space-y-2">
           <label htmlFor="dataInicio" className="text-sm font-semibold">
-            Data de início
+            Data de inÃ­cio
           </label>
 
           <input
@@ -174,7 +176,7 @@ export function LotacaoForm({ action, unidades }: LotacaoFormProps) {
           ) : (
             <Plus className="size-4" aria-hidden="true" />
           )}
-          Vincular lotação
+          Vincular lotaÃ§Ã£o
         </button>
       </div>
     </form>

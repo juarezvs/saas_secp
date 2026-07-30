@@ -10,6 +10,11 @@ import { MarcacoesBrutasTable } from "@/modules/marcacoes-brutas/presentation/co
 import { ReprocessarMarcacoesBrutasEscopoForm } from "@/modules/marcacoes-brutas/presentation/components/reprocessar-marcacoes-brutas-escopo-form";
 import { ReprocessarMarcacoesBrutasForm } from "@/modules/marcacoes-brutas/presentation/components/reprocessar-marcacoes-brutas-form";
 import { ReprocessarTodosForm } from "@/modules/marcacoes-brutas/presentation/components/reprocessar-todos-form";
+import {
+  PERMISSAO_EXCLUIR_MARCACOES,
+  PERMISSAO_EXCLUIR_MARCACOES_SECCIONAL,
+  usuarioEhNutec,
+} from "@/modules/marcacoes/application/services/permissao-manutencao-marcacao.service";
 import { listarUnidadesParaSelecao } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
@@ -26,10 +31,15 @@ type MarcacoesBrutasPageProps = {
 export default async function MarcacoesBrutasPage({
   searchParams,
 }: MarcacoesBrutasPageProps) {
-  await exigirUmaDasPermissoesOuRedirecionar([
+  const permissao = await exigirUmaDasPermissoesOuRedirecionar([
     "marcacoes:consultar:global",
+    "marcacoes:consultar:seccional",
     "marcacoes:gerenciar:global",
+    "marcacoes:gerenciar:seccional",
+    PERMISSAO_EXCLUIR_MARCACOES,
+    PERMISSAO_EXCLUIR_MARCACOES_SECCIONAL,
     "afd:importar:global",
+    "afd:importar:seccional",
   ]);
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
   const orgaoIdsPermitidos = escopoOrgao.global
@@ -49,6 +59,7 @@ export default async function MarcacoesBrutasPage({
       processada: params.processada,
       pagina,
       itensPorPagina,
+      orgaoIdsPermitidos,
     }),
     prisma.servidor.findMany({
       where: {
@@ -78,6 +89,18 @@ export default async function MarcacoesBrutasPage({
 
   const baseParams = new URLSearchParams(exportParams);
   baseParams.set("itensPorPagina", String(resultado.itensPorPagina));
+  const permissoes = permissao.permissoes;
+  const podeExcluirMarcacoes =
+    permissoes.includes(PERMISSAO_EXCLUIR_MARCACOES) ||
+    permissoes.includes(PERMISSAO_EXCLUIR_MARCACOES_SECCIONAL) ||
+    (permissao.usuarioId ? await usuarioEhNutec(permissao.usuarioId) : false);
+  const podeReprocessarBrutas =
+    permissoes.includes("marcacoes:gerenciar:global") ||
+    permissoes.includes("marcacoes:gerenciar:seccional") ||
+    permissoes.includes("apuracao:recalcular:global") ||
+    permissoes.includes("apuracao:recalcular:seccional") ||
+    permissoes.includes("afd:importar:global") ||
+    permissoes.includes("afd:importar:seccional");
 
   function montarHrefPagina(novaPagina: number) {
     const query = new URLSearchParams(baseParams);
@@ -104,16 +127,17 @@ export default async function MarcacoesBrutasPage({
         />
       </section>
 
-      <section className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
-        <h2 className="text-lg font-bold">Reprocessamento</h2>
+      {podeReprocessarBrutas && (
+        <section className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
+          <h2 className="text-lg font-bold">Reprocessamento</h2>
 
-        <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+          <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
           Associe e processe novamente as marcações brutas pendentes. O sistema
           percorre automaticamente todos os lotes e preserva separadamente os
           registros bloqueados por cadastro, jornada ou homologação.
-        </p>
+          </p>
 
-        <ReprocessarMarcacoesBrutasEscopoForm
+          <ReprocessarMarcacoesBrutasEscopoForm
           servidores={servidores.map((servidor) => ({
             id: servidor.id,
             matricula: servidor.matricula,
@@ -126,10 +150,11 @@ export default async function MarcacoesBrutasPage({
             id: unidade.id,
             label: unidade.label,
           }))}
-        />
-        <ReprocessarMarcacoesBrutasForm rotuloBotao="Reprocessar pendentes" />
-        <ReprocessarTodosForm />
-      </section>
+          />
+          <ReprocessarMarcacoesBrutasForm rotuloBotao="Reprocessar pendentes" />
+          <ReprocessarTodosForm />
+        </section>
+      )}
 
       <DataTableShell
         title="Marcações brutas"
@@ -146,7 +171,10 @@ export default async function MarcacoesBrutasPage({
           />
         }
       >
-        <MarcacoesBrutasTable marcacoes={resultado.marcacoes} />
+        <MarcacoesBrutasTable
+          marcacoes={resultado.marcacoes}
+          podeExcluirMarcacoes={podeExcluirMarcacoes}
+        />
       </DataTableShell>
     </div>
   );

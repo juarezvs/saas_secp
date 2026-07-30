@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 type SecpLogoProps = {
   variant?: "full" | "mark";
   tone?: "light" | "dark";
@@ -29,14 +27,16 @@ export function SecpLogo({
 
   return (
     <span className={wrapperClassName} aria-label={alt} role="img">
-      <Image
+      {/* A logo institucional deve funcionar mesmo se o otimizador do Next falhar. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
         src={src}
         alt=""
         width={isMark ? 512 : 1200}
         height={isMark ? 701 : 392}
-        sizes={isMark ? "40px" : "224px"}
         className="h-full w-full object-contain"
-        priority
+        decoding="async"
+        loading="eager"
       />
     </span>
   );

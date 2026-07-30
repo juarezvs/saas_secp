@@ -8,6 +8,7 @@ import type {
   SarhLotacaoServidorDto,
   SarhPayloadCompleto,
   SarhServidorDto,
+  SarhSubstituicaoFuncaoDto,
   SarhTipoAfastamentoDto,
   SarhTipoDto,
 } from "../../domain/sarh.types";
@@ -778,6 +779,244 @@ export class SarhOracleClient {
       }));
   }
 
+  async buscarSubstituicoes(): Promise<SarhSubstituicaoFuncaoDto[]> {
+    const rows = await this.query<OracleRow>(
+      `
+      with movimentacao_vigente as (
+        select *
+        from (
+          select
+            mf.*,
+            row_number() over (
+              partition by mf.mvfu_hifc_ifun_cod_id_funcao,
+                           mf.mvfu_hifc_grupo_func_conf,
+                           mf.mvfu_hifc_categ_func_conf,
+                           mf.mvfu_hifc_cod_func_conf
+              order by mf.mvfu_dat_inic_exerc desc nulls last, mf.mvfu_cod_mov_func desc
+            ) as rn
+          from sarh.rh_movimentacao_funcional mf
+          where (mf.mvfu_dat_fim_exerc is null or mf.mvfu_dat_fim_exerc >= trunc(sysdate))
+            and (mf.mvfu_dat_fim_mov is null or mf.mvfu_dat_fim_mov >= trunc(sysdate))
+            and mf.mvfu_matricula_folha is not null
+        )
+        where rn = 1
+      )
+      select *
+      from (
+        select
+          'AUTOMATICA:' ||
+            sbau.sbau_hifc_cod_id_funcao_subs || ':' ||
+            sbau.sbau_hifc_grupo_func_conf_subs || ':' ||
+            sbau.sbau_hifc_categ_func_conf_subs || ':' ||
+            sbau.sbau_hifc_cod_func_conf_subs || ':' ||
+            sbau.sbau_func_sigla_secao_exerc || sbau.sbau_func_cod_func_exerc || ':' ||
+            to_char(sbau.sbau_dat_inic_exerc, 'YYYYMMDD') as "id",
+          'AUTOMATICA' as "tipo",
+          mf_tit.mvfu_matricula_folha as "titularMatricula",
+          s_tit.no_servidor as "titularNome",
+          sbau.sbau_func_sigla_secao_exerc || lpad(sbau.sbau_func_cod_func_exerc, 6, '0') as "substitutoMatricula",
+          s_sub.no_servidor as "substitutoNome",
+          ifun.ifun_lota_cod_lotacao as "lotacaoId",
+          lota.lota_sigla_lotacao as "lotacaoSigla",
+          lota.lota_dsc_lotacao as "lotacaoDescricao",
+          sbau.sbau_hifc_cod_id_funcao_subs as "funcaoTitularId",
+          sbau.sbau_hifc_grupo_func_conf_subs as "funcaoTitularGrupo",
+          sbau.sbau_hifc_categ_func_conf_subs as "funcaoTitularCategoria",
+          sbau.sbau_hifc_cod_func_conf_subs as "funcaoTitularCodigo",
+          f_tit.nfun_dsc_funcao as "funcaoTitularDescricao",
+          null as "funcaoSubstitutoId",
+          null as "funcaoSubstitutoGrupo",
+          null as "funcaoSubstitutoCategoria",
+          null as "funcaoSubstitutoCodigo",
+          null as "funcaoSubstitutoDescricao",
+          to_char(sbau.sbau_dat_inic_exerc, 'YYYY-MM-DD') as "dataInicio",
+          to_char(sbau.sbau_dat_fim_exerc, 'YYYY-MM-DD') as "dataFim",
+          sbau.sbau_ato as "ato",
+          to_char(sbau.sbau_dat_ato, 'YYYY-MM-DD') as "dataAto",
+          to_char(sbau.sbau_dat_publ_ato, 'YYYY-MM-DD') as "dataPublicacaoAto",
+          sbau.sbau_ato_dispensa as "atoDispensa",
+          to_char(sbau.sbau_dat_ato_dispensa, 'YYYY-MM-DD') as "dataAtoDispensa",
+          to_char(sbau.sbau_dat_publ_ato_disp, 'YYYY-MM-DD') as "dataPublicacaoDispensa",
+          null as "tipoAfastamento",
+          null as "dataInicioAfastamento",
+          null as "dataFimAfastamento",
+          null as "processoSei",
+          'RH_SUBSTITUICAO_AUTOMATICA' as "origemTabela"
+        from sarh.rh_substituicao_automatica sbau
+        left join sarh.rh_identificacao_funcao ifun
+          on ifun.ifun_cod_id_funcao = sbau.sbau_hifc_cod_id_funcao_subs
+        left join sarh.rh_lotacao lota
+          on lota.lota_cod_lotacao = ifun.ifun_lota_cod_lotacao
+        left join sarh.rh_funcao f_tit
+          on f_tit.nfun_cod_nome_funcao = ifun.ifun_nfun_cod_nome_funcao
+        left join movimentacao_vigente mf_tit
+          on mf_tit.mvfu_hifc_ifun_cod_id_funcao = sbau.sbau_hifc_cod_id_funcao_subs
+         and mf_tit.mvfu_hifc_grupo_func_conf = sbau.sbau_hifc_grupo_func_conf_subs
+         and mf_tit.mvfu_hifc_categ_func_conf = sbau.sbau_hifc_categ_func_conf_subs
+         and mf_tit.mvfu_hifc_cod_func_conf = sbau.sbau_hifc_cod_func_conf_subs
+        left join sarh.serv_pessoal s_tit
+          on s_tit.nu_matr_servidor = mf_tit.mvfu_matricula_folha
+        left join sarh.serv_pessoal s_sub
+          on s_sub.nu_matr_servidor =
+             sbau.sbau_func_sigla_secao_exerc || lpad(sbau.sbau_func_cod_func_exerc, 6, '0')
+        where (sbau.sbau_dat_fim_exerc is null or sbau.sbau_dat_fim_exerc >= trunc(sysdate))
+          and upper(sbau.sbau_func_sigla_secao_exerc) = upper(:siglaLocalidade)
+
+        union all
+
+        select
+          'AUTOMATICO_FUNCAO:' ||
+            sbau.sbau_hifc_cod_id_funcao_subs || ':' ||
+            sbau.sbau_hifc_cod_id_funcao_exer || ':' ||
+            to_char(sbau.sbau_dat_inic_exerc, 'YYYYMMDD') as "id",
+          'AUTOMATICA' as "tipo",
+          mf_tit.mvfu_matricula_folha as "titularMatricula",
+          s_tit.no_servidor as "titularNome",
+          mf_sub.mvfu_matricula_folha as "substitutoMatricula",
+          s_sub.no_servidor as "substitutoNome",
+          ifun_tit.ifun_lota_cod_lotacao as "lotacaoId",
+          lota.lota_sigla_lotacao as "lotacaoSigla",
+          lota.lota_dsc_lotacao as "lotacaoDescricao",
+          sbau.sbau_hifc_cod_id_funcao_subs as "funcaoTitularId",
+          sbau.sbau_hifc_grupo_func_conf_subs as "funcaoTitularGrupo",
+          sbau.sbau_hifc_categ_func_conf_subs as "funcaoTitularCategoria",
+          sbau.sbau_hifc_cod_func_conf_subs as "funcaoTitularCodigo",
+          f_tit.nfun_dsc_funcao as "funcaoTitularDescricao",
+          sbau.sbau_hifc_cod_id_funcao_exer as "funcaoSubstitutoId",
+          sbau.sbau_hifc_grupo_func_conf_exer as "funcaoSubstitutoGrupo",
+          sbau.sbau_hifc_categ_func_conf_exer as "funcaoSubstitutoCategoria",
+          sbau.sbau_hifc_cod_func_conf_exer as "funcaoSubstitutoCodigo",
+          f_sub.nfun_dsc_funcao as "funcaoSubstitutoDescricao",
+          to_char(sbau.sbau_dat_inic_exerc, 'YYYY-MM-DD') as "dataInicio",
+          to_char(sbau.sbau_dat_fim_exerc, 'YYYY-MM-DD') as "dataFim",
+          sbau.sbau_ato as "ato",
+          to_char(sbau.sbau_dat_ato, 'YYYY-MM-DD') as "dataAto",
+          to_char(sbau.sbau_dat_publ_ato, 'YYYY-MM-DD') as "dataPublicacaoAto",
+          sbau.sbau_ato_dispensa as "atoDispensa",
+          to_char(sbau.sbau_dat_ato_dispensa, 'YYYY-MM-DD') as "dataAtoDispensa",
+          to_char(sbau.sbau_dat_publ_ato_disp, 'YYYY-MM-DD') as "dataPublicacaoDispensa",
+          null as "tipoAfastamento",
+          null as "dataInicioAfastamento",
+          null as "dataFimAfastamento",
+          null as "processoSei",
+          'RH_SUBSTITUTO_AUTOMATICO' as "origemTabela"
+        from sarh.rh_substituto_automatico sbau
+        left join sarh.rh_identificacao_funcao ifun_tit
+          on ifun_tit.ifun_cod_id_funcao = sbau.sbau_hifc_cod_id_funcao_subs
+        left join sarh.rh_identificacao_funcao ifun_sub
+          on ifun_sub.ifun_cod_id_funcao = sbau.sbau_hifc_cod_id_funcao_exer
+        left join sarh.rh_lotacao lota
+          on lota.lota_cod_lotacao = ifun_tit.ifun_lota_cod_lotacao
+        left join sarh.rh_funcao f_tit
+          on f_tit.nfun_cod_nome_funcao = ifun_tit.ifun_nfun_cod_nome_funcao
+        left join sarh.rh_funcao f_sub
+          on f_sub.nfun_cod_nome_funcao = ifun_sub.ifun_nfun_cod_nome_funcao
+        left join movimentacao_vigente mf_tit
+          on mf_tit.mvfu_hifc_ifun_cod_id_funcao = sbau.sbau_hifc_cod_id_funcao_subs
+        left join movimentacao_vigente mf_sub
+          on mf_sub.mvfu_hifc_ifun_cod_id_funcao = sbau.sbau_hifc_cod_id_funcao_exer
+        left join sarh.serv_pessoal s_tit
+          on s_tit.nu_matr_servidor = mf_tit.mvfu_matricula_folha
+        left join sarh.serv_pessoal s_sub
+          on s_sub.nu_matr_servidor = mf_sub.mvfu_matricula_folha
+        where (sbau.sbau_dat_fim_exerc is null or sbau.sbau_dat_fim_exerc >= trunc(sysdate))
+          and (
+            upper(mf_tit.mvfu_matricula_folha) like upper(:siglaLocalidade) || '%'
+            or upper(mf_sub.mvfu_matricula_folha) like upper(:siglaLocalidade) || '%'
+          )
+
+        union all
+
+        select
+          'FUNCAO:' ||
+            sufu.sufu_sigla_funcionario || sufu.sufu_cod_funcionario || ':' ||
+            sufu.sufu_sigla_func_substituto || sufu.sufu_cod_func_substituto || ':' ||
+            sufu.sufu_codigo as "id",
+          'FUNCAO' as "tipo",
+          sufu.sufu_sigla_funcionario || lpad(sufu.sufu_cod_funcionario, 6, '0') as "titularMatricula",
+          s_tit.no_servidor as "titularNome",
+          sufu.sufu_sigla_func_substituto || lpad(sufu.sufu_cod_func_substituto, 6, '0') as "substitutoMatricula",
+          s_sub.no_servidor as "substitutoNome",
+          null as "lotacaoId",
+          null as "lotacaoSigla",
+          null as "lotacaoDescricao",
+          null as "funcaoTitularId",
+          null as "funcaoTitularGrupo",
+          null as "funcaoTitularCategoria",
+          null as "funcaoTitularCodigo",
+          null as "funcaoTitularDescricao",
+          null as "funcaoSubstitutoId",
+          null as "funcaoSubstitutoGrupo",
+          null as "funcaoSubstitutoCategoria",
+          null as "funcaoSubstitutoCodigo",
+          null as "funcaoSubstitutoDescricao",
+          to_char(sufu.sufu_dt_inicio, 'YYYY-MM-DD') as "dataInicio",
+          to_char(sufu.sufu_dt_fim, 'YYYY-MM-DD') as "dataFim",
+          null as "ato",
+          null as "dataAto",
+          null as "dataPublicacaoAto",
+          null as "atoDispensa",
+          null as "dataAtoDispensa",
+          null as "dataPublicacaoDispensa",
+          sufu.sufu_tipo_afas as "tipoAfastamento",
+          to_char(sufu.sufu_dt_inicio_afas, 'YYYY-MM-DD') as "dataInicioAfastamento",
+          to_char(sufu.sufu_dt_fim_afas, 'YYYY-MM-DD') as "dataFimAfastamento",
+          null as "processoSei",
+          'RH_SUBSTITUTO_FUNCAO' as "origemTabela"
+        from sarh.rh_substituto_funcao sufu
+        left join sarh.serv_pessoal s_tit
+          on s_tit.nu_matr_servidor =
+             sufu.sufu_sigla_funcionario || lpad(sufu.sufu_cod_funcionario, 6, '0')
+        left join sarh.serv_pessoal s_sub
+          on s_sub.nu_matr_servidor =
+             sufu.sufu_sigla_func_substituto || lpad(sufu.sufu_cod_func_substituto, 6, '0')
+        where sufu.sufu_dt_fim >= trunc(sysdate)
+          and (
+            upper(sufu.sufu_sigla_funcionario) = upper(:siglaLocalidade)
+            or upper(sufu.sufu_sigla_func_substituto) = upper(:siglaLocalidade)
+          )
+      )
+      order by "dataInicio" desc nulls last, "origemTabela", "id"
+      `,
+      { siglaLocalidade: this.siglaLocalidade },
+    );
+
+    return rows.map((row) => ({
+      id: String(row.id ?? ""),
+      tipo: String(row.tipo ?? "AUTOMATICA") as SarhSubstituicaoFuncaoDto["tipo"],
+      titularMatricula: this.toStringOrNull(row.titularMatricula),
+      titularNome: this.toStringOrNull(row.titularNome),
+      substitutoMatricula: this.toStringOrNull(row.substitutoMatricula),
+      substitutoNome: this.toStringOrNull(row.substitutoNome),
+      lotacaoId: this.toNumberOrNull(row.lotacaoId),
+      lotacaoSigla: this.toStringOrNull(row.lotacaoSigla),
+      lotacaoDescricao: this.toStringOrNull(row.lotacaoDescricao),
+      funcaoTitularId: this.toNumberOrNull(row.funcaoTitularId),
+      funcaoTitularGrupo: this.toStringOrNull(row.funcaoTitularGrupo),
+      funcaoTitularCategoria: this.toStringOrNull(row.funcaoTitularCategoria),
+      funcaoTitularCodigo: this.toStringOrNull(row.funcaoTitularCodigo),
+      funcaoTitularDescricao: this.toStringOrNull(row.funcaoTitularDescricao),
+      funcaoSubstitutoId: this.toNumberOrNull(row.funcaoSubstitutoId),
+      funcaoSubstitutoGrupo: this.toStringOrNull(row.funcaoSubstitutoGrupo),
+      funcaoSubstitutoCategoria: this.toStringOrNull(row.funcaoSubstitutoCategoria),
+      funcaoSubstitutoCodigo: this.toStringOrNull(row.funcaoSubstitutoCodigo),
+      funcaoSubstitutoDescricao: this.toStringOrNull(row.funcaoSubstitutoDescricao),
+      dataInicio: this.toStringOrNull(row.dataInicio),
+      dataFim: this.toStringOrNull(row.dataFim),
+      ato: this.toStringOrNull(row.ato),
+      dataAto: this.toStringOrNull(row.dataAto),
+      dataPublicacaoAto: this.toStringOrNull(row.dataPublicacaoAto),
+      atoDispensa: this.toStringOrNull(row.atoDispensa),
+      dataAtoDispensa: this.toStringOrNull(row.dataAtoDispensa),
+      dataPublicacaoDispensa: this.toStringOrNull(row.dataPublicacaoDispensa),
+      tipoAfastamento: this.toStringOrNull(row.tipoAfastamento),
+      dataInicioAfastamento: this.toStringOrNull(row.dataInicioAfastamento),
+      dataFimAfastamento: this.toStringOrNull(row.dataFimAfastamento),
+      processoSei: this.toStringOrNull(row.processoSei),
+      origemTabela: String(row.origemTabela ?? "SARH"),
+    }));
+  }
+
   async buscarCalendarios(): Promise<SarhCalendarioDto[]> {
     const rows = await this.query<OracleRow>(`
       select
@@ -970,6 +1209,7 @@ export class SarhOracleClient {
       tiposAfastamento,
       afastamentos,
       chefias,
+      substituicoes,
       calendarios,
     ] = await Promise.all([
       this.buscarEmpresas(),
@@ -980,6 +1220,7 @@ export class SarhOracleClient {
       this.buscarTiposAfastamento(),
       this.buscarAfastamentos(),
       this.buscarChefias(),
+      this.buscarSubstituicoes(),
       this.buscarCalendarios(),
     ]);
 
@@ -992,6 +1233,7 @@ export class SarhOracleClient {
       tiposAfastamento,
       afastamentos,
       chefias,
+      substituicoes,
       calendarios,
     };
   }

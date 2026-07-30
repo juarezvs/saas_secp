@@ -22,7 +22,6 @@ const estadoInicial: LoginActionState = {
 };
 
 const CREDENCIAIS_LOGIN_STORAGE_KEY = "secp.login.credenciais";
-const AUTO_COLLAPSE_SIDEBAR_LOGIN_KEY = "secp.sidebar.autoCollapseAfterLogin";
 
 type CredenciaisLembradas = {
   matricula: string;
@@ -93,36 +92,12 @@ export function LoginForm() {
     );
   }
 
-  function registrarEfeitoPosLogin() {
-    try {
-      window.sessionStorage.setItem(
-        AUTO_COLLAPSE_SIDEBAR_LOGIN_KEY,
-        matricula.trim().toUpperCase() || "1",
-      );
-    } catch {
-      // Sem acesso ao sessionStorage, o login segue normalmente.
-    }
-  }
-
-  useEffect(() => {
-    if (!estado.mensagem) {
-      return;
-    }
-
-    try {
-      window.sessionStorage.removeItem(AUTO_COLLAPSE_SIDEBAR_LOGIN_KEY);
-    } catch {
-      // Ignora ambientes sem sessionStorage.
-    }
-  }, [estado.mensagem]);
-
   return (
     <form
       action={formAction}
       className="space-y-5"
       onSubmit={() => {
         salvarPreferenciaLogin();
-        registrarEfeitoPosLogin();
       }}
     >
       <div className="space-y-2">

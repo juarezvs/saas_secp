@@ -8,6 +8,7 @@ export type ListarMarcacoesBrutasParams = {
   processada?: string;
   origem?: string;
   busca?: string;
+  orgaoIdsPermitidos?: string[];
 };
 
 function ehOrigemMarcacaoBruta(valor?: string | null) {
@@ -23,8 +24,18 @@ export function montarWhereMarcacoesBrutas(
   params?: ListarMarcacoesBrutasParams,
 ) {
   const busca = params?.busca?.trim();
+  const orgaoIdsPermitidos = params?.orgaoIdsPermitidos?.filter(Boolean);
 
   return {
+    ...(orgaoIdsPermitidos?.length
+      ? {
+          servidor: {
+            orgaoId: {
+              in: orgaoIdsPermitidos,
+            },
+          },
+        }
+      : {}),
     ...(params?.processada === "true"
       ? { processada: true }
       : params?.processada === "false"

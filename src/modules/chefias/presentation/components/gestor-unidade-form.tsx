@@ -153,19 +153,20 @@ export function GestorUnidadeForm({
             Papel
           </label>
 
-          <select
+          <SearchableSelect
             id="papel"
             name="papel"
             defaultValue={estado.campos?.papel ?? "GESTOR_TITULAR"}
-            className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            placeholder="Selecione o papel"
+            searchPlaceholder="Pesquisar papel..."
+            emptyMessage="Nenhum papel encontrado."
+            options={papeisGestao.map((papel) => ({
+              value: papel,
+              label: rotulosPapel[papel] ?? papel,
+              searchText: papel,
+            }))}
             required
-          >
-            {papeisGestao.map((papel) => (
-              <option key={papel} value={papel}>
-                {rotulosPapel[papel] ?? papel}
-              </option>
-            ))}
-          </select>
+          />
 
           {obterErro(estado.erros, "papel") && (
             <p className="text-sm text-red-600">

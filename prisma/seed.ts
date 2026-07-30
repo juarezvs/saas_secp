@@ -1,13 +1,14 @@
-import "dotenv/config";
+﻿import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { FUSOS_HORARIOS_CADASTRO_PADRAO } from "../src/modules/fusos-horarios/domain/fusos-horarios-oficiais";
+import { PROCEDIMENTOS_FREQUENCIA_PADRAO } from "../src/modules/procedimentos-frequencia/domain/procedimentos-frequencia.defaults";
 
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-  throw new Error("DATABASE_URL não foi configurada.");
+  throw new Error("DATABASE_URL nÃ£o foi configurada.");
 }
 
 const adapter = new PrismaPg({ connectionString });
@@ -24,35 +25,35 @@ const permissoesSubmenusPainelExecutivoSeed = [
     recurso: "painel-executivo",
     acao: "pendencias-de-ponto",
     escopo: "global",
-    descricao: "Consultar o submenu Pendências de ponto do painel executivo.",
+    descricao: "Consultar o submenu PendÃªncias de ponto do painel executivo.",
   },
   {
     recurso: "painel-executivo",
     acao: "frequencia-e-assiduidade",
     escopo: "global",
     descricao:
-      "Consultar o submenu Frequência e assiduidade do painel executivo.",
+      "Consultar o submenu FrequÃªncia e assiduidade do painel executivo.",
   },
   {
     recurso: "painel-executivo",
     acao: "justificativas-e-ocorrencias",
     escopo: "global",
     descricao:
-      "Consultar o submenu Justificativas e ocorrências do painel executivo.",
+      "Consultar o submenu Justificativas e ocorrÃªncias do painel executivo.",
   },
   {
     recurso: "painel-executivo",
     acao: "controle-de-homologacao-mensal",
     escopo: "global",
     descricao:
-      "Consultar o submenu Controle de homologação mensal do painel executivo.",
+      "Consultar o submenu Controle de homologaÃ§Ã£o mensal do painel executivo.",
   },
   {
     recurso: "painel-executivo",
     acao: "jornada-e-carga-horaria",
     escopo: "global",
     descricao:
-      "Consultar o submenu Jornada e carga horária do painel executivo.",
+      "Consultar o submenu Jornada e carga horÃ¡ria do painel executivo.",
   },
   {
     recurso: "painel-executivo",
@@ -92,19 +93,19 @@ const permissoesSubmenusPainelExecutivoSeed = [
     acao: "relatorios-exportaveis",
     escopo: "global",
     descricao:
-      "Consultar o submenu Relatórios exportáveis do painel executivo.",
+      "Consultar o submenu RelatÃ³rios exportÃ¡veis do painel executivo.",
   },
   {
     recurso: "painel-executivo",
     acao: "paineis",
     escopo: "global",
-    descricao: "Consultar o submenu Painéis do painel executivo.",
+    descricao: "Consultar o submenu PainÃ©is do painel executivo.",
   },
   {
     recurso: "painel-executivo",
     acao: "graficos-importantes",
     escopo: "global",
-    descricao: "Consultar o submenu Gráficos importantes do painel executivo.",
+    descricao: "Consultar o submenu GrÃ¡ficos importantes do painel executivo.",
   },
   {
     recurso: "painel-executivo",
@@ -352,24 +353,24 @@ const codigosPermissoesHorasExtrasGestao = [
 ];
 
 const permissoesIniciais = [
-  // Usuários / perfis / estrutura
+  // UsuÃ¡rios / perfis / estrutura
   {
     recurso: "usuarios",
     acao: "gerenciar",
     escopo: "global",
-    descricao: "Gerenciar usuários do sistema.",
+    descricao: "Gerenciar usuÃ¡rios do sistema.",
   },
   {
     recurso: "usuarios",
     acao: "consultar",
     escopo: "global",
-    descricao: "Consultar usuários do sistema.",
+    descricao: "Consultar usuÃ¡rios do sistema.",
   },
   {
     recurso: "perfis",
     acao: "gerenciar",
     escopo: "global",
-    descricao: "Gerenciar perfis e permissões.",
+    descricao: "Gerenciar perfis e permissÃµes.",
   },
   {
     recurso: "unidades",
@@ -381,7 +382,7 @@ const permissoesIniciais = [
     recurso: "servidores",
     acao: "gerenciar",
     escopo: "global",
-    descricao: "Gerenciar servidores e vínculos.",
+    descricao: "Gerenciar servidores e vÃ­nculos.",
   },
   {
     recurso: "servidores",
@@ -393,20 +394,20 @@ const permissoesIniciais = [
     recurso: "chefias",
     acao: "gerenciar",
     escopo: "global",
-    descricao: "Gerenciar chefias, gestores, substitutos e delegações.",
+    descricao: "Gerenciar chefias, gestores, substitutos e delegaÃ§Ãµes.",
   },
   {
     recurso: "minha-equipe",
     acao: "consultar",
     escopo: "chefia",
     descricao:
-      "Consultar presença diária dos servidores subordinados à chefia ou delegação.",
+      "Consultar presenÃ§a diÃ¡ria dos servidores subordinados Ã  chefia ou delegaÃ§Ã£o.",
   },
   {
     recurso: "configuracoes",
     acao: "gerenciar",
     escopo: "global",
-    descricao: "Gerenciar parâmetros gerais do SECP.",
+    descricao: "Gerenciar parÃ¢metros gerais do SECP.",
   },
   {
     recurso: "menus",
@@ -418,7 +419,77 @@ const permissoesIniciais = [
     recurso: "regulamentacao-ponto",
     acao: "gerenciar",
     escopo: "global",
-    descricao: "Gerenciar regras de regulamentação do ponto por órgão.",
+    descricao: "Gerenciar regras de regulamentaÃ§Ã£o do ponto por Ã³rgÃ£o.",
+  },
+  {
+    recurso: "procedimentos-frequencia",
+    acao: "consultar",
+    escopo: "seccional",
+    descricao:
+      "Consultar procedimentos administrativos de frequencia da propria seccional.",
+  },
+  {
+    recurso: "procedimentos-frequencia",
+    acao: "gerenciar",
+    escopo: "seccional",
+    descricao:
+      "Gerenciar procedimentos administrativos de frequencia da propria seccional.",
+  },
+  {
+    recurso: "procedimentos-frequencia",
+    acao: "executar",
+    escopo: "seccional",
+    descricao:
+      "Registrar execucao de procedimentos administrativos de frequencia na propria seccional.",
+  },
+  {
+    recurso: "procedimentos-frequencia",
+    acao: "autorizar",
+    escopo: "seccional",
+    descricao:
+      "Autorizar procedimentos administrativos de frequencia na propria seccional.",
+  },
+  {
+    recurso: "procedimentos-frequencia",
+    acao: "emitir-nada-consta",
+    escopo: "seccional",
+    descricao:
+      "Emitir Nada Consta de frequencia para servidores da propria seccional.",
+  },
+  {
+    recurso: "procedimentos-frequencia",
+    acao: "consultar",
+    escopo: "global",
+    descricao:
+      "Consultar procedimentos administrativos de frequencia de todos os orgaos.",
+  },
+  {
+    recurso: "procedimentos-frequencia",
+    acao: "gerenciar",
+    escopo: "global",
+    descricao:
+      "Gerenciar procedimentos administrativos de frequencia de todos os orgaos.",
+  },
+  {
+    recurso: "procedimentos-frequencia",
+    acao: "executar",
+    escopo: "global",
+    descricao:
+      "Registrar execucao de procedimentos administrativos de frequencia em todos os orgaos.",
+  },
+  {
+    recurso: "procedimentos-frequencia",
+    acao: "autorizar",
+    escopo: "global",
+    descricao:
+      "Autorizar procedimentos administrativos de frequencia em todos os orgaos.",
+  },
+  {
+    recurso: "procedimentos-frequencia",
+    acao: "emitir-nada-consta",
+    escopo: "global",
+    descricao:
+      "Emitir Nada Consta de frequencia para servidores de todos os orgaos.",
   },
 
   {
@@ -433,7 +504,7 @@ const permissoesIniciais = [
     recurso: "dashboard",
     acao: "visualizar",
     escopo: "proprio",
-    descricao: "Visualizar dashboard próprio.",
+    descricao: "Visualizar dashboard prÃ³prio.",
   },
 
   {
@@ -458,63 +529,63 @@ const permissoesIniciais = [
     acao: "gerenciar",
     escopo: "global",
     descricao:
-      "Gerenciar jornadas, escalas e atribuições de jornada aos servidores.",
+      "Gerenciar jornadas, escalas e atribuiÃ§Ãµes de jornada aos servidores.",
   },
   {
     recurso: "jornadas",
     acao: "gerenciar-politicas",
     escopo: "global",
-    descricao: "Gerenciar políticas de jornada.",
+    descricao: "Gerenciar polÃ­ticas de jornada.",
   },
   {
     recurso: "jornada",
     acao: "visualizar",
     escopo: "proprio",
-    descricao: "Visualizar própria jornada.",
+    descricao: "Visualizar prÃ³pria jornada.",
   },
 
-  // Marcações
+  // MarcaÃ§Ãµes
   {
     recurso: "marcacoes",
     acao: "registrar",
     escopo: "proprio",
-    descricao: "Registrar a própria marcação de ponto.",
+    descricao: "Registrar a prÃ³pria marcaÃ§Ã£o de ponto.",
   },
   {
     recurso: "marcacoes",
     acao: "registrar-web",
     escopo: "proprio",
-    descricao: "Registrar marcação via sistema web.",
+    descricao: "Registrar marcaÃ§Ã£o via sistema web.",
   },
   {
     recurso: "marcacoes",
     acao: "registrar-facial",
     escopo: "proprio",
-    descricao: "Registrar marcação por reconhecimento facial.",
+    descricao: "Registrar marcaÃ§Ã£o por reconhecimento facial.",
   },
   {
     recurso: "marcacoes",
     acao: "consultar",
     escopo: "proprio",
-    descricao: "Consultar as próprias marcações de ponto.",
+    descricao: "Consultar as prÃ³prias marcaÃ§Ãµes de ponto.",
   },
   {
     recurso: "marcacoes",
     acao: "visualizar",
     escopo: "proprio",
-    descricao: "Visualizar próprias marcações.",
+    descricao: "Visualizar prÃ³prias marcaÃ§Ãµes.",
   },
   {
     recurso: "marcacoes",
     acao: "consultar",
     escopo: "global",
-    descricao: "Consultar marcações de todos os servidores.",
+    descricao: "Consultar marcaÃ§Ãµes de todos os servidores.",
   },
   {
     recurso: "marcacoes",
     acao: "gerenciar",
     escopo: "global",
-    descricao: "Gerenciar marcações.",
+    descricao: "Gerenciar marcaÃ§Ãµes.",
   },
   {
     recurso: "marcacoes",
@@ -523,37 +594,37 @@ const permissoesIniciais = [
     descricao: "Excluir/cancelar marcacoes de ponto.",
   },
 
-  // Apuração / espelho
+  // ApuraÃ§Ã£o / espelho
   {
     recurso: "apuracao",
     acao: "consultar",
     escopo: "proprio",
-    descricao: "Consultar a própria apuração diária e espelho de ponto.",
+    descricao: "Consultar a prÃ³pria apuraÃ§Ã£o diÃ¡ria e espelho de ponto.",
   },
   {
     recurso: "apuracao",
     acao: "consultar",
     escopo: "global",
-    descricao: "Consultar apurações de todos os servidores.",
+    descricao: "Consultar apuraÃ§Ãµes de todos os servidores.",
   },
   {
     recurso: "apuracao",
     acao: "recalcular",
     escopo: "global",
-    descricao: "Recalcular apurações de frequência.",
+    descricao: "Recalcular apuraÃ§Ãµes de frequÃªncia.",
   },
   {
     recurso: "espelho-ponto",
     acao: "visualizar",
     escopo: "proprio",
-    descricao: "Visualizar próprio espelho de ponto.",
+    descricao: "Visualizar prÃ³prio espelho de ponto.",
   },
   {
     recurso: "contracheque",
     acao: "consultar",
     escopo: "proprio",
     descricao:
-      "Consultar e exportar o próprio contracheque diretamente no SARH.",
+      "Consultar e exportar o prÃ³prio contracheque diretamente no SARH.",
   },
   ...permissoesHorasExtrasSeed,
 
@@ -562,13 +633,13 @@ const permissoesIniciais = [
     recurso: "banco-horas",
     acao: "consultar",
     escopo: "proprio",
-    descricao: "Consultar o próprio banco de horas.",
+    descricao: "Consultar o prÃ³prio banco de horas.",
   },
   {
     recurso: "banco-horas",
     acao: "visualizar",
     escopo: "proprio",
-    descricao: "Visualizar próprio banco de horas.",
+    descricao: "Visualizar prÃ³prio banco de horas.",
   },
   {
     recurso: "banco-horas",
@@ -589,122 +660,122 @@ const permissoesIniciais = [
     descricao: "Gerenciar e recalcular banco de horas.",
   },
 
-  // Solicitações
+  // SolicitaÃ§Ãµes
   {
     recurso: "solicitacoes",
     acao: "criar",
     escopo: "proprio",
-    descricao: "Criar solicitações próprias de frequência.",
+    descricao: "Criar solicitaÃ§Ãµes prÃ³prias de frequÃªncia.",
   },
   {
     recurso: "solicitacoes",
     acao: "consultar",
     escopo: "proprio",
-    descricao: "Consultar as próprias solicitações.",
+    descricao: "Consultar as prÃ³prias solicitaÃ§Ãµes.",
   },
   {
     recurso: "solicitacoes",
     acao: "visualizar",
     escopo: "proprio",
-    descricao: "Visualizar próprias solicitações.",
+    descricao: "Visualizar prÃ³prias solicitaÃ§Ãµes.",
   },
   {
     recurso: "solicitacoes",
     acao: "analisar",
     escopo: "chefia",
-    descricao: "Analisar solicitações dos subordinados.",
+    descricao: "Analisar solicitaÃ§Ãµes dos subordinados.",
   },
   {
     recurso: "solicitacoes",
     acao: "consultar",
     escopo: "global",
-    descricao: "Consultar todas as solicitações.",
+    descricao: "Consultar todas as solicitaÃ§Ãµes.",
   },
 
-  // Homologação
+  // HomologaÃ§Ã£o
   {
     recurso: "homologacao",
     acao: "gerenciar",
     escopo: "chefia",
-    descricao: "Gerenciar homologação mensal dos servidores subordinados.",
+    descricao: "Gerenciar homologaÃ§Ã£o mensal dos servidores subordinados.",
   },
   {
     recurso: "homologacao",
     acao: "consultar",
     escopo: "proprio",
-    descricao: "Consultar a própria homologação mensal.",
+    descricao: "Consultar a prÃ³pria homologaÃ§Ã£o mensal.",
   },
   {
     recurso: "homologacao",
     acao: "consultar",
     escopo: "global",
-    descricao: "Consultar homologações mensais de todas as unidades.",
+    descricao: "Consultar homologaÃ§Ãµes mensais de todas as unidades.",
   },
   {
     recurso: "homologacao",
     acao: "gerenciar",
     escopo: "global",
-    descricao: "Gerenciar homologações mensais de todas as unidades.",
+    descricao: "Gerenciar homologaÃ§Ãµes mensais de todas as unidades.",
   },
 
-  // Boletim de frequência
+  // Boletim de frequÃªncia
   {
     recurso: "boletim-frequencia",
     acao: "visualizar",
     escopo: "proprio",
-    descricao: "Visualizar próprio boletim de frequência.",
+    descricao: "Visualizar prÃ³prio boletim de frequÃªncia.",
   },
   {
     recurso: "boletim-frequencia",
     acao: "gerar",
     escopo: "chefia",
-    descricao: "Gerar Boletim de Frequência da unidade homologada.",
+    descricao: "Gerar Boletim de FrequÃªncia da unidade homologada.",
   },
   {
     recurso: "boletim-frequencia",
     acao: "encaminhar",
     escopo: "chefia",
-    descricao: "Encaminhar Boletim de Frequência à SECAP/NUCGP.",
+    descricao: "Encaminhar Boletim de FrequÃªncia Ã  SECAP/NUCGP.",
   },
   {
     recurso: "boletim-frequencia",
     acao: "receber",
     escopo: "global",
-    descricao: "Registrar recebimento/conferência do Boletim pela SECAP/NUCGP.",
+    descricao: "Registrar recebimento/conferÃªncia do Boletim pela SECAP/NUCGP.",
   },
   {
     recurso: "boletim-frequencia",
     acao: "consultar",
     escopo: "global",
-    descricao: "Consultar Boletins de Frequência.",
+    descricao: "Consultar Boletins de FrequÃªncia.",
   },
 
-  // Relatórios
+  // RelatÃ³rios
   {
     recurso: "relatorios",
     acao: "consultar",
     escopo: "proprio",
     descricao:
-      "Consultar relatórios próprios de frequência, espelho e banco de horas.",
+      "Consultar relatÃ³rios prÃ³prios de frequÃªncia, espelho e banco de horas.",
   },
   {
     recurso: "relatorios",
     acao: "consultar",
     escopo: "global",
     descricao:
-      "Consultar relatórios globais de frequência, espelho, banco de horas e boletins.",
+      "Consultar relatÃ³rios globais de frequÃªncia, espelho, banco de horas e boletins.",
   },
   {
     recurso: "relatorios",
     acao: "exportar",
     escopo: "proprio",
-    descricao: "Exportar relatórios próprios em PDF.",
+    descricao: "Exportar relatÃ³rios prÃ³prios em PDF.",
   },
   {
     recurso: "relatorios",
     acao: "exportar",
     escopo: "global",
-    descricao: "Exportar relatórios globais em PDF.",
+    descricao: "Exportar relatÃ³rios globais em PDF.",
   },
 
   {
@@ -766,24 +837,24 @@ const permissoesIniciais = [
     descricao: "Exportar trilhas de auditoria.",
   },
 
-  // Integrações
+  // IntegraÃ§Ãµes
   {
     recurso: "integracoes",
     acao: "consultar",
     escopo: "global",
-    descricao: "Consultar status, logs e equipamentos de integração.",
+    descricao: "Consultar status, logs e equipamentos de integraÃ§Ã£o.",
   },
   {
     recurso: "integracoes",
     acao: "gerenciar",
     escopo: "global",
-    descricao: "Gerenciar integrações externas e equipamentos biométricos.",
+    descricao: "Gerenciar integraÃ§Ãµes externas e equipamentos biomÃ©tricos.",
   },
   {
     recurso: "integracoes",
     acao: "sincronizar",
     escopo: "global",
-    descricao: "Executar sincronizações manuais com sistemas externos.",
+    descricao: "Executar sincronizaÃ§Ãµes manuais com sistemas externos.",
   },
   {
     recurso: "integracoes",
@@ -792,40 +863,40 @@ const permissoesIniciais = [
     descricao: "Receber eventos externos por webhook.",
   },
 
-  // Integração SARH
+  // IntegraÃ§Ã£o SARH
   {
     recurso: "integracoes-sarh",
     acao: "consultar",
     escopo: "global",
     descricao:
-      "Consultar painel, execuções, itens, erros e conflitos da integração SARH.",
+      "Consultar painel, execuÃ§Ãµes, itens, erros e conflitos da integraÃ§Ã£o SARH.",
   },
   {
     recurso: "integracoes-sarh",
     acao: "configurar",
     escopo: "global",
     descricao:
-      "Configurar URL base, endpoints, timeouts e parâmetros da integração SARH.",
+      "Configurar URL base, endpoints, timeouts e parÃ¢metros da integraÃ§Ã£o SARH.",
   },
   {
     recurso: "integracoes-sarh",
     acao: "executar",
     escopo: "global",
-    descricao: "Executar carga inicial ou sincronização manual com o SARH.",
+    descricao: "Executar carga inicial ou sincronizaÃ§Ã£o manual com o SARH.",
   },
   {
     recurso: "integracoes-sarh",
     acao: "simular",
     escopo: "global",
     descricao:
-      "Executar simulação/dry-run da sincronização SARH sem gravar alterações de domínio.",
+      "Executar simulaÃ§Ã£o/dry-run da sincronizaÃ§Ã£o SARH sem gravar alteraÃ§Ãµes de domÃ­nio.",
   },
   {
     recurso: "integracoes-sarh",
     acao: "reprocessar",
     escopo: "global",
     descricao:
-      "Reprocessar item, matrícula, unidade, cargo ou execução SARH com falha.",
+      "Reprocessar item, matrÃ­cula, unidade, cargo ou execuÃ§Ã£o SARH com falha.",
   },
   {
     recurso: "integracoes-sarh",
@@ -841,41 +912,151 @@ const permissoesIniciais = [
     descricao: "Visualizar payload bruto do SARH, com cuidados de LGPD.",
   },
 
-  // Integração Microsoft Teams
+  // SubstituiÃ§Ãµes de funÃ§Ã£o
+  {
+    recurso: "substituicoes-funcao",
+    acao: "consultar",
+    escopo: "seccional",
+    descricao:
+      "Consultar substituiÃ§Ãµes de funÃ§Ã£o, titulares, substitutos e histÃ³rico por seccional.",
+  },
+  {
+    recurso: "substituicoes-funcao",
+    acao: "gerenciar",
+    escopo: "seccional",
+    descricao:
+      "Cadastrar, editar, suspender e encerrar substituiÃ§Ãµes de funÃ§Ã£o por seccional.",
+  },
+  {
+    recurso: "substituicoes-funcao",
+    acao: "configurar-valores",
+    escopo: "seccional",
+    descricao:
+      "Configurar referÃªncias e valores de funÃ§Ãµes usados no cÃ¡lculo de substituiÃ§Ã£o.",
+  },
+  {
+    recurso: "substituicoes-funcao",
+    acao: "calcular-pagamento",
+    escopo: "seccional",
+    descricao:
+      "Calcular pagamento de substituiÃ§Ã£o com base em afastamentos, faltas e regras da seccional.",
+  },
+  {
+    recurso: "substituicoes-funcao",
+    acao: "aprovar-pagamento",
+    escopo: "seccional",
+    descricao:
+      "Aprovar, rejeitar ou cancelar pagamentos calculados de substituiÃ§Ã£o.",
+  },
+  {
+    recurso: "substituicoes-funcao",
+    acao: "enviar-folha",
+    escopo: "seccional",
+    descricao:
+      "Marcar pagamentos de substituiÃ§Ã£o como enviados para processamento em folha.",
+  },
+  {
+    recurso: "substituicoes-funcao",
+    acao: "consultar",
+    escopo: "global",
+    descricao:
+      "Consultar substituiÃ§Ãµes de funÃ§Ã£o, titulares, substitutos e histÃ³rico em todas as seccionais.",
+  },
+  {
+    recurso: "substituicoes-funcao",
+    acao: "gerenciar",
+    escopo: "global",
+    descricao:
+      "Cadastrar, editar, suspender e encerrar substituiÃ§Ãµes de funÃ§Ã£o em todas as seccionais.",
+  },
+  {
+    recurso: "substituicoes-funcao",
+    acao: "configurar-valores",
+    escopo: "global",
+    descricao:
+      "Configurar referÃªncias e valores de funÃ§Ãµes usados no cÃ¡lculo de substituiÃ§Ã£o em todas as seccionais.",
+  },
+  {
+    recurso: "substituicoes-funcao",
+    acao: "calcular-pagamento",
+    escopo: "global",
+    descricao:
+      "Calcular pagamento de substituiÃ§Ã£o com base em afastamentos, faltas e regras de qualquer seccional.",
+  },
+  {
+    recurso: "substituicoes-funcao",
+    acao: "aprovar-pagamento",
+    escopo: "global",
+    descricao:
+      "Aprovar, rejeitar ou cancelar pagamentos calculados de substituiÃ§Ã£o em todas as seccionais.",
+  },
+  {
+    recurso: "substituicoes-funcao",
+    acao: "enviar-folha",
+    escopo: "global",
+    descricao:
+      "Marcar pagamentos de substituiÃ§Ã£o como enviados para processamento em folha em todas as seccionais.",
+  },
+  {
+    recurso: "substituicoes-funcao",
+    acao: "relatorio",
+    escopo: "proprio",
+    descricao: "Consultar relatório das próprias substituições de função.",
+  },
+  {
+    recurso: "substituicoes-funcao",
+    acao: "relatorio",
+    escopo: "subordinados",
+    descricao: "Consultar relatório de substituições de função dos subordinados.",
+  },
+  {
+    recurso: "substituicoes-funcao",
+    acao: "relatorio",
+    escopo: "seccional",
+    descricao: "Consultar relatório de substituições de função da própria seccional.",
+  },
+  {
+    recurso: "substituicoes-funcao",
+    acao: "relatorio",
+    escopo: "global",
+    descricao: "Consultar relatório de substituições de função de todas as seccionais.",
+  },
+
+  // IntegraÃ§Ã£o Microsoft Teams
   {
     codigo: "integracoes:teams:visualizar",
     recurso: "integracoes:teams",
     acao: "visualizar",
     escopo: "global",
-    descricao: "Visualizar configuração e saúde da integração Microsoft Teams.",
+    descricao: "Visualizar configuraÃ§Ã£o e saÃºde da integraÃ§Ã£o Microsoft Teams.",
   },
   {
     codigo: "integracoes:teams:configurar",
     recurso: "integracoes:teams",
     acao: "configurar",
     escopo: "global",
-    descricao: "Configurar parâmetros da integração Microsoft Teams.",
+    descricao: "Configurar parÃ¢metros da integraÃ§Ã£o Microsoft Teams.",
   },
   {
     codigo: "integracoes:teams:ativar",
     recurso: "integracoes:teams",
     acao: "ativar",
     escopo: "global",
-    descricao: "Ativar a integração Microsoft Teams.",
+    descricao: "Ativar a integraÃ§Ã£o Microsoft Teams.",
   },
   {
     codigo: "integracoes:teams:desativar",
     recurso: "integracoes:teams",
     acao: "desativar",
     escopo: "global",
-    descricao: "Desativar a integração Microsoft Teams.",
+    descricao: "Desativar a integraÃ§Ã£o Microsoft Teams.",
   },
   {
     codigo: "integracoes:teams:testar",
     recurso: "integracoes:teams",
     acao: "testar",
     escopo: "global",
-    descricao: "Executar testes operacionais da integração Microsoft Teams.",
+    descricao: "Executar testes operacionais da integraÃ§Ã£o Microsoft Teams.",
   },
   {
     codigo: "integracoes:teams:baixar-manifesto",
@@ -896,7 +1077,7 @@ const permissoesIniciais = [
     recurso: "teams:notificacoes",
     acao: "receber",
     escopo: "proprio",
-    descricao: "Receber notificações individuais do SECP no Microsoft Teams.",
+    descricao: "Receber notificaÃ§Ãµes individuais do SECP no Microsoft Teams.",
   },
   {
     codigo: "teams:ponto:registrar",
@@ -917,21 +1098,21 @@ const permissoesIniciais = [
     recurso: "teams:solicitacoes",
     acao: "criar",
     escopo: "proprio",
-    descricao: "Criar solicitações pelo Microsoft Teams.",
+    descricao: "Criar solicitaÃ§Ãµes pelo Microsoft Teams.",
   },
   {
     codigo: "teams:aprovacoes:analisar",
     recurso: "teams:aprovacoes",
     acao: "analisar",
     escopo: "chefia",
-    descricao: "Analisar aprovações pelo Microsoft Teams.",
+    descricao: "Analisar aprovaÃ§Ãµes pelo Microsoft Teams.",
   },
   {
     codigo: "teams:homologacao:analisar",
     recurso: "teams:homologacao",
     acao: "analisar",
     escopo: "chefia",
-    descricao: "Analisar homologações pelo Microsoft Teams.",
+    descricao: "Analisar homologaÃ§Ãµes pelo Microsoft Teams.",
   },
 
   // Biometria
@@ -939,25 +1120,25 @@ const permissoesIniciais = [
     recurso: "biometria",
     acao: "consultar",
     escopo: "proprio",
-    descricao: "Consultar o próprio cadastro biométrico facial.",
+    descricao: "Consultar o prÃ³prio cadastro biomÃ©trico facial.",
   },
   {
     recurso: "biometria",
     acao: "cadastrar",
     escopo: "proprio",
-    descricao: "Cadastrar a própria biometria facial.",
+    descricao: "Cadastrar a prÃ³pria biometria facial.",
   },
   {
     recurso: "biometria",
     acao: "validar",
     escopo: "proprio",
-    descricao: "Validar marcação com biometria facial própria.",
+    descricao: "Validar marcaÃ§Ã£o com biometria facial prÃ³pria.",
   },
   {
     recurso: "biometria",
     acao: "gerenciar",
     escopo: "global",
-    descricao: "Gerenciar cadastros biométricos faciais.",
+    descricao: "Gerenciar cadastros biomÃ©tricos faciais.",
   },
 
   {
@@ -1007,8 +1188,14 @@ const permissoesIniciais = [
   {
     recurso: "afd",
     acao: "importar",
+    escopo: "seccional",
+    descricao: "Importar arquivos AFD de equipamentos biomÃ©tricos da prÃ³pria seccional.",
+  },
+  {
+    recurso: "afd",
+    acao: "importar",
     escopo: "global",
-    descricao: "Importar arquivos AFD de equipamentos biométricos.",
+    descricao: "Importar arquivos AFD de equipamentos biomÃ©tricos.",
   },
   // Recesso forense
   {
@@ -1077,20 +1264,20 @@ const permissoesIniciais = [
     recurso: "afastamentos",
     acao: "consultar",
     escopo: "proprio",
-    descricao: "Consultar os próprios afastamentos importados do SARH.",
+    descricao: "Consultar os prÃ³prios afastamentos importados do SARH.",
   },
   {
     recurso: "afastamentos",
     acao: "consultar",
     escopo: "chefia",
     descricao:
-      "Consultar afastamentos de servidores subordinados à chefia ou delegação vigente.",
+      "Consultar afastamentos de servidores subordinados Ã  chefia ou delegaÃ§Ã£o vigente.",
   },
   {
     recurso: "afastamentos",
     acao: "consultar",
     escopo: "global",
-    descricao: "Consultar afastamentos importados do SARH em âmbito global.",
+    descricao: "Consultar afastamentos importados do SARH em Ã¢mbito global.",
   },
 ];
 
@@ -1157,6 +1344,7 @@ const codigosPermissoesChefia = [
   "relatorios:exportar:global",
   "relatorios-gerenciais:consultar:chefia",
   "relatorios-gerenciais:exportar:chefia",
+  "substituicoes-funcao:relatorio:subordinados",
   "afastamentos:consultar:chefia",
   "recesso:homologar:chefia",
   "recesso:consultar:global",
@@ -1166,6 +1354,66 @@ const codigosPermissoesChefia = [
   "teams:solicitacoes:criar",
   "teams:aprovacoes:analisar",
   "teams:homologacao:analisar",
+];
+
+const codigosPermissoesAdministrador = [
+  "dashboard:visualizar:proprio",
+  "painel-executivo:consultar:global",
+  ...codigosPermissoesSubmenusPainelExecutivo,
+  "usuarios:gerenciar:global",
+  "usuarios:consultar:global",
+  "perfis:gerenciar:global",
+  "unidades:gerenciar:global",
+  "servidores:gerenciar:global",
+  "servidores:consultar:global",
+  "chefias:gerenciar:global",
+  "jornadas:gerenciar:global",
+  "jornadas:gerenciar-politicas:global",
+  "configuracoes:gerenciar:global",
+  "menus:personalizar:global",
+  "regulamentacao-ponto:gerenciar:global",
+  "procedimentos-frequencia:consultar:global",
+  "procedimentos-frequencia:gerenciar:global",
+  "procedimentos-frequencia:executar:global",
+  "procedimentos-frequencia:autorizar:global",
+  "procedimentos-frequencia:emitir-nada-consta:global",
+  "substituicoes-funcao:consultar:seccional",
+  "substituicoes-funcao:gerenciar:seccional",
+  "substituicoes-funcao:configurar-valores:seccional",
+  "substituicoes-funcao:calcular-pagamento:seccional",
+  "substituicoes-funcao:aprovar-pagamento:seccional",
+  "substituicoes-funcao:enviar-folha:seccional",
+  "substituicoes-funcao:relatorio:seccional",
+  "fusos-horarios:gerenciar:global",
+  "marcacoes:consultar:global",
+  "marcacoes:gerenciar:global",
+  "marcacoes:excluir:global",
+  "apuracao:consultar:global",
+  "apuracao:recalcular:global",
+  "banco-horas:consultar:global",
+  "banco-horas:gerenciar:global",
+  ...codigosPermissoesHorasExtrasGestao,
+  "solicitacoes:consultar:global",
+  "homologacao:consultar:global",
+  "homologacao:gerenciar:global",
+  "boletim-frequencia:receber:global",
+  "boletim-frequencia:consultar:global",
+  "relatorios:consultar:global",
+  "relatorios:exportar:global",
+  "relatorios-gerenciais:consultar:global",
+  "relatorios-gerenciais:exportar:global",
+  "substituicoes-funcao:relatorio:global",
+  "afastamentos:consultar:global",
+  "recesso:consultar:global",
+  "recesso:gerenciar:global",
+  "recesso:excluir:global",
+  "recesso:convocacao:gerenciar",
+  "integracoes:consultar:global",
+  "integracoes:gerenciar:global",
+  "biometriafacial:cadastrar:terceiros",
+  "biometriafacial:recadastrar:terceiros",
+  "biometriafacial:visualizar:auditoria",
+  "biometriafacial:invalidar:global",
 ];
 
 const codigosPermissoesSecap = [
@@ -1178,6 +1426,18 @@ const codigosPermissoesSecap = [
   "chefias:gerenciar:global",
   "jornadas:gerenciar:global",
   "jornadas:gerenciar-politicas:global",
+  "procedimentos-frequencia:consultar:global",
+  "procedimentos-frequencia:gerenciar:global",
+  "procedimentos-frequencia:executar:global",
+  "procedimentos-frequencia:autorizar:global",
+  "procedimentos-frequencia:emitir-nada-consta:global",
+  "substituicoes-funcao:consultar:seccional",
+  "substituicoes-funcao:gerenciar:seccional",
+  "substituicoes-funcao:configurar-valores:seccional",
+  "substituicoes-funcao:calcular-pagamento:seccional",
+  "substituicoes-funcao:aprovar-pagamento:seccional",
+  "substituicoes-funcao:enviar-folha:seccional",
+  "substituicoes-funcao:relatorio:seccional",
   "marcacoes:consultar:global",
   "marcacoes:gerenciar:global",
   "apuracao:consultar:global",
@@ -1194,6 +1454,7 @@ const codigosPermissoesSecap = [
   "relatorios:exportar:global",
   "relatorios-gerenciais:consultar:global",
   "relatorios-gerenciais:exportar:global",
+  "substituicoes-funcao:relatorio:global",
   "afastamentos:consultar:global",
   "recesso:consultar:global",
   "recesso:relatorio:secap",
@@ -1214,6 +1475,7 @@ const codigosPermissoesSecad = [
   "relatorios:exportar:global",
   "relatorios-gerenciais:consultar:global",
   "relatorios-gerenciais:exportar:global",
+  "substituicoes-funcao:relatorio:global",
   "afastamentos:consultar:global",
   "boletim-frequencia:consultar:global",
 ];
@@ -1234,6 +1496,7 @@ const codigosPermissoesDiref = [
   "relatorios:exportar:global",
   "relatorios-gerenciais:consultar:global",
   "relatorios-gerenciais:exportar:global",
+  "substituicoes-funcao:relatorio:global",
   "afastamentos:consultar:global",
   "recesso:consultar:global",
   "auditoria:consultar:global",
@@ -1276,6 +1539,7 @@ const codigosPermissoesSuporte = [
   "relatorios:exportar:global",
   "relatorios-gerenciais:consultar:global",
   "relatorios-gerenciais:exportar:global",
+  "substituicoes-funcao:relatorio:global",
 ];
 
 const codigosPermissoesExcecaoRegistroWeb = [
@@ -1457,7 +1721,7 @@ async function criarPerfilAdministrador() {
     update: {
       nome: "Administrador do Sistema",
       descricao:
-        "Perfil com acesso integral às configurações iniciais do SECP.",
+        "Perfil com acesso integral Ã s configuraÃ§Ãµes iniciais do SECP.",
       sistema: true,
       ativo: true,
       administrativo: true,
@@ -1467,7 +1731,7 @@ async function criarPerfilAdministrador() {
       codigo: "ADMIN",
       nome: "Administrador do Sistema",
       descricao:
-        "Perfil com acesso integral às configurações iniciais do SECP.",
+        "Perfil com acesso integral Ã s configuraÃ§Ãµes iniciais do SECP.",
       sistema: true,
       ativo: true,
       administrativo: true,
@@ -1482,7 +1746,7 @@ async function criarPerfilMaster() {
     update: {
       nome: "MASTER",
       descricao:
-        "Perfil raiz com acesso global a todas as seccionais e configurações do SECP.",
+        "Perfil raiz com acesso global a todas as seccionais e configuraÃ§Ãµes do SECP.",
       sistema: true,
       ativo: true,
       administrativo: true,
@@ -1492,7 +1756,7 @@ async function criarPerfilMaster() {
       codigo: "MASTER",
       nome: "MASTER",
       descricao:
-        "Perfil raiz com acesso global a todas as seccionais e configurações do SECP.",
+        "Perfil raiz com acesso global a todas as seccionais e configuraÃ§Ãµes do SECP.",
       sistema: true,
       ativo: true,
       administrativo: true,
@@ -1506,7 +1770,7 @@ async function criarPerfilServidor() {
     where: { codigo: "SERVIDOR" },
     update: {
       nome: "Servidor",
-      descricao: "Perfil básico para servidores utilizarem o SECP.",
+      descricao: "Perfil bÃ¡sico para servidores utilizarem o SECP.",
       sistema: true,
       ativo: true,
       administrativo: false,
@@ -1515,7 +1779,7 @@ async function criarPerfilServidor() {
     create: {
       codigo: "SERVIDOR",
       nome: "Servidor",
-      descricao: "Perfil básico para servidores utilizarem o SECP.",
+      descricao: "Perfil bÃ¡sico para servidores utilizarem o SECP.",
       sistema: true,
       ativo: true,
       administrativo: false,
@@ -1557,7 +1821,7 @@ async function criarPerfilChefia() {
     update: {
       nome: "Chefia/Gestor de Unidade",
       descricao:
-        "Perfil para chefias, gestores e substitutos analisarem solicitações, homologarem frequência e encaminharem boletins.",
+        "Perfil para chefias, gestores e substitutos analisarem solicitaÃ§Ãµes, homologarem frequÃªncia e encaminharem boletins.",
       sistema: true,
       ativo: true,
       administrativo: false,
@@ -1567,7 +1831,7 @@ async function criarPerfilChefia() {
       codigo: "CHEFIA",
       nome: "Chefia/Gestor de Unidade",
       descricao:
-        "Perfil para chefias, gestores e substitutos analisarem solicitações, homologarem frequência e encaminharem boletins.",
+        "Perfil para chefias, gestores e substitutos analisarem solicitaÃ§Ãµes, homologarem frequÃªncia e encaminharem boletins.",
       sistema: true,
       ativo: true,
       administrativo: false,
@@ -1582,7 +1846,7 @@ async function criarPerfilSecap() {
     update: {
       nome: "SECAP/NUCGP",
       descricao:
-        "Perfil da gestão de pessoas para acompanhar apuração, banco de horas, homologações, boletins e cadastros funcionais.",
+        "Perfil da gestÃ£o de pessoas para acompanhar apuraÃ§Ã£o, banco de horas, homologaÃ§Ãµes, boletins e cadastros funcionais.",
       sistema: true,
       ativo: true,
       administrativo: true,
@@ -1592,7 +1856,7 @@ async function criarPerfilSecap() {
       codigo: "SECAP",
       nome: "SECAP/NUCGP",
       descricao:
-        "Perfil da gestão de pessoas para acompanhar apuração, banco de horas, homologações, boletins e cadastros funcionais.",
+        "Perfil da gestÃ£o de pessoas para acompanhar apuraÃ§Ã£o, banco de horas, homologaÃ§Ãµes, boletins e cadastros funcionais.",
       sistema: true,
       ativo: true,
       administrativo: true,
@@ -1607,7 +1871,7 @@ async function criarPerfilSecad() {
     update: {
       nome: "SECAD",
       descricao:
-        "Perfil da Secretaria Administrativa para gerir e aceitar fluxos do recesso forense e consultar relatórios institucionais.",
+        "Perfil da Secretaria Administrativa para gerir e aceitar fluxos do recesso forense e consultar relatÃ³rios institucionais.",
       sistema: true,
       ativo: true,
       administrativo: true,
@@ -1617,7 +1881,7 @@ async function criarPerfilSecad() {
       codigo: "SECAD",
       nome: "SECAD",
       descricao:
-        "Perfil da Secretaria Administrativa para gerir e aceitar fluxos do recesso forense e consultar relatórios institucionais.",
+        "Perfil da Secretaria Administrativa para gerir e aceitar fluxos do recesso forense e consultar relatÃ³rios institucionais.",
       sistema: true,
       ativo: true,
       administrativo: true,
@@ -1630,9 +1894,9 @@ async function criarPerfilDiref() {
   return prisma.perfil.upsert({
     where: { codigo: "DIREF" },
     update: {
-      nome: "Direção do Foro",
+      nome: "DireÃ§Ã£o do Foro",
       descricao:
-        "Perfil de consulta institucional da DIREF para acompanhar frequência, banco de horas, boletins, recesso e auditoria.",
+        "Perfil de consulta institucional da DIREF para acompanhar frequÃªncia, banco de horas, boletins, recesso e auditoria.",
       sistema: true,
       ativo: true,
       administrativo: true,
@@ -1640,9 +1904,9 @@ async function criarPerfilDiref() {
     },
     create: {
       codigo: "DIREF",
-      nome: "Direção do Foro",
+      nome: "DireÃ§Ã£o do Foro",
       descricao:
-        "Perfil de consulta institucional da DIREF para acompanhar frequência, banco de horas, boletins, recesso e auditoria.",
+        "Perfil de consulta institucional da DIREF para acompanhar frequÃªncia, banco de horas, boletins, recesso e auditoria.",
       sistema: true,
       ativo: true,
       administrativo: true,
@@ -1657,7 +1921,7 @@ async function criarPerfilSuporte() {
     update: {
       nome: "NUTEC",
       descricao:
-        "Perfil técnico para monitorar integrações, importações, biometria e processamento operacional.",
+        "Perfil tÃ©cnico para monitorar integraÃ§Ãµes, importaÃ§Ãµes, biometria e processamento operacional.",
       sistema: true,
       ativo: true,
       administrativo: true,
@@ -1667,7 +1931,7 @@ async function criarPerfilSuporte() {
       codigo: "NUTEC",
       nome: "NUTEC",
       descricao:
-        "Perfil técnico para monitorar integrações, importações, biometria e processamento operacional.",
+        "Perfil tÃ©cnico para monitorar integraÃ§Ãµes, importaÃ§Ãµes, biometria e processamento operacional.",
       sistema: true,
       ativo: true,
       administrativo: true,
@@ -1680,9 +1944,9 @@ async function criarPerfilSuporteLegado() {
   return prisma.perfil.upsert({
     where: { codigo: "SUPORTE" },
     update: {
-      nome: "Suporte técnico",
+      nome: "Suporte tÃ©cnico",
       descricao:
-        "Perfil técnico legado equivalente ao NUTEC, mantido por compatibilidade.",
+        "Perfil tÃ©cnico legado equivalente ao NUTEC, mantido por compatibilidade.",
       sistema: true,
       ativo: true,
       administrativo: true,
@@ -1690,9 +1954,9 @@ async function criarPerfilSuporteLegado() {
     },
     create: {
       codigo: "SUPORTE",
-      nome: "Suporte técnico",
+      nome: "Suporte tÃ©cnico",
       descricao:
-        "Perfil técnico legado equivalente ao NUTEC, mantido por compatibilidade.",
+        "Perfil tÃ©cnico legado equivalente ao NUTEC, mantido por compatibilidade.",
       sistema: true,
       ativo: true,
       administrativo: true,
@@ -1705,9 +1969,9 @@ async function criarPerfilExcecaoRegistroWeb() {
   return prisma.perfil.upsert({
     where: { codigo: "EXCECAO_REGISTRO_WEB" },
     update: {
-      nome: "Exceção - Registro web",
+      nome: "ExceÃ§Ã£o - Registro web",
       descricao:
-        "Perfil técnico oculto na troca de perfis. Autoriza o servidor a registrar ponto pelo SECP sem reconhecimento facial.",
+        "Perfil tÃ©cnico oculto na troca de perfis. Autoriza o servidor a registrar ponto pelo SECP sem reconhecimento facial.",
       sistema: true,
       ativo: true,
       administrativo: false,
@@ -1720,9 +1984,9 @@ async function criarPerfilExcecaoRegistroWeb() {
     },
     create: {
       codigo: "EXCECAO_REGISTRO_WEB",
-      nome: "Exceção - Registro web",
+      nome: "ExceÃ§Ã£o - Registro web",
       descricao:
-        "Perfil técnico oculto na troca de perfis. Autoriza o servidor a registrar ponto pelo SECP sem reconhecimento facial.",
+        "Perfil tÃ©cnico oculto na troca de perfis. Autoriza o servidor a registrar ponto pelo SECP sem reconhecimento facial.",
       sistema: true,
       ativo: true,
       administrativo: false,
@@ -1740,9 +2004,9 @@ async function criarPerfilExcecaoRegistroFacial() {
   return prisma.perfil.upsert({
     where: { codigo: "EXCECAO_REGISTRO_FACIAL" },
     update: {
-      nome: "Exceção - Registro facial",
+      nome: "ExceÃ§Ã£o - Registro facial",
       descricao:
-        "Perfil técnico oculto na troca de perfis. Autoriza o servidor a registrar ponto pelo SECP com reconhecimento facial.",
+        "Perfil tÃ©cnico oculto na troca de perfis. Autoriza o servidor a registrar ponto pelo SECP com reconhecimento facial.",
       sistema: true,
       ativo: true,
       administrativo: false,
@@ -1755,9 +2019,9 @@ async function criarPerfilExcecaoRegistroFacial() {
     },
     create: {
       codigo: "EXCECAO_REGISTRO_FACIAL",
-      nome: "Exceção - Registro facial",
+      nome: "ExceÃ§Ã£o - Registro facial",
       descricao:
-        "Perfil técnico oculto na troca de perfis. Autoriza o servidor a registrar ponto pelo SECP com reconhecimento facial.",
+        "Perfil tÃ©cnico oculto na troca de perfis. Autoriza o servidor a registrar ponto pelo SECP com reconhecimento facial.",
       sistema: true,
       ativo: true,
       administrativo: false,
@@ -1781,7 +2045,7 @@ async function vincularPermissoesPorCodigoAoPerfil(
     });
 
     if (!permissao) {
-      console.warn(`Permissão não encontrada no seed: ${codigo}`);
+      console.warn(`PermissÃ£o nÃ£o encontrada no seed: ${codigo}`);
       continue;
     }
 
@@ -1890,7 +2154,7 @@ async function sincronizarPermissoesPorCodigoAoPerfil(
 
   for (const codigo of codigosUnicos) {
     if (!codigosEncontrados.has(codigo)) {
-      console.warn(`PermissÃ£o nÃ£o encontrada no seed: ${codigo}`);
+      console.warn(`PermissÃƒÂ£o nÃƒÂ£o encontrada no seed: ${codigo}`);
     }
   }
 
@@ -1970,12 +2234,12 @@ async function criarEstruturaInicial() {
   const orgao = await prisma.orgao.upsert({
     where: { sigla: "JFAM" },
     update: {
-      nome: "Justiça Federal de Primeiro Grau no Amazonas",
+      nome: "JustiÃ§a Federal de Primeiro Grau no Amazonas",
       ativo: true,
     },
     create: {
       sigla: "JFAM",
-      nome: "Justiça Federal de Primeiro Grau no Amazonas",
+      nome: "JustiÃ§a Federal de Primeiro Grau no Amazonas",
       ativo: true,
     },
   });
@@ -2002,7 +2266,7 @@ async function criarEstruturaInicial() {
     },
     update: {
       sigla: "SJAM",
-      nome: "Seção Judiciária do Amazonas",
+      nome: "SeÃ§Ã£o JudiciÃ¡ria do Amazonas",
       tipo: "SECAO_JUDICIARIA",
       ativo: true,
     },
@@ -2010,7 +2274,7 @@ async function criarEstruturaInicial() {
       orgaoId: orgao.id,
       codigo: "SJAM",
       sigla: "SJAM",
-      nome: "Seção Judiciária do Amazonas",
+      nome: "SeÃ§Ã£o JudiciÃ¡ria do Amazonas",
       tipo: "SECAO_JUDICIARIA",
       ativo: true,
     },
@@ -2026,7 +2290,7 @@ async function criarEstruturaInicial() {
     update: {
       unidadePaiId: sjam.id,
       sigla: "NUTEC",
-      nome: "Núcleo de Tecnologia da Informação",
+      nome: "NÃºcleo de Tecnologia da InformaÃ§Ã£o",
       tipo: "NUCLEO",
       ativo: true,
     },
@@ -2035,7 +2299,7 @@ async function criarEstruturaInicial() {
       unidadePaiId: sjam.id,
       codigo: "NUTEC",
       sigla: "NUTEC",
-      nome: "Núcleo de Tecnologia da Informação",
+      nome: "NÃºcleo de Tecnologia da InformaÃ§Ã£o",
       tipo: "NUCLEO",
       ativo: true,
     },
@@ -2051,7 +2315,7 @@ async function criarEstruturaInicial() {
     update: {
       unidadePaiId: sjam.id,
       sigla: "NUCGP",
-      nome: "Núcleo de Gestão de Pessoas",
+      nome: "NÃºcleo de GestÃ£o de Pessoas",
       tipo: "NUCLEO",
       ativo: true,
     },
@@ -2060,7 +2324,7 @@ async function criarEstruturaInicial() {
       unidadePaiId: sjam.id,
       codigo: "NUCGP",
       sigla: "NUCGP",
-      nome: "Núcleo de Gestão de Pessoas",
+      nome: "NÃºcleo de GestÃ£o de Pessoas",
       tipo: "NUCLEO",
       ativo: true,
     },
@@ -2098,7 +2362,7 @@ async function criarJornadasPadrao() {
   const jornada7h = await prisma.jornada.upsert({
     where: { codigo: "JORNADA_7H" },
     update: {
-      nome: "Jornada ordinária de 7 horas",
+      nome: "Jornada ordinÃ¡ria de 7 horas",
       descricao:
         "Jornada de 7 horas ininterruptas, conforme Portaria SJAM-DIREF 135/2025.",
       tipo: "SETE_HORAS",
@@ -2115,7 +2379,7 @@ async function criarJornadasPadrao() {
     },
     create: {
       codigo: "JORNADA_7H",
-      nome: "Jornada ordinária de 7 horas",
+      nome: "Jornada ordinÃ¡ria de 7 horas",
       descricao:
         "Jornada de 7 horas ininterruptas, conforme Portaria SJAM-DIREF 135/2025.",
       tipo: "SETE_HORAS",
@@ -2133,7 +2397,7 @@ async function criarJornadasPadrao() {
   const jornada8h = await prisma.jornada.upsert({
     where: { codigo: "JORNADA_8H" },
     update: {
-      nome: "Jornada ordinária de 8 horas",
+      nome: "Jornada ordinÃ¡ria de 8 horas",
       descricao: "Jornada de 8 horas em dois turnos, com intervalo de 1h a 3h.",
       tipo: "OITO_HORAS",
       cargaDiariaMinutos: 480,
@@ -2149,7 +2413,7 @@ async function criarJornadasPadrao() {
     },
     create: {
       codigo: "JORNADA_8H",
-      nome: "Jornada ordinária de 8 horas",
+      nome: "Jornada ordinÃ¡ria de 8 horas",
       descricao: "Jornada de 8 horas em dois turnos, com intervalo de 1h a 3h.",
       tipo: "OITO_HORAS",
       cargaDiariaMinutos: 480,
@@ -2175,18 +2439,18 @@ async function criarIntegracaoSarh() {
   const existente = await prisma.integracaoSistema.findFirst({
     where: {
       tipo: "SARH",
-      nome: "SARH - Sistema de Gestão de Recursos Humanos",
+      nome: "SARH - Sistema de GestÃ£o de Recursos Humanos",
     },
   });
 
   const data = {
-    nome: "SARH - Sistema de Gestão de Recursos Humanos",
+    nome: "SARH - Sistema de GestÃ£o de Recursos Humanos",
     tipo: "SARH" as const,
     status: "ATIVA" as const,
     direcao: "ENTRADA" as const,
     baseUrl,
     descricao:
-      "Integração para carga e sincronização de empresas, lotações, cargos, servidores e lotações dos servidores a partir do SARH.",
+      "IntegraÃ§Ã£o para carga e sincronizaÃ§Ã£o de empresas, lotaÃ§Ãµes, cargos, servidores e lotaÃ§Ãµes dos servidores a partir do SARH.",
     ativo: true,
     configuracao: {
       endpoints: {
@@ -2356,7 +2620,7 @@ async function criarConfiguracaoHorasExtrasPadrao(orgaoId: string) {
       id: workflowDefinitionExistente?.id ?? "00000000-0000-0000-0000-000000000000",
     },
     update: {
-      name: "Chefia, orçamento e deliberação final",
+      name: "Chefia, orÃ§amento e deliberaÃ§Ã£o final",
       description:
         "Fluxo inicial editavel para solicitacao, analise, parecer, deliberacao, execucao, fechamento e pagamento de servico extraordinario.",
       active: true,
@@ -2365,7 +2629,7 @@ async function criarConfiguracaoHorasExtrasPadrao(orgaoId: string) {
       orgaoId,
       scopeUnitId: null,
       code: "FLUXO_HE_CHEFIA_ORCAMENTO_DELIBERACAO",
-      name: "Chefia, orçamento e deliberação final",
+      name: "Chefia, orÃ§amento e deliberaÃ§Ã£o final",
       description:
         "Fluxo inicial editavel para solicitacao, analise, parecer, deliberacao, execucao, fechamento e pagamento de servico extraordinario.",
       active: true,
@@ -2481,6 +2745,59 @@ async function criarConfiguracaoHorasExtrasPadrao(orgaoId: string) {
   };
 }
 
+async function criarProcedimentosFrequenciaPadrao() {
+  const orgaos = await prisma.orgao.findMany({
+    where: { ativo: true },
+    select: { id: true },
+  });
+
+  for (const orgao of orgaos) {
+    for (const [index, procedimento] of PROCEDIMENTOS_FREQUENCIA_PADRAO.entries()) {
+      await prisma.procedimentoAdministrativoFrequencia.upsert({
+        where: {
+          orgaoId_codigo: {
+            orgaoId: orgao.id,
+            codigo: procedimento.codigo,
+          },
+        },
+        update: {
+          nome: procedimento.nome,
+          categoria: procedimento.categoria as never,
+          objetivoFinal: procedimento.objetivoFinal,
+          descricao: procedimento.descricao,
+          efeitosEsperados: procedimento.efeitosEsperados,
+          checklist: procedimento.checklist,
+          ordem: index + 1,
+        },
+        create: {
+          orgaoId: orgao.id,
+          codigo: procedimento.codigo,
+          nome: procedimento.nome,
+          categoria: procedimento.categoria as never,
+          objetivoFinal: procedimento.objetivoFinal,
+          descricao: procedimento.descricao,
+          requerProcessoSei: procedimento.requerProcessoSei,
+          requerCienciaGestor: procedimento.requerCienciaGestor,
+          requerAutoridade: procedimento.requerAutoridade,
+          requerAnexo: procedimento.requerAnexo,
+          permiteBancoAberto: procedimento.permiteBancoAberto,
+          permiteBancoFechado: procedimento.permiteBancoFechado,
+          preservaHistoricoOriginal: procedimento.preservaHistoricoOriginal,
+          permiteRecalculo: procedimento.permiteRecalculo,
+          permiteLancamentoCompetenciaPosterior:
+            procedimento.permiteLancamentoCompetenciaPosterior,
+          mesesRetroatividadeLivre: procedimento.mesesRetroatividadeLivre,
+          permissaoExecutar: procedimento.permissaoExecutar,
+          permissaoAutorizar: procedimento.permissaoAutorizar,
+          efeitosEsperados: procedimento.efeitosEsperados,
+          checklist: procedimento.checklist,
+          ordem: index + 1,
+        },
+      });
+    }
+  }
+}
+
 async function main() {
   console.log("Iniciando seed do SECP...");
 
@@ -2492,23 +2809,23 @@ async function main() {
   const perfilServidor = await criarPerfilServidor();
   const perfilEstagiario = await criarPerfilPessoaPonto({
     codigo: "ESTAGIARIO",
-    nome: "Estagiário",
-    descricao: "Perfil básico para estagiários utilizarem o SECP.",
+    nome: "EstagiÃ¡rio",
+    descricao: "Perfil bÃ¡sico para estagiÃ¡rios utilizarem o SECP.",
   });
   const perfilPrestador = await criarPerfilPessoaPonto({
     codigo: "PRESTADOR",
     nome: "Prestador",
-    descricao: "Perfil básico para prestadores utilizarem o SECP.",
+    descricao: "Perfil bÃ¡sico para prestadores utilizarem o SECP.",
   });
   const perfilVoluntario = await criarPerfilPessoaPonto({
     codigo: "VOLUNTARIO",
-    nome: "Voluntário",
-    descricao: "Perfil básico para voluntários utilizarem o SECP.",
+    nome: "VoluntÃ¡rio",
+    descricao: "Perfil bÃ¡sico para voluntÃ¡rios utilizarem o SECP.",
   });
   const perfilMagistrado = await criarPerfilPessoaPonto({
     codigo: "MAGISTRADO",
     nome: "Magistrado",
-    descricao: "Perfil básico para magistrados utilizarem o SECP.",
+    descricao: "Perfil bÃ¡sico para magistrados utilizarem o SECP.",
   });
   const perfilChefia = await criarPerfilChefia();
   const perfilSecap = await criarPerfilSecap();
@@ -2523,18 +2840,16 @@ async function main() {
     permissoes,
     "global",
   );
-  const codigosPermissoesSeccionais = codigosPermissoesPorAbrangencia(
-    permissoes,
-    "seccional",
-  );
-
   await sincronizarPermissoesPorCodigoAoPerfil(
     perfilMaster.id,
     codigosPermissoesGlobais,
   );
   await sincronizarPermissoesPorCodigoAoPerfil(
     perfilAdmin.id,
-    codigosPermissoesSeccionais,
+    normalizarCodigosPermissoesPerfil(
+      codigosPermissoesAdministrador,
+      "seccional",
+    ),
   );
   await sincronizarPermissoesPorCodigoAoPerfil(
     perfilServidor.id,
@@ -2550,6 +2865,7 @@ async function main() {
         ...codigosPermissoesPessoaExterna,
         "afastamentos:consultar:proprio",
         "programacao-ferias:consultar:proprio",
+  "substituicoes-funcao:relatorio:proprio",
       ],
       "proprio",
     ),
@@ -2619,6 +2935,7 @@ async function main() {
   const configuracaoHorasExtras = await criarConfiguracaoHorasExtrasPadrao(
     orgao.id,
   );
+  await criarProcedimentosFrequenciaPadrao();
   const integracaoSarh = await criarIntegracaoSarh();
 
   await prisma.auditoriaEvento.create({
@@ -2653,10 +2970,10 @@ async function main() {
     },
   });
 
-  console.log("Seed concluído com sucesso.");
-  console.log(`Usuário inicial: ${usuarioInicial.matricula}`);
+  console.log("Seed concluÃ­do com sucesso.");
+  console.log(`UsuÃ¡rio inicial: ${usuarioInicial.matricula}`);
   console.log(
-    "Senha inicial: valor definido em SECP_ADMIN_SENHA ou padrão secp.",
+    "Senha inicial: valor definido em SECP_ADMIN_SENHA ou padrÃ£o secp.",
   );
 }
 
@@ -2668,3 +2985,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

@@ -30,5 +30,6 @@ export const ENDPOINTS_PADRAO_SARH: SarhEndpointKey[] = [
   "afastamentos",
   "ferias",
   "chefias",
+  "substituicoes",
   "calendarios",
 ];

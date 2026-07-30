@@ -1,7 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useActionState } from "react";
 import { Loader2, Save } from "lucide-react";
+
+import { SearchableSelect } from "@/components/ui";
 import {
   tiposUnidadeOrganizacional,
   type UnidadeFormState,
@@ -57,17 +59,17 @@ const estadoInicial: UnidadeFormState = {
 };
 
 const rotulosTipoUnidade: Record<string, string> = {
-  ORGAO: "Órgão",
-  SECAO_JUDICIARIA: "Seção Judiciária",
-  SUBSECAO_JUDICIARIA: "Subseção Judiciária",
-  UNIDADE_AVANCADA_ATENDIMENTO: "Unidade Avançada de Atendimento",
-  NUCLEO: "Núcleo",
-  SECAO: "Seção",
+  ORGAO: "Ã“rgÃ£o",
+  SECAO_JUDICIARIA: "SeÃ§Ã£o JudiciÃ¡ria",
+  SUBSECAO_JUDICIARIA: "SubseÃ§Ã£o JudiciÃ¡ria",
+  UNIDADE_AVANCADA_ATENDIMENTO: "Unidade AvanÃ§ada de Atendimento",
+  NUCLEO: "NÃºcleo",
+  SECAO: "SeÃ§Ã£o",
   SECRETARIA: "Secretaria",
   VARA: "Vara",
   GABINETE: "Gabinete",
   TURMA_RECURSAL: "Turma Recursal",
-  CENTRO_CONCILIACAO: "Centro de Conciliação",
+  CENTRO_CONCILIACAO: "Centro de ConciliaÃ§Ã£o",
   DEPARTAMENTO: "Departamento",
   SUBDEPARTAMENTO: "Subdepartamento",
   OUTRA: "Outra",
@@ -118,24 +120,23 @@ export function UnidadeForm({
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <div className="space-y-2">
             <label htmlFor="orgaoId" className="text-sm font-semibold">
-              Órgão
+              Ã“rgÃ£o
             </label>
 
-            <select
+            <SearchableSelect
               id="orgaoId"
               name="orgaoId"
               defaultValue={campos?.orgaoId ?? ""}
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              placeholder="Selecione o órgão"
+              searchPlaceholder="Pesquisar órgão..."
+              emptyMessage="Nenhum órgão encontrado."
+              options={orgaos.map((orgao) => ({
+                value: orgao.id,
+                label: `${orgao.sigla} - ${orgao.nome}`,
+                searchText: `${orgao.sigla} ${orgao.nome}`,
+              }))}
               required
-            >
-              <option value="">Selecione</option>
-
-              {orgaos.map((orgao) => (
-                <option key={orgao.id} value={orgao.id}>
-                  {orgao.sigla} — {orgao.nome}
-                </option>
-              ))}
-            </select>
+            />
 
             {obterErro(estado.erros, "orgaoId") && (
               <p className="text-sm text-red-600">
@@ -149,20 +150,19 @@ export function UnidadeForm({
               Unidade superior
             </label>
 
-            <select
+            <SearchableSelect
               id="unidadePaiId"
               name="unidadePaiId"
               defaultValue={campos?.unidadePaiId ?? ""}
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
-            >
-              <option value="">Sem unidade superior</option>
-
-              {unidadesDisponiveis.map((unidade) => (
-                <option key={unidade.id} value={unidade.id}>
-                  {unidade.sigla} — {unidade.nome}
-                </option>
-              ))}
-            </select>
+              placeholder="Sem unidade superior"
+              searchPlaceholder="Pesquisar unidade superior..."
+              emptyMessage="Nenhuma unidade encontrada."
+              options={unidadesDisponiveis.map((unidade) => ({
+                value: unidade.id,
+                label: `${unidade.sigla} - ${unidade.nome}`,
+                searchText: `${unidade.sigla} ${unidade.nome} ${unidade.codigo} ${unidade.tipo}`,
+              }))}
+            />
 
             {obterErro(estado.erros, "unidadePaiId") && (
               <p className="text-sm text-red-600">
@@ -173,7 +173,7 @@ export function UnidadeForm({
 
           <div className="space-y-2">
             <label htmlFor="codigo" className="text-sm font-semibold">
-              Código
+              CÃ³digo
             </label>
 
             <input
@@ -225,7 +225,7 @@ export function UnidadeForm({
               name="nome"
               type="text"
               defaultValue={campos?.nome ?? ""}
-              placeholder="Ex.: Núcleo de Tecnologia da Informação"
+              placeholder="Ex.: NÃºcleo de Tecnologia da InformaÃ§Ã£o"
               className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
               required
             />
@@ -242,21 +242,20 @@ export function UnidadeForm({
               Tipo
             </label>
 
-            <select
+            <SearchableSelect
               id="tipo"
               name="tipo"
               defaultValue={campos?.tipo ?? ""}
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              placeholder="Selecione o tipo"
+              searchPlaceholder="Pesquisar tipo..."
+              emptyMessage="Nenhum tipo encontrado."
+              options={tiposUnidadeOrganizacional.map((tipo) => ({
+                value: tipo,
+                label: rotulosTipoUnidade[tipo] ?? tipo,
+                searchText: tipo,
+              }))}
               required
-            >
-              <option value="">Selecione</option>
-
-              {tiposUnidadeOrganizacional.map((tipo) => (
-                <option key={tipo} value={tipo}>
-                  {rotulosTipoUnidade[tipo] ?? tipo}
-                </option>
-              ))}
-            </select>
+            />
 
             {obterErro(estado.erros, "tipo") && (
               <p className="text-sm text-red-600">
@@ -267,23 +266,22 @@ export function UnidadeForm({
 
           <div className="space-y-2">
             <label htmlFor="fusoHorario" className="text-sm font-semibold">
-              Fuso horário
+              Fuso horÃ¡rio
             </label>
 
-            <select
+            <SearchableSelect
               id="fusoHorario"
               name="fusoHorario"
               defaultValue={campos?.fusoHorario ?? ""}
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
-            >
-              <option value="">Herdar da unidade superior ou órgão</option>
-
-              {opcoesFuso.map((fuso) => (
-                <option key={fuso.valor} value={fuso.valor}>
-                  {fuso.rotulo}
-                </option>
-              ))}
-            </select>
+              placeholder="Herdar da unidade superior ou órgão"
+              searchPlaceholder="Pesquisar fuso horário..."
+              emptyMessage="Nenhum fuso horário encontrado."
+              options={opcoesFuso.map((fuso) => ({
+                value: fuso.valor,
+                label: fuso.rotulo,
+                searchText: fuso.valor,
+              }))}
+            />
 
             {obterErro(estado.erros, "fusoHorario") && (
               <p className="text-sm text-red-600">
@@ -341,7 +339,7 @@ export function UnidadeForm({
 
               <div className="space-y-2">
                 <label htmlFor="municipioIbge" className="text-sm font-semibold">
-                  Código IBGE
+                  CÃ³digo IBGE
                 </label>
                 <input
                   id="municipioIbge"
@@ -372,7 +370,7 @@ export function UnidadeForm({
             <span>
               <span className="block font-semibold">Unidade ativa</span>
               <span className="text-xs text-[var(--muted-foreground)]">
-                Unidades inativas não devem ser usadas em novas lotações.
+                Unidades inativas nÃ£o devem ser usadas em novas lotaÃ§Ãµes.
               </span>
             </span>
           </label>
@@ -391,9 +389,11 @@ export function UnidadeForm({
             <Save className="size-4" aria-hidden="true" />
           )}
 
-          {modo === "criar" ? "Criar unidade" : "Salvar alterações"}
+          {modo === "criar" ? "Criar unidade" : "Salvar alteraÃ§Ãµes"}
         </button>
       </div>
     </form>
   );
 }
+
+

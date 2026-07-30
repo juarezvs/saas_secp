@@ -131,6 +131,7 @@ export function endpointDbFromKey(
     afastamentos: "AFASTAMENTOS",
     ferias: "AFASTAMENTOS",
     chefias: "CHEFIAS",
+    substituicoes: "SUBSTITUICOES",
     calendarios: "CALENDARIOS",
   };
   return mapa[endpoint];
@@ -152,6 +153,7 @@ export function tipoRegistroDbFromEndpoint(
     afastamentos: "AFASTAMENTO",
     ferias: "AFASTAMENTO",
     chefias: "CHEFIA",
+    substituicoes: "SUBSTITUICAO",
     calendarios: "CALENDARIO",
   };
   return mapa[endpoint];

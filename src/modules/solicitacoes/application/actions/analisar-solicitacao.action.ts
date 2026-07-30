@@ -7,6 +7,7 @@ import {
   PeriodoHomologadoError,
   verificarPeriodoHomologado,
 } from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
+import { validarERegistrarProcedimentoFrequencia } from "@/modules/procedimentos-frequencia/application/services/motor-procedimentos-frequencia.service";
 import { recalcularPosSolicitacaoService } from "@/modules/recalculo/application/services/recalcular-pos-solicitacao.service";
 import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
@@ -102,6 +103,29 @@ function deveRecalcularPosDeferimento(tipo: string) {
 
 function deveRecalcularApuracaoDiaria(tipo: string) {
   return deveRecalcularPosDeferimento(tipo);
+}
+
+function categoriaProcedimentoSolicitacao(tipo: string) {
+  const mapa: Record<
+    string,
+    | "AJUSTE_BANCO_ABERTO"
+    | "COMPENSACAO_SALDO"
+    | "CONVERSAO_HORAS_NAO_AUTORIZADAS"
+    | "AFASTAMENTO_INFORMATIVO"
+    | "TRABALHO_REMOTO"
+  > = {
+    AJUSTE_PONTO: "AJUSTE_BANCO_ABERTO",
+    ABONO_JUSTIFICATIVA: "AJUSTE_BANCO_ABERTO",
+    COMPENSACAO: "COMPENSACAO_SALDO",
+    FOLGA_BANCO_HORAS: "COMPENSACAO_SALDO",
+    HORA_CREDITO_PREVIA: "CONVERSAO_HORAS_NAO_AUTORIZADAS",
+    ATIVIDADE_EXTERNA: "AFASTAMENTO_INFORMATIVO",
+    VIAGEM_SERVICO: "AFASTAMENTO_INFORMATIVO",
+    CAPACITACAO: "AFASTAMENTO_INFORMATIVO",
+    DISPENSA_PONTO: "TRABALHO_REMOTO",
+  };
+
+  return mapa[tipo] ?? "AJUSTE_BANCO_ABERTO";
 }
 
 async function validarPeriodosImpactadosAbertos(solicitacao: {
@@ -286,6 +310,33 @@ export async function analisarSolicitacaoAction(
     let dadosResultado: JsonInputValue | undefined;
 
     if (novoStatus === "DEFERIDA") {
+      const procedimento =
+        await validarERegistrarProcedimentoFrequencia({
+          tx,
+          categoria: categoriaProcedimentoSolicitacao(solicitacaoAtual.tipo),
+          servidorId: solicitacaoAtual.servidorId,
+          usuarioId: session.user.id,
+          permissoesUsuario: permissoes,
+          dataInicio:
+            solicitacaoAtual.dataInicio ??
+            solicitacaoAtual.dataReferencia ??
+            null,
+          dataFim: solicitacaoAtual.dataFim ?? solicitacaoAtual.dataInicio,
+          justificativa: parsed.data.justificativaAnalise,
+          titulo: `Análise da solicitação ${solicitacaoAtual.tipo}`,
+          aplicar: true,
+          exigePermissao: "autorizar",
+          exigeRecalculo: deveRecalcularPosDeferimento(solicitacaoAtual.tipo),
+          validarDocumentos: false,
+          dadosEntrada: {
+            origem: "SOLICITACAO_PONTO",
+            solicitacaoId: solicitacaoAtual.id,
+            tipo: solicitacaoAtual.tipo,
+            dataReferencia: solicitacaoAtual.dataReferencia,
+            dataInicio: solicitacaoAtual.dataInicio,
+            dataFim: solicitacaoAtual.dataFim,
+          },
+        });
       const efeito = await aplicarEfeitosSolicitacaoDeferida({
         tx,
         usuarioAnaliseId: session.user.id,
@@ -303,6 +354,16 @@ export async function analisarSolicitacaoAction(
       });
 
       dadosResultado = converterParaJsonInput(efeito);
+      dadosResultado = converterParaJsonInput({
+        ...(dadosResultado &&
+        typeof dadosResultado === "object" &&
+        !Array.isArray(dadosResultado)
+          ? dadosResultado
+          : { efeito: dadosResultado ?? null }),
+        procedimentoFrequenciaId: procedimento.procedimento.id,
+        procedimentoFrequenciaExecucaoId: procedimento.execucao?.id ?? null,
+        procedimentoFrequenciaCodigo: procedimento.procedimento.codigo,
+      });
 
       await tx.solicitacaoEvento.create({
         data: {

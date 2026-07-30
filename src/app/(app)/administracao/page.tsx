@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import {
   Building2,
   CalendarClock,
@@ -6,6 +6,7 @@ import {
   Clock3,
   Cpu,
   FileCheck2,
+  FileText,
   KeyRound,
   MessageSquare,
   Network,
@@ -17,6 +18,7 @@ import {
   SlidersHorizontal,
   ToggleLeft,
   Upload,
+  UserRoundCheck,
   Users,
   UsersRound,
 } from "lucide-react";
@@ -30,11 +32,26 @@ import {
 } from "@/modules/auth/application/services/permissao.service";
 
 const PERMISSOES_ADMINISTRACAO = [
+  "configuracoes:gerenciar:seccional",
   "configuracoes:gerenciar:global",
+  "banco-horas:gerenciar:seccional",
   "banco-horas:gerenciar:global",
   "integracoes:teams:visualizar",
+  "menus:personalizar:seccional",
   "menus:personalizar:global",
+  "procedimentos-frequencia:consultar:seccional",
+  "procedimentos-frequencia:consultar:global",
+  "substituicoes-funcao:consultar:seccional",
+  "substituicoes-funcao:consultar:global",
 ];
+
+type CardAdministracao = {
+  titulo: string;
+  descricao: string;
+  href: string;
+  icon: typeof Settings;
+  permissoes?: string[];
+};
 
 export default async function AdministracaoPage() {
   const permissao = await exigirUmaDasPermissoesOuRedirecionar(
@@ -49,169 +66,206 @@ export default async function AdministracaoPage() {
       ? `${href}?${new URLSearchParams({ orgaoId: orgaoIdPadrao }).toString()}`
       : href;
 
-  const cards = [
+  const cards: CardAdministracao[] = [
     {
-      titulo: "Liberação de Rotinas",
-      descricao:
-        "Controle quais rotinas ficam disponíveis para uso, mesmo quando já constam nos perfis.",
+      titulo: "Liberação de rotinas",
+      descricao: "Controle a disponibilidade operacional das rotinas liberadas aos perfis.",
       href: "/administracao/liberacao-rotinas",
       icon: ToggleLeft,
+      permissoes: ["configuracoes:gerenciar:seccional", "configuracoes:gerenciar:global"],
     },
     {
-      titulo: "Personalizar Menu",
-      descricao:
-        "Configure grupos, opcoes e ordem do menu lateral por perfil.",
+      titulo: "Personalizar menu",
+      descricao: "Ajuste grupos, nomes, ícones e ordem do menu lateral por perfil.",
       href: "/administracao/personalizar-menu",
       icon: Palette,
-      permissao: "menus:personalizar:global",
+      permissoes: ["menus:personalizar:seccional", "menus:personalizar:global"],
     },
     {
       titulo: "Perfis e permissões",
-      descricao:
-        "Gerencie perfis, permissões e acessos por papel institucional.",
+      descricao: "Gerencie papéis, permissões e escopos institucionais.",
       href: "/perfis",
       icon: ShieldCheck,
+      permissoes: ["perfis:gerenciar:seccional", "perfis:gerenciar:global"],
     },
     {
       titulo: "Usuários",
-      descricao: "Gerencie usuários internos, externos e contas técnicas.",
+      descricao: "Administre contas, vínculos de perfil e escopo de atuação.",
       href: hrefComOrgao("/usuarios"),
       icon: UsersRound,
+      permissoes: ["usuarios:consultar:seccional", "usuarios:gerenciar:seccional", "usuarios:consultar:global", "usuarios:gerenciar:global"],
     },
     {
       titulo: "Órgãos",
-      descricao: "Consulte órgãos institucionais usados por unidades e SARH.",
+      descricao: "Consulte e mantenha as seccionais usadas pelo SECP.",
       href: hrefComOrgao("/orgaos"),
       icon: Building2,
+      permissoes: ["unidades:gerenciar:seccional", "unidades:gerenciar:global"],
     },
     {
       titulo: "Unidades",
-      descricao: "Gerencie a estrutura organizacional da JFAM.",
+      descricao: "Mantenha a estrutura organizacional e as vinculações administrativas.",
       href: hrefComOrgao("/unidades"),
       icon: Building2,
+      permissoes: ["unidades:gerenciar:seccional", "unidades:gerenciar:global"],
     },
     {
       titulo: "Servidores",
-      descricao:
-        "Gerencie servidores, vínculos funcionais, usuários relacionados e lotações.",
+      descricao: "Gerencie servidores, vínculos funcionais, usuários e lotações.",
       href: hrefComOrgao("/servidores"),
       icon: Users,
+      permissoes: ["servidores:consultar:seccional", "servidores:gerenciar:seccional", "servidores:consultar:global", "servidores:gerenciar:global"],
     },
     {
       titulo: "Chefias",
-      descricao:
-        "Gerencie gestores, substitutos, delegações e responsáveis por unidades.",
+      descricao: "Gerencie gestores, substitutos, delegações e responsáveis por unidades.",
       href: hrefComOrgao("/chefias"),
       icon: Network,
+      permissoes: ["chefias:gerenciar:seccional", "chefias:gerenciar:global"],
+    },
+    {
+      titulo: "Substituições de função",
+      descricao: "Cadastre titulares, substitutos, atos e períodos de substituição.",
+      href: "/administracao/substituicoes-funcao",
+      icon: UserRoundCheck,
+      permissoes: ["substituicoes-funcao:consultar:seccional", "substituicoes-funcao:gerenciar:seccional", "substituicoes-funcao:consultar:global", "substituicoes-funcao:gerenciar:global"],
+    },
+    {
+      titulo: "Relatório de substituições",
+      descricao: "Consulte substituições ocorridas com base nas ausências do titular.",
+      href: "/substituicoes-funcao/relatorio",
+      icon: FileText,
+      permissoes: ["substituicoes-funcao:relatorio:proprio", "substituicoes-funcao:relatorio:subordinados", "substituicoes-funcao:relatorio:seccional", "substituicoes-funcao:relatorio:global"],
     },
     {
       titulo: "Jornadas",
-      descricao:
-        "Cadastre jornadas, escalas e atribuições aplicáveis aos servidores.",
+      descricao: "Cadastre jornadas, escalas e atribuições aplicáveis às pessoas.",
       href: hrefComOrgao("/jornadas"),
       icon: CalendarClock,
+      permissoes: ["jornadas:gerenciar:seccional", "jornadas:gerenciar:global"],
     },
     {
       titulo: "AFD",
-      descricao:
-        "Importe arquivos AFD de equipamentos biométricos e acompanhe o processamento.",
+      descricao: "Importe arquivos AFD e acompanhe o processamento das marcações.",
       href: "/afd",
       icon: Upload,
+      permissoes: ["afd:importar:seccional", "afd:importar:global"],
     },
     {
       titulo: "Apuração",
-      descricao:
-        "Consulte e recalcule apurações diárias e mensais de frequência.",
+      descricao: "Consulte e recalcule apurações diárias e mensais de frequência.",
       href: hrefComOrgao("/apuracao"),
       icon: FileCheck2,
+      permissoes: ["apuracao:consultar:seccional", "apuracao:recalcular:seccional", "apuracao:consultar:global", "apuracao:recalcular:global"],
     },
     {
       titulo: "Regulamentação do ponto",
-      descricao:
-        "Customize limites, prazos, tolerâncias e regras de crédito do ponto por órgão.",
+      descricao: "Configure limites, prazos, tolerâncias e regras por seccional.",
       href: hrefComOrgao("/administracao/regulamentacao-ponto"),
       icon: SlidersHorizontal,
-      permissao: "regulamentacao-ponto:gerenciar:global",
+      permissoes: ["regulamentacao-ponto:gerenciar:seccional", "regulamentacao-ponto:gerenciar:global"],
     },
     {
-      titulo: "Gerenciar banco de horas",
-      descricao:
-        "Defina competência inicial, saldos de implantação e transferências excepcionais por servidor.",
+      titulo: "Procedimentos de frequência",
+      descricao: "Parametrize e execute procedimentos administrativos por seccional.",
+      href: "/administracao/procedimentos-frequencia",
+      icon: FileText,
+      permissoes: ["procedimentos-frequencia:consultar:seccional", "procedimentos-frequencia:gerenciar:seccional", "procedimentos-frequencia:consultar:global", "procedimentos-frequencia:gerenciar:global"],
+    },
+    {
+      titulo: "Nada Consta de frequência",
+      descricao: "Emita e registre o Nada Consta no motor de procedimentos.",
+      href: "/administracao/procedimentos-frequencia/nada-consta",
+      icon: FileCheck2,
+      permissoes: ["procedimentos-frequencia:emitir-nada-consta:seccional", "procedimentos-frequencia:emitir-nada-consta:global"],
+    },
+    {
+      titulo: "Banco de horas",
+      descricao: "Defina saldos, implantação e transferências excepcionais.",
       href: hrefComOrgao("/administracao/banco-horas"),
       icon: Clock3,
-      permissao: "banco-horas:gerenciar:global",
+      permissoes: ["banco-horas:gerenciar:seccional", "banco-horas:gerenciar:global"],
+    },
+    {
+      titulo: "Horas extras",
+      descricao: "Configure políticas, responsáveis e fluxos de aprovação.",
+      href: "/administracao/horas-extras",
+      icon: SlidersHorizontal,
+      permissoes: ["horas-extras:configurar-politica:seccional", "horas-extras:configurar-workflow:seccional", "horas-extras:configurar-responsaveis:seccional", "horas-extras:configurar-politica:global", "horas-extras:configurar-workflow:global", "horas-extras:configurar-responsaveis:global"],
     },
     {
       titulo: "Calendário institucional",
-      descricao:
-        "Cadastre feriados, pontos facultativos e suspensões que impactam prazos e a apuração do ponto.",
+      descricao: "Cadastre feriados, pontos facultativos e suspensões.",
       href: "/administracao/calendario",
       icon: CalendarDays,
+      permissoes: ["configuracoes:gerenciar:seccional", "configuracoes:gerenciar:global"],
     },
     {
-      titulo: "Credenciais e integracoes",
+      titulo: "Fusos horários",
+      descricao: "Gerencie fusos usados por órgãos, unidades e jornadas.",
+      href: "/administracao/fusos-horarios",
+      icon: Clock3,
+      permissoes: ["fusos-horarios:gerenciar:global"],
+    },
+    {
+      titulo: "Credenciais e integrações",
       descricao: "Configure SARH, Active Directory e relógios por seccional.",
       href: hrefComOrgao("/administracao/integracoes"),
       icon: KeyRound,
-    },
-    {
-      titulo: "Saúde dos Workers",
-      descricao:
-        "Monitore filas, workers automáticos, rotinas assíncronas e últimos eventos de execução.",
-      href: "/administracao/integracoes/teams",
-      icon: MessageSquare,
-      permissao: "integracoes:teams:visualizar",
+      permissoes: ["integracoes:consultar:seccional", "integracoes:gerenciar:seccional", "integracoes:consultar:global", "integracoes:gerenciar:global"],
     },
     {
       titulo: "Microsoft Teams",
-      descricao:
-        "Configure bot, abas, notificações individuais, Adaptive Cards e manifesto do aplicativo Teams.",
+      descricao: "Configure bot, abas, notificações e manifesto do aplicativo Teams.",
+      href: "/administracao/integracoes/teams",
+      icon: MessageSquare,
+      permissoes: ["integracoes:teams:visualizar", "integracoes:teams:configurar"],
+    },
+    {
+      titulo: "Saúde dos workers",
+      descricao: "Monitore filas, workers automáticos e eventos de execução.",
       href: "/administracao/workers",
       icon: ServerCog,
-      permissao: "configuracoes:gerenciar:global",
+      permissoes: ["configuracoes:gerenciar:seccional", "integracoes:gerenciar:seccional", "configuracoes:gerenciar:global", "integracoes:gerenciar:global"],
     },
     {
       titulo: "Equipamentos biométricos",
-      descricao:
-        "Cadastre relógios de ponto, REP, totens e dispositivos usados na importação AFD e nas marcações biometricas.",
+      descricao: "Cadastre relógios, REP, totens e dispositivos de marcação.",
       href: hrefComOrgao("/equipamentos"),
       icon: Cpu,
+      permissoes: ["integracoes:consultar:seccional", "integracoes:gerenciar:seccional", "integracoes:consultar:global", "integracoes:gerenciar:global"],
     },
     {
       titulo: "Auditoria",
-      descricao:
-        "Consulte trilhas de auditoria, alteracoes sensíveis, usuários responsáveis e dados antes/depois.",
+      descricao: "Consulte trilhas, alterações sensíveis e dados antes/depois.",
       href: "/auditoria",
       icon: ShieldAlert,
-      permissao: "auditoria:consultar:global",
+      permissoes: ["auditoria:consultar:seccional", "auditoria:detalhar:seccional", "auditoria:consultar:global", "auditoria:detalhar:global"],
     },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Breadcrumb items={[{ label: "Administração" }]} />
 
       <PageHeader
         icon={Settings}
-        titulo="Configurações institucionais do SECP"
-        descricao="Area reservada para administração técnica, parametros do sistema, perfis, permissões, usuários, unidades e integracoes."
-        artigo="Art. 20, inciso I"
-        regraTitulo="Responsabilidade técnica do NUTEC"
-        regraDescricao="O NUTEC é responsável por gerenciar o sistema de controle eletrônico de frequência quanto ao cadastro e alteração de usuários e por dirimir dúvidas sobre funcionamento e registros."
+        titulo="Administração do SECP"
+        descricao="Configurações técnicas, regras institucionais, permissões, integrações e cadastros de apoio."
       />
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-5">
         {cards
-          .filter((card) => {
-            const permissaoCard =
-              card.permissao ?? "configuracoes:gerenciar:global";
-
-            return usuarioPossuiPermissaoNoPerfil(
-              permissao.perfilAtivoCodigo,
-              permissao.permissoes,
-              permissaoCard,
-            );
-          })
+          .filter((card) =>
+            (card.permissoes ?? ["configuracoes:gerenciar:global"]).some(
+              (permissaoCard) =>
+                usuarioPossuiPermissaoNoPerfil(
+                  permissao.perfilAtivoCodigo,
+                  permissao.permissoes,
+                  permissaoCard,
+                ),
+            ),
+          )
           .map((card) => {
             const Icon = card.icon;
 
@@ -219,20 +273,17 @@ export default async function AdministracaoPage() {
               <Link
                 key={card.href}
                 href={card.href}
-                className="group rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md"
+                className="group flex min-h-40 flex-col justify-between rounded-lg border bg-[var(--card)] p-4 text-[var(--card-foreground)] shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md"
               >
-                <div className="flex gap-4">
-                  <div className="secp-theme-icon flex size-12 shrink-0 items-center justify-center rounded-xl group-hover:bg-secp-blue-900 group-hover:text-white">
-                    <Icon className="size-6" aria-hidden="true" />
-                  </div>
-
-                  <div>
-                    <h2 className="font-bold">{card.titulo}</h2>
-                    <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-                      {card.descricao}
-                    </p>
-                  </div>
+                <div className="flex items-start justify-between gap-3">
+                  <h2 className="text-sm font-black leading-5">{card.titulo}</h2>
+                  <span className="secp-theme-icon flex size-9 shrink-0 items-center justify-center rounded-lg group-hover:bg-secp-blue-900 group-hover:text-white">
+                    <Icon className="size-4" aria-hidden="true" />
+                  </span>
                 </div>
+                <p className="mt-4 text-xs leading-5 text-[var(--muted-foreground)]">
+                  {card.descricao}
+                </p>
               </Link>
             );
           })}

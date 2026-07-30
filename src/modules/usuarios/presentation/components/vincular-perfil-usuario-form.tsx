@@ -1,8 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus } from "lucide-react";
+
+import { SearchableSelect } from "@/components/ui";
+
 import { vincularPerfilUsuarioAction } from "../../application/actions/vincular-perfil-usuario.action";
 import type { VincularPerfilUsuarioFormState } from "../../application/schemas/usuario.schema";
 
@@ -69,38 +72,41 @@ export function VincularPerfilUsuarioForm({
       )}
 
       <div className="mt-4 flex flex-col gap-3 md:flex-row">
-        <select
+        <SearchableSelect
+          id="vincular-perfil-perfil"
           name="perfilId"
           defaultValue=""
-          className="h-10 flex-1 rounded-md border bg-[var(--card)] px-3 text-sm"
+          className="flex-1"
+          placeholder="Selecione o perfil"
+          searchPlaceholder="Pesquisar perfil..."
+          emptyMessage="Nenhum perfil encontrado."
+          options={perfis.map((perfil) => ({
+            value: perfil.id,
+            label: `${perfil.codigo} - ${perfil.nome}`,
+            searchText: `${perfil.codigo} ${perfil.nome}`,
+          }))}
           required
-        >
-          <option value="">Selecione o perfil</option>
+        />
 
-          {perfis.map((perfil) => (
-            <option key={perfil.id} value={perfil.id}>
-              {perfil.codigo} — {perfil.nome}
-            </option>
-          ))}
-        </select>
-
-        <select
+        <SearchableSelect
+          id="vincular-perfil-orgao"
           name="orgaoId"
           defaultValue=""
-          className="h-10 flex-1 rounded-md border bg-[var(--card)] px-3 text-sm"
+          className="flex-1"
+          placeholder={
+            permitirEscopoGlobal
+              ? "Global (somente Master)"
+              : "Selecione a seccional"
+          }
+          searchPlaceholder="Pesquisar seccional..."
+          emptyMessage="Nenhuma seccional encontrada."
+          options={orgaos.map((orgao) => ({
+            value: orgao.id,
+            label: `${orgao.sigla} - ${orgao.nome}`,
+            searchText: `${orgao.sigla} ${orgao.nome}`,
+          }))}
           required={!permitirEscopoGlobal}
-        >
-          <option value="">
-            {permitirEscopoGlobal
-              ? "Global (somente MASTER)"
-              : "Selecione a seccional"}
-          </option>
-          {orgaos.map((orgao) => (
-            <option key={orgao.id} value={orgao.id}>
-              {orgao.sigla} - {orgao.nome}
-            </option>
-          ))}
-        </select>
+        />
 
         <button
           type="submit"

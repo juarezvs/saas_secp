@@ -73,6 +73,48 @@ enum PapelGestao {
   DELEGADO_CHEFIA
 }
 
+enum OrigemSubstituicaoFuncao {
+  SARH
+  SECP
+  IMPORTACAO
+}
+
+enum TipoSubstituicaoFuncao {
+  AUTOMATICA
+  EVENTUAL
+  DESIGNADA
+  INTERINA
+  OUTRA
+}
+
+enum StatusSubstituicaoFuncao {
+  ATIVA
+  INATIVA
+  SUSPENSA
+  ENCERRADA
+}
+
+enum TipoDiaSubstituicaoFuncao {
+  AFASTAMENTO_TITULAR
+  FALTA_TITULAR
+  FERIAS
+  LICENCA
+  DESIGNACAO_EVENTUAL
+  AJUSTE_MANUAL
+  OUTRO
+}
+
+enum StatusPagamentoSubstituicaoFuncao {
+  RASCUNHO
+  CALCULADO
+  EM_ANALISE
+  APROVADO
+  REJEITADO
+  ENVIADO_FOLHA
+  PAGO
+  CANCELADO
+}
+
 enum TipoJornada {
   SETE_HORAS
   OITO_HORAS
@@ -243,6 +285,30 @@ enum ResultadoAnaliseSolicitacao {
   INDEFERIR
 }
 
+enum TipoProcedimentoAdministrativoFrequencia {
+  JORNADA_DIARIA
+  HORA_EXTRA
+  COMPENSACAO_SALDO
+  ALTERACAO_TEMPORARIA_JORNADA
+  AFASTAMENTO_INFORMATIVO
+  JORNADA_ESPECIAL
+  AJUSTE_BANCO_ABERTO
+  AJUSTE_BANCO_FECHADO
+  TRABALHO_REMOTO
+  CONVERSAO_HORAS_NAO_AUTORIZADAS
+  NADA_CONSTA
+  OUTRO
+}
+
+enum StatusProcedimentoAdministrativoFrequencia {
+  RASCUNHO
+  EM_ANALISE
+  AUTORIZADO
+  APLICADO
+  INDEFERIDO
+  CANCELADO
+}
+
 enum StatusFechamentoMensal {
   ABERTO
   EM_HOMOLOGACAO
@@ -342,6 +408,7 @@ enum TipoEndpointSarh {
   TIPOS_AFASTAMENTO
   AFASTAMENTOS
   CHEFIAS
+  SUBSTITUICOES
   CALENDARIOS
 }
 
@@ -354,6 +421,7 @@ enum TipoRegistroSarh {
   TIPO_AFASTAMENTO
   AFASTAMENTO
   CHEFIA
+  SUBSTITUICAO
   CALENDARIO
 }
 
@@ -582,36 +650,41 @@ model Usuario {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  perfis                           UsuarioPerfil[]
-  servidor                         Servidor?
-  auditorias                       AuditoriaEvento[]
-  marcacoesCriadas                 Marcacao[]                @relation("MarcacoesCriadasPorUsuario")
-  movimentosBancoHorasAutorizados  MovimentoBancoHoras[]     @relation("MovimentosBancoHorasAutorizadosPor")
-  autorizacoesBancoHorasConcedidas AutorizacaoBancoHoras[]   @relation("AutorizacoesBancoHorasConcedidasPor")
-  jornadasDiferenciadasAutorizadas JornadaServidor[]         @relation("JornadasDiferenciadasAutorizadasPor")
-  solicitacoesCriadas              Solicitacao[]             @relation("SolicitacoesCriadasPorUsuario")
-  solicitacoesAnalisadas           Solicitacao[]             @relation("SolicitacoesAnalisadasPorUsuario")
-  solicitacaoEventos               SolicitacaoEvento[]       @relation("SolicitacaoEventosPorUsuario")
-  fechamentosAbertos               FechamentoMensalUnidade[] @relation("FechamentosAbertosPorUsuario")
-  fechamentosHomologados           FechamentoMensalUnidade[] @relation("FechamentosHomologadosPorUsuario")
-  homologacoesServidor             HomologacaoServidorMes[]  @relation("HomologacoesServidorPorUsuario")
-  boletinsGerados                  BoletimFrequencia[]       @relation("BoletinsGeradosPorUsuario")
-  boletinsEncaminhados             BoletimFrequencia[]       @relation("BoletinsEncaminhadosPorUsuario")
-  boletinsRecebidos                BoletimFrequencia[]       @relation("BoletinsRecebidosPorUsuario")
-  integracoesSarhExecutadas        IntegracaoSarhExecucao[]  @relation("IntegracoesSarhExecutadasPorUsuario")
-  conflitosSarhResolvidos          IntegracaoSarhConflito[]  @relation("ConflitosSarhResolvidosPorUsuario")
-  recessosCriados                  RecessoForense[]          @relation("RecessosCriadosPorUsuario")
-  recessosFechados                 RecessoForense[]          @relation("RecessosFechadosPorUsuario")
-  convocacoesRecessoCriadas        ConvocacaoRecesso[]       @relation("ConvocacoesRecessoCriadasPorUsuario")
-  convocadosRecessoFechados        ConvocadoRecesso[]        @relation("ConvocadosRecessoFechadosPorUsuario")
-  homologacoesRecesso              HomologacaoRecesso[]      @relation("HomologacoesRecessoPorUsuario")
-  aceitesRecessoSecad              HomologacaoRecesso[]      @relation("AceitesRecessoSecadPorUsuario")
-  sessoesCadastroFacial            SessaoCadastroFacial[]
-  notificacoesLidas                NotificacaoLeitura[]
-  documentosAutenticacaoCriados    DocumentoAutenticacao[]   @relation("DocumentosAutenticacaoCriadosPorUsuario")
-  teamsVinculos                    TeamsUsuarioVinculado[]
-  teamsLogs                        TeamsLog[]
-  teamsNotificacoes                TeamsNotificacao[]
+  perfis                             UsuarioPerfil[]
+  servidor                           Servidor?
+  auditorias                         AuditoriaEvento[]
+  marcacoesCriadas                   Marcacao[]                                     @relation("MarcacoesCriadasPorUsuario")
+  movimentosBancoHorasAutorizados    MovimentoBancoHoras[]                          @relation("MovimentosBancoHorasAutorizadosPor")
+  autorizacoesBancoHorasConcedidas   AutorizacaoBancoHoras[]                        @relation("AutorizacoesBancoHorasConcedidasPor")
+  jornadasDiferenciadasAutorizadas   JornadaServidor[]                              @relation("JornadasDiferenciadasAutorizadasPor")
+  solicitacoesCriadas                Solicitacao[]                                  @relation("SolicitacoesCriadasPorUsuario")
+  solicitacoesAnalisadas             Solicitacao[]                                  @relation("SolicitacoesAnalisadasPorUsuario")
+  solicitacaoEventos                 SolicitacaoEvento[]                            @relation("SolicitacaoEventosPorUsuario")
+  fechamentosAbertos                 FechamentoMensalUnidade[]                      @relation("FechamentosAbertosPorUsuario")
+  fechamentosHomologados             FechamentoMensalUnidade[]                      @relation("FechamentosHomologadosPorUsuario")
+  homologacoesServidor               HomologacaoServidorMes[]                       @relation("HomologacoesServidorPorUsuario")
+  boletinsGerados                    BoletimFrequencia[]                            @relation("BoletinsGeradosPorUsuario")
+  boletinsEncaminhados               BoletimFrequencia[]                            @relation("BoletinsEncaminhadosPorUsuario")
+  boletinsRecebidos                  BoletimFrequencia[]                            @relation("BoletinsRecebidosPorUsuario")
+  integracoesSarhExecutadas          IntegracaoSarhExecucao[]                       @relation("IntegracoesSarhExecutadasPorUsuario")
+  conflitosSarhResolvidos            IntegracaoSarhConflito[]                       @relation("ConflitosSarhResolvidosPorUsuario")
+  recessosCriados                    RecessoForense[]                               @relation("RecessosCriadosPorUsuario")
+  recessosFechados                   RecessoForense[]                               @relation("RecessosFechadosPorUsuario")
+  convocacoesRecessoCriadas          ConvocacaoRecesso[]                            @relation("ConvocacoesRecessoCriadasPorUsuario")
+  convocadosRecessoFechados          ConvocadoRecesso[]                             @relation("ConvocadosRecessoFechadosPorUsuario")
+  homologacoesRecesso                HomologacaoRecesso[]                           @relation("HomologacoesRecessoPorUsuario")
+  aceitesRecessoSecad                HomologacaoRecesso[]                           @relation("AceitesRecessoSecadPorUsuario")
+  sessoesCadastroFacial              SessaoCadastroFacial[]
+  notificacoesLidas                  NotificacaoLeitura[]
+  documentosAutenticacaoCriados      DocumentoAutenticacao[]                        @relation("DocumentosAutenticacaoCriadosPorUsuario")
+  procedimentosFrequenciaResponsavel ProcedimentoAdministrativoFrequenciaExecucao[] @relation("ProcedimentosFrequenciaResponsavel")
+  procedimentosFrequenciaAutorizados ProcedimentoAdministrativoFrequenciaExecucao[] @relation("ProcedimentosFrequenciaAutorizadosPor")
+  substituicoesFuncaoCriadas         SubstituicaoFuncao[]                           @relation("SubstituicoesFuncaoCriadasPor")
+  pagamentosSubstituicaoCalculados   PagamentoSubstituicaoFuncao[]                  @relation("PagamentosSubstituicaoCalculadosPor")
+  pagamentosSubstituicaoAprovados    PagamentoSubstituicaoFuncao[]                  @relation("PagamentosSubstituicaoAprovadosPor")
+  teamsVinculos                      TeamsUsuarioVinculado[]
+  teamsLogs                          TeamsLog[]
+  teamsNotificacoes                  TeamsNotificacao[]
 
   @@map("usuarios")
 }
@@ -833,16 +906,21 @@ model Orgao {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  unidades                    UnidadeOrganizacional[]
-  servidores                  Servidor[]
-  equipamentosBiometricos     EquipamentoBiometrico[]
-  regulamentacaoPonto         RegulamentacaoPontoOrgao?
-  integracoes                 IntegracaoSistema[]
-  calendariosInstitucionais   CalendarioInstitucional[]
-  usuariosPerfis              UsuarioPerfil[]
-  overtimePolicies            OvertimePolicy[]
-  overtimeWorkflowDefinitions OvertimeWorkflowDefinition[]
-  jornadas                    Jornada[]
+  unidades                         UnidadeOrganizacional[]
+  servidores                       Servidor[]
+  equipamentosBiometricos          EquipamentoBiometrico[]
+  regulamentacaoPonto              RegulamentacaoPontoOrgao?
+  integracoes                      IntegracaoSistema[]
+  calendariosInstitucionais        CalendarioInstitucional[]
+  usuariosPerfis                   UsuarioPerfil[]
+  overtimePolicies                 OvertimePolicy[]
+  overtimeWorkflowDefinitions      OvertimeWorkflowDefinition[]
+  jornadas                         Jornada[]
+  procedimentosFrequencia          ProcedimentoAdministrativoFrequencia[]
+  procedimentosFrequenciaExecucoes ProcedimentoAdministrativoFrequenciaExecucao[]
+  funcoesConfiancaReferencias      FuncaoConfiancaReferencia[]
+  substituicoesFuncao              SubstituicaoFuncao[]
+  pagamentosSubstituicaoFuncao     PagamentoSubstituicaoFuncao[]
 
   @@index([uf])
   @@index([municipioIbge])
@@ -904,6 +982,99 @@ model RegulamentacaoPontoOrgao {
   @@map("regulamentacoes_ponto_orgaos")
 }
 
+model ProcedimentoAdministrativoFrequencia {
+  id      String @id @default(uuid()) @db.Uuid
+  orgaoId String @map("orgao_id") @db.Uuid
+
+  codigo    String                                   @db.VarChar(80)
+  nome      String                                   @db.VarChar(180)
+  categoria TipoProcedimentoAdministrativoFrequencia
+
+  objetivoFinal       String  @map("objetivo_final") @db.Text
+  descricao           String? @db.Text
+  fundamentoNormativo String? @map("fundamento_normativo") @db.Text
+
+  requerProcessoSei                     Boolean @default(true) @map("requer_processo_sei")
+  requerCienciaGestor                   Boolean @default(false) @map("requer_ciencia_gestor")
+  requerAutoridade                      Boolean @default(false) @map("requer_autoridade")
+  requerAnexo                           Boolean @default(false) @map("requer_anexo")
+  permiteBancoAberto                    Boolean @default(true) @map("permite_banco_aberto")
+  permiteBancoFechado                   Boolean @default(false) @map("permite_banco_fechado")
+  preservaHistoricoOriginal             Boolean @default(true) @map("preserva_historico_original")
+  permiteRecalculo                      Boolean @default(true) @map("permite_recalculo")
+  permiteLancamentoCompetenciaPosterior Boolean @default(false) @map("permite_lancamento_competencia_posterior")
+  mesesRetroatividadeLivre              Int     @default(6) @map("meses_retroatividade_livre")
+
+  permissaoExecutar  String? @map("permissao_executar") @db.VarChar(160)
+  permissaoAutorizar String? @map("permissao_autorizar") @db.VarChar(160)
+
+  efeitosEsperados Json? @map("efeitos_esperados")
+  checklist        Json?
+  parametros       Json?
+
+  ordem Int     @default(100)
+  ativo Boolean @default(true)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  orgao     Orgao                                          @relation(fields: [orgaoId], references: [id], onDelete: Cascade)
+  execucoes ProcedimentoAdministrativoFrequenciaExecucao[]
+
+  @@unique([orgaoId, codigo])
+  @@index([orgaoId])
+  @@index([categoria])
+  @@index([ativo])
+  @@map("procedimentos_administrativos_frequencia")
+}
+
+model ProcedimentoAdministrativoFrequenciaExecucao {
+  id             String @id @default(uuid()) @db.Uuid
+  procedimentoId String @map("procedimento_id") @db.Uuid
+  orgaoId        String @map("orgao_id") @db.Uuid
+
+  servidorId             String? @map("servidor_id") @db.Uuid
+  usuarioResponsavelId   String? @map("usuario_responsavel_id") @db.Uuid
+  autorizadoPorUsuarioId String? @map("autorizado_por_usuario_id") @db.Uuid
+
+  status StatusProcedimentoAdministrativoFrequencia @default(RASCUNHO)
+
+  dataInicio            DateTime? @map("data_inicio") @db.Date
+  dataFim               DateTime? @map("data_fim") @db.Date
+  competenciaLancamento String?   @map("competencia_lancamento") @db.VarChar(7)
+  processoSei           String?   @map("processo_sei") @db.VarChar(120)
+  documentoSei          String?   @map("documento_sei") @db.VarChar(120)
+  autoridade            String?   @db.VarChar(180)
+
+  titulo        String  @db.VarChar(180)
+  justificativa String  @db.Text
+  resultado     String? @db.Text
+
+  impactoMinutos Int?  @map("impacto_minutos")
+  dadosEntrada   Json? @map("dados_entrada")
+  dadosResultado Json? @map("dados_resultado")
+
+  autorizadoEm DateTime? @map("autorizado_em")
+  aplicadoEm   DateTime? @map("aplicado_em")
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+
+  procedimento       ProcedimentoAdministrativoFrequencia @relation(fields: [procedimentoId], references: [id], onDelete: Restrict)
+  orgao              Orgao                                @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+  servidor           Servidor?                            @relation(fields: [servidorId], references: [id], onDelete: SetNull)
+  usuarioResponsavel Usuario?                             @relation("ProcedimentosFrequenciaResponsavel", fields: [usuarioResponsavelId], references: [id], onDelete: SetNull)
+  autorizadoPor      Usuario?                             @relation("ProcedimentosFrequenciaAutorizadosPor", fields: [autorizadoPorUsuarioId], references: [id], onDelete: SetNull)
+
+  @@index([procedimentoId])
+  @@index([orgaoId])
+  @@index([servidorId])
+  @@index([usuarioResponsavelId])
+  @@index([autorizadoPorUsuarioId])
+  @@index([status])
+  @@index([dataInicio, dataFim])
+  @@map("procedimentos_administrativos_frequencia_execucoes")
+}
+
 model UnidadeOrganizacional {
   id           String  @id @default(uuid()) @db.Uuid
   orgaoId      String  @map("orgao_id") @db.Uuid
@@ -941,16 +1112,18 @@ model UnidadeOrganizacional {
 
   lotacoes                          Lotacao[]
   gestores                          GestorUnidade[]
-  solicitacoes                      Solicitacao[]                @relation("SolicitacoesPorUnidade")
+  solicitacoes                      Solicitacao[]                 @relation("SolicitacoesPorUnidade")
   fechamentosMensais                FechamentoMensalUnidade[]
   boletimFrequencias                BoletimFrequencia[]
   equipamentosBiometricos           EquipamentoBiometrico[]
   convocacoesRecesso                ConvocacaoRecesso[]
   calendariosInstitucionais         CalendarioInstitucional[]
-  overtimePoliciesScoped            OvertimePolicy[]             @relation("OvertimePolicyScopeUnit")
-  overtimePolicyVersionsScoped      OvertimePolicyVersion[]      @relation("OvertimePolicyVersionScopeUnit")
-  overtimeWorkflowDefinitionsScoped OvertimeWorkflowDefinition[] @relation("OvertimeWorkflowDefinitionScopeUnit")
-  overtimeWorkflowVersionsScoped    OvertimeWorkflowVersion[]    @relation("OvertimeWorkflowVersionScopeUnit")
+  overtimePoliciesScoped            OvertimePolicy[]              @relation("OvertimePolicyScopeUnit")
+  overtimePolicyVersionsScoped      OvertimePolicyVersion[]       @relation("OvertimePolicyVersionScopeUnit")
+  overtimeWorkflowDefinitionsScoped OvertimeWorkflowDefinition[]  @relation("OvertimeWorkflowDefinitionScopeUnit")
+  overtimeWorkflowVersionsScoped    OvertimeWorkflowVersion[]     @relation("OvertimeWorkflowVersionScopeUnit")
+  substituicoesFuncao               SubstituicaoFuncao[]
+  pagamentosSubstituicaoFuncao      PagamentoSubstituicaoFuncao[]
 
   @@unique([orgaoId, codigo])
   @@unique([orgaoId, codigoExternoSarh])
@@ -1028,31 +1201,36 @@ model Servidor {
   orgao   Orgao   @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
   cargo   Cargo?  @relation(fields: [cargoId], references: [id], onDelete: SetNull)
 
-  lotacoes                          Lotacao[]
-  gestores                          GestorUnidade[]
-  jornadas                          JornadaServidor[]
-  marcacoes                         Marcacao[]
-  apuracaoDiarias                   ApuracaoDiaria[]
-  ocorrenciaFrequencias             OcorrenciaFrequencia[]
-  bancoHorasSaldo                   BancoHorasSaldo?
-  movimentoBancoHoras               MovimentoBancoHoras[]
-  autorizacoesBancoHoras            AutorizacaoBancoHoras[]
-  solicitacoes                      Solicitacao[]                   @relation("SolicitacoesDoServidor")
-  solicitacaoEventos                SolicitacaoEvento[]             @relation("SolicitacaoEventosPorServidor")
-  homologacoesMensais               HomologacaoServidorMes[]
-  boletinsFrequencia                BoletimFrequenciaServidor[]
-  biometriaFacialServidor           BiometriaFacialServidor?
-  amostraBiometricaFacial           AmostraBiometricaFacial[]
-  autorizacaoesBiometricasMarcacaos AutorizacaoBiometricaMarcacao[]
-  marcacoesBrutas                   MarcacaoBruta[]
-  dispensasPonto                    DispensaPontoServidor[]
-  afastamentosSarh                  AfastamentoSarh[]
-  convocacoesRecessoChefia          ConvocacaoRecesso[]             @relation("ConvocacoesRecessoPorChefia")
-  convocadosRecesso                 ConvocadoRecesso[]
-  espelhosRecesso                   EspelhoRecesso[]
-  homologacoesRecesso               HomologacaoRecesso[]
-  sessoesCadastroFacial             SessaoCadastroFacial[]
-  teamsVinculos                     TeamsUsuarioVinculado[]
+  lotacoes                             Lotacao[]
+  gestores                             GestorUnidade[]
+  jornadas                             JornadaServidor[]
+  marcacoes                            Marcacao[]
+  apuracaoDiarias                      ApuracaoDiaria[]
+  ocorrenciaFrequencias                OcorrenciaFrequencia[]
+  bancoHorasSaldo                      BancoHorasSaldo?
+  movimentoBancoHoras                  MovimentoBancoHoras[]
+  autorizacoesBancoHoras               AutorizacaoBancoHoras[]
+  solicitacoes                         Solicitacao[]                                  @relation("SolicitacoesDoServidor")
+  solicitacaoEventos                   SolicitacaoEvento[]                            @relation("SolicitacaoEventosPorServidor")
+  homologacoesMensais                  HomologacaoServidorMes[]
+  boletinsFrequencia                   BoletimFrequenciaServidor[]
+  biometriaFacialServidor              BiometriaFacialServidor?
+  amostraBiometricaFacial              AmostraBiometricaFacial[]
+  autorizacaoesBiometricasMarcacaos    AutorizacaoBiometricaMarcacao[]
+  marcacoesBrutas                      MarcacaoBruta[]
+  dispensasPonto                       DispensaPontoServidor[]
+  afastamentosSarh                     AfastamentoSarh[]
+  substituicoesComoTitular             SubstituicaoFuncao[]                           @relation("SubstituicoesFuncaoTitular")
+  substituicoesComoSubstituto          SubstituicaoFuncao[]                           @relation("SubstituicoesFuncaoSubstituto")
+  pagamentosSubstituicaoComoTitular    PagamentoSubstituicaoFuncao[]                  @relation("PagamentosSubstituicaoTitular")
+  pagamentosSubstituicaoComoSubstituto PagamentoSubstituicaoFuncao[]                  @relation("PagamentosSubstituicaoSubstituto")
+  procedimentosFrequenciaExecucoes     ProcedimentoAdministrativoFrequenciaExecucao[]
+  convocacoesRecessoChefia             ConvocacaoRecesso[]                            @relation("ConvocacoesRecessoPorChefia")
+  convocadosRecesso                    ConvocadoRecesso[]
+  espelhosRecesso                      EspelhoRecesso[]
+  homologacoesRecesso                  HomologacaoRecesso[]
+  sessoesCadastroFacial                SessaoCadastroFacial[]
+  teamsVinculos                        TeamsUsuarioVinculado[]
 
   @@index([orgaoId])
   @@index([cargoId])
@@ -1182,8 +1360,9 @@ model AfastamentoSarh {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  servidor        Servidor?            @relation(fields: [servidorId], references: [id], onDelete: SetNull)
-  tipoAfastamento TipoAfastamentoSarh? @relation(fields: [tipoAfastamentoId], references: [id], onDelete: SetNull)
+  servidor         Servidor?                        @relation(fields: [servidorId], references: [id], onDelete: SetNull)
+  tipoAfastamento  TipoAfastamentoSarh?             @relation(fields: [tipoAfastamentoId], references: [id], onDelete: SetNull)
+  diasSubstituicao PagamentoSubstituicaoFuncaoDia[]
 
   @@index([servidorId])
   @@index([tipoAfastamentoId])
@@ -1221,6 +1400,193 @@ model GestorUnidade {
   @@index([ativo, servidorId, dataInicio, dataFim])
   @@index([ativo, unidadeId, dataInicio, dataFim])
   @@map("gestores_unidades")
+}
+
+model FuncaoConfiancaReferencia {
+  id      String  @id @default(uuid()) @db.Uuid
+  orgaoId String? @map("orgao_id") @db.Uuid
+
+  grupo     String? @db.VarChar(30)
+  categoria String  @db.VarChar(30)
+  codigo    String  @db.VarChar(50)
+  descricao String  @db.VarChar(250)
+
+  codigoFolhaSarh         Int?    @map("codigo_folha_sarh")
+  codigoNomeFuncaoSarh    Int?    @map("codigo_nome_funcao_sarh")
+  codigoFuncaoLotacaoSarh Int?    @map("codigo_funcao_lotacao_sarh")
+  valorMensal             Decimal @default(0) @map("valor_mensal") @db.Decimal(12, 2)
+
+  dataInicioVigencia DateTime? @map("data_inicio_vigencia") @db.Date
+  dataFimVigencia    DateTime? @map("data_fim_vigencia") @db.Date
+  ativo              Boolean   @default(true)
+
+  origem                  OrigemSubstituicaoFuncao @default(SECP)
+  codigoExternoSarh       String?                  @unique @map("codigo_externo_sarh") @db.VarChar(160)
+  payloadSarh             Json?                    @map("payload_sarh")
+  ultimaSincronizacaoSarh DateTime?                @map("ultima_sincronizacao_sarh")
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  orgao                             Orgao?               @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+  substituicoesComoFuncaoTitular    SubstituicaoFuncao[] @relation("SubstituicoesFuncaoReferenciaTitular")
+  substituicoesComoFuncaoSubstituto SubstituicaoFuncao[] @relation("SubstituicoesFuncaoReferenciaSubstituto")
+
+  @@unique([orgaoId, categoria, codigo, dataInicioVigencia])
+  @@index([orgaoId])
+  @@index([categoria, codigo])
+  @@index([codigoFolhaSarh])
+  @@index([codigoFuncaoLotacaoSarh])
+  @@index([ativo])
+  @@map("funcoes_confianca_referencias")
+}
+
+model SubstituicaoFuncao {
+  id      String @id @default(uuid()) @db.Uuid
+  orgaoId String @map("orgao_id") @db.Uuid
+
+  unidadeId String? @map("unidade_id") @db.Uuid
+
+  titularServidorId    String @map("titular_servidor_id") @db.Uuid
+  substitutoServidorId String @map("substituto_servidor_id") @db.Uuid
+
+  funcaoTitularId    String? @map("funcao_titular_id") @db.Uuid
+  funcaoSubstitutoId String? @map("funcao_substituto_id") @db.Uuid
+
+  tipo   TipoSubstituicaoFuncao   @default(AUTOMATICA)
+  status StatusSubstituicaoFuncao @default(ATIVA)
+  origem OrigemSubstituicaoFuncao @default(SECP)
+
+  dataInicio DateTime  @map("data_inicio") @db.Date
+  dataFim    DateTime? @map("data_fim") @db.Date
+
+  atoDesignacao          String?   @map("ato_designacao") @db.VarChar(120)
+  dataAtoDesignacao      DateTime? @map("data_ato_designacao") @db.Date
+  dataPublicacaoAto      DateTime? @map("data_publicacao_ato") @db.Date
+  atoDispensa            String?   @map("ato_dispensa") @db.VarChar(120)
+  dataAtoDispensa        DateTime? @map("data_ato_dispensa") @db.Date
+  dataPublicacaoDispensa DateTime? @map("data_publicacao_dispensa") @db.Date
+  processoSei            String?   @map("processo_sei") @db.VarChar(120)
+  observacao             String?   @db.Text
+
+  codigoExternoSarh          String?   @unique @map("codigo_externo_sarh") @db.VarChar(250)
+  codigoFuncaoTitularSarh    String?   @map("codigo_funcao_titular_sarh") @db.VarChar(120)
+  codigoFuncaoSubstitutoSarh String?   @map("codigo_funcao_substituto_sarh") @db.VarChar(120)
+  payloadSarh                Json?     @map("payload_sarh")
+  ultimaSincronizacaoSarh    DateTime? @map("ultima_sincronizacao_sarh")
+
+  criadoPorUsuarioId String?  @map("criado_por_usuario_id") @db.Uuid
+  criadoEm           DateTime @default(now()) @map("criado_em")
+  atualizadoEm       DateTime @updatedAt @map("atualizado_em")
+
+  orgao              Orgao                         @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+  unidade            UnidadeOrganizacional?        @relation(fields: [unidadeId], references: [id], onDelete: SetNull)
+  titularServidor    Servidor                      @relation("SubstituicoesFuncaoTitular", fields: [titularServidorId], references: [id], onDelete: Restrict)
+  substitutoServidor Servidor                      @relation("SubstituicoesFuncaoSubstituto", fields: [substitutoServidorId], references: [id], onDelete: Restrict)
+  funcaoTitular      FuncaoConfiancaReferencia?    @relation("SubstituicoesFuncaoReferenciaTitular", fields: [funcaoTitularId], references: [id], onDelete: SetNull)
+  funcaoSubstituto   FuncaoConfiancaReferencia?    @relation("SubstituicoesFuncaoReferenciaSubstituto", fields: [funcaoSubstitutoId], references: [id], onDelete: SetNull)
+  criadoPor          Usuario?                      @relation("SubstituicoesFuncaoCriadasPor", fields: [criadoPorUsuarioId], references: [id], onDelete: SetNull)
+  pagamentos         PagamentoSubstituicaoFuncao[]
+
+  @@index([orgaoId])
+  @@index([unidadeId])
+  @@index([titularServidorId])
+  @@index([substitutoServidorId])
+  @@index([funcaoTitularId])
+  @@index([funcaoSubstitutoId])
+  @@index([status])
+  @@index([origem])
+  @@index([dataInicio, dataFim])
+  @@index([titularServidorId, status, dataInicio, dataFim])
+  @@index([substitutoServidorId, status, dataInicio, dataFim])
+  @@map("substituicoes_funcao")
+}
+
+model PagamentoSubstituicaoFuncao {
+  id             String @id @default(uuid()) @db.Uuid
+  substituicaoId String @map("substituicao_id") @db.Uuid
+  orgaoId        String @map("orgao_id") @db.Uuid
+
+  unidadeId String? @map("unidade_id") @db.Uuid
+
+  titularServidorId    String @map("titular_servidor_id") @db.Uuid
+  substitutoServidorId String @map("substituto_servidor_id") @db.Uuid
+
+  competencia String   @db.VarChar(7)
+  dataInicio  DateTime @map("data_inicio") @db.Date
+  dataFim     DateTime @map("data_fim") @db.Date
+
+  totalDias             Int     @default(0) @map("total_dias")
+  valorFuncaoTitular    Decimal @default(0) @map("valor_funcao_titular") @db.Decimal(12, 2)
+  valorFuncaoSubstituto Decimal @default(0) @map("valor_funcao_substituto") @db.Decimal(12, 2)
+  diferencaMensal       Decimal @default(0) @map("diferenca_mensal") @db.Decimal(12, 2)
+  divisorMensal         Int     @default(30) @map("divisor_mensal")
+  valorDia              Decimal @default(0) @map("valor_dia") @db.Decimal(12, 2)
+  valorTotal            Decimal @default(0) @map("valor_total") @db.Decimal(12, 2)
+
+  status      StatusPagamentoSubstituicaoFuncao @default(RASCUNHO)
+  processoSei String?                           @map("processo_sei") @db.VarChar(120)
+  observacao  String?                           @db.Text
+
+  calculadoPorUsuarioId String?   @map("calculado_por_usuario_id") @db.Uuid
+  calculadoEm           DateTime? @map("calculado_em")
+  aprovadoPorUsuarioId  String?   @map("aprovado_por_usuario_id") @db.Uuid
+  aprovadoEm            DateTime? @map("aprovado_em")
+  enviadoFolhaEm        DateTime? @map("enviado_folha_em")
+  pagoEm                DateTime? @map("pago_em")
+
+  dadosCalculo Json? @map("dados_calculo")
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  substituicao       SubstituicaoFuncao               @relation(fields: [substituicaoId], references: [id], onDelete: Restrict)
+  orgao              Orgao                            @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+  unidade            UnidadeOrganizacional?           @relation(fields: [unidadeId], references: [id], onDelete: SetNull)
+  titularServidor    Servidor                         @relation("PagamentosSubstituicaoTitular", fields: [titularServidorId], references: [id], onDelete: Restrict)
+  substitutoServidor Servidor                         @relation("PagamentosSubstituicaoSubstituto", fields: [substitutoServidorId], references: [id], onDelete: Restrict)
+  calculadoPor       Usuario?                         @relation("PagamentosSubstituicaoCalculadosPor", fields: [calculadoPorUsuarioId], references: [id], onDelete: SetNull)
+  aprovadoPor        Usuario?                         @relation("PagamentosSubstituicaoAprovadosPor", fields: [aprovadoPorUsuarioId], references: [id], onDelete: SetNull)
+  dias               PagamentoSubstituicaoFuncaoDia[]
+
+  @@unique([substituicaoId, competencia, dataInicio, dataFim])
+  @@index([orgaoId])
+  @@index([unidadeId])
+  @@index([titularServidorId])
+  @@index([substitutoServidorId])
+  @@index([competencia])
+  @@index([status])
+  @@index([dataInicio, dataFim])
+  @@map("pagamentos_substituicoes_funcao")
+}
+
+model PagamentoSubstituicaoFuncaoDia {
+  id          String @id @default(uuid()) @db.Uuid
+  pagamentoId String @map("pagamento_id") @db.Uuid
+
+  dataReferencia DateTime                  @map("data_referencia") @db.Date
+  tipo           TipoDiaSubstituicaoFuncao
+  elegivel       Boolean                   @default(true)
+  motivo         String?                   @db.Text
+  valorDia       Decimal                   @default(0) @map("valor_dia") @db.Decimal(12, 2)
+
+  afastamentoSarhId String? @map("afastamento_sarh_id") @db.Uuid
+  apuracaoDiariaId  String? @map("apuracao_diaria_id") @db.Uuid
+
+  dadosOrigem Json? @map("dados_origem")
+
+  criadoEm DateTime @default(now()) @map("criado_em")
+
+  pagamento       PagamentoSubstituicaoFuncao @relation(fields: [pagamentoId], references: [id], onDelete: Cascade)
+  afastamentoSarh AfastamentoSarh?            @relation(fields: [afastamentoSarhId], references: [id], onDelete: SetNull)
+  apuracaoDiaria  ApuracaoDiaria?             @relation(fields: [apuracaoDiariaId], references: [id], onDelete: SetNull)
+
+  @@unique([pagamentoId, dataReferencia])
+  @@index([dataReferencia])
+  @@index([tipo])
+  @@index([afastamentoSarhId])
+  @@index([apuracaoDiariaId])
+  @@map("pagamentos_substituicoes_funcao_dias")
 }
 
 model AuditoriaEvento {
@@ -1371,18 +1737,18 @@ model Escala {
 }
 
 model EscalaDia {
-  id                   String    @id @default(uuid()) @db.Uuid
-  escalaId             String    @map("escala_id") @db.Uuid
+  id                   String     @id @default(uuid()) @db.Uuid
+  escalaId             String     @map("escala_id") @db.Uuid
   diaSemana            DiaSemana? @map("dia_semana")
-  posicaoCiclo         Int?      @map("posicao_ciclo")
-  tipoDia              String    @default("TRABALHO") @map("tipo_dia") @db.VarChar(30)
-  trabalha             Boolean   @default(true)
-  horarioEntrada       String?   @map("horario_entrada") @db.VarChar(5)
-  horarioSaida         String?   @map("horario_saida") @db.VarChar(5)
-  intervaloInicio      String?   @map("intervalo_inicio") @db.VarChar(5)
-  intervaloFim         String?   @map("intervalo_fim") @db.VarChar(5)
-  cargaPrevistaMinutos Int       @default(0) @map("carga_prevista_minutos")
-  cruzaMeiaNoite       Boolean   @default(false) @map("cruza_meia_noite")
+  posicaoCiclo         Int?       @map("posicao_ciclo")
+  tipoDia              String     @default("TRABALHO") @map("tipo_dia") @db.VarChar(30)
+  trabalha             Boolean    @default(true)
+  horarioEntrada       String?    @map("horario_entrada") @db.VarChar(5)
+  horarioSaida         String?    @map("horario_saida") @db.VarChar(5)
+  intervaloInicio      String?    @map("intervalo_inicio") @db.VarChar(5)
+  intervaloFim         String?    @map("intervalo_fim") @db.VarChar(5)
+  cargaPrevistaMinutos Int        @default(0) @map("carga_prevista_minutos")
+  cruzaMeiaNoite       Boolean    @default(false) @map("cruza_meia_noite")
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
@@ -1509,10 +1875,11 @@ model ApuracaoDiaria {
   criadoEm     DateTime  @default(now()) @map("criado_em")
   atualizadoEm DateTime  @updatedAt @map("atualizado_em")
 
-  servidor            Servidor               @relation(fields: [servidorId], references: [id], onDelete: Restrict)
-  jornadaServidor     JornadaServidor?       @relation(fields: [jornadaServidorId], references: [id], onDelete: SetNull)
+  servidor            Servidor                         @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  jornadaServidor     JornadaServidor?                 @relation(fields: [jornadaServidorId], references: [id], onDelete: SetNull)
   ocorrencias         OcorrenciaFrequencia[]
   movimentoBancoHoras MovimentoBancoHoras[]
+  diasSubstituicao    PagamentoSubstituicaoFuncaoDia[]
 
   @@unique([servidorId, dataReferencia])
   @@index([servidorId])

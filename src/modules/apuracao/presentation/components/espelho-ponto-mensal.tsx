@@ -120,7 +120,7 @@ export function EspelhoPontoMensal({
         {controles ? <div className="lg:ml-auto">{controles}</div> : null}
       </div>
 
-      <div className="grid gap-4 border-b p-5 md:grid-cols-4 xl:grid-cols-10">
+      <div className="sticky top-[4.5rem] z-30 grid gap-4 border-b bg-[var(--card)]/95 p-5 shadow-sm backdrop-blur md:grid-cols-4 xl:grid-cols-10">
         <Resumo label="Previsto" value={minutosParaTexto(totais.previsto)} />
         <Resumo
           label="Trabalhado"
@@ -182,9 +182,9 @@ export function EspelhoPontoMensal({
       {modoCompactoPessoaExterna ? (
         <EspelhoPontoMensalCompacto apuracoes={apuracoes} marcacoes={marcacoes} />
       ) : (
-      <div className="overflow-x-auto">
+      <div className="max-w-full overflow-x-clip">
         <table className="w-full min-w-[1580px] border-separate border-spacing-0 text-left text-sm">
-          <thead className="text-[11px] uppercase tracking-wide text-[var(--muted-foreground)]">
+          <thead className="sticky top-[calc(4.5rem+51.5rem)] z-20 text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] shadow-sm md:top-[calc(4.5rem+18.5rem)] xl:top-[calc(4.5rem+9.35rem)]">
             <tr className="bg-[var(--card)]">
               <th
                 className="w-14 rounded-tl-xl border-b border-r px-5 py-4 text-center align-middle font-bold"
@@ -233,7 +233,7 @@ export function EspelhoPontoMensal({
                 </th>
               ) : null}
             </tr>
-            <tr className="border-b bg-[var(--muted)]/70">
+            <tr className="border-b bg-[var(--muted)]">
               <th className="border-b px-5 py-3 font-bold text-foreground">
                 Entrada
               </th>
@@ -523,9 +523,9 @@ function EspelhoPontoMensalCompacto({
   const marcacoesPorDia = agruparMarcacoesPorDia(marcacoes);
 
   return (
-    <div className="overflow-x-auto">
+    <div className="max-w-full overflow-x-clip">
       <table className="w-full min-w-[920px] text-left text-sm">
-        <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
+        <thead className="sticky top-[calc(4.5rem+51.5rem)] z-20 border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)] shadow-sm md:top-[calc(4.5rem+18.5rem)] xl:top-[calc(4.5rem+9.35rem)]">
           <tr>
             <th className="px-5 py-3">DIA</th>
             <th className="px-5 py-3">1ª ENTRADA</th>

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { PageTitlePersonalizadoProvider } from "@/components/layout/page-title-personalizado";
+import { SecpTourServidor } from "@/components/layout/secp-tour";
 import { Sidebar, type PerfilNavegacao } from "@/components/layout/sidebar";
 import type { PreferenciasAcessibilidade } from "@/modules/auth/application/services/preferencias-acessibilidade.service";
 import type {
@@ -31,9 +32,6 @@ type AppShellClientProps = {
   onLogout: () => Promise<void>;
 };
 
-const AUTO_COLLAPSE_SIDEBAR_LOGIN_KEY = "secp.sidebar.autoCollapseAfterLogin";
-const AUTO_COLLAPSE_SIDEBAR_DELAY_MS = 3000;
-
 export function AppShellClient({
   children,
   usuario,
@@ -45,41 +43,9 @@ export function AppShellClient({
   const [sidebarRecolhida, setSidebarRecolhida] = useState(false);
   const [drawerAberto, setDrawerAberto] = useState(false);
   const [perfilAtivo, setPerfilAtivo] = useState(usuario.perfilAtivo);
-  const usuarioInteragiuSidebarRef = useRef(false);
-
-  useEffect(() => {
-    let deveRecolher = false;
-
-    try {
-      const marcador = window.sessionStorage.getItem(
-        AUTO_COLLAPSE_SIDEBAR_LOGIN_KEY,
-      );
-      const matriculaUsuario = usuario.matricula.trim().toUpperCase();
-
-      deveRecolher = marcador === "1" || marcador === matriculaUsuario;
-
-      if (deveRecolher) {
-        window.sessionStorage.removeItem(AUTO_COLLAPSE_SIDEBAR_LOGIN_KEY);
-      }
-    } catch {
-      deveRecolher = false;
-    }
-
-    if (!deveRecolher) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      if (!usuarioInteragiuSidebarRef.current) {
-        setSidebarRecolhida(true);
-      }
-    }, AUTO_COLLAPSE_SIDEBAR_DELAY_MS);
-
-    return () => window.clearTimeout(timeout);
-  }, [usuario.matricula]);
+  const [tourServidorAberto, setTourServidorAberto] = useState(false);
 
   function alternarSidebar() {
-    usuarioInteragiuSidebarRef.current = true;
     setSidebarRecolhida((valor) => !valor);
   }
 
@@ -120,12 +86,18 @@ export function AppShellClient({
             drawerAberto={drawerAberto}
             totalNotificacoes={totalNotificacoes}
             preferenciasAcessibilidade={usuario.preferenciasAcessibilidade}
+            onStartTour={
+              perfilAtivo.codigo.toUpperCase() === "SERVIDOR"
+                ? () => setTourServidorAberto(true)
+                : undefined
+            }
           />
 
           <main
             id="conteudo-principal"
             tabIndex={-1}
-            className="flex-1 scroll-mt-20 px-3 py-5 focus:outline-none sm:px-4 lg:px-5 xl:px-6"
+            className="flex-1 scroll-mt-20 px-3 py-3 focus:outline-none sm:px-4 lg:px-5 lg:py-4 xl:px-6"
+            data-tour="conteudo-principal"
           >
             <PageTitlePersonalizadoProvider
               perfilAtivoId={perfilAtivo.id}
@@ -136,6 +108,11 @@ export function AppShellClient({
           </main>
         </div>
       </div>
+      {perfilAtivo.codigo.toUpperCase() === "SERVIDOR" && tourServidorAberto && (
+        <SecpTourServidor
+          onOpenChange={setTourServidorAberto}
+        />
+      )}
     </div>
   );
 }

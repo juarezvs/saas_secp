@@ -11,6 +11,10 @@ export function ConfirmarAutorizacaoHoraExtraButton() {
   const [tempo, setTempo] = useState("00:00");
   const [submetendo, setSubmetendo] = useState(false);
   const formRef = useRef<HTMLFormElement | null>(null);
+  const processoSeiRef = useRef<HTMLInputElement | null>(null);
+  const documentoSeiRef = useRef<HTMLInputElement | null>(null);
+  const autoridadeRef = useRef<HTMLInputElement | null>(null);
+  const justificativaRef = useRef<HTMLTextAreaElement | null>(null);
 
   function abrirConfirmacao(event: MouseEvent<HTMLButtonElement>) {
     const form = event.currentTarget.form;
@@ -29,6 +33,37 @@ export function ConfirmarAutorizacaoHoraExtraButton() {
     if (!formRef.current) {
       setOpen(false);
       return;
+    }
+
+    if (
+      !justificativaRef.current?.reportValidity() ||
+      !processoSeiRef.current?.reportValidity() ||
+      !documentoSeiRef.current?.reportValidity() ||
+      !autoridadeRef.current?.reportValidity()
+    ) {
+      return;
+    }
+
+    const campos = {
+      processoSei: processoSeiRef.current?.value ?? "",
+      documentoSei: documentoSeiRef.current?.value ?? "",
+      autoridade: autoridadeRef.current?.value ?? "",
+      justificativaProcedimento: justificativaRef.current?.value ?? "",
+    };
+
+    for (const [nome, valor] of Object.entries(campos)) {
+      let input = formRef.current.elements.namedItem(nome) as
+        | HTMLInputElement
+        | null;
+
+      if (!input) {
+        input = document.createElement("input");
+        input.type = "hidden";
+        input.name = nome;
+        formRef.current.appendChild(input);
+      }
+
+      input.value = valor;
     }
 
     setSubmetendo(true);
@@ -83,6 +118,47 @@ export function ConfirmarAutorizacaoHoraExtraButton() {
             Após confirmar, o SECP registrará a autorização e recalculará a
             competência do servidor.
           </p>
+        </div>
+        <div className="mt-4 grid gap-3">
+          <label className="space-y-1.5 text-sm">
+            <span className="font-semibold">Justificativa administrativa</span>
+            <textarea
+              ref={justificativaRef}
+              required
+              minLength={10}
+              rows={3}
+              className="w-full rounded-md border bg-[var(--background)] px-3 py-2 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              placeholder="Informe o fundamento da autorização."
+            />
+          </label>
+          <div className="grid gap-3 md:grid-cols-3">
+            <label className="space-y-1.5 text-sm">
+              <span className="font-semibold">Processo SEI</span>
+              <input
+                ref={processoSeiRef}
+                required
+                className="h-10 w-full rounded-md border bg-[var(--background)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+                placeholder="Obrigatório"
+              />
+            </label>
+            <label className="space-y-1.5 text-sm">
+              <span className="font-semibold">Documento/ato</span>
+              <input
+                ref={documentoSeiRef}
+                required
+                className="h-10 w-full rounded-md border bg-[var(--background)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+                placeholder="Obrigatório"
+              />
+            </label>
+            <label className="space-y-1.5 text-sm">
+              <span className="font-semibold">Autoridade</span>
+              <input
+                ref={autoridadeRef}
+                className="h-10 w-full rounded-md border bg-[var(--background)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+                placeholder="Opcional"
+              />
+            </label>
+          </div>
         </div>
       </Modal>
     </>

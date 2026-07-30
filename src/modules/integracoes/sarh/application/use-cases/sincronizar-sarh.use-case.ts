@@ -78,6 +78,7 @@ export class SincronizarSarhUseCase {
       buscarTiposAfastamento: SarhOracleClient["buscarTiposAfastamento"];
       buscarAfastamentos: SarhOracleClient["buscarAfastamentos"];
       buscarChefias: SarhOracleClient["buscarChefias"];
+      buscarSubstituicoes: SarhOracleClient["buscarSubstituicoes"];
       buscarCalendarios: SarhOracleClient["buscarCalendarios"];
     },
   ) {}
@@ -711,6 +712,64 @@ export class SincronizarSarhUseCase {
           for (const operacao of operacoes) {
             repository.incrementar(contadores, operacao);
           }
+        }
+      }
+
+      if (endpoints.includes("substituicoes")) {
+        await publicarProgressoEndpoint(
+          "substituicoes",
+          0,
+          1,
+          "Buscando substituições de função",
+        );
+        const substituicoes = await sarhClient.buscarSubstituicoes();
+        const matriculaFiltro = input.matricula?.toUpperCase();
+        const codigosPermitidos = await resolverCodigosLotacoesPermitidas();
+        const filtradas = substituicoes.filter((substituicao) => {
+          const titular = substituicao.titularMatricula
+            ? normalizarMatricula(substituicao.titularMatricula)
+            : null;
+          const substituto = substituicao.substitutoMatricula
+            ? normalizarMatricula(substituicao.substitutoMatricula)
+            : null;
+
+          if (
+            matriculaFiltro &&
+            titular !== matriculaFiltro &&
+            substituto !== matriculaFiltro
+          ) {
+            return false;
+          }
+
+          return codigoLotacaoPermitido(
+            substituicao.lotacaoId,
+            codigosPermitidos,
+          );
+        });
+        let processados = 0;
+
+        for (const substituicao of filtradas) {
+          const bruto = await repository.registrarPayloadBruto({
+            execucaoId: execucao.id,
+            endpoint: "substituicoes",
+            payload: substituicao,
+          });
+
+          const operacao = await repository.processarSubstituicaoFuncao({
+            execucaoId: execucao.id,
+            payload: substituicao,
+            modoSimulacao,
+            registroBrutoId: bruto?.id,
+          });
+
+          repository.incrementar(contadores, operacao);
+          processados += 1;
+          await publicarProgressoEndpoint(
+            "substituicoes",
+            processados,
+            filtradas.length,
+            "Processando substituições de função",
+          );
         }
       }
 

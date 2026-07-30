@@ -5,41 +5,60 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as LucideIcons from "lucide-react";
 import {
   Activity,
+  BadgeCheck,
   BarChart3,
+  Ban,
+  BriefcaseBusiness,
   Building2,
   CalendarDays,
   CalendarClock,
+  CalendarMinus,
   CalendarRange,
   CalendarX,
   ChevronDown,
+  ClipboardCheck,
   ClipboardList,
+  ClipboardPenLine,
   Clock,
-  Cpu,
   DatabaseZap,
   FileCheck2,
+  FileClock,
+  FileCog,
+  FileSearch,
   FileSpreadsheet,
+  FileSignature,
   FileText,
   Fingerprint,
+  GraduationCap,
+  Handshake,
   History,
   Hourglass,
   KeyRound,
   Landmark,
   LayoutDashboard,
+  ListChecks,
+  MapPin,
   Network,
   Palette,
+  Plane,
+  RadioTower,
   ReceiptText,
   Scale,
   ScanFace,
+  Search,
   ServerCog,
   Settings,
   ShieldAlert,
   ShieldCheck,
   SlidersHorizontal,
+  TimerReset,
   ToggleLeft,
   TreePalm,
   Upload,
   Users,
   UsersRound,
+  UserCog,
+  Wrench,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -107,55 +126,55 @@ const SUBITENS_SOLICITACOES_PONTO: MenuItem[] = [
   {
     label: "Ajuste de ponto",
     href: "/solicitacoes/nova?tipo=AJUSTE_PONTO",
-    icon: ClipboardList,
+    icon: Wrench,
     permissoes: ["solicitacoes:criar:proprio"],
   },
   {
     label: "Compensação",
     href: "/solicitacoes/nova?tipo=COMPENSACAO",
-    icon: ClipboardList,
+    icon: TimerReset,
     permissoes: ["solicitacoes:criar:proprio"],
   },
   {
     label: "Abono/justificativa",
     href: "/solicitacoes/nova?tipo=ABONO_JUSTIFICATIVA",
-    icon: ClipboardList,
+    icon: FileSignature,
     permissoes: ["solicitacoes:criar:proprio"],
   },
   {
     label: "Atividade externa",
     href: "/solicitacoes/nova?tipo=ATIVIDADE_EXTERNA",
-    icon: ClipboardList,
+    icon: MapPin,
     permissoes: ["solicitacoes:criar:proprio"],
   },
   {
     label: "Viagem a serviço",
     href: "/solicitacoes/nova?tipo=VIAGEM_SERVICO",
-    icon: ClipboardList,
+    icon: Plane,
     permissoes: ["solicitacoes:criar:proprio"],
   },
   {
     label: "Capacitação",
     href: "/solicitacoes/nova?tipo=CAPACITACAO",
-    icon: ClipboardList,
+    icon: GraduationCap,
     permissoes: ["solicitacoes:criar:proprio"],
   },
   {
     label: "Dispensa de ponto",
     href: "/solicitacoes/nova?tipo=DISPENSA_PONTO",
-    icon: ClipboardList,
+    icon: Ban,
     permissoes: ["solicitacoes:criar:proprio"],
   },
   {
     label: "Hora crédito prévia",
     href: "/solicitacoes/nova?tipo=HORA_CREDITO_PREVIA",
-    icon: ClipboardList,
+    icon: Clock,
     permissoes: ["solicitacoes:criar:proprio"],
   },
   {
     label: "Folga banco de horas",
     href: "/solicitacoes/nova?tipo=FOLGA_BANCO_HORAS",
-    icon: ClipboardList,
+    icon: CalendarMinus,
     permissoes: ["solicitacoes:criar:proprio"],
   },
 ];
@@ -171,11 +190,12 @@ export const MENU_ITEMS: MenuItem[] = [
   {
     label: "Ponto de Hoje",
     href: "/marcacoes",
-    icon: Clock,
+    icon: BadgeCheck,
     ocultarQuandoAdministrativo: true,
     permissoes: [
       "marcacoes:consultar:proprio",
       "marcacoes:visualizar:proprio",
+      "marcacoes:consultar:seccional",
       "marcacoes:consultar:global",
     ],
   },
@@ -253,14 +273,14 @@ export const MENU_ITEMS: MenuItem[] = [
       {
         label: "Consulta de banco de horas",
         href: "/banco-horas",
-        icon: Hourglass,
+        icon: Search,
         permissoes: ["banco-horas:consultar:global"],
         perfis: ["ADMIN", "ADMINISTRADOR", "GESTOR", "RH"],
       },
       {
         label: "Solicitacoes de banco de horas",
         href: "/banco-horas/solicitacoes",
-        icon: ClipboardList,
+        icon: ClipboardPenLine,
         permissoes: ["solicitacoes:criar:proprio"],
       },
       {
@@ -272,7 +292,7 @@ export const MENU_ITEMS: MenuItem[] = [
       {
         label: "Vencimentos",
         href: "/banco-horas/vencimentos",
-        icon: CalendarClock,
+        icon: FileClock,
         permissoes: [
           "banco-horas:consultar:proprio",
           "banco-horas:consultar:chefia",
@@ -282,7 +302,7 @@ export const MENU_ITEMS: MenuItem[] = [
       {
         label: "Relatorios",
         href: "/banco-horas/relatorios",
-        icon: FileText,
+        icon: FileSearch,
         permissoes: [
           "relatorios:consultar:proprio",
           "relatorios:consultar:global",
@@ -299,8 +319,14 @@ export const MENU_ITEMS: MenuItem[] = [
     permissoes: [
       "horas-extras:visualizar:proprio",
       "horas-extras:solicitar:proprio",
+      "horas-extras:analisar:subordinados",
       "horas-extras:analisar:chefia",
+      "horas-extras:responder-orcamento:seccional",
+      "horas-extras:responder-orcamento:global",
+      "horas-extras:deliberar:seccional",
+      "horas-extras:visualizar-execucao:seccional",
       "horas-extras:visualizar-execucao:global",
+      "horas-extras:visualizar-folha:seccional",
       "horas-extras:visualizar-folha:global",
       "horas-extras:deliberar:global",
     ],
@@ -317,33 +343,47 @@ export const MENU_ITEMS: MenuItem[] = [
       {
         label: "Gestão",
         href: "/gestao/horas-extras",
-        icon: ClipboardList,
-        permissoes: ["horas-extras:analisar:chefia"],
+        icon: ClipboardCheck,
+        permissoes: [
+          "horas-extras:analisar:subordinados",
+          "horas-extras:analisar:chefia",
+        ],
       },
       {
         label: "Orçamento",
         href: "/orcamento/horas-extras",
         icon: Landmark,
-        permissoes: ["horas-extras:responder-orcamento:global"],
+        permissoes: [
+          "horas-extras:responder-orcamento:seccional",
+          "horas-extras:responder-orcamento:global",
+        ],
       },
       {
         label: "Deliberação",
         href: "/deliberacao/horas-extras",
         icon: Scale,
-        permissoes: ["horas-extras:deliberar:global"],
+        permissoes: [
+          "horas-extras:deliberar:seccional",
+          "horas-extras:deliberar:global",
+        ],
       },
       {
         label: "Execução",
         href: "/execucao/horas-extras",
         icon: Activity,
-        permissoes: ["horas-extras:visualizar-execucao:global"],
+        permissoes: [
+          "horas-extras:visualizar-execucao:seccional",
+          "horas-extras:visualizar-execucao:global",
+        ],
       },
       {
         label: "Folha",
         href: "/folha/horas-extras",
         icon: FileSpreadsheet,
         permissoes: [
+          "horas-extras:visualizar-folha:seccional",
           "horas-extras:visualizar-folha:global",
+          "horas-extras:gerar-lote:seccional",
           "horas-extras:gerar-lote:global",
         ],
       },
@@ -352,23 +392,27 @@ export const MENU_ITEMS: MenuItem[] = [
   {
     label: "Solicitações de Ponto",
     href: "/solicitacoes",
-    icon: ClipboardList,
+    icon: ClipboardPenLine,
     ocultarQuandoAdministrativo: true,
     permissoes: [
       "solicitacoes:criar:proprio",
       "solicitacoes:consultar:proprio",
+      "solicitacoes:analisar:subordinados",
       "solicitacoes:analisar:chefia",
+      "solicitacoes:consultar:seccional",
       "solicitacoes:consultar:global",
     ],
     children: [
       {
         label: "Minhas solicitações",
         href: "/solicitacoes",
-        icon: ClipboardList,
+        icon: ListChecks,
         permissoes: [
           "solicitacoes:criar:proprio",
           "solicitacoes:consultar:proprio",
+          "solicitacoes:analisar:subordinados",
           "solicitacoes:analisar:chefia",
+          "solicitacoes:consultar:seccional",
           "solicitacoes:consultar:global",
         ],
       },
@@ -571,22 +615,45 @@ export const MENU_ITEMS: MenuItem[] = [
     href: "/administracao",
     icon: Settings,
     permissoes: [
+      "configuracoes:gerenciar:seccional",
       "configuracoes:gerenciar:global",
+      "usuarios:gerenciar:seccional",
+      "usuarios:consultar:seccional",
       "usuarios:gerenciar:global",
       "usuarios:consultar:global",
+      "perfis:gerenciar:seccional",
       "perfis:gerenciar:global",
+      "unidades:gerenciar:seccional",
       "unidades:gerenciar:global",
+      "servidores:gerenciar:seccional",
+      "servidores:consultar:seccional",
       "servidores:gerenciar:global",
       "servidores:consultar:global",
+      "jornadas:gerenciar:seccional",
       "jornadas:gerenciar:global",
+      "chefias:gerenciar:seccional",
       "chefias:gerenciar:global",
+      "afd:importar:seccional",
       "afd:importar:global",
+      "apuracao:consultar:seccional",
+      "apuracao:recalcular:seccional",
       "apuracao:consultar:global",
       "apuracao:recalcular:global",
+      "integracoes:consultar:seccional",
+      "integracoes:gerenciar:seccional",
       "integracoes:consultar:global",
       "integracoes:gerenciar:global",
+      "regulamentacao-ponto:gerenciar:seccional",
       "regulamentacao-ponto:gerenciar:global",
+      "procedimentos-frequencia:consultar:seccional",
+      "procedimentos-frequencia:gerenciar:seccional",
+      "procedimentos-frequencia:consultar:global",
+      "procedimentos-frequencia:gerenciar:global",
+      "banco-horas:gerenciar:seccional",
       "banco-horas:gerenciar:global",
+      "horas-extras:configurar-politica:seccional",
+      "horas-extras:configurar-workflow:seccional",
+      "horas-extras:configurar-responsaveis:seccional",
       "horas-extras:configurar-politica:global",
       "horas-extras:configurar-workflow:global",
       "horas-extras:configurar-responsaveis:global",
@@ -601,37 +668,45 @@ export const MENU_ITEMS: MenuItem[] = [
         label: "Liberação de Rotinas",
         href: "/administracao/liberacao-rotinas",
         icon: ToggleLeft,
-        permissoes: ["configuracoes:gerenciar:global"],
+        permissoes: [
+          "configuracoes:gerenciar:seccional",
+          "configuracoes:gerenciar:global",
+        ],
       },
       {
         label: "Personalizar Menu",
         href: "/administracao/personalizar-menu",
         icon: Palette,
-        permissoes: ["menus:personalizar:global"],
+        permissoes: ["menus:personalizar:seccional", "menus:personalizar:global"],
       },
       {
         label: "Perfis e permissões",
         href: "/perfis",
         icon: ShieldCheck,
-        permissoes: ["perfis:gerenciar:global"],
+        permissoes: ["perfis:gerenciar:seccional", "perfis:gerenciar:global"],
       },
       {
         label: "Usuários",
         href: "/usuarios",
-        icon: UsersRound,
-        permissoes: ["usuarios:gerenciar:global", "usuarios:consultar:global"],
+        icon: UserCog,
+        permissoes: [
+          "usuarios:gerenciar:seccional",
+          "usuarios:consultar:seccional",
+          "usuarios:gerenciar:global",
+          "usuarios:consultar:global",
+        ],
       },
       {
         label: "Órgãos",
         href: "/orgaos",
         icon: Landmark,
-        permissoes: ["unidades:gerenciar:global"],
+        permissoes: ["unidades:gerenciar:seccional", "unidades:gerenciar:global"],
       },
       {
         label: "Unidades",
         href: "/unidades",
         icon: Building2,
-        permissoes: ["unidades:gerenciar:global"],
+        permissoes: ["unidades:gerenciar:seccional", "unidades:gerenciar:global"],
       },
       {
         label: "Servidores",
@@ -639,6 +714,8 @@ export const MENU_ITEMS: MenuItem[] = [
         icon: Users,
         permissoes: [
           "servidores:gerenciar:global",
+          "servidores:gerenciar:seccional",
+          "servidores:consultar:seccional",
           "servidores:consultar:global",
           ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
         ],
@@ -646,9 +723,11 @@ export const MENU_ITEMS: MenuItem[] = [
       {
         label: "Estagiarios",
         href: "/estagiarios",
-        icon: Users,
+        icon: GraduationCap,
         permissoes: [
           "servidores:gerenciar:global",
+          "servidores:gerenciar:seccional",
+          "servidores:consultar:seccional",
           "servidores:consultar:global",
           ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
         ],
@@ -656,9 +735,11 @@ export const MENU_ITEMS: MenuItem[] = [
       {
         label: "Prestadores",
         href: "/prestadores",
-        icon: Users,
+        icon: BriefcaseBusiness,
         permissoes: [
           "servidores:gerenciar:global",
+          "servidores:gerenciar:seccional",
+          "servidores:consultar:seccional",
           "servidores:consultar:global",
           ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
         ],
@@ -666,9 +747,11 @@ export const MENU_ITEMS: MenuItem[] = [
       {
         label: "Voluntarios",
         href: "/voluntarios",
-        icon: Users,
+        icon: Handshake,
         permissoes: [
           "servidores:gerenciar:global",
+          "servidores:gerenciar:seccional",
+          "servidores:consultar:seccional",
           "servidores:consultar:global",
           ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
         ],
@@ -677,44 +760,78 @@ export const MENU_ITEMS: MenuItem[] = [
         label: "Chefias",
         href: "/chefias",
         icon: Network,
-        permissoes: ["chefias:gerenciar:global"],
+        permissoes: ["chefias:gerenciar:seccional", "chefias:gerenciar:global"],
       },
       {
         label: "Jornadas",
         href: "/jornadas",
         icon: CalendarClock,
-        permissoes: ["jornadas:gerenciar:global"],
+        permissoes: ["jornadas:gerenciar:seccional", "jornadas:gerenciar:global"],
       },
       {
         label: "AFD",
         href: "/afd",
         icon: Upload,
-        permissoes: ["afd:importar:global"],
+        permissoes: ["afd:importar:seccional", "afd:importar:global"],
       },
       {
         label: "Apuração",
         href: "/apuracao",
         icon: FileCheck2,
-        permissoes: ["apuracao:consultar:global", "apuracao:recalcular:global"],
+        permissoes: [
+          "apuracao:consultar:seccional",
+          "apuracao:recalcular:seccional",
+          "apuracao:consultar:global",
+          "apuracao:recalcular:global",
+        ],
       },
       {
         label: "Regulamentação do ponto",
         href: "/administracao/regulamentacao-ponto",
         icon: SlidersHorizontal,
-        permissoes: ["regulamentacao-ponto:gerenciar:global"],
+        permissoes: [
+          "regulamentacao-ponto:gerenciar:seccional",
+          "regulamentacao-ponto:gerenciar:global",
+        ],
+      },
+      {
+        label: "Procedimentos de frequência",
+        href: "/administracao/procedimentos-frequencia",
+        icon: ClipboardList,
+        permissoes: [
+          "procedimentos-frequencia:consultar:seccional",
+          "procedimentos-frequencia:gerenciar:seccional",
+          "procedimentos-frequencia:consultar:global",
+          "procedimentos-frequencia:gerenciar:global",
+        ],
+      },
+      {
+        label: "Nada Consta",
+        href: "/administracao/procedimentos-frequencia/nada-consta",
+        icon: FileCheck2,
+        permissoes: [
+          "procedimentos-frequencia:emitir-nada-consta:seccional",
+          "procedimentos-frequencia:emitir-nada-consta:global",
+        ],
       },
       {
         label: "Gerenciar banco de horas",
         href: "/administracao/banco-horas",
-        icon: Clock,
-        permissoes: ["banco-horas:gerenciar:global"],
+        icon: Hourglass,
+        permissoes: [
+          "banco-horas:gerenciar:seccional",
+          "banco-horas:gerenciar:global",
+        ],
       },
       {
         label: "Horas extras",
         href: "/administracao/horas-extras",
-        icon: SlidersHorizontal,
+        icon: FileCog,
         permissoes: [
           "horas-extras:configurar-politica:global",
+          "horas-extras:configurar-politica:seccional",
+          "horas-extras:configurar-workflow:seccional",
+          "horas-extras:configurar-responsaveis:seccional",
           "horas-extras:configurar-workflow:global",
           "horas-extras:configurar-responsaveis:global",
         ],
@@ -723,7 +840,10 @@ export const MENU_ITEMS: MenuItem[] = [
         label: "Calendário institucional",
         href: "/administracao/calendario",
         icon: CalendarDays,
-        permissoes: ["configuracoes:gerenciar:global"],
+        permissoes: [
+          "configuracoes:gerenciar:seccional",
+          "configuracoes:gerenciar:global",
+        ],
       },
       {
         label: "Credenciais e integrações",
@@ -731,6 +851,8 @@ export const MENU_ITEMS: MenuItem[] = [
         icon: KeyRound,
         permissoes: [
           "integracoes:consultar:global",
+          "integracoes:consultar:seccional",
+          "integracoes:gerenciar:seccional",
           "integracoes:gerenciar:global",
         ],
       },
@@ -740,15 +862,19 @@ export const MENU_ITEMS: MenuItem[] = [
         icon: ServerCog,
         permissoes: [
           "configuracoes:gerenciar:global",
+          "configuracoes:gerenciar:seccional",
+          "integracoes:gerenciar:seccional",
           "integracoes:gerenciar:global",
         ],
       },
       {
         label: "Equipamentos biométricos",
         href: "/equipamentos",
-        icon: Cpu,
+        icon: RadioTower,
         permissoes: [
           "integracoes:consultar:global",
+          "integracoes:consultar:seccional",
+          "integracoes:gerenciar:seccional",
           "integracoes:gerenciar:global",
         ],
       },
@@ -756,7 +882,12 @@ export const MENU_ITEMS: MenuItem[] = [
         label: "Auditoria",
         href: "/auditoria",
         icon: ShieldAlert,
-        permissoes: ["auditoria:consultar:global", "auditoria:detalhar:global"],
+        permissoes: [
+          "auditoria:consultar:seccional",
+          "auditoria:detalhar:seccional",
+          "auditoria:consultar:global",
+          "auditoria:detalhar:global",
+        ],
       },
     ],
   },
@@ -824,6 +955,10 @@ function itemCorrespondeAoPath(
   }
 
   return pathname === hrefPath || pathname.startsWith(`${hrefPath}/`);
+}
+
+function dataTourMenuItem(href: string) {
+  return `menu-${href.split("?")[0]}`;
 }
 
 function perfilEhAdministrativoNavegacao(perfilAtivo: PerfilNavegacao) {
@@ -987,6 +1122,10 @@ function montarItensPersonalizados(params: {
     }
 
     const itemPadrao = indiceItens.get(item.itemCatalogo);
+
+    if (itemPadrao && !itemPodeSerExibido(itemPadrao, perfilAtivo)) {
+      return null;
+    }
 
     return itemPadrao ? clonarItemMenu(itemPadrao, item.label) : null;
   };
@@ -1218,6 +1357,7 @@ function MenuPrincipal({
     <nav
       className="flex-1 overflow-y-auto px-3 py-4"
       aria-label={`Menu do perfil ${perfilAtivo.nome}`}
+      data-tour="menu-lateral"
     >
       <ul className="space-y-1">
         {itensVisiveis.map((item) => {
@@ -1248,6 +1388,7 @@ function MenuPrincipal({
                   aria-current={grupoAtivo ? "page" : undefined}
                   aria-expanded={mostrarFilhos}
                   className={itemClassName}
+                  data-tour={dataTourMenuItem(item.href)}
                 >
                   <Icon className="size-5 shrink-0" aria-hidden="true" />
                   <span className="min-w-0 flex-1 truncate text-left">
@@ -1271,6 +1412,9 @@ function MenuPrincipal({
                   aria-label={recolhida ? item.label : undefined}
                   title={recolhida ? item.label : undefined}
                   className={itemClassName}
+                  data-tour={dataTourMenuItem(
+                    possuiFilhos ? (filhos[0]?.href ?? item.href) : item.href,
+                  )}
                 >
                   <Icon className="size-5 shrink-0" aria-hidden="true" />
                   {!recolhida && (
@@ -1301,6 +1445,7 @@ function MenuPrincipal({
                               ? "bg-secp-blue-900/10 text-secp-blue-900 dark:bg-white/10 dark:text-white"
                               : "bg-white text-slate-600 hover:bg-secp-blue-900/10 hover:text-secp-blue-900 dark:bg-transparent dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white",
                           ].join(" ")}
+                          data-tour={dataTourMenuItem(child.href)}
                         >
                           <ChildIcon
                             className="size-4 shrink-0"

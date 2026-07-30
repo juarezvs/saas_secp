@@ -243,11 +243,11 @@ export function PerfilForm({
         />
       </section>
 
-      <div className="flex justify-end">
+      <div className="sticky bottom-4 z-10 flex justify-end">
         <button
           type="submit"
           disabled={pendente}
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-70"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-blue-900 px-5 text-sm font-bold text-white shadow-lg transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-900 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {pendente ? (
             <Loader2 className="size-4 animate-spin" aria-hidden="true" />

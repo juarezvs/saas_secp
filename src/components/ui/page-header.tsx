@@ -14,20 +14,20 @@ type PageHeaderProps = {
 
 export function PageHeader({ title, description, icon: Icon, eyebrow, actions, className }: PageHeaderProps) {
   return (
-    <header className={cn("flex flex-col justify-between gap-4 lg:flex-row lg:items-start", className)}>
+    <header className={cn("flex flex-col justify-between gap-3 border-b border-[var(--border)]/70 pb-3 pt-1 lg:flex-row lg:items-center", className)}>
       <div className="min-w-0">
-        <div className="flex items-center gap-3">
+        <div className="grid min-w-0 grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-x-2.5">
           {Icon && (
-            <span className="secp-theme-icon flex size-11 shrink-0 items-center justify-center rounded-lg shadow-sm">
+            <span className="secp-theme-icon flex size-9 shrink-0 items-center justify-center rounded-lg ring-1 ring-[var(--border)]/70">
               <Icon className="size-5" aria-hidden="true" />
             </span>
           )}
           <div className="min-w-0">
             {eyebrow && <p className="text-xs font-semibold uppercase text-[var(--secp-theme-accent)]">{eyebrow}</p>}
-            <h1 className="text-2xl font-bold tracking-normal text-foreground md:text-3xl">{title}</h1>
+            <h1 className="text-lg font-semibold tracking-normal text-foreground md:text-xl">{title}</h1>
           </div>
+          {description && <p className="col-start-2 mt-0.5 max-w-5xl text-sm leading-5 text-muted-foreground">{description}</p>}
         </div>
-        {description && <p className="mt-3 max-w-4xl text-sm leading-6 text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
     </header>

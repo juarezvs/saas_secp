@@ -122,6 +122,41 @@ export type SarhChefiaDto = {
   flagAtiva: string | boolean | null;
 };
 
+export type SarhSubstituicaoFuncaoDto = {
+  id: string;
+  tipo: "AUTOMATICA" | "FUNCAO" | "DESIGNACAO";
+  titularMatricula: string | null;
+  titularNome: string | null;
+  substitutoMatricula: string | null;
+  substitutoNome: string | null;
+  lotacaoId: number | null;
+  lotacaoSigla: string | null;
+  lotacaoDescricao: string | null;
+  funcaoTitularId: number | null;
+  funcaoTitularGrupo: string | null;
+  funcaoTitularCategoria: string | null;
+  funcaoTitularCodigo: string | null;
+  funcaoTitularDescricao: string | null;
+  funcaoSubstitutoId: number | null;
+  funcaoSubstitutoGrupo: string | null;
+  funcaoSubstitutoCategoria: string | null;
+  funcaoSubstitutoCodigo: string | null;
+  funcaoSubstitutoDescricao: string | null;
+  dataInicio: string | null;
+  dataFim: string | null;
+  ato: string | null;
+  dataAto: string | null;
+  dataPublicacaoAto: string | null;
+  atoDispensa: string | null;
+  dataAtoDispensa: string | null;
+  dataPublicacaoDispensa: string | null;
+  tipoAfastamento: string | null;
+  dataInicioAfastamento: string | null;
+  dataFimAfastamento: string | null;
+  processoSei: string | null;
+  origemTabela: string;
+};
+
 export type SarhCalendarioDto = {
   id: string;
   data: string;
@@ -154,6 +189,7 @@ export type SarhPayloadCompleto = {
   tiposAfastamento: SarhTipoAfastamentoDto[];
   afastamentos: SarhAfastamentoDto[];
   chefias: SarhChefiaDto[];
+  substituicoes: SarhSubstituicaoFuncaoDto[];
   calendarios: SarhCalendarioDto[];
 };
 
@@ -170,6 +206,7 @@ export type SarhEndpointKey =
   | "afastamentos"
   | "ferias"
   | "chefias"
+  | "substituicoes"
   | "calendarios";
 
 export type TipoExecucaoSarh =
@@ -188,6 +225,7 @@ export type TipoEndpointSarhDb =
   | "TIPOS_AFASTAMENTO"
   | "AFASTAMENTOS"
   | "CHEFIAS"
+  | "SUBSTITUICOES"
   | "CALENDARIOS";
 
 export type TipoRegistroSarhDb =
@@ -199,6 +237,7 @@ export type TipoRegistroSarhDb =
   | "TIPO_AFASTAMENTO"
   | "AFASTAMENTO"
   | "CHEFIA"
+  | "SUBSTITUICAO"
   | "CALENDARIO";
 
 export type OperacaoRegistroSarhDb =

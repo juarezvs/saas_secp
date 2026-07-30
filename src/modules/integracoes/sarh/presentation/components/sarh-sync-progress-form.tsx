@@ -29,6 +29,7 @@ const endpointsDisponiveis: Array<[SarhEndpointKey, string]> = [
   ["afastamentos", "Afastamentos"],
   ["ferias", "Férias"],
   ["chefias", "Chefias"],
+  ["substituicoes", "Substituições de função"],
   ["calendarios", "Calendários institucionais"],
 ];
 
@@ -41,6 +42,7 @@ const endpointsCompativeisComMatricula = new Set<SarhEndpointKey>([
   "afastamentos",
   "ferias",
   "chefias",
+  "substituicoes",
   "calendarios",
 ]);
 

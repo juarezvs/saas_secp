@@ -100,6 +100,7 @@ async function recalcularDatasImpactadas(params: {
 
 function revalidarRotasMarcacao(servidorId: string) {
   revalidatePath("/marcacoes");
+  revalidatePath("/marcacoes-brutas");
   revalidatePath("/espelho-ponto");
   revalidatePath("/banco-horas");
   revalidatePath("/apuracao");
@@ -248,16 +249,26 @@ export async function atualizarMarcacaoNutecAction(
 }
 
 export async function excluirMarcacaoNutecAction(marcacaoId: string) {
-  const permissao = await exigirUsuarioPodeExcluirMarcacao();
   const atual = await prisma.marcacao.findUnique({
     where: {
       id: marcacaoId,
+    },
+    include: {
+      servidor: {
+        select: {
+          orgaoId: true,
+        },
+      },
     },
   });
 
   if (!atual) {
     throw new Error("Marcacao nao encontrada.");
   }
+
+  const permissao = await exigirUsuarioPodeExcluirMarcacao({
+    servidorOrgaoId: atual.servidor.orgaoId,
+  });
 
   const cancelada = await prisma.marcacao.update({
     where: {

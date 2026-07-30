@@ -1,7 +1,15 @@
 import { auth } from "@/auth";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 export const PERMISSAO_EXCLUIR_MARCACOES = "marcacoes:excluir:global";
+export const PERMISSAO_EXCLUIR_MARCACOES_SECCIONAL =
+  "marcacoes:excluir:seccional";
+
+const PERMISSOES_EXCLUIR_MARCACOES = [
+  PERMISSAO_EXCLUIR_MARCACOES,
+  PERMISSAO_EXCLUIR_MARCACOES_SECCIONAL,
+];
 
 function textoUnidadeNutec(
   unidade?: {
@@ -64,8 +72,26 @@ export async function usuarioEhNutec(usuarioId: string) {
 export async function usuarioPodeExcluirMarcacao(params: {
   usuarioId?: string | null;
   permissoes: string[];
+  escopoGlobal?: boolean;
+  orgaoIdsPermitidos?: string[];
+  servidorOrgaoId?: string | null;
 }) {
-  if (params.permissoes.includes(PERMISSAO_EXCLUIR_MARCACOES)) {
+  const possuiPermissao = PERMISSOES_EXCLUIR_MARCACOES.some((permissao) =>
+    params.permissoes.includes(permissao),
+  );
+
+  if (!possuiPermissao) {
+    return params.usuarioId ? usuarioEhNutec(params.usuarioId) : false;
+  }
+
+  if (params.escopoGlobal) {
+    return true;
+  }
+
+  if (
+    params.servidorOrgaoId &&
+    params.orgaoIdsPermitidos?.includes(params.servidorOrgaoId)
+  ) {
     return true;
   }
 
@@ -76,7 +102,11 @@ export async function usuarioAtualPodeExcluirMarcacao() {
   const session = await auth();
   const permissoes = session?.user?.perfilAtivo?.permissoes ?? [];
 
-  if (permissoes.includes(PERMISSAO_EXCLUIR_MARCACOES)) {
+  if (
+    PERMISSOES_EXCLUIR_MARCACOES.some((permissao) =>
+      permissoes.includes(permissao),
+    )
+  ) {
     return true;
   }
 
@@ -100,21 +130,29 @@ export async function exigirUsuarioNutec() {
   };
 }
 
-export async function exigirUsuarioPodeExcluirMarcacao() {
+export async function exigirUsuarioPodeExcluirMarcacao(params?: {
+  servidorOrgaoId?: string | null;
+}) {
   const session = await auth();
   const usuarioId = session?.user?.id;
   const permissoes = session?.user?.perfilAtivo?.permissoes ?? [];
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
 
   if (!usuarioId) {
     throw new Error("Usuario autenticado nao identificado.");
   }
 
-  if (
-    !permissoes.includes(PERMISSAO_EXCLUIR_MARCACOES) &&
-    !(await usuarioAtualEhNutec())
-  ) {
+  const podeExcluir = await usuarioPodeExcluirMarcacao({
+    usuarioId,
+    permissoes,
+    escopoGlobal: escopoOrgao.global,
+    orgaoIdsPermitidos: escopoOrgao.orgaoIds,
+    servidorOrgaoId: params?.servidorOrgaoId,
+  });
+
+  if (!podeExcluir) {
     throw new Error(
-      "Apenas usuarios com permissao especifica ou lotados no NUTEC podem excluir marcacoes.",
+      "Apenas usuarios com permissao especifica no escopo da seccional ou lotados no NUTEC podem excluir marcacoes.",
     );
   }
 

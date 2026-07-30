@@ -1,7 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useActionState, useState } from "react";
 import { Eye, EyeOff, Loader2, Save } from "lucide-react";
+
+import { SearchableSelect } from "@/components/ui";
 import { registrarEquipamentoBiometricoAction } from "../../application/actions/registrar-equipamento-biometrico.action";
 import type { EquipamentoBiometricoFormState } from "../../application/schemas/integracao.schema";
 
@@ -153,7 +155,7 @@ export function EquipamentoBiometricoForm({
 
       <div className={`mt-5 grid gap-4 ${compacto ? "lg:grid-cols-3" : "md:grid-cols-2"}`}>
         <Campo
-          label="Código"
+          label="CÃ³digo"
           name="codigo"
           defaultValue={valorCampo(estado, "codigo", equipamento?.codigo)}
           erro={erro(estado, "codigo")}
@@ -173,7 +175,7 @@ export function EquipamentoBiometricoForm({
             Orgao
           </label>
 
-          <select
+          <SearchableSelect
             id="orgaoId"
             name="orgaoId"
             required
@@ -182,15 +184,15 @@ export function EquipamentoBiometricoForm({
               "orgaoId",
               equipamento?.orgaoId ?? "",
             )}
-            className="h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-          >
-            <option value="">Selecione o orgao</option>
-            {orgaos.map((orgao) => (
-              <option key={orgao.id} value={orgao.id}>
-                {orgao.sigla} - {orgao.nome}
-              </option>
-            ))}
-          </select>
+            placeholder="Selecione o órgão"
+            searchPlaceholder="Pesquisar órgão..."
+            emptyMessage="Nenhum órgão encontrado."
+            options={orgaos.map((orgao) => ({
+              value: orgao.id,
+              label: `${orgao.sigla} - ${orgao.nome}`,
+              searchText: `${orgao.sigla} ${orgao.nome}`,
+            }))}
+          />
           <p className="text-xs text-[var(--muted-foreground)]">
             Use este campo para transferir o equipamento entre seccionais.
           </p>
@@ -201,7 +203,7 @@ export function EquipamentoBiometricoForm({
             Unidade operacional
           </label>
 
-          <select
+          <SearchableSelect
             id="unidadeId"
             name="unidadeId"
             defaultValue={valorTextoCampo(
@@ -209,15 +211,15 @@ export function EquipamentoBiometricoForm({
               "unidadeId",
               equipamento?.unidadeId ?? "",
             )}
-            className="h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-          >
-            <option value="">Sem unidade vinculada</option>
-            {unidades.map((unidade) => (
-              <option key={unidade.id} value={unidade.id}>
-                {rotuloUnidade(unidade)}
-              </option>
-            ))}
-          </select>
+            placeholder="Sem unidade vinculada"
+            searchPlaceholder="Pesquisar unidade..."
+            emptyMessage="Nenhuma unidade encontrada."
+            options={unidades.map((unidade) => ({
+              value: unidade.id,
+              label: rotuloUnidade(unidade),
+              searchText: `${rotuloUnidade(unidade)} ${unidade.orgao?.nome ?? ""}`,
+            }))}
+          />
           <p className="text-xs text-[var(--muted-foreground)]">
             Opcional. Use quando o relogio estiver sob responsabilidade direta
             de uma unidade.
@@ -261,32 +263,27 @@ export function EquipamentoBiometricoForm({
             Protocolo de integracao
           </label>
 
-          <select
+          <SearchableSelect
             id="protocolo"
             name="protocolo"
             defaultValue={valorTextoCampo(estado, "protocolo", protocolo)}
-            className="h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-          >
-            <option value="GENERIC">Generico / webhook</option>
-            <option value="HENRY">Henry - Linha ADV</option>
-            <option value="HENRY_LUMEN_BALCAO">
-              Henry Lumen Balcao LT - Primme Acesso 8X
-            </option>
-            <option value="HENRY_REP_WEB_SERVER">
-              Henry REP Web Server / Primme - AFD TCP 3000
-            </option>
-            <option value="DIMEP_SMART_PRINT">
-              Dimep Smart Print / Smart Print-Pro
-            </option>
-            <option value="CONTROL_ID_FACE_ID">Control iD - FACE ID</option>
-            <option value="CONTROL_ID_IDCLASS_BIO">
-              Control iD - idClass Bio
-            </option>
-          </select>
+            placeholder="Selecione o protocolo"
+            searchPlaceholder="Pesquisar protocolo..."
+            emptyMessage="Nenhum protocolo encontrado."
+            options={[
+              { value: "GENERIC", label: "Genérico / webhook" },
+              { value: "HENRY", label: "Henry - Linha ADV" },
+              { value: "HENRY_LUMEN_BALCAO", label: "Henry Lumen Balcão LT - Primme Acesso 8X" },
+              { value: "HENRY_REP_WEB_SERVER", label: "Henry REP Web Server / Primme - AFD TCP 3000" },
+              { value: "DIMEP_SMART_PRINT", label: "Dimep Smart Print / Smart Print-Pro" },
+              { value: "CONTROL_ID_FACE_ID", label: "Control iD - FACE ID" },
+              { value: "CONTROL_ID_IDCLASS_BIO", label: "Control iD - idClass Bio" },
+            ]}
+          />
         </div>
 
         <Campo
-          label="Usuário padrão do relógio"
+          label="UsuÃ¡rio padrÃ£o do relÃ³gio"
           name="usuario"
           defaultValue={valorCampo(estado, "usuario", configuracao.usuario)}
         />
@@ -298,7 +295,7 @@ export function EquipamentoBiometricoForm({
           senha
         />
         <Campo
-          label="Usuário para dados/coleta"
+          label="UsuÃ¡rio para dados/coleta"
           name="usuarioDados"
           defaultValue={valorCampo(estado, "usuarioDados", configuracao.usuarioDados)}
         />
@@ -314,7 +311,7 @@ export function EquipamentoBiometricoForm({
           senha
         />
         <Campo
-          label="Usuário para configuração"
+          label="UsuÃ¡rio para configuraÃ§Ã£o"
           name="usuarioConfiguracao"
           defaultValue={valorCampo(
             estado,
@@ -458,3 +455,4 @@ function Campo({
     </div>
   );
 }
+

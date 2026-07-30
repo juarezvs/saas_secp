@@ -6,6 +6,7 @@ import { PeriodoHomologadoError } from "@/modules/boletim-frequencia/application
 import { recalcularMesServidorService } from "@/modules/recalculo/application/services/recalcular-mes-servidor.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { normalizarDataReferencia } from "@/modules/apuracao/application/services/calcular-tempo.service";
+import { validarERegistrarProcedimentoFrequencia } from "@/modules/procedimentos-frequencia/application/services/motor-procedimentos-frequencia.service";
 import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import {
   dispensaPontoServidorSchema,
@@ -227,39 +228,69 @@ export async function criarDispensaPontoServidorAction(
     };
   }
 
-  const dispensa = await prisma.dispensaPontoServidor.create({
-    data: {
-      servidorId,
-      motivo: parsed.data.motivo,
-      atoAutorizativo: parsed.data.atoAutorizativo || null,
-      processoSei: parsed.data.processoSei || null,
-      observacao: parsed.data.observacao || null,
-      exigeFrequenciaManual: parsed.data.exigeFrequenciaManual,
-      status: "ATIVO",
-      dataInicio,
-      dataFim,
-      criadoPorUsuarioId: usuarioId,
-    },
-  });
-
-  await prisma.auditoriaEvento.create({
-    data: {
-      usuarioId,
-      entidade: "DispensaPontoServidor",
-      entidadeId: dispensa.id,
-      acao: "DISPENSA_PONTO_SERVIDOR_CRIADA",
-      dadosDepois: {
-        id: dispensa.id,
+  await prisma.$transaction(async (tx) => {
+    const procedimento =
+      await validarERegistrarProcedimentoFrequencia({
+        tx,
+        categoria: "TRABALHO_REMOTO",
         servidorId,
-        motivo: dispensa.motivo,
-        atoAutorizativo: dispensa.atoAutorizativo,
-        processoSei: dispensa.processoSei,
-        exigeFrequenciaManual: dispensa.exigeFrequenciaManual,
-        status: dispensa.status,
-        dataInicio: dispensa.dataInicio,
-        dataFim: dispensa.dataFim,
+        usuarioId,
+        permissoesUsuario: permissao.permissoes,
+        dataInicio,
+        dataFim,
+        processoSei: parsed.data.processoSei,
+        documentoSei: parsed.data.atoAutorizativo,
+        autoridade: parsed.data.atoAutorizativo,
+        justificativa: parsed.data.observacao || parsed.data.motivo,
+        titulo: "Registro de teletrabalho ou dispensa de ponto",
+        exigePermissao: "executar",
+        exigeRecalculo: true,
+        validarDocumentos: true,
+        dadosEntrada: {
+          origem: "DISPENSA_PONTO_SERVIDOR",
+          motivo: parsed.data.motivo,
+          exigeFrequenciaManual: parsed.data.exigeFrequenciaManual,
+        },
+      });
+    const dispensaCriada = await tx.dispensaPontoServidor.create({
+      data: {
+        servidorId,
+        motivo: parsed.data.motivo,
+        atoAutorizativo: parsed.data.atoAutorizativo || null,
+        processoSei: parsed.data.processoSei || null,
+        observacao: parsed.data.observacao || null,
+        exigeFrequenciaManual: parsed.data.exigeFrequenciaManual,
+        status: "ATIVO",
+        dataInicio,
+        dataFim,
+        criadoPorUsuarioId: usuarioId,
       },
-    },
+    });
+
+    await tx.auditoriaEvento.create({
+      data: {
+        usuarioId,
+        entidade: "DispensaPontoServidor",
+        entidadeId: dispensaCriada.id,
+        acao: "DISPENSA_PONTO_SERVIDOR_CRIADA",
+        dadosDepois: {
+          id: dispensaCriada.id,
+          servidorId,
+          motivo: dispensaCriada.motivo,
+          atoAutorizativo: dispensaCriada.atoAutorizativo,
+          processoSei: dispensaCriada.processoSei,
+          exigeFrequenciaManual: dispensaCriada.exigeFrequenciaManual,
+          status: dispensaCriada.status,
+          dataInicio: dispensaCriada.dataInicio,
+          dataFim: dispensaCriada.dataFim,
+          procedimentoFrequenciaId: procedimento.procedimento.id,
+          procedimentoFrequenciaExecucaoId: procedimento.execucao?.id ?? null,
+          procedimentoFrequenciaCodigo: procedimento.procedimento.codigo,
+        },
+      },
+    });
+
+    return dispensaCriada;
   });
 
   const recalculo = await recalcularDispensaNoEspelho({

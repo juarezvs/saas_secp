@@ -3,6 +3,8 @@
 import { useActionState } from "react";
 import { Loader2, Save } from "lucide-react";
 
+import { SearchableSelect } from "@/components/ui";
+
 import type { OrgaoFormState } from "../../application/schemas/orgao.schema";
 
 type OrgaoFormProps = {
@@ -116,18 +118,19 @@ export function OrgaoForm({
             <label htmlFor="fusoHorario" className="text-sm font-semibold">
               Fuso horário
             </label>
-            <select
+            <SearchableSelect
               id="fusoHorario"
               name="fusoHorario"
               defaultValue={campos?.fusoHorario ?? ""}
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
-            >
-              {opcoesFuso.map((fuso) => (
-                <option key={fuso.valor} value={fuso.valor}>
-                  {fuso.rotulo}
-                </option>
-              ))}
-            </select>
+              placeholder="Selecione o fuso horário"
+              searchPlaceholder="Pesquisar fuso horário..."
+              emptyMessage="Nenhum fuso horário encontrado."
+              options={opcoesFuso.map((fuso) => ({
+                value: fuso.valor,
+                label: fuso.rotulo,
+                searchText: fuso.valor,
+              }))}
+            />
             {erro(estado, "fusoHorario") && (
               <p className="text-sm text-red-600">
                 {erro(estado, "fusoHorario")}

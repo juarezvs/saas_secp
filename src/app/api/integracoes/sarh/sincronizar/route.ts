@@ -36,6 +36,7 @@ const ENDPOINTS_VALIDOS = new Set<SarhEndpointKey>([
   "afastamentos",
   "ferias",
   "chefias",
+  "substituicoes",
   "calendarios",
 ]);
 
@@ -48,6 +49,7 @@ const ENDPOINTS_COMPATIVEIS_MATRICULA = new Set<SarhEndpointKey>([
   "afastamentos",
   "ferias",
   "chefias",
+  "substituicoes",
   "calendarios",
 ]);
 
@@ -60,6 +62,7 @@ const ENDPOINTS_PADRAO_MATRICULA: SarhEndpointKey[] = [
   "afastamentos",
   "ferias",
   "chefias",
+  "substituicoes",
   "calendarios",
 ];
 

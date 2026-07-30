@@ -184,10 +184,80 @@ async function removerGrupoMeuPontoPadraoPerfil(perfilId: string) {
   ]);
 }
 
+async function sincronizarNovosItensCatalogoPerfil(perfilId: string) {
+  const itensExistentes = await prisma.menuItemPerfil.findMany({
+    where: { perfilId },
+    select: { itemCatalogo: true },
+  });
+  const catalogoExistente = new Set(
+    itensExistentes.map((item) => item.itemCatalogo),
+  );
+  const itensFaltantes = MENU_CATALOGO.filter(
+    (item) => !catalogoExistente.has(item.id),
+  );
+
+  if (itensFaltantes.length === 0) {
+    return;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const grupos = await tx.menuGrupoPerfil.findMany({
+      where: { perfilId },
+      select: { id: true, label: true },
+    });
+    const gruposPorLabel = new Map(grupos.map((grupo) => [grupo.label, grupo.id]));
+    const gruposCriados = new Map<string, string>();
+
+    for (const item of itensFaltantes) {
+      const chaveGrupo = grupoPadraoItemMenu(item.href);
+      const grupoPadrao = chaveGrupo ? GRUPOS_PADRAO_MENU[chaveGrupo] : null;
+      let grupoId: string | null = null;
+
+      if (chaveGrupo && grupoPadrao) {
+        grupoId =
+          gruposPorLabel.get(grupoPadrao.label) ??
+          gruposCriados.get(chaveGrupo) ??
+          null;
+
+        if (!grupoId) {
+          const criado = await tx.menuGrupoPerfil.create({
+            data: {
+              perfilId,
+              label: grupoPadrao.label,
+              icone: grupoPadrao.icone,
+              ordem: grupoPadrao.ordem,
+            },
+            select: { id: true },
+          });
+
+          grupoId = criado.id;
+          gruposCriados.set(chaveGrupo, grupoId);
+        }
+      }
+
+      const ultimoItem = await tx.menuItemPerfil.findFirst({
+        where: { perfilId, grupoId },
+        orderBy: { ordem: "desc" },
+        select: { ordem: true },
+      });
+
+      await tx.menuItemPerfil.create({
+        data: {
+          perfilId,
+          grupoId,
+          itemCatalogo: item.id,
+          ordem: (ultimoItem?.ordem ?? 0) + 10,
+        },
+      });
+    }
+  });
+}
+
 export async function buscarMenuPersonalizadoPerfil(
   perfilId: string,
 ): Promise<MenuPersonalizadoPerfil> {
   await removerGrupoMeuPontoPadraoPerfil(perfilId);
+  await sincronizarNovosItensCatalogoPerfil(perfilId);
 
   const [grupos, itensRaiz] = await Promise.all([
     prisma.menuGrupoPerfil.findMany({

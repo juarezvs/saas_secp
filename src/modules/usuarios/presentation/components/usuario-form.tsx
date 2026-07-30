@@ -2,6 +2,9 @@
 
 import { useActionState } from "react";
 import { Loader2, Save } from "lucide-react";
+
+import { SearchableSelect } from "@/components/ui";
+
 import {
   tiposUsuario,
   type UsuarioFormState,
@@ -111,19 +114,20 @@ export function UsuarioForm({
               Tipo
             </label>
 
-            <select
+            <SearchableSelect
               id="tipo"
               name="tipo"
               defaultValue={campos?.tipo ?? "SERVIDOR"}
-              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              placeholder="Selecione o tipo"
+              searchPlaceholder="Pesquisar tipo..."
+              emptyMessage="Nenhum tipo encontrado."
+              options={tiposUsuario.map((tipo) => ({
+                value: tipo,
+                label: rotulosTipoUsuario[tipo] ?? tipo,
+                searchText: tipo,
+              }))}
               required
-            >
-              {tiposUsuario.map((tipo) => (
-                <option key={tipo} value={tipo}>
-                  {rotulosTipoUsuario[tipo] ?? tipo}
-                </option>
-              ))}
-            </select>
+            />
 
             {obterErro(estado.erros, "tipo") && (
               <p className="text-sm text-red-600">
@@ -252,22 +256,23 @@ export function UsuarioForm({
                   <span className="mb-1 block text-xs font-semibold text-[var(--muted-foreground)]">
                     Escopo de atuação
                   </span>
-                  <select
+                  <SearchableSelect
+                    id={`perfil-orgao-${perfil.id}`}
                     name={`perfilOrgao:${perfil.id}`}
                     defaultValue={campos?.perfisEscopos?.[perfil.id] ?? ""}
-                    className="h-10 w-full rounded-md border bg-[var(--card)] px-3 text-xs outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
-                  >
-                    <option value="">
-                      {perfil.codigo === "MASTER" && permitirEscopoGlobal
+                    placeholder={
+                      perfil.codigo === "MASTER" && permitirEscopoGlobal
                         ? "Global - todas as seccionais"
-                        : "Selecione a seccional"}
-                    </option>
-                    {orgaos.map((orgao) => (
-                      <option key={orgao.id} value={orgao.id}>
-                        {orgao.sigla} - {orgao.nome}
-                      </option>
-                    ))}
-                  </select>
+                        : "Selecione a seccional"
+                    }
+                    searchPlaceholder="Pesquisar seccional..."
+                    emptyMessage="Nenhuma seccional encontrada."
+                    options={orgaos.map((orgao) => ({
+                      value: orgao.id,
+                      label: `${orgao.sigla} - ${orgao.nome}`,
+                      searchText: `${orgao.sigla} ${orgao.nome}`,
+                    }))}
+                  />
                 </span>
               </span>
             </label>

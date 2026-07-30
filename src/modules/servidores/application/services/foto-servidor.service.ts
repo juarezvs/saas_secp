@@ -7,7 +7,56 @@ type FotoServidor = {
   contentType: string;
 };
 
-const fotoServidorCache = new Map<string, Promise<FotoServidor | null>>();
+type FotoServidorCacheEntry = {
+  promessa: Promise<FotoServidor | null>;
+  expiraEm: number | null;
+};
+
+const TEMPO_LIMITE_FOTO_SARH_MS = Number(
+  process.env.SARH_FOTO_TIMEOUT_MS ?? 1200,
+);
+const CACHE_FALHA_FOTO_SARH_MS = Number(
+  process.env.SARH_FOTO_FALHA_CACHE_MS ?? 5 * 60 * 1000,
+);
+const fotoServidorCache = new Map<string, FotoServidorCacheEntry>();
+
+function expiraFalhaFotoSarh() {
+  return Date.now() + CACHE_FALHA_FOTO_SARH_MS;
+}
+
+function limitarTempoFotoSarh<T>(
+  cacheKey: string,
+  promessa: Promise<T | null>,
+): Promise<T | null> {
+  if (!Number.isFinite(TEMPO_LIMITE_FOTO_SARH_MS) || TEMPO_LIMITE_FOTO_SARH_MS <= 0) {
+    return promessa;
+  }
+
+  return new Promise<T | null>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      const entrada = fotoServidorCache.get(cacheKey);
+
+      if (entrada) {
+        entrada.expiraEm = expiraFalhaFotoSarh();
+      }
+
+      console.warn(
+        `Busca de foto do servidor no SARH excedeu ${TEMPO_LIMITE_FOTO_SARH_MS}ms.`,
+      );
+      resolve(null);
+    }, TEMPO_LIMITE_FOTO_SARH_MS);
+
+    promessa
+      .then((resultado) => {
+        clearTimeout(timeout);
+        resolve(resultado);
+      })
+      .catch((error) => {
+        clearTimeout(timeout);
+        reject(error);
+      });
+  });
+}
 
 export function normalizarCpfFoto(cpf: string | null | undefined) {
   if (!cpf) return null;
@@ -66,11 +115,15 @@ export async function buscarFotoServidorSarh(
   const existente = fotoServidorCache.get(cacheKey);
 
   if (existente) {
-    return existente;
+    if (!existente.expiraEm || existente.expiraEm > Date.now()) {
+      return existente.promessa;
+    }
+
+    fotoServidorCache.delete(cacheKey);
   }
 
   const config = await obterConfiguracaoSarhOracle(orgaoId);
-  const promessa = new SarhOracleClient({
+  const buscaSarh = new SarhOracleClient({
     username: config.username,
     password: config.password,
     connectString: config.connectString,
@@ -87,7 +140,12 @@ export async function buscarFotoServidorSarh(
         : null,
     )
     .catch((error) => {
-      fotoServidorCache.delete(cacheKey);
+      const entrada = fotoServidorCache.get(cacheKey);
+
+      if (entrada) {
+        entrada.expiraEm = expiraFalhaFotoSarh();
+      }
+
       console.warn(
         `Nao foi possivel buscar a foto do servidor no SARH: ${
           error instanceof Error ? error.message : String(error)
@@ -95,8 +153,19 @@ export async function buscarFotoServidorSarh(
       );
       return null;
     });
+  const promessa = limitarTempoFotoSarh(cacheKey, buscaSarh).then((foto) => {
+    if (!foto) {
+      const entrada = fotoServidorCache.get(cacheKey);
 
-  fotoServidorCache.set(cacheKey, promessa);
+      if (entrada) {
+        entrada.expiraEm = expiraFalhaFotoSarh();
+      }
+    }
+
+    return foto;
+  });
+
+  fotoServidorCache.set(cacheKey, { promessa, expiraEm: null });
 
   return promessa;
 }

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { validarERegistrarProcedimentoFrequencia } from "@/modules/procedimentos-frequencia/application/services/motor-procedimentos-frequencia.service";
 import {
   jornadaServidorSchema,
   type JornadaServidorFormState,
@@ -47,6 +48,30 @@ function menorOuIgual(a: Date, b: Date) {
 
 function maiorOuIgual(a: Date, b: Date) {
   return a.getTime() >= b.getTime();
+}
+
+function categoriaProcedimentoJornada(params: {
+  tipoVinculacao: string;
+  dataFim: Date | null;
+  cargaDiariaMinutos: number;
+  motivo?: string | null;
+}) {
+  const motivo = params.motivo?.toLowerCase() ?? "";
+
+  if (
+    params.cargaDiariaMinutos < 420 ||
+    motivo.includes("medic") ||
+    motivo.includes("especial") ||
+    motivo.includes("reduz")
+  ) {
+    return "JORNADA_ESPECIAL" as const;
+  }
+
+  if (params.tipoVinculacao === "TEMPORARIA" || params.dataFim) {
+    return "ALTERACAO_TEMPORARIA_JORNADA" as const;
+  }
+
+  return "JORNADA_DIARIA" as const;
 }
 
 export async function atribuirJornadaServidorAction(
@@ -184,6 +209,44 @@ export async function atribuirJornadaServidorAction(
   }
 
   await prisma.$transaction(async (tx) => {
+    const procedimento =
+      await validarERegistrarProcedimentoFrequencia({
+        tx,
+        categoria: categoriaProcedimentoJornada({
+          tipoVinculacao: parsed.data.tipoVinculacao,
+          dataFim,
+          cargaDiariaMinutos: jornada.cargaDiariaMinutos,
+          motivo: parsed.data.motivo,
+        }),
+        servidorId: parsed.data.servidorId,
+        usuarioId: permissao.usuarioId,
+        permissoesUsuario: permissao.permissoes,
+        dataInicio,
+        dataFim,
+        processoSei: parsed.data.documentoSei,
+        documentoSei:
+          parsed.data.fundamentoDocumental || parsed.data.documentoSei,
+        autoridade: parsed.data.autoridadeResponsavel,
+        justificativa:
+          parsed.data.justificativa ||
+          parsed.data.motivo ||
+          "Atribuição administrativa de jornada ao servidor.",
+        titulo: "Atribuição de jornada ao servidor",
+        exigePermissao: "autorizar",
+        exigeRecalculo: true,
+        validarDocumentos:
+          parsed.data.tipoVinculacao === "TEMPORARIA" ||
+          Boolean(dataFim) ||
+          jornada.cargaDiariaMinutos < 420,
+        dadosEntrada: {
+          origem: "ATRIBUICAO_JORNADA_SERVIDOR",
+          jornadaId: parsed.data.jornadaId,
+          escalaId: parsed.data.escalaId || null,
+          tipoVinculacao: parsed.data.tipoVinculacao,
+          horarioDiferenciadoAutorizado:
+            parsed.data.horarioDiferenciadoAutorizado,
+        },
+      });
     const dataFimComparacao = dataFim ?? DATA_FIM_ABERTA;
     const vinculosSobrepostos = await tx.jornadaServidor.findMany({
       where: {
@@ -353,6 +416,9 @@ export async function atribuirJornadaServidorAction(
             vinculo.horarioDiferenciadoAutorizado,
           autorizadoPorUsuarioId: vinculo.autorizadoPorUsuarioId,
           autorizadoEm: vinculo.autorizadoEm,
+          procedimentoFrequenciaId: procedimento.procedimento.id,
+          procedimentoFrequenciaExecucaoId: procedimento.execucao?.id ?? null,
+          procedimentoFrequenciaCodigo: procedimento.procedimento.codigo,
         },
       },
     });

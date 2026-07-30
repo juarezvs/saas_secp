@@ -40,6 +40,7 @@ const ENDPOINTS_COMPATIVEIS_MATRICULA = new Set<SarhEndpointKey>([
   "afastamentos",
   "ferias",
   "chefias",
+  "substituicoes",
 ]);
 
 const ENDPOINTS_PADRAO_MATRICULA: SarhEndpointKey[] = [
@@ -51,6 +52,7 @@ const ENDPOINTS_PADRAO_MATRICULA: SarhEndpointKey[] = [
   "afastamentos",
   "ferias",
   "chefias",
+  "substituicoes",
 ];
 
 function normalizarEndpointsPorMatricula(

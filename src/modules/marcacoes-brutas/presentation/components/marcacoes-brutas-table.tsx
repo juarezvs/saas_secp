@@ -1,3 +1,6 @@
+import { Trash2 } from "lucide-react";
+
+import { excluirMarcacaoNutecAction } from "@/modules/marcacoes/application/actions/manter-marcacao-nutec.action";
 import { OrigemMarcacaoIcon } from "@/modules/marcacoes/presentation/components/origem-marcacao-icon";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { normalizarFusoHorario } from "@/modules/marcacoes/application/services/data-marcacao.service";
@@ -30,6 +33,7 @@ type MarcacaoBrutaItem = {
     };
   } | null;
   marcacao: {
+    id: string;
     tipo: string;
     status: string;
     fusoHorario?: string | null;
@@ -152,8 +156,10 @@ function origemWebDoPayload(valor: unknown) {
 
 export function MarcacoesBrutasTable({
   marcacoes,
+  podeExcluirMarcacoes = false,
 }: {
   marcacoes: MarcacaoBrutaItem[];
+  podeExcluirMarcacoes?: boolean;
 }) {
   return (
     <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
@@ -175,6 +181,7 @@ export function MarcacoesBrutasTable({
               <th className="px-5 py-3">Equipamento</th>
               <th className="px-5 py-3">NSR/Código</th>
               <th className="px-5 py-3">Processamento</th>
+              {podeExcluirMarcacoes && <th className="px-5 py-3">Ações</th>}
               <th className="px-5 py-3">Marcação</th>
             </tr>
           </thead>
@@ -278,6 +285,32 @@ export function MarcacoesBrutasTable({
                   </span>
                 </td>
 
+                {podeExcluirMarcacoes && (
+                  <td className="px-5 py-4">
+                    {item.marcacao && item.servidor ? (
+                      <form
+                        action={excluirMarcacaoNutecAction.bind(
+                          null,
+                          item.marcacao.id,
+                        )}
+                      >
+                        <button
+                          type="submit"
+                          className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950"
+                          title="Cancelar a marcação processada vinculada a este registro bruto"
+                        >
+                          <Trash2 className="size-3.5" aria-hidden="true" />
+                          Cancelar marcação
+                        </button>
+                      </form>
+                    ) : (
+                      <span className="text-xs text-[var(--muted-foreground)]">
+                        Sem marcação vinculada
+                      </span>
+                    )}
+                  </td>
+                )}
+
                 <td className="px-5 py-4">
                   {item.marcacao ? (
                     <>
@@ -297,7 +330,7 @@ export function MarcacoesBrutasTable({
             {marcacoes.length === 0 && (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={podeExcluirMarcacoes ? 9 : 8}
                   className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                 >
                   Nenhuma marcação bruta encontrada.

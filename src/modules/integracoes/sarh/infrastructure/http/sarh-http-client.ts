@@ -8,6 +8,7 @@ import type {
   SarhLotacaoServidorDto,
   SarhPayloadCompleto,
   SarhServidorDto,
+  SarhSubstituicaoFuncaoDto,
   SarhTipoAfastamentoDto,
 } from "../../domain/sarh.types";
 
@@ -65,6 +66,10 @@ export class SarhHttpClient {
     return this.getJson<SarhChefiaDto[]>("/chefias/");
   }
 
+  async buscarSubstituicoes(): Promise<SarhSubstituicaoFuncaoDto[]> {
+    return this.getJson<SarhSubstituicaoFuncaoDto[]>("/substituicoes/");
+  }
+
   async buscarCalendarios(): Promise<SarhCalendarioDto[]> {
     return this.getJson<SarhCalendarioDto[]>("/calendarios/");
   }
@@ -79,6 +84,7 @@ export class SarhHttpClient {
       tiposAfastamento,
       afastamentos,
       chefias,
+      substituicoes,
       calendarios,
     ] = await Promise.all([
       this.buscarEmpresas(),
@@ -89,6 +95,7 @@ export class SarhHttpClient {
       this.buscarTiposAfastamento(),
       this.buscarAfastamentos(),
       this.buscarChefias(),
+      this.buscarSubstituicoes().catch(() => []),
       this.buscarCalendarios().catch(() => []),
     ]);
 
@@ -101,6 +108,7 @@ export class SarhHttpClient {
       tiposAfastamento,
       afastamentos,
       chefias,
+      substituicoes,
       calendarios,
     };
   }

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
+import { validarERegistrarProcedimentoFrequencia } from "@/modules/procedimentos-frequencia/application/services/motor-procedimentos-frequencia.service";
 import { recalcularMesServidorService } from "@/modules/recalculo/application/services/recalcular-mes-servidor.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
@@ -33,6 +34,10 @@ function parseTempoAutorizado(formData: FormData) {
   }
 
   return Number(formData.get("minutos") ?? 0);
+}
+
+function textoOpcional(formData: FormData, campo: string) {
+  return String(formData.get(campo) ?? "").trim() || null;
 }
 
 async function chefiaPodeGerenciarServidor(params: {
@@ -93,6 +98,13 @@ export async function autorizarHoraExtraBancoHorasAction(formData: FormData) {
   const minutos = parseTempoAutorizado(formData);
   const minutosMaximos = Number(formData.get("minutosMaximos") ?? 0);
   const dataReferencia = parseDataReferencia(formData.get("dataReferencia"));
+  const processoSei = textoOpcional(formData, "processoSei");
+  const documentoSei = textoOpcional(formData, "documentoSei");
+  const autoridade = textoOpcional(formData, "autoridade");
+  const justificativaProcedimento = textoOpcional(
+    formData,
+    "justificativaProcedimento",
+  );
 
   if (
     !servidorId ||
@@ -147,6 +159,36 @@ export async function autorizarHoraExtraBancoHorasAction(formData: FormData) {
       return;
     }
 
+    const procedimento =
+      await validarERegistrarProcedimentoFrequencia({
+        tx,
+        categoria: "CONVERSAO_HORAS_NAO_AUTORIZADAS",
+        servidorId,
+        usuarioId: session.user.id,
+        permissoesUsuario: permissoes,
+        dataInicio: dataReferencia,
+        dataFim: dataReferencia,
+        processoSei,
+        documentoSei,
+        autoridade,
+        justificativa:
+          justificativaProcedimento ??
+          "Conversão administrativa de hora extra não autorizada pelo espelho de ponto.",
+        titulo: "Conversão de horas não autorizadas",
+        impactoMinutos: minutos,
+        permitirBancoFechado: true,
+        exigePermissao: "autorizar",
+        exigeRecalculo: true,
+        dadosEntrada: {
+          origem: "ESPELHO_PONTO",
+          anoReferencia,
+          mesReferencia,
+          dataReferencia,
+          minutos,
+          minutosMaximos,
+        },
+      });
+
     const solicitacao = await tx.solicitacao.create({
       data: {
         servidorId,
@@ -165,8 +207,15 @@ export async function autorizarHoraExtraBancoHorasAction(formData: FormData) {
           origem: "ESPELHO_PONTO",
           minutosSolicitados: minutos,
           tipoCompensacao: "CREDITO",
+          procedimentoFrequenciaId: procedimento.procedimento.id,
+          procedimentoFrequenciaExecucaoId: procedimento.execucao?.id ?? null,
+          procedimentoFrequenciaCodigo: procedimento.procedimento.codigo,
+          processoSei,
+          documentoSei,
+          autoridade,
         },
         justificativaAnalise:
+          justificativaProcedimento ??
           "Hora extra autorizada pela chefia no espelho de ponto.",
         analisadaEm: new Date(),
       },
@@ -197,6 +246,7 @@ export async function autorizarHoraExtraBancoHorasAction(formData: FormData) {
         metadados: {
           autorizacaoBancoHorasId: autorizacao.id,
           minutosAutorizados: minutos,
+          procedimentoFrequenciaExecucaoId: procedimento.execucao?.id ?? null,
         },
       },
     });
@@ -212,6 +262,9 @@ export async function autorizarHoraExtraBancoHorasAction(formData: FormData) {
           dataReferencia,
           minutosAutorizados: minutos,
           solicitacaoId: solicitacao.id,
+          procedimentoFrequenciaId: procedimento.procedimento.id,
+          procedimentoFrequenciaExecucaoId: procedimento.execucao?.id ?? null,
+          procedimentoFrequenciaCodigo: procedimento.procedimento.codigo,
         },
       },
     });

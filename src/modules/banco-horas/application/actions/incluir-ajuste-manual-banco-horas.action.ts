@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { auth } from "@/auth";
 import { usuarioPossuiPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
+import { validarERegistrarProcedimentoFrequencia } from "@/modules/procedimentos-frequencia/application/services/motor-procedimentos-frequencia.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 import { calcularSaldoBancoHoras } from "../services/calcular-banco-horas.service";
@@ -51,6 +52,29 @@ function montarDescricaoAjusteManual(params: {
   return `${partes.join(" - ")}.`;
 }
 
+async function periodoEstaHomologado(params: {
+  servidorId: string;
+  dataReferencia: Date;
+}) {
+  return Boolean(
+    await prisma.homologacaoServidorMes.findFirst({
+      where: {
+        servidorId: params.servidorId,
+        status: {
+          in: ["HOMOLOGADO", "HOMOLOGADO_COM_RESSALVA"],
+        },
+        fechamento: {
+          anoReferencia: params.dataReferencia.getUTCFullYear(),
+          mesReferencia: params.dataReferencia.getUTCMonth() + 1,
+        },
+      },
+      select: {
+        id: true,
+      },
+    }),
+  );
+}
+
 export async function incluirAjusteManualBancoHorasAction(formData: FormData) {
   const session = await auth();
 
@@ -88,8 +112,43 @@ export async function incluirAjusteManualBancoHorasAction(formData: FormData) {
   const anoReferencia = dataReferencia.getFullYear();
   const mesReferencia = dataReferencia.getMonth() + 1;
   const minutos = Math.round(parsed.data.horas * 60);
+  const periodoFechado = await periodoEstaHomologado({
+    servidorId: parsed.data.servidorId,
+    dataReferencia,
+  });
 
   await prisma.$transaction(async (tx) => {
+    const procedimento =
+      await validarERegistrarProcedimentoFrequencia({
+        tx,
+        categoria: periodoFechado
+          ? "AJUSTE_BANCO_FECHADO"
+          : "AJUSTE_BANCO_ABERTO",
+        servidorId: parsed.data.servidorId,
+        usuarioId: session.user.id,
+        permissoesUsuario: session.user.perfilAtivo?.permissoes ?? [],
+        dataInicio: dataReferencia,
+        dataFim: dataReferencia,
+        processoSei: parsed.data.processoSei,
+        documentoSei: parsed.data.atoAutorizativo,
+        autoridade: parsed.data.autoridade,
+        justificativa: parsed.data.justificativa,
+        titulo: periodoFechado
+          ? "Ajuste administrativo em banco fechado"
+          : "Ajuste administrativo em banco aberto",
+        impactoMinutos: parsed.data.tipo === "CREDITO" ? minutos : -minutos,
+        permitirBancoFechado: periodoFechado,
+        exigePermissao: "autorizar",
+        exigeRecalculo: !periodoFechado,
+        dadosEntrada: {
+          origem: "BANCO_HORAS_AJUSTE_MANUAL",
+          tipo: parsed.data.tipo,
+          dataReferencia,
+          minutos,
+          periodoFechado,
+        },
+      });
+
     const movimento = await tx.movimentoBancoHoras.create({
       data: {
         servidorId: parsed.data.servidorId,
@@ -110,6 +169,10 @@ export async function incluirAjusteManualBancoHorasAction(formData: FormData) {
           autoridade: parsed.data.autoridade ?? null,
           justificativa: parsed.data.justificativa,
           origem: "INCLUSAO_MANUAL_ADMINISTRATIVA",
+          procedimentoFrequenciaId: procedimento.procedimento.id,
+          procedimentoFrequenciaExecucaoId: procedimento.execucao?.id ?? null,
+          procedimentoFrequenciaCodigo: procedimento.procedimento.codigo,
+          periodoFechado,
         },
       },
     });
@@ -165,6 +228,10 @@ export async function incluirAjusteManualBancoHorasAction(formData: FormData) {
           processoSei: parsed.data.processoSei ?? null,
           atoAutorizativo: parsed.data.atoAutorizativo ?? null,
           autoridade: parsed.data.autoridade ?? null,
+          procedimentoFrequenciaId: procedimento.procedimento.id,
+          procedimentoFrequenciaExecucaoId: procedimento.execucao?.id ?? null,
+          procedimentoFrequenciaCodigo: procedimento.procedimento.codigo,
+          periodoFechado,
         },
       },
     });

@@ -1,8 +1,10 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import { useActionState } from "react";
 import { Loader2, Save } from "lucide-react";
+
+import { SearchableSelect } from "@/components/ui";
 import {
   tiposVinculoServidor,
   type ServidorFormState,
@@ -48,9 +50,9 @@ const rotulosVinculo: Record<string, string> = {
   EFETIVO: "Efetivo",
   CEDIDO: "Cedido",
   REQUISITADO: "Requisitado",
-  REDISTRIBUIDO: "Redistribuído",
+  REDISTRIBUIDO: "RedistribuÃ­do",
   REMOVIDO: "Removido",
-  EXERCICIO_PROVISORIO: "Exercício provisório",
+  EXERCICIO_PROVISORIO: "ExercÃ­cio provisÃ³rio",
 };
 
 function obterErro(erros: Record<string, string[]> | undefined, campo: string) {
@@ -125,7 +127,7 @@ export function ServidorForm({
                     campos.descricaoSituacaoSarh,
                   ]
                     .filter(Boolean)
-                    .join(" · ")}
+                    .join(" Â· ")}
                 </p>
               )}
             </div>
@@ -135,23 +137,23 @@ export function ServidorForm({
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <div className="space-y-2">
             <label htmlFor="orgaoId" className="text-sm font-semibold">
-              Órgão
+              Ã“rgÃ£o
             </label>
 
-            <select
+            <SearchableSelect
               id="orgaoId"
               name="orgaoId"
               defaultValue={campos?.orgaoId ?? ""}
-              className="h-11 w-full rounded-md border bg-(--card) px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              placeholder="Selecione o órgão"
+              searchPlaceholder="Pesquisar órgão..."
+              emptyMessage="Nenhum órgão encontrado."
+              options={orgaos.map((orgao) => ({
+                value: orgao.id,
+                label: `${orgao.sigla} - ${orgao.nome}`,
+                searchText: `${orgao.sigla} ${orgao.nome}`,
+              }))}
               required
-            >
-              <option value="">Selecione</option>
-              {orgaos.map((orgao) => (
-                <option key={orgao.id} value={orgao.id}>
-                  {orgao.sigla} — {orgao.nome}
-                </option>
-              ))}
-            </select>
+            />
 
             {obterErro(estado.erros, "orgaoId") && (
               <p className="text-sm text-red-600">
@@ -162,7 +164,7 @@ export function ServidorForm({
 
           <div className="space-y-2">
             <label htmlFor="matricula" className="text-sm font-semibold">
-              Matrícula
+              MatrÃ­cula
             </label>
 
             <input
@@ -229,7 +231,7 @@ export function ServidorForm({
 
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-semibold">
-              É-mail
+              Ã‰-mail
             </label>
 
             <input
@@ -272,22 +274,23 @@ export function ServidorForm({
 
           <div className="space-y-2">
             <label htmlFor="vinculo" className="text-sm font-semibold">
-              Tipo de vínculo
+              Tipo de vÃ­nculo
             </label>
 
-            <select
+            <SearchableSelect
               id="vinculo"
               name="vinculo"
               defaultValue={campos?.vinculo ?? "EFETIVO"}
-              className="h-11 w-full rounded-md border bg-(--card) px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              placeholder="Selecione o vínculo"
+              searchPlaceholder="Pesquisar vínculo..."
+              emptyMessage="Nenhum vínculo encontrado."
+              options={tiposVinculoServidor.map((tipo) => ({
+                value: tipo,
+                label: rotulosVinculo[tipo] ?? tipo,
+                searchText: tipo,
+              }))}
               required
-            >
-              {tiposVinculoServidor.map((tipo) => (
-                <option key={tipo} value={tipo}>
-                  {rotulosVinculo[tipo] ?? tipo}
-                </option>
-              ))}
-            </select>
+            />
 
             {obterErro(estado.erros, "vinculo") && (
               <p className="text-sm text-red-600">
@@ -307,7 +310,7 @@ export function ServidorForm({
             <span>
               <span className="block font-semibold">Servidor ativo</span>
               <span className="text-xs text-[var(--muted-foreground)]">
-                Servidores inativos não devem registrar frequência ordinária.
+                Servidores inativos nÃ£o devem registrar frequÃªncia ordinÃ¡ria.
               </span>
             </span>
           </label>
@@ -317,23 +320,26 @@ export function ServidorForm({
               htmlFor="sinalizacaoForaExpediente"
               className="text-sm font-semibold"
             >
-              Marcação fora do expediente
+              MarcaÃ§Ã£o fora do expediente
             </label>
 
-            <select
+            <SearchableSelect
               id="sinalizacaoForaExpediente"
               name="sinalizacaoForaExpediente"
               defaultValue={campos?.sinalizacaoForaExpediente ?? "PADRAO"}
-              className="h-11 w-full rounded-md border bg-(--card) px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
-            >
-              <option value="PADRAO">Seguir padrão do órgão</option>
-              <option value="NAO_SINALIZAR">Não sinalizar</option>
-              <option value="SINALIZAR">Sinalizar como inconsistência</option>
-            </select>
+              placeholder="Selecione a regra de sinalização"
+              searchPlaceholder="Pesquisar regra..."
+              emptyMessage="Nenhuma regra encontrada."
+              options={[
+                { value: "PADRAO", label: "Seguir padrão do órgão" },
+                { value: "NAO_SINALIZAR", label: "Não sinalizar" },
+                { value: "SINALIZAR", label: "Sinalizar como inconsistência" },
+              ]}
+            />
 
             <p className="text-xs leading-5 text-[var(--muted-foreground)]">
-              Use a opção individual apenas para casos excepcionais; o padrão do
-              SECP é não sinalizar marcações fora do expediente.
+              Use a opÃ§Ã£o individual apenas para casos excepcionais; o padrÃ£o do
+              SECP Ã© nÃ£o sinalizar marcaÃ§Ãµes fora do expediente.
             </p>
 
             {obterErro(estado.erros, "sinalizacaoForaExpediente") && (
@@ -357,9 +363,10 @@ export function ServidorForm({
             <Save className="size-4" aria-hidden="true" />
           )}
 
-          {modo === "criar" ? "Criar servidor" : "Salvar alterações"}
+          {modo === "criar" ? "Criar servidor" : "Salvar alteraÃ§Ãµes"}
         </button>
       </div>
     </form>
   );
 }
+

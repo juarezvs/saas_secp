@@ -17,6 +17,7 @@ import {
 } from "@/modules/marcacoes/application/actions/manter-marcacao-nutec.action";
 import {
   PERMISSAO_EXCLUIR_MARCACOES,
+  PERMISSAO_EXCLUIR_MARCACOES_SECCIONAL,
   usuarioEhNutec,
 } from "@/modules/marcacoes/application/services/permissao-manutencao-marcacao.service";
 import {
@@ -220,6 +221,7 @@ export default async function MarcacoesPage({
   ]);
   const podeExcluirMarcacoes =
     permissoes.includes(PERMISSAO_EXCLUIR_MARCACOES) ||
+    permissoes.includes(PERMISSAO_EXCLUIR_MARCACOES_SECCIONAL) ||
     podeManterMarcacoesNutec;
   const podeExibirManutencaoMarcacoes =
     podeManterMarcacoesNutec || podeExcluirMarcacoes;

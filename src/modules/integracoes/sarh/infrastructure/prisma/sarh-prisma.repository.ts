@@ -13,6 +13,7 @@ import type {
   SarhLotacaoDto,
   SarhLotacaoServidorDto,
   SarhServidorDto,
+  SarhSubstituicaoFuncaoDto,
   SarhTipoAfastamentoDto,
   TipoEndpointSarhDb,
   TipoExecucaoSarh,
@@ -1134,6 +1135,275 @@ export class SarhPrismaRepository {
           mesmaChefia,
           funcao: params.payload.funcaoDescricao,
           categoria: params.payload.funcaoCategoria,
+        },
+      },
+      params.registroBrutoId,
+    );
+
+    return operacao;
+  }
+
+  private tipoSubstituicaoSarh(tipo: SarhSubstituicaoFuncaoDto["tipo"]) {
+    if (tipo === "DESIGNACAO") return "DESIGNADA" as const;
+    if (tipo === "FUNCAO") return "EVENTUAL" as const;
+    return "AUTOMATICA" as const;
+  }
+
+  private async upsertFuncaoConfiancaReferenciaSarh(params: {
+    orgaoId: string;
+    tipo: "titular" | "substituto";
+    funcaoId: number | null;
+    grupo: string | null;
+    categoria: string | null;
+    codigo: string | null;
+    descricao: string | null;
+    payload: SarhSubstituicaoFuncaoDto;
+    modoSimulacao: boolean;
+  }) {
+    const categoria = limparTexto(params.categoria);
+    const codigo = limparTexto(params.codigo);
+
+    if (!categoria || !codigo) {
+      return null;
+    }
+
+    const codigoExternoSarh = [
+      "FUNCAO",
+      params.orgaoId,
+      params.tipo,
+      params.funcaoId ?? "sem-id",
+      categoria,
+      codigo,
+    ].join(":");
+    const existente = await this.prisma.funcaoConfiancaReferencia.findUnique({
+      where: { codigoExternoSarh },
+    });
+    const data = {
+      orgaoId: params.orgaoId,
+      grupo: limparTexto(params.grupo),
+      categoria,
+      codigo,
+      descricao:
+        limparTexto(params.descricao) ??
+        `${categoria} ${codigo}`.trim(),
+      codigoFuncaoLotacaoSarh: params.funcaoId,
+      origem: "SARH" as const,
+      codigoExternoSarh,
+      payloadSarh: params.payload,
+      ultimaSincronizacaoSarh: new Date(),
+      ativo: true,
+    };
+
+    if (params.modoSimulacao) {
+      return existente ?? { id: null, ...data };
+    }
+
+    return existente
+      ? this.prisma.funcaoConfiancaReferencia.update({
+          where: { id: existente.id },
+          data,
+        })
+      : this.prisma.funcaoConfiancaReferencia.create({ data });
+  }
+
+  async processarSubstituicaoFuncao(params: {
+    execucaoId: string;
+    payload: SarhSubstituicaoFuncaoDto;
+    modoSimulacao: boolean;
+    registroBrutoId?: string | null;
+  }) {
+    const endpoint: TipoEndpointSarhDb = "SUBSTITUICOES";
+    const chaveExterna = params.payload.id;
+    const titularMatricula = params.payload.titularMatricula
+      ? normalizarMatricula(params.payload.titularMatricula)
+      : null;
+    const substitutoMatricula = params.payload.substitutoMatricula
+      ? normalizarMatricula(params.payload.substitutoMatricula)
+      : null;
+    const matriculaBase = titularMatricula ?? substitutoMatricula;
+
+    if (!chaveExterna || !titularMatricula || !substitutoMatricula || !matriculaBase) {
+      await this.registrarItem(
+        params.execucaoId,
+        endpoint,
+        {
+          tipoRegistro: "SUBSTITUICAO",
+          chaveExterna: chaveExterna || "sem-chave",
+          operacao: "IGNORAR",
+          status: "IGNORADO",
+          mensagem:
+            "Substituição SARH ignorada por ausência de titular, substituto ou chave externa.",
+          dadosDepois: params.payload,
+        },
+        params.registroBrutoId,
+      );
+
+      return "IGNORAR" as OperacaoRegistroSarhDb;
+    }
+
+    const orgao = await this.obterOrgaoPorMatricula(matriculaBase);
+    const [titular, substituto, unidade, existente] = await Promise.all([
+      this.prisma.servidor.findFirst({
+        where: { matricula: titularMatricula, orgaoId: orgao.id },
+        select: { id: true, matricula: true },
+      }),
+      this.prisma.servidor.findFirst({
+        where: { matricula: substitutoMatricula, orgaoId: orgao.id },
+        select: { id: true, matricula: true },
+      }),
+      params.payload.lotacaoId
+        ? this.prisma.unidadeOrganizacional.findFirst({
+            where: {
+              orgaoId: orgao.id,
+              codigoExternoSarh: params.payload.lotacaoId,
+            },
+            select: { id: true, sigla: true },
+          })
+        : Promise.resolve(null),
+      this.prisma.substituicaoFuncao.findUnique({
+        where: { codigoExternoSarh: chaveExterna },
+      }),
+    ]);
+
+    if (!titular || !substituto) {
+      await this.registrarItem(
+        params.execucaoId,
+        endpoint,
+        {
+          tipoRegistro: "SUBSTITUICAO",
+          chaveExterna,
+          operacao: "ERRO",
+          status: "ERRO",
+          erro: `Titular ${titularMatricula} ou substituto ${substitutoMatricula} não encontrado no SECP para a substituição SARH.`,
+          dadosDepois: params.payload,
+        },
+        params.registroBrutoId,
+      );
+
+      return "ERRO" as OperacaoRegistroSarhDb;
+    }
+
+    const [funcaoTitular, funcaoSubstituto] = await Promise.all([
+      this.upsertFuncaoConfiancaReferenciaSarh({
+        orgaoId: orgao.id,
+        tipo: "titular",
+        funcaoId: params.payload.funcaoTitularId,
+        grupo: params.payload.funcaoTitularGrupo,
+        categoria: params.payload.funcaoTitularCategoria,
+        codigo: params.payload.funcaoTitularCodigo,
+        descricao: params.payload.funcaoTitularDescricao,
+        payload: params.payload,
+        modoSimulacao: params.modoSimulacao,
+      }),
+      this.upsertFuncaoConfiancaReferenciaSarh({
+        orgaoId: orgao.id,
+        tipo: "substituto",
+        funcaoId: params.payload.funcaoSubstitutoId,
+        grupo: params.payload.funcaoSubstitutoGrupo,
+        categoria: params.payload.funcaoSubstitutoCategoria,
+        codigo: params.payload.funcaoSubstitutoCodigo,
+        descricao: params.payload.funcaoSubstitutoDescricao,
+        payload: params.payload,
+        modoSimulacao: params.modoSimulacao,
+      }),
+    ]);
+
+    const dataInicio =
+      normalizarDataSarh(params.payload.dataInicio) ?? new Date();
+    const dataFim = normalizarDataSarh(params.payload.dataFim);
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const status: "ENCERRADA" | "ATIVA" =
+      dataFim && dataFim.getTime() < hoje.getTime() ? "ENCERRADA" : "ATIVA";
+    const data = {
+      orgaoId: orgao.id,
+      unidadeId: unidade?.id ?? null,
+      titularServidorId: titular.id,
+      substitutoServidorId: substituto.id,
+      funcaoTitularId: funcaoTitular?.id ?? null,
+      funcaoSubstitutoId: funcaoSubstituto?.id ?? null,
+      tipo: this.tipoSubstituicaoSarh(params.payload.tipo),
+      status,
+      origem: "SARH" as const,
+      dataInicio,
+      dataFim,
+      atoDesignacao: limparTexto(params.payload.ato),
+      dataAtoDesignacao: normalizarDataSarh(params.payload.dataAto),
+      dataPublicacaoAto: normalizarDataSarh(params.payload.dataPublicacaoAto),
+      atoDispensa: limparTexto(params.payload.atoDispensa),
+      dataAtoDispensa: normalizarDataSarh(params.payload.dataAtoDispensa),
+      dataPublicacaoDispensa: normalizarDataSarh(
+        params.payload.dataPublicacaoDispensa,
+      ),
+      processoSei: limparTexto(params.payload.processoSei),
+      observacao: limparTexto(params.payload.tipoAfastamento)
+        ? `Tipo de afastamento SARH: ${limparTexto(params.payload.tipoAfastamento)}`
+        : null,
+      codigoExternoSarh: chaveExterna,
+      codigoFuncaoTitularSarh: params.payload.funcaoTitularId
+        ? String(params.payload.funcaoTitularId)
+        : null,
+      codigoFuncaoSubstitutoSarh: params.payload.funcaoSubstitutoId
+        ? String(params.payload.funcaoSubstitutoId)
+        : null,
+      payloadSarh: params.payload,
+      ultimaSincronizacaoSarh: new Date(),
+    };
+    const operacao: OperacaoRegistroSarhDb = existente ? "ATUALIZAR" : "CRIAR";
+
+    if (params.modoSimulacao) {
+      await this.registrarItem(
+        params.execucaoId,
+        endpoint,
+        {
+          tipoRegistro: "SUBSTITUICAO",
+          chaveExterna,
+          operacao,
+          status: "PROCESSADO",
+          entidadeInterna: "SubstituicaoFuncao",
+          entidadeInternaId: existente?.id,
+          mensagem: `Simulação: substituição de ${titularMatricula} por ${substitutoMatricula} seria ${existente ? "atualizada" : "criada"}.`,
+          dadosAntes: existente,
+          dadosDepois: data,
+          metadados: { modoSimulacao: true },
+        },
+        params.registroBrutoId,
+      );
+
+      return operacao;
+    }
+
+    const substituicao = existente
+      ? await this.prisma.substituicaoFuncao.update({
+          where: { id: existente.id },
+          data,
+        })
+      : await this.prisma.substituicaoFuncao.create({ data });
+
+    await this.upsertMapeamento(
+      "SUBSTITUICAO",
+      chaveExterna,
+      "SubstituicaoFuncao",
+      substituicao.id,
+      gerarHashRegistro(params.payload),
+    );
+
+    await this.registrarItem(
+      params.execucaoId,
+      endpoint,
+      {
+        tipoRegistro: "SUBSTITUICAO",
+        chaveExterna,
+        operacao,
+        status: "PROCESSADO",
+        entidadeInterna: "SubstituicaoFuncao",
+        entidadeInternaId: substituicao.id,
+        dadosAntes: existente,
+        dadosDepois: substituicao,
+        metadados: {
+          titularMatricula,
+          substitutoMatricula,
+          origemTabela: params.payload.origemTabela,
         },
       },
       params.registroBrutoId,
