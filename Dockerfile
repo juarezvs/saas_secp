@@ -5,9 +5,6 @@ FROM node:22-bookworm-slim AS base
 WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV LANG=C.UTF-8
-ENV LC_ALL=C.UTF-8
-ENV PGCLIENTENCODING=UTF8
 
 COPY docker/oracle /tmp/oracle
 
@@ -23,6 +20,10 @@ RUN set -eux; \
   && echo /opt/oracle/instantclient > /etc/ld.so.conf.d/oracle-instantclient.conf \
   && ldconfig \
   && rm -rf /var/lib/apt/lists/*
+
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV PGCLIENTENCODING=UTF8
 
 ENV SARH_ORACLE_HOME=/opt/oracle/instantclient
 ENV LD_LIBRARY_PATH=/opt/oracle/instantclient

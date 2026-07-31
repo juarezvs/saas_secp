@@ -342,8 +342,12 @@ volumes:
 
 networks:
   observability:
-    name: secp-observability-network
+    name: secp_observability
     driver: bridge
+    ipam:
+      config:
+        - subnet: 10.242.20.0/24
+          gateway: 10.242.20.1
   secp_app:
-    name: ${SECP_DOCKER_NETWORK:-secp-prod_secp-network}
+    name: ${SECP_DOCKER_NETWORK:-secp_prod}
     external: true
