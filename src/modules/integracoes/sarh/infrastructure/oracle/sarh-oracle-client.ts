@@ -192,6 +192,7 @@ export class SarhOracleClient {
           c_ps.cont_dat_nascimento,
           c_ceco.ceco_dat_nascimento
         ) as "dataNascimento",
+        to_char(d.cape_pis_pasep) as "pisPasep",
         cf.cafu_cod_funcionario as "codigoFuncionario",
         coalesce(
           cf.cafu_cod_lotacao,
@@ -282,6 +283,7 @@ export class SarhOracleClient {
       nomeSocial: String(row.nome ?? ""),
       ativo: this.toBoolean(row.ativo),
       cpf: this.toCpf(row.cpf),
+      pisPasep: this.toStringOrNull(row.pisPasep),
       dataNascimento: this.toDateString(row.dataNascimento),
       codigoFuncionario: this.toNumberOrNull(row.codigoFuncionario),
       locatacaoId: this.toNumberOrNull(row.locatacaoId),

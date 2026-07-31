@@ -5,6 +5,9 @@ FROM node:22-bookworm-slim AS base
 WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV PGCLIENTENCODING=UTF8
 
 COPY docker/oracle /tmp/oracle
 

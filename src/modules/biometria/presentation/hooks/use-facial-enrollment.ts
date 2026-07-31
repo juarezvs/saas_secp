@@ -46,7 +46,7 @@ export function useFacialEnrollment(params: UseFacialEnrollmentParams = {}) {
       try {
         const response = await fetch(endpointIniciar, {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: { "content-type": "application/json; charset=utf-8" },
           body: JSON.stringify({ consentimento: true, modo, ...requestExtra }),
         });
         const payload = (await response.json()) as
@@ -81,7 +81,7 @@ export function useFacialEnrollment(params: UseFacialEnrollmentParams = {}) {
       try {
         const response = await fetch(endpointConcluir, {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: { "content-type": "application/json; charset=utf-8" },
           body: JSON.stringify({ ...input, ...requestExtra }),
         });
         const payload = (await response.json()) as

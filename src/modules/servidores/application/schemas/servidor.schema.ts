@@ -32,6 +32,18 @@ const cpfSchema = z
   }, z.string())
   .refine((valor) => !valor || valor.length === 11, {
     message: "CPF deve conter 11 dígitos.",
+});
+
+const pisSchema = z
+  .preprocess((valor) => {
+    if (valor === undefined || valor === null) {
+      return "";
+    }
+
+    return String(valor).replace(/\D/g, "");
+  }, z.string())
+  .refine((valor) => !valor || (valor.length >= 11 && valor.length <= 12), {
+    message: "PIS/PASEP deve conter 11 ou 12 dígitos.",
   });
 
 export const servidorSchema = z.object({
@@ -43,6 +55,7 @@ export const servidorSchema = z.object({
     .min(2, "Informe uma matrícula com pelo menos 2 caracteres.")
     .max(50, "A matrícula deve ter no máximo 50 caracteres."),
   cpf: cpfSchema,
+  pis: pisSchema.optional().or(z.literal("")),
   nome: z
     .string()
     .trim()

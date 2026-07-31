@@ -83,6 +83,7 @@ export default async function EditarServidorPage({
           orgaoId: servidor.orgaoId,
           matricula: servidor.matricula,
           cpf: servidor.cpf || "",
+          pis: servidor.pis || "",
           nome: servidor.usuario.nome,
           email: servidor.usuario.email,
           nomeFuncional: servidor.nomeFuncional,

@@ -14,8 +14,10 @@ type MarcacaoDiaItem = {
 
 export function MarcacoesDiaCard({
   marcacoes,
+  exigeIntervalo = true,
 }: {
   marcacoes: MarcacaoDiaItem[];
+  exigeIntervalo?: boolean;
 }) {
   return (
     <section className="overflow-hidden rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
@@ -32,6 +34,7 @@ export function MarcacoesDiaCard({
       <div className="p-4">
         <MarcacoesStepper
           marcacoes={marcacoes}
+          exigeIntervalo={exigeIntervalo}
           vazioTexto="Nenhuma marcação registrada hoje."
         />
       </div>

@@ -4,11 +4,13 @@ import { processarMarcacaoBrutaService } from "./processar-marcacao-bruta.servic
 export async function vincularMarcacoesBrutasServidorService(params: {
   servidorId: string;
   cpf?: string | null;
+  pis?: string | null;
   matricula?: string | null;
   usuarioIdAuditoria?: string | null;
 }) {
   const pendentes = await listarMarcacoesBrutasPorServidorPendente({
     cpf: params.cpf,
+    pis: params.pis,
     matricula: params.matricula,
   });
 

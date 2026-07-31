@@ -11,6 +11,7 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 import {
   cpfServidorExiste,
   matriculaServidorExiste,
+  pisServidorExiste,
   usuarioMatriculaExiste,
 } from "../../infrastructure/repositories/servidor.repository";
 import {
@@ -49,6 +50,7 @@ function extrairDadosServidor(formData: FormData): Partial<ServidorInput> {
       : "SERVIDOR",
     matricula: String(formData.get("matricula") ?? "").trim(),
     cpf: String(formData.get("cpf") ?? "").replace(/\D/g, ""),
+    pis: String(formData.get("pis") ?? "").replace(/\D/g, ""),
     nome: String(formData.get("nome") ?? "").trim(),
     email: String(formData.get("email") ?? "")
       .trim()
@@ -108,6 +110,17 @@ export async function criarServidorAction(
     };
   }
 
+  if (parsed.data.pis && (await pisServidorExiste(parsed.data.pis))) {
+    return {
+      sucesso: false,
+      mensagem: "Já existe um servidor com este PIS/PASEP.",
+      erros: {
+        pis: ["Já existe um servidor com este PIS/PASEP."],
+      },
+      campos: dados,
+    };
+  }
+
   if (await usuarioMatriculaExiste(matricula)) {
     return {
       sucesso: false,
@@ -146,6 +159,7 @@ export async function criarServidorAction(
         },
         matricula,
         cpf: parsed.data.cpf || null,
+        pis: parsed.data.pis || null,
         nomeFuncional: parsed.data.nomeFuncional || parsed.data.nome,
         vinculo: parsed.data.vinculo,
         horasForaExpedienteInconsistente:
@@ -169,6 +183,7 @@ export async function criarServidorAction(
             id: novoServidor.id,
             matricula: novoServidor.matricula,
             cpf: novoServidor.cpf,
+            pis: novoServidor.pis,
             orgaoId: novoServidor.orgaoId,
             vinculo: novoServidor.vinculo,
             horasForaExpedienteInconsistente:
@@ -194,6 +209,7 @@ export async function criarServidorAction(
   await vincularMarcacoesBrutasServidorService({
     servidorId: servidor.id,
     cpf: parsed.data.cpf ?? null,
+    pis: parsed.data.pis || null,
     matricula,
     usuarioIdAuditoria: permissao.usuarioId,
   });

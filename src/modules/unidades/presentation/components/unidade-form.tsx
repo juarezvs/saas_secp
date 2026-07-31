@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useActionState } from "react";
 import { Loader2, Save } from "lucide-react";
@@ -59,17 +59,17 @@ const estadoInicial: UnidadeFormState = {
 };
 
 const rotulosTipoUnidade: Record<string, string> = {
-  ORGAO: "Ã“rgÃ£o",
-  SECAO_JUDICIARIA: "SeÃ§Ã£o JudiciÃ¡ria",
-  SUBSECAO_JUDICIARIA: "SubseÃ§Ã£o JudiciÃ¡ria",
-  UNIDADE_AVANCADA_ATENDIMENTO: "Unidade AvanÃ§ada de Atendimento",
-  NUCLEO: "NÃºcleo",
-  SECAO: "SeÃ§Ã£o",
+  ORGAO: "Órgão",
+  SECAO_JUDICIARIA: "Seção Judiciária",
+  SUBSECAO_JUDICIARIA: "Subseção Judiciária",
+  UNIDADE_AVANCADA_ATENDIMENTO: "Unidade Avançada de Atendimento",
+  NUCLEO: "Núcleo",
+  SECAO: "Seção",
   SECRETARIA: "Secretaria",
   VARA: "Vara",
   GABINETE: "Gabinete",
   TURMA_RECURSAL: "Turma Recursal",
-  CENTRO_CONCILIACAO: "Centro de ConciliaÃ§Ã£o",
+  CENTRO_CONCILIACAO: "Centro de Conciliação",
   DEPARTAMENTO: "Departamento",
   SUBDEPARTAMENTO: "Subdepartamento",
   OUTRA: "Outra",
@@ -120,7 +120,7 @@ export function UnidadeForm({
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <div className="space-y-2">
             <label htmlFor="orgaoId" className="text-sm font-semibold">
-              Ã“rgÃ£o
+              Órgão
             </label>
 
             <SearchableSelect
@@ -173,7 +173,7 @@ export function UnidadeForm({
 
           <div className="space-y-2">
             <label htmlFor="codigo" className="text-sm font-semibold">
-              CÃ³digo
+              Código
             </label>
 
             <input
@@ -225,7 +225,7 @@ export function UnidadeForm({
               name="nome"
               type="text"
               defaultValue={campos?.nome ?? ""}
-              placeholder="Ex.: NÃºcleo de Tecnologia da InformaÃ§Ã£o"
+              placeholder="Ex.: Núcleo de Tecnologia da Informação"
               className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
               required
             />
@@ -266,7 +266,7 @@ export function UnidadeForm({
 
           <div className="space-y-2">
             <label htmlFor="fusoHorario" className="text-sm font-semibold">
-              Fuso horÃ¡rio
+              Fuso horário
             </label>
 
             <SearchableSelect
@@ -339,7 +339,7 @@ export function UnidadeForm({
 
               <div className="space-y-2">
                 <label htmlFor="municipioIbge" className="text-sm font-semibold">
-                  CÃ³digo IBGE
+                  Código IBGE
                 </label>
                 <input
                   id="municipioIbge"
@@ -370,7 +370,7 @@ export function UnidadeForm({
             <span>
               <span className="block font-semibold">Unidade ativa</span>
               <span className="text-xs text-[var(--muted-foreground)]">
-                Unidades inativas nÃ£o devem ser usadas em novas lotaÃ§Ãµes.
+                Unidades inativas não devem ser usadas em novas lotações.
               </span>
             </span>
           </label>
@@ -389,7 +389,7 @@ export function UnidadeForm({
             <Save className="size-4" aria-hidden="true" />
           )}
 
-          {modo === "criar" ? "Criar unidade" : "Salvar alteraÃ§Ãµes"}
+          {modo === "criar" ? "Criar unidade" : "Salvar alterações"}
         </button>
       </div>
     </form>

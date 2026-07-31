@@ -120,7 +120,7 @@ export function ServidorBiometriaFacialCard({
     try {
       const response = await fetch("/api/biometria/facial/admin/invalidar", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json; charset=utf-8" },
         body: JSON.stringify({
           servidorId,
           motivo: "Invalidação administrativa pelo cadastro do servidor.",

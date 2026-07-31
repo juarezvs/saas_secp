@@ -1195,7 +1195,7 @@ function persistirTemaVisual(
   return fetch("/api/sessao/acessibilidade", {
     method: "PUT",
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "application/json; charset=utf-8",
     },
     body: JSON.stringify({
       ...preferenciasAtuais,

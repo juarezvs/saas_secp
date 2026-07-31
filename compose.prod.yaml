@@ -5,6 +5,8 @@ services:
     image: postgres:18-alpine
     container_name: secp-postgres
     restart: unless-stopped
+    profiles:
+      - local-db
 
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -62,10 +64,6 @@ services:
     ports:
       - "127.0.0.1:6432:6432"
 
-    depends_on:
-      postgres:
-        condition: service_healthy
-
     networks:
       - secp-network
 
@@ -92,10 +90,6 @@ services:
     volumes:
       - /opt/secp/certs/host-ca-certificates.crt:/etc/secp/certs/host-ca-certificates.crt:ro
 
-    depends_on:
-      postgres:
-        condition: service_healthy
-
     networks:
       - secp-network
 
@@ -117,10 +111,6 @@ services:
 
     volumes:
       - /opt/secp/certs/host-ca-certificates.crt:/etc/secp/certs/host-ca-certificates.crt:ro
-
-    depends_on:
-      postgres:
-        condition: service_healthy
 
     networks:
       - secp-network
@@ -557,10 +547,6 @@ services:
 
     ports:
       - "5050:80"
-
-    depends_on:
-      postgres:
-        condition: service_healthy
 
     networks:
       - secp-network

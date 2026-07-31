@@ -178,7 +178,7 @@ async function autenticarViaApiHttp(params: {
     const response = await fetch(params.url, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json; charset=utf-8",
       },
       body: JSON.stringify({
         username: params.matricula.toLowerCase(),

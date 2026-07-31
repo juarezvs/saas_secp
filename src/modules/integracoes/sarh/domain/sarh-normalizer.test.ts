@@ -16,4 +16,8 @@ describe("normalizador SARH", () => {
   it("recompoe PIS numerico quando o SARH entrega sem zeros iniciais", () => {
     expect(normalizarPis(26254310)).toBe("00026254310");
   });
+
+  it("remove zero extra de preenchimento quando o PIS vem com 12 digitos", () => {
+    expect(normalizarPis("017050352959")).toBe("17050352959");
+  });
 });

@@ -20,7 +20,11 @@ function normalizarPis(valor: string | null | undefined) {
   if (!digitos) return null;
 
   const normalizado =
-    digitos.length <= 11 ? digitos.padStart(11, "0") : digitos;
+    digitos.length === 12 && digitos.startsWith("0")
+      ? digitos.slice(1)
+      : digitos.length <= 11
+        ? digitos.padStart(11, "0")
+        : digitos;
 
   if (normalizado.length < 11 || normalizado.length > 12) return null;
   if (/^(\d)\1+$/.test(normalizado)) return null;

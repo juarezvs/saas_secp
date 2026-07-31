@@ -81,7 +81,7 @@ export async function enviarNotificacaoTeams(
 
     const response = await fetch(configuracao.messagingEndpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify({
         teamsUserId: vinculo.teamsUserId,
         conversationId: vinculo.teamsConversationId,

@@ -7,6 +7,7 @@ export type ListarServidoresParams = {
   busca?: string;
   matricula?: string;
   cpf?: string;
+  pis?: string;
   nome?: string;
   tipoUsuario?: string;
   orgaoId?: string;
@@ -102,6 +103,7 @@ export function montarWhereServidores(
       : {}),
 
     ...(params.cpf ? { cpf: { contains: params.cpf } } : {}),
+    ...(params.pis ? { pis: { contains: params.pis } } : {}),
 
     ...(params.nome
       ? {
@@ -168,6 +170,7 @@ export function montarWhereServidores(
           OR: [
             { matricula: { contains: busca, mode: "insensitive" as const } },
             { cpf: { contains: busca } },
+            { pis: { contains: busca } },
             {
               nomeFuncional: {
                 contains: busca,
@@ -822,4 +825,29 @@ export async function cpfServidorExiste(
 
     return Boolean(registro);
   }
+}
+
+export async function pisServidorExiste(
+  pis: string,
+  ignorarServidorId?: string,
+): Promise<boolean> {
+  const valor = pis?.replace(/\D/g, "");
+
+  if (!valor) {
+    return false;
+  }
+
+  const registro = await prisma.servidor.findFirst({
+    where: {
+      pis: valor,
+      ...(ignorarServidorId && ehUuid(ignorarServidorId)
+        ? { id: { not: ignorarServidorId } }
+        : {}),
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return Boolean(registro);
 }

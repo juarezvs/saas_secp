@@ -1,4 +1,9 @@
 services:
+  pgbouncer:
+    volumes:
+      - ./docker/pgbouncer/pgbouncer.local.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./docker/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+
   migrate:
     env_file:
       - .env.docker.local

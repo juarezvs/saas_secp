@@ -4,6 +4,10 @@ import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import {
+  resolverEscopoMarcacoesBrutas,
+  resolverOrgaoIdsFiltroMarcacoesBrutas,
+} from "@/modules/marcacoes-brutas/application/services/escopo-marcacoes-brutas.service";
 import { listarMarcacoesBrutasPaginado } from "@/modules/marcacoes-brutas/infrastructure/repositories/marcacao-bruta.repository";
 import { MarcacoesBrutasListagemControles } from "@/modules/marcacoes-brutas/presentation/components/marcacoes-brutas-listagem-controles";
 import { MarcacoesBrutasTable } from "@/modules/marcacoes-brutas/presentation/components/marcacoes-brutas-table";
@@ -23,6 +27,14 @@ type MarcacoesBrutasPageProps = {
     busca?: string;
     origem?: string;
     processada?: string;
+    dataInicio?: string;
+    dataFim?: string;
+    cpf?: string;
+    matricula?: string;
+    servidorId?: string;
+    equipamentoCodigo?: string;
+    nsr?: string;
+    orgaoId?: string;
     pagina?: string;
     itensPorPagina?: string;
   }>;
@@ -42,30 +54,102 @@ export default async function MarcacoesBrutasPage({
     "afd:importar:seccional",
   ]);
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
-  const orgaoIdsPermitidos = escopoOrgao.global
-    ? undefined
-    : escopoOrgao.orgaoIds.length
-      ? escopoOrgao.orgaoIds
-      : ["00000000-0000-4000-8000-000000000000"];
+  const escopoMarcacoesBrutas = await resolverEscopoMarcacoesBrutas(
+    permissao,
+    escopoOrgao,
+  );
 
   const params = searchParams ? await searchParams : {};
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 20);
+  const orgaoIdsFiltro = resolverOrgaoIdsFiltroMarcacoesBrutas({
+    orgaoId: params.orgaoId,
+    orgaoIdsPermitidos: escopoMarcacoesBrutas.orgaoIdsPermitidos,
+  });
+
+  const [orgaos, equipamentosVisiveis] = await Promise.all([
+    escopoOrgao.global
+      ? prisma.orgao.findMany({
+          where: { ativo: true },
+          select: { id: true, sigla: true, nome: true },
+          orderBy: { sigla: "asc" },
+        })
+      : Promise.resolve(escopoOrgao.orgaos),
+    prisma.equipamentoBiometrico.findMany({
+      where: {
+        ativo: true,
+        ...(escopoMarcacoesBrutas.orgaoIdsPermitidos?.length
+          ? {
+              OR: [
+                { orgaoId: { in: escopoMarcacoesBrutas.orgaoIdsPermitidos } },
+                {
+                  unidade: {
+                    orgaoId: { in: escopoMarcacoesBrutas.orgaoIdsPermitidos },
+                  },
+                },
+              ],
+            }
+          : {}),
+      },
+      select: {
+        id: true,
+        codigo: true,
+        nome: true,
+        numeroSerie: true,
+        orgaoId: true,
+        orgao: { select: { sigla: true } },
+        unidade: { select: { orgaoId: true, sigla: true } },
+      },
+      orderBy: [{ nome: "asc" }, { codigo: "asc" }],
+    }),
+  ]);
+
+  const equipamentosFiltro = orgaoIdsFiltro
+    ? equipamentosVisiveis.filter((equipamento) => {
+        const orgaoEquipamentoId =
+          equipamento.orgaoId ?? equipamento.unidade?.orgaoId ?? null;
+        return Boolean(
+          orgaoEquipamentoId && orgaoIdsFiltro.includes(orgaoEquipamentoId),
+        );
+      })
+    : escopoMarcacoesBrutas.orgaoIdsPermitidos
+      ? equipamentosVisiveis
+      : [];
 
   const [resultado, servidores, unidades] = await Promise.all([
     listarMarcacoesBrutasPaginado({
       busca: params.busca,
       origem: params.origem,
       processada: params.processada,
+      dataInicio: params.dataInicio,
+      dataFim: params.dataFim,
+      cpf: params.cpf,
+      matricula: params.matricula,
+      servidorId: params.servidorId,
+      equipamentoCodigo: params.equipamentoCodigo,
+      nsr: params.nsr,
+      orgaoId: params.orgaoId ? orgaoIdsFiltro?.[0] : undefined,
       pagina,
       itensPorPagina,
-      orgaoIdsPermitidos,
+      orgaoIdsPermitidos: orgaoIdsFiltro ?? escopoMarcacoesBrutas.orgaoIdsPermitidos,
+      servidorIdsPermitidos: escopoMarcacoesBrutas.servidorIdsPermitidos,
+      equipamentoIdsPermitidos: equipamentosFiltro.map(
+        (equipamento) => equipamento.id,
+      ),
+      equipamentoCodigosPermitidos: equipamentosFiltro.map(
+        (equipamento) => equipamento.codigo,
+      ),
     }),
     prisma.servidor.findMany({
       where: {
         ativo: true,
-        ...(orgaoIdsPermitidos?.length
-          ? { orgaoId: { in: orgaoIdsPermitidos } }
+        ...(escopoMarcacoesBrutas.servidorIdsPermitidos !== undefined
+          ? { id: { in: escopoMarcacoesBrutas.servidorIdsPermitidos } }
+          : escopoMarcacoesBrutas.orgaoIdsPermitidos?.length
+            ? { orgaoId: { in: escopoMarcacoesBrutas.orgaoIdsPermitidos } }
+            : {}),
+        ...(params.orgaoId && orgaoIdsFiltro?.length
+          ? { orgaoId: { in: orgaoIdsFiltro } }
           : {}),
       },
       select: {
@@ -76,12 +160,26 @@ export default async function MarcacoesBrutasPage({
       },
       orderBy: [{ nomeFuncional: "asc" }, { matricula: "asc" }],
     }),
-    listarUnidadesParaSelecao({ orgaoIdsPermitidos }),
+    listarUnidadesParaSelecao({
+      orgaoIdsPermitidos: escopoMarcacoesBrutas.orgaoIdsPermitidos,
+    }),
   ]);
 
   const exportParams = new URLSearchParams();
 
-  for (const chave of ["busca", "origem", "processada"] as const) {
+  for (const chave of [
+    "busca",
+    "origem",
+    "processada",
+    "dataInicio",
+    "dataFim",
+    "cpf",
+    "matricula",
+    "servidorId",
+    "equipamentoCodigo",
+    "nsr",
+    "orgaoId",
+  ] as const) {
     if (params[chave]) {
       exportParams.set(chave, params[chave]!);
     }
@@ -168,6 +266,35 @@ export default async function MarcacoesBrutasPage({
           <MarcacoesBrutasListagemControles
             exportCsvHref={`/api/marcacoes-brutas/export?${exportParams.toString()}`}
             exportPdfHref={`/api/marcacoes-brutas/export/pdf?${exportParams.toString()}`}
+            pessoas={servidores.map((servidor) => {
+              const nome =
+                servidor.nomeFuncional ??
+                servidor.nomeCompletoSarh ??
+                "Pessoa sem nome";
+              return {
+                value: servidor.id,
+                label: `${servidor.matricula} - ${nome}`,
+                searchText: `${servidor.matricula} ${nome}`.toLowerCase(),
+              };
+            })}
+            equipamentos={equipamentosVisiveis.map((equipamento) => ({
+              value: equipamento.codigo,
+              label: `${equipamento.codigo} - ${equipamento.nome}`,
+              searchText: [
+                equipamento.codigo,
+                equipamento.nome,
+                equipamento.numeroSerie,
+                equipamento.orgao?.sigla,
+                equipamento.unidade?.sigla,
+              ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase(),
+            }))}
+            orgaos={orgaos.map((orgao) => ({
+              id: orgao.id,
+              sigla: orgao.sigla,
+            }))}
           />
         }
       >

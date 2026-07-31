@@ -1,5 +1,6 @@
 import { buscarEquipamentosBiometricosPorIdsOuCodigosEmLotes } from "@/modules/integracoes/infrastructure/repositories/equipamento-biometrico-lotes.repository";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 
 export type ListarMarcacoesBrutasParams = {
   pagina?: number;
@@ -8,7 +9,18 @@ export type ListarMarcacoesBrutasParams = {
   processada?: string;
   origem?: string;
   busca?: string;
+  dataInicio?: string;
+  dataFim?: string;
+  cpf?: string;
+  matricula?: string;
+  servidorId?: string;
+  equipamentoCodigo?: string;
+  nsr?: string;
+  orgaoId?: string;
   orgaoIdsPermitidos?: string[];
+  servidorIdsPermitidos?: string[];
+  equipamentoIdsPermitidos?: string[];
+  equipamentoCodigosPermitidos?: string[];
 };
 
 function ehOrigemMarcacaoBruta(valor?: string | null) {
@@ -20,57 +32,182 @@ function ehOrigemMarcacaoBruta(valor?: string | null) {
   ].includes(valor ?? "");
 }
 
+function normalizarDigitos(valor?: string | null) {
+  return valor?.replace(/\D/g, "") ?? "";
+}
+
+function parseDataInicio(valor?: string | null) {
+  if (!valor?.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    return null;
+  }
+
+  return new Date(`${valor}T00:00:00.000-04:00`);
+}
+
+function parseDataFim(valor?: string | null) {
+  if (!valor?.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    return null;
+  }
+
+  return new Date(`${valor}T23:59:59.999-04:00`);
+}
+
 export function montarWhereMarcacoesBrutas(
   params?: ListarMarcacoesBrutasParams,
 ) {
   const busca = params?.busca?.trim();
   const orgaoIdsPermitidos = params?.orgaoIdsPermitidos?.filter(Boolean);
+  const servidorIdsPermitidos = params?.servidorIdsPermitidos?.filter(Boolean);
+  const equipamentoIdsPermitidos =
+    params?.equipamentoIdsPermitidos?.filter(Boolean);
+  const equipamentoCodigosPermitidos =
+    params?.equipamentoCodigosPermitidos?.filter(Boolean);
+  const dataInicio = parseDataInicio(params?.dataInicio);
+  const dataFim = parseDataFim(params?.dataFim);
+  const cpf = normalizarDigitos(params?.cpf);
+  const matricula = params?.matricula?.trim();
+  const servidorId = params?.servidorId?.trim();
+  const equipamentoCodigo = params?.equipamentoCodigo?.trim();
+  const nsr = params?.nsr?.trim();
+  const filtros: Prisma.MarcacaoBrutaWhereInput[] = [];
 
-  return {
-    ...(orgaoIdsPermitidos?.length
-      ? {
+  if (servidorIdsPermitidos !== undefined) {
+    filtros.push({ servidorId: { in: servidorIdsPermitidos } });
+  } else if (
+    orgaoIdsPermitidos?.length ||
+    equipamentoIdsPermitidos?.length ||
+    equipamentoCodigosPermitidos?.length
+  ) {
+    filtros.push({
+      OR: [
+        ...(orgaoIdsPermitidos?.length
+          ? [
+              {
+                servidor: {
+                  orgaoId: {
+                    in: orgaoIdsPermitidos,
+                  },
+                },
+              },
+            ]
+          : []),
+        ...(equipamentoIdsPermitidos?.length
+          ? [{ equipamentoId: { in: equipamentoIdsPermitidos } }]
+          : []),
+        ...(equipamentoCodigosPermitidos?.length
+          ? [{ equipamentoCodigo: { in: equipamentoCodigosPermitidos } }]
+          : []),
+      ],
+    });
+  }
+
+  if (params?.processada === "true") {
+    filtros.push({ processada: true });
+  } else if (params?.processada === "false") {
+    filtros.push({ processada: false });
+  }
+
+  if (params?.origem && ehOrigemMarcacaoBruta(params.origem)) {
+    filtros.push({ origem: params.origem as never });
+  }
+
+  if (dataInicio || dataFim) {
+    filtros.push({
+      dataHora: {
+        ...(dataInicio ? { gte: dataInicio } : {}),
+        ...(dataFim ? { lte: dataFim } : {}),
+      },
+    });
+  }
+
+  if (cpf) {
+    filtros.push({ cpf: { contains: cpf } });
+  }
+
+  if (matricula) {
+    filtros.push({
+      OR: [
+        { matricula: { contains: matricula, mode: "insensitive" } },
+        {
           servidor: {
-            orgaoId: {
-              in: orgaoIdsPermitidos,
+            matricula: { contains: matricula, mode: "insensitive" },
+          },
+        },
+      ],
+    });
+  }
+
+  if (servidorId) {
+    filtros.push({ servidorId });
+  }
+
+  if (equipamentoCodigo) {
+    filtros.push({ equipamentoCodigo });
+  }
+
+  if (nsr) {
+    filtros.push({
+      OR: [
+        { nsr: { contains: nsr, mode: "insensitive" } },
+        { codigoExterno: { contains: nsr, mode: "insensitive" } },
+      ],
+    });
+  }
+
+  if (params?.orgaoId) {
+    filtros.push({
+      OR: [
+        {
+          servidor: {
+            orgaoId: params.orgaoId,
+          },
+        },
+        ...(equipamentoIdsPermitidos?.length
+          ? [{ equipamentoId: { in: equipamentoIdsPermitidos } }]
+          : []),
+        ...(equipamentoCodigosPermitidos?.length
+          ? [{ equipamentoCodigo: { in: equipamentoCodigosPermitidos } }]
+          : []),
+      ],
+    });
+  }
+
+  if (busca) {
+    filtros.push({
+      OR: [
+        { cpf: { contains: busca } },
+        { matricula: { contains: busca, mode: "insensitive" } },
+        { equipamentoCodigo: { contains: busca, mode: "insensitive" } },
+        { nsr: { contains: busca, mode: "insensitive" } },
+        { codigoExterno: { contains: busca, mode: "insensitive" } },
+        {
+          servidor: {
+            nomeFuncional: {
+              contains: busca,
+              mode: "insensitive" as const,
             },
           },
-        }
-      : {}),
-    ...(params?.processada === "true"
-      ? { processada: true }
-      : params?.processada === "false"
-        ? { processada: false }
-        : {}),
-    ...(params?.origem && ehOrigemMarcacaoBruta(params.origem)
-      ? { origem: params.origem as never }
-      : {}),
-    ...(busca
-      ? {
-          OR: [
-            { cpf: { contains: busca } },
-            { matricula: { contains: busca } },
-            { equipamentoCodigo: { contains: busca } },
-            { nsr: { contains: busca } },
-            { codigoExterno: { contains: busca } },
-            {
-              servidor: {
-                nomeFuncional: {
-                  contains: busca,
-                  mode: "insensitive" as const,
-                },
-              },
+        },
+        {
+          servidor: {
+            nomeCompletoSarh: {
+              contains: busca,
+              mode: "insensitive" as const,
             },
-            {
-              servidor: {
-                usuario: {
-                  nome: { contains: busca, mode: "insensitive" as const },
-                },
-              },
+          },
+        },
+        {
+          servidor: {
+            usuario: {
+              nome: { contains: busca, mode: "insensitive" as const },
             },
-          ],
-        }
-      : {}),
-  };
+          },
+        },
+      ],
+    });
+  }
+
+  return filtros.length ? { AND: filtros } : {};
 }
 
 const includeMarcacaoBrutaListagem = {
@@ -144,6 +281,7 @@ export async function listarMarcacoesBrutasPendentes(params?: {
 
 export async function listarMarcacoesBrutasPorServidorPendente(params: {
   cpf?: string | null;
+  pis?: string | null;
   matricula?: string | null;
 }) {
   const filtros = [];
@@ -151,6 +289,12 @@ export async function listarMarcacoesBrutasPorServidorPendente(params: {
   if (params.cpf) {
     filtros.push({
       cpf: params.cpf,
+    });
+  }
+
+  if (params.pis) {
+    filtros.push({
+      pis: params.pis,
     });
   }
 

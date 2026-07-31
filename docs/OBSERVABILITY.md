@@ -64,7 +64,7 @@ psql -h 127.0.0.1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f postgres/create-monit
 Depois crie `secrets/postgres_exporter_dsn`:
 
 ```text
-postgresql://secp_monitor:SENHA@secp-postgres:5432/NOME_DO_BANCO?sslmode=disable
+postgresql://secp_monitor:SENHA@172.19.5.37:5432/NOME_DO_BANCO?sslmode=disable
 ```
 
 Configure a aplicacao SECP com o mesmo token de metricas. Opcoes:

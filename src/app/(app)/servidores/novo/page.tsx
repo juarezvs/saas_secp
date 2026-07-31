@@ -103,6 +103,7 @@ export default async function NovoServidorPage({
         modo="criar"
         valoresIniciais={{
           cpf: "",
+          pis: "",
           ativo: true,
           tipoUsuario,
           vinculo: "EFETIVO",

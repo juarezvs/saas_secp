@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui";
 import { EspelhoPontoFiltrosAuto } from "@/modules/apuracao/presentation/components/espelho-ponto-filtros-auto";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { exigeIntervaloDaApuracao } from "@/modules/marcacoes/application/services/exige-intervalo-marcacao.service";
 import { listarHistoricoMarcacoesDoUsuario } from "@/modules/marcacoes/infrastructure/repositories/marcacao.repository";
 import { MarcacoesStepper } from "@/modules/marcacoes/presentation/components/marcacoes-stepper";
 
@@ -76,22 +77,6 @@ function formatarDiaSemana(data: Date) {
     weekday: "long",
     timeZone: "UTC",
   }).format(data);
-}
-
-function metadadosComoObjeto(valor: unknown) {
-  return valor && typeof valor === "object" && !Array.isArray(valor)
-    ? (valor as Record<string, unknown>)
-    : {};
-}
-
-function exigeIntervaloDaApuracao(metadados: unknown) {
-  const dados = metadadosComoObjeto(metadados);
-  const jornadaSnapshot = metadadosComoObjeto(
-    dados.jornadaSnapshotApuracao ?? dados.jornadaVigente,
-  );
-  const jornada = metadadosComoObjeto(jornadaSnapshot.jornada);
-
-  return jornada.exigeIntervalo === false ? false : true;
 }
 
 function agruparPorDataReferencia(marcacoes: HistoricoMarcacao[]) {

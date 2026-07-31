@@ -145,7 +145,7 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
   const statusVisual = enfileirando
     ? "ENFILEIRANDO"
     : estadoJob === "completed"
-      ? "CONCLUÍDA"
+      ? "CONCLUÃDA"
       : estadoJob === "failed"
         ? "FALHA"
         : estadoJob === "active"
@@ -260,7 +260,7 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
     try {
       const response = await fetch("/api/integracoes/sarh/sincronizar", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json; charset=utf-8" },
         body: JSON.stringify({
           modo,
           orgaoId: orgaoId || undefined,

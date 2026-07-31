@@ -59,7 +59,7 @@ async function getRelatorioBoletimPdf(request: Request, context: RouteContext) {
     });
 
     if (!boletimExiste) {
-      return new Response("Boletim nÃ£o encontrado.", {
+      return new Response("Boletim não encontrado.", {
         status: 404,
       });
     }

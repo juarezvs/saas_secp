@@ -51,6 +51,7 @@ export function ServidoresListagemControles({
     },
     { tipo: "texto", nome: "matricula", label: "Matrícula" },
     { tipo: "texto", nome: "cpf", label: "CPF" },
+    { tipo: "texto", nome: "pis", label: "PIS/PASEP" },
     {
       tipo: "searchable-select",
       nome: "nome",

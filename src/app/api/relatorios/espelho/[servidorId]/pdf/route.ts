@@ -69,7 +69,7 @@ async function getRelatorioEspelhoPdf(request: Request, context: RouteContext) {
     });
 
     if (!servidor) {
-      return new Response("Servidor nÃ£o encontrado.", {
+      return new Response("Servidor não encontrado.", {
         status: 404,
       });
     }

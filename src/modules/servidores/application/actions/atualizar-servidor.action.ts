@@ -10,6 +10,7 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 import {
   buscarServidorPorId,
   matriculaServidorExiste,
+  pisServidorExiste,
   usuarioMatriculaExiste,
 } from "../../infrastructure/repositories/servidor.repository";
 import {
@@ -41,6 +42,7 @@ function extrairDadosServidor(formData: FormData): Partial<ServidorInput> {
     orgaoId: String(formData.get("orgaoId") ?? ""),
     matricula: String(formData.get("matricula") ?? "").trim(),
     cpf: String(formData.get("cpf") ?? "").replace(/\D/g, ""),
+    pis: String(formData.get("pis") ?? "").replace(/\D/g, ""),
     nome: String(formData.get("nome") ?? "").trim(),
     email: String(formData.get("email") ?? "")
       .trim()
@@ -110,6 +112,17 @@ export async function atualizarServidorAction(
     };
   }
 
+  if (parsed.data.pis && (await pisServidorExiste(parsed.data.pis, servidorId))) {
+    return {
+      sucesso: false,
+      mensagem: "Já existe outro servidor com este PIS/PASEP.",
+      erros: {
+        pis: ["Já existe outro servidor com este PIS/PASEP."],
+      },
+      campos: dados,
+    };
+  }
+
   await prisma.$transaction(async (tx) => {
     await tx.usuario.update({
       where: {
@@ -132,6 +145,7 @@ export async function atualizarServidorAction(
         orgaoId: parsed.data.orgaoId,
         matricula,
         cpf: parsed.data.cpf || null,
+        pis: parsed.data.pis || null,
         nomeFuncional: parsed.data.nomeFuncional || null,
         vinculo: parsed.data.vinculo,
         horasForaExpedienteInconsistente:
@@ -153,6 +167,7 @@ export async function atualizarServidorAction(
             id: servidorAtual.id,
             matricula: servidorAtual.matricula,
             cpf: servidorAtual.cpf,
+            pis: servidorAtual.pis,
             orgaoId: servidorAtual.orgaoId,
             vinculo: servidorAtual.vinculo,
             nomeFuncional: servidorAtual.nomeFuncional,
@@ -174,6 +189,7 @@ export async function atualizarServidorAction(
             id: servidorId,
             matricula,
             cpf: parsed.data.cpf || null,
+            pis: parsed.data.pis || null,
             orgaoId: parsed.data.orgaoId,
             vinculo: parsed.data.vinculo,
             nomeFuncional: parsed.data.nomeFuncional || null,
@@ -199,6 +215,7 @@ export async function atualizarServidorAction(
   await vincularMarcacoesBrutasServidorService({
     servidorId,
     cpf: parsed.data.cpf || null,
+    pis: parsed.data.pis || null,
     matricula: parsed.data.matricula,
     usuarioIdAuditoria: permissao.usuarioId,
   });

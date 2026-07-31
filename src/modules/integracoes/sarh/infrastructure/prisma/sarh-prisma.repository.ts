@@ -1,5 +1,6 @@
 import type { prisma as prismaClient } from "@/shared/infrastructure/database/prisma";
 import { garantirJornadaPadraoServidorService } from "@/modules/jornadas/application/services/garantir-jornada-padrao-servidor.service";
+import { vincularMarcacoesBrutasServidorService } from "@/modules/marcacoes-brutas/application/services/vincular-marcacoes-brutas-servidor.service";
 
 import type {
   OperacaoRegistroSarhDb,
@@ -1930,7 +1931,7 @@ export class SarhPrismaRepository {
           chaveExterna,
           operacao: "CONFLITO",
           status: "CONFLITO",
-          mensagem: `Pessoa ${matricula} nÃ£o sincronizada: CPF ${cpf} jÃ¡ estÃ¡ vinculado Ã  matrÃ­cula ${usuarioComMesmoCpf.matricula}.`,
+          mensagem: `Pessoa ${matricula} não sincronizada: CPF ${cpf} já está vinculado à matrícula ${usuarioComMesmoCpf.matricula}.`,
           dadosAntes: {
             usuarioPorMatricula: usuarioExistente,
             usuarioPorCpf: usuarioComMesmoCpf,
@@ -2087,6 +2088,12 @@ export class SarhPrismaRepository {
 
     await this.vincularPerfilPessoaPonto(usuario.id, servidor.matricula);
     await garantirJornadaPadraoServidorService(this.prisma, servidor.id);
+    await vincularMarcacoesBrutasServidorService({
+      servidorId: servidor.id,
+      cpf,
+      pis,
+      matricula: servidor.matricula,
+    });
 
     await this.upsertMapeamento(
       "SERVIDOR",

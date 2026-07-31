@@ -1,8 +1,13 @@
-import { auth } from "@/auth";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
+import { obterPermissoesDaSessao } from "@/modules/auth/application/services/permissao.service";
+import {
+  resolverEscopoMarcacoesBrutas,
+  resolverOrgaoIdsFiltroMarcacoesBrutas,
+} from "@/modules/marcacoes-brutas/application/services/escopo-marcacoes-brutas.service";
 import { listarMarcacoesBrutasParaExportacao } from "@/modules/marcacoes-brutas/infrastructure/repositories/marcacao-bruta.repository";
 import { normalizarFusoHorario } from "@/modules/marcacoes/application/services/data-marcacao.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
+import { prisma } from "@/shared/infrastructure/database/prisma";
 
 export const runtime = "nodejs";
 
@@ -21,10 +26,11 @@ function formatarDataHora(
 }
 
 export async function GET(request: Request) {
-  const session = await auth();
+  const permissao = await obterPermissoesDaSessao();
 
-  const permissoes = session?.user?.perfilAtivo?.permissoes ?? [];
+  const permissoes = permissao.permissoes;
   if (
+    !permissao.permitido ||
     !permissoes.includes("marcacoes:consultar:global") &&
     !permissoes.includes("marcacoes:consultar:seccional") &&
     !permissoes.includes("marcacoes:gerenciar:global") &&
@@ -39,16 +45,47 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
-  const orgaoIdsPermitidos = escopoOrgao.global
-    ? undefined
-    : escopoOrgao.orgaoIds.length
-      ? escopoOrgao.orgaoIds
-      : ["00000000-0000-4000-8000-000000000000"];
+  const escopoMarcacoesBrutas = await resolverEscopoMarcacoesBrutas(
+    permissao,
+    escopoOrgao,
+  );
+  const orgaoId = url.searchParams.get("orgaoId") ?? "";
+  const orgaoIdsFiltro = resolverOrgaoIdsFiltroMarcacoesBrutas({
+    orgaoId,
+    orgaoIdsPermitidos: escopoMarcacoesBrutas.orgaoIdsPermitidos,
+  });
+  const equipamentosFiltro = orgaoIdsFiltro
+    ? await prisma.equipamentoBiometrico.findMany({
+        where: {
+          ativo: true,
+          OR: [
+            { orgaoId: { in: orgaoIdsFiltro } },
+            { unidade: { orgaoId: { in: orgaoIdsFiltro } } },
+          ],
+        },
+        select: { id: true, codigo: true },
+      })
+    : [];
   const marcacoes = await listarMarcacoesBrutasParaExportacao({
     busca: url.searchParams.get("busca") ?? "",
     origem: url.searchParams.get("origem") ?? "",
     processada: url.searchParams.get("processada") ?? "",
-    orgaoIdsPermitidos,
+    dataInicio: url.searchParams.get("dataInicio") ?? "",
+    dataFim: url.searchParams.get("dataFim") ?? "",
+    cpf: url.searchParams.get("cpf") ?? "",
+    matricula: url.searchParams.get("matricula") ?? "",
+    servidorId: url.searchParams.get("servidorId") ?? "",
+    equipamentoCodigo: url.searchParams.get("equipamentoCodigo") ?? "",
+    nsr: url.searchParams.get("nsr") ?? "",
+    orgaoId: orgaoId ? orgaoIdsFiltro?.[0] : undefined,
+    orgaoIdsPermitidos: orgaoIdsFiltro ?? escopoMarcacoesBrutas.orgaoIdsPermitidos,
+    servidorIdsPermitidos: escopoMarcacoesBrutas.servidorIdsPermitidos,
+    equipamentoIdsPermitidos: equipamentosFiltro.map(
+      (equipamento) => equipamento.id,
+    ),
+    equipamentoCodigosPermitidos: equipamentosFiltro.map(
+      (equipamento) => equipamento.codigo,
+    ),
   });
 
   const linhas = [

@@ -621,7 +621,7 @@ function ColetaProgressivaForm({
     const response = await fetch("/api/equipamentos-biometricos/coleta-progressiva", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json; charset=utf-8",
       },
       body: JSON.stringify({
         equipamentoId: equipamento.id,
@@ -655,7 +655,7 @@ function ColetaProgressivaForm({
     const response = await fetch("/api/equipamentos-biometricos/coleta-progressiva", {
       method: "PATCH",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json; charset=utf-8",
       },
       body: JSON.stringify({
         jobId: job.id,

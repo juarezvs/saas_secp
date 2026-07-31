@@ -4,6 +4,7 @@ import {
   resolverFusoHorarioServidorNoBanco,
 } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { obterDataReferencia } from "../../application/services/data-marcacao.service";
+import { exigeIntervaloDaApuracao } from "../../application/services/exige-intervalo-marcacao.service";
 
 export async function buscarServidorPorUsuarioId(
   usuarioId: string,
@@ -131,18 +132,35 @@ export async function listarMarcacoesDoUsuarioNoDia(usuarioId: string) {
     return {
       servidor: null,
       marcacoes: [],
+      exigeIntervalo: true,
     };
   }
 
+  const fusoHorario = resolverFusoHorarioServidor(servidor);
+  const dataReferencia = obterDataReferencia(agora, fusoHorario);
+  const apuracao = await prisma.apuracaoDiaria.findUnique({
+    where: {
+      servidorId_dataReferencia: {
+        servidorId: servidor.id,
+        dataReferencia,
+      },
+    },
+    select: {
+      metadados: true,
+    },
+  });
   const marcacoes = await listarMarcacoesDoServidorNoDia({
     servidorId: servidor.id,
     dataHora: agora,
-    fusoHorario: resolverFusoHorarioServidor(servidor),
+    fusoHorario,
   });
 
   return {
     servidor,
     marcacoes,
+    exigeIntervalo: apuracao
+      ? exigeIntervaloDaApuracao(apuracao.metadados)
+      : (servidor.jornadas[0]?.jornada.exigeIntervalo ?? true),
   };
 }
 

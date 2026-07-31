@@ -4,6 +4,8 @@ set -euo pipefail
 STATUS="APTO"
 WARNINGS=()
 ERRORS=()
+SECP_DB_HOST="${SECP_DB_HOST:-172.19.5.37}"
+SECP_DB_PORT="${SECP_DB_PORT:-5432}"
 
 warn() {
   WARNINGS+=("$1")
@@ -92,10 +94,20 @@ else
   warn "Rede Docker do SECP nao encontrada: ${SECP_DOCKER_NETWORK:-secp-prod_secp-network}"
 fi
 
-if docker ps --format '{{.Names}}' | grep -Eq '^secp-(web|postgres|redis)$'; then
+if docker ps --format '{{.Names}}' | grep -Eq '^secp-(web|pgbouncer|redis)$'; then
   docker ps --filter 'name=secp-' --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
 else
-  warn "Containers secp-web/secp-postgres/secp-redis nao foram encontrados em execucao."
+  warn "Containers secp-web/secp-pgbouncer/secp-redis nao foram encontrados em execucao."
+fi
+
+if has_cmd nc; then
+  if nc -z -w 3 "${SECP_DB_HOST}" "${SECP_DB_PORT}"; then
+    echo "Banco remoto alcancavel: ${SECP_DB_HOST}:${SECP_DB_PORT}"
+  else
+    warn "Banco remoto nao respondeu em ${SECP_DB_HOST}:${SECP_DB_PORT}."
+  fi
+else
+  warn "nc nao encontrado; nao foi possivel testar ${SECP_DB_HOST}:${SECP_DB_PORT}."
 fi
 
 if has_cmd caddy; then

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useActionState } from "react";
 import { Loader2, Plus } from "lucide-react";
@@ -31,8 +31,8 @@ const estadoInicial: LotacaoFormState = {
 
 const rotulosLotacao: Record<string, string> = {
   TITULAR: "Titular",
-  PROVISORIA: "ProvisÃ³ria",
-  SUBSTITUICAO: "SubstituiÃ§Ã£o",
+  PROVISORIA: "Provisória",
+  SUBSTITUICAO: "Substituição",
 };
 
 function obterErro(
@@ -48,10 +48,10 @@ export function LotacaoForm({ action, unidades }: LotacaoFormProps) {
   return (
     <form action={formAction} className="space-y-4 rounded-xl border bg-[var(--card)] p-5 shadow-sm">
       <div>
-        <h2 className="text-lg font-bold">Nova lotaÃ§Ã£o</h2>
+        <h2 className="text-lg font-bold">Nova lotação</h2>
         <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-          Ao criar uma lotaÃ§Ã£o sem data final, as lotaÃ§Ãµes abertas anteriores
-          serÃ£o encerradas automaticamente.
+          Ao criar uma lotação sem data final, as lotações abertas anteriores
+          serão encerradas automaticamente.
         </p>
       </div>
 
@@ -125,7 +125,7 @@ export function LotacaoForm({ action, unidades }: LotacaoFormProps) {
 
         <div className="space-y-2">
           <label htmlFor="dataInicio" className="text-sm font-semibold">
-            Data de inÃ­cio
+            Data de início
           </label>
 
           <input
@@ -176,7 +176,7 @@ export function LotacaoForm({ action, unidades }: LotacaoFormProps) {
           ) : (
             <Plus className="size-4" aria-hidden="true" />
           )}
-          Vincular lotaÃ§Ã£o
+          Vincular lotação
         </button>
       </div>
     </form>

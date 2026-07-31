@@ -26,19 +26,25 @@ const columns: PdfTableColumn<ServidorExportacao>[] = [
   {
     key: "matricula",
     header: "Matricula",
-    width: "11%",
+    width: "10%",
     render: (servidor) => servidor.matricula,
   },
   {
     key: "cpf",
     header: "CPF",
-    width: "13%",
+    width: "12%",
     render: (servidor) => servidor.cpf ?? servidor.usuario.cpf,
+  },
+  {
+    key: "pis",
+    header: "PIS/PASEP",
+    width: "12%",
+    render: (servidor) => servidor.pis,
   },
   {
     key: "nome",
     header: "Nome",
-    width: "34%",
+    width: "28%",
     render: (servidor) => nomeServidor(servidor),
   },
   {
@@ -90,6 +96,7 @@ async function getServidoresExportPdf(request: Request) {
         busca: url.searchParams.get("busca") ?? "",
         matricula: url.searchParams.get("matricula") ?? "",
         cpf: url.searchParams.get("cpf") ?? "",
+        pis: url.searchParams.get("pis") ?? "",
         nome: url.searchParams.get("nome") ?? "",
         tipoUsuario: url.searchParams.get("tipoUsuario") ?? "",
         orgaoId: url.searchParams.get("orgaoId") ?? "",

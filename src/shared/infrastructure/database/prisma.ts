@@ -8,7 +8,23 @@ if (!connectionString) {
   throw new Error("DATABASE_URL não foi configurada no arquivo .env.");
 }
 
-const adapter = new PrismaPg({ connectionString });
+function garantirClientEncodingUtf8(url: string) {
+  try {
+    const parsed = new URL(url);
+
+    if (!parsed.searchParams.has("options")) {
+      parsed.searchParams.set("options", "-c client_encoding=UTF8");
+    }
+
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+const adapter = new PrismaPg({
+  connectionString: garantirClientEncodingUtf8(connectionString),
+});
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;

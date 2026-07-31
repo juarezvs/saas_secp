@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import { useActionState } from "react";
@@ -26,6 +26,7 @@ type ServidorFormProps = {
     orgaoId?: string;
     matricula?: string;
     cpf: string;
+    pis?: string | null;
     nome?: string;
     email?: string | null;
     nomeFuncional?: string | null;
@@ -50,9 +51,9 @@ const rotulosVinculo: Record<string, string> = {
   EFETIVO: "Efetivo",
   CEDIDO: "Cedido",
   REQUISITADO: "Requisitado",
-  REDISTRIBUIDO: "RedistribuÃ­do",
+  REDISTRIBUIDO: "Redistribuído",
   REMOVIDO: "Removido",
-  EXERCICIO_PROVISORIO: "ExercÃ­cio provisÃ³rio",
+  EXERCICIO_PROVISORIO: "Exercício provisório",
 };
 
 function obterErro(erros: Record<string, string[]> | undefined, campo: string) {
@@ -127,7 +128,7 @@ export function ServidorForm({
                     campos.descricaoSituacaoSarh,
                   ]
                     .filter(Boolean)
-                    .join(" Â· ")}
+                    .join(" · ")}
                 </p>
               )}
             </div>
@@ -137,7 +138,7 @@ export function ServidorForm({
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <div className="space-y-2">
             <label htmlFor="orgaoId" className="text-sm font-semibold">
-              Ã“rgÃ£o
+              Órgão
             </label>
 
             <SearchableSelect
@@ -164,7 +165,7 @@ export function ServidorForm({
 
           <div className="space-y-2">
             <label htmlFor="matricula" className="text-sm font-semibold">
-              MatrÃ­cula
+              Matrícula
             </label>
 
             <input
@@ -208,6 +209,28 @@ export function ServidorForm({
           </div>
 
           <div className="space-y-2">
+            <label htmlFor="pis" className="text-sm font-semibold">
+              PIS/PASEP
+            </label>
+
+            <input
+              id="pis"
+              name="pis"
+              defaultValue={campos?.pis ?? ""}
+              inputMode="numeric"
+              maxLength={14}
+              placeholder="000.00000.00-0"
+              className="h-10 w-full rounded-md border bg-(--card) px-3 text-sm"
+            />
+
+            {obterErro(estado.erros, "pis") && (
+              <p className="text-sm text-red-600">
+                {obterErro(estado.erros, "pis")}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
             <label htmlFor="nome" className="text-sm font-semibold">
               Nome
             </label>
@@ -231,7 +254,7 @@ export function ServidorForm({
 
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-semibold">
-              Ã‰-mail
+              É-mail
             </label>
 
             <input
@@ -274,7 +297,7 @@ export function ServidorForm({
 
           <div className="space-y-2">
             <label htmlFor="vinculo" className="text-sm font-semibold">
-              Tipo de vÃ­nculo
+              Tipo de vínculo
             </label>
 
             <SearchableSelect
@@ -310,7 +333,7 @@ export function ServidorForm({
             <span>
               <span className="block font-semibold">Servidor ativo</span>
               <span className="text-xs text-[var(--muted-foreground)]">
-                Servidores inativos nÃ£o devem registrar frequÃªncia ordinÃ¡ria.
+                Servidores inativos não devem registrar frequência ordinária.
               </span>
             </span>
           </label>
@@ -320,7 +343,7 @@ export function ServidorForm({
               htmlFor="sinalizacaoForaExpediente"
               className="text-sm font-semibold"
             >
-              MarcaÃ§Ã£o fora do expediente
+              Marcação fora do expediente
             </label>
 
             <SearchableSelect
@@ -338,8 +361,8 @@ export function ServidorForm({
             />
 
             <p className="text-xs leading-5 text-[var(--muted-foreground)]">
-              Use a opÃ§Ã£o individual apenas para casos excepcionais; o padrÃ£o do
-              SECP Ã© nÃ£o sinalizar marcaÃ§Ãµes fora do expediente.
+              Use a opção individual apenas para casos excepcionais; o padrão do
+              SECP é não sinalizar marcações fora do expediente.
             </p>
 
             {obterErro(estado.erros, "sinalizacaoForaExpediente") && (
@@ -363,7 +386,7 @@ export function ServidorForm({
             <Save className="size-4" aria-hidden="true" />
           )}
 
-          {modo === "criar" ? "Criar servidor" : "Salvar alteraÃ§Ãµes"}
+          {modo === "criar" ? "Criar servidor" : "Salvar alterações"}
         </button>
       </div>
     </form>

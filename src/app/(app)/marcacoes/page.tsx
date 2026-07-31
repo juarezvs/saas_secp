@@ -187,7 +187,7 @@ export default async function MarcacoesPage({
     permissao.usuarioId ? usuarioEhNutec(permissao.usuarioId) : false,
     permissao.usuarioId
       ? listarMarcacoesDoUsuarioNoDia(permissao.usuarioId)
-      : Promise.resolve({ servidor: null, marcacoes: [] }),
+      : Promise.resolve({ servidor: null, marcacoes: [], exigeIntervalo: true }),
   ]);
   const servidorProprio = marcacoesUsuarioResultado.servidor;
   const servidorIdsPermitidosChefia = podeConsultarEscopoChefia
@@ -225,7 +225,7 @@ export default async function MarcacoesPage({
     podeManterMarcacoesNutec;
   const podeExibirManutencaoMarcacoes =
     podeManterMarcacoesNutec || podeExcluirMarcacoes;
-  const { marcacoes } = marcacoesUsuarioResultado;
+  const { marcacoes, exigeIntervalo } = marcacoesUsuarioResultado;
 
   return (
     <div className="space-y-6">
@@ -251,7 +251,7 @@ export default async function MarcacoesPage({
         }
       />
 
-      <MarcacoesDiaCard marcacoes={marcacoes} />
+      <MarcacoesDiaCard marcacoes={marcacoes} exigeIntervalo={exigeIntervalo} />
 
       {podeConsultarLista && (
         <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">

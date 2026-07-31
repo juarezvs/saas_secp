@@ -42,9 +42,11 @@ export function normalizarPis(
   const somenteDigitos = String(pis).replace(/\D/g, "");
   if (!somenteDigitos) return null;
   const normalizado =
-    somenteDigitos.length <= 11
-      ? somenteDigitos.padStart(11, "0")
-      : somenteDigitos;
+    somenteDigitos.length === 12 && somenteDigitos.startsWith("0")
+      ? somenteDigitos.slice(1)
+      : somenteDigitos.length <= 11
+        ? somenteDigitos.padStart(11, "0")
+        : somenteDigitos;
 
   if (normalizado.length < 11 || normalizado.length > 12) return null;
   if (/^(\d)\1+$/.test(normalizado)) return null;

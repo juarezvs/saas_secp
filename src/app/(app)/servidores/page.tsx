@@ -40,6 +40,7 @@ type ServidoresPageProps = {
     busca?: string;
     matricula?: string;
     cpf?: string;
+    pis?: string;
     nome?: string;
     tipoUsuario?: string;
     orgaoId?: string;
@@ -195,6 +196,7 @@ export default async function ServidoresPage({
       busca: params.busca ?? "",
       matricula: params.matricula ?? "",
       cpf: params.cpf ?? "",
+      pis: params.pis ?? "",
       nome: params.nome ?? "",
       tipoUsuario,
       orgaoId: params.orgaoId ?? "",
@@ -255,6 +257,7 @@ export default async function ServidoresPage({
     "busca",
     "matricula",
     "cpf",
+    "pis",
     "nome",
     "tipoUsuario",
     "orgaoId",
@@ -346,7 +349,7 @@ export default async function ServidoresPage({
         }
       >
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1120px] text-left text-sm">
+          <table className="w-full min-w-[1180px] text-left text-sm">
             <caption className="sr-only">
               Listagem de pessoas com matrícula, CPF, nome, órgão, vínculo,
               lotação atual, contadores, status e ações.
@@ -355,6 +358,7 @@ export default async function ServidoresPage({
               <tr>
                 <th className="px-5 py-3">Matrícula</th>
                 <th className="px-5 py-3">CPF</th>
+                <th className="px-5 py-3">PIS/PASEP</th>
                 <th className="px-5 py-3">{contextoPessoa.colunaPessoa}</th>
                 <th className="px-5 py-3">Órgão</th>
                 <th className="px-5 py-3">Vínculo</th>
@@ -383,6 +387,9 @@ export default async function ServidoresPage({
                     </td>
                     <td className="px-5 py-4 font-mono text-xs">
                       {servidor.cpf ?? servidor.usuario.cpf ?? "-"}
+                    </td>
+                    <td className="px-5 py-4 font-mono text-xs">
+                      {servidor.pis ?? "-"}
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">

@@ -342,7 +342,7 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
           path: `${url.pathname}${url.search}`,
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "application/json; charset=utf-8",
             "Content-Length": Buffer.byteLength(dados),
           },
           timeout: this.timeoutMs,
@@ -424,7 +424,7 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
       const response = await fetch(url, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json; charset=utf-8",
         },
         body: JSON.stringify(body),
         signal: controller.signal,

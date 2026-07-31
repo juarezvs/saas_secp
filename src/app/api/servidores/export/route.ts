@@ -18,6 +18,7 @@ type ServidorExportacao = Awaited<
 const columns: CsvColumn<ServidorExportacao>[] = [
   { header: "Matricula", render: (servidor) => servidor.matricula },
   { header: "CPF", render: (servidor) => servidor.cpf ?? "" },
+  { header: "PIS/PASEP", render: (servidor) => servidor.pis ?? "" },
   { header: "Nome", render: (servidor) => nomeServidor(servidor) },
   { header: "E-mail", render: (servidor) => servidor.usuario.email ?? "" },
   { header: "Orgao", render: (servidor) => servidor.orgao.sigla },
@@ -55,6 +56,7 @@ async function getServidoresExport(request: Request) {
         busca: url.searchParams.get("busca") ?? "",
         matricula: url.searchParams.get("matricula") ?? "",
         cpf: url.searchParams.get("cpf") ?? "",
+        pis: url.searchParams.get("pis") ?? "",
         nome: url.searchParams.get("nome") ?? "",
         tipoUsuario: url.searchParams.get("tipoUsuario") ?? "",
         orgaoId: url.searchParams.get("orgaoId") ?? "",

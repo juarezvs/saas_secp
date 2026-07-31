@@ -56,11 +56,20 @@ export type DataTableFiltroCompetencia = {
   defaultValue?: string;
 };
 
+export type DataTableFiltroData = {
+  tipo: "data";
+  nome: string;
+  label: string;
+  className?: string;
+  defaultValue?: string;
+};
+
 export type DataTableFiltro =
   | DataTableFiltroTexto
   | DataTableFiltroSelect
   | DataTableFiltroSearchableSelect
-  | DataTableFiltroCompetencia;
+  | DataTableFiltroCompetencia
+  | DataTableFiltroData;
 
 type DataTableToolbarProps = {
   filtros: DataTableFiltro[];
@@ -214,6 +223,29 @@ export function DataTableToolbar({
                 }
                 className={filtro.className}
               />
+            );
+          }
+
+          if (filtro.tipo === "data") {
+            return (
+              <div key={`${filtro.nome}-${value}`} className={filtro.className}>
+                <label
+                  htmlFor={filtro.nome}
+                  className="text-xs font-semibold uppercase text-[var(--muted-foreground)]"
+                >
+                  {filtro.label}
+                </label>
+                <input
+                  id={filtro.nome}
+                  name={filtro.nome}
+                  type="date"
+                  defaultValue={value}
+                  onChange={(event) =>
+                    aplicarParametro(filtro.nome, event.currentTarget.value)
+                  }
+                  className="mt-2 h-10 w-full rounded-md border border-[var(--input)] bg-[var(--background)] px-3 text-sm shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                />
+              </div>
             );
           }
 

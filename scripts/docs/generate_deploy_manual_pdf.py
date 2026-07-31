@@ -375,7 +375,7 @@ def build_doc():
 CONTAINERS = [
     ["Container", "Imagem/target", "Porta/volume", "Função operacional"],
     ["secp-web", "secp-web:${APP_VERSION} / target runner", "3000:3000; uploads; relatórios; docker.sock ro", "Aplicação Next.js em produção. Expõe interface web, APIs, health, ready e métricas protegidas por token."],
-    ["secp-postgres", "postgres:18-alpine", "volume secp_postgres_data; ./backups:/backups", "Banco de dados PostgreSQL do SECP. Nunca remover volume em produção."],
+    ["secp-db-postgres", "postgres:18-alpine", "172.19.5.37:5432; volume secp_db_postgres_data no servidor de banco", "Banco PostgreSQL remoto do SECP, executado no servidor dedicado. Não sobe no compose normal da aplicação."],
     ["secp-pgbouncer", "edoburu/pgbouncer:latest", "127.0.0.1:6432:6432", "Pool de conexões usado pela aplicação e workers para reduzir pressão sobre o PostgreSQL."],
     ["secp-redis", "redis:7-alpine", "volume secp_redis_data", "Filas BullMQ, cache, jobs assíncronos e coordenação de workers."],
     ["secp-migrator", "secp-migrator:${APP_VERSION} / target migrator", "profile tools", "Container temporário para executar prisma migrate deploy."],
@@ -440,7 +440,7 @@ def story():
         table(
             [
                 ["Sistema", "SECP - Sistema Eletrônico de Controle de Ponto"],
-                ["Ambiente alvo", "Servidor Linux Ubuntu com Docker Engine, Docker Compose v2, PostgreSQL, PgBouncer, Redis e Caddy"],
+                ["Ambiente alvo", "Servidor Linux Ubuntu da aplicação com Docker Engine, Docker Compose v2, PgBouncer, Redis e Caddy; banco PostgreSQL dedicado em 172.19.5.37"],
                 ["Público-alvo", "Técnicos de informática, administradores de sistemas e equipe de infraestrutura"],
                 ["Data de emissão", today],
                 ["Classificação", "Uso interno - não inserir senhas reais em cópias deste manual"],
@@ -459,7 +459,7 @@ def story():
         metric_cards(
             [
                 ("Aplicação", "Next.js 16, Node.js 22, Auth.js/NextAuth, Prisma 7."),
-                ("Banco", "PostgreSQL 18 em volume persistente Docker."),
+                ("Banco", "PostgreSQL 18 em container no servidor dedicado 172.19.5.37."),
                 ("Filas", "Redis 7 para jobs assíncronos e processamento pesado."),
                 ("Integrações", "SARH Oracle/API, Active Directory, LDAP e equipamentos biométricos."),
                 ("Certificado", "Caddy com TLS público ou CA interna distribuída por GPO."),
@@ -474,7 +474,7 @@ def story():
         code(
             """
 Cliente Windows -> DNS interno -> Caddy :443 -> secp-web :3000
-secp-web        -> PgBouncer :6432 -> PostgreSQL :5432
+secp-web        -> PgBouncer :6432 -> PostgreSQL 172.19.5.37:5432
 secp-web        -> Redis :6379
 workers         -> PgBouncer + Redis + SARH + equipamentos biométricos
 Caddy           -> emite/renova certificado e faz proxy reverso HTTPS
@@ -490,8 +490,8 @@ GPO             -> distribui a CA interna aos clientes Windows, se o certificado
                 ["Item", "Recomendado", "Observação"],
                 ["Sistema operacional", "Ubuntu Server LTS 22.04 ou 24.04", "Manter atualizações de segurança aplicadas."],
                 ["CPU", "4 vCPU ou mais", "Aumentar se houver muitos equipamentos, relatórios ou sincronizações SARH concorrentes."],
-                ["Memória", "8 GB RAM ou mais", "A aplicação web e workers têm limites; PostgreSQL e Docker também precisam folga."],
-                ["Disco", "100 GB SSD ou mais", "Monitorar volume do banco, relatórios e backups. Usar snapshots quando possível."],
+                ["Memória", "8 GB RAM ou mais", "A aplicação web e workers têm limites; o PostgreSQL deve ter folga no servidor dedicado."],
+                ["Disco", "100 GB SSD ou mais", "Monitorar relatórios, backups e volumes locais; monitorar o volume do banco no servidor 172.19.5.37."],
                 ["Rede", "Acesso a SARH, AD/LDAP, equipamentos e DNS", "Liberar portas de saída conforme integração."],
                 ["Runtime", "Docker Engine + Docker Compose v2", "O host não precisa de Node.js para rodar produção Docker."],
                 ["Acesso", "Usuário técnico com sudo", "Evitar operar diretamente como root; registrar mudanças."],
@@ -564,7 +564,7 @@ APP_VERSION=20260720_unidade
 POSTGRES_USER=secp
 POSTGRES_PASSWORD=<SENHA_FORTE_DO_POSTGRES>
 POSTGRES_DB=secp_prod
-DATABASE_URL=postgresql://secp:<SENHA>@postgres:5432/secp_prod?schema=public
+DATABASE_URL=postgresql://secp:<SENHA>@172.19.5.37:5432/secp_prod?schema=public
 DATABASE_URL_POOLED=postgresql://secp:<SENHA>@pgbouncer:6432/secp_prod?schema=public
 
 AUTH_SECRET=<openssl rand -hex 32>
@@ -627,13 +627,18 @@ stat -c '%g' /var/run/docker.sock
     elems += [
         h1("6. PgBouncer, segredos e Oracle Instant Client"),
         h2("PgBouncer"),
-        para("O PgBouncer exige docker/pgbouncer/userlist.txt fora do Git. O hash é md5 da senha concatenada com o usuário."),
+        para("O PgBouncer exige docker/pgbouncer/userlist.txt fora do Git. O SECP usa scram-sha-256; copie para esse arquivo o verificador SCRAM do usuário secp no PostgreSQL dedicado."),
         code(
             """
+ssh nutec@172.19.5.37
+cd /opt/secp-db
+docker exec -it secp-db-postgres psql -U postgres -d postgres
+ALTER ROLE secp WITH PASSWORD '<SENHA_FORTE_DO_POSTGRES>';
+SELECT rolpassword FROM pg_authid WHERE rolname = 'secp';
+
 cd /opt/secp/secp-app
-printf '%s%s' '<SENHA_FORTE_DO_POSTGRES>' 'secp' | md5sum
 install -m 600 /dev/null docker/pgbouncer/userlist.txt
-printf '"secp" "md5<HASH_GERADO>"\\n' > docker/pgbouncer/userlist.txt
+printf '"secp" "SCRAM-SHA-256$..."\\n' > docker/pgbouncer/userlist.txt
 """
         ),
         h2("Secret de métricas"),
@@ -673,7 +678,7 @@ docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production buil
         h2("Subir infraestrutura"),
         code(
             """
-docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production up -d postgres redis pgbouncer
+docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production up -d redis pgbouncer
 docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production ps
 """
         ),
@@ -811,9 +816,9 @@ docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production ps
         h2("Banco, Redis e PgBouncer"),
         code(
             """
-docker exec secp-postgres pg_isready -U secp -d secp_prod -h localhost
 docker exec secp-redis redis-cli ping
 docker exec secp-pgbouncer pg_isready -h 127.0.0.1 -p 6432 -U secp -d secp_prod
+ssh nutec@172.19.5.37 'cd /opt/secp-db && docker exec secp-db-postgres pg_isready -U secp -d secp_prod -h localhost'
 """
         ),
         h2("Checklist funcional"),
@@ -838,7 +843,7 @@ docker exec secp-pgbouncer pg_isready -h 127.0.0.1 -p 6432 -U secp -d secp_prod
             """
 cd /opt/secp/secp-app
 mkdir -p backups
-docker exec secp-postgres pg_dump -U secp -d secp_prod -Fc > backups/predeploy_${APP_VERSION}_$(date +%Y%m%d%H%M%S).dump
+ssh nutec@172.19.5.37 'docker exec secp-db-postgres pg_dump -U secp -d secp_prod -Fc' > backups/predeploy_${APP_VERSION}_$(date +%Y%m%d%H%M%S).dump
 ls -lh backups/*.dump | tail
 """
         ),
@@ -909,7 +914,7 @@ docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production --pr
         bullets(
             [
                 "docker compose down -v",
-                "docker volume rm secp-prod_secp_postgres_data",
+                "docker volume rm secp-db_secp_db_postgres_data ou qualquer volume do banco em 172.19.5.37",
                 "npx prisma migrate reset",
                 "npx prisma db push --force-reset",
                 "rm -rf /opt/secp/secp-app/backups sem cópia externa validada",
@@ -975,7 +980,7 @@ docker compose -p secp-prod -f compose.prod.yaml --env-file .env.production --pr
             """
 cd /opt/secp/secp-app
 mkdir -p backups
-docker exec secp-postgres pg_dump -U secp -d secp_prod -Fc > backups/secp_prod_$(date +%Y%m%d_%H%M%S).dump
+ssh nutec@172.19.5.37 'docker exec secp-db-postgres pg_dump -U secp -d secp_prod -Fc' > backups/secp_prod_$(date +%Y%m%d_%H%M%S).dump
 """
         ),
         h2("Backup dos volumes de arquivos"),
@@ -1023,7 +1028,7 @@ bash scripts/status.sh
                 ["Sintoma", "Verificar", "Comando inicial"],
                 ["SECP não abre", "Caddy, secp-web, DNS, firewall", "curl -vk https://secp.<dominio>"],
                 ["Login falhando", "AD_AUTH_URL, LDAP, usuário local, logs do web", "docker logs --tail=150 secp-web"],
-                ["Banco indisponível", "PostgreSQL, PgBouncer, disco", "docker exec secp-postgres pg_isready -U secp -d secp_prod"],
+                ["Banco indisponível", "PostgreSQL remoto, PgBouncer, disco", "docker exec secp-pgbouncer pg_isready -h 127.0.0.1 -p 6432 -U secp -d secp_prod"],
                 ["Filas paradas", "Redis e workers", "docker logs --tail=150 secp-worker-sarh"],
                 ["Coleta de relógio falhando", "IP, porta, protocolo, credenciais e NSR", "docker logs --tail=150 secp-worker-coleta-relogio"],
                 ["Certificado inválido", "Caddyfile, cadeia, GPO, DNS", "openssl s_client -connect secp.<dominio>:443 -servername secp.<dominio>"],

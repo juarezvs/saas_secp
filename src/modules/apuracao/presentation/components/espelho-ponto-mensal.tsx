@@ -919,10 +919,10 @@ function formatarDescricaoOcorrenciaHint(
     .replaceAll("autorizacao", "autorização")
     .replaceAll("horario", "horário")
     .replaceAll("padrao", "padrão")
-    .replaceAll("HÃ¡", "Há")
-    .replaceAll("padrÃ£o", "padrão")
-    .replaceAll("autorizaÃ§Ã£o", "autorização")
-    .replaceAll("horÃ¡rio", "horário");
+    .replaceAll("Há", "Há")
+    .replaceAll("padrão", "padrão")
+    .replaceAll("autorização", "autorização")
+    .replaceAll("horário", "horário");
 
   if (!minutos || minutos < 60) {
     return texto;
@@ -953,15 +953,15 @@ function corrigirGrafiaHint(texto: string) {
     .replaceAll("saida", "saída")
     .replaceAll("Saida", "Saída")
     .replaceAll("competencia", "competência")
-    .replaceAll("HÃ¡", "Há")
-    .replaceAll("padrÃ£o", "padrão")
-    .replaceAll("autorizaÃ§Ã£o", "autorização")
-    .replaceAll("horÃ¡rio", "horário")
-    .replaceAll("ConferÃªncia", "Conferência")
-    .replaceAll("nÃ£o", "não")
-    .replaceAll("saÃ­da", "saída")
-    .replaceAll("CrÃ©dito", "Crédito")
-    .replaceAll("DÃ©bito", "Débito");
+    .replaceAll("Há", "Há")
+    .replaceAll("padrão", "padrão")
+    .replaceAll("autorização", "autorização")
+    .replaceAll("horário", "horário")
+    .replaceAll("Conferência", "Conferência")
+    .replaceAll("não", "não")
+    .replaceAll("saída", "saída")
+    .replaceAll("Crédito", "Crédito")
+    .replaceAll("Débito", "Débito");
 }
 
 function ehFimDeSemanaInstitucional(dia: DiaInstitucionalEspelho | null) {

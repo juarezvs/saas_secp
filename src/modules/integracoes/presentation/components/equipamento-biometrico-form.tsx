@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useActionState, useState } from "react";
 import { Eye, EyeOff, Loader2, Save } from "lucide-react";
@@ -155,7 +155,7 @@ export function EquipamentoBiometricoForm({
 
       <div className={`mt-5 grid gap-4 ${compacto ? "lg:grid-cols-3" : "md:grid-cols-2"}`}>
         <Campo
-          label="CÃ³digo"
+          label="Código"
           name="codigo"
           defaultValue={valorCampo(estado, "codigo", equipamento?.codigo)}
           erro={erro(estado, "codigo")}
@@ -283,7 +283,7 @@ export function EquipamentoBiometricoForm({
         </div>
 
         <Campo
-          label="UsuÃ¡rio padrÃ£o do relÃ³gio"
+          label="Usuário padrão do relógio"
           name="usuario"
           defaultValue={valorCampo(estado, "usuario", configuracao.usuario)}
         />
@@ -295,7 +295,7 @@ export function EquipamentoBiometricoForm({
           senha
         />
         <Campo
-          label="UsuÃ¡rio para dados/coleta"
+          label="Usuário para dados/coleta"
           name="usuarioDados"
           defaultValue={valorCampo(estado, "usuarioDados", configuracao.usuarioDados)}
         />
@@ -311,7 +311,7 @@ export function EquipamentoBiometricoForm({
           senha
         />
         <Campo
-          label="UsuÃ¡rio para configuraÃ§Ã£o"
+          label="Usuário para configuração"
           name="usuarioConfiguracao"
           defaultValue={valorCampo(
             estado,

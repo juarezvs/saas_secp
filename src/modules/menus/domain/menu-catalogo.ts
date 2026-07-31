@@ -1,4 +1,4 @@
-﻿export type MenuCatalogoItem = {
+export type MenuCatalogoItem = {
   id: string;
   label: string;
   href: string;

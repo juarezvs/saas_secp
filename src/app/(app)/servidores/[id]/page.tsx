@@ -354,6 +354,20 @@ export default async function ServidorDetalhePage({
           </div>
 
           <div>
+            <p className="text-sm text-[var(--muted-foreground)]">CPF</p>
+            <p className="mt-1 font-mono text-sm font-semibold">
+              {servidor.cpf ?? servidor.usuario.cpf ?? "-"}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-sm text-[var(--muted-foreground)]">PIS/PASEP</p>
+            <p className="mt-1 font-mono text-sm font-semibold">
+              {servidor.pis ?? "-"}
+            </p>
+          </div>
+
+          <div>
             <p className="text-sm text-[var(--muted-foreground)]">
               Nome funcional
             </p>

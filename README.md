@@ -137,12 +137,12 @@ Senha da rede -> secp
 
 ## Para testar localmente, use o arquivo local
 
-docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local down
-docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local build --no-cache
-docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local up -d postgres redis
-docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local --profile tools run --rm migrate
-docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local --profile tools run --rm seed
-docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local up -d web --force-recreate
+docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local --profile local-db down
+docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local --profile local-db build --no-cache
+docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local --profile local-db up -d postgres redis pgbouncer
+docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local --profile local-db --profile tools run --rm migrate
+docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local --profile local-db --profile tools run --rm seed
+docker compose -f compose.prod.yaml -f compose.local.yaml --env-file .env.docker.local --profile local-db up -d web --force-recreate
 http://localhost:3000
 
 ## Para Produção usar
