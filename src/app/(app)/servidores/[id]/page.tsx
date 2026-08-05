@@ -53,6 +53,41 @@ type ServidorDetalhePageProps = {
 
 type AbaAfastamentos = "ferias" | "outros";
 
+const ROTULOS_TIPO_PESSOA: Record<
+  string,
+  {
+    breadcrumb: string;
+    href: string;
+    singular: string;
+    singularTitulo: string;
+  }
+> = {
+  SERVIDOR: {
+    breadcrumb: "Servidores",
+    href: "/servidores",
+    singular: "servidor",
+    singularTitulo: "Servidor",
+  },
+  ESTAGIARIO: {
+    breadcrumb: "Estagiarios",
+    href: "/estagiarios",
+    singular: "estagiario",
+    singularTitulo: "Estagiario",
+  },
+  PRESTADOR: {
+    breadcrumb: "Prestadores",
+    href: "/prestadores",
+    singular: "prestador",
+    singularTitulo: "Prestador",
+  },
+  VOLUNTARIO: {
+    breadcrumb: "Voluntarios",
+    href: "/voluntarios",
+    singular: "voluntario",
+    singularTitulo: "Voluntario",
+  },
+};
+
 function formatarData(data: Date | null) {
   if (!data) return "Atual";
 
@@ -190,6 +225,8 @@ export default async function ServidorDetalhePage({
   const fotoSrc = await buscarFotoServidorDataUrl(fotoCpf);
   const cargo = descricaoCargoServidor(servidor);
   const funcao = descricaoFuncaoServidor(servidor);
+  const rotuloPessoa =
+    ROTULOS_TIPO_PESSOA[servidor.usuario.tipo] ?? ROTULOS_TIPO_PESSOA.SERVIDOR;
   const actionDispensaPonto = criarDispensaPontoServidorAction.bind(
     null,
     servidorId,
@@ -241,7 +278,7 @@ export default async function ServidorDetalhePage({
       <Breadcrumb
         items={[
           { label: "Administração", href: "/administracao" },
-          { label: "Servidores", href: "/servidores" },
+          { label: rotuloPessoa.breadcrumb, href: rotuloPessoa.href },
           { label: servidor.matricula },
         ]}
       />
@@ -266,7 +303,7 @@ export default async function ServidorDetalhePage({
 
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-              Servidor
+              {rotuloPessoa.singularTitulo}
             </p>
 
             <h1 className="mt-2 text-3xl font-bold tracking-tight">
@@ -297,7 +334,7 @@ export default async function ServidorDetalhePage({
             className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950"
           >
             <Edit className="size-4" aria-hidden="true" />
-            Editar servidor
+            Editar {rotuloPessoa.singular}
           </Link>
         )}
       </section>
@@ -488,7 +525,7 @@ export default async function ServidorDetalhePage({
 
             {servidor.jornadas.length === 0 && (
               <div className="p-8 text-center text-sm text-[var(--muted-foreground)]">
-                Nenhuma jornada vinculada a este servidor.
+                Nenhuma jornada vinculada a este ${rotuloPessoa.singular}.
               </div>
             )}
           </div>

@@ -2,10 +2,11 @@
 
 import { useCallback, useMemo, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Filter } from "lucide-react";
 import { DataTableExportButtons } from "@/components/listagens/data-table-export-buttons";
 import { FiltroSelectImediato } from "@/components/listagens/filtro-select-imediato";
 import { FiltroTextoDebounce } from "@/components/listagens/filtro-texto-debounce";
-import { CompetenciaInput, SearchableSelect } from "@/components/ui";
+import { Button, CompetenciaInput, SearchableSelect } from "@/components/ui";
 import {
   criarQueryStringAtualizada,
   montarHrefComQuery,
@@ -89,7 +90,7 @@ export function DataTableToolbar({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [, startTransition] = useTransition();
+  const [pending, startTransition] = useTransition();
 
   const paramsAtuais = useMemo(
     () => new URLSearchParams(searchParams.toString()),
@@ -263,12 +264,13 @@ export function DataTableToolbar({
         })}
         {possuiFiltroTexto && (
           <div className="flex items-end">
-            <button
+            <Button
               type="submit"
-              className="h-10 rounded-md bg-blue-900 px-4 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              leftIcon={<Filter className="size-4" aria-hidden="true" />}
+              loading={pending}
             >
               Filtrar
-            </button>
+            </Button>
           </div>
         )}
       </form>

@@ -13,6 +13,7 @@ const FONTES_IMPORTADAS = [
   "EQUIPAMENTO_BIOMETRICO",
   "AFD",
   "IMPORTACAO",
+  "MANUAL_ADMINISTRATIVO",
 ];
 
 export async function normalizarMarcacoesSemIntervaloService(
@@ -23,7 +24,7 @@ export async function normalizarMarcacoesSemIntervaloService(
     .filter((marcacao) => FONTES_IMPORTADAS.includes(marcacao.fonte))
     .sort((a, b) => a.dataHora.getTime() - b.dataHora.getTime());
 
-  if (importadas.length === 0) {
+  if (importadas.length < 2) {
     return marcacoes;
   }
 

@@ -20,6 +20,41 @@ type EditarServidorPageProps = {
   }>;
 };
 
+const ROTULOS_TIPO_PESSOA: Record<
+  string,
+  {
+    breadcrumb: string;
+    href: string;
+    singular: string;
+    cadastro: string;
+  }
+> = {
+  SERVIDOR: {
+    breadcrumb: "Servidores",
+    href: "/servidores",
+    singular: "servidor",
+    cadastro: "Cadastro funcional",
+  },
+  ESTAGIARIO: {
+    breadcrumb: "Estagiarios",
+    href: "/estagiarios",
+    singular: "estagiario",
+    cadastro: "Cadastro de estagiarios",
+  },
+  PRESTADOR: {
+    breadcrumb: "Prestadores",
+    href: "/prestadores",
+    singular: "prestador",
+    cadastro: "Cadastro de prestadores",
+  },
+  VOLUNTARIO: {
+    breadcrumb: "Voluntarios",
+    href: "/voluntarios",
+    singular: "voluntario",
+    cadastro: "Cadastro de voluntarios",
+  },
+};
+
 export default async function EditarServidorPage({
   params,
 }: EditarServidorPageProps) {
@@ -43,13 +78,15 @@ export default async function EditarServidorPage({
   }
 
   const action = atualizarServidorAction.bind(null, servidor.id);
+  const rotuloPessoa =
+    ROTULOS_TIPO_PESSOA[servidor.usuario.tipo] ?? ROTULOS_TIPO_PESSOA.SERVIDOR;
 
   return (
     <div className="space-y-6">
       <Breadcrumb
         items={[
           { label: "Administração", href: "/administracao" },
-          { label: "Servidores", href: "/servidores" },
+          { label: rotuloPessoa.breadcrumb, href: rotuloPessoa.href },
           { label: servidor.matricula, href: `/servidores/${servidor.id}` },
           { label: "Editar" },
         ]}
@@ -57,15 +94,15 @@ export default async function EditarServidorPage({
 
       <section>
         <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Cadastro funcional
+          {rotuloPessoa.cadastro}
         </p>
 
         <h1 className="mt-2 text-3xl font-bold tracking-tight">
-          Editar servidor
+          Editar {rotuloPessoa.singular}
         </h1>
 
         <p className="mt-2 max-w-4xl text-sm leading-6 text-(--muted-foreground)">
-          Atualize os dados cadastrais e funcionais do servidor.
+          Atualize os dados cadastrais e funcionais do {rotuloPessoa.singular}.
         </p>
       </section>
 

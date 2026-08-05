@@ -20,6 +20,10 @@ export default function MarcacoesBrutasLoading() {
         <div className="h-5 w-40 rounded bg-muted" />
         <div className="mt-4 h-10 w-56 rounded bg-muted" />
       </div>
+      <div className="flex gap-2 rounded-xl border bg-card p-2">
+        <div className="h-10 w-44 rounded bg-muted" />
+        <div className="h-10 w-44 rounded bg-muted" />
+      </div>
       <section className="space-y-3 rounded-xl border bg-card p-5">
         <div className="flex justify-between gap-4">
           <div className="h-5 w-48 rounded bg-muted" />

@@ -3,11 +3,15 @@ import { resolverServidorMarcacaoBrutaService } from "./resolver-servidor-marcac
 
 export async function associarMarcacoesBrutasPendentesService() {
   const identificadores = await prisma.marcacaoBruta.groupBy({
-    by: ["cpf", "matricula", "equipamentoId"],
+    by: ["cpf", "pis", "matricula", "equipamentoId"],
     where: {
       processada: false,
       servidorId: null,
-      OR: [{ cpf: { not: null } }, { matricula: { not: null } }],
+      OR: [
+        { cpf: { not: null } },
+        { pis: { not: null } },
+        { matricula: { not: null } },
+      ],
     },
   });
 
@@ -16,6 +20,7 @@ export async function associarMarcacoesBrutasPendentesService() {
   for (const identificador of identificadores) {
     const servidor = await resolverServidorMarcacaoBrutaService({
       cpf: identificador.cpf,
+      pis: identificador.pis,
       matricula: identificador.matricula,
       equipamentoId: identificador.equipamentoId,
     });
@@ -29,6 +34,7 @@ export async function associarMarcacoesBrutasPendentesService() {
         processada: false,
         servidorId: null,
         cpf: identificador.cpf,
+        pis: identificador.pis,
         matricula: identificador.matricula,
         equipamentoId: identificador.equipamentoId,
       },
@@ -36,6 +42,7 @@ export async function associarMarcacoesBrutasPendentesService() {
         servidorId: servidor.id,
         matricula: servidor.matricula,
         cpf: identificador.cpf ?? servidor.cpf,
+        pis: identificador.pis ?? servidor.pis,
       },
     });
 

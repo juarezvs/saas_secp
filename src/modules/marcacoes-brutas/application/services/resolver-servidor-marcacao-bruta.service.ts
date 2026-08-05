@@ -73,7 +73,9 @@ export async function resolverServidorMarcacaoBrutaService(params: {
   equipamentoId?: string | null;
 }) {
   const cpf = normalizarCpf(params.cpf) ?? normalizarCpf(params.matricula);
-  const pis = normalizarPis(params.pis);
+  const pis =
+    normalizarPis(params.pis) ??
+    normalizarPis(params.cpf);
   const matricula = params.matricula?.trim() || null;
   const equipamento = params.equipamentoId
     ? await prisma.equipamentoBiometrico.findUnique({
@@ -122,7 +124,7 @@ export async function resolverServidorMarcacaoBrutaService(params: {
       }
     }
 
-    return prisma.servidor.findFirst({
+    const servidorPorCpf = await prisma.servidor.findFirst({
       where: {
         ativo: true,
         OR: filtroCpf,
@@ -134,6 +136,10 @@ export async function resolverServidorMarcacaoBrutaService(params: {
         pis: true,
       },
     });
+
+    if (servidorPorCpf) {
+      return servidorPorCpf;
+    }
   }
 
   if (pis) {
@@ -157,18 +163,20 @@ export async function resolverServidorMarcacaoBrutaService(params: {
       }
     }
 
-    return prisma.servidor.findFirst({
-      where: {
-        ativo: true,
-        pis,
-      },
-      select: {
-        id: true,
-        matricula: true,
-        cpf: true,
-        pis: true,
-      },
-    });
+    return (
+      (await prisma.servidor.findFirst({
+        where: {
+          ativo: true,
+          pis,
+        },
+        select: {
+          id: true,
+          matricula: true,
+          cpf: true,
+          pis: true,
+        },
+      })) ?? null
+    );
   }
 
   if (!matricula) {

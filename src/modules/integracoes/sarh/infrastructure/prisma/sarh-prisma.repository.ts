@@ -278,10 +278,13 @@ export class SarhPrismaRepository {
     iniciadoEm: Date;
     contadores: ContadoresExecucao;
     erro?: string;
+    cancelada?: boolean;
   }) {
     const finalizadoEm = new Date();
     const duracaoMs = finalizadoEm.getTime() - params.iniciadoEm.getTime();
-    const status = params.erro
+    const status = params.cancelada
+      ? "CANCELADA"
+      : params.erro
       ? "FALHOU"
       : params.contadores.totalErros > 0 || params.contadores.totalConflitos > 0
         ? "CONCLUIDA_COM_ERROS"
@@ -295,7 +298,9 @@ export class SarhPrismaRepository {
         totalErros: params.erro
           ? params.contadores.totalErros + 1
           : params.contadores.totalErros,
-        mensagemErro: params.erro ?? null,
+        mensagemErro: params.cancelada
+          ? "Sincronizacao cancelada pelo usuario."
+          : params.erro ?? null,
         finalizadoEm,
         duracaoMs,
       },

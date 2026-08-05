@@ -10,69 +10,71 @@ import { readFileSync } from "node:fs";
 import { nomeMesReferencia } from "../../application/services/formatar-relatorio.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
-type BoletimPdfProps = {
-  boletim: {
-    unidade: {
+export type BoletimFrequenciaPdf = {
+  unidade: {
+    sigla: string;
+    nome: string;
+    uf?: string | null;
+    orgao?: {
       sigla: string;
       nome: string;
-      uf?: string | null;
-      orgao?: {
-        sigla: string;
-        nome: string;
-      } | null;
-    };
-    anoReferencia: number;
-    mesReferencia: number;
-    status: string;
-    processoSei: string | null;
-    numeroSei: string | null;
-    observacao: string | null;
-    totalServidores: number;
-    totalHomologados: number;
-    totalComRessalva: number;
-    totalFaltas: number;
-    totalCargaPrevistaMinutos: number;
-    totalTrabalhadoMinutos: number;
-    totalCreditoMinutos: number;
-    totalDebitoMinutos: number;
-    geradoEm: Date;
-    encaminhadoEm: Date | null;
-    recebidoEm: Date | null;
-    geradoPor: {
-      nome: string;
-    };
-    encaminhadoPor: {
-      nome: string;
     } | null;
-    recebidoPor: {
-      nome: string;
-    } | null;
-    servidores: {
-      tipoResumo: string;
-      cargaPrevistaMinutos: number;
-      minutosTrabalhados: number;
-      minutosCredito: number;
-      minutosDebito: number;
-      faltas: number;
-      saldoBancoAntesMinutos: number;
-      saldoBancoDepoisMinutos: number | null;
-      observacaoChefia: string | null;
-      ressalvas?: unknown;
-      ocorrencias?: unknown;
-      servidor: {
-        matricula: string;
-        nomeFuncional?: string | null;
-        usuario: {
-          nome: string;
-        };
-        lotacoes: {
-          unidade: {
-            sigla: string;
-          };
-        }[];
-      };
-    }[];
   };
+  anoReferencia: number;
+  mesReferencia: number;
+  status: string;
+  processoSei: string | null;
+  numeroSei: string | null;
+  observacao: string | null;
+  totalServidores: number;
+  totalHomologados: number;
+  totalComRessalva: number;
+  totalFaltas: number;
+  totalCargaPrevistaMinutos: number;
+  totalTrabalhadoMinutos: number;
+  totalCreditoMinutos: number;
+  totalDebitoMinutos: number;
+  geradoEm: Date;
+  encaminhadoEm: Date | null;
+  recebidoEm: Date | null;
+  geradoPor: {
+    nome: string;
+  };
+  encaminhadoPor: {
+    nome: string;
+  } | null;
+  recebidoPor: {
+    nome: string;
+  } | null;
+  servidores: {
+    tipoResumo: string;
+    cargaPrevistaMinutos: number;
+    minutosTrabalhados: number;
+    minutosCredito: number;
+    minutosDebito: number;
+    faltas: number;
+    saldoBancoAntesMinutos: number;
+    saldoBancoDepoisMinutos: number | null;
+    observacaoChefia: string | null;
+    ressalvas?: unknown;
+    ocorrencias?: unknown;
+    servidor: {
+      matricula: string;
+      nomeFuncional?: string | null;
+      usuario: {
+        nome: string;
+      };
+      lotacoes: {
+        unidade: {
+          sigla: string;
+        };
+      }[];
+    };
+  }[];
+};
+
+type BoletimPdfProps = {
+  boletim: BoletimFrequenciaPdf;
 };
 
 const AZUL_MODELO = "#000080";
@@ -337,89 +339,122 @@ const cabecalhos = [
 ] as const;
 
 export function BoletimFrequenciaPdfDocument({ boletim }: BoletimPdfProps) {
+  return <BoletinsFrequenciaPdfDocument boletins={[boletim]} />;
+}
+
+export function BoletinsFrequenciaPdfDocument({
+  boletins,
+}: {
+  boletins: BoletimFrequenciaPdf[];
+}) {
   const brasaoRepublica = `data:image/png;base64,${readFileSync(
     `${process.cwd()}/public/brasao-republica.png`,
   ).toString("base64")}`;
-  const orgao = resolverNomeOficialOrgao(boletim.unidade);
-  const linhas = boletim.servidores.map((item) => montarLinhaServidor(item));
-  const paginasDemonstrativo = dividirEmPaginas(linhas, 18);
 
   return (
     <Document
-      title={`Boletim de Frequência ${boletim.unidade.sigla} ${boletim.mesReferencia}/${boletim.anoReferencia}`}
+      title={tituloDocumento(boletins)}
       author="SECP"
       subject="Boletim de Frequência"
       creator="SECP"
       producer="SECP"
     >
-      {paginasDemonstrativo.map((linhasPagina, indice) => (
-        <Page
-          key={`demonstrativo-${indice}`}
-          size="A4"
-          orientation="portrait"
-          style={styles.page}
-        >
-          <CabecalhoBoletim
-            brasao={brasaoRepublica}
-            orgao={orgao}
-            mes={boletim.mesReferencia}
-            ano={boletim.anoReferencia}
-            folha={indice + 1}
-          />
-
-          <View style={styles.unidadeBox}>
-            <Text style={styles.bar}>
-              IDENTIFICAÇÃO DA UNIDADE ADMINISTRATIVA
-            </Text>
-            <View style={styles.unidadeRow}>
-              <View style={styles.unidadeSigla}>
-                <Text style={styles.label}>SIGLA</Text>
-                <Text style={[styles.unidadeValor, { textAlign: "center" }]}>
-                  {boletim.unidade.sigla}
-                </Text>
-              </View>
-              <View style={styles.unidadeNome}>
-                <Text style={styles.label}>NOME</Text>
-                <Text style={styles.unidadeValor}>
-                  {normalizarTexto(boletim.unidade.nome)}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.demonstrativo}>
-            <Text style={styles.bar}>DEMONSTRATIVO DE FREQUÊNCIA</Text>
-            <View style={styles.table}>
-              <CabecalhoTabela />
-              {linhasPagina.map((linha) => (
-                <LinhaTabela key={linha.matricula} linha={linha} />
-              ))}
-            </View>
-          </View>
-
-          {indice === paginasDemonstrativo.length - 1 && <Assinaturas />}
-        </Page>
-      ))}
-
-      <Page size="A4" orientation="portrait" style={styles.page}>
-        <CabecalhoBoletim
-          brasao={brasaoRepublica}
-          orgao={orgao}
-          mes={boletim.mesReferencia}
-          ano={boletim.anoReferencia}
-          folha={paginasDemonstrativo.length + 1}
-        />
-        <Text style={styles.observacao}>OBSERVAÇÃO</Text>
-        {boletim.observacao ? (
-          <Text style={{ marginTop: 12, fontSize: 9 }}>
-            {boletim.observacao}
-          </Text>
-        ) : null}
-      </Page>
+      {boletins.flatMap((boletim) =>
+        renderizarPaginasBoletim({ boletim, brasaoRepublica }),
+      )}
     </Document>
   );
 }
 
+function renderizarPaginasBoletim({
+  boletim,
+  brasaoRepublica,
+}: {
+  boletim: BoletimFrequenciaPdf;
+  brasaoRepublica: string;
+}) {
+  const orgao = resolverNomeOficialOrgao(boletim.unidade);
+  const linhas = boletim.servidores.map((item) => montarLinhaServidor(item));
+  const paginasDemonstrativo = dividirEmPaginas(linhas, 18);
+  const paginas = paginasDemonstrativo.map((linhasPagina, indice) => (
+    <Page
+      key={`${boletim.unidade.sigla}-demonstrativo-${indice}`}
+      size="A4"
+      orientation="portrait"
+      style={styles.page}
+    >
+      <CabecalhoBoletim
+        brasao={brasaoRepublica}
+        orgao={orgao}
+        mes={boletim.mesReferencia}
+        ano={boletim.anoReferencia}
+        folha={indice + 1}
+      />
+
+      <View style={styles.unidadeBox}>
+        <Text style={styles.bar}>IDENTIFICAÇÃO DA UNIDADE ADMINISTRATIVA</Text>
+        <View style={styles.unidadeRow}>
+          <View style={styles.unidadeSigla}>
+            <Text style={styles.label}>SIGLA</Text>
+            <Text style={[styles.unidadeValor, { textAlign: "center" }]}>
+              {boletim.unidade.sigla}
+            </Text>
+          </View>
+          <View style={styles.unidadeNome}>
+            <Text style={styles.label}>NOME</Text>
+            <Text style={styles.unidadeValor}>
+              {normalizarTexto(boletim.unidade.nome)}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.demonstrativo}>
+        <Text style={styles.bar}>DEMONSTRATIVO DE FREQUÊNCIA</Text>
+        <View style={styles.table}>
+          <CabecalhoTabela />
+          {linhasPagina.map((linha) => (
+            <LinhaTabela key={linha.matricula} linha={linha} />
+          ))}
+        </View>
+      </View>
+
+      {indice === paginasDemonstrativo.length - 1 && <Assinaturas />}
+    </Page>
+  ));
+
+  paginas.push(
+    <Page
+      key={`${boletim.unidade.sigla}-observacao`}
+      size="A4"
+      orientation="portrait"
+      style={styles.page}
+    >
+      <CabecalhoBoletim
+        brasao={brasaoRepublica}
+        orgao={orgao}
+        mes={boletim.mesReferencia}
+        ano={boletim.anoReferencia}
+        folha={paginasDemonstrativo.length + 1}
+      />
+      <Text style={styles.observacao}>OBSERVAÇÃO</Text>
+      {boletim.observacao ? (
+        <Text style={{ marginTop: 12, fontSize: 9 }}>{boletim.observacao}</Text>
+      ) : null}
+    </Page>,
+  );
+
+  return paginas;
+}
+
+function tituloDocumento(boletins: BoletimFrequenciaPdf[]) {
+  if (boletins.length === 1) {
+    const boletim = boletins[0];
+    return `Boletim de Frequência ${boletim.unidade.sigla} ${boletim.mesReferencia}/${boletim.anoReferencia}`;
+  }
+
+  return `Boletins de Frequência agrupados - ${boletins.length} unidades`;
+}
 function Assinaturas() {
   return (
     <View style={styles.signatureArea}>

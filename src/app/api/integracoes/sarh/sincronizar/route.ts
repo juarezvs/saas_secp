@@ -76,6 +76,15 @@ type SincronizarSarhRequest = {
   codigoCargoSarh?: number;
 };
 
+type JobEstado =
+  | "waiting"
+  | "delayed"
+  | "active"
+  | "completed"
+  | "failed"
+  | "unknown"
+  | "cancelled";
+
 function usuarioPodeSincronizar(permissoes: string[]) {
   return permissoes.some((permissao) =>
     PERMISSOES_SINCRONIZAR_SARH.has(permissao),
@@ -265,6 +274,85 @@ async function getSincronizarSarh(request: Request) {
   });
 }
 
+async function deleteSincronizarSarh(request: Request) {
+  const acesso = await validarAcesso();
+
+  if (acesso.erro) {
+    return acesso.erro;
+  }
+
+  const jobId = new URL(request.url).searchParams.get("jobId");
+  const { obterSarhSyncQueue, progressoSarhAgendado } = await import(
+    "@/modules/integracoes/sarh/application/queues/sarh-sync-queue"
+  );
+  const job = jobId ? await obterSarhSyncQueue().getJob(jobId) : null;
+
+  if (!job) {
+    return NextResponse.json(
+      { message: "Sincronizacao SARH nao encontrada." },
+      { status: 404 },
+    );
+  }
+
+  const escopoUsuario = await obterEscopoOrgaoDaSessao();
+
+  if (
+    !usuarioPodeAcessarJob({
+      escopoUsuario,
+      escopoJob: job.data.escopoSincronizacao,
+    })
+  ) {
+    return NextResponse.json({ message: "Acesso negado." }, { status: 403 });
+  }
+
+  const estado = await job.getState();
+  const progresso = isSarhSyncProgress(job.progress)
+    ? job.progress
+    : progressoSarhAgendado();
+  const progressoCancelado: SarhSyncProgress = {
+    ...progresso,
+    percentualGeral:
+      estado === "waiting" || estado === "delayed"
+        ? progresso.percentualGeral
+        : 100,
+    percentualEndpoint:
+      estado === "waiting" || estado === "delayed"
+        ? progresso.percentualEndpoint
+        : 100,
+    etapa: "Cancelamento solicitado pelo usuario.",
+    status: "CANCELADA",
+  };
+
+  if (progresso.execucaoId) {
+    const { prisma } = await import("@/shared/infrastructure/database/prisma");
+    await prisma.integracaoSarhExecucao.updateMany({
+      where: {
+        id: progresso.execucaoId,
+        status: { in: ["AGENDADA", "EM_EXECUCAO"] },
+      },
+      data: {
+        status: "CANCELADA",
+        mensagemErro: "Cancelamento solicitado pelo usuario.",
+        finalizadoEm: new Date(),
+      },
+    });
+  }
+
+  await job.updateProgress(progressoCancelado);
+
+  if (estado === "waiting" || estado === "delayed") {
+    await job.remove();
+  }
+
+  return NextResponse.json({
+    jobId: job.id,
+    estado: "cancelled" satisfies JobEstado,
+    progresso: progressoCancelado,
+    resultado: null,
+    erro: null,
+  });
+}
+
 export const POST = withHttpMetrics(
   "/api/integracoes/sarh/sincronizar",
   postSincronizarSarh,
@@ -272,4 +360,8 @@ export const POST = withHttpMetrics(
 export const GET = withHttpMetrics(
   "/api/integracoes/sarh/sincronizar",
   getSincronizarSarh,
+);
+export const DELETE = withHttpMetrics(
+  "/api/integracoes/sarh/sincronizar",
+  deleteSincronizarSarh,
 );

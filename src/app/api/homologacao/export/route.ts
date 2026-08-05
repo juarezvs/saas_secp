@@ -3,6 +3,7 @@ import { withHttpMetrics } from "@/lib/observability/http";
 import { listarFechamentosMensaisParaExportacao } from "@/modules/homologacao/infrastructure/repositories/homologacao.repository";
 import { rotuloStatusFechamento } from "@/modules/homologacao/application/services/formatar-homologacao.service";
 import { enfileirarRelatorioExportacaoResponse } from "@/modules/relatorios/application/services/relatorio-exportacao-response.service";
+import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 
 export const runtime = "nodejs";
 
@@ -44,11 +45,18 @@ async function getHomologacaoExport(request: Request) {
   }
 
   const url = new URL(request.url);
+  const podeConsultarGlobal = permissoes.includes(
+    "homologacao:consultar:global",
+  );
+  const unidadeIdsPermitidos = podeConsultarGlobal
+    ? undefined
+    : await listarIdsUnidadesSubordinadasPorUsuario(session!.user.id);
   const fechamentos = await listarFechamentosMensaisParaExportacao({
     busca: url.searchParams.get("busca") ?? "",
     anoReferencia: url.searchParams.get("anoReferencia") ?? "",
     mesReferencia: url.searchParams.get("mesReferencia") ?? "",
     unidade: url.searchParams.get("unidade") ?? "",
+    unidadeIdsPermitidos,
     status: url.searchParams.get("status") ?? "",
   });
 

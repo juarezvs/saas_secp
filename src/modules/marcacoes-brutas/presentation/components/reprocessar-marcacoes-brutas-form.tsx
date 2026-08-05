@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { RefreshCw } from "lucide-react";
 import {
   reprocessarMarcacoesBrutasPendentesAction,
   type ReprocessarMarcacoesBrutasState,
@@ -103,11 +104,13 @@ export function ReprocessarMarcacoesBrutasForm({
               continuacaoRef.current.value = "false";
             }
           }}
-          className="shrink-0 rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex shrink-0 items-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {pendente
-            ? "Reprocessando marcações..."
-            : rotuloBotao}
+          <RefreshCw
+            className={`size-4 ${pendente ? "animate-spin" : ""}`}
+            aria-hidden="true"
+          />
+          {pendente ? "Reprocessando marcacoes..." : rotuloBotao}
         </button>
 
         <div className="w-full max-w-xl" aria-live="polite">

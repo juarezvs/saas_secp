@@ -54,6 +54,8 @@ describe("resolverServidorMarcacaoBrutaService", () => {
     });
     prismaMock.servidor.findFirst
       .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null);
 
     const servidor = await resolverServidorMarcacaoBrutaService({
@@ -63,11 +65,50 @@ describe("resolverServidorMarcacaoBrutaService", () => {
     });
 
     expect(servidor).toBeNull();
-    expect(prismaMock.servidor.findFirst).toHaveBeenCalledTimes(2);
+    expect(prismaMock.servidor.findFirst).toHaveBeenCalledTimes(4);
     expect(prismaMock.servidor.findFirst.mock.calls[1]?.[0].where.OR).toEqual([
       { cpf: "12345678901" },
       { usuario: { cpf: "12345678901" } },
     ]);
+    expect(prismaMock.servidor.findFirst.mock.calls[2]?.[0].where).toEqual(
+      expect.objectContaining({
+        orgaoId: "orgao-am",
+        pis: "12345678901",
+      }),
+    );
+  });
+
+  it("usa CPF recebido como candidato a PIS quando nao encontra servidor por CPF", async () => {
+    prismaMock.equipamentoBiometrico.findUnique.mockResolvedValue({
+      orgaoId: "orgao-ma",
+      orgao: { sigla: "SJMA" },
+      unidade: null,
+    });
+    prismaMock.servidor.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: "servidor-pis-campo-cpf",
+        matricula: "MA8500125",
+        cpf: "00000000000",
+        pis: "17050352959",
+      });
+
+    const servidor = await resolverServidorMarcacaoBrutaService({
+      cpf: "17050352959",
+      equipamentoId: "equipamento-sjma",
+    });
+
+    expect(servidor?.id).toBe("servidor-pis-campo-cpf");
+    expect(prismaMock.servidor.findFirst).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          ativo: true,
+          orgaoId: "orgao-ma",
+          pis: "17050352959",
+        }),
+      }),
+    );
   });
 
   it("normaliza matricula numerica pelo orgao do equipamento", async () => {

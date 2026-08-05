@@ -7,6 +7,7 @@ export type ListarFechamentosMensaisParams = {
   anoReferencia?: string;
   mesReferencia?: string;
   unidade?: string;
+  unidadeIdsPermitidos?: string[];
   status?: string;
 };
 
@@ -26,6 +27,7 @@ export function montarWhereFechamentosMensais(
   const busca = params.busca?.trim();
   const anoReferencia = Number(params.anoReferencia);
   const mesReferencia = Number(params.mesReferencia);
+  const unidadeIdsPermitidos = params.unidadeIdsPermitidos?.filter(Boolean);
 
   return {
     ...(Number.isInteger(anoReferencia) && anoReferencia > 0
@@ -39,6 +41,19 @@ export function montarWhereFechamentosMensais(
     ...(params.status && ehStatusFechamento(params.status)
       ? { status: params.status as never }
       : {}),
+    ...(params.unidadeIdsPermitidos && unidadeIdsPermitidos?.length === 0
+      ? {
+          unidadeId: {
+            in: ["__sem_unidades_permitidas__"],
+          },
+        }
+      : unidadeIdsPermitidos && unidadeIdsPermitidos.length > 0
+        ? {
+            unidadeId: {
+              in: unidadeIdsPermitidos,
+            },
+          }
+        : {}),
     ...(params.unidade
       ? {
           unidade: {

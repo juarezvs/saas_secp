@@ -83,6 +83,7 @@ async function listarServidoresDoEscopo(params: {
         id: true,
         matricula: true,
         cpf: true,
+        pis: true,
       },
     });
 
@@ -116,6 +117,7 @@ async function listarServidoresDoEscopo(params: {
           id: true,
           matricula: true,
           cpf: true,
+          pis: true,
         },
       },
     },
@@ -163,6 +165,7 @@ export async function reprocessarMarcacoesBrutasEscopoService(params: {
     .map((servidor) => servidor.matricula)
     .filter(ehTexto);
   const cpfs = servidores.map((servidor) => servidor.cpf).filter(ehTexto);
+  const pises = servidores.map((servidor) => servidor.pis).filter(ehTexto);
   const brutas = await prisma.marcacaoBruta.findMany({
     where: {
       dataHora: {
@@ -173,6 +176,9 @@ export async function reprocessarMarcacoesBrutasEscopoService(params: {
         { servidorId: { in: servidorIds } },
         ...(matriculas.length > 0 ? [{ matricula: { in: matriculas } }] : []),
         ...(cpfs.length > 0 ? [{ cpf: { in: cpfs } }] : []),
+        ...(pises.length > 0
+          ? [{ pis: { in: pises } }, { cpf: { in: pises } }]
+          : []),
       ],
     },
     select: {

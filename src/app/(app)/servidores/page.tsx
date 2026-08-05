@@ -364,7 +364,7 @@ export default async function ServidoresPage({
                 <th className="px-5 py-3">Vínculo</th>
                 <th className="px-5 py-3">Lotação atual</th>
                 <th className="px-5 py-3">Lotações</th>
-                <th className="px-5 py-3">Gestoes</th>
+                <th className="px-5 py-3">Gestores</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3 text-right">Ações</th>
               </tr>

@@ -13,7 +13,7 @@ type SarhSyncWorkerGlobal = typeof globalThis & {
   __secpSarhSyncWorkerVersion?: string;
 };
 
-const SARH_SYNC_WORKER_VERSION = "2026-07-17-pessoas-por-vinculo";
+const SARH_SYNC_WORKER_VERSION = "2026-08-03-cancelamento-sarh";
 
 function workerEstaAtivo(worker: Worker<SarhSyncJob>) {
   return !worker.closing;
@@ -26,6 +26,14 @@ async function processarSincronizacaoSarh(job: Job<SarhSyncJob>) {
     ...job.data,
     atualizarProgresso: async (progresso) => {
       await job.updateProgress(progresso);
+    },
+    verificarCancelamento: async (execucaoId) => {
+      const execucao = await prisma.integracaoSarhExecucao.findUnique({
+        where: { id: execucaoId },
+        select: { status: true },
+      });
+
+      return execucao?.status === "CANCELADA";
     },
   });
 

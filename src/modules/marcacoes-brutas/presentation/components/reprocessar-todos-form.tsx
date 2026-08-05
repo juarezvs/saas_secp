@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { RefreshCw } from "lucide-react";
 
 type Progresso = {
   percentual: number;
@@ -109,8 +110,12 @@ export function ReprocessarTodosForm() {
         type="button"
         disabled={executando}
         onClick={iniciar}
-        className="shrink-0 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex shrink-0 items-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-60"
       >
+        <RefreshCw
+          className={`size-4 ${executando ? "animate-spin" : ""}`}
+          aria-hidden="true"
+        />
         {executando ? "Reprocessando todos..." : "Reprocessar todos"}
       </button>
 

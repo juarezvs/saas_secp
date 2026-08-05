@@ -7,6 +7,7 @@ import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application
 import { listarFechamentosMensaisPaginado } from "@/modules/homologacao/infrastructure/repositories/homologacao.repository";
 import { rotuloStatusFechamento } from "@/modules/homologacao/application/services/formatar-homologacao.service";
 import { HomologacaoListagemControles } from "@/modules/homologacao/presentation/components/homologacao-listagem-controles";
+import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 import {
   calcularPrazoHomologacaoCompetenciaComCalendario,
   classeSituacaoPrazoRegulatorio,
@@ -87,7 +88,7 @@ function renderizarPrazoHomologacao(
 export default async function HomologacaoPage({
   searchParams,
 }: HomologacaoPageProps) {
-  await exigirUmaDasPermissoesOuRedirecionar([
+  const acesso = await exigirUmaDasPermissoesOuRedirecionar([
     "homologacao:gerenciar:chefia",
     "homologacao:consultar:global",
   ]);
@@ -96,12 +97,20 @@ export default async function HomologacaoPage({
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
   const competencia = normalizarCompetencia(params);
+  const podeConsultarGlobal = acesso.permissoes.includes(
+    "homologacao:consultar:global",
+  );
+  const unidadeIdsPermitidos =
+    !podeConsultarGlobal && acesso.usuarioId
+      ? await listarIdsUnidadesSubordinadasPorUsuario(acesso.usuarioId)
+      : undefined;
 
   const resultado = await listarFechamentosMensaisPaginado({
     busca: params.busca ?? "",
     anoReferencia: competencia.anoReferencia,
     mesReferencia: competencia.mesReferencia,
     unidade: params.unidade ?? "",
+    unidadeIdsPermitidos,
     status: params.status ?? "",
     pagina,
     itensPorPagina,

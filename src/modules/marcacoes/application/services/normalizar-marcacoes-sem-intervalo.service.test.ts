@@ -2,12 +2,17 @@ import { describe, expect, it, vi } from "vitest";
 
 import { normalizarMarcacoesSemIntervaloService } from "./normalizar-marcacoes-sem-intervalo.service";
 
-function criarMarcacao(id: string, dataHora: string, tipo: string) {
+function criarMarcacao(
+  id: string,
+  dataHora: string,
+  tipo: string,
+  fonte = "EQUIPAMENTO_BIOMETRICO",
+) {
   return {
     id,
     dataHora: new Date(dataHora),
     tipo,
-    fonte: "EQUIPAMENTO_BIOMETRICO",
+    fonte,
   };
 }
 
@@ -62,5 +67,57 @@ describe("normalizarMarcacoesSemIntervalo", () => {
       { id: "saida", tipo: "SAIDA" },
     ]);
     expect(update).toHaveBeenCalledTimes(3);
+  });
+
+  it("considera ajuste manual administrativo ao reclassificar dia sem intervalo", async () => {
+    const update = vi.fn().mockResolvedValue(undefined);
+    const client = { marcacao: { update } };
+    const marcacoes = [
+      criarMarcacao(
+        "ajuste-entrada",
+        "2026-07-24T12:23:00.000Z",
+        "ENTRADA",
+        "MANUAL_ADMINISTRATIVO",
+      ),
+      criarMarcacao("biometrica-saida", "2026-07-24T21:32:00.000Z", "ENTRADA"),
+    ];
+
+    const resultado = await normalizarMarcacoesSemIntervaloService(
+      client as never,
+      marcacoes,
+    );
+
+    expect(resultado.map(({ id, tipo }) => ({ id, tipo }))).toEqual([
+      { id: "ajuste-entrada", tipo: "ENTRADA" },
+      { id: "biometrica-saida", tipo: "SAIDA" },
+    ]);
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledWith({
+      where: { id: "biometrica-saida" },
+      data: { tipo: "SAIDA" },
+    });
+  });
+
+  it("nao altera marcacao isolada", async () => {
+    const update = vi.fn().mockResolvedValue(undefined);
+    const client = { marcacao: { update } };
+    const marcacoes = [
+      criarMarcacao(
+        "ajuste-saida",
+        "2026-07-24T21:32:00.000Z",
+        "SAIDA",
+        "MANUAL_ADMINISTRATIVO",
+      ),
+    ];
+
+    const resultado = await normalizarMarcacoesSemIntervaloService(
+      client as never,
+      marcacoes,
+    );
+
+    expect(resultado.map(({ id, tipo }) => ({ id, tipo }))).toEqual([
+      { id: "ajuste-saida", tipo: "SAIDA" },
+    ]);
+    expect(update).not.toHaveBeenCalled();
   });
 });

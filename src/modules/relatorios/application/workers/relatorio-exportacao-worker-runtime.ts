@@ -15,6 +15,7 @@ import { registrarAuditoriaEvento } from "@/modules/auditoria/application/servic
 import { prepararAutenticacaoEspelhoPonto } from "@/modules/documentos-autenticacao/application/services/documento-autenticacao.service";
 import { listarFechamentosMensaisParaExportacao } from "@/modules/homologacao/infrastructure/repositories/homologacao.repository";
 import { rotuloStatusFechamento } from "@/modules/homologacao/application/services/formatar-homologacao.service";
+import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 import { listarLotacoesComChefiasRegistradas } from "../../infrastructure/repositories/relatorios-gerenciais.repository";
 import {
   buscarDadosBancoHorasPdf,
@@ -56,11 +57,15 @@ function csv(linhas: Array<Array<string | number | null | undefined>>) {
 }
 
 async function gerarHomologacaoCsv(job: Job<RelatorioExportacaoJobData>) {
+  const unidadeIdsPermitidos = await resolverUnidadeIdsPermitidosHomologacao(
+    job.data,
+  );
   const fechamentos = await listarFechamentosMensaisParaExportacao({
     busca: filtro(job.data, "busca"),
     anoReferencia: filtro(job.data, "anoReferencia"),
     mesReferencia: filtro(job.data, "mesReferencia"),
     unidade: filtro(job.data, "unidade"),
+    unidadeIdsPermitidos,
     status: filtro(job.data, "status"),
   });
 
@@ -202,11 +207,15 @@ const homologacaoPdfStyles = StyleSheet.create({
 });
 
 async function gerarHomologacaoPdf(job: Job<RelatorioExportacaoJobData>) {
+  const unidadeIdsPermitidos = await resolverUnidadeIdsPermitidosHomologacao(
+    job.data,
+  );
   const fechamentos = await listarFechamentosMensaisParaExportacao({
     busca: filtro(job.data, "busca"),
     anoReferencia: filtro(job.data, "anoReferencia"),
     mesReferencia: filtro(job.data, "mesReferencia"),
     unidade: filtro(job.data, "unidade"),
+    unidadeIdsPermitidos,
     status: filtro(job.data, "status"),
   });
   const documento = React.createElement(HomologacaoPdfDocument, {
@@ -220,6 +229,16 @@ async function gerarHomologacaoPdf(job: Job<RelatorioExportacaoJobData>) {
     contentType: "application/pdf",
     conteudo: buffer,
   });
+}
+
+async function resolverUnidadeIdsPermitidosHomologacao(
+  data: RelatorioExportacaoJobData,
+) {
+  if (data.permissoes.includes("homologacao:consultar:global")) {
+    return undefined;
+  }
+
+  return listarIdsUnidadesSubordinadasPorUsuario(data.usuarioId);
 }
 
 async function gerarLotacoesChefiasPdf(job: Job<RelatorioExportacaoJobData>) {
@@ -282,6 +301,16 @@ async function gerarEspelhoPontoPdf(job: Job<RelatorioExportacaoJobData>) {
     throw new Error("Servidor nao encontrado.");
   }
 
+  const podeExportar = await podeGerarEspelhoPontoParaServidor({
+    usuarioId: job.data.usuarioId,
+    permissoes: job.data.permissoes,
+    servidor: dados.servidor,
+  });
+
+  if (!podeExportar) {
+    throw new Error("Acesso negado ao servidor informado.");
+  }
+
   const autenticacao = await prepararAutenticacaoEspelhoPonto({
     dados,
     requestUrl: filtro(job.data, "requestUrl") || "about:blank",
@@ -323,6 +352,49 @@ async function gerarEspelhoPontoPdf(job: Job<RelatorioExportacaoJobData>) {
     contentType: "application/pdf",
     conteudo: buffer,
   });
+}
+
+async function podeGerarEspelhoPontoParaServidor(params: {
+  usuarioId: string;
+  permissoes: string[];
+  servidor: {
+    usuarioId: string | null;
+    lotacoes: {
+      unidadeId: string;
+    }[];
+  };
+}) {
+  if (
+    params.permissoes.includes("relatorios:exportar:global") ||
+    params.permissoes.includes("apuracao:consultar:global")
+  ) {
+    return true;
+  }
+
+  if (
+    (params.permissoes.includes("relatorios:exportar:proprio") ||
+      params.permissoes.includes("espelho-ponto:visualizar:proprio")) &&
+    params.servidor.usuarioId === params.usuarioId
+  ) {
+    return true;
+  }
+
+  const podeExportarComoChefia =
+    params.permissoes.includes("homologacao:gerenciar:chefia") ||
+    params.permissoes.includes("minha-equipe:consultar:chefia") ||
+    params.permissoes.includes("relatorios-gerenciais:exportar:chefia");
+
+  if (!podeExportarComoChefia) {
+    return false;
+  }
+
+  const unidadesSubordinadas = await listarIdsUnidadesSubordinadasPorUsuario(
+    params.usuarioId,
+  );
+
+  return unidadesSubordinadas.some((unidadeId) =>
+    params.servidor.lotacoes.some((lotacao) => lotacao.unidadeId === unidadeId),
+  );
 }
 
 async function gerarBancoHorasPdf(job: Job<RelatorioExportacaoJobData>) {

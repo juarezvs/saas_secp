@@ -66,6 +66,13 @@ function afastamentoSarhEhFerias(afastamento: SarhAfastamentoDto) {
   ].some((valor) => textoNormalizadoSarh(String(valor ?? "")).includes("FERIAS"));
 }
 
+export class SarhSyncCanceladoError extends Error {
+  constructor(message = "Sincronizacao SARH cancelada pelo usuario.") {
+    super(message);
+    this.name = "SarhSyncCanceladoError";
+  }
+}
+
 export class SincronizarSarhUseCase {
   constructor(
     private readonly prisma: PrismaLike,
@@ -138,6 +145,18 @@ export class SincronizarSarhUseCase {
     const contadores = repository.novoContadores();
     const iniciadoEm = execucao.iniciadoEm;
     const totalEndpoints = endpoints.length;
+    const verificarCancelamento = async () => {
+      const cancelada =
+        (await input.verificarCancelamento?.(execucao.id)) ??
+        ((await this.prisma.integracaoSarhExecucao.findUnique({
+          where: { id: execucao.id },
+          select: { status: true },
+        }))?.status === "CANCELADA");
+
+      if (cancelada) {
+        throw new SarhSyncCanceladoError();
+      }
+    };
 
     const publicarProgresso = async (
       params: {
@@ -148,6 +167,8 @@ export class SincronizarSarhUseCase {
         status?: SarhSyncProgress["status"];
       },
     ) => {
+      await verificarCancelamento();
+
       const percentualEndpoint = Math.max(
         0,
         Math.min(100, Math.round(params.percentualEndpoint)),
@@ -850,6 +871,46 @@ export class SincronizarSarhUseCase {
         duracaoMs: finalizadoEm.getTime() - iniciadoEm.getTime(),
       };
     } catch (error) {
+      if (error instanceof SarhSyncCanceladoError) {
+        await repository.finalizarExecucao({
+          execucaoId: execucao.id,
+          iniciadoEm,
+          contadores,
+          cancelada: true,
+        });
+        await input.atualizarProgresso?.({
+          execucaoId: execucao.id,
+          percentualGeral: 100,
+          percentualEndpoint: 100,
+          endpointAtual: null,
+          endpointIndice: totalEndpoints,
+          totalEndpoints,
+          etapa: error.message,
+          status: "CANCELADA",
+          contadores: { ...contadores },
+        });
+
+        await repository.registrarLog({
+          integracaoId: integracao.id,
+          status: "IGNORADO",
+          mensagem: error.message,
+          payloadEntrada: input,
+          metadados: {
+            execucaoId: execucao.id,
+          },
+          iniciadoEm,
+        });
+
+        return {
+          execucaoId: execucao.id,
+          modoSimulacao,
+          ...contadores,
+          iniciadoEm,
+          finalizadoEm: new Date(),
+          duracaoMs: Date.now() - iniciadoEm.getTime(),
+        };
+      }
+
       const mensagem = error instanceof Error ? error.message : String(error);
 
       await repository.finalizarExecucao({

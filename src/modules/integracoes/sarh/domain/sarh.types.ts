@@ -283,7 +283,7 @@ export type SarhSyncProgress = {
   endpointIndice: number;
   totalEndpoints: number;
   etapa: string;
-  status: "AGENDADA" | "EM_EXECUCAO" | "CONCLUIDA" | "FALHOU";
+  status: "AGENDADA" | "EM_EXECUCAO" | "CONCLUIDA" | "FALHOU" | "CANCELADA";
   contadores: {
     totalRecebidos: number;
     totalCriados: number;

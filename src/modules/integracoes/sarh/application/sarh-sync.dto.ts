@@ -15,6 +15,7 @@ export type SincronizarSarhInput = {
   codigosUnidadesSarhPermitidos?: number[];
   codigoCargoSarh?: number;
   atualizarProgresso?: (progresso: SarhSyncProgress) => Promise<void> | void;
+  verificarCancelamento?: (execucaoId: string) => Promise<boolean> | boolean;
 };
 
 export const ENDPOINTS_PADRAO_SARH: SarhEndpointKey[] = [

@@ -8,6 +8,8 @@ import {
   useState,
   type FormEvent,
 } from "react";
+import { Play, ShieldCheck, Square } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type {
   SarhEndpointKey,
   SarhResumoExecucao,
@@ -55,6 +57,7 @@ type JobEstado =
   | "active"
   | "completed"
   | "failed"
+  | "cancelled"
   | "unknown";
 
 type SarhSyncStatusResponse = {
@@ -131,6 +134,7 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
   const [resultado, setResultado] = useState<SarhResumoExecucao | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [enfileirando, setEnfileirando] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const matriculaAtiva = Boolean(matriculaFiltro.trim());
@@ -138,27 +142,33 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
   const endpointAtualRotulo = progresso.endpointAtual
     ? endpointLabels.get(progresso.endpointAtual)
     : estadoJob === "completed"
-      ? "Todos os endpoints concluídos"
+      ? "Todos os endpoints concluidos"
       : estadoJob === "failed"
-        ? "Execução interrompida"
-        : "Aguardando início";
+        ? "Execucao interrompida"
+        : estadoJob === "cancelled"
+          ? "Sincronizacao cancelada"
+          : "Aguardando inicio";
   const statusVisual = enfileirando
     ? "ENFILEIRANDO"
     : estadoJob === "completed"
-      ? "CONCLUÃDA"
+      ? "CONCLUIDA"
       : estadoJob === "failed"
         ? "FALHA"
-        : estadoJob === "active"
-          ? "EM EXECUÇÃO"
-          : estadoJob === "waiting" || estadoJob === "delayed"
-            ? "AGENDADA"
-            : "PRONTO";
+        : estadoJob === "cancelled"
+          ? "CANCELADA"
+          : estadoJob === "active"
+            ? "EM EXECUCAO"
+            : estadoJob === "waiting" || estadoJob === "delayed"
+              ? "AGENDADA"
+              : "PRONTO";
   const corBarra =
     estadoJob === "failed"
       ? "bg-red-600"
-      : estadoJob === "completed"
-        ? "bg-green-600"
-        : "bg-blue-700";
+      : estadoJob === "cancelled"
+        ? "bg-amber-600"
+        : estadoJob === "completed"
+          ? "bg-green-600"
+          : "bg-blue-700";
   const resumo = useMemo(
     () => montarResumo(progresso, resultado),
     [progresso, resultado],
@@ -189,7 +199,11 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
       setResultado(status.resultado ?? null);
       setErro(status.erro ?? null);
 
-      if (status.estado === "completed" || status.estado === "failed") {
+      if (
+        status.estado === "completed" ||
+        status.estado === "failed" ||
+        status.estado === "cancelled"
+      ) {
         pararPolling();
         window.localStorage.removeItem(STORAGE_JOB_ID);
       }
@@ -287,6 +301,41 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
       setEstadoJob("failed");
     } finally {
       setEnfileirando(false);
+    }
+  }
+
+  async function handleCancelar() {
+    if (!jobId || cancelando) {
+      return;
+    }
+
+    setCancelando(true);
+    setErro(null);
+
+    try {
+      const response = await fetch(
+        `/api/integracoes/sarh/sincronizar?jobId=${encodeURIComponent(jobId)}`,
+        { method: "DELETE", cache: "no-store" },
+      );
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as {
+          message?: string;
+        } | null;
+        throw new Error(body?.message ?? "Falha ao parar a sincronizacao.");
+      }
+
+      const status = (await response.json()) as SarhSyncStatusResponse;
+      setEstadoJob(status.estado);
+      setProgresso(status.progresso);
+      setResultado(status.resultado ?? null);
+      setErro(status.erro ?? null);
+      pararPolling();
+      window.localStorage.removeItem(STORAGE_JOB_ID);
+    } catch (error) {
+      setErro(error instanceof Error ? error.message : String(error));
+    } finally {
+      setCancelando(false);
     }
   }
 
@@ -537,28 +586,42 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
       </fieldset>
 
       <div className="flex flex-wrap gap-3">
-        <button
+        <Button
           type="submit"
           name="modo"
           value="simulacao"
           disabled={emAndamento}
-          className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-100 dark:text-slate-950"
+          variant="secondary"
+          leftIcon={<ShieldCheck className="size-4" aria-hidden="true" />}
+          loading={emAndamento && modoSelecionado === "simulacao"}
         >
           {emAndamento && modoSelecionado === "simulacao"
             ? "Simulando..."
             : "Simular"}
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
           name="modo"
           value="aplicar"
           disabled={emAndamento}
-          className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+          leftIcon={<Play className="size-4" aria-hidden="true" />}
+          loading={emAndamento && modoSelecionado === "aplicar"}
         >
           {emAndamento && modoSelecionado === "aplicar"
             ? "Aplicando..."
-            : "Aplicar sincronização"}
-        </button>
+            : "Aplicar sincronizacao"}
+        </Button>
+        {emAndamento && jobId && (
+          <Button
+            type="button"
+            variant="danger"
+            onClick={handleCancelar}
+            loading={cancelando}
+            leftIcon={<Square className="size-4" aria-hidden="true" />}
+          >
+            {cancelando ? "Parando..." : "Parar sincronizacao"}
+          </Button>
+        )}
       </div>
     </form>
   );

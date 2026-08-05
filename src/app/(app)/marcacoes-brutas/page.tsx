@@ -10,6 +10,7 @@ import {
 } from "@/modules/marcacoes-brutas/application/services/escopo-marcacoes-brutas.service";
 import { listarMarcacoesBrutasPaginado } from "@/modules/marcacoes-brutas/infrastructure/repositories/marcacao-bruta.repository";
 import { MarcacoesBrutasListagemControles } from "@/modules/marcacoes-brutas/presentation/components/marcacoes-brutas-listagem-controles";
+import { MarcacoesBrutasPageTabs } from "@/modules/marcacoes-brutas/presentation/components/marcacoes-brutas-page-tabs";
 import { MarcacoesBrutasTable } from "@/modules/marcacoes-brutas/presentation/components/marcacoes-brutas-table";
 import { ReprocessarMarcacoesBrutasEscopoForm } from "@/modules/marcacoes-brutas/presentation/components/reprocessar-marcacoes-brutas-escopo-form";
 import { ReprocessarMarcacoesBrutasForm } from "@/modules/marcacoes-brutas/presentation/components/reprocessar-marcacoes-brutas-form";
@@ -225,84 +226,90 @@ export default async function MarcacoesBrutasPage({
         />
       </section>
 
-      {podeReprocessarBrutas && (
-        <section className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
-          <h2 className="text-lg font-bold">Reprocessamento</h2>
-
-          <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-          Associe e processe novamente as marcações brutas pendentes. O sistema
-          percorre automaticamente todos os lotes e preserva separadamente os
-          registros bloqueados por cadastro, jornada ou homologação.
-          </p>
-
-          <ReprocessarMarcacoesBrutasEscopoForm
-          servidores={servidores.map((servidor) => ({
-            id: servidor.id,
-            matricula: servidor.matricula,
-            nome:
-              servidor.nomeFuncional ??
-              servidor.nomeCompletoSarh ??
-              "Servidor sem nome",
-          }))}
-          unidades={unidades.map((unidade) => ({
-            id: unidade.id,
-            label: unidade.label,
-          }))}
-          />
-          <ReprocessarMarcacoesBrutasForm rotuloBotao="Reprocessar pendentes" />
-          <ReprocessarTodosForm />
-        </section>
-      )}
-
-      <DataTableShell
-        title="Marcações brutas"
-        description="Fonte oficial e imutavel das marcações recebidas pelo SECP."
-        total={resultado.total}
-        pagina={resultado.pagina}
-        totalPaginas={resultado.totalPaginas}
-        itensPorPagina={resultado.itensPorPagina}
-        montarHrefPagina={montarHrefPagina}
-        toolbar={
-          <MarcacoesBrutasListagemControles
-            exportCsvHref={`/api/marcacoes-brutas/export?${exportParams.toString()}`}
-            exportPdfHref={`/api/marcacoes-brutas/export/pdf?${exportParams.toString()}`}
-            pessoas={servidores.map((servidor) => {
-              const nome =
-                servidor.nomeFuncional ??
-                servidor.nomeCompletoSarh ??
-                "Pessoa sem nome";
-              return {
-                value: servidor.id,
-                label: `${servidor.matricula} - ${nome}`,
-                searchText: `${servidor.matricula} ${nome}`.toLowerCase(),
-              };
-            })}
-            equipamentos={equipamentosVisiveis.map((equipamento) => ({
-              value: equipamento.codigo,
-              label: `${equipamento.codigo} - ${equipamento.nome}`,
-              searchText: [
-                equipamento.codigo,
-                equipamento.nome,
-                equipamento.numeroSerie,
-                equipamento.orgao?.sigla,
-                equipamento.unidade?.sigla,
-              ]
-                .filter(Boolean)
-                .join(" ")
-                .toLowerCase(),
-            }))}
-            orgaos={orgaos.map((orgao) => ({
-              id: orgao.id,
-              sigla: orgao.sigla,
-            }))}
-          />
+      <MarcacoesBrutasPageTabs
+        marcacoes={
+          <DataTableShell
+            title="Marcacoes brutas"
+            description="Fonte oficial e imutavel das marcacoes recebidas pelo SECP."
+            total={resultado.total}
+            pagina={resultado.pagina}
+            totalPaginas={resultado.totalPaginas}
+            itensPorPagina={resultado.itensPorPagina}
+            montarHrefPagina={montarHrefPagina}
+            toolbar={
+              <MarcacoesBrutasListagemControles
+                exportCsvHref={`/api/marcacoes-brutas/export?${exportParams.toString()}`}
+                exportPdfHref={`/api/marcacoes-brutas/export/pdf?${exportParams.toString()}`}
+                pessoas={servidores.map((servidor) => {
+                  const nome =
+                    servidor.nomeFuncional ??
+                    servidor.nomeCompletoSarh ??
+                    "Pessoa sem nome";
+                  return {
+                    value: servidor.id,
+                    label: `${servidor.matricula} - ${nome}`,
+                    searchText: `${servidor.matricula} ${nome}`.toLowerCase(),
+                  };
+                })}
+                equipamentos={equipamentosVisiveis.map((equipamento) => ({
+                  value: equipamento.codigo,
+                  label: `${equipamento.codigo} - ${equipamento.nome}`,
+                  searchText: [
+                    equipamento.codigo,
+                    equipamento.nome,
+                    equipamento.numeroSerie,
+                    equipamento.orgao?.sigla,
+                    equipamento.unidade?.sigla,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase(),
+                }))}
+                orgaos={orgaos.map((orgao) => ({
+                  id: orgao.id,
+                  sigla: orgao.sigla,
+                }))}
+              />
+            }
+          >
+            <MarcacoesBrutasTable
+              marcacoes={resultado.marcacoes}
+              podeExcluirMarcacoes={podeExcluirMarcacoes}
+            />
+          </DataTableShell>
         }
-      >
-        <MarcacoesBrutasTable
-          marcacoes={resultado.marcacoes}
-          podeExcluirMarcacoes={podeExcluirMarcacoes}
-        />
-      </DataTableShell>
+        reprocessamento={
+          podeReprocessarBrutas ? (
+            <section className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
+              <h2 className="text-lg font-bold">Reprocessamento</h2>
+
+              <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
+                Associe e processe novamente as marcacoes brutas pendentes. O
+                sistema percorre automaticamente todos os lotes e preserva
+                separadamente os registros bloqueados por cadastro, jornada ou
+                homologacao.
+              </p>
+
+              <ReprocessarMarcacoesBrutasEscopoForm
+                servidores={servidores.map((servidor) => ({
+                  id: servidor.id,
+                  matricula: servidor.matricula,
+                  nome:
+                    servidor.nomeFuncional ??
+                    servidor.nomeCompletoSarh ??
+                    "Servidor sem nome",
+                }))}
+                unidades={unidades.map((unidade) => ({
+                  id: unidade.id,
+                  label: unidade.label,
+                }))}
+              />
+              <ReprocessarMarcacoesBrutasForm rotuloBotao="Reprocessar pendentes" />
+              <ReprocessarTodosForm />
+            </section>
+          ) : undefined
+        }
+      />
     </div>
   );
 }

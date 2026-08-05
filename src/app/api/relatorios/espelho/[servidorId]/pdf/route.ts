@@ -4,6 +4,8 @@ import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import { auth } from "@/auth";
 import { withHttpMetrics } from "@/lib/observability/http";
 import { registrarAuditoriaEvento } from "@/modules/auditoria/application/services/registrar-auditoria.service";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
+import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 import { prepararAutenticacaoEspelhoPonto } from "@/modules/documentos-autenticacao/application/services/documento-autenticacao.service";
 import { enfileirarRelatorioExportacaoResponse } from "@/modules/relatorios/application/services/relatorio-exportacao-response.service";
 import { buscarDadosEspelhoPontoPdf } from "@/modules/relatorios/infrastructure/repositories/relatorios.repository";
@@ -28,8 +30,18 @@ async function getRelatorioEspelhoPdf(request: Request, context: RouteContext) {
   }
 
   const permissoes = session.user.perfilAtivo?.permissoes ?? [];
+  const perfilCodigo = session.user.perfilAtivo?.codigo?.toUpperCase();
+  const perfilChefiaAtivo = perfilCodigo === "CHEFIA";
 
-  const podeExportarGlobal = permissoes.includes("relatorios:exportar:global");
+  const podeExportarGlobal =
+    !perfilChefiaAtivo &&
+    (permissoes.includes("relatorios:exportar:global") ||
+      permissoes.includes("apuracao:consultar:global"));
+  const podeExportarChefia =
+    perfilChefiaAtivo ||
+    permissoes.includes("homologacao:gerenciar:chefia") ||
+    permissoes.includes("minha-equipe:consultar:chefia") ||
+    permissoes.includes("relatorios-gerenciais:exportar:chefia");
 
   const podeExportarProprio = permissoes.includes(
     "relatorios:exportar:proprio",
@@ -40,6 +52,7 @@ async function getRelatorioEspelhoPdf(request: Request, context: RouteContext) {
 
   if (
     !podeExportarGlobal &&
+    !podeExportarChefia &&
     !podeExportarProprio &&
     !podeVisualizarEspelhoProprio
   ) {
@@ -65,6 +78,15 @@ async function getRelatorioEspelhoPdf(request: Request, context: RouteContext) {
       },
       select: {
         usuarioId: true,
+        orgaoId: true,
+        lotacoes: {
+          where: {
+            status: "ATIVO",
+          },
+          select: {
+            unidadeId: true,
+          },
+        },
       },
     });
 
@@ -74,7 +96,15 @@ async function getRelatorioEspelhoPdf(request: Request, context: RouteContext) {
       });
     }
 
-    if (!podeExportarGlobal && servidor.usuarioId !== session.user.id) {
+    if (
+      !(await podeExportarEspelhoServidor({
+        usuarioId: session.user.id,
+        servidor,
+        podeExportarGlobal,
+        podeExportarChefia,
+        podeExportarProprio: podeExportarProprio || podeVisualizarEspelhoProprio,
+      }))
+    ) {
       return new Response("Acesso negado ao servidor informado.", {
         status: 403,
       });
@@ -106,7 +136,15 @@ async function getRelatorioEspelhoPdf(request: Request, context: RouteContext) {
     });
   }
 
-  if (!podeExportarGlobal && dados.servidor.usuarioId !== session.user.id) {
+  if (
+    !(await podeExportarEspelhoServidor({
+      usuarioId: session.user.id,
+      servidor: dados.servidor,
+      podeExportarGlobal,
+      podeExportarChefia,
+      podeExportarProprio: podeExportarProprio || podeVisualizarEspelhoProprio,
+    }))
+  ) {
     return new Response("Acesso negado ao servidor informado.", {
       status: 403,
     });
@@ -166,3 +204,47 @@ export const GET = withHttpMetrics<Request, [RouteContext]>(
   "/api/relatorios/espelho/:id/pdf",
   getRelatorioEspelhoPdf,
 );
+
+async function podeExportarEspelhoServidor(params: {
+  usuarioId: string;
+  servidor: {
+    usuarioId: string | null;
+    orgaoId: string;
+    lotacoes: {
+      unidadeId: string;
+    }[];
+  };
+  podeExportarGlobal: boolean;
+  podeExportarChefia: boolean;
+  podeExportarProprio: boolean;
+}) {
+  if (
+    params.podeExportarProprio &&
+    params.servidor.usuarioId === params.usuarioId
+  ) {
+    return true;
+  }
+
+  if (params.podeExportarGlobal) {
+    const escopoOrgao = await obterEscopoOrgaoDaSessao();
+
+    if (
+      escopoOrgao.global ||
+      escopoOrgao.orgaoIds.includes(params.servidor.orgaoId)
+    ) {
+      return true;
+    }
+  }
+
+  if (!params.podeExportarChefia) {
+    return false;
+  }
+
+  const unidadesSubordinadas = await listarIdsUnidadesSubordinadasPorUsuario(
+    params.usuarioId,
+  );
+
+  return unidadesSubordinadas.some((unidadeId) =>
+    params.servidor.lotacoes.some((lotacao) => lotacao.unidadeId === unidadeId),
+  );
+}

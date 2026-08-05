@@ -12,6 +12,7 @@ import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/appli
 import {
   listarBoletinsFrequenciaPaginado,
   listarFechamentosHomologadosSemBoletim,
+  listarUnidadesBoletimFrequencia,
 } from "@/modules/boletim-frequencia/infrastructure/repositories/boletim-frequencia.repository";
 import {
   classeStatusBoletim,
@@ -34,6 +35,7 @@ type BoletimFrequenciaPageProps = {
     anoReferencia?: string;
     mesReferencia?: string;
     unidade?: string;
+    unidadeId?: string;
     status?: string;
     pagina?: string;
     itensPorPagina?: string;
@@ -95,6 +97,12 @@ export default async function BoletimFrequenciaPage({
     acesso.permissoes,
     "boletim-frequencia:gerar:chefia",
   );
+  const podeConsultarGlobal = acesso.permissoes.some((permissao) =>
+    [
+      "boletim-frequencia:receber:global",
+      "boletim-frequencia:consultar:global",
+    ].includes(permissao),
+  );
   const session = await auth();
 
   const params = searchParams ? await searchParams : {};
@@ -103,24 +111,35 @@ export default async function BoletimFrequenciaPage({
   const competencia = normalizarCompetencia(params);
 
   const unidadeIdsPermitidos =
-    podeGerar && session?.user
+    !podeConsultarGlobal && session?.user
       ? await listarIdsUnidadesSubordinadasPorUsuario(session.user.id)
       : [];
+  const unidadeIdsEscopo = podeConsultarGlobal
+    ? undefined
+    : unidadeIdsPermitidos;
 
-  const [resultado, fechamentosDisponiveis] = await Promise.all([
-    listarBoletinsFrequenciaPaginado({
-      busca: params.busca ?? "",
-      anoReferencia: competencia.anoReferencia,
-      mesReferencia: competencia.mesReferencia,
-      unidade: params.unidade ?? "",
-      status: params.status ?? "",
-      pagina,
-      itensPorPagina,
-    }),
-    podeGerar
-      ? listarFechamentosHomologadosSemBoletim({ unidadeIdsPermitidos })
-      : Promise.resolve([]),
-  ]);
+  const [resultado, fechamentosDisponiveis, unidadesBoletim] =
+    await Promise.all([
+      listarBoletinsFrequenciaPaginado({
+        busca: params.busca ?? "",
+        anoReferencia: competencia.anoReferencia,
+        mesReferencia: competencia.mesReferencia,
+        unidade: params.unidade ?? "",
+        unidadeId: params.unidadeId ?? "",
+        unidadeIdsPermitidos: unidadeIdsEscopo,
+        status: params.status ?? "",
+        pagina,
+        itensPorPagina,
+      }),
+      podeGerar
+        ? listarFechamentosHomologadosSemBoletim({
+            unidadeIdsPermitidos: unidadeIdsEscopo,
+          })
+        : Promise.resolve([]),
+      listarUnidadesBoletimFrequencia({
+        unidadeIdsPermitidos: unidadeIdsEscopo,
+      }),
+    ]);
   const prazosPorBoletim = new Map<
     string,
     Awaited<
@@ -143,7 +162,12 @@ export default async function BoletimFrequenciaPage({
 
   const exportParams = new URLSearchParams();
 
-  for (const chave of ["busca", "competencia", "unidade", "status"] as const) {
+  for (const chave of [
+    "busca",
+    "competencia",
+    "unidadeId",
+    "status",
+  ] as const) {
     if (params[chave]) {
       exportParams.set(chave, params[chave]!);
     }
@@ -274,6 +298,22 @@ export default async function BoletimFrequenciaPage({
           <BoletinsListagemControles
             exportCsvHref={`/api/boletim-frequencia/export?${exportParams.toString()}`}
             exportPdfHref={`/api/boletim-frequencia/export/pdf?${exportParams.toString()}`}
+            unidades={unidadesBoletim.map((unidade) => ({
+              value: unidade.id,
+              label: `${unidade.unidadePai?.sigla ?? unidade.orgao.sigla} / ${unidade.sigla}`,
+              searchText: [
+                unidade.unidadePai?.sigla,
+                unidade.sigla,
+                unidade.nome,
+                unidade.orgao.sigla,
+                unidade.unidadePai?.nome,
+              ]
+                .filter(Boolean)
+                .join(" "),
+              grupo: unidade.unidadePai
+                ? `${unidade.unidadePai.sigla} - ${unidade.unidadePai.nome}`
+                : `${unidade.orgao.sigla} - unidades raiz`,
+            }))}
           />
         }
       >

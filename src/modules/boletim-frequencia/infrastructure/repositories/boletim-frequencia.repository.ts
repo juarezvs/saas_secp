@@ -7,6 +7,9 @@ export type ListarBoletinsFrequenciaParams = {
   anoReferencia?: string;
   mesReferencia?: string;
   unidade?: string;
+  unidadeId?: string;
+  unidadeIds?: string[];
+  unidadeIdsPermitidos?: string[];
   status?: string;
 };
 
@@ -26,23 +29,61 @@ export function montarWhereBoletinsFrequencia(
   const busca = params.busca?.trim();
   const anoReferencia = Number(params.anoReferencia);
   const mesReferencia = Number(params.mesReferencia);
+  const unidadeIdsSelecionados = [
+    ...(params.unidadeId ? [params.unidadeId] : []),
+    ...(params.unidadeIds ?? []),
+  ].filter(Boolean);
+  const unidadeIdsPermitidos = params.unidadeIdsPermitidos?.filter(Boolean);
+  const unidadeIdsSelecionadosPermitidos =
+    unidadeIdsPermitidos && unidadeIdsPermitidos.length > 0
+      ? unidadeIdsSelecionados.filter((id) => unidadeIdsPermitidos.includes(id))
+      : unidadeIdsSelecionados;
+  const unidadeIdsFiltrados =
+    params.unidadeIdsPermitidos && unidadeIdsPermitidos?.length === 0
+      ? ["__sem_unidades_permitidas__"]
+      : unidadeIdsPermitidos && unidadeIdsPermitidos.length > 0
+        ? unidadeIdsSelecionados.length > 0
+          ? unidadeIdsSelecionadosPermitidos.length > 0
+            ? unidadeIdsSelecionadosPermitidos
+            : ["__sem_unidades_permitidas__"]
+          : unidadeIdsPermitidos
+        : unidadeIdsSelecionados;
 
   return {
     ...(Number.isInteger(anoReferencia) && anoReferencia > 0
       ? { anoReferencia }
       : {}),
-    ...(Number.isInteger(mesReferencia) && mesReferencia >= 1 && mesReferencia <= 12
+    ...(Number.isInteger(mesReferencia) &&
+    mesReferencia >= 1 &&
+    mesReferencia <= 12
       ? { mesReferencia }
       : {}),
     ...(params.status && ehStatusBoletim(params.status)
       ? { status: params.status as never }
       : {}),
-    ...(params.unidade
+    ...(unidadeIdsFiltrados.length > 0
+      ? {
+          unidadeId: {
+            in: unidadeIdsFiltrados,
+          },
+        }
+      : {}),
+    ...(params.unidade && unidadeIdsFiltrados.length === 0
       ? {
           unidade: {
             OR: [
-              { sigla: { contains: params.unidade, mode: "insensitive" as const } },
-              { nome: { contains: params.unidade, mode: "insensitive" as const } },
+              {
+                sigla: {
+                  contains: params.unidade,
+                  mode: "insensitive" as const,
+                },
+              },
+              {
+                nome: {
+                  contains: params.unidade,
+                  mode: "insensitive" as const,
+                },
+              },
             ],
           },
         }
@@ -59,7 +100,11 @@ export function montarWhereBoletinsFrequencia(
                 ],
               },
             },
-            { geradoPor: { nome: { contains: busca, mode: "insensitive" as const } } },
+            {
+              geradoPor: {
+                nome: { contains: busca, mode: "insensitive" as const },
+              },
+            },
           ],
         }
       : {}),
@@ -292,6 +337,123 @@ export async function buscarFechamentoParaBoletim(fechamentoId: string) {
         },
       },
       boletimFrequencia: true,
+    },
+  });
+}
+
+export async function listarUnidadesBoletimFrequencia(params?: {
+  unidadeIdsPermitidos?: string[];
+}) {
+  const unidadeIdsPermitidos = params?.unidadeIdsPermitidos?.filter(Boolean);
+
+  return prisma.unidadeOrganizacional.findMany({
+    where: {
+      ativo: true,
+      boletimFrequencias: {
+        some: {},
+      },
+      ...(params?.unidadeIdsPermitidos && unidadeIdsPermitidos?.length === 0
+        ? {
+            id: {
+              in: ["__sem_unidades_permitidas__"],
+            },
+          }
+        : unidadeIdsPermitidos && unidadeIdsPermitidos.length > 0
+          ? {
+              id: {
+                in: unidadeIdsPermitidos,
+              },
+            }
+          : {}),
+    },
+    select: {
+      id: true,
+      sigla: true,
+      nome: true,
+      unidadePaiId: true,
+      unidadePai: {
+        select: {
+          sigla: true,
+          nome: true,
+        },
+      },
+      orgao: {
+        select: {
+          sigla: true,
+        },
+      },
+    },
+    orderBy: [
+      {
+        orgao: {
+          sigla: "asc",
+        },
+      },
+      {
+        unidadePai: {
+          sigla: "asc",
+        },
+      },
+      {
+        sigla: "asc",
+      },
+    ],
+  });
+}
+
+export async function listarBoletinsFrequenciaParaPdfAgrupado(
+  params: ListarBoletinsFrequenciaParams,
+) {
+  return prisma.boletimFrequencia.findMany({
+    where: montarWhereBoletinsFrequencia(params),
+    orderBy: [
+      { anoReferencia: "desc" },
+      { mesReferencia: "desc" },
+      {
+        unidade: {
+          sigla: "asc",
+        },
+      },
+      { geradoEm: "desc" },
+    ],
+    include: {
+      unidade: {
+        include: {
+          orgao: true,
+        },
+      },
+      geradoPor: true,
+      encaminhadoPor: true,
+      recebidoPor: true,
+      servidores: {
+        include: {
+          servidor: {
+            include: {
+              usuario: true,
+              lotacoes: {
+                where: {
+                  status: "ATIVO",
+                },
+                include: {
+                  unidade: {
+                    select: {
+                      sigla: true,
+                    },
+                  },
+                },
+                orderBy: {
+                  dataInicio: "desc",
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          servidor: {
+            matricula: "asc",
+          },
+        },
+      },
     },
   });
 }
