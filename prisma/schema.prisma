@@ -969,6 +969,9 @@ model RegulamentacaoPontoOrgao {
   percentualCreditoRecesso                       Int     @default(100) @map("percentual_credito_recesso")
   recessoIgnoraLimiteMensal                      Boolean @default(true) @map("recesso_ignora_limite_mensal")
   exigeAutorizacaoPreviaCredito                  Boolean @default(true) @map("exige_autorizacao_previa_credito")
+  bancoHorasAtivo                                Boolean @default(true) @map("banco_horas_ativo")
+  bancoHorasCompetenciaInicio                    String? @map("banco_horas_competencia_inicio") @db.VarChar(7)
+  horasExtrasAtivo                               Boolean @default(true) @map("horas_extras_ativo")
   horasForaExpedienteInconsistente               Boolean @default(false) @map("horas_fora_expediente_inconsistente")
   ativo                                          Boolean @default(true)
 

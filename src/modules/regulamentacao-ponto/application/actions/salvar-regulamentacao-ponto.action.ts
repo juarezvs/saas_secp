@@ -57,6 +57,13 @@ const regulamentacaoSchema = z.object({
   percentualCreditoRecesso: z.coerce.number().int().min(0).max(300),
   recessoIgnoraLimiteMensal: z.coerce.boolean().default(true),
   exigeAutorizacaoPreviaCredito: z.coerce.boolean().default(true),
+  bancoHorasAtivo: z.coerce.boolean().default(true),
+  bancoHorasCompetenciaInicio: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/)
+    .optional()
+    .or(z.literal("")),
+  horasExtrasAtivo: z.coerce.boolean().default(true),
   horasForaExpedienteInconsistente: z.coerce.boolean().default(false),
   ativo: z.coerce.boolean().default(true),
   recalcularCompetencia: z.coerce.boolean().default(false),
@@ -114,6 +121,11 @@ function extrairDados(formData: FormData) {
       formData,
       "exigeAutorizacaoPreviaCredito",
     ),
+    bancoHorasAtivo: checkboxLigado(formData, "bancoHorasAtivo"),
+    bancoHorasCompetenciaInicio: String(
+      formData.get("bancoHorasCompetenciaInicio") ?? "",
+    ),
+    horasExtrasAtivo: checkboxLigado(formData, "horasExtrasAtivo"),
     horasForaExpedienteInconsistente: checkboxLigado(
       formData,
       "horasForaExpedienteInconsistente",
@@ -161,11 +173,13 @@ export async function salvarRegulamentacaoPontoAction(formData: FormData) {
       ...dados,
       numeroPortaria: dados.numeroPortaria || null,
       descricao: dados.descricao || null,
+      bancoHorasCompetenciaInicio: dados.bancoHorasCompetenciaInicio || null,
     },
     create: {
       ...dados,
       numeroPortaria: dados.numeroPortaria || null,
       descricao: dados.descricao || null,
+      bancoHorasCompetenciaInicio: dados.bancoHorasCompetenciaInicio || null,
     },
   });
 

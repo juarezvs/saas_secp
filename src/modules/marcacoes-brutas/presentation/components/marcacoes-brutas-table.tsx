@@ -1,9 +1,7 @@
-import { Trash2 } from "lucide-react";
-
-import { excluirMarcacaoNutecAction } from "@/modules/marcacoes/application/actions/manter-marcacao-nutec.action";
 import { OrigemMarcacaoIcon } from "@/modules/marcacoes/presentation/components/origem-marcacao-icon";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { normalizarFusoHorario } from "@/modules/marcacoes/application/services/data-marcacao.service";
+import { CancelarMarcacaoBrutaButton } from "./cancelar-marcacao-bruta-button";
 
 type MarcacaoBrutaItem = {
   id: string;
@@ -181,7 +179,9 @@ export function MarcacoesBrutasTable({
               <th className="px-5 py-3">Equipamento</th>
               <th className="px-5 py-3">NSR/Código</th>
               <th className="px-5 py-3">Processamento</th>
-              {podeExcluirMarcacoes && <th className="px-5 py-3">Ações</th>}
+              {podeExcluirMarcacoes ? (
+                <th className="px-5 py-3">Ações</th>
+              ) : null}
               <th className="px-5 py-3">Marcação</th>
             </tr>
           </thead>
@@ -192,142 +192,134 @@ export function MarcacoesBrutasTable({
               const origemWeb = origemWebDoPayload(item.payloadOriginal);
 
               return (
-              <tr key={item.id} className="border-b last:border-b-0">
-                <td className="px-5 py-4">
-                  {formatarDataHoraSegura(
-                    item.dataHora,
-                    item.marcacao?.fusoHorario,
-                  )}
-                </td>
-
-                <td className="px-5 py-4">
-                  <OrigemMarcacaoIcon origem={item.origem} />
-                  {item.arquivoAfd && (
-                    <div className="mt-2 max-w-60 truncate text-xs text-(--muted-foreground)">
-                      {item.arquivoAfd.nomeOriginal}
-                    </div>
-                  )}
-                </td>
-
-                <td className="px-5 py-4 font-mono text-xs">
-                  <div>CPF: {cpf ?? "-"}</div>
-                  <div>Matrícula: {item.matricula ?? "-"}</div>
-                </td>
-
-                <td className="px-5 py-4">
-                  {item.servidor ? (
-                    <>
-                      <div className="font-semibold">
-                        {nomeServidor(item.servidor)}
-                      </div>
-                      <div className="mt-1 font-mono text-xs text-[var(--muted-foreground)]">
-                        {item.servidor.matricula}
-                      </div>
-                    </>
-                  ) : (
-                    <span className="text-[var(--muted-foreground)]">
-                      Não vinculado
-                    </span>
-                  )}
-                </td>
-
-                <td className="px-5 py-4 font-mono text-xs">
-                  {item.equipamento ? (
-                    <div className="space-y-1">
-                      <div className="font-semibold">{item.equipamento.codigo}</div>
-                      <div className="font-sans text-[var(--muted-foreground)]">
-                        {item.equipamento.nome}
-                      </div>
-                      {item.equipamento.numeroSerie && (
-                        <div className="text-[var(--muted-foreground)]">
-                          Serial: {item.equipamento.numeroSerie}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <div className="font-semibold">
-                        {item.equipamentoCodigo ?? origemWeb?.nome ?? "-"}
-                      </div>
-                      {origemWeb?.ip ? (
-                        <div className="font-sans text-[var(--muted-foreground)]">
-                          IP: {origemWeb.ip}
-                        </div>
-                      ) : null}
-                      {origemWeb?.nomeMaquina ? (
-                        <div className="font-sans text-[var(--muted-foreground)]">
-                          Máquina: {origemWeb.nomeMaquina}
-                        </div>
-                      ) : null}
-                      {origemWeb?.userAgent ? (
-                        <div className="max-w-56 truncate font-sans text-[var(--muted-foreground)]">
-                          {origemWeb.userAgent}
-                        </div>
-                      ) : null}
-                    </div>
-                  )}
-                </td>
-
-                <td className="px-5 py-4 font-mono text-xs">
-                  <div>NSR: {item.nsr ?? "-"}</div>
-                  <div>Código: {item.codigoExterno ?? "-"}</div>
-                </td>
-
-                <td className="px-5 py-4">
-                  <span
-                    className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                      item.processada
-                        ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
-                        : "bg-yellow-50 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300"
-                    }`}
-                  >
-                    {item.processada ? "Processada" : "Pendente"}
-                  </span>
-                </td>
-
-                {podeExcluirMarcacoes && (
+                <tr key={item.id} className="border-b last:border-b-0">
                   <td className="px-5 py-4">
-                    {item.marcacao && item.servidor ? (
-                      <form
-                        action={excluirMarcacaoNutecAction.bind(
-                          null,
-                          item.marcacao.id,
-                        )}
-                      >
-                        <button
-                          type="submit"
-                          className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950"
-                          title="Cancelar a marcação processada vinculada a este registro bruto"
-                        >
-                          <Trash2 className="size-3.5" aria-hidden="true" />
-                          Cancelar marcação
-                        </button>
-                      </form>
+                    {formatarDataHoraSegura(
+                      item.dataHora,
+                      item.marcacao?.fusoHorario,
+                    )}
+                  </td>
+
+                  <td className="px-5 py-4">
+                    <OrigemMarcacaoIcon origem={item.origem} />
+                    {item.arquivoAfd ? (
+                      <div className="mt-2 max-w-60 truncate text-xs text-(--muted-foreground)">
+                        {item.arquivoAfd.nomeOriginal}
+                      </div>
+                    ) : null}
+                  </td>
+
+                  <td className="px-5 py-4 font-mono text-xs">
+                    <div>CPF: {cpf ?? "-"}</div>
+                    <div>Matrícula: {item.matricula ?? "-"}</div>
+                  </td>
+
+                  <td className="px-5 py-4">
+                    {item.servidor ? (
+                      <>
+                        <div className="font-semibold">
+                          {nomeServidor(item.servidor)}
+                        </div>
+                        <div className="mt-1 font-mono text-xs text-[var(--muted-foreground)]">
+                          {item.servidor.matricula}
+                        </div>
+                      </>
                     ) : (
-                      <span className="text-xs text-[var(--muted-foreground)]">
-                        Sem marcação vinculada
+                      <span className="text-[var(--muted-foreground)]">
+                        Não vinculado
                       </span>
                     )}
                   </td>
-                )}
 
-                <td className="px-5 py-4">
-                  {item.marcacao ? (
-                    <>
-                      <div className="font-semibold">{item.marcacao.tipo}</div>
-                      <div className="mt-1 text-xs text-[var(--muted-foreground)]">
-                        {item.marcacao.status}
+                  <td className="px-5 py-4 font-mono text-xs">
+                    {item.equipamento ? (
+                      <div className="space-y-1">
+                        <div className="font-semibold">
+                          {item.equipamento.codigo}
+                        </div>
+                        <div className="font-sans text-[var(--muted-foreground)]">
+                          {item.equipamento.nome}
+                        </div>
+                        {item.equipamento.numeroSerie ? (
+                          <div className="text-[var(--muted-foreground)]">
+                            Serial: {item.equipamento.numeroSerie}
+                          </div>
+                        ) : null}
                       </div>
-                    </>
-                  ) : (
-                    "-"
-                  )}
-                </td>
-              </tr>
+                    ) : (
+                      <div className="space-y-1">
+                        <div className="font-semibold">
+                          {item.equipamentoCodigo ?? origemWeb?.nome ?? "-"}
+                        </div>
+                        {origemWeb?.ip ? (
+                          <div className="font-sans text-[var(--muted-foreground)]">
+                            IP: {origemWeb.ip}
+                          </div>
+                        ) : null}
+                        {origemWeb?.nomeMaquina ? (
+                          <div className="font-sans text-[var(--muted-foreground)]">
+                            Máquina: {origemWeb.nomeMaquina}
+                          </div>
+                        ) : null}
+                        {origemWeb?.userAgent ? (
+                          <div className="max-w-56 truncate font-sans text-[var(--muted-foreground)]">
+                            {origemWeb.userAgent}
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
+                  </td>
+
+                  <td className="px-5 py-4 font-mono text-xs">
+                    <div>NSR: {item.nsr ?? "-"}</div>
+                    <div>Código: {item.codigoExterno ?? "-"}</div>
+                  </td>
+
+                  <td className="px-5 py-4">
+                    <span
+                      className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                        item.processada
+                          ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
+                          : "bg-yellow-50 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300"
+                      }`}
+                    >
+                      {item.processada ? "Processada" : "Pendente"}
+                    </span>
+                  </td>
+
+                  {podeExcluirMarcacoes ? (
+                    <td className="px-5 py-4">
+                      {item.marcacao && item.servidor ? (
+                        <CancelarMarcacaoBrutaButton
+                          marcacaoId={item.marcacao.id}
+                        />
+                      ) : (
+                        <span className="text-xs text-[var(--muted-foreground)]">
+                          Sem marcação vinculada
+                        </span>
+                      )}
+                    </td>
+                  ) : null}
+
+                  <td className="px-5 py-4">
+                    {item.marcacao ? (
+                      <>
+                        <div className="font-semibold">
+                          {item.marcacao.tipo}
+                        </div>
+                        <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                          {item.marcacao.status}
+                        </div>
+                      </>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                </tr>
               );
             })}
 
-            {marcacoes.length === 0 && (
+            {marcacoes.length === 0 ? (
               <tr>
                 <td
                   colSpan={podeExcluirMarcacoes ? 9 : 8}
@@ -336,7 +328,7 @@ export function MarcacoesBrutasTable({
                   Nenhuma marcação bruta encontrada.
                 </td>
               </tr>
-            )}
+            ) : null}
           </tbody>
         </table>
       </div>

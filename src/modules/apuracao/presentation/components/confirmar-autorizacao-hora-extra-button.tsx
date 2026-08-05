@@ -14,6 +14,7 @@ export function ConfirmarAutorizacaoHoraExtraButton() {
   const processoSeiRef = useRef<HTMLInputElement | null>(null);
   const documentoSeiRef = useRef<HTMLInputElement | null>(null);
   const autoridadeRef = useRef<HTMLInputElement | null>(null);
+  const senhaAssinaturaRef = useRef<HTMLInputElement | null>(null);
   const justificativaRef = useRef<HTMLTextAreaElement | null>(null);
 
   function abrirConfirmacao(event: MouseEvent<HTMLButtonElement>) {
@@ -39,7 +40,8 @@ export function ConfirmarAutorizacaoHoraExtraButton() {
       !justificativaRef.current?.reportValidity() ||
       !processoSeiRef.current?.reportValidity() ||
       !documentoSeiRef.current?.reportValidity() ||
-      !autoridadeRef.current?.reportValidity()
+      !autoridadeRef.current?.reportValidity() ||
+      !senhaAssinaturaRef.current?.reportValidity()
     ) {
       return;
     }
@@ -48,6 +50,7 @@ export function ConfirmarAutorizacaoHoraExtraButton() {
       processoSei: processoSeiRef.current?.value ?? "",
       documentoSei: documentoSeiRef.current?.value ?? "",
       autoridade: autoridadeRef.current?.value ?? "",
+      senhaAssinatura: senhaAssinaturaRef.current?.value ?? "",
       justificativaProcedimento: justificativaRef.current?.value ?? "",
     };
 
@@ -159,6 +162,17 @@ export function ConfirmarAutorizacaoHoraExtraButton() {
               />
             </label>
           </div>
+          <label className="space-y-1.5 text-sm">
+            <span className="font-semibold">Senha da chefia</span>
+            <input
+              ref={senhaAssinaturaRef}
+              required
+              type="password"
+              autoComplete="current-password"
+              className="h-10 w-full rounded-md border bg-[var(--background)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              placeholder="Confirme com sua senha"
+            />
+          </label>
         </div>
       </Modal>
     </>

@@ -9,6 +9,7 @@ import {
   classificarDiaInstitucional,
 } from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { buscarRegulamentacaoPontoOrgao } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 
 import {
   criarSolicitacaoHorasExtrasSchema,
@@ -220,6 +221,17 @@ export async function criarSolicitacaoHorasExtrasAction(
 
   const dataReferencia = parseIsoDateOnly(parsed.data.periodStart);
   const dataFim = parseIsoDateOnly(parsed.data.periodEnd);
+  const regulamentacao = await buscarRegulamentacaoPontoOrgao(servidor.orgaoId);
+
+  if (!regulamentacao.horasExtrasAtivo) {
+    return {
+      sucesso: false,
+      mensagem:
+        "A rotina de horas extras não está ativa para a seccional do servidor.",
+      campos: parsed.data,
+    };
+  }
+
   const configuracao = await buscarConfiguracaoAtivaHorasExtras({
     orgaoId: servidor.orgaoId,
     scopeUnitId: lotacaoAtual.unidadeId,

@@ -6,6 +6,10 @@ import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/es
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarServidoresGestaoBancoHoras } from "@/modules/banco-horas/infrastructure/repositories/banco-horas.repository";
 import { GestaoBancoHorasListagem } from "@/modules/banco-horas/presentation/components/gestao-banco-horas-admin";
+import {
+  listarOrgaosAtivos,
+  listarUnidadesParaSelecao,
+} from "@/modules/unidades/infrastructure/repositories/unidade.repository";
 
 type AdministracaoBancoHorasPageProps = {
   searchParams: Promise<{
@@ -22,10 +26,15 @@ export default async function AdministracaoBancoHorasPage({
     searchParams,
     obterEscopoOrgaoDaSessao(),
   ]);
-  const servidores = await listarServidoresGestaoBancoHoras({
-    busca: params.busca,
-    orgaoIdsPermitidos: escopo.global ? undefined : escopo.orgaoIds,
-  });
+  const orgaoIdsPermitidos = escopo.global ? undefined : escopo.orgaoIds;
+  const [servidores, orgaos, unidades] = await Promise.all([
+    listarServidoresGestaoBancoHoras({
+      busca: params.busca,
+      orgaoIdsPermitidos,
+    }),
+    listarOrgaosAtivos({ orgaoIdsPermitidos }),
+    listarUnidadesParaSelecao({ orgaoIdsPermitidos }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -45,7 +54,12 @@ export default async function AdministracaoBancoHorasPage({
         regraDescricao="O saldo importado do controle paralelo é registrado como movimento auditável e o SECP passa a considerar o banco de horas a partir da competência definida."
       />
 
-      <GestaoBancoHorasListagem servidores={servidores} busca={params.busca} />
+      <GestaoBancoHorasListagem
+        servidores={servidores}
+        busca={params.busca}
+        orgaos={orgaos}
+        unidades={unidades}
+      />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
 import { buscarFotoServidorDataUrl } from "@/modules/servidores/application/services/foto-servidor.service";
 import { descricaoFuncaoOuCargoServidor } from "@/modules/servidores/application/services/funcao-cargo-servidor.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
+import { buscarRegulamentacaoPontoOrgao } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 import { AppShellClient } from "./app-shell-client";
 
 type AppShellProps = {
@@ -20,6 +21,7 @@ type AppShellProps = {
 };
 
 type OrgaoInstitucional = {
+  id?: string | null;
   sigla?: string | null;
   nome?: string | null;
 };
@@ -121,6 +123,11 @@ export async function AppShell({ children }: AppShellProps) {
   ]);
   const orgaoInstitucional =
     lotacaoAtual?.unidade.orgao ?? perfilAtivo.orgaos?.[0] ?? null;
+  const orgaoIdInstitucional =
+    servidor?.orgaoId ?? perfilAtivo.orgaos?.[0]?.id ?? null;
+  const regulamentacaoSeccional = await buscarRegulamentacaoPontoOrgao(
+    orgaoIdInstitucional,
+  );
   const usuario = {
     nome:
       nomeServidor(servidor) ||
@@ -133,6 +140,10 @@ export async function AppShell({ children }: AppShellProps) {
     preferenciasAcessibilidade: session.user.preferenciasAcessibilidade,
     unidade: lotacaoAtual?.unidade.nome ?? lotacaoAtual?.unidade.sigla ?? "",
     instituicaoLabel: montarRotuloInstituicao(orgaoInstitucional),
+    rotinasSeccional: {
+      bancoHorasAtivo: regulamentacaoSeccional.bancoHorasAtivo,
+      horasExtrasAtivo: regulamentacaoSeccional.horasExtrasAtivo,
+    },
     perfilAtivo: {
       id: perfilAtivo.id,
       codigo: perfilAtivo.codigo,

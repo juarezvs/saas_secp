@@ -29,7 +29,7 @@ export function NextActionCard({
           <p className="mt-1 text-xs leading-5 text-white/80">{descricao}</p>
           <Link
             href={href}
-            className="mt-3 inline-flex items-center gap-2 rounded-md bg-white px-3 py-1.5 text-sm font-bold text-secp-blue-900 shadow-sm transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className="mt-3 inline-flex items-center gap-2 rounded-md border border-[color-mix(in_srgb,var(--secp-theme-accent)_18%,white)] bg-[var(--secp-theme-accent-contrast)] px-3 py-1.5 text-sm font-bold text-[var(--secp-theme-accent)] shadow-sm transition hover:bg-[color-mix(in_srgb,var(--secp-theme-accent-contrast)_92%,var(--secp-theme-accent)_8%)] hover:text-[var(--secp-theme-accent-strong)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             Registrar ponto
             <ArrowRight className="size-4" aria-hidden="true" />

@@ -7,6 +7,11 @@ import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application
 import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 import { validarERegistrarProcedimentoFrequencia } from "@/modules/procedimentos-frequencia/application/services/motor-procedimentos-frequencia.service";
 import { recalcularMesServidorService } from "@/modules/recalculo/application/services/recalcular-mes-servidor.service";
+import { validarAssinaturaDocumento } from "@/modules/documentos-autenticacao/application/services/validar-assinatura-documento.service";
+import {
+  bancoHorasAtivoNaCompetencia,
+  buscarRegulamentacaoPontoOrgao,
+} from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 function parseDataReferencia(valor: FormDataEntryValue | null) {
@@ -101,6 +106,7 @@ export async function autorizarHoraExtraBancoHorasAction(formData: FormData) {
   const processoSei = textoOpcional(formData, "processoSei");
   const documentoSei = textoOpcional(formData, "documentoSei");
   const autoridade = textoOpcional(formData, "autoridade");
+  const senhaAssinatura = String(formData.get("senhaAssinatura") ?? "");
   const justificativaProcedimento = textoOpcional(
     formData,
     "justificativaProcedimento",
@@ -121,6 +127,11 @@ export async function autorizarHoraExtraBancoHorasAction(formData: FormData) {
   ) {
     return;
   }
+
+  await validarAssinaturaDocumento({
+    session,
+    senha: senhaAssinatura,
+  });
 
   if (
     !podeGerenciarGlobal &&
@@ -156,6 +167,23 @@ export async function autorizarHoraExtraBancoHorasAction(formData: FormData) {
     });
 
     if (!servidor) {
+      return;
+    }
+
+    const orgaoServidor = await tx.servidor.findUnique({
+      where: { id: servidorId },
+      select: { orgaoId: true },
+    });
+    const regulamentacao = await buscarRegulamentacaoPontoOrgao(
+      orgaoServidor?.orgaoId,
+    );
+
+    if (
+      !bancoHorasAtivoNaCompetencia(
+        regulamentacao,
+        `${anoReferencia}-${String(mesReferencia).padStart(2, "0")}`,
+      )
+    ) {
       return;
     }
 

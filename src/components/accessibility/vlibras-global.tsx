@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { Accessibility } from "lucide-react";
 
 const VLIBRAS_ROOT_ID = "secp-vlibras-root";
 const VLIBRAS_SCRIPT_ID = "vlibras-plugin";
@@ -238,11 +239,24 @@ export function VlibrasGlobal() {
   }, [pathname]);
 
   return (
-    <div id={VLIBRAS_ROOT_ID} vw="true" className="enabled">
-      <div vw-access-button="true" className="active" />
-      <div vw-plugin-wrapper="true">
-        <div className="vw-plugin-top-wrapper" />
+    <>
+      <button
+        type="button"
+        onClick={() => void abrirVlibrasGlobal()}
+        className="fixed bottom-4 right-4 z-[60] inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-semibold text-foreground shadow-lg transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring print:hidden"
+        aria-label="Abrir tradutor VLibras"
+        title="Abrir tradutor VLibras"
+      >
+        <Accessibility className="size-4" aria-hidden="true" />
+        <span className="hidden sm:inline">VLibras</span>
+      </button>
+
+      <div id={VLIBRAS_ROOT_ID} vw="true" className="enabled">
+        <div vw-access-button="true" className="active" />
+        <div vw-plugin-wrapper="true">
+          <div className="vw-plugin-top-wrapper" />
+        </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -760,3 +760,75 @@ html[data-font-size="30"] {
   pointer-events: none !important;
   right: -9999px !important;
 }
+
+.secp-facial-success {
+  animation: secp-facial-success-enter 260ms ease-out both;
+}
+
+.secp-facial-success-freeze {
+  animation: secp-facial-camera-freeze 620ms ease-out both;
+}
+
+.secp-facial-success-icon {
+  animation: secp-facial-success-icon 460ms 240ms cubic-bezier(0.2, 0.8, 0.2, 1.1)
+    both;
+}
+
+.secp-facial-success-text {
+  animation: secp-facial-success-text 360ms 520ms ease-out both;
+}
+
+@keyframes secp-facial-success-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes secp-facial-camera-freeze {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.9;
+    transform: scale(0.99);
+  }
+}
+
+@keyframes secp-facial-success-icon {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes secp-facial-success-text {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .secp-facial-success,
+  .secp-facial-success-freeze,
+  .secp-facial-success-icon,
+  .secp-facial-success-text {
+    animation-name: secp-facial-success-enter;
+  }
+}

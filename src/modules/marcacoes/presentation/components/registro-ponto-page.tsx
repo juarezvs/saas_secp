@@ -13,12 +13,13 @@ import {
 import {
   BadgeCheck,
   Clock3,
-  Fingerprint,
-  Gauge,
+  Coffee,
+  LogIn,
+  LogOut,
   PenLine,
+  RotateCcw,
   ScanFace,
   ShieldCheck,
-  UserRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -53,6 +54,7 @@ type RegistroPontoPageProps = {
     matricula: string;
     unidade: string;
     jornada: string;
+    exigeIntervalo: boolean;
     biometriaAtiva: boolean;
   } | null;
   marcacoes: Array<{
@@ -69,6 +71,24 @@ type RegistroPontoPageProps = {
   podeRegistrarFacial: boolean;
 };
 
+type EtapaMarcacao = {
+  tipo: "ENTRADA" | "SAIDA_INTERVALO" | "RETORNO_INTERVALO" | "SAIDA";
+  label: string;
+  icon: LucideIcon;
+};
+
+const ETAPAS_COM_INTERVALO: EtapaMarcacao[] = [
+  { tipo: "ENTRADA", label: "Entrada", icon: LogIn },
+  { tipo: "SAIDA_INTERVALO", label: "Saída intervalo", icon: Coffee },
+  { tipo: "RETORNO_INTERVALO", label: "Retorno", icon: RotateCcw },
+  { tipo: "SAIDA", label: "Saída", icon: LogOut },
+];
+
+const ETAPAS_SEM_INTERVALO: EtapaMarcacao[] = [
+  { tipo: "ENTRADA", label: "Entrada", icon: LogIn },
+  { tipo: "SAIDA", label: "Saída", icon: LogOut },
+];
+
 export function RegistroPontoPage({
   servidor,
   marcacoes,
@@ -77,6 +97,7 @@ export function RegistroPontoPage({
   podeRegistrarWeb,
   podeRegistrarFacial,
 }: RegistroPontoPageProps) {
+  const router = useRouter();
   const [reconhecimentoAberto, setReconhecimentoAberto] = useState(false);
   const [marcacaoDestacadaId, setMarcacaoDestacadaId] = useState<string | null>(
     null,
@@ -84,7 +105,6 @@ export function RegistroPontoPage({
   const deveRegistrarWeb = podeRegistrarWeb;
   const deveRegistrarFacial = !deveRegistrarWeb && podeRegistrarFacial;
   const ultimaMarcacao = marcacoes[marcacoes.length - 1] ?? null;
-  const progressoFluxo = Math.min(marcacoes.length, 4);
   const destacarMarcacaoRegistrada = useCallback((marcacaoId: string) => {
     setMarcacaoDestacadaId(marcacaoId);
   }, []);
@@ -92,15 +112,13 @@ export function RegistroPontoPage({
   useEffect(() => {
     if (!marcacaoDestacadaId) return;
 
-    const timer = window.setTimeout(() => {
-      setMarcacaoDestacadaId(null);
-    }, 6500);
+    const timer = window.setTimeout(() => setMarcacaoDestacadaId(null), 6500);
 
     return () => window.clearTimeout(timer);
   }, [marcacaoDestacadaId]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Breadcrumb
         items={[
           { label: "Marcações", href: "/marcacoes" },
@@ -111,7 +129,7 @@ export function RegistroPontoPage({
       <PageHeader
         icon={Clock3}
         titulo="Registrar horário"
-        descricao="Registro excepcional de ponto pelo SECP, liberado somente para servidores com autorização específica."
+        descricao="Registre a próxima marcação autorizada pelo SECP."
         artigo="Art. 6"
         regraTitulo="Registro eletrônico de frequência"
         regraDescricao="A marcação deve identificar o servidor, registrar data e hora e preservar a rastreabilidade da origem."
@@ -126,127 +144,124 @@ export function RegistroPontoPage({
         </Card>
       ) : (
         <>
-          <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
-            <Card className="overflow-hidden border-slate-200 shadow-sm dark:border-slate-800">
-              <div className="grid gap-5 bg-slate-950 p-5 text-white md:grid-cols-[1fr_auto] md:items-center">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-cyan-200">
-                    Registro excepcional autorizado
+          <Card className="overflow-hidden shadow-sm">
+            <div className="border-b bg-card p-4 md:p-5">
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase text-[var(--secp-theme-accent)]">
+                    Próxima marcação
                   </p>
-                  <h2 className="mt-2 text-3xl font-black tracking-normal">
+                  <h2 className="mt-1 text-2xl font-bold tracking-normal text-foreground md:text-3xl">
                     {fluxoConcluido
                       ? "Jornada registrada"
                       : (proximaMarcacao ?? "Aguardando classificação")}
                   </h2>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                    <StatusResumo
-                      icon={Gauge}
-                      label="Fluxo do dia"
-                      valor={`${progressoFluxo}/4`}
-                    />
-                    <StatusResumo
-                      icon={Clock3}
-                      label="Última marcação"
-                      valor={
-                        ultimaMarcacao
-                          ? formatarHora(
-                              ultimaMarcacao.dataHora,
-                              ultimaMarcacao.fusoHorario,
-                            )
-                          : "Sem registro"
-                      }
-                    />
-                    <StatusResumo
-                      icon={ShieldCheck}
-                      label="Origem liberada"
-                      valor={deveRegistrarWeb ? "Sistema web" : "Facial"}
-                    />
-                  </div>
+                  <p className="mt-2 truncate text-sm text-muted-foreground">
+                    {servidor.nome} · {servidor.matricula} · {servidor.unidade}
+                  </p>
                 </div>
                 <RelogioAgora />
               </div>
+            </div>
 
-              <div className="p-5 md:p-6">
+            <div className="p-4 md:p-5">
+              <StepperMarcacoes
+                exigeIntervalo={servidor.exigeIntervalo}
+                marcacoes={marcacoes}
+                fluxoConcluido={fluxoConcluido}
+              />
+
+              <div className="mt-5 grid gap-4 rounded-md border bg-muted/20 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
                 {fluxoConcluido ? (
-                  <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-4 text-green-900 dark:border-green-900 dark:bg-green-950 dark:text-green-100">
-                    <BadgeCheck className="mt-0.5 size-6 text-green-700" />
+                  <div className="flex items-start gap-3 text-green-800 dark:text-green-200">
+                    <BadgeCheck className="mt-0.5 size-5" aria-hidden="true" />
                     <div>
                       <p className="font-semibold">
                         Todas as marcações ordinárias foram registradas.
                       </p>
-                      <p className="mt-1 text-sm leading-6">
-                        Consulte o espelho de ponto para acompanhar a apuração
-                        da jornada.
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Consulte o espelho de ponto para acompanhar a apuração.
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
-                    <div className="flex items-start gap-3">
-                      <div className="rounded-md bg-emerald-50 p-2.5 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                        <Fingerprint className="size-5" aria-hidden="true" />
-                      </div>
-                      <div>
-                        <p className="font-semibold">
-                          {deveRegistrarFacial
-                            ? "Confirmação facial obrigatória"
-                            : "Assinatura para registro web"}
-                        </p>
-                        <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-                          {deveRegistrarFacial
-                            ? "Ao continuar, a câmera será aberta para validar sua identidade antes do registro."
-                            : "Ao registrar, o SECP gravará a marcação atual como Sistema Web, com assinatura eletrônica e trilha de auditoria."}
-                        </p>
-                      </div>
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-md bg-[var(--secp-theme-accent-soft)] p-2 text-[var(--secp-theme-accent)]">
+                      {deveRegistrarFacial ? (
+                        <ScanFace className="size-5" aria-hidden="true" />
+                      ) : (
+                        <ShieldCheck className="size-5" aria-hidden="true" />
+                      )}
                     </div>
-                    {deveRegistrarWeb ? (
-                      <RegistrarMarcacaoWebAssinaturaModal
-                        proximaMarcacao={proximaMarcacao}
-                        onRegistrada={destacarMarcacaoRegistrada}
-                      />
-                    ) : deveRegistrarFacial ? (
-                      <Button
-                        size="lg"
-                        onClick={() => setReconhecimentoAberto(true)}
-                        leftIcon={
-                          <ScanFace className="size-5" aria-hidden="true" />
-                        }
-                      >
-                        Registrar com reconhecimento facial
-                      </Button>
-                    ) : (
-                      <Badge variant="pendente">
-                        Registro pelo SECP não autorizado
-                      </Badge>
-                    )}
+                    <div>
+                      <p className="font-semibold">
+                        {deveRegistrarFacial
+                          ? "Reconhecimento facial"
+                          : "Registro via sistema web"}
+                      </p>
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                        {deveRegistrarFacial
+                          ? "Valide sua identidade para registrar o horário atual."
+                          : "Assine para gravar o horário atual com trilha de auditoria."}
+                      </p>
+                    </div>
                   </div>
                 )}
-              </div>
-            </Card>
 
-            <Card className="p-5 shadow-sm">
-              <div className="flex items-center gap-2">
-                <UserRound className="size-5 text-blue-900 dark:text-blue-300" />
-                <h2 className="font-semibold">Servidor ativo</h2>
+                {!fluxoConcluido && deveRegistrarWeb ? (
+                  <RegistrarMarcacaoWebAssinaturaModal
+                    proximaMarcacao={proximaMarcacao}
+                    onRegistrada={destacarMarcacaoRegistrada}
+                  />
+                ) : null}
+                {!fluxoConcluido && deveRegistrarFacial ? (
+                  <Button
+                    size="lg"
+                    onClick={() => setReconhecimentoAberto(true)}
+                    leftIcon={<ScanFace className="size-5" aria-hidden="true" />}
+                  >
+                    Registrar com reconhecimento facial
+                  </Button>
+                ) : null}
+                {!fluxoConcluido && !deveRegistrarWeb && !deveRegistrarFacial ? (
+                  <Badge variant="pendente">
+                    Registro pelo SECP não autorizado
+                  </Badge>
+                ) : null}
               </div>
-              <dl className="mt-4 grid gap-3 text-sm">
-                <InfoLinha label="Nome" valor={servidor.nome} />
-                <InfoLinha label="Matrícula" valor={servidor.matricula} />
-                <InfoLinha label="Unidade" valor={servidor.unidade} />
-                <InfoLinha label="Jornada" valor={servidor.jornada} />
-              </dl>
-            </Card>
-          </section>
+
+              <div className="mt-4 grid gap-3 text-sm md:grid-cols-3">
+                <ContextoRegistro label="Jornada" valor={servidor.jornada} />
+                <ContextoRegistro
+                  label="Última marcação"
+                  valor={
+                    ultimaMarcacao
+                      ? formatarHora(
+                          ultimaMarcacao.dataHora,
+                          ultimaMarcacao.fusoHorario,
+                        )
+                      : "Sem registro"
+                  }
+                />
+                <ContextoRegistro
+                  label="Origem autorizada"
+                  valor={
+                    deveRegistrarWeb ? "Sistema web" : "Reconhecimento facial"
+                  }
+                />
+              </div>
+            </div>
+          </Card>
 
           <Card className="overflow-hidden shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 md:px-5">
               <div className="flex items-center gap-2">
-                <Clock3 className="size-5 text-blue-900 dark:text-blue-300" />
-                <h2 className="text-lg font-semibold">Marcações do dia</h2>
+                <Clock3 className="size-5 text-[var(--secp-theme-accent)]" />
+                <h2 className="font-semibold">Marcações de hoje</h2>
               </div>
               <Link
                 href="/marcacoes"
-                className="text-sm font-semibold text-blue-800 hover:underline dark:text-blue-300"
+                className="text-sm font-semibold text-[var(--secp-theme-accent)] hover:underline"
               >
                 Ver histórico
               </Link>
@@ -263,8 +278,8 @@ export function RegistroPontoPage({
               ))}
 
               {marcacoes.length === 0 && (
-                <div className="p-8 text-center">
-                  <Clock3 className="mx-auto size-8 text-muted-foreground" />
+                <div className="p-6 text-center">
+                  <Clock3 className="mx-auto size-7 text-muted-foreground" />
                   <p className="mt-3 font-semibold">Nenhuma marcação hoje</p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     O primeiro registro será identificado como entrada.
@@ -284,7 +299,16 @@ export function RegistroPontoPage({
             className="max-h-[92vh] overflow-y-auto sm:w-[min(92vw,480px)]"
           >
             {servidor.biometriaAtiva ? (
-              <ValidacaoFacialCard compact />
+              <ValidacaoFacialCard
+                compact
+                onRegistroConcluido={(marcacaoId) => {
+                  setReconhecimentoAberto(false);
+                  if (marcacaoId) {
+                    destacarMarcacaoRegistrada(marcacaoId);
+                  }
+                  router.refresh();
+                }}
+              />
             ) : (
               <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
                 <p className="font-semibold">Biometria facial não cadastrada</p>
@@ -414,6 +438,68 @@ function RegistrarMarcacaoWebAssinaturaModal({
   );
 }
 
+function StepperMarcacoes({
+  exigeIntervalo,
+  marcacoes,
+  fluxoConcluido,
+}: {
+  exigeIntervalo: boolean;
+  marcacoes: RegistroPontoPageProps["marcacoes"];
+  fluxoConcluido: boolean;
+}) {
+  const etapas = exigeIntervalo ? ETAPAS_COM_INTERVALO : ETAPAS_SEM_INTERVALO;
+  const primeiraPendente = etapas.findIndex(
+    (etapa) => !marcacoes.some((marcacao) => marcacao.tipo === etapa.tipo),
+  );
+
+  return (
+    <ol className="grid gap-2 sm:grid-cols-[repeat(var(--steps),minmax(0,1fr))]" style={{ "--steps": etapas.length } as React.CSSProperties}>
+      {etapas.map((etapa, index) => {
+        const marcacao = marcacoes.find((item) => item.tipo === etapa.tipo);
+        const concluida = Boolean(marcacao);
+        const atual = !fluxoConcluido && index === primeiraPendente;
+        const Icon = etapa.icon;
+
+        return (
+          <li key={etapa.tipo} className="relative flex items-center gap-3 sm:block">
+            {index > 0 ? (
+              <span
+                className={`hidden sm:absolute sm:left-[-50%] sm:right-[50%] sm:top-5 sm:block sm:h-px ${
+                  concluida ? "bg-[var(--secp-theme-accent)]" : "bg-border"
+                }`}
+                aria-hidden="true"
+              />
+            ) : null}
+            <div className="relative z-10 flex sm:flex-col sm:items-center">
+              <span
+                className={`flex size-10 shrink-0 items-center justify-center rounded-full border text-sm transition ${
+                  concluida
+                    ? "border-[var(--secp-theme-accent)] bg-[var(--secp-theme-accent)] text-[var(--secp-theme-accent-contrast)]"
+                    : atual
+                      ? "border-[var(--secp-theme-accent)] bg-[var(--secp-theme-accent-soft)] text-[var(--secp-theme-accent)] ring-2 ring-[var(--secp-theme-accent-soft)]"
+                      : "border-border bg-card text-muted-foreground"
+                }`}
+              >
+                <Icon className="size-4" aria-hidden="true" />
+              </span>
+              <div className="ml-3 min-w-0 sm:ml-0 sm:mt-2 sm:text-center">
+                <p className="truncate text-sm font-semibold">{etapa.label}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {marcacao
+                    ? formatarHora(marcacao.dataHora, marcacao.fusoHorario)
+                    : atual
+                      ? "Agora"
+                      : "Pendente"}
+                </p>
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 function MarcacaoDoDiaLinha({
   marcacao,
   index,
@@ -425,9 +511,9 @@ function MarcacaoDoDiaLinha({
 }) {
   return (
     <div
-      className={`flex flex-col justify-between gap-3 p-4 transition-all duration-700 sm:flex-row sm:items-center sm:px-5 ${
+      className={`flex flex-col justify-between gap-3 px-4 py-3 transition-all duration-700 sm:flex-row sm:items-center sm:px-5 ${
         destacada
-          ? "bg-blue-50 ring-2 ring-inset ring-blue-300 dark:bg-blue-950/45 dark:ring-blue-700"
+          ? "bg-[var(--secp-theme-accent-soft)] ring-2 ring-inset ring-[var(--secp-theme-accent)]"
           : "bg-transparent"
       }`}
     >
@@ -435,8 +521,8 @@ function MarcacaoDoDiaLinha({
         <span
           className={`flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition ${
             destacada
-              ? "animate-pulse bg-blue-900 text-white"
-              : "bg-blue-50 text-blue-900 dark:bg-blue-950 dark:text-blue-300"
+              ? "animate-pulse bg-[var(--secp-theme-accent)] text-[var(--secp-theme-accent-contrast)]"
+              : "bg-[var(--secp-theme-accent-soft)] text-[var(--secp-theme-accent)]"
           }`}
         >
           {index + 1}
@@ -449,8 +535,8 @@ function MarcacaoDoDiaLinha({
             <span>{formatarHora(marcacao.dataHora, marcacao.fusoHorario)}</span>
             <OrigemMarcacaoIcon origem={marcacao.fonte} />
             {destacada ? (
-              <span className="inline-flex animate-pulse items-center rounded-full border border-blue-300 bg-white px-2.5 py-1 text-xs font-black text-blue-900 shadow-sm dark:border-blue-700 dark:bg-blue-950 dark:text-blue-100">
-                Sistema Web
+              <span className="inline-flex animate-pulse items-center rounded-full border border-[var(--secp-theme-accent)] bg-card px-2.5 py-1 text-xs font-black text-[var(--secp-theme-accent)] shadow-sm">
+                Registrada agora
               </span>
             ) : null}
           </div>
@@ -483,35 +569,24 @@ function RelogioAgora() {
   );
 
   return (
-    <div className="rounded-lg border border-white/15 bg-white/10 p-4 text-right shadow-inner">
-      <p className="text-xs font-bold uppercase tracking-wide text-cyan-200">
+    <div className="rounded-md border bg-muted/20 px-3 py-2 text-right">
+      <p className="text-xs font-semibold uppercase text-muted-foreground">
         Hora atual
       </p>
-      <p className="mt-2 font-mono text-3xl font-black tracking-normal">
+      <p className="mt-1 font-mono text-xl font-bold tracking-normal text-foreground">
         {hora}
       </p>
     </div>
   );
 }
 
-function StatusResumo({
-  icon: Icon,
-  label,
-  valor,
-}: {
-  icon: LucideIcon;
-  label: string;
-  valor: string;
-}) {
+function ContextoRegistro({ label, valor }: { label: string; valor: string }) {
   return (
-    <div className="rounded-lg border border-white/15 bg-white/10 p-3">
-      <div className="flex items-center gap-2 text-cyan-100">
-        <Icon className="size-4" aria-hidden="true" />
-        <span className="text-xs font-bold uppercase tracking-wide">
-          {label}
-        </span>
-      </div>
-      <p className="mt-1 truncate text-sm font-semibold text-white">{valor}</p>
+    <div className="min-w-0 rounded-md border bg-card px-3 py-2">
+      <p className="text-xs font-semibold uppercase text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 truncate font-semibold text-foreground">{valor}</p>
     </div>
   );
 }
@@ -523,13 +598,4 @@ function formatarHora(dataHora: string, fusoHorario?: string | null) {
     second: "2-digit",
     timeZone: fusoHorario ?? "America/Manaus",
   }).format(new Date(dataHora));
-}
-
-function InfoLinha({ label, valor }: { label: string; valor: string }) {
-  return (
-    <div className="grid grid-cols-[100px_1fr] items-start gap-3">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 font-medium">{valor}</dd>
-    </div>
-  );
 }

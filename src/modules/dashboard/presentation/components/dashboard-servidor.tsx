@@ -10,6 +10,7 @@ import { DashboardServidorRelogio } from "./dashboard-servidor-relogio";
 import { FrequenciaMesResumo } from "./frequencia-mes-resumo";
 import { MarcacoesDoDiaTimeline } from "./marcacoes-do-dia-timeline";
 import { NextActionCard } from "./next-action-card";
+import { SaudacaoServidor } from "./saudacao-servidor";
 import {
   dashboardServidorConfig,
   type AlertaServidor,
@@ -114,7 +115,10 @@ export function DashboardServidor({
             Perfil {dados.servidor.perfil}
           </Badge>
           <h1 className="mt-3 text-2xl font-bold text-foreground md:text-3xl">
-            Bom dia, {primeiroNome}
+            <SaudacaoServidor
+              primeiroNome={primeiroNome}
+              fusoHorario={dados.servidor.fusoHorario}
+            />
           </h1>
           <DashboardServidorRelogio
             dataExtenso={dados.servidor.dataExtenso}

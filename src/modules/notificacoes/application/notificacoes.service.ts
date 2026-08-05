@@ -1,4 +1,4 @@
-import { prisma } from "@/shared/infrastructure/database/prisma";
+﻿import { prisma } from "@/shared/infrastructure/database/prisma";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 const DIAS_RETORNO_SOLICITACAO = 30;
@@ -34,6 +34,30 @@ function formatarMinutos(minutos: number) {
   const minutosRestantes = absoluto % 60;
 
   return `${horas}h${String(minutosRestantes).padStart(2, "0")}`;
+}
+
+function chaveDataReferenciaUtc(data: Date) {
+  return data.toISOString().slice(0, 10);
+}
+
+function competenciaDaDataUtc(data: Date) {
+  return data.toISOString().slice(0, 7);
+}
+
+function hrefEspelhoOcorrencia(params: {
+  servidorId: string;
+  ocorrenciaId: string;
+  dataReferencia: Date;
+}) {
+  const data = chaveDataReferenciaUtc(params.dataReferencia);
+  const query = new URLSearchParams({
+    servidorId: params.servidorId,
+    competencia: competenciaDaDataUtc(params.dataReferencia),
+    destaqueData: data,
+    destaqueOcorrencia: params.ocorrenciaId,
+  });
+
+  return `/espelho-ponto?${query.toString()}#espelho-dia-${data}`;
 }
 
 function ordenarNotificacoes(notificacoes: NotificacaoUsuario[]) {
@@ -249,7 +273,11 @@ export async function listarNotificacoesUsuario(
       prioridade: "alta",
       titulo: "Pendência de frequência",
       descricao: ocorrencia.descricao,
-      href: "/espelho-ponto",
+      href: hrefEspelhoOcorrencia({
+        servidorId: ocorrencia.servidorId,
+        ocorrenciaId: ocorrencia.id,
+        dataReferencia: ocorrencia.apuracaoDiaria.dataReferencia,
+      }),
       criadoEm: ocorrencia.criadoEm,
       origem: "Espelho de ponto",
       lida: false,
@@ -331,3 +359,4 @@ export async function marcarNotificacaoComoLida(
     },
   });
 }
+

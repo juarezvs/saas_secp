@@ -107,6 +107,11 @@ export type MenuItem = {
   children?: MenuItem[];
 };
 
+export type RotinasSeccionalAtivas = {
+  bancoHorasAtivo: boolean;
+  horasExtrasAtivo: boolean;
+};
+
 type TemaVisual = TemaVisualAcessibilidade;
 
 const STORAGE_TEMA_VISUAL = "secp-color-theme";
@@ -900,6 +905,7 @@ type SidebarProps = {
   menusPersonalizados?: MenusPersonalizadosPorPerfil;
   iconesItensCatalogo?: IconesItensCatalogoMenu;
   preferenciasAcessibilidade: PreferenciasAcessibilidade;
+  rotinasSeccional?: RotinasSeccionalAtivas;
   instituicaoLabel: string;
   onFecharDrawer: () => void;
 };
@@ -968,6 +974,7 @@ function perfilEhAdministrativoNavegacao(perfilAtivo: PerfilNavegacao) {
 function filtrarItensVisiveis(
   itens: MenuItem[],
   perfilAtivo: PerfilNavegacao,
+  rotinasSeccional?: RotinasSeccionalAtivas,
   nivel = 0,
 ): MenuItem[] {
   const perfilAdministrativo = perfilEhAdministrativoNavegacao(perfilAtivo);
@@ -980,10 +987,34 @@ function filtrarItensVisiveis(
     .map((item) => ({
       ...item,
       children: item.children
-        ? filtrarItensVisiveis(item.children, perfilAtivo, nivel + 1)
+        ? filtrarItensVisiveis(
+            item.children,
+            perfilAtivo,
+            rotinasSeccional,
+            nivel + 1,
+          )
         : undefined,
     }))
     .filter((item) => {
+      if (
+        rotinasSeccional?.bancoHorasAtivo === false &&
+        (item.href.startsWith("/banco-horas") ||
+          item.href === "/administracao/banco-horas" ||
+          item.href.includes("FOLGA_BANCO_HORAS") ||
+          item.href.includes("HORA_CREDITO_PREVIA"))
+      ) {
+        return false;
+      }
+
+      if (
+        rotinasSeccional?.horasExtrasAtivo === false &&
+        (item.href.startsWith("/horas-extras") ||
+          item.href.includes("/horas-extras") ||
+          item.href === "/administracao/horas-extras")
+      ) {
+        return false;
+      }
+
       if (item.somenteAdministrativo && !perfilAdministrativo) {
         return false;
       }
@@ -1310,12 +1341,14 @@ function MenuPrincipal({
   perfilAtivo,
   menusPersonalizados,
   iconesItensCatalogo,
+  rotinasSeccional,
   onNavigate,
 }: {
   recolhida: boolean;
   perfilAtivo: PerfilNavegacao;
   menusPersonalizados?: MenusPersonalizadosPorPerfil;
   iconesItensCatalogo?: IconesItensCatalogoMenu;
+  rotinasSeccional?: RotinasSeccionalAtivas;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
@@ -1325,8 +1358,13 @@ function MenuPrincipal({
     [iconesItensCatalogo],
   );
   const itensPadraoVisiveis = useMemo(
-    () => filtrarItensVisiveis(itensPadraoComIcones, perfilAtivo),
-    [itensPadraoComIcones, perfilAtivo],
+    () =>
+      filtrarItensVisiveis(
+        itensPadraoComIcones,
+        perfilAtivo,
+        rotinasSeccional,
+      ),
+    [itensPadraoComIcones, perfilAtivo, rotinasSeccional],
   );
   const itensVisiveis = useMemo(
     () =>
@@ -1480,6 +1518,7 @@ export function Sidebar({
   menusPersonalizados,
   iconesItensCatalogo,
   preferenciasAcessibilidade,
+  rotinasSeccional,
   instituicaoLabel,
   onFecharDrawer,
 }: SidebarProps) {
@@ -1545,6 +1584,7 @@ export function Sidebar({
             perfilAtivo={perfilAtivo}
             menusPersonalizados={menusPersonalizados}
             iconesItensCatalogo={iconesItensCatalogo}
+            rotinasSeccional={rotinasSeccional}
           />
           <ThemeSelector
             recolhida={recolhida}
@@ -1602,6 +1642,7 @@ export function Sidebar({
               perfilAtivo={perfilAtivo}
               menusPersonalizados={menusPersonalizados}
               iconesItensCatalogo={iconesItensCatalogo}
+              rotinasSeccional={rotinasSeccional}
               onNavigate={onFecharDrawer}
             />
             <ThemeSelector

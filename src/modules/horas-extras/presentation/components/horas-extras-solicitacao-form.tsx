@@ -565,10 +565,19 @@ export function HorasExtrasSolicitacaoForm({
                                   })
                                 }
                                 onBlur={(event) => {
+                                  const normalizado = normalizarHoraMinutoParcial(
+                                    event.target.value,
+                                  );
+                                  const minutosNormalizados =
+                                    minutosDeHoraMinuto(normalizado);
+                                  const requestedTime =
+                                    dia.limitMinutes !== undefined &&
+                                    minutosNormalizados > dia.limitMinutes
+                                      ? formatarMinutos(dia.limitMinutes)
+                                      : normalizado;
+
                                   atualizarDia(dia.date, {
-                                    requestedTime: normalizarHoraMinutoParcial(
-                                      event.target.value,
-                                    ),
+                                    requestedTime,
                                   });
                                 }}
                                 aria-invalid={excedeu}
@@ -580,7 +589,11 @@ export function HorasExtrasSolicitacaoForm({
                               />
                               {excedeu && (
                                 <p className="mt-1 text-xs text-red-700">
-                                  Acima do limite do dia.
+                                  Limite permitido:{" "}
+                                  {dia.limitMinutes !== undefined
+                                    ? formatarMinutos(dia.limitMinutes)
+                                    : "política"}
+                                  .
                                 </p>
                               )}
                             </td>

@@ -58,6 +58,7 @@ export function obterDashboardHrefPorPerfil(
     SECAP: "/dashboard",
     AUDITOR: "/dashboard",
     DIREF: "/dashboard",
+    GENERICO: "/dashboard",
   };
 
   return dashboardPorPerfil[tipoDashboard];

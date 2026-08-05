@@ -33,6 +33,7 @@ type ApuracaoMensalItem = {
   minutosHoraExtraNaoAutorizada?: number;
   minutosBancoHoras?: number;
   ocorrencias?: {
+    id?: string;
     tipo: string;
     descricao: string;
     minutos: number;
@@ -62,14 +63,20 @@ export function EspelhoPontoMensal({
   marcacoes,
   controles,
   acoesBancoHoras,
+  destaque,
   modoCompactoPessoaExterna = false,
 }: {
   apuracoes: ApuracaoMensalItem[];
   marcacoes: MarcacaoItem[];
   controles?: ReactNode;
+  destaque?: {
+    dataReferencia?: string | null;
+    ocorrenciaId?: string | null;
+  };
   modoCompactoPessoaExterna?: boolean;
   acoesBancoHoras?: {
     habilitadas: boolean;
+    bancoHorasAtivo?: boolean;
     servidorId: string;
     anoReferencia: number;
     mesReferencia: number;
@@ -180,7 +187,11 @@ export function EspelhoPontoMensal({
       </div>
 
       {modoCompactoPessoaExterna ? (
-        <EspelhoPontoMensalCompacto apuracoes={apuracoes} marcacoes={marcacoes} />
+        <EspelhoPontoMensalCompacto
+          apuracoes={apuracoes}
+          marcacoes={marcacoes}
+          destaque={destaque}
+        />
       ) : (
       <div className="max-w-full overflow-x-clip">
         <table className="w-full min-w-[1580px] border-separate border-spacing-0 text-left text-sm">
@@ -324,9 +335,15 @@ export function EspelhoPontoMensal({
                 !dispensaPonto &&
                 !trabalhoRemoto &&
                 Boolean(resumoMarcacoesMescladas);
+              const diaDestacado = itemEhDestaque(item, destaque);
+              const idDia = `espelho-dia-${chaveReferencia}`;
 
               return (
-                <tr key={item.id} className="border-b last:border-b-0">
+                <tr
+                  key={item.id}
+                  id={idDia}
+                  className={classeLinhaEspelho(diaDestacado)}
+                >
                   <td className="px-5 py-4 text-center">
                     <IconeSemaforo
                       tom={conferencia.tom}
@@ -417,6 +434,7 @@ export function EspelhoPontoMensal({
                           diaInstitucional={diaInstitucional}
                           ocorrencias={item.ocorrencias ?? []}
                           solicitacoes={solicitacoesAplicadas}
+                          destaqueOcorrenciaId={destaque?.ocorrenciaId}
                         />
                       </div>
                     )}
@@ -435,7 +453,24 @@ export function EspelhoPontoMensal({
                   </td>
 
                   <td className="px-5 py-4">
-                    <ValorTempo tipo="credito" minutos={item.minutosCredito} />
+                    <ValorTempo
+                      tipo="credito"
+                      minutos={item.minutosCredito}
+                      estado={
+                        (item.minutosHoraExtraNaoAutorizada ?? 0) > 0
+                          ? "pendente"
+                          : (item.minutosBancoHoras ?? 0) > 0
+                            ? "validado"
+                            : undefined
+                      }
+                      detalhe={
+                        (item.minutosHoraExtraNaoAutorizada ?? 0) > 0
+                          ? "Crédito apurado aguardando autorização da chefia para entrar no banco de horas."
+                          : (item.minutosBancoHoras ?? 0) > 0
+                            ? "Crédito computado no banco de horas."
+                            : undefined
+                      }
+                    />
                   </td>
 
                   <td className="px-5 py-4">
@@ -478,7 +513,7 @@ export function EspelhoPontoMensal({
                     />
                   </td>
 
-                  {acoesBancoHoras?.habilitadas ? (
+                  {acoesBancoHoras?.habilitadas && acoesBancoHoras.bancoHorasAtivo !== false ? (
                     <td className="px-5 py-4">
                       <AcoesBancoHorasDia
                         servidorId={acoesBancoHoras.servidorId}
@@ -513,12 +548,51 @@ export function EspelhoPontoMensal({
   );
 }
 
+function itemEhDestaque(
+  item: ApuracaoMensalItem,
+  destaque?: {
+    dataReferencia?: string | null;
+    ocorrenciaId?: string | null;
+  },
+) {
+  if (!destaque?.dataReferencia && !destaque?.ocorrenciaId) {
+    return false;
+  }
+
+  const mesmaData =
+    destaque.dataReferencia === chaveDataReferenciaUtc(item.dataReferencia);
+  const mesmaOcorrencia = Boolean(
+    destaque.ocorrenciaId &&
+      (item.ocorrencias ?? []).some(
+        (ocorrencia) => ocorrencia.id === destaque.ocorrenciaId,
+      ),
+  );
+
+  return mesmaData || mesmaOcorrencia;
+}
+
+function classeLinhaEspelho(destacada: boolean) {
+  return [
+    "scroll-mt-56 border-b last:border-b-0",
+    destacada
+      ? "bg-amber-50/90 outline outline-2 outline-amber-300 dark:bg-amber-950/30 dark:outline-amber-700"
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 function EspelhoPontoMensalCompacto({
   apuracoes,
   marcacoes,
+  destaque,
 }: {
   apuracoes: ApuracaoMensalItem[];
   marcacoes: MarcacaoItem[];
+  destaque?: {
+    dataReferencia?: string | null;
+    ocorrenciaId?: string | null;
+  };
 }) {
   const marcacoesPorDia = agruparMarcacoesPorDia(marcacoes);
 
@@ -548,9 +622,11 @@ function EspelhoPontoMensalCompacto({
               marcacoesDoDia,
               exigeIntervalo,
             );
+            const diaDestacado = itemEhDestaque(item, destaque);
+            const idDia = `espelho-dia-${chaveReferencia}`;
 
             return (
-              <tr key={item.id} className="border-b last:border-b-0">
+              <tr key={item.id} id={idDia} className={classeLinhaEspelho(diaDestacado)}>
                 <td className="whitespace-nowrap px-5 py-4 font-medium">
                   {formatarDataReferenciaUtc(item.dataReferencia)}
                 </td>
@@ -617,6 +693,7 @@ function OcorrenciasDia({
   diaInstitucional,
   ocorrencias,
   solicitacoes,
+  destaqueOcorrenciaId,
 }: {
   ocultarVazio?: boolean;
   ocultarDispensaPonto?: boolean;
@@ -624,6 +701,7 @@ function OcorrenciasDia({
   diaInstitucional: DiaInstitucionalEspelho | null;
   ocorrencias: ApuracaoMensalItem["ocorrencias"];
   solicitacoes: SolicitacaoAplicadaEspelho[];
+  destaqueOcorrenciaId?: string | null;
 }) {
   const itens = [
     ...(diaInstitucional && !ehFimDeSemanaInstitucional(diaInstitucional)
@@ -665,8 +743,13 @@ function OcorrenciasDia({
           ),
       )
       .map((ocorrencia, index) => ({
-        chave: `ocorrencia-${index}-${ocorrencia.tipo}`,
+        chave: ocorrencia.id
+          ? `ocorrencia-${ocorrencia.id}`
+          : `ocorrencia-${index}-${ocorrencia.tipo}`,
         label: rotuloOcorrenciaEspelho(ocorrencia),
+        destaque: Boolean(
+          destaqueOcorrenciaId && ocorrencia.id === destaqueOcorrenciaId,
+        ),
         classe:
           ocorrencia.tipo === "CREDITO"
             ? ("ok" as const)
@@ -710,7 +793,9 @@ function OcorrenciasDia({
         <span
           key={item.chave}
           className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${
-            item.classe === "erro"
+            "destaque" in item && item.destaque
+              ? "border-amber-400 bg-amber-100 text-amber-950 ring-2 ring-amber-300 dark:border-amber-500 dark:bg-amber-950 dark:text-amber-100 dark:ring-amber-700"
+              : item.classe === "erro"
               ? "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
               : item.classe === "alerta"
                 ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
@@ -1564,10 +1649,12 @@ function ValorTempo({
   minutos,
   tipo,
   detalhe,
+  estado,
 }: {
   minutos: number;
   tipo: "credito" | "debito";
   detalhe?: string;
+  estado?: "pendente" | "validado";
 }) {
   const temValor = minutos > 0;
 
@@ -1576,6 +1663,10 @@ function ValorTempo({
       className={`inline-flex rounded-full px-2 py-1 text-xs font-bold ${
         !temValor
           ? "bg-[var(--muted)] text-[var(--muted-foreground)]"
+          : estado === "pendente"
+            ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+            : estado === "validado"
+              ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
           : tipo === "credito"
             ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
             : "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"

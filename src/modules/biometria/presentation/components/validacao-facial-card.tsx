@@ -7,9 +7,13 @@ import {
   useRef,
   useState,
 } from "react";
+import type { CSSProperties } from "react";
 import { CheckCircle2, Loader2, ScanFace } from "lucide-react";
 
-import { registrarMarcacaoFacialAutorizadaAction } from "@/modules/marcacoes-brutas/application/actions/registrar-marcacao-facial.action";
+import {
+  registrarMarcacaoFacialAutorizadaAction,
+  type RegistrarMarcacaoFacialActionState,
+} from "@/modules/marcacoes-brutas/application/actions/registrar-marcacao-facial.action";
 import { validarFaceMarcacaoAction } from "../../application/actions/validar-face-marcacao.action";
 import { avaliarPoseParaEtapa } from "../../application/services/biometria-facial-config";
 import type { BiometriaFormState } from "../../application/schemas/biometria.schema";
@@ -27,6 +31,7 @@ type CapturaValidacao = {
   metadados: string;
   pronta: boolean;
   tentativa: number;
+  imagemCapturada: string | null;
 };
 
 const capturaInicial: CapturaValidacao = {
@@ -35,36 +40,71 @@ const capturaInicial: CapturaValidacao = {
   metadados: "{}",
   pronta: false,
   tentativa: 0,
+  imagemCapturada: null,
+};
+
+const registroInicial: RegistrarMarcacaoFacialActionState = {
+  erro: null,
+  sucesso: null,
+  marcacaoId: null,
+  tipo: null,
+  dataHora: null,
+  fusoHorario: null,
+  servidorNome: null,
 };
 
 export function ValidacaoFacialCard({
   compact = false,
+  onRegistroConcluido,
 }: {
   compact?: boolean;
+  servidorId?: string;
+  onRegistroConcluido?: (marcacaoId: string | null) => void;
 }) {
   const formRef = useRef<HTMLFormElement | null>(null);
   const [estado, formAction, pendente] = useActionState(
     validarFaceMarcacaoAction,
     estadoInicial,
   );
+  const [registro, registrarAction, registroPendente] = useActionState(
+    registrarMarcacaoFacialAutorizadaAction,
+    registroInicial,
+  );
   const [captura, setCaptura] = useState<CapturaValidacao>(capturaInicial);
   const [validacaoAutomatica, setValidacaoAutomatica] = useState(false);
+  const registroConcluido = Boolean(registro.sucesso && registro.marcacaoId);
 
   useEffect(() => {
     if (
       !captura.pronta ||
       pendente ||
       !validacaoAutomatica ||
-      estado.sucesso
+      estado.sucesso ||
+      registroPendente ||
+      registroConcluido
     ) {
       return;
     }
 
     formRef.current?.requestSubmit();
-  }, [captura.pronta, estado.sucesso, pendente, validacaoAutomatica]);
+  }, [
+    captura.pronta,
+    estado.sucesso,
+    pendente,
+    registroConcluido,
+    registroPendente,
+    validacaoAutomatica,
+  ]);
 
   useEffect(() => {
-    if (pendente || !validacaoAutomatica || !estado.mensagem || estado.sucesso) {
+    if (
+      pendente ||
+      registroPendente ||
+      registroConcluido ||
+      !validacaoAutomatica ||
+      !estado.mensagem ||
+      estado.sucesso
+    ) {
       return;
     }
 
@@ -77,30 +117,53 @@ export function ValidacaoFacialCard({
     }, 1400);
 
     return () => window.clearTimeout(timeout);
-  }, [estado.mensagem, estado.sucesso, pendente, validacaoAutomatica]);
+  }, [
+    estado.mensagem,
+    estado.sucesso,
+    pendente,
+    registroConcluido,
+    registroPendente,
+    validacaoAutomatica,
+  ]);
 
-  const handleCapturaPronta = useCallback((snapshot: FaceSnapshot) => {
-    if (!snapshot.embedding?.length) {
+  useEffect(() => {
+    if (!registroConcluido) {
       return;
     }
 
-    setValidacaoAutomatica(true);
-    setCaptura((atual) => ({
-      template: JSON.stringify(snapshot.embedding),
-      qualidade: snapshot.score,
-      metadados: JSON.stringify({
-        origem: "VALIDACAO_WEB",
-        pose: "FRONTAL",
-        yaw: snapshot.yaw,
-        pitch: snapshot.pitch,
-        roll: snapshot.roll,
-        frameHash: snapshot.frameHash,
-        faces: snapshot.faces,
-      }),
-      pronta: true,
-      tentativa: atual.tentativa,
-    }));
-  }, []);
+    const timeout = window.setTimeout(() => {
+      onRegistroConcluido?.(registro.marcacaoId ?? null);
+    }, 1800);
+
+    return () => window.clearTimeout(timeout);
+  }, [onRegistroConcluido, registro.marcacaoId, registroConcluido]);
+
+  const handleCapturaPronta = useCallback(
+    (snapshot: FaceSnapshot, imagemCapturada?: string | null) => {
+      if (!snapshot.embedding?.length) {
+        return;
+      }
+
+      setValidacaoAutomatica(true);
+      setCaptura((atual) => ({
+        template: JSON.stringify(snapshot.embedding),
+        qualidade: snapshot.score,
+        metadados: JSON.stringify({
+          origem: "VALIDACAO_WEB",
+          pose: "FRONTAL",
+          yaw: snapshot.yaw,
+          pitch: snapshot.pitch,
+          roll: snapshot.roll,
+          frameHash: snapshot.frameHash,
+          faces: snapshot.faces,
+        }),
+        pronta: true,
+        tentativa: atual.tentativa,
+        imagemCapturada: imagemCapturada ?? null,
+      }));
+    },
+    [],
+  );
 
   return (
     <form
@@ -112,7 +175,23 @@ export function ValidacaoFacialCard({
       <input type="hidden" name="qualidade" value={captura.qualidade} />
       <input type="hidden" name="metadados" value={captura.metadados} />
 
-      {estado.mensagem && (
+      {registroConcluido ? (
+        <ConfirmacaoMarcacaoFacial
+          registro={registro}
+          imagemCapturada={captura.imagemCapturada}
+        />
+      ) : null}
+
+      {registro.erro ? (
+        <div
+          role="alert"
+          className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
+        >
+          <p>{registro.erro}</p>
+        </div>
+      ) : null}
+
+      {estado.mensagem && !registroConcluido ? (
         <div
           role="status"
           className={`rounded-md border p-4 text-sm ${
@@ -123,18 +202,20 @@ export function ValidacaoFacialCard({
         >
           <p>{estado.mensagem}</p>
 
-          {typeof estado.distancia === "number" && (
+          {typeof estado.distancia === "number" ? (
             <p className="mt-2 text-xs">
               Distância: {estado.distancia.toFixed(4)} | Similaridade:{" "}
               {estado.similaridade?.toFixed(4)}
             </p>
-          )}
+          ) : null}
         </div>
-      )}
+      ) : null}
 
-      {estado.sucesso && estado.autorizacaoId && estado.autorizacaoToken ? (
+      {registroConcluido ? null : estado.sucesso &&
+        estado.autorizacaoId &&
+        estado.autorizacaoToken ? (
         <section className="rounded-md border border-green-200 bg-green-50 p-4 text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
-          <h2 className="font-bold">Identidade confirmada</h2>
+          <h2 className="font-bold">Identidade reconhecida</h2>
           <p className="mt-2 text-sm leading-6">
             A validação facial foi concluída. Confirme para gravar a marcação
             com data e hora atuais.
@@ -153,21 +234,80 @@ export function ValidacaoFacialCard({
 
           <button
             type="submit"
-            formAction={registrarMarcacaoFacialAutorizadaAction}
-            className="mt-4 rounded-md bg-green-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-800"
+            formAction={registrarAction}
+            disabled={registroPendente}
+            className="mt-4 inline-flex items-center justify-center gap-2 rounded-md bg-green-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            Registrar marcação agora
+            {registroPendente ? (
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+            ) : null}
+            {registroPendente
+              ? "Registrando marcação..."
+              : "Registrar marcação agora"}
           </button>
         </section>
       ) : (
         <ValidacaoFacialAutomatica
           key={captura.tentativa}
           compact={compact}
-          bloqueada={pendente || validacaoAutomatica}
+          bloqueada={pendente || validacaoAutomatica || registroPendente}
           onCapturaPronta={handleCapturaPronta}
         />
       )}
     </form>
+  );
+}
+
+function ConfirmacaoMarcacaoFacial({
+  registro,
+  imagemCapturada,
+}: {
+  registro: RegistrarMarcacaoFacialActionState;
+  imagemCapturada?: string | null;
+}) {
+  const horario = formatarHoraRegistro(registro.dataHora, registro.fusoHorario);
+  const tipo = registro.tipo
+    ? obterRotuloTipoMarcacaoFacial(registro.tipo)
+    : null;
+
+  return (
+    <section
+      role="status"
+      aria-live="polite"
+      className="secp-facial-success rounded-xl border border-green-200 bg-green-50/90 px-5 py-8 text-center text-green-950 shadow-sm dark:border-green-900 dark:bg-green-950/75 dark:text-green-100"
+    >
+      <div className="secp-facial-success-freeze relative mx-auto mb-5 aspect-[4/3] w-full max-w-xs overflow-hidden rounded-xl border border-green-200 bg-slate-950 shadow-inner dark:border-green-900">
+        {imagemCapturada ? (
+          <div
+            className="h-full w-full bg-cover bg-center"
+            style={{ backgroundImage: `url(${imagemCapturada})` }}
+            aria-hidden="true"
+          />
+        ) : (
+          <div className="h-full w-full bg-gradient-to-br from-green-950 via-slate-950 to-green-900" />
+        )}
+        <div className="absolute inset-0 bg-green-500/20 mix-blend-screen" />
+        <div className="absolute inset-0 ring-4 ring-inset ring-green-400/75" />
+      </div>
+      <div className="secp-facial-success-icon mx-auto flex size-20 items-center justify-center rounded-full bg-green-700 text-white shadow-lg shadow-green-900/20">
+        <CheckCircle2 className="size-11" aria-hidden="true" />
+      </div>
+      <h2 className="secp-facial-success-text mt-5 text-xl font-black tracking-normal">
+        Marcação registrada com sucesso
+      </h2>
+      {registro.servidorNome ? (
+        <p className="secp-facial-success-text mt-2 text-sm font-semibold text-green-900 dark:text-green-100">
+          {registro.servidorNome}
+        </p>
+      ) : null}
+      {horario ? (
+        <p className="secp-facial-success-text mt-3 text-sm text-green-800 dark:text-green-200">
+          {tipo
+            ? `${tipo} registrada às ${horario}`
+            : `Registrada às ${horario}`}
+        </p>
+      ) : null}
+    </section>
   );
 }
 
@@ -178,12 +318,16 @@ function ValidacaoFacialAutomatica({
 }: {
   compact: boolean;
   bloqueada: boolean;
-  onCapturaPronta: (snapshot: FaceSnapshot) => void;
+  onCapturaPronta: (
+    snapshot: FaceSnapshot,
+    imagemCapturada?: string | null,
+  ) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const capturaEnviadaRef = useRef(false);
   const [status, setStatus] = useState("Preparando câmera...");
   const [faceAprovada, setFaceAprovada] = useState(false);
+  const [faceBoxStyle, setFaceBoxStyle] = useState<CSSProperties | null>(null);
   const {
     stream,
     carregando: cameraCarregando,
@@ -271,7 +415,8 @@ function ValidacaoFacialAutomatica({
       }
 
       try {
-        const snapshot = await detectar(videoRef.current);
+        const video = videoRef.current;
+        const snapshot = await detectar(video);
 
         if (!ativo || capturaEnviadaRef.current) {
           return;
@@ -279,16 +424,18 @@ function ValidacaoFacialAutomatica({
 
         const avaliacao = avaliarSnapshotValidacao(snapshot);
         setFaceAprovada(avaliacao.aprovado);
+        setFaceBoxStyle(calcularMolduraFace(snapshot, video));
         setStatus(avaliacao.mensagem);
 
         if (avaliacao.aprovado) {
           capturaEnviadaRef.current = true;
-          onCapturaPronta(snapshot);
+          onCapturaPronta(snapshot, capturarQuadroVideo(video));
           return;
         }
       } catch (error) {
         if (ativo) {
           setFaceAprovada(false);
+          setFaceBoxStyle(null);
           setStatus(
             error instanceof Error
               ? error.message
@@ -342,12 +489,17 @@ function ValidacaoFacialAutomatica({
             playsInline
             className="aspect-[4/3] w-full scale-x-[-1] object-cover"
           />
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="pointer-events-none absolute inset-0">
             <div
-              className={`h-[70%] w-[48%] rounded-[50%] border-4 transition-colors ${
+              style={faceBoxStyle ?? undefined}
+              className={`absolute rounded-[32px] border-4 transition-all duration-200 ${
                 faceAprovada || bloqueada
                   ? "border-green-400 shadow-[0_0_0_999px_rgba(0,0,0,0.25),0_0_28px_rgba(74,222,128,0.75)]"
                   : "border-white/90 shadow-[0_0_0_999px_rgba(0,0,0,0.35)]"
+              } ${
+                faceBoxStyle
+                  ? ""
+                  : "left-1/2 top-1/2 h-[70%] w-[48%] -translate-x-1/2 -translate-y-1/2 rounded-[50%]"
               }`}
             />
           </div>
@@ -364,7 +516,7 @@ function ValidacaoFacialAutomatica({
               ) : (
                 <ScanFace className="size-4" aria-hidden="true" />
               )}
-              {bloqueada ? "Validando identidade..." : statusAtual}
+              {bloqueada ? "Validando reconhecimento facial..." : statusAtual}
             </span>
           </div>
         </div>
@@ -416,4 +568,79 @@ function avaliarSnapshotValidacao(snapshot: FaceSnapshot) {
     aprovado: true,
     mensagem: "Face detectada. Validando identidade...",
   };
+}
+
+function capturarQuadroVideo(video: HTMLVideoElement) {
+  if (!video.videoWidth || !video.videoHeight) {
+    return null;
+  }
+
+  const largura = Math.min(video.videoWidth, 720);
+  const altura = Math.round((largura / video.videoWidth) * video.videoHeight);
+  const canvas = document.createElement("canvas");
+  canvas.width = largura;
+  canvas.height = altura;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return null;
+  }
+
+  context.translate(largura, 0);
+  context.scale(-1, 1);
+  context.drawImage(video, 0, 0, largura, altura);
+
+  return canvas.toDataURL("image/jpeg", 0.82);
+}
+
+function calcularMolduraFace(
+  snapshot: FaceSnapshot,
+  video: HTMLVideoElement,
+): CSSProperties | null {
+  if (!snapshot.box || !video.videoWidth || !video.videoHeight) {
+    return null;
+  }
+
+  const [x, y, width, height] = snapshot.box;
+  const margemX = width * 0.18;
+  const margemY = height * 0.28;
+  const left = Math.max(0, x - margemX);
+  const top = Math.max(0, y - margemY);
+  const framedWidth = Math.min(video.videoWidth - left, width + margemX * 2);
+  const framedHeight = Math.min(video.videoHeight - top, height + margemY * 2);
+
+  return {
+    left: `${100 - ((left + framedWidth) / video.videoWidth) * 100}%`,
+    top: `${(top / video.videoHeight) * 100}%`,
+    width: `${(framedWidth / video.videoWidth) * 100}%`,
+    height: `${(framedHeight / video.videoHeight) * 100}%`,
+  };
+}
+
+function formatarHoraRegistro(
+  dataHora?: string | null,
+  fusoHorario?: string | null,
+) {
+  if (!dataHora) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: fusoHorario ?? "America/Manaus",
+  }).format(new Date(dataHora));
+}
+
+function obterRotuloTipoMarcacaoFacial(tipo: string) {
+  const rotulos: Record<string, string> = {
+    ENTRADA: "Entrada",
+    SAIDA_INTERVALO: "Saída para intervalo",
+    RETORNO_INTERVALO: "Retorno do intervalo",
+    SAIDA: "Saída",
+    MANUAL: "Manual",
+    AJUSTE: "Ajuste",
+  };
+
+  return rotulos[tipo] ?? tipo;
 }

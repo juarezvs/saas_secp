@@ -2,6 +2,7 @@ import { CalendarClock } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
+import { Card } from "@/components/ui";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   buscarConfiguracaoAtivaHorasExtras,
@@ -9,6 +10,7 @@ import {
   buscarServidorSolicitanteHorasExtras,
 } from "@/modules/horas-extras/infrastructure/repositories/horas-extras-solicitacao.repository";
 import { HorasExtrasSolicitacaoForm } from "@/modules/horas-extras/presentation/components/horas-extras-solicitacao-form";
+import { buscarRegulamentacaoPontoOrgao } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 
 type NovaHorasExtrasPageProps = {
   searchParams?: Promise<{
@@ -31,6 +33,9 @@ export default async function NovaHorasExtrasPage({
   const params = await searchParams;
   const servidor = permissao.usuarioId
     ? await buscarServidorSolicitanteHorasExtras(permissao.usuarioId)
+    : null;
+  const regulamentacao = servidor
+    ? await buscarRegulamentacaoPontoOrgao(servidor.orgaoId)
     : null;
   const configuracao = servidor
     ? await buscarConfiguracaoAtivaHorasExtras({
@@ -90,10 +95,16 @@ export default async function NovaHorasExtrasPage({
         descricao="Informe o período, a justificativa, as atividades e o tempo previsto por dia para iniciar a tramitação do serviço extraordinário."
       />
 
-      <HorasExtrasSolicitacaoForm
-        limitesPorTipoDia={limitesPorTipoDia}
-        valoresIniciais={valoresIniciais}
-      />
+      {regulamentacao?.horasExtrasAtivo === false ? (
+        <Card className="border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950">
+          A rotina de horas extras não está ativa para a seccional do servidor.
+        </Card>
+      ) : (
+        <HorasExtrasSolicitacaoForm
+          limitesPorTipoDia={limitesPorTipoDia}
+          valoresIniciais={valoresIniciais}
+        />
+      )}
     </div>
   );
 }

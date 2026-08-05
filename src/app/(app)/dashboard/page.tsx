@@ -6,6 +6,7 @@ import { DashboardAdmin } from "@/modules/dashboard/presentation/dashboard-admin
 import { DashboardAuditor } from "@/modules/dashboard/presentation/dashboard-auditor/dashboard-auditor";
 import { DashboardDiref } from "@/modules/dashboard/presentation/dashboard-diref/dashboard-diref";
 import { DashboardGestor } from "@/modules/dashboard/presentation/dashboard-gestor/dashboard-gestor";
+import { DashboardGenerico } from "@/modules/dashboard/presentation/dashboard-generico/dashboard-generico";
 import { DashboardMaster } from "@/modules/dashboard/presentation/dashboard-master/dashboard-master";
 import { DashboardSecap } from "@/modules/dashboard/presentation/dashboard-secap/dashboard-secap";
 import { DashboardServidor } from "@/modules/dashboard/presentation/dashboard-servidor/dashboard-servidor";
@@ -37,6 +38,14 @@ export default async function DashboardPage() {
       return <DashboardDiref />;
     case "SUPORTE":
       return <DashboardSuporte />;
+    case "GENERICO":
+      return (
+        <DashboardGenerico
+          nome={session.user.nome || session.user.name || "Usuário"}
+          perfilNome={session.user.perfilAtivo?.nome}
+          permissoes={session.user.perfilAtivo?.permissoes ?? []}
+        />
+      );
     case "SERVIDOR":
     default:
       return (

@@ -4,7 +4,11 @@ import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { PageTitlePersonalizadoProvider } from "@/components/layout/page-title-personalizado";
 import { SecpTourServidor } from "@/components/layout/secp-tour";
-import { Sidebar, type PerfilNavegacao } from "@/components/layout/sidebar";
+import {
+  Sidebar,
+  type PerfilNavegacao,
+  type RotinasSeccionalAtivas,
+} from "@/components/layout/sidebar";
 import type { PreferenciasAcessibilidade } from "@/modules/auth/application/services/preferencias-acessibilidade.service";
 import type {
   IconesItensCatalogoMenu,
@@ -21,6 +25,7 @@ type UsuarioNavegacao = {
   perfis: PerfilNavegacao[];
   perfilAtivo: PerfilNavegacao;
   preferenciasAcessibilidade: PreferenciasAcessibilidade;
+  rotinasSeccional?: RotinasSeccionalAtivas;
 };
 
 type AppShellClientProps = {
@@ -65,6 +70,7 @@ export function AppShellClient({
           menusPersonalizados={menusPersonalizados}
           iconesItensCatalogo={iconesItensCatalogo}
           preferenciasAcessibilidade={usuario.preferenciasAcessibilidade}
+          rotinasSeccional={usuario.rotinasSeccional}
           instituicaoLabel={usuario.instituicaoLabel}
           onFecharDrawer={() => setDrawerAberto(false)}
         />

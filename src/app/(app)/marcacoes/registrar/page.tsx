@@ -44,6 +44,7 @@ export default async function RegistrarMarcacaoPage() {
                 servidor.lotacoes[0]?.unidade.nome ??
                 "Sem lotação ativa",
               jornada: jornadaAtual?.nome ?? "Jornada não definida",
+              exigeIntervalo: jornadaAtual?.exigeIntervalo ?? true,
               biometriaAtiva:
                 servidor.biometriaFacialServidor?.status === "ATIVO",
             }

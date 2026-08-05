@@ -11,7 +11,10 @@ import {
 } from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
 import type { Prisma } from "@/generated/prisma/client";
 import { normalizarFusoHorario } from "@/modules/marcacoes/application/services/data-marcacao.service";
-import { buscarRegulamentacaoPontoServidor } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
+import {
+  bancoHorasAtivoNaCompetencia,
+  buscarRegulamentacaoPontoServidor,
+} from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
@@ -199,11 +202,70 @@ export async function regerarBancoHorasMesService({
     servidorId,
   });
   const regulamentacao = await buscarRegulamentacaoPontoServidor(servidorId);
+  const competenciaAtual = `${anoReferencia}-${String(mesReferencia).padStart(2, "0")}`;
   const limiteMovimentos = dataLimiteMovimentos({
     anoReferencia,
     mesReferencia,
     fusoHorario,
   });
+
+  if (!bancoHorasAtivoNaCompetencia(regulamentacao, competenciaAtual)) {
+    return prisma.$transaction(async (tx) => {
+      await tx.movimentoBancoHoras.deleteMany({
+        where: {
+          servidorId,
+          anoReferencia,
+          mesReferencia,
+          origem: {
+            in: ["APURACAO_DIARIA", "SOLICITACAO"],
+          },
+          status: {
+            in: ["PENDENTE", "DESCONSIDERADO"],
+          },
+        },
+      });
+
+      const movimentos = await tx.movimentoBancoHoras.findMany({
+        where: {
+          servidorId,
+        },
+        orderBy: {
+          dataReferencia: "asc",
+        },
+      });
+      const saldo = calcularSaldoBancoHoras(movimentos, {
+        competenciaInicioControle:
+          regulamentacao.bancoHorasCompetenciaInicio ??
+          saldoAtual?.competenciaInicioControle,
+      });
+
+      await tx.bancoHorasSaldo.upsert({
+        where: {
+          servidorId,
+        },
+        update: {
+          ...saldo,
+          competenciaInicioControle:
+            regulamentacao.bancoHorasCompetenciaInicio ??
+            saldoAtual?.competenciaInicioControle,
+        },
+        create: {
+          servidorId,
+          ...saldo,
+          competenciaInicioControle:
+            regulamentacao.bancoHorasCompetenciaInicio ??
+            saldoAtual?.competenciaInicioControle,
+        },
+      });
+
+      return {
+        apuracoesProcessadas: 0,
+        autorizacoesConsideradas: 0,
+        movimentosCriados: 0,
+        saldo,
+      };
+    });
+  }
 
   const apuracoes = await prisma.apuracaoDiaria.findMany({
     where: {

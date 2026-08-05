@@ -40,6 +40,10 @@ import {
 } from "@/modules/homologacao/infrastructure/repositories/homologacao.repository";
 import { EnviarEspelhoHomologacaoModal } from "@/modules/homologacao/presentation/components/enviar-espelho-homologacao-modal";
 import { RelatorioExportacaoButton } from "@/modules/relatorios/presentation/components/relatorio-exportacao-button";
+import {
+  bancoHorasAtivoNaCompetencia,
+  buscarRegulamentacaoPontoOrgao,
+} from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 type EspelhoPontoPageProps = {
@@ -48,6 +52,8 @@ type EspelhoPontoPageProps = {
     competencia?: string;
     anoReferencia?: string;
     mesReferencia?: string;
+    destaqueData?: string;
+    destaqueOcorrencia?: string;
   }>;
 };
 
@@ -398,6 +404,12 @@ export default async function EspelhoPontoPage({
   const queryBuscaPessoa = new URLSearchParams({
     competencia: competenciaInput,
   });
+  const regulamentacaoBancoHoras = servidorSelecionado?.orgaoId
+    ? await buscarRegulamentacaoPontoOrgao(servidorSelecionado.orgaoId)
+    : null;
+  const bancoHorasAtivoCompetencia = regulamentacaoBancoHoras
+    ? bancoHorasAtivoNaCompetencia(regulamentacaoBancoHoras, competenciaInput)
+    : true;
 
   return (
     <div className="space-y-6">
@@ -451,10 +463,15 @@ export default async function EspelhoPontoPage({
           key={`${servidorSelecionado.id}-${competenciaInput}`}
           apuracoes={apuracoes}
           marcacoes={marcacoes}
+          destaque={{
+            dataReferencia: params.destaqueData,
+            ocorrenciaId: params.destaqueOcorrencia,
+          }}
           modoCompactoPessoaExterna={perfilPessoaExternaAtivo}
           acoesBancoHoras={{
             habilitadas:
               podeGerenciarBancoHorasNoEspelho && !perfilPessoaExternaAtivo,
+            bancoHorasAtivo: bancoHorasAtivoCompetencia,
             servidorId: servidorSelecionado.id,
             anoReferencia,
             mesReferencia,

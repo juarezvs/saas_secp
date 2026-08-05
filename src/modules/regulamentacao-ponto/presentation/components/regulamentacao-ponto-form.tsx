@@ -1,4 +1,4 @@
-import { CompetenciaInput } from "@/components/ui";
+﻿import { CompetenciaInput } from "@/components/ui";
 import { salvarRegulamentacaoPontoAction } from "@/modules/regulamentacao-ponto/application/actions/salvar-regulamentacao-ponto.action";
 import { REGULAMENTACAO_PONTO_PADRAO } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 import { RegulamentacaoPontoSubmitButton } from "./regulamentacao-ponto-submit-button";
@@ -33,6 +33,9 @@ type RegrasFormulario = {
   percentualCreditoRecesso: number;
   recessoIgnoraLimiteMensal: boolean;
   exigeAutorizacaoPreviaCredito: boolean;
+  bancoHorasAtivo: boolean;
+  bancoHorasCompetenciaInicio?: string | null;
+  horasExtrasAtivo: boolean;
   horasForaExpedienteInconsistente: boolean;
 };
 
@@ -95,10 +98,10 @@ export function RegulamentacaoPontoForm({
         </label>
       </div>
 
-      <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-5 grid items-start gap-4 md:grid-cols-2 xl:grid-cols-4">
         <label className="space-y-2 md:col-span-2">
           <span className="text-sm font-semibold">Referência normativa</span>
-          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+          <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
             Informe a portaria, ato, resolução ou norma que fundamenta estas
             regras.
           </span>
@@ -113,7 +116,7 @@ export function RegulamentacaoPontoForm({
           <span className="text-sm font-semibold">
             Limite mensal de crédito no banco de horas
           </span>
-          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+          <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
             Quantidade máxima de minutos que o servidor pode acumular como
             crédito em uma competência.
           </span>
@@ -137,7 +140,7 @@ export function RegulamentacaoPontoForm({
           <span className="text-sm font-semibold">
             Prazo para compensação do crédito
           </span>
-          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+          <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
             Número de meses em que o crédito autorizado permanece disponível
             para uso.
           </span>
@@ -155,7 +158,7 @@ export function RegulamentacaoPontoForm({
           <span className="text-sm font-semibold">
             Tolerância mínima para gerar crédito
           </span>
-          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+          <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
             Minutos excedentes abaixo deste valor são ignorados e não entram no
             banco de horas.
           </span>
@@ -179,7 +182,7 @@ export function RegulamentacaoPontoForm({
           <span className="text-sm font-semibold">
             Tolerância mínima para registrar débito
           </span>
-          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+          <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
             Faltas de minutos abaixo deste valor são desconsideradas na
             apuração.
           </span>
@@ -203,7 +206,7 @@ export function RegulamentacaoPontoForm({
           <span className="text-sm font-semibold">
             Mínimo trabalhado para gerar crédito em jornada de 7h
           </span>
-          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+          <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
             Total de minutos trabalhados no dia para que excedente de jornada de
             7h seja considerado crédito.
           </span>
@@ -227,7 +230,7 @@ export function RegulamentacaoPontoForm({
           <span className="text-sm font-semibold">
             Intervalo mínimo exigido na jornada de 7h
           </span>
-          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+          <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
             Intervalo intrajornada, em minutos, exigido para validar o crédito
             quando a jornada-base for de 7h.
           </span>
@@ -251,7 +254,7 @@ export function RegulamentacaoPontoForm({
           <span className="text-sm font-semibold">
             Mínimo para FC/CJ em jornada de 7h
           </span>
-          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+          <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
             Tempo a partir do qual ocupantes de FC/CJ geram crédito quando
             cumprem jornada de 7h.
           </span>
@@ -273,7 +276,7 @@ export function RegulamentacaoPontoForm({
 
         <label className="space-y-2">
           <span className="text-sm font-semibold">Expediente padrão</span>
-          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+          <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
             Janela ordinária usada para apurar tempo dentro do expediente.
           </span>
           <div className="grid grid-cols-2 gap-2">
@@ -296,7 +299,7 @@ export function RegulamentacaoPontoForm({
           <span className="text-sm font-semibold">
             Janela permitida para flexibilização
           </span>
-          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+          <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
             Limites mínimo e máximo para horário diferenciado ou compensação.
           </span>
           <div className="grid grid-cols-2 gap-2">
@@ -317,7 +320,7 @@ export function RegulamentacaoPontoForm({
 
         <label className="space-y-2">
           <span className="text-sm font-semibold">Prazo de homologação</span>
-          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+          <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
             Dia do mês subsequente para encerramento da homologação.
           </span>
           <input
@@ -334,7 +337,7 @@ export function RegulamentacaoPontoForm({
           <span className="text-sm font-semibold">
             Prazo para ajuste de ponto
           </span>
-          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+          <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
             Dia do mês subsequente até o qual a correção de marcação fica
             permitida.
           </span>
@@ -352,7 +355,7 @@ export function RegulamentacaoPontoForm({
           <span className="text-sm font-semibold">
             Acréscimo para sábado (%)
           </span>
-          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+          <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
             Percentual somado ao tempo trabalhado em sábados autorizados.
           </span>
           <input
@@ -369,7 +372,7 @@ export function RegulamentacaoPontoForm({
           <span className="text-sm font-semibold">
             Acréscimo para domingo/feriado (%)
           </span>
-          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+          <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
             Percentual somado ao tempo trabalhado em domingos e feriados.
           </span>
           <input
@@ -386,7 +389,7 @@ export function RegulamentacaoPontoForm({
           <span className="text-sm font-semibold">
             Acréscimo para recesso (%)
           </span>
-          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+          <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
             Percentual somado ao tempo trabalhado em recesso forense.
           </span>
           <input
@@ -410,7 +413,7 @@ export function RegulamentacaoPontoForm({
             <span className="block font-semibold">
               Exigir intervalo para crédito na jornada de 7h
             </span>
-            <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+            <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
               Quando desmarcado, o excedente da jornada de 7h pode gerar
               crédito sem intervalo.
             </span>
@@ -428,7 +431,7 @@ export function RegulamentacaoPontoForm({
             <span className="block font-semibold">
               Recesso não se submete ao teto mensal
             </span>
-            <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+            <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
               Mantém separada a regra especial de recesso forense.
             </span>
           </span>
@@ -445,9 +448,58 @@ export function RegulamentacaoPontoForm({
             <span className="block font-semibold">
               Exigir autorização prévia para crédito
             </span>
-            <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+            <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
               O excedente só entra no banco de horas quando houver autorização
               deferida.
+            </span>
+          </span>
+        </label>
+
+        <div className="rounded-md border bg-[var(--muted)] p-4 text-sm md:col-span-2">
+          <label className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              name="bancoHorasAtivo"
+              defaultChecked={valores.bancoHorasAtivo}
+              className="size-4 rounded border-slate-300"
+            />
+            <span>
+              <span className="block font-semibold">
+                Controle de banco de horas ativo
+              </span>
+              <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
+                Quando desativado, o SECP não gera movimentos, saldo ou opções
+                de banco de horas para esta seccional.
+              </span>
+            </span>
+          </label>
+
+          <div className="mt-3 max-w-xs">
+            <CompetenciaInput
+              id="bancoHorasCompetenciaInicio"
+              name="bancoHorasCompetenciaInicio"
+              label="Início do banco de horas"
+              defaultValue={
+                valores.bancoHorasCompetenciaInicio ?? competenciaAtual()
+              }
+            />
+          </div>
+        </div>
+
+        <label className="flex items-center gap-3 rounded-md border bg-[var(--muted)] p-4 text-sm">
+          <input
+            type="checkbox"
+            name="horasExtrasAtivo"
+            defaultChecked={valores.horasExtrasAtivo}
+            className="size-4 rounded border-slate-300"
+          />
+          <span>
+            <span className="block font-semibold">
+              Controle de horas extras ativo
+            </span>
+            <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
+              Quando desativado, a rotina de horas extras fica indisponível
+              para servidores desta seccional.
             </span>
           </span>
         </label>
@@ -463,7 +515,7 @@ export function RegulamentacaoPontoForm({
             <span className="block font-semibold">
               Sinalizar marcação fora do expediente
             </span>
-            <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+            <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
               Marca como inconsistente quando o horário registrado estiver fora
               da regra de expediente aplicável.
             </span>
@@ -474,7 +526,7 @@ export function RegulamentacaoPontoForm({
           <span className="text-sm font-semibold">
             Observações sobre a regra do órgão
           </span>
-          <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+          <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
             Use este campo para resumir exceções, fundamentos ou orientações de
             aplicação.
           </span>
@@ -505,7 +557,7 @@ export function RegulamentacaoPontoForm({
               <span className="block font-semibold">
                 Recalcular esta competência ao salvar
               </span>
-              <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+              <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
                 Reprocessa espelho e banco de horas apenas dos servidores deste
                 órgão. O processamento continua em segundo plano mesmo se você
                 sair desta tela.
@@ -519,3 +571,7 @@ export function RegulamentacaoPontoForm({
     </form>
   );
 }
+
+
+
+

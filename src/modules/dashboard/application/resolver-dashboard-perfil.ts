@@ -8,7 +8,8 @@ export type DashboardPerfil =
   | "SUPORTE"
   | "SECAP"
   | "AUDITOR"
-  | "DIREF";
+  | "DIREF"
+  | "GENERICO";
 
 export function resolverDashboardPerfil(
   perfilAtivo: PerfilSessao | null | undefined,
@@ -67,5 +68,9 @@ export function resolverDashboardPerfil(
     return "ADMIN";
   }
 
-  return "SERVIDOR";
+  if (codigo === "SERVIDOR" || permissoes.includes("marcacoes:consultar:proprio")) {
+    return "SERVIDOR";
+  }
+
+  return "GENERICO";
 }

@@ -1,5 +1,14 @@
-import Link from "next/link";
-import { ArrowLeft, FileDown, Save, Shuffle, UserCog } from "lucide-react";
+﻿import Link from "next/link";
+import type { ReactNode } from "react";
+import {
+  ArrowLeft,
+  FileDown,
+  RotateCcw,
+  Save,
+  Search,
+  Shuffle,
+  UserCog,
+} from "lucide-react";
 
 import { CompetenciaInput } from "@/components/ui";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
@@ -11,6 +20,7 @@ import {
   configurarBancoHorasServidorAction,
   transferirSaldoBancoHorasAction,
 } from "../../application/actions/gerenciar-banco-horas-admin.actions";
+import { OperacaoLoteBancoHorasForm } from "./operacao-lote-banco-horas-form";
 
 type ServidorGestaoBancoHoras = {
   id: string;
@@ -50,6 +60,11 @@ type ConsolidadoCompetencia = {
   };
 };
 
+type OpcaoSelecao = {
+  id: string;
+  label: string;
+};
+
 function saldoPadrao(servidor: ServidorGestaoBancoHoras) {
   return (
     servidor.bancoHorasSaldo ?? {
@@ -81,6 +96,14 @@ function formatarData(data: Date | null) {
 function competenciaAtual() {
   const hoje = new Date();
   return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function AjudaCampo({ children }: { children: ReactNode }) {
+  return (
+    <p className="mt-1 min-h-10 text-xs leading-5 text-[var(--muted-foreground)]">
+      {children}
+    </p>
+  );
 }
 
 function resumirCompetencias(consolidado: ConsolidadoCompetencia[]) {
@@ -139,34 +162,52 @@ function resumirCompetencias(consolidado: ConsolidadoCompetencia[]) {
 export function GestaoBancoHorasListagem({
   servidores,
   busca,
+  orgaos,
+  unidades,
 }: {
   servidores: ServidorGestaoBancoHoras[];
   busca?: string;
+  orgaos: OpcaoSelecao[];
+  unidades: OpcaoSelecao[];
 }) {
   return (
     <div className="space-y-5">
+      <OperacaoLoteBancoHorasForm
+        servidores={servidores}
+        orgaos={orgaos}
+        unidades={unidades}
+      />
+
       <section className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
-        <form className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-end">
+        <form className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-start">
           <label className="text-sm font-semibold">
             Pesquisar servidor
-            <input
-              name="busca"
-              defaultValue={busca ?? ""}
-              className="mt-1 h-10 w-full rounded-md border bg-[var(--background)] px-3 text-sm"
-              placeholder="Nome ou matrícula"
-            />
+            <span className="mt-1 flex h-10 items-center gap-2 rounded-md border bg-[var(--background)] px-3">
+              <Search className="size-4 shrink-0 text-[var(--muted-foreground)]" />
+              <input
+                name="busca"
+                type="search"
+                defaultValue={busca ?? ""}
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                placeholder="Nome, matrícula, CPF ou unidade"
+              />
+            </span>
+            <AjudaCampo>
+              Filtra a listagem abaixo sem alterar saldos ou parâmetros.
+            </AjudaCampo>
           </label>
 
           <button
             type="submit"
-            className="h-10 rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)]"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)] md:mt-6"
           >
+            <RotateCcw className="size-4" aria-hidden="true" />
             Filtrar
           </button>
 
           <Link
             href="/api/administracao/banco-horas/exportar"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)]"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)] md:mt-6"
           >
             <FileDown className="size-4" aria-hidden="true" />
             Exportar

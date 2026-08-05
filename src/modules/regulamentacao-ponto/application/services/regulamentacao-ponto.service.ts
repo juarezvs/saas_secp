@@ -23,6 +23,9 @@ export type RegulamentacaoPonto = {
   percentualCreditoRecesso: number;
   recessoIgnoraLimiteMensal: boolean;
   exigeAutorizacaoPreviaCredito: boolean;
+  bancoHorasAtivo: boolean;
+  bancoHorasCompetenciaInicio: string | null;
+  horasExtrasAtivo: boolean;
   horasForaExpedienteInconsistente: boolean;
 };
 
@@ -50,6 +53,9 @@ export const REGULAMENTACAO_PONTO_PADRAO: RegulamentacaoPonto = {
   percentualCreditoRecesso: 100,
   recessoIgnoraLimiteMensal: true,
   exigeAutorizacaoPreviaCredito: true,
+  bancoHorasAtivo: true,
+  bancoHorasCompetenciaInicio: null,
+  horasExtrasAtivo: true,
   horasForaExpedienteInconsistente: false,
 };
 
@@ -76,9 +82,56 @@ type RegulamentacaoBanco = {
   percentualCreditoRecesso: number;
   recessoIgnoraLimiteMensal: boolean;
   exigeAutorizacaoPreviaCredito: boolean;
+  bancoHorasAtivo?: boolean;
+  bancoHorasCompetenciaInicio?: string | null;
+  horasExtrasAtivo?: boolean;
   horasForaExpedienteInconsistente: boolean;
   ativo: boolean;
 };
+
+export function competenciaDaData(data: Date) {
+  return `${data.getUTCFullYear()}-${String(data.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+export function compararCompetenciasTexto(
+  competenciaA?: string | null,
+  competenciaB?: string | null,
+) {
+  const matchA = competenciaA?.match(/^(\d{4})-(\d{2})$/);
+  const matchB = competenciaB?.match(/^(\d{4})-(\d{2})$/);
+
+  if (!matchA || !matchB) {
+    return 0;
+  }
+
+  const valorA = Number(matchA[1]) * 12 + Number(matchA[2]);
+  const valorB = Number(matchB[1]) * 12 + Number(matchB[2]);
+
+  return valorA - valorB;
+}
+
+export function bancoHorasAtivoNaCompetencia(
+  regulamentacao: Pick<
+    RegulamentacaoPonto,
+    "bancoHorasAtivo" | "bancoHorasCompetenciaInicio"
+  >,
+  competencia?: string | null,
+) {
+  if (!regulamentacao.bancoHorasAtivo) {
+    return false;
+  }
+
+  if (!regulamentacao.bancoHorasCompetenciaInicio || !competencia) {
+    return true;
+  }
+
+  return (
+    compararCompetenciasTexto(
+      competencia,
+      regulamentacao.bancoHorasCompetenciaInicio,
+    ) >= 0
+  );
+}
 
 export function normalizarRegulamentacaoPonto(
   regulamentacao?: RegulamentacaoBanco | null,
@@ -121,6 +174,10 @@ export function normalizarRegulamentacaoPonto(
     recessoIgnoraLimiteMensal: regulamentacao.recessoIgnoraLimiteMensal,
     exigeAutorizacaoPreviaCredito:
       regulamentacao.exigeAutorizacaoPreviaCredito,
+    bancoHorasAtivo: regulamentacao.bancoHorasAtivo ?? true,
+    bancoHorasCompetenciaInicio:
+      regulamentacao.bancoHorasCompetenciaInicio ?? null,
+    horasExtrasAtivo: regulamentacao.horasExtrasAtivo ?? true,
     horasForaExpedienteInconsistente:
       regulamentacao.horasForaExpedienteInconsistente,
   };

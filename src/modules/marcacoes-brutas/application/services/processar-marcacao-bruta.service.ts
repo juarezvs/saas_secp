@@ -405,6 +405,8 @@ export async function processarMarcacaoBrutaService(params: {
           bruta.origem === "EQUIPAMENTO_BIOMETRICO" ||
           bruta.origem === "IMPORTACAO_AFD"
             ? "EQUIPAMENTO_BIOMETRICO"
+            : bruta.origem === "FACIAL_AUTORIZADO"
+              ? "BIOMETRIA_FACIAL"
             : "WEB",
         status: "VALIDA",
         observacao: `Marcação processada a partir de marcação bruta (${bruta.origem}).`,
