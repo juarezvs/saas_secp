@@ -272,6 +272,7 @@ export async function listarServidoresParaFiltro(
     servidorIdsPermitidos?: string[];
     tipoUsuario?: string;
     limite?: number;
+    semLimite?: boolean;
   } = {},
 ) {
   return prisma.servidor.findMany({
@@ -316,7 +317,7 @@ export async function listarServidoresParaFiltro(
       { usuario: { nome: "asc" } },
       { matricula: "asc" },
     ],
-    take: params.limite ?? 1000,
+    take: params.semLimite ? undefined : (params.limite ?? 1000),
   });
 }
 

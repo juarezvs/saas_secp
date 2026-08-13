@@ -77,7 +77,10 @@ export default async function UsuariosPage({
     : escopoOrgao.orgaoIds;
   const [resultado, servidoresFiltro, lotacoesFiltro] = await Promise.all([
     listarUsuariosPaginado(filtrosEscopados),
-    listarServidoresParaFiltro({ orgaoIdsPermitidos }),
+    listarServidoresParaFiltro({
+      orgaoIdsPermitidos,
+      semLimite: escopoOrgao.global,
+    }),
     listarLotacoesAtivasParaFiltro({ orgaoIdsPermitidos }),
   ]);
   const servidoresOptions = servidoresFiltro.map((servidor) => {
