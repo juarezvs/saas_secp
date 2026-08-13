@@ -31,7 +31,8 @@ export default async function EditarUsuarioPage({
     buscarUsuarioPorId(id),
     listarPerfisAtivosParaUsuario(),
     listarOrgaosAtivos(
-      escopoGestaoUsuarios.permitirEscopoGlobal
+      escopoGestaoUsuarios.permitirEscopoGlobal &&
+        escopoGestaoUsuarios.orgaoIdsPermitidos.length === 0
         ? {}
         : { orgaoIdsPermitidos: escopoGestaoUsuarios.orgaoIdsPermitidos },
     ),

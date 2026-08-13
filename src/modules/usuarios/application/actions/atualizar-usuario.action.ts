@@ -7,7 +7,7 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import type { EscopoGestaoUsuarios } from "../services/escopo-gestao-usuarios.service";
 import {
-  orgaoEstaNoEscopoGestaoUsuarios,
+  orgaoPodeSerVinculadoNoEscopoGestaoUsuarios,
   resolverEscopoGestaoUsuarios,
 } from "../services/escopo-gestao-usuarios.service";
 import {
@@ -78,8 +78,7 @@ async function normalizarEscoposPerfis(
     }
 
     if (
-      !escopoGestaoUsuarios.permitirEscopoGlobal &&
-      !orgaoEstaNoEscopoGestaoUsuarios(
+      !orgaoPodeSerVinculadoNoEscopoGestaoUsuarios(
         perfisEscopos[perfil.id],
         escopoGestaoUsuarios,
       )

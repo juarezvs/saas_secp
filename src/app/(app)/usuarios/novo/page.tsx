@@ -18,7 +18,8 @@ export default async function NovoUsuarioPage() {
   const [perfis, orgaos] = await Promise.all([
     listarPerfisAtivosParaUsuario(),
     listarOrgaosAtivos(
-      escopoGestaoUsuarios.permitirEscopoGlobal
+      escopoGestaoUsuarios.permitirEscopoGlobal &&
+        escopoGestaoUsuarios.orgaoIdsPermitidos.length === 0
         ? {}
         : { orgaoIdsPermitidos: escopoGestaoUsuarios.orgaoIdsPermitidos },
     ),
