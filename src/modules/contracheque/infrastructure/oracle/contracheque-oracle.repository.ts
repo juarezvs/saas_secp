@@ -322,9 +322,15 @@ export async function buscarContrachequeSarh(params: {
       where upper(r.codiserv) = upper(:matricula)
         and r.chave_folha = to_date(:documentoData, 'YYYY-MM-DD')
         and r.sequdepe = :sequdepe
-        and r.sequpa = :sequpa
+        and (:sequpa = 0 or r.sequpa = :sequpa)
         and r.tip_rubrica in ('R', 'D')
-      order by r.ordem, r.tip_rubrica, r.cod_rubrica, r.sequencial
+      order by
+        case when r.sequpa = :sequpa then 0 else 1 end,
+        r.sequpa,
+        r.ordem,
+        r.tip_rubrica,
+        r.cod_rubrica,
+        r.sequencial
       `,
       {
         matricula: params.matricula,

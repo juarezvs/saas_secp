@@ -106,8 +106,8 @@ export function RegistroPontoPage({
   const [marcacaoDestacadaId, setMarcacaoDestacadaId] = useState<string | null>(
     null,
   );
-  const deveRegistrarWeb = podeRegistrarWeb;
-  const deveRegistrarFacial = !deveRegistrarWeb && podeRegistrarFacial;
+  const deveRegistrarFacial = podeRegistrarFacial;
+  const deveRegistrarWeb = !deveRegistrarFacial && podeRegistrarWeb;
   const ultimaMarcacao = marcacoes[marcacoes.length - 1] ?? null;
   const destacarMarcacaoRegistrada = useCallback((marcacaoId: string) => {
     setMarcacaoDestacadaId(marcacaoId);
