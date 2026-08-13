@@ -341,6 +341,8 @@ export const MENU_ITEMS: MenuItem[] = [
       "horas-extras:visualizar-folha:seccional",
       "horas-extras:visualizar-folha:global",
       "horas-extras:deliberar:global",
+      "horas-extras:cadastrar-autorizacao:seccional",
+      "horas-extras:cadastrar-autorizacao:global",
     ],
     children: [
       {
@@ -350,6 +352,17 @@ export const MENU_ITEMS: MenuItem[] = [
         permissoes: [
           "horas-extras:visualizar:proprio",
           "horas-extras:solicitar:proprio",
+        ],
+      },
+      {
+        label: "Autorizações",
+        href: "/secap/horas-extras/autorizacoes",
+        icon: FileCheck2,
+        permissoes: [
+          "horas-extras:cadastrar-autorizacao:seccional",
+          "horas-extras:cadastrar-autorizacao:global",
+          "horas-extras:visualizar-execucao:seccional",
+          "horas-extras:visualizar-execucao:global",
         ],
       },
       {
