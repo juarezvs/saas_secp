@@ -37,7 +37,8 @@ export default async function UsuarioDetalhePage({
     buscarUsuarioPorId(id),
     listarPerfisAtivosParaUsuario(),
     listarOrgaosAtivos(
-      escopoGestaoUsuarios.permitirEscopoGlobal
+      escopoGestaoUsuarios.permitirEscopoGlobal &&
+        escopoGestaoUsuarios.orgaoIdsPermitidos.length === 0
         ? {}
         : { orgaoIdsPermitidos: escopoGestaoUsuarios.orgaoIdsPermitidos },
     ),

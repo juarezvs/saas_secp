@@ -16,16 +16,16 @@ export async function resolverEscopoGestaoUsuarios(
     codigo: permissao.perfilAtivoCodigo,
   });
 
-  if (permitirEscopoGlobal) {
-    return {
-      permitirEscopoGlobal,
-      orgaoIdsPermitidos: [],
-    };
-  }
-
   const orgaoIdsPerfilAtivo = permissao.usuarioId
     ? await buscarOrgaoIdsDoPerfilAtivo(permissao)
     : [];
+
+  if (permitirEscopoGlobal) {
+    return {
+      permitirEscopoGlobal,
+      orgaoIdsPermitidos: orgaoIdsPerfilAtivo,
+    };
+  }
 
   return {
     permitirEscopoGlobal,
@@ -42,6 +42,17 @@ export function orgaoEstaNoEscopoGestaoUsuarios(
   return (
     escopo.permitirEscopoGlobal || escopo.orgaoIdsPermitidos.includes(orgaoId)
   );
+}
+
+export function orgaoPodeSerVinculadoNoEscopoGestaoUsuarios(
+  orgaoId: string,
+  escopo: EscopoGestaoUsuarios,
+) {
+  if (escopo.orgaoIdsPermitidos.length > 0) {
+    return escopo.orgaoIdsPermitidos.includes(orgaoId);
+  }
+
+  return escopo.permitirEscopoGlobal;
 }
 
 export function usuarioEstaNoEscopoGestaoUsuarios(

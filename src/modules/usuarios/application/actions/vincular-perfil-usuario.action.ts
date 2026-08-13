@@ -5,7 +5,7 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { invalidarCacheUsuarioAuthPorId } from "@/modules/auth/infrastructure/repositories/usuario-auth.repository";
 import {
-  orgaoEstaNoEscopoGestaoUsuarios,
+  orgaoPodeSerVinculadoNoEscopoGestaoUsuarios,
   resolverEscopoGestaoUsuarios,
   usuarioEstaNoEscopoGestaoUsuarios,
 } from "../services/escopo-gestao-usuarios.service";
@@ -93,13 +93,15 @@ export async function vincularPerfilUsuarioAction(
   }
 
   if (
-    !escopoGestaoUsuarios.permitirEscopoGlobal &&
     parsed.data.orgaoId &&
-    !orgaoEstaNoEscopoGestaoUsuarios(parsed.data.orgaoId, escopoGestaoUsuarios)
+    !orgaoPodeSerVinculadoNoEscopoGestaoUsuarios(
+      parsed.data.orgaoId,
+      escopoGestaoUsuarios,
+    )
   ) {
     return {
       sucesso: false,
-      mensagem: "Selecione uma seccional permitida para o seu perfil ativo.",
+      mensagem: "Selecione uma seccional vinculada ao seu perfil ativo.",
       campos: dados,
     };
   }
