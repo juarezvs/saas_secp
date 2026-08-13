@@ -218,5 +218,6 @@ export async function validarFaceMarcacaoAction(
     autorizacaoId,
     autorizacaoToken,
     expiraEm,
+    amostraId: amostra.id,
   };
 }

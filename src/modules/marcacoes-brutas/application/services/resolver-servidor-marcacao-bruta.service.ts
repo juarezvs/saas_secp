@@ -66,6 +66,21 @@ function normalizarMatriculaPorOrgao(
   return `${prefixo}${numero}`;
 }
 
+function configuracaoRecord(configuracao: unknown) {
+  return configuracao && typeof configuracao === "object"
+    ? (configuracao as Record<string, unknown>)
+    : {};
+}
+
+function configuracaoDefineIdentificadores(configuracao: Record<string, unknown>) {
+  return [
+    "identificadorCpf",
+    "identificadorPis",
+    "identificadorMatriculaComSigla",
+    "identificadorMatriculaNumerica",
+  ].some((campo) => typeof configuracao[campo] === "boolean");
+}
+
 export async function resolverServidorMarcacaoBrutaService(params: {
   cpf?: string | null;
   pis?: string | null;
@@ -82,6 +97,7 @@ export async function resolverServidorMarcacaoBrutaService(params: {
         where: { id: params.equipamentoId },
         select: {
           orgaoId: true,
+          configuracao: true,
           orgao: { select: { sigla: true } },
           unidade: {
             select: {
@@ -92,6 +108,26 @@ export async function resolverServidorMarcacaoBrutaService(params: {
         },
       })
     : null;
+  const configuracaoEquipamento = configuracaoRecord(equipamento?.configuracao);
+  const configIdentificadoresExplicita = configuracaoDefineIdentificadores(
+    configuracaoEquipamento,
+  );
+  const aceitaCpf =
+    typeof configuracaoEquipamento.identificadorCpf === "boolean"
+      ? configuracaoEquipamento.identificadorCpf
+      : true;
+  const aceitaPis =
+    typeof configuracaoEquipamento.identificadorPis === "boolean"
+      ? configuracaoEquipamento.identificadorPis
+      : true;
+  const aceitaMatriculaComSigla =
+    typeof configuracaoEquipamento.identificadorMatriculaComSigla === "boolean"
+      ? configuracaoEquipamento.identificadorMatriculaComSigla
+      : true;
+  const aceitaMatriculaNumerica =
+    typeof configuracaoEquipamento.identificadorMatriculaNumerica === "boolean"
+      ? configuracaoEquipamento.identificadorMatriculaNumerica
+      : true;
   const orgaoIdEquipamento =
     equipamento?.orgaoId ?? equipamento?.unidade?.orgaoId ?? null;
   const siglaOrgaoEquipamento =
@@ -101,7 +137,7 @@ export async function resolverServidorMarcacaoBrutaService(params: {
     siglaOrgaoEquipamento,
   );
 
-  if (cpf) {
+  if (cpf && aceitaCpf) {
     const filtroCpf = [{ cpf }, { usuario: { cpf } }];
 
     if (orgaoIdEquipamento) {
@@ -142,7 +178,7 @@ export async function resolverServidorMarcacaoBrutaService(params: {
     }
   }
 
-  if (pis) {
+  if (pis && aceitaPis) {
     if (orgaoIdEquipamento) {
       const servidorDoOrgao = await prisma.servidor.findFirst({
         where: {
@@ -186,7 +222,7 @@ export async function resolverServidorMarcacaoBrutaService(params: {
   const filtrosMatricula = [];
   const ehMatriculaComPrefixo = matriculaTemPrefixo(matricula);
 
-  if (ehMatriculaComPrefixo) {
+  if (ehMatriculaComPrefixo && aceitaMatriculaComSigla) {
     filtrosMatricula.push({
       matricula: { equals: matricula, mode: "insensitive" as const },
     });
@@ -197,7 +233,11 @@ export async function resolverServidorMarcacaoBrutaService(params: {
     });
   }
 
-  if (matriculaNoOrgao && matriculaNoOrgao !== matricula) {
+  if (
+    aceitaMatriculaNumerica &&
+    matriculaNoOrgao &&
+    matriculaNoOrgao !== matricula
+  ) {
     filtrosMatricula.unshift({
       matricula: { equals: matriculaNoOrgao, mode: "insensitive" as const },
     });
@@ -232,7 +272,7 @@ export async function resolverServidorMarcacaoBrutaService(params: {
     }
   }
 
-  if (!ehMatriculaComPrefixo) {
+  if (!ehMatriculaComPrefixo || configIdentificadoresExplicita) {
     return null;
   }
 

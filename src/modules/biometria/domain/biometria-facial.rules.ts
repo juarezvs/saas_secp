@@ -32,11 +32,11 @@ export const PERMISSOES_BIOMETRIA_FACIAL = {
     "biometria:cadastrar:proprio",
   ],
   cadastrarTerceiros: [
-    "biometriafacial:cadastrar:terceiros",
+    "biometriafacial:cadastrar:seccional",
     "biometria:gerenciar:global",
   ],
   recadastrarTerceiros: [
-    "biometriafacial:recadastrar:terceiros",
+    "biometriafacial:recadastrar:seccional",
     "biometria:gerenciar:global",
   ],
 } as const;

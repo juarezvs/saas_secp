@@ -16,9 +16,6 @@ export const PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS = [
   "biometriafacial:cadastrar:seccional",
   "biometriafacial:recadastrar:seccional",
   "biometriafacial:visualizar:global",
-  "biometriafacial:cadastrar:terceiros",
-  "biometriafacial:recadastrar:terceiros",
-  "biometriafacial:visualizar:auditoria",
   "biometriafacial:invalidar:global",
 ];
 

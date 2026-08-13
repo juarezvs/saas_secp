@@ -15,4 +15,15 @@ mkdir -p \
   /srv/observability/tempo \
   /srv/observability/loki
 
+for secret in \
+  secrets/secp_metrics_token \
+  secrets/grafana_admin_password \
+  secrets/postgres_exporter_dsn \
+  secrets/alertmanager_webhook_url
+do
+  if [[ -f "$secret" ]]; then
+    chmod 0644 "$secret"
+  fi
+done
+
 docker compose --env-file .env -f compose.observability.yaml up -d

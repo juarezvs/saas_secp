@@ -5,6 +5,7 @@ import {
 } from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
 import { calcularCargaPrevistaComJanela } from "@/modules/apuracao/application/services/expediente.service";
 import { normalizarFusoHorario } from "@/modules/marcacoes/application/services/data-marcacao.service";
+import { logger } from "@/lib/observability/logger";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 import { normalizarDataReferencia } from "./calcular-tempo.service";
@@ -70,6 +71,54 @@ type ApuracaoEspelhoMensal = {
   ocorrencias?: OcorrenciaEspelhoMensal[];
   movimentoBancoHoras?: MovimentoBancoHorasEspelho[];
 };
+
+type EtapaTempoEspelhoMensal = {
+  etapa: string;
+  durationMs: number;
+};
+
+function limiteLogLentoMontagemEspelho() {
+  const valor = Number(process.env.ESPELHO_PONTO_MONTAGEM_SLOW_LOG_MS);
+  return Number.isFinite(valor) && valor >= 0 ? valor : 500;
+}
+
+function criarMedidorMontagemEspelho() {
+  const inicioTotal = performance.now();
+  const etapas: EtapaTempoEspelhoMensal[] = [];
+
+  return {
+    async medir<T>(etapa: string, tarefa: () => Promise<T>): Promise<T> {
+      const inicio = performance.now();
+
+      try {
+        return await tarefa();
+      } finally {
+        etapas.push({
+          etapa,
+          durationMs: Math.round(performance.now() - inicio),
+        });
+      }
+    },
+    medirSincrono<T>(etapa: string, tarefa: () => T): T {
+      const inicio = performance.now();
+
+      try {
+        return tarefa();
+      } finally {
+        etapas.push({
+          etapa,
+          durationMs: Math.round(performance.now() - inicio),
+        });
+      }
+    },
+    finalizar() {
+      return {
+        totalMs: Math.round(performance.now() - inicioTotal),
+        etapas,
+      };
+    },
+  };
+}
 
 export type ItemEspelhoMensalCompleto = Omit<
   ApuracaoEspelhoMensal,
@@ -618,54 +667,98 @@ export async function montarEspelhoMensalCompleto(params: {
   hoje?: Date;
   fusoHorario?: string | null;
 }): Promise<ResultadoEspelhoMensalCompleto> {
+  const medidor = criarMedidorMontagemEspelho();
   const inicio = inicioCompetencia(params.anoReferencia, params.mesReferencia);
   const fim = fimCompetencia(params.anoReferencia, params.mesReferencia);
   const calendario =
     params.calendario ??
-    (await carregarCalendarioInstitucionalPeriodo({
-      inicio,
-      fimExclusivo: fim,
-    }));
+    (await medidor.medir("calendario_institucional_periodo", () =>
+      carregarCalendarioInstitucionalPeriodo({
+        inicio,
+        fimExclusivo: fim,
+      }),
+    ));
   const limiteSaldos = dataLimiteSaldos(params);
-  const { dias } = await preencherDiasDaCompetencia({
-    anoReferencia: params.anoReferencia,
-    mesReferencia: params.mesReferencia,
-    jornadas: params.jornadas,
-    calendario,
-    servidorId: params.servidorId,
-  });
-  const afastamentos = await carregarAfastamentosSarhPeriodo({
-    servidorId: params.servidorId,
-    inicio,
-    fim,
-  });
-  const apuracoesPorData = new Map(
-    params.apuracoes.map((apuracao) => [
-      chaveData(apuracao.dataReferencia),
-      ajustarApuracaoPorCompensacao(apuracao),
-    ]),
+  const { dias } = await medidor.medir("classificacao_dias_competencia", () =>
+    preencherDiasDaCompetencia({
+      anoReferencia: params.anoReferencia,
+      mesReferencia: params.mesReferencia,
+      jornadas: params.jornadas,
+      calendario,
+      servidorId: params.servidorId,
+    }),
+  );
+  const afastamentos = await medidor.medir("afastamentos_sarh_periodo", () =>
+    carregarAfastamentosSarhPeriodo({
+      servidorId: params.servidorId,
+      inicio,
+      fim,
+    }),
+  );
+  const apuracoesPorData = medidor.medirSincrono("mapear_apuracoes", () =>
+    new Map(
+      params.apuracoes.map((apuracao) => [
+        chaveData(apuracao.dataReferencia),
+        ajustarApuracaoPorCompensacao(apuracao),
+      ]),
+    ),
   );
   const hoje = normalizarDataReferencia(
     params.hoje ?? hojeNoFuso(params.fusoHorario),
   );
 
-  const itens = dias.map<ItemEspelhoMensalCompleto>((dia) => {
-    const chave = chaveData(dia.dataReferencia);
-    const apuracao = apuracoesPorData.get(chave);
-    const contabilizarSaldos = dia.dataReferencia <= limiteSaldos;
-    const afastamento = afastamentos.find((item) =>
-      afastamentoAbrangeData(item, dia.dataReferencia),
-    );
+  const itens = medidor.medirSincrono("montar_itens_espelho", () =>
+    dias.map<ItemEspelhoMensalCompleto>((dia) => {
+      const chave = chaveData(dia.dataReferencia);
+      const apuracao = apuracoesPorData.get(chave);
+      const contabilizarSaldos = dia.dataReferencia <= limiteSaldos;
+      const afastamento = afastamentos.find((item) =>
+        afastamentoAbrangeData(item, dia.dataReferencia),
+      );
 
-    if (apuracao) {
+      if (apuracao) {
+        const item = {
+          ...apuracao,
+          metadados: {
+            ...metadadosDiaInstitucional(dia),
+            ...metadadosComoObjeto(apuracao.metadados),
+          },
+          contabilizarSaldos,
+          geradoParaCompetencia: false,
+        };
+
+        return ajustarDiaAtualEmAndamento(
+          afastamento ? aplicarAfastamentoSarh(item, afastamento) : item,
+          {
+            hoje,
+            agora: params.hoje,
+            fusoHorario: params.fusoHorario,
+          },
+        );
+      }
+
       const item = {
-        ...apuracao,
+        id: `competencia-${chave}`,
+        dataReferencia: dia.dataReferencia,
+        cargaPrevistaMinutos: dia.cargaPrevistaMinutos,
+        minutosTrabalhados: 0,
+        minutosIntervalo: 0,
+        minutosCredito: 0,
+        minutosDebito: 0,
+        resultado: dia.geraApuracaoRegular ? "PENDENTE" : "SEM_EXPEDIENTE",
+        status: dia.geraApuracaoRegular ? "PENDENTE" : "CALCULADA",
         metadados: {
+          origem: "ESPELHO_COMPETENCIA_COMPLETA",
           ...metadadosDiaInstitucional(dia),
-          ...metadadosComoObjeto(apuracao.metadados),
         },
+        ocorrencias: [],
         contabilizarSaldos,
-        geradoParaCompetencia: false,
+        geradoParaCompetencia: true,
+        minutosDebitoApurado: 0,
+        minutosDebitoCompensado: 0,
+        minutosHoraExtraAutorizada: 0,
+        minutosHoraExtraNaoAutorizada: 0,
+        minutosBancoHoras: 0,
       };
 
       return ajustarDiaAtualEmAndamento(
@@ -676,47 +769,31 @@ export async function montarEspelhoMensalCompleto(params: {
           fusoHorario: params.fusoHorario,
         },
       );
-    }
+    }),
+  );
+  const cargaPrevistaMensalMinutos = medidor.medirSincrono(
+    "somar_carga_prevista",
+    () =>
+      itens.reduce((total, item) => total + item.cargaPrevistaMinutos, 0),
+  );
+  const medicao = medidor.finalizar();
 
-    const item = {
-      id: `competencia-${chave}`,
-      dataReferencia: dia.dataReferencia,
-      cargaPrevistaMinutos: dia.cargaPrevistaMinutos,
-      minutosTrabalhados: 0,
-      minutosIntervalo: 0,
-      minutosCredito: 0,
-      minutosDebito: 0,
-      resultado: dia.geraApuracaoRegular ? "PENDENTE" : "SEM_EXPEDIENTE",
-      status: dia.geraApuracaoRegular ? "PENDENTE" : "CALCULADA",
-      metadados: {
-        origem: "ESPELHO_COMPETENCIA_COMPLETA",
-        ...metadadosDiaInstitucional(dia),
-      },
-      ocorrencias: [],
-      contabilizarSaldos,
-      geradoParaCompetencia: true,
-      minutosDebitoApurado: 0,
-      minutosDebitoCompensado: 0,
-      minutosHoraExtraAutorizada: 0,
-      minutosHoraExtraNaoAutorizada: 0,
-      minutosBancoHoras: 0,
-    };
-
-    return ajustarDiaAtualEmAndamento(
-      afastamento ? aplicarAfastamentoSarh(item, afastamento) : item,
-      {
-        hoje,
-        agora: params.hoje,
-        fusoHorario: params.fusoHorario,
-      },
-    );
-  });
+  if (medicao.totalMs >= limiteLogLentoMontagemEspelho()) {
+    logger.info("Tempo de montagem do espelho mensal", {
+      totalMs: medicao.totalMs,
+      etapas: medicao.etapas,
+      anoReferencia: params.anoReferencia,
+      mesReferencia: params.mesReferencia,
+      servidorId: params.servidorId ?? null,
+      apuracoes: params.apuracoes.length,
+      jornadas: params.jornadas.length,
+      dias: dias.length,
+      afastamentos: afastamentos.length,
+    });
+  }
 
   return {
     itens,
-    cargaPrevistaMensalMinutos: itens.reduce(
-      (total, item) => total + item.cargaPrevistaMinutos,
-      0,
-    ),
+    cargaPrevistaMensalMinutos,
   };
 }

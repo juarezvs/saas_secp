@@ -11,6 +11,10 @@ async function getAuditoriaExport(request: Request) {
 
   const permissoes = session?.user?.perfilAtivo?.permissoes ?? [];
   if (
+    !permissoes.includes("auditoria:exportar:seccional") &&
+    !permissoes.includes("auditoria:consultar:seccional") &&
+    !permissoes.includes("auditoria:detalhar:seccional") &&
+    !permissoes.includes("auditoria:exportar:global") &&
     !permissoes.includes("auditoria:consultar:global") &&
     !permissoes.includes("auditoria:detalhar:global")
   ) {
@@ -30,7 +34,15 @@ async function getAuditoriaExport(request: Request) {
   });
 
   const linhas = [
-    ["Data/hora", "Usuario", "Matricula", "Entidade", "ID entidade", "Acao", "IP"],
+    [
+      "Data/hora",
+      "Usuario",
+      "Matricula",
+      "Entidade",
+      "ID entidade",
+      "Acao",
+      "IP",
+    ],
     ...eventos.map((evento) => [
       formatarDataHoraAuditoria(evento.criadoEm),
       evento.usuario?.nome ?? "Sistema/sem usuario",

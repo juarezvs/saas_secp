@@ -109,7 +109,15 @@ export default async function FolhaHorasExtrasDetalhePage({ params }: PageProps)
                 href={`/api/horas-extras/folha/${lote.id}/export`}
                 className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-white px-4 text-sm font-semibold text-foreground transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
-                Exportar CSV
+                Exportar detalhado
+              </Link>
+            )}
+            {podeExportar && (
+              <Link
+                href={`/api/horas-extras/folha/${lote.id}/export?layout=oficial`}
+                className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-white px-4 text-sm font-semibold text-foreground transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                Exportar folha
               </Link>
             )}
           </div>

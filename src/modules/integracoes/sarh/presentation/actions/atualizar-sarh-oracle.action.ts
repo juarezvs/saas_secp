@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 
-import { exigirPermissao } from "@/modules/auth/application/services/permissao.service";
+import {
+  obterPermissoesDaSessao,
+  usuarioPossuiAlgumaPermissaoNoPerfil,
+} from "@/modules/auth/application/services/permissao.service";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import {
   sarhOracleSchema,
@@ -13,6 +16,12 @@ import {
   upsertConfiguracaoSarhOracle,
 } from "../../application/services/sarh-oracle-config.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+
+const PERMISSOES_CONFIGURAR_SARH_ORACLE = [
+  "integracoes-sarh:configurar:global",
+  "integracoes:gerenciar:global",
+  "integracoes:gerenciar:seccional",
+];
 
 function extrairDados(formData: FormData) {
   return {
@@ -31,7 +40,28 @@ export async function atualizarSarhOracleAction(
   _estadoAnterior: SarhOracleFormState,
   formData: FormData,
 ): Promise<SarhOracleFormState> {
-  const permissao = await exigirPermissao("integracoes-sarh:configurar:global");
+  const permissao = await obterPermissoesDaSessao();
+
+  if (!permissao.permitido) {
+    return {
+      sucesso: false,
+      mensagem: "Sessao expirada. Faca login novamente.",
+    };
+  }
+
+  const podeConfigurar = usuarioPossuiAlgumaPermissaoNoPerfil(
+    permissao.perfilAtivoCodigo,
+    permissao.permissoes,
+    PERMISSOES_CONFIGURAR_SARH_ORACLE,
+  );
+
+  if (!podeConfigurar) {
+    return {
+      sucesso: false,
+      mensagem: "Voce nao possui permissao para configurar a integracao SARH.",
+    };
+  }
+
   const dados = extrairDados(formData);
   const parsed = sarhOracleSchema.safeParse(dados);
 

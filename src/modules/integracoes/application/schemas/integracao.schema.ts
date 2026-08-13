@@ -56,6 +56,7 @@ export const equipamentoBiometricoSchema = z.object({
       "DIMEP_SMART_PRINT",
       "CONTROL_ID_FACE_ID",
       "CONTROL_ID_IDCLASS_BIO",
+      "INTELBRAS_BIO_T",
     ])
     .default("GENERIC"),
   usuario: z.string().trim().optional().or(z.literal("")),
@@ -78,6 +79,10 @@ export const equipamentoBiometricoSchema = z.object({
     .optional()
     .or(z.literal("")),
   webhookToken: z.string().trim().optional().or(z.literal("")),
+  identificadorCpf: z.coerce.boolean().default(true),
+  identificadorPis: z.coerce.boolean().default(false),
+  identificadorMatriculaComSigla: z.coerce.boolean().default(false),
+  identificadorMatriculaNumerica: z.coerce.boolean().default(false),
   ativo: z.coerce.boolean().default(true),
 });
 

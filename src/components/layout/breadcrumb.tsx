@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { ChevronRight, Home } from "lucide-react";
 
-import { VlibrasBreadcrumbButton } from "@/components/accessibility/vlibras-breadcrumb-button";
-
 type BreadcrumbItem = {
   label: string;
   href?: string;
@@ -14,7 +12,7 @@ type BreadcrumbProps = {
 
 export function Breadcrumb({ items }: BreadcrumbProps) {
   return (
-    <div className="-mb-2 flex min-h-7 items-center justify-between gap-3">
+    <div className="-mb-2 flex min-h-7 items-center gap-3">
       <nav aria-label="Trilha de navegação" className="min-w-0 text-xs">
         <ol className="flex flex-wrap items-center gap-0.5 text-muted-foreground">
           <li>
@@ -53,10 +51,6 @@ export function Breadcrumb({ items }: BreadcrumbProps) {
           ))}
         </ol>
       </nav>
-
-      <div className="shrink-0 scale-90 opacity-85">
-        <VlibrasBreadcrumbButton />
-      </div>
     </div>
   );
 }

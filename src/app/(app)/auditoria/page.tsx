@@ -33,6 +33,8 @@ export default async function AuditoriaPage({
   searchParams,
 }: AuditoriaPageProps) {
   await exigirUmaDasPermissoesOuRedirecionar([
+    "auditoria:consultar:seccional",
+    "auditoria:detalhar:seccional",
     "auditoria:consultar:global",
     "auditoria:detalhar:global",
   ]);

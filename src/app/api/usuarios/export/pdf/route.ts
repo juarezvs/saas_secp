@@ -8,11 +8,14 @@ import {
   renderToBuffer,
   type DocumentProps,
 } from "@react-pdf/renderer";
-import { auth } from "@/auth";
 import {
   aplicarEscopoOrgaoId,
   obterEscopoOrgaoDaSessao,
 } from "@/modules/auth/application/services/escopo-orgao.service";
+import {
+  obterPermissoesDaSessao,
+  usuarioPossuiAlgumaPermissaoNoPerfil,
+} from "@/modules/auth/application/services/permissao.service";
 import { listarUsuariosParaExportacao } from "@/modules/usuarios/infrastructure/repositories/usuario.repository";
 
 export const runtime = "nodejs";
@@ -22,11 +25,18 @@ type UsuarioExportacao = Awaited<
 >[number];
 
 export async function GET(request: Request) {
-  const session = await auth();
+  const permissao = await obterPermissoesDaSessao();
+  const permissoesExportacao = [
+    "usuarios:gerenciar:global",
+    "usuarios:consultar:global",
+    "usuarios:gerenciar:seccional",
+    "usuarios:consultar:seccional",
+  ];
 
   if (
-    !session?.user?.perfilAtivo?.permissoes?.includes(
-      "usuarios:gerenciar:global",
+    !permissao.permitido ||
+    !permissoesExportacao.some((codigo) =>
+      permissao.permissoes.includes(codigo),
     )
   ) {
     return new Response("Acesso negado.", { status: 403 });
@@ -35,6 +45,11 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
 
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const podeGerenciarUsuarios = usuarioPossuiAlgumaPermissaoNoPerfil(
+    permissao.perfilAtivoCodigo,
+    permissao.permissoes,
+    ["usuarios:gerenciar:global", "usuarios:gerenciar:seccional"],
+  );
   const usuarios = await listarUsuariosParaExportacao(
     aplicarEscopoOrgaoId(
       {
@@ -46,6 +61,8 @@ export async function GET(request: Request) {
         lotacao: url.searchParams.get("lotacao") ?? "",
         perfil: url.searchParams.get("perfil") ?? "",
         status: url.searchParams.get("status") ?? "",
+        incluirUsuariosSistemaSemEscopo:
+          podeGerenciarUsuarios && !escopoOrgao.global,
       },
       escopoOrgao,
     ),

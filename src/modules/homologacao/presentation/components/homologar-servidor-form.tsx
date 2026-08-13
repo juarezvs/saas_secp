@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { PenLine } from "lucide-react";
+import { CheckCircle2, PenLine, RotateCcw, ShieldAlert } from "lucide-react";
 
 import { Button, Modal } from "@/components/ui";
 import { homologarServidorMesAction } from "../../application/actions/homologar-servidor-mes.action";
@@ -11,6 +11,11 @@ type AssinaturaInfo = {
   assinante?: string | null;
   cargoFuncoes?: string[];
 };
+
+const STATUS_COM_OBSERVACAO_OBRIGATORIA = [
+  "HOMOLOGADO_COM_RESSALVA",
+  "DEVOLVIDO",
+];
 
 export function HomologarServidorForm({
   homologacaoServidorId,
@@ -26,6 +31,22 @@ export function HomologarServidorForm({
     homologarServidorMesAction,
     { erro: null },
   );
+  const formId = `homologar-servidor-assinatura-form-${homologacaoServidorId}`;
+  const decisaoExigeObservacao =
+    STATUS_COM_OBSERVACAO_OBRIGATORIA.includes(status);
+
+  function abrirAssinatura(proximoStatus: string) {
+    setStatus(proximoStatus);
+
+    if (
+      STATUS_COM_OBSERVACAO_OBRIGATORIA.includes(proximoStatus) &&
+      !observacaoChefia.trim()
+    ) {
+      return;
+    }
+
+    setOpen(true);
+  }
 
   return (
     <div className="space-y-3">
@@ -37,7 +58,7 @@ export function HomologarServidorForm({
       >
         <option value="HOMOLOGADO">Homologar</option>
         <option value="HOMOLOGADO_COM_RESSALVA">Homologar com ressalva</option>
-        <option value="DEVOLVIDO">Devolver para correção</option>
+        <option value="DEVOLVIDO">Devolver para correcao</option>
       </select>
 
       <textarea
@@ -45,38 +66,68 @@ export function HomologarServidorForm({
         rows={3}
         value={observacaoChefia}
         onChange={(event) => setObservacaoChefia(event.target.value)}
-        placeholder="Observação da chefia, quando necessário."
+        placeholder={
+          decisaoExigeObservacao
+            ? "Informe a ressalva ou o motivo da devolucao."
+            : "Observacao da chefia, quando necessario."
+        }
         className="w-full rounded-md border bg-[var(--card)] px-3 py-2 text-sm"
       />
 
-      <Button
-        type="button"
-        className="w-full"
-        onClick={() => setOpen(true)}
-        leftIcon={<PenLine className="size-4" aria-hidden="true" />}
-      >
-        Assinar e registrar decisão
-      </Button>
+      {decisaoExigeObservacao && !observacaoChefia.trim() ? (
+        <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+          Informe a ressalva ou o motivo da devolucao antes de assinar.
+        </p>
+      ) : null}
+
+      <div className="grid gap-2">
+        <Button
+          type="button"
+          className="w-full"
+          onClick={() => abrirAssinatura("HOMOLOGADO")}
+          leftIcon={<CheckCircle2 className="size-4" aria-hidden="true" />}
+        >
+          Homologar
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={() => abrirAssinatura("HOMOLOGADO_COM_RESSALVA")}
+          leftIcon={<ShieldAlert className="size-4" aria-hidden="true" />}
+        >
+          Homologar com ressalva
+        </Button>
+        <Button
+          type="button"
+          variant="danger"
+          className="w-full"
+          onClick={() => abrirAssinatura("DEVOLVIDO")}
+          leftIcon={<RotateCcw className="size-4" aria-hidden="true" />}
+        >
+          Devolver para correcao
+        </Button>
+      </div>
 
       <Modal
         open={open}
         onOpenChange={setOpen}
         title="Assinatura de Documento"
-        description="Assine a decisão de homologação do espelho de ponto."
+        description="Assine a decisao de homologacao do espelho de ponto."
         footer={
           <>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
               Cancelar
             </Button>
-            <BotaoAssinarHomologacao pending={pending} />
+            <BotaoAssinarHomologacao pending={pending} formId={formId} />
           </>
         }
       >
-        <form
-          id={`homologar-servidor-assinatura-form-${homologacaoServidorId}`}
-          action={formAction}
-          className="space-y-4"
-        >
+        <form id={formId} action={formAction} className="space-y-4">
           <input
             type="hidden"
             name="homologacaoServidorId"
@@ -89,13 +140,16 @@ export function HomologarServidorForm({
             value={observacaoChefia}
           />
 
-          <CampoAssinatura label="Órgão do Assinante" value={assinatura?.orgao || "SECP"} />
+          <CampoAssinatura
+            label="Orgao do Assinante"
+            value={assinatura?.orgao || "SECP"}
+          />
           <CampoAssinatura
             label="Assinante"
-            value={assinatura?.assinante || "Usuário logado"}
+            value={assinatura?.assinante || "Usuario logado"}
           />
           <CampoCargoFuncao
-            opcoes={assinatura?.cargoFuncoes ?? ["Não informado"]}
+            opcoes={assinatura?.cargoFuncoes ?? ["Nao informado"]}
             inputId={`cargoFuncaoAssinaturaHomologacao-${homologacaoServidorId}`}
           />
 
@@ -136,7 +190,7 @@ function CampoCargoFuncao({
   return (
     <div>
       <label htmlFor={inputId} className="text-sm font-semibold">
-        Cargo / Função
+        Cargo / Funcao
       </label>
       <select
         id={inputId}
@@ -154,20 +208,19 @@ function CampoCargoFuncao({
   );
 }
 
-function BotaoAssinarHomologacao({ pending }: { pending: boolean }) {
+function BotaoAssinarHomologacao({
+  pending,
+  formId,
+}: {
+  pending: boolean;
+  formId: string;
+}) {
   return (
     <Button
-      type="button"
+      type="submit"
+      form={formId}
       loading={pending}
       leftIcon={<PenLine className="size-4" aria-hidden="true" />}
-      onClick={(event) => {
-        const modal = event.currentTarget.closest('[role="dialog"]');
-        const form = modal?.querySelector("form");
-        if (form instanceof HTMLFormElement) {
-          event.preventDefault();
-          form.requestSubmit();
-        }
-      }}
     >
       Assinar
     </Button>

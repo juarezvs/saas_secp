@@ -8,6 +8,7 @@ import {
   gestorUnidadeSchema,
   type GestorUnidadeFormState,
 } from "../schemas/gestor-unidade.schema";
+import { repassarPendenciasParaNovaChefia } from "../services/repassar-pendencias-chefia.service";
 import { existeGestorAtivoComMesmoPapel } from "../../infrastructure/repositories/chefia.repository";
 
 function extrairDadosGestorUnidade(formData: FormData) {
@@ -23,10 +24,10 @@ function extrairDadosGestorUnidade(formData: FormData) {
 
 export async function vincularGestorUnidadeAction(
   _estadoAnterior: GestorUnidadeFormState,
-  formData: FormData
+  formData: FormData,
 ): Promise<GestorUnidadeFormState> {
   const permissao = await exigirPermissaoOuRedirecionar(
-    "chefias:gerenciar:global"
+    "chefias:gerenciar:global",
   );
 
   const dados = extrairDadosGestorUnidade(formData);
@@ -163,6 +164,19 @@ export async function vincularGestorUnidadeAction(
         },
       },
     });
+
+    if (
+      novoGestor.papel === "GESTOR_TITULAR" &&
+      novoGestor.ativo &&
+      !novoGestor.dataFim
+    ) {
+      await repassarPendenciasParaNovaChefia({
+        tx,
+        unidadeId: novoGestor.unidadeId,
+        novoGestorUnidadeId: novoGestor.id,
+        usuarioId: permissao.usuarioId,
+      });
+    }
 
     return novoGestor;
   });

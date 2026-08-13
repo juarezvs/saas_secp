@@ -1,0 +1,263 @@
+{
+  "uid": "secp-funcionalidades-premium",
+  "title": "SECP - Funcionalidades Premium",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "timezone": "browser",
+  "tags": ["secp", "premium", "funcionalidades", "seccional"],
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "route",
+        "label": "Funcionalidade / rota",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "Prometheus" },
+        "query": "label_values(secp_http_requests_total, route)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": { "selected": true, "text": "All", "value": "$__all" }
+      },
+      {
+        "name": "status",
+        "label": "Status HTTP",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "Prometheus" },
+        "query": "label_values(secp_http_requests_total, status)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": { "selected": true, "text": "All", "value": "$__all" }
+      },
+      {
+        "name": "seccional",
+        "label": "Seccional",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "Prometheus" },
+        "query": "label_values(secp_http_requests_total, seccional)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": { "selected": true, "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Disponibilidade SECP",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "targets": [{ "expr": "avg(up{job=\"secp\"})", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Requisições por minuto",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "targets": [{ "expr": "sum(rate(secp_http_requests_total{route=~\"$route\",status=~\"$status\"}[5m])) * 60", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "reqpm", "decimals": 1, "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "P95 geral",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "targets": [{ "expr": "histogram_quantile(0.95, sum by (le) (rate(secp_http_request_duration_seconds_bucket{route=~\"$route\",status=~\"$status\"}[5m])))", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 2,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 3 }] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Erro 5xx",
+      "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
+      "targets": [{ "expr": "sum(rate(secp_http_requests_total{route=~\"$route\",status=~\"5..\"}[5m])) / clamp_min(sum(rate(secp_http_requests_total{route=~\"$route\"}[5m])), 0.001)", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 0.01 }, { "color": "red", "value": 0.05 }] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Apdex até 500ms",
+      "gridPos": { "x": 16, "y": 0, "w": 4, "h": 4 },
+      "targets": [{ "expr": "sum(rate(secp_http_request_duration_seconds_bucket{route=~\"$route\",status=~\"$status\",le=\"0.5\"}[5m])) / clamp_min(sum(rate(secp_http_request_duration_seconds_count{route=~\"$route\",status=~\"$status\"}[5m])), 0.001)", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "decimals": 2,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 0.85 }, { "color": "green", "value": 0.95 }] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Requisições em andamento",
+      "gridPos": { "x": 20, "y": 0, "w": 4, "h": 4 },
+      "targets": [{ "expr": "sum(secp_http_requests_in_flight{route=~\"$route\"})", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0 }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Volume por funcionalidade",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [{ "expr": "topk(12, sum by (route, method) (rate(secp_http_requests_total{route=~\"$route\",status=~\"$status\"}[5m])) * 60)", "legendFormat": "{{method}} {{route}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "reqpm", "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 12, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Tempo de resposta p95 por funcionalidade",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [{ "expr": "topk(12, histogram_quantile(0.95, sum by (le, route, method) (rate(secp_http_request_duration_seconds_bucket{route=~\"$route\",status=~\"$status\"}[5m]))))", "legendFormat": "{{method}} {{route}}", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 3 }] },
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 8, "showPoints": "never" }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 9,
+      "type": "barchart",
+      "title": "Top funcionalidades mais lentas agora",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "targets": [{ "expr": "topk(15, histogram_quantile(0.95, sum by (le, route) (rate(secp_http_request_duration_seconds_bucket{route=~\"$route\"}[5m]))))", "legendFormat": "{{route}}", "refId": "A", "instant": true }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 3 }] }
+        },
+        "overrides": []
+      },
+      "options": { "orientation": "horizontal", "legend": { "displayMode": "hidden" }, "tooltip": { "mode": "single", "sort": "none" } }
+    },
+    {
+      "id": 10,
+      "type": "barchart",
+      "title": "Top funcionalidades por tráfego",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "targets": [{ "expr": "topk(15, sum by (route) (rate(secp_http_requests_total{route=~\"$route\",status=~\"$status\"}[5m])) * 60)", "legendFormat": "{{route}}", "refId": "A", "instant": true }],
+      "fieldConfig": { "defaults": { "unit": "reqpm", "decimals": 1 }, "overrides": [] },
+      "options": { "orientation": "horizontal", "legend": { "displayMode": "hidden" }, "tooltip": { "mode": "single", "sort": "none" } }
+    },
+    {
+      "id": 11,
+      "type": "heatmap",
+      "title": "Distribuição de latência HTTP",
+      "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
+      "targets": [{ "expr": "sum by (le) (rate(secp_http_request_duration_seconds_bucket{route=~\"$route\",status=~\"$status\"}[5m]))", "format": "heatmap", "legendFormat": "{{le}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "options": { "calculate": false, "cellGap": 2, "color": { "mode": "scheme", "scheme": "Spectral", "steps": 64 }, "yAxis": { "axisPlacement": "left", "unit": "s" } }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Erros por funcionalidade",
+      "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
+      "targets": [{ "expr": "sum by (route, status) (rate(secp_http_requests_total{route=~\"$route\",status=~\"4..|5..\"}[5m])) * 60", "legendFormat": "{{status}} {{route}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "reqpm", "custom": { "drawStyle": "bars", "fillOpacity": 40, "showPoints": "never", "stacking": { "mode": "normal", "group": "A" } } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull"] }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 13,
+      "type": "table",
+      "title": "Resumo executivo por funcionalidade",
+      "gridPos": { "x": 0, "y": 28, "w": 24, "h": 9 },
+      "targets": [
+        { "expr": "topk(30, sum by (route, method) (rate(secp_http_requests_total{route=~\"$route\",status=~\"$status\"}[5m])) * 60)", "legendFormat": "{{method}} {{route}}", "refId": "A", "instant": true },
+        { "expr": "topk(30, histogram_quantile(0.95, sum by (le, route, method) (rate(secp_http_request_duration_seconds_bucket{route=~\"$route\",status=~\"$status\"}[5m]))))", "legendFormat": "p95 {{method}} {{route}}", "refId": "B", "instant": true },
+        { "expr": "topk(30, sum by (route, method) (rate(secp_http_requests_total{route=~\"$route\",status=~\"5..\"}[5m])) * 60)", "legendFormat": "5xx {{method}} {{route}}", "refId": "C", "instant": true }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 2 }, "overrides": [] },
+      "options": { "showHeader": true, "cellHeight": "sm", "footer": { "show": false } }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Espelho de ponto - tempo de carregamento por etapa",
+      "gridPos": { "x": 0, "y": 37, "w": 12, "h": 8 },
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "targets": [
+        { "expr": "{service=\"secp\"} |= \"Tempo de carregamento do espelho de ponto\" | json | unwrap totalMs", "legendFormat": "total", "refId": "A" },
+        { "expr": "{service=\"secp\"} |= \"Tempo de montagem do espelho mensal\" | json | unwrap totalMs", "legendFormat": "montagem mensal", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms", "decimals": 0 }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 15,
+      "type": "logs",
+      "title": "Eventos lentos e recálculos do espelho",
+      "gridPos": { "x": 12, "y": 37, "w": 12, "h": 8 },
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "targets": [{ "expr": "{service=\"secp\"} |~ \"Tempo de carregamento do espelho de ponto|Tempo de montagem do espelho mensal|ESPELHO_PONTO_AUTO\"", "refId": "A" }],
+      "options": { "dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": true, "showCommonLabels": false, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true }
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Volume por seccional",
+      "description": "Preenchido quando as métricas HTTP receberem o label seccional.",
+      "gridPos": { "x": 0, "y": 45, "w": 12, "h": 8 },
+      "targets": [{ "expr": "sum by (seccional) (rate(secp_http_requests_total{seccional=~\"$seccional\",route=~\"$route\",status=~\"$status\"}[5m])) * 60", "legendFormat": "{{seccional}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "reqpm", "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 12, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "P95 por seccional",
+      "description": "Preenchido quando as métricas HTTP receberem o label seccional.",
+      "gridPos": { "x": 12, "y": 45, "w": 12, "h": 8 },
+      "targets": [{ "expr": "histogram_quantile(0.95, sum by (le, seccional) (rate(secp_http_request_duration_seconds_bucket{seccional=~\"$seccional\",route=~\"$route\",status=~\"$status\"}[5m])))", "legendFormat": "{{seccional}}", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 3 }] },
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 12, "showPoints": "never" }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] }, "tooltip": { "mode": "multi", "sort": "desc" } }
+    }
+  ]
+}

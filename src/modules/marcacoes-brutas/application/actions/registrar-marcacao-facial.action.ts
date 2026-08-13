@@ -10,6 +10,7 @@ import {
   consumirAutorizacaoBiometricaMarcacao,
   validarAutorizacaoBiometricaMarcacao,
 } from "@/modules/biometria/application/services/autorizacao-biometrica-marcacao.service";
+import { salvarEvidenciaFacialMarcacao } from "@/modules/biometria/application/services/evidencia-facial-marcacao.service";
 import { criarMarcacaoBrutaService } from "../services/criar-marcacao-bruta.service";
 import { processarMarcacaoBrutaService } from "../services/processar-marcacao-bruta.service";
 
@@ -33,6 +34,12 @@ function normalizarIp(valor: string | null) {
   }
 
   return valor.replace(/^::ffff:/, "").trim() || null;
+}
+
+function numeroFormDataOuNull(valor: FormDataEntryValue | null) {
+  const numero = Number(valor ?? "");
+
+  return Number.isFinite(numero) ? numero : null;
 }
 
 async function resolverNomeMaquinaPorIp(ip: string | null) {
@@ -86,6 +93,19 @@ export async function registrarMarcacaoFacialAutorizadaAction(
 
   const autorizacaoBiometricaToken = String(
     formData.get("autorizacaoBiometricaToken") ?? "",
+  );
+  const amostraBiometricaId = String(formData.get("amostraBiometricaId") ?? "");
+  const evidenciaFacialImagem = String(
+    formData.get("evidenciaFacialImagem") ?? "",
+  );
+  const evidenciaQualidade = numeroFormDataOuNull(
+    formData.get("evidenciaFacialQualidade"),
+  );
+  const evidenciaSimilaridade = numeroFormDataOuNull(
+    formData.get("evidenciaFacialSimilaridade"),
+  );
+  const evidenciaDistancia = numeroFormDataOuNull(
+    formData.get("evidenciaFacialDistancia"),
   );
 
   const validacao = await validarAutorizacaoBiometricaMarcacao({
@@ -142,6 +162,23 @@ export async function registrarMarcacaoFacialAutorizadaAction(
         tx,
         autorizacaoId: autorizacaoBiometricaId,
         marcacaoId: processamento.marcacaoId!,
+      });
+      await salvarEvidenciaFacialMarcacao({
+        tx,
+        marcacaoId: processamento.marcacaoId!,
+        imagemDataUrl: evidenciaFacialImagem,
+        autorizacaoBiometricaId,
+        amostraBiometricaId: amostraBiometricaId || null,
+        qualidade: evidenciaQualidade,
+        similaridade: evidenciaSimilaridade,
+        distancia: evidenciaDistancia,
+        metadados: {
+          origem: "MARCACAO_FACIAL_WEB",
+          ip: ipOrigem,
+          nomeMaquina,
+          userAgent,
+          capturadoEm: capturadoEm.toISOString(),
+        },
       });
     });
   } else {

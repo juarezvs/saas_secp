@@ -22,6 +22,7 @@ type ConfiguracaoEquipamento = {
   proximoNsrColeta?: unknown;
   webhookToken?: unknown;
   eventosOnline?: unknown;
+  identificadorMatriculaNumerica?: unknown;
 };
 
 type ResultadoSincronizacaoBiometria = {
@@ -145,6 +146,10 @@ function normalizarMatriculaControlId(params: {
     return matricula.toUpperCase();
   }
 
+  if (params.configuracao?.identificadorMatriculaNumerica === false) {
+    return matricula;
+  }
+
   const prefixoConfigurado = valorTexto(
     (params.configuracao as Record<string, unknown> | undefined)
       ?.prefixoMatriculaControlId,
@@ -181,6 +186,17 @@ function normalizarFabricante(valor: string | null): FabricanteRelogioPonto {
     return "CONTROL_ID";
   }
 
+  if (
+    fabricante === "INTELBRAS" ||
+    fabricante === "BIO_T" ||
+    fabricante === "BIO-T" ||
+    fabricante === "SS" ||
+    fabricante === "SS3530" ||
+    fabricante === "SS5530"
+  ) {
+    return "INTELBRAS";
+  }
+
   return "GENERIC";
 }
 
@@ -198,6 +214,10 @@ function portaPadraoEquipamento(params: {
     return protocoloConfigurado(params.configuracao) === "CONTROL_ID_IDCLASS_BIO"
       ? 443
       : 80;
+  }
+
+  if (params.fabricante === "INTELBRAS") {
+    return 80;
   }
 
   return 3000;
@@ -443,12 +463,14 @@ async function coletarMarcacoesRelogioPontoSemLock(
         ...marcacao,
         matriculaOriginal: marcacao.matricula ?? null,
         matriculaNormalizada,
-        fonte:
-          conexao.fabricante === "CONTROL_ID"
-            ? "CONTROL_ID_ACCESS_LOGS"
-            : conexao.fabricante === "DIMEP"
-              ? "DIMEP"
-              : "HENRY_RR",
+          fonte:
+            conexao.fabricante === "CONTROL_ID"
+              ? "CONTROL_ID_ACCESS_LOGS"
+              : conexao.fabricante === "DIMEP"
+                ? "DIMEP"
+                : conexao.fabricante === "INTELBRAS"
+                  ? "INTELBRAS_ACCESS_CONTROL_CARD_REC"
+                  : "HENRY_RR",
       },
     });
 
@@ -637,7 +659,7 @@ type CapturarTodasMarcacoesRelogioPontoParams = {
     lotesExecutados: number;
     limiteLotes: number;
     percentual: number;
-    nsrAtual: string | number;
+    nsrAtual: string | number | null;
     proximoNsr: string | null;
     recebidas: number;
     criadas: number;
@@ -655,7 +677,7 @@ async function capturarTodasMarcacoesRelogioPontoSemLock(
     500,
   );
   const limiteLotes = Math.min(Math.max(Number(params.limiteLotes ?? 100), 1), 500);
-  let nsrAtual = params.nsrInicial ?? 1;
+  let nsrAtual: string | number | null = params.nsrInicial ?? null;
   let lotesExecutados = 0;
   let recebidas = 0;
   let criadas = 0;

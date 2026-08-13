@@ -2,8 +2,13 @@ import { SpanStatusCode } from "@opentelemetry/api";
 import { NextResponse } from "next/server";
 
 import { logger } from "./logger";
-import { normalizarRotaParaMetricas, obterObservabilidade } from "./metrics";
+import {
+  classificarFuncionalidadeParaMetricas,
+  normalizarRotaParaMetricas,
+  obterObservabilidade,
+} from "./metrics";
 import { tracer } from "./tracing";
+import { registrarAtividadeUsuarioHttp } from "./user-activity";
 
 type RouteHandler<TRequest extends Request = Request, TArgs extends unknown[] = []> = (
   request: TRequest,
@@ -53,6 +58,7 @@ export function withHttpMetrics<
     const observabilidade = obterObservabilidade();
     const method = request.method.toUpperCase();
     const route = normalizarRotaParaMetricas(routeName);
+    const funcionalidade = classificarFuncionalidadeParaMetricas(route);
     const requestId = obterRequestId(request);
     const inicio = performance.now();
     const endTimer = observabilidade.httpRequestDurationSeconds.startTimer({
@@ -81,11 +87,27 @@ export function withHttpMetrics<
         });
 
         observabilidade.httpRequestsTotal.inc({ method, route, status });
+        observabilidade.httpRequestsByFunctionalityTotal.inc({
+          funcionalidade,
+          method,
+          route,
+          status,
+        });
         observabilidade.httpResponseSizeBytes.observe(
           { method, route, status },
           tamanhoResposta(response),
         );
+        observabilidade.httpRequestDurationByFunctionalitySeconds.observe(
+          { funcionalidade, method, route, status },
+          Math.max((performance.now() - inicio) / 1000, 0),
+        );
         endTimer({ status });
+        await registrarAtividadeUsuarioHttp({
+          request,
+          method,
+          route,
+          status,
+        });
 
         logger[response.status >= 500 ? "error" : response.status >= 400 ? "warn" : "info"](
           "Requisicao HTTP observada",
@@ -104,6 +126,16 @@ export function withHttpMetrics<
         const durationMs = Math.round(performance.now() - inicio);
 
         observabilidade.httpRequestsTotal.inc({ method, route, status });
+        observabilidade.httpRequestsByFunctionalityTotal.inc({
+          funcionalidade,
+          method,
+          route,
+          status,
+        });
+        observabilidade.httpRequestDurationByFunctionalitySeconds.observe(
+          { funcionalidade, method, route, status },
+          Math.max((performance.now() - inicio) / 1000, 0),
+        );
         observabilidade.applicationErrorsTotal.inc({
           area: "http",
           kind: "unhandled",

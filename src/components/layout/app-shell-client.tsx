@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Header } from "@/components/layout/header";
+import { ChatInternoWidget } from "@/components/layout/chat-interno-widget";
+import { AlertaSaidaEstimada } from "@/components/layout/alerta-saida-estimada";
 import { PageTitlePersonalizadoProvider } from "@/components/layout/page-title-personalizado";
 import { SecpTourServidor } from "@/components/layout/secp-tour";
 import {
@@ -119,6 +121,12 @@ export function AppShellClient({
           onOpenChange={setTourServidorAberto}
         />
       )}
+      <AlertaSaidaEstimada />
+      <ChatInternoWidget
+        key={perfilAtivo.codigo}
+        perfilAtivoCodigo={perfilAtivo.codigo}
+        totalInicial={totalNotificacoes}
+      />
     </div>
   );
 }

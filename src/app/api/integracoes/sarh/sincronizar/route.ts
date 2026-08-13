@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { withHttpMetrics } from "@/lib/observability/http";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
+import { obterPermissoesDaSessao } from "@/modules/auth/application/services/permissao.service";
 import {
   SarhEscopoSincronizacaoError,
   resolverEscopoSincronizacaoSarh,
@@ -21,6 +21,7 @@ const PERMISSOES_SINCRONIZAR_SARH = new Set([
   "integracoes-sarh:configurar:global",
   "integracoes:sincronizar:global",
   "integracoes:gerenciar:global",
+  "integracoes:gerenciar:seccional",
 ]);
 
 const ENDPOINTS_VALIDOS = new Set<SarhEndpointKey>([
@@ -114,9 +115,9 @@ function normalizarEndpoints(endpoints: unknown, matricula?: string) {
 function isSarhSyncProgress(valor: unknown): valor is SarhSyncProgress {
   return Boolean(
     valor &&
-      typeof valor === "object" &&
-      "percentualGeral" in valor &&
-      "percentualEndpoint" in valor,
+    typeof valor === "object" &&
+    "percentualGeral" in valor &&
+    "percentualEndpoint" in valor,
   );
 }
 
@@ -138,10 +139,10 @@ function usuarioPodeAcessarJob(params: {
 }
 
 async function validarAcesso() {
-  const session = await auth();
-  const permissoes = session?.user?.perfilAtivo?.permissoes ?? [];
+  const permissao = await obterPermissoesDaSessao();
+  const permissoes = permissao.permissoes;
 
-  if (!session?.user) {
+  if (!permissao.permitido) {
     return {
       erro: NextResponse.json({ message: "Não autenticado." }, { status: 401 }),
       session: null,
@@ -155,7 +156,7 @@ async function validarAcesso() {
     };
   }
 
-  return { erro: null, session };
+  return { erro: null, session: permissao };
 }
 
 async function postSincronizarSarh(request: Request) {
@@ -187,12 +188,10 @@ async function postSincronizarSarh(request: Request) {
     throw error;
   }
 
-  const { enfileirarSincronizacaoSarh, progressoSarhAgendado } = await import(
-    "@/modules/integracoes/sarh/application/queues/sarh-sync-queue"
-  );
-  const { garantirSarhSyncWorkerAutomatico } = await import(
-    "@/modules/integracoes/sarh/application/workers/sarh-sync-worker-runtime"
-  );
+  const { enfileirarSincronizacaoSarh, progressoSarhAgendado } =
+    await import("@/modules/integracoes/sarh/application/queues/sarh-sync-queue");
+  const { garantirSarhSyncWorkerAutomatico } =
+    await import("@/modules/integracoes/sarh/application/workers/sarh-sync-worker-runtime");
 
   await garantirSarhSyncWorkerAutomatico();
 
@@ -211,7 +210,7 @@ async function postSincronizarSarh(request: Request) {
     codigosUnidadesSarhPermitidos:
       escopoSincronizacao.codigosUnidadesSarhPermitidos,
     codigoCargoSarh: payload.codigoCargoSarh,
-    iniciadoPorUsuarioId: acesso.session.user.id,
+    iniciadoPorUsuarioId: acesso.session.usuarioId ?? null,
     escopoSincronizacao: {
       global: escopoSincronizacao.global,
       orgaoIds: escopoSincronizacao.orgaoIds,
@@ -235,9 +234,8 @@ async function getSincronizarSarh(request: Request) {
   }
 
   const jobId = new URL(request.url).searchParams.get("jobId");
-  const { obterSarhSyncQueue, progressoSarhAgendado } = await import(
-    "@/modules/integracoes/sarh/application/queues/sarh-sync-queue"
-  );
+  const { obterSarhSyncQueue, progressoSarhAgendado } =
+    await import("@/modules/integracoes/sarh/application/queues/sarh-sync-queue");
   const job = jobId ? await obterSarhSyncQueue().getJob(jobId) : null;
 
   if (!job) {
@@ -267,9 +265,10 @@ async function getSincronizarSarh(request: Request) {
     jobId: job.id,
     estado,
     progresso,
-    resultado: estado === "completed"
-      ? (job.returnvalue as SarhResumoExecucao | null)
-      : null,
+    resultado:
+      estado === "completed"
+        ? (job.returnvalue as SarhResumoExecucao | null)
+        : null,
     erro: estado === "failed" ? job.failedReason : null,
   });
 }
@@ -282,9 +281,8 @@ async function deleteSincronizarSarh(request: Request) {
   }
 
   const jobId = new URL(request.url).searchParams.get("jobId");
-  const { obterSarhSyncQueue, progressoSarhAgendado } = await import(
-    "@/modules/integracoes/sarh/application/queues/sarh-sync-queue"
-  );
+  const { obterSarhSyncQueue, progressoSarhAgendado } =
+    await import("@/modules/integracoes/sarh/application/queues/sarh-sync-queue");
   const job = jobId ? await obterSarhSyncQueue().getJob(jobId) : null;
 
   if (!job) {

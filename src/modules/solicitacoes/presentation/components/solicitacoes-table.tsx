@@ -8,12 +8,11 @@ import {
   FileX2,
   Filter,
   Search,
+  Trash2,
   type LucideIcon,
 } from "lucide-react";
-import {
-  DataTablePageSize,
-  DataTablePagination,
-} from "@/components/listagens";
+import { DataTablePageSize, DataTablePagination } from "@/components/listagens";
+import { CompetenciaInput } from "@/components/ui";
 import {
   classeStatusSolicitacao,
   rotuloStatusSolicitacao,
@@ -22,6 +21,7 @@ import {
 import { dataPeriodoSolicitacaoParaExibicao } from "../../application/services/periodo-solicitacao.service";
 import { resolverFusoHorarioUnidade } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
+import { excluirSolicitacaoAction } from "../../application/actions/excluir-solicitacao.action";
 
 type SolicitacaoItem = {
   id: string;
@@ -32,6 +32,7 @@ type SolicitacaoItem = {
   dataReferencia: Date | null;
   dataInicio: Date | null;
   dataFim: Date | null;
+  usuarioSolicitanteId: string;
   servidor: {
     matricula: string;
     nomeFuncional?: string | null;
@@ -44,6 +45,10 @@ type SolicitacaoItem = {
     codigo?: string | null;
     nome?: string | null;
     fusoHorario?: string | null;
+  } | null;
+  analisadaPor: {
+    nome: string;
+    matricula: string;
   } | null;
 };
 
@@ -159,16 +164,20 @@ function ResumoItem({
 export function SolicitacoesTable({
   solicitacoes,
   tipoSelecionado,
+  competencia,
   servidorFiltro,
   servidoresFiltro,
   mostrarFiltroServidor,
   paginacao,
+  usuarioIdAtual,
 }: {
   solicitacoes: SolicitacaoItem[];
   tipoSelecionado?: string;
+  competencia: string;
   servidorFiltro?: string;
   servidoresFiltro?: ServidorFiltroItem[];
   mostrarFiltroServidor?: boolean;
+  usuarioIdAtual?: string;
   paginacao?: {
     total: number;
     pagina: number;
@@ -190,6 +199,8 @@ export function SolicitacoesTable({
   if (servidorAtivo && exibirFiltroServidor) {
     paramsTodosTipos.set("servidor", servidorAtivo);
   }
+
+  paramsTodosTipos.set("competencia", competencia);
 
   if (paginacao?.itensPorPagina) {
     paramsTodosTipos.set("itensPorPagina", String(paginacao.itensPorPagina));
@@ -243,6 +254,37 @@ export function SolicitacoesTable({
           </div>
 
           <div className="flex flex-col gap-2 md:items-end">
+            <form
+              className="flex flex-col gap-2 sm:flex-row sm:items-end"
+              action="/solicitacoes"
+            >
+              {tipoAtivo ? (
+                <input type="hidden" name="tipo" value={tipoAtivo} />
+              ) : null}
+              {servidorAtivo && exibirFiltroServidor ? (
+                <input type="hidden" name="servidor" value={servidorAtivo} />
+              ) : null}
+              {paginacao?.itensPorPagina ? (
+                <input
+                  type="hidden"
+                  name="itensPorPagina"
+                  value={paginacao.itensPorPagina}
+                />
+              ) : null}
+              <input type="hidden" name="pagina" value="1" />
+              <CompetenciaInput
+                id="solicitacoes-competencia"
+                defaultValue={competencia}
+                inputClassName="min-w-52"
+              />
+              <button
+                type="submit"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)]"
+              >
+                Aplicar
+              </button>
+            </form>
+
             {exibirFiltroServidor ? (
               <form
                 className="flex flex-col gap-2 sm:flex-row"
@@ -251,6 +293,7 @@ export function SolicitacoesTable({
                 {tipoAtivo ? (
                   <input type="hidden" name="tipo" value={tipoAtivo} />
                 ) : null}
+                <input type="hidden" name="competencia" value={competencia} />
                 {paginacao?.itensPorPagina ? (
                   <input
                     type="hidden"
@@ -316,6 +359,7 @@ export function SolicitacoesTable({
                   if (servidorAtivo && exibirFiltroServidor) {
                     query.set("servidor", servidorAtivo);
                   }
+                  query.set("competencia", competencia);
                   if (paginacao?.itensPorPagina) {
                     query.set(
                       "itensPorPagina",
@@ -356,6 +400,7 @@ export function SolicitacoesTable({
                 <th className="px-5 py-3">Tipo</th>
                 <th className="px-5 py-3">Título</th>
                 <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3">Analisado por</th>
                 <th className="px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
@@ -404,14 +449,50 @@ export function SolicitacoesTable({
                     </span>
                   </td>
 
+                  <td className="px-5 py-4">
+                    {solicitacao.analisadaPor ? (
+                      <div>
+                        <div className="font-semibold">
+                          {solicitacao.analisadaPor.nome}
+                        </div>
+                        <div className="mt-1 font-mono text-xs text-[var(--muted-foreground)]">
+                          {solicitacao.analisadaPor.matricula}
+                        </div>
+                      </div>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+
                   <td className="px-5 py-4 text-right">
-                    <Link
-                      href={`/solicitacoes/${solicitacao.id}`}
-                      className="inline-flex items-center justify-end gap-2 rounded-md border px-3 py-2 text-sm font-semibold text-blue-900 transition hover:bg-[var(--muted)] dark:text-blue-300"
-                    >
-                      <Eye className="size-4" aria-hidden="true" />
-                      Detalhar
-                    </Link>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <Link
+                        href={`/solicitacoes/${solicitacao.id}`}
+                        className="inline-flex items-center justify-end gap-2 rounded-md border px-3 py-2 text-sm font-semibold text-blue-900 transition hover:bg-[var(--muted)] dark:text-blue-300"
+                      >
+                        <Eye className="size-4" aria-hidden="true" />
+                        Detalhar
+                      </Link>
+
+                      {usuarioIdAtual &&
+                      solicitacao.usuarioSolicitanteId === usuarioIdAtual &&
+                      solicitacao.status === "ENVIADA" ? (
+                        <form
+                          action={excluirSolicitacaoAction.bind(
+                            null,
+                            solicitacao.id,
+                          )}
+                        >
+                          <button
+                            type="submit"
+                            className="inline-flex items-center justify-end gap-2 rounded-md border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
+                          >
+                            <Trash2 className="size-4" aria-hidden="true" />
+                            Excluir
+                          </button>
+                        </form>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -419,7 +500,7 @@ export function SolicitacoesTable({
               {solicitacoes.length === 0 && (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
                     Nenhuma solicitação encontrada.

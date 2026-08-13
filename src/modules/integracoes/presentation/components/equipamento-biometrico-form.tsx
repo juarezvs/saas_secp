@@ -124,6 +124,9 @@ export function EquipamentoBiometricoForm({
       : configuracao.protocolo === "CONTROL_ID_FACE_ID" ||
           equipamento?.fabricante === "CONTROL_ID"
         ? "CONTROL_ID_FACE_ID"
+      : configuracao.protocolo === "INTELBRAS_BIO_T" ||
+          equipamento?.fabricante === "INTELBRAS"
+        ? "INTELBRAS_BIO_T"
       : configuracao.protocolo === "HENRY" ||
           equipamento?.fabricante === "HENRY"
         ? "HENRY"
@@ -278,6 +281,7 @@ export function EquipamentoBiometricoForm({
               { value: "DIMEP_SMART_PRINT", label: "Dimep Smart Print / Smart Print-Pro" },
               { value: "CONTROL_ID_FACE_ID", label: "Control iD - FACE ID" },
               { value: "CONTROL_ID_IDCLASS_BIO", label: "Control iD - idClass Bio" },
+              { value: "INTELBRAS_BIO_T", label: "Intelbras - Bio-T / linha facial" },
             ]}
           />
         </div>
@@ -351,6 +355,80 @@ export function EquipamentoBiometricoForm({
           name="webhookToken"
           defaultValue={valorCampo(estado, "webhookToken", configuracao.webhookToken)}
         />
+
+        <label className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm">
+          <input
+            type="checkbox"
+            name="identificadorCpf"
+            defaultChecked={valorBooleanoCampo(
+              estado,
+              "identificadorCpf",
+              typeof configuracao.identificadorCpf === "boolean"
+                ? configuracao.identificadorCpf
+                : true,
+            )}
+          />
+          <span>
+            <span className="block font-semibold">Usa CPF</span>
+            <span className="text-xs text-[var(--muted-foreground)]">
+              Identificador do cadastro/log pode localizar servidor por CPF.
+            </span>
+          </span>
+        </label>
+
+        <label className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm">
+          <input
+            type="checkbox"
+            name="identificadorPis"
+            defaultChecked={valorBooleanoCampo(
+              estado,
+              "identificadorPis",
+              configuracao.identificadorPis === true,
+            )}
+          />
+          <span>
+            <span className="block font-semibold">Usa PIS/PASEP</span>
+            <span className="text-xs text-[var(--muted-foreground)]">
+              Identificador numÃ©rico pode ser tratado como PIS/PASEP.
+            </span>
+          </span>
+        </label>
+
+        <label className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm">
+          <input
+            type="checkbox"
+            name="identificadorMatriculaComSigla"
+            defaultChecked={valorBooleanoCampo(
+              estado,
+              "identificadorMatriculaComSigla",
+              configuracao.identificadorMatriculaComSigla === true,
+            )}
+          />
+          <span>
+            <span className="block font-semibold">Usa matrÃ­cula com sigla</span>
+            <span className="text-xs text-[var(--muted-foreground)]">
+              Exemplo: RR1235, AM200401.
+            </span>
+          </span>
+        </label>
+
+        <label className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm">
+          <input
+            type="checkbox"
+            name="identificadorMatriculaNumerica"
+            defaultChecked={valorBooleanoCampo(
+              estado,
+              "identificadorMatriculaNumerica",
+              configuracao.identificadorMatriculaNumerica === true,
+            )}
+          />
+          <span>
+            <span className="block font-semibold">Usa matrÃ­cula sÃ³ com nÃºmeros</span>
+            <span className="text-xs text-[var(--muted-foreground)]">
+              Exemplo: 000001235 vira RR1235 no Ã³rgÃ£o SJRR.
+            </span>
+          </span>
+        </label>
 
         <label className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm">
           <input
@@ -455,4 +533,3 @@ function Campo({
     </div>
   );
 }
-

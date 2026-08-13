@@ -3,6 +3,7 @@ import { ControlIdFaceIdClient } from "./control-id-face-id.client";
 import { HenryProtocoloLinhaAdvClient } from "./henry-protocolo-linha-adv.client";
 import { HenryLumenBalcaoClient } from "./henry-lumen-balcao.client";
 import { HenryRepWebServerClient } from "./henry-rep-web-server.client";
+import { IntelbrasBioTClient } from "./intelbras-bio-t.client";
 import type {
   DadosConexaoRelogioPonto,
   RelogioPontoProvider,
@@ -58,6 +59,10 @@ export function criarRelogioPontoProvider(
 
   if (conexao.fabricante === "CONTROL_ID") {
     return new ControlIdFaceIdClient(conexao);
+  }
+
+  if (conexao.fabricante === "INTELBRAS") {
+    return new IntelbrasBioTClient(conexao);
   }
 
   if (conexao.fabricante === "HENRY") {

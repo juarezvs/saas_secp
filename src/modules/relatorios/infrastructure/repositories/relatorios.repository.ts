@@ -25,13 +25,22 @@ export async function buscarServidorRelatorioPorUsuarioId(usuarioId: string) {
   });
 }
 
-export async function listarServidoresParaRelatorio() {
+export async function listarServidoresParaRelatorio(params?: {
+  orgaoIdsPermitidos?: string[];
+}) {
   return prisma.servidor.findMany({
     where: {
       ativo: true,
       usuario: {
         ativo: true,
       },
+      ...(params?.orgaoIdsPermitidos
+        ? {
+            orgaoId: {
+              in: params.orgaoIdsPermitidos,
+            },
+          }
+        : {}),
     },
     include: {
       usuario: true,
@@ -53,8 +62,21 @@ export async function listarServidoresParaRelatorio() {
   });
 }
 
-export async function listarBoletinsParaRelatorio() {
+export async function listarBoletinsParaRelatorio(params?: {
+  orgaoIdsPermitidos?: string[];
+}) {
   return prisma.boletimFrequencia.findMany({
+    where: {
+      ...(params?.orgaoIdsPermitidos
+        ? {
+            unidade: {
+              orgaoId: {
+                in: params.orgaoIdsPermitidos,
+              },
+            },
+          }
+        : {}),
+    },
     include: {
       unidade: true,
     },

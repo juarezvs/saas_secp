@@ -620,11 +620,7 @@ function montarLinhaServidor(
 function calcularDiasReferencia(
   item: BoletimPdfProps["boletim"]["servidores"][number],
 ) {
-  const diasPorCarga = Math.round(item.cargaPrevistaMinutos / 420);
-  const diasPorTrabalho =
-    Math.round(item.minutosTrabalhados / 420) + item.faltas;
-
-  return Math.max(0, diasPorCarga, diasPorTrabalho);
+  return Math.max(0, Math.round(item.cargaPrevistaMinutos / 420));
 }
 
 function extrairCategoriasOcorrencias(ocorrencias: unknown) {

@@ -23,13 +23,15 @@ export default async function AuditoriaDetalhePage({
   }
 
   const podeDetalhar =
+    permissao.permissoes.includes("auditoria:consultar:seccional") ||
+    permissao.permissoes.includes("auditoria:detalhar:seccional") ||
     permissao.permissoes.includes("auditoria:consultar:global") ||
     permissao.permissoes.includes("auditoria:detalhar:global");
 
   if (!podeDetalhar) {
     redirect(
       `/acesso-negado?permissao=${encodeURIComponent(
-        "auditoria:consultar:global ou auditoria:detalhar:global",
+        "auditoria:consultar:seccional, auditoria:detalhar:seccional, auditoria:consultar:global ou auditoria:detalhar:global",
       )}`,
     );
   }

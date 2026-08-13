@@ -3,7 +3,7 @@ import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application
 
 export default async function TeamsBancoHorasPage() {
   await exigirUmaDasPermissoesOuRedirecionar([
-    "teams:banco-horas:consultar",
+    "teams-banco-horas:consultar:proprio",
     "banco-horas:consultar:proprio",
   ]);
 

@@ -25,6 +25,10 @@ function redisCache() {
   return globalForRedisCache.__secpRedisCache;
 }
 
+export function obterRedisCacheClient() {
+  return redisCache();
+}
+
 export async function obterCacheJson<T>(key: string): Promise<T | null> {
   try {
     const value = await redisCache().get(key);

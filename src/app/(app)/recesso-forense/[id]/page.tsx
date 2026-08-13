@@ -17,7 +17,7 @@ export default async function RecessoDetalhePage({
     "recesso:consultar:global",
     "recesso:gerenciar:global",
     "recesso:homologar:chefia",
-    "recesso:aceitar:secad",
+    "recesso:aceitar:seccional",
   ]);
 
   const { id } = await params;

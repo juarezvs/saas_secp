@@ -1,0 +1,74 @@
+{
+  "uid": "secp-rotinas-logs-premium",
+  "title": "SECP - Logs de Rotinas Premium",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "timezone": "browser",
+  "tags": [
+    "secp",
+    "premium",
+    "logs",
+    "rotinas"
+  ],
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "Como ler",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 3
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "Logs operacionais dos workers e rotinas. Use junto das filas: backlog mostra acúmulo; logs mostram causa provável."
+      }
+    },
+    {
+      "id": 2,
+      "type": "logs",
+      "title": "Logs recentes de rotinas",
+      "description": "Eventos recentes envolvendo workers, filas, coletas, relatórios, SARH, AFD e recálculos.",
+      "datasource": {
+        "type": "loki",
+        "uid": "Loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 24,
+        "h": 16
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "Loki"
+          },
+          "expr": "{service=\"secp\"} |~ \"worker|Job|fila|reprocess|relatorio|SARH|AFD|calendario|COLETA|Tempo de|Erro|Falha\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      }
+    }
+  ]
+}

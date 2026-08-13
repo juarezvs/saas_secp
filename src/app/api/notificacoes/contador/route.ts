@@ -12,7 +12,9 @@ async function getNotificacoesContador(request: Request) {
     return NextResponse.json({ total: 0 }, { status: 401 });
   }
 
-  const total = await contarNotificacoesUsuario(session.user.id);
+  const total = await contarNotificacoesUsuario(session.user.id, {
+    perfilAtivo: session.user.perfilAtivo,
+  });
 
   return NextResponse.json(
     { total },

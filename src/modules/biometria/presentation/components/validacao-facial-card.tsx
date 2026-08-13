@@ -231,6 +231,31 @@ export function ValidacaoFacialCard({
             name="autorizacaoBiometricaToken"
             value={estado.autorizacaoToken}
           />
+          <input
+            type="hidden"
+            name="amostraBiometricaId"
+            value={estado.amostraId ?? ""}
+          />
+          <input
+            type="hidden"
+            name="evidenciaFacialImagem"
+            value={captura.imagemCapturada ?? ""}
+          />
+          <input
+            type="hidden"
+            name="evidenciaFacialQualidade"
+            value={captura.qualidade}
+          />
+          <input
+            type="hidden"
+            name="evidenciaFacialSimilaridade"
+            value={estado.similaridade ?? ""}
+          />
+          <input
+            type="hidden"
+            name="evidenciaFacialDistancia"
+            value={estado.distancia ?? ""}
+          />
 
           <button
             type="submit"
@@ -575,7 +600,7 @@ function capturarQuadroVideo(video: HTMLVideoElement) {
     return null;
   }
 
-  const largura = Math.min(video.videoWidth, 720);
+  const largura = Math.min(video.videoWidth, 360);
   const altura = Math.round((largura / video.videoWidth) * video.videoHeight);
   const canvas = document.createElement("canvas");
   canvas.width = largura;
@@ -590,7 +615,7 @@ function capturarQuadroVideo(video: HTMLVideoElement) {
   context.scale(-1, 1);
   context.drawImage(video, 0, 0, largura, altura);
 
-  return canvas.toDataURL("image/jpeg", 0.82);
+  return canvas.toDataURL("image/jpeg", 0.65);
 }
 
 function calcularMolduraFace(

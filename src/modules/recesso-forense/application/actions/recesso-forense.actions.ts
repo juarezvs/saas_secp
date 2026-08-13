@@ -164,7 +164,7 @@ export async function criarConvocacaoRecessoAction(
   formData: FormData,
 ): Promise<RecessoFormState> {
   const permissao = await exigirUmaDasPermissoesOuRedirecionar([
-    "recesso:convocacao:gerenciar",
+    "recesso:convocacao:global",
     "recesso:gerenciar:global",
   ]);
 
@@ -230,7 +230,7 @@ export async function atualizarConvocacaoRecessoAction(
   formData: FormData,
 ): Promise<RecessoFormState> {
   const permissao = await exigirUmaDasPermissoesOuRedirecionar([
-    "recesso:convocacao:gerenciar",
+    "recesso:convocacao:global",
     "recesso:gerenciar:global",
   ]);
 
@@ -309,7 +309,7 @@ export async function convocarServidorRecessoAction(
   formData: FormData,
 ): Promise<RecessoFormState> {
   const permissao = await exigirUmaDasPermissoesOuRedirecionar([
-    "recesso:convocacao:gerenciar",
+    "recesso:convocacao:global",
     "recesso:gerenciar:global",
     "recesso:homologar:chefia",
   ]);
@@ -406,7 +406,7 @@ export async function convocarServidorRecessoEmLoteAction(
   formData: FormData,
 ): Promise<RecessoFormState> {
   const permissao = await exigirUmaDasPermissoesOuRedirecionar([
-    "recesso:convocacao:gerenciar",
+    "recesso:convocacao:global",
     "recesso:gerenciar:global",
     "recesso:homologar:chefia",
   ]);
@@ -864,7 +864,7 @@ export async function devolverHomologacaoRecessoAction(formData: FormData) {
 
 export async function aceitarRecessoSecadAction(formData: FormData) {
   const permissao = await exigirUmaDasPermissoesOuRedirecionar([
-    "recesso:aceitar:secad",
+    "recesso:aceitar:seccional",
     "recesso:gerenciar:global",
   ]);
 

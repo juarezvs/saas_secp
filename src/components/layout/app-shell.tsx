@@ -89,10 +89,9 @@ export async function AppShell({ children }: AppShellProps) {
     redirect("/login");
   }
 
-  const [usuarioAtualizado, servidor, totalNotificacoes] = await Promise.all([
+  const [usuarioAtualizado, servidor] = await Promise.all([
     buscarUsuarioParaLoginPorMatricula(session.user.matricula),
     buscarServidorPorUsuarioId(session.user.id, session.user.matricula),
-    contarNotificacoesUsuario(session.user.id),
   ]);
   const lotacaoAtual = servidor?.lotacoes[0];
   const perfisNavegacao =
@@ -109,11 +108,16 @@ export async function AppShell({ children }: AppShellProps) {
       tipoUsuario: usuarioAtualizado?.tipo ?? session.user.tipo,
       perfis: perfisNavegacao,
       perfilPreferido,
+      respeitarPerfilPreferido: Boolean(session.user.perfilAtivo),
     }) ?? perfilPreferido;
 
   if (!perfilAtivo) {
     redirect("/acesso-negado?motivo=sem-perfil");
   }
+
+  const totalNotificacoes = await contarNotificacoesUsuario(session.user.id, {
+    perfilAtivo,
+  });
 
   const fotoCpf = servidor?.cpf;
   const [fotoUrl, menusPersonalizados, iconesItensCatalogo] = await Promise.all([

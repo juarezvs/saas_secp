@@ -2,7 +2,7 @@ import { CalendarDays } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
-import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   buscarCalendarioFeriasEquipe,
   listarIdsUnidadesSubordinadasNaData,
@@ -57,11 +57,19 @@ function normalizarAno(valor?: string) {
 export default async function MinhaEquipeFeriasPage({
   searchParams,
 }: MinhaEquipeFeriasPageProps) {
-  const permissao = await exigirPermissaoOuRedirecionar(
+  const permissao = await exigirUmaDasPermissoesOuRedirecionar([
+    "programacao-ferias:consultar:subordinados",
+    "programacao-ferias:consultar:seccional",
+    "programacao-ferias:consultar:global",
     "minha-equipe:consultar:chefia",
-  );
+  ]);
+  const permissoes = new Set(permissao.permissoes);
   const perfilAtivoCodigo = permissao.perfilAtivoCodigo?.toUpperCase() ?? "";
-  const visualizarTodasEquipes = perfilAtivoCodigo !== "CHEFIA";
+  const visualizarTodasEquipes =
+    permissoes.has("programacao-ferias:consultar:seccional") ||
+    permissoes.has("programacao-ferias:consultar:global") ||
+    (perfilAtivoCodigo !== "CHEFIA" &&
+      !permissoes.has("programacao-ferias:consultar:subordinados"));
   const params = searchParams ? await searchParams : {};
   const data = normalizarData(params.data);
   const dataReferencia = parseDataReferencia(data);

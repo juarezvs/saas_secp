@@ -5,7 +5,10 @@ import {
   PERFIL_ATIVO_COOKIE,
   PERFIL_ATIVO_COOKIE_MAX_AGE_SEGUNDOS,
 } from "@/modules/auth/domain/constants/perfil-ativo-cookie";
-import { buscarUsuarioParaLoginPorMatricula } from "@/modules/auth/infrastructure/repositories/usuario-auth.repository";
+import {
+  buscarUsuarioParaLoginPorMatricula,
+  invalidarCacheUsuarioAuthPorMatricula,
+} from "@/modules/auth/infrastructure/repositories/usuario-auth.repository";
 
 type TrocarPerfilAtivoPayload = {
   perfilCodigo?: string;
@@ -43,8 +46,9 @@ async function postPerfilAtivo(request: Request) {
     session.user.matricula,
   );
   const perfis = usuarioAtual?.perfis ?? [];
+  const perfilCodigo = payload.perfilCodigo.trim().toUpperCase();
   const perfilAtivo = perfis.find(
-    (perfil) => perfil.codigo === payload.perfilCodigo,
+    (perfil) => perfil.codigo.toUpperCase() === perfilCodigo,
   );
 
   if (!perfilAtivo) {
@@ -53,6 +57,8 @@ async function postPerfilAtivo(request: Request) {
       { status: 403 },
     );
   }
+
+  await invalidarCacheUsuarioAuthPorMatricula(session.user.matricula);
 
   const response = NextResponse.json({ perfilAtivo }, { status: 200 });
 

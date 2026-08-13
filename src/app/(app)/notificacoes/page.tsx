@@ -30,7 +30,9 @@ function contarPorPrioridade(notificacoes: NotificacaoUsuario[]) {
 export default async function NotificacoesPage() {
   const session = await auth();
   const notificacoes = session?.user
-    ? await listarNotificacoesUsuario(session.user.id)
+    ? await listarNotificacoesUsuario(session.user.id, {
+        perfilAtivo: session.user.perfilAtivo,
+      })
     : [];
   const resumo = contarPorPrioridade(notificacoes);
   const totalNaoLidas = notificacoes.filter((notificacao) => !notificacao.lida).length;

@@ -44,6 +44,7 @@ import {
   bancoHorasAtivoNaCompetencia,
   buscarRegulamentacaoPontoOrgao,
 } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
+import { logger } from "@/lib/observability/logger";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 type EspelhoPontoPageProps = {
@@ -60,6 +61,42 @@ type EspelhoPontoPageProps = {
 type ServidorEspelho = Awaited<
   ReturnType<typeof listarServidoresParaEspelhoPonto>
 >[number];
+
+type EtapaTempo = {
+  etapa: string;
+  durationMs: number;
+};
+
+function limiteLogLentoEspelhoPonto() {
+  const valor = Number(process.env.ESPELHO_PONTO_SLOW_LOG_MS);
+  return Number.isFinite(valor) && valor >= 0 ? valor : 1000;
+}
+
+function criarMedidorEspelhoPonto() {
+  const inicioTotal = performance.now();
+  const etapas: EtapaTempo[] = [];
+
+  return {
+    async medir<T>(etapa: string, tarefa: () => Promise<T>): Promise<T> {
+      const inicio = performance.now();
+
+      try {
+        return await tarefa();
+      } finally {
+        etapas.push({
+          etapa,
+          durationMs: Math.round(performance.now() - inicio),
+        });
+      }
+    },
+    finalizar() {
+      return {
+        totalMs: Math.round(performance.now() - inicioTotal),
+        etapas,
+      };
+    },
+  };
+}
 
 function normalizarCompetencia(params: {
   competencia?: string;
@@ -173,7 +210,11 @@ async function garantirEspelhoMensalCalculado(params: {
   const fimCalculavel = fimExclusivoCalculavel(params);
 
   if (fimCalculavel <= inicio) {
-    return;
+    return {
+      recalculoExecutado: false,
+      diasCalculaveis: 0,
+      diasComApuracao: 0,
+    };
   }
 
   const diasCalculaveis = quantidadeDiasEntre(inicio, fimCalculavel);
@@ -188,8 +229,15 @@ async function garantirEspelhoMensalCalculado(params: {
   });
 
   if (diasComApuracao >= diasCalculaveis) {
-    return;
+    return {
+      recalculoExecutado: false,
+      diasCalculaveis,
+      diasComApuracao,
+    };
   }
+
+  const inicioRecalculo = performance.now();
+  let recalculoExecutado = true;
 
   await recalcularMesServidorService({
     servidorId: params.servidorId,
@@ -197,13 +245,21 @@ async function garantirEspelhoMensalCalculado(params: {
     mesReferencia: params.mesReferencia,
     origem: "ESPELHO_PONTO_AUTO",
   }).catch((error: unknown) => {
-    console.warn("[ESPELHO_PONTO_AUTO] Nao foi possivel recalcular o mes", {
+    recalculoExecutado = false;
+    logger.warn("[ESPELHO_PONTO_AUTO] Nao foi possivel recalcular o mes", {
       servidorId: params.servidorId,
       anoReferencia: params.anoReferencia,
       mesReferencia: params.mesReferencia,
       erro: error instanceof Error ? error.message : String(error),
     });
   });
+
+  return {
+    recalculoExecutado,
+    diasCalculaveis,
+    diasComApuracao,
+    recalculoDurationMs: Math.round(performance.now() - inicioRecalculo),
+  };
 }
 
 function paramsPossuemCompetencia(params: {
@@ -244,12 +300,15 @@ function montarHrefExportacaoEspelho(params: {
 export default async function EspelhoPontoPage({
   searchParams,
 }: EspelhoPontoPageProps) {
-  const permissao = await exigirUmaDasPermissoesOuRedirecionar([
-    "espelho-ponto:visualizar:proprio",
-    "apuracao:consultar:global",
-  ]);
+  const medidor = criarMedidorEspelhoPonto();
+  const permissao = await medidor.medir("autenticacao_permissoes", () =>
+    exigirUmaDasPermissoesOuRedirecionar([
+      "espelho-ponto:visualizar:proprio",
+      "apuracao:consultar:global",
+    ]),
+  );
 
-  const params = await searchParams;
+  const params = await medidor.medir("search_params", () => searchParams);
   const { anoReferencia, mesReferencia } = normalizarCompetencia(params);
 
   const podeConsultarGlobal = usuarioPossuiPermissaoNoPerfil(
@@ -284,36 +343,42 @@ export default async function EspelhoPontoPage({
     "VOLUNTARIO",
   ].includes(permissao.perfilAtivoCodigo?.toUpperCase() ?? "");
   const perfilProprioAtivo = perfilServidorAtivo || perfilPessoaExternaAtivo;
-  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const escopoOrgao = await medidor.medir("escopo_orgao_sessao", () =>
+    obterEscopoOrgaoDaSessao(),
+  );
   const orgaoIdsPermitidos = escopoOrgao.global
     ? undefined
     : escopoOrgao.orgaoIds;
 
-  const [servidoresEscopo, servidorProprio] = await Promise.all([
-    params.servidorId && podeConsultarTodosServidores
-      ? listarServidoresParaEspelhoPonto({
-          anoReferencia,
-          mesReferencia,
-          escopo: "global",
-          orgaoIdsPermitidos,
-          servidorId: params.servidorId,
-          limite: 1,
-        })
-      : params.servidorId && perfilChefiaAtivo && permissao.usuarioId
-        ? listarServidoresParaEspelhoPonto({
-            usuarioId: permissao.usuarioId,
-            anoReferencia,
-            mesReferencia,
-            escopo: "chefia",
-            orgaoIdsPermitidos,
-            servidorId: params.servidorId,
-            limite: 1,
-          })
-        : Promise.resolve([]),
-    permissao.usuarioId
-      ? buscarServidorComUsuarioPorUsuarioId(permissao.usuarioId)
-      : Promise.resolve(null),
-  ]);
+  const [servidoresEscopo, servidorProprio] = await medidor.medir(
+    "servidores_escopo_proprio",
+    () =>
+      Promise.all([
+        params.servidorId && podeConsultarTodosServidores
+          ? listarServidoresParaEspelhoPonto({
+              anoReferencia,
+              mesReferencia,
+              escopo: "global",
+              orgaoIdsPermitidos,
+              servidorId: params.servidorId,
+              limite: 1,
+            })
+          : params.servidorId && perfilChefiaAtivo && permissao.usuarioId
+            ? listarServidoresParaEspelhoPonto({
+                usuarioId: permissao.usuarioId,
+                anoReferencia,
+                mesReferencia,
+                escopo: "chefia",
+                orgaoIdsPermitidos,
+                servidorId: params.servidorId,
+                limite: 1,
+              })
+            : Promise.resolve([]),
+        permissao.usuarioId
+          ? buscarServidorComUsuarioPorUsuarioId(permissao.usuarioId)
+          : Promise.resolve(null),
+      ]),
+  );
   const servidores =
     perfilChefiaAtivo && servidorProprio
       ? [
@@ -335,9 +400,11 @@ export default async function EspelhoPontoPage({
 
   if (!paramsPossuemCompetencia(params)) {
     const fusoHorario = servidorSelecionado
-      ? await resolverFusoHorarioServidorNoBanco({
-          servidorId: servidorSelecionado.id,
-        })
+      ? await medidor.medir("fuso_horario_redirect", () =>
+          resolverFusoHorarioServidorNoBanco({
+            servidorId: servidorSelecionado.id,
+          }),
+        )
       : "America/Manaus";
     const query = new URLSearchParams({
       competencia: obterCompetenciaAtual(fusoHorario),
@@ -350,44 +417,57 @@ export default async function EspelhoPontoPage({
     redirect(`/espelho-ponto?${query.toString()}`);
   }
 
-  if (servidorSelecionado) {
-    const fusoHorario = await resolverFusoHorarioServidorNoBanco({
-      servidorId: servidorSelecionado.id,
-      dataReferencia: inicioCompetencia(anoReferencia, mesReferencia),
-    });
+  let recalculoAutomatico:
+    | Awaited<ReturnType<typeof garantirEspelhoMensalCalculado>>
+    | null = null;
 
-    await garantirEspelhoMensalCalculado({
-      servidorId: servidorSelecionado.id,
-      anoReferencia,
-      mesReferencia,
-      fusoHorario,
-    });
+  if (servidorSelecionado) {
+    const fusoHorario = await medidor.medir("fuso_horario_servidor", () =>
+      resolverFusoHorarioServidorNoBanco({
+        servidorId: servidorSelecionado.id,
+        dataReferencia: inicioCompetencia(anoReferencia, mesReferencia),
+      }),
+    );
+
+    recalculoAutomatico = await medidor.medir("garantir_espelho_calculado", () =>
+      garantirEspelhoMensalCalculado({
+        servidorId: servidorSelecionado.id,
+        anoReferencia,
+        mesReferencia,
+        fusoHorario,
+      }),
+    );
   }
 
-  const [apuracoes, marcacoes, homologacaoServidor] = servidorSelecionado
-    ? await Promise.all([
-        listarApuracoesDoServidorNoMes({
-          servidorId: servidorSelecionado.id,
-          ano: anoReferencia,
-          mes: mesReferencia,
-        }),
-        listarMarcacoesDoServidorNoMes({
-          servidorId: servidorSelecionado.id,
-          ano: anoReferencia,
-          mes: mesReferencia,
-        }),
-        perfilServidorAtivo
-          ? buscarHomologacaoServidorMes({
+  const [apuracoes, marcacoes, homologacaoServidor] =
+    await medidor.medir("dados_espelho_mensal", () =>
+      servidorSelecionado
+        ? Promise.all([
+            listarApuracoesDoServidorNoMes({
               servidorId: servidorSelecionado.id,
-              anoReferencia,
-              mesReferencia,
-            })
-          : Promise.resolve(null),
-      ])
-    : [[], [], null];
-  const envioRegistrado = homologacaoServidor
-    ? await verificarEnvioEspelhoServidor(homologacaoServidor.id)
-    : false;
+              ano: anoReferencia,
+              mes: mesReferencia,
+            }),
+            listarMarcacoesDoServidorNoMes({
+              servidorId: servidorSelecionado.id,
+              ano: anoReferencia,
+              mes: mesReferencia,
+            }),
+            perfilServidorAtivo
+              ? buscarHomologacaoServidorMes({
+                  servidorId: servidorSelecionado.id,
+                  anoReferencia,
+                  mesReferencia,
+                })
+              : Promise.resolve(null),
+          ])
+        : Promise.resolve([[], [], null]),
+    );
+  const envioRegistrado = await medidor.medir("envio_espelho_homologacao", () =>
+    homologacaoServidor
+      ? verificarEnvioEspelhoServidor(homologacaoServidor.id)
+      : Promise.resolve(false),
+  );
   const espelhoEnviado = Boolean(
     envioRegistrado ||
     (homologacaoServidor &&
@@ -404,12 +484,42 @@ export default async function EspelhoPontoPage({
   const queryBuscaPessoa = new URLSearchParams({
     competencia: competenciaInput,
   });
-  const regulamentacaoBancoHoras = servidorSelecionado?.orgaoId
-    ? await buscarRegulamentacaoPontoOrgao(servidorSelecionado.orgaoId)
-    : null;
+  const regulamentacaoBancoHoras = await medidor.medir(
+    "regulamentacao_banco_horas",
+    () =>
+      servidorSelecionado?.orgaoId
+        ? buscarRegulamentacaoPontoOrgao(servidorSelecionado.orgaoId)
+        : Promise.resolve(null),
+  );
   const bancoHorasAtivoCompetencia = regulamentacaoBancoHoras
     ? bancoHorasAtivoNaCompetencia(regulamentacaoBancoHoras, competenciaInput)
     : true;
+  const medicao = medidor.finalizar();
+
+  if (
+    medicao.totalMs >= limiteLogLentoEspelhoPonto() ||
+    recalculoAutomatico?.recalculoExecutado
+  ) {
+    logger.info("Tempo de carregamento do espelho de ponto", {
+      rota: "/espelho-ponto",
+      totalMs: medicao.totalMs,
+      etapas: medicao.etapas,
+      anoReferencia,
+      mesReferencia,
+      servidorId: servidorSelecionado?.id ?? params.servidorId ?? null,
+      perfilAtivoCodigo: permissao.perfilAtivoCodigo ?? null,
+      escopo: perfilChefiaAtivo
+        ? "chefia"
+        : podeConsultarTodosServidores
+          ? "global"
+          : "proprio",
+      servidoresEscopo: servidoresEscopo.length,
+      servidoresRenderizados: servidores.length,
+      apuracoes: apuracoes.length,
+      marcacoes: marcacoes.length,
+      recalculoAutomatico,
+    });
+  }
 
   return (
     <div className="space-y-6">

@@ -95,7 +95,7 @@ export function Header({
     return () => {
       ativo = false;
     };
-  }, [pathname, buscarTotalNotificacoes]);
+  }, [pathname, perfilAtivo.codigo, buscarTotalNotificacoes]);
 
   useEffect(() => {
     function atualizarAoFocar() {

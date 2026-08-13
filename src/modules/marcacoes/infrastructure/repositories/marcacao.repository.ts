@@ -39,31 +39,31 @@ export async function buscarServidorPorUsuarioId(
           cargo: true,
           unidade: {
             include: {
-                orgao: {
-                  select: {
-                    sigla: true,
-                    nome: true,
-                    fusoHorario: true,
-                  },
+              orgao: {
+                select: {
+                  sigla: true,
+                  nome: true,
+                  fusoHorario: true,
                 },
+              },
               unidadePai: {
                 include: {
-                    orgao: {
-                      select: {
-                        sigla: true,
-                        nome: true,
-                        fusoHorario: true,
-                      },
+                  orgao: {
+                    select: {
+                      sigla: true,
+                      nome: true,
+                      fusoHorario: true,
                     },
+                  },
                   unidadePai: {
                     include: {
-                        orgao: {
-                          select: {
-                            sigla: true,
-                            nome: true,
-                            fusoHorario: true,
-                          },
+                      orgao: {
+                        select: {
+                          sigla: true,
+                          nome: true,
+                          fusoHorario: true,
                         },
+                      },
                     },
                   },
                 },
@@ -114,12 +114,17 @@ export async function listarMarcacoesDoServidorNoDia(params: {
     where: {
       servidorId: params.servidorId,
       dataReferencia,
-      status: {
-        in: ["VALIDA", "PENDENTE"],
-      },
+      status: "VALIDA",
     },
     orderBy: {
       dataHora: "asc",
+    },
+    include: {
+      evidenciaFacial: {
+        select: {
+          id: true,
+        },
+      },
     },
   });
 }
@@ -211,6 +216,13 @@ export async function listarHistoricoMarcacoesDoUsuario(params: {
       orderBy: {
         dataHora: "desc",
       },
+      include: {
+        evidenciaFacial: {
+          select: {
+            id: true,
+          },
+        },
+      },
     }),
     prisma.apuracaoDiaria.findMany({
       where: {
@@ -248,6 +260,11 @@ export async function listarUltimasMarcacoes(params?: {
       dataHora: "desc",
     },
     include: {
+      evidenciaFacial: {
+        select: {
+          id: true,
+        },
+      },
       servidor: {
         include: {
           usuario: true,

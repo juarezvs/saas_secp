@@ -2,6 +2,7 @@ export type FabricanteRelogioPonto =
   | "HENRY"
   | "DIMEP"
   | "CONTROL_ID"
+  | "INTELBRAS"
   | "GENERIC";
 
 export type FormatoTemplateBiometricoRelogio =

@@ -5,6 +5,8 @@ import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/appli
 type FiltrosSolicitacao = {
   servidor?: string;
   tipo?: string;
+  competencia?: string;
+  orgaoIdsPermitidos?: string[];
 };
 
 type PaginacaoSolicitacaoParams = {
@@ -74,11 +76,7 @@ function whereSolicitacoesParaUnidadesChefia(params: {
               ativo: true,
               dataFim: null,
               papel: {
-                in: [
-                  "GESTOR_TITULAR",
-                  "GESTOR_SUBSTITUTO",
-                  "DELEGADO_CHEFIA",
-                ],
+                in: ["GESTOR_TITULAR", "GESTOR_SUBSTITUTO", "DELEGADO_CHEFIA"],
               },
             },
           },
@@ -159,15 +157,89 @@ function filtroTipoSolicitacao(
   };
 }
 
+function filtroCompetenciaSolicitacao(
+  competencia?: string,
+): Prisma.SolicitacaoWhereInput | undefined {
+  const match = competencia?.match(/^(\d{4})-(\d{2})$/);
+
+  if (!match) {
+    return undefined;
+  }
+
+  const ano = Number(match[1]);
+  const mes = Number(match[2]);
+
+  if (!Number.isInteger(ano) || mes < 1 || mes > 12) {
+    return undefined;
+  }
+
+  const inicio = new Date(Date.UTC(ano, mes - 1, 1));
+  const fim = new Date(Date.UTC(ano, mes, 1));
+
+  return {
+    OR: [
+      {
+        dataReferencia: {
+          gte: inicio,
+          lt: fim,
+        },
+      },
+      {
+        dataReferencia: null,
+        dataInicio: {
+          lt: fim,
+        },
+        OR: [
+          {
+            dataFim: null,
+          },
+          {
+            dataFim: {
+              gte: inicio,
+            },
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function filtroOrgaoSolicitacao(
+  orgaoIdsPermitidos?: string[],
+): Prisma.SolicitacaoWhereInput | undefined {
+  if (!orgaoIdsPermitidos) {
+    return undefined;
+  }
+
+  if (orgaoIdsPermitidos.length === 0) {
+    return {
+      servidorId: "00000000-0000-4000-8000-000000000000",
+    };
+  }
+
+  return {
+    servidor: {
+      orgaoId: {
+        in: orgaoIdsPermitidos,
+      },
+    },
+  };
+}
+
 function aplicarFiltrosSolicitacao(
   where: Prisma.SolicitacaoWhereInput,
   filtros?: FiltrosSolicitacao,
 ): Prisma.SolicitacaoWhereInput {
   const filtroServidor = filtroServidorSolicitacao(filtros?.servidor);
   const filtroTipo = filtroTipoSolicitacao(filtros?.tipo);
-  const filtrosAtivos = [filtroServidor, filtroTipo].filter(
-    (filtro): filtro is Prisma.SolicitacaoWhereInput => Boolean(filtro),
-  );
+  const filtroCompetencia = filtroCompetenciaSolicitacao(filtros?.competencia);
+  const filtroOrgao = filtroOrgaoSolicitacao(filtros?.orgaoIdsPermitidos);
+  const filtrosAtivos = [
+    filtroServidor,
+    filtroTipo,
+    filtroCompetencia,
+    filtroOrgao,
+  ].filter((filtro): filtro is Prisma.SolicitacaoWhereInput => Boolean(filtro));
 
   if (filtrosAtivos.length === 0) {
     return where;
@@ -266,7 +338,10 @@ export async function listarSolicitacoesDoUsuario(
   filtros?: FiltrosSolicitacao,
 ) {
   return prisma.solicitacao.findMany({
-    where: aplicarFiltrosSolicitacao(whereSolicitacoesDoUsuario(usuarioId), filtros),
+    where: aplicarFiltrosSolicitacao(
+      whereSolicitacoesDoUsuario(usuarioId),
+      filtros,
+    ),
     include: includeSolicitacaoListagem,
     orderBy: {
       criadoEm: "desc",
@@ -331,9 +406,11 @@ export async function listarSolicitacoesGlobaisPaginado(
 
 async function listarServidoresParaFiltroSolicitacoes(
   where: Prisma.SolicitacaoWhereInput,
+  filtros?: Pick<FiltrosSolicitacao, "competencia" | "orgaoIdsPermitidos">,
 ) {
+  const whereFinal = aplicarFiltrosSolicitacao(where, filtros);
   const solicitacoes = await prisma.solicitacao.findMany({
-    where,
+    where: whereFinal,
     select: {
       servidor: {
         select: {
@@ -367,22 +444,27 @@ async function listarServidoresParaFiltroSolicitacoes(
 
 export async function listarServidoresFiltroSolicitacoesDoUsuario(
   usuarioId: string,
+  filtros?: Pick<FiltrosSolicitacao, "competencia">,
 ) {
   return listarServidoresParaFiltroSolicitacoes(
     whereSolicitacoesDoUsuario(usuarioId),
+    filtros,
   );
 }
 
 export async function listarServidoresFiltroSolicitacoesParaChefia(
   usuarioId: string,
+  filtros?: Pick<FiltrosSolicitacao, "competencia">,
 ) {
   const whereChefia = await whereSolicitacoesParaChefia(usuarioId);
 
-  return listarServidoresParaFiltroSolicitacoes(whereChefia);
+  return listarServidoresParaFiltroSolicitacoes(whereChefia, filtros);
 }
 
-export async function listarServidoresFiltroSolicitacoesGlobais() {
-  return listarServidoresParaFiltroSolicitacoes({});
+export async function listarServidoresFiltroSolicitacoesGlobais(
+  filtros?: Pick<FiltrosSolicitacao, "competencia" | "orgaoIdsPermitidos">,
+) {
+  return listarServidoresParaFiltroSolicitacoes({}, filtros);
 }
 
 export async function buscarSolicitacaoPorId(id: string) {

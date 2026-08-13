@@ -32,7 +32,7 @@ export default async function RecessoConvocacoesPage({
   searchParams,
 }: RecessoConvocacoesPageProps) {
   const permissao = await exigirUmaDasPermissoesOuRedirecionar([
-    "recesso:convocacao:gerenciar",
+    "recesso:convocacao:global",
     "recesso:gerenciar:global",
     "recesso:homologar:chefia",
   ]);
@@ -48,7 +48,7 @@ export default async function RecessoConvocacoesPage({
       : ["00000000-0000-4000-8000-000000000000"];
   const podeGerenciarPortarias =
     !escopoRecesso.restrito &&
-    (permissao.permissoes.includes("recesso:convocacao:gerenciar") ||
+    (permissao.permissoes.includes("recesso:convocacao:global") ||
       permissao.permissoes.includes("recesso:gerenciar:global"));
   const [recesso, unidades, servidores] = await Promise.all([
     buscarRecessoForensePorId(id, {

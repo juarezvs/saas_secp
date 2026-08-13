@@ -15,7 +15,7 @@ export default async function RecessoForensePage() {
     "recesso:consultar:global",
     "recesso:gerenciar:global",
     "recesso:homologar:chefia",
-    "recesso:aceitar:secad",
+    "recesso:aceitar:seccional",
   ]);
 
   const escopoRecesso = await resolverEscopoServidoresRecesso(permissao);

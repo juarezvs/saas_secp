@@ -33,6 +33,18 @@ function extrairDados(formData: FormData) {
     timeoutMs: String(formData.get("timeoutMs") ?? ""),
     proximoNsrColeta: String(formData.get("proximoNsrColeta") ?? ""),
     webhookToken: String(formData.get("webhookToken") ?? "").trim(),
+    identificadorCpf:
+      formData.get("identificadorCpf") === "on" ||
+      formData.get("identificadorCpf") === "true",
+    identificadorPis:
+      formData.get("identificadorPis") === "on" ||
+      formData.get("identificadorPis") === "true",
+    identificadorMatriculaComSigla:
+      formData.get("identificadorMatriculaComSigla") === "on" ||
+      formData.get("identificadorMatriculaComSigla") === "true",
+    identificadorMatriculaNumerica:
+      formData.get("identificadorMatriculaNumerica") === "on" ||
+      formData.get("identificadorMatriculaNumerica") === "true",
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
   };
 }
@@ -171,6 +183,12 @@ export async function registrarEquipamentoBiometricoAction(
               ? parsed.data.proximoNsrColeta
               : undefined,
           webhookToken: parsed.data.webhookToken || undefined,
+          identificadorCpf: parsed.data.identificadorCpf,
+          identificadorPis: parsed.data.identificadorPis,
+          identificadorMatriculaComSigla:
+            parsed.data.identificadorMatriculaComSigla,
+          identificadorMatriculaNumerica:
+            parsed.data.identificadorMatriculaNumerica,
         }).filter(([, valor]) => valor !== undefined),
       );
 
@@ -227,6 +245,8 @@ export async function registrarEquipamentoBiometricoAction(
               : parsed.data.protocolo === "CONTROL_ID_FACE_ID" ||
                   parsed.data.protocolo === "CONTROL_ID_IDCLASS_BIO"
                 ? "CONTROL_ID"
+                : parsed.data.protocolo === "INTELBRAS_BIO_T"
+                  ? "INTELBRAS"
                 : parsed.data.fabricante || null,
         modelo: parsed.data.modelo || null,
         numeroSerie: parsed.data.numeroSerie || null,

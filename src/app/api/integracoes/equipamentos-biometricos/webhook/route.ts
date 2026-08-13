@@ -17,12 +17,13 @@ type ConfiguracaoEquipamento = {
 function extrairTokenRecebido(request: Request) {
   const authorization = request.headers.get("authorization");
   const tokenHeader = request.headers.get("x-secp-webhook-token");
+  const tokenQuery = new URL(request.url).searchParams.get("token");
 
   if (authorization?.startsWith("Bearer ")) {
     return authorization.replace("Bearer ", "").trim();
   }
 
-  return tokenHeader?.trim() || null;
+  return tokenHeader?.trim() || tokenQuery?.trim() || null;
 }
 
 function extrairTokenConfigurado(configuracao: unknown) {
@@ -150,11 +151,154 @@ async function registrarEventoOperacional(
   });
 }
 
-async function postEquipamentosBiometricosWebhook(request: Request) {
-  let payload: unknown;
+function dataIntelbras(valor: unknown) {
+  if (typeof valor === "number" && Number.isFinite(valor)) {
+    return new Date(valor * 1000).toISOString();
+  }
+
+  if (typeof valor !== "string" || !valor.trim()) {
+    return null;
+  }
+
+  const numero = Number(valor);
+
+  if (Number.isFinite(numero)) {
+    return new Date(numero * 1000).toISOString();
+  }
+
+  const match = valor.match(
+    /^(\d{2})-(\d{2})-(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/,
+  );
+
+  if (match) {
+    return new Date(
+      `${match[3]}-${match[2]}-${match[1]}T${match[4]}:${match[5]}:${match[6]}`,
+    ).toISOString();
+  }
+
+  const data = new Date(valor);
+  return Number.isNaN(data.getTime()) ? null : data.toISOString();
+}
+
+function somenteDigitos(valor: unknown) {
+  return typeof valor === "string" || typeof valor === "number"
+    ? String(valor).replace(/\D/g, "")
+    : "";
+}
+
+function cpfIntelbras(...valores: unknown[]) {
+  for (const valor of valores) {
+    const digitos = somenteDigitos(valor);
+
+    if (digitos.length === 11) {
+      return digitos;
+    }
+  }
+
+  return undefined;
+}
+
+function extrairJsonMultipartIntelbras(texto: string) {
+  const match = texto.match(
+    /Content-Disposition:\s*form-data;\s*name="info"[\s\S]*?\r?\n\r?\n([\s\S]*?)(?:\r?\n--|$)/i,
+  );
+  const bruto = match?.[1]?.trim();
+
+  if (!bruto) {
+    return null;
+  }
 
   try {
-    payload = await request.json();
+    return JSON.parse(bruto) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function objeto(valor: unknown): Record<string, unknown> | null {
+  return valor && typeof valor === "object"
+    ? (valor as Record<string, unknown>)
+    : null;
+}
+
+function normalizarPayloadIntelbras(
+  payload: unknown,
+  equipamentoCodigo: string | null,
+): unknown {
+  const raiz = objeto(payload);
+  const eventos = Array.isArray(raiz?.Events) ? raiz.Events : [];
+  const evento = objeto(eventos[0]);
+  const dados = objeto(evento?.Data);
+
+  if (!raiz || !evento || !dados || evento.Code !== "AccessControl") {
+    return {
+      equipamentoCodigo: equipamentoCodigo ?? "",
+      tipoEvento: "SINCRONIZACAO",
+      codigoEventoExterno:
+        typeof evento?.Code === "string" ? evento.Code : undefined,
+      payload,
+    };
+  }
+
+  const userId = dados.UserID;
+  const cardNo = dados.CardNo;
+  const dataHora =
+    dataIntelbras(dados.UTC) ??
+    dataIntelbras(dados.CreateTime) ??
+    dataIntelbras(raiz.Time);
+  const codigoEventoExterno = [
+    evento.PhysicalAddress,
+    dados.UTC ?? dados.CreateTime,
+    evento.Index,
+  ]
+    .filter((item) => item !== undefined && item !== null && item !== "")
+    .join(":");
+
+  return {
+    equipamentoCodigo: equipamentoCodigo ?? "",
+    tipoEvento: dados.Status === 1 || dados.Status === "1" ? "MARCACAO" : "ERRO",
+    codigoEventoExterno: codigoEventoExterno || undefined,
+    nsr: dados.RecNo ? String(dados.RecNo) : undefined,
+    cpf: cpfIntelbras(userId, cardNo),
+    matricula: cpfIntelbras(userId, cardNo) ? undefined : String(userId ?? ""),
+    dataHora: dataHora ?? undefined,
+    payload: {
+      fabricante: "INTELBRAS",
+      origem: "PictureHttpUpload",
+      evento: payload,
+    },
+  };
+}
+
+async function postEquipamentosBiometricosWebhook(request: Request) {
+  let payload: unknown;
+  const url = new URL(request.url);
+  const equipamentoCodigoQuery = url.searchParams.get("equipamentoCodigo");
+
+  try {
+    const contentType = request.headers.get("content-type") ?? "";
+
+    if (contentType.includes("multipart/mixed")) {
+      const texto = await request.text();
+      payload = normalizarPayloadIntelbras(
+        extrairJsonMultipartIntelbras(texto),
+        equipamentoCodigoQuery,
+      );
+    } else {
+      payload = await request.json();
+
+      if (
+        equipamentoCodigoQuery &&
+        payload &&
+        typeof payload === "object" &&
+        !("equipamentoCodigo" in payload)
+      ) {
+        payload = {
+          ...(payload as Record<string, unknown>),
+          equipamentoCodigo: equipamentoCodigoQuery,
+        };
+      }
+    }
   } catch {
     return Response.json(
       {

@@ -215,7 +215,10 @@ export default async function SolicitacaoDetalhePage({
     !podeAcessarComoChefia &&
     solicitacao.usuarioSolicitanteId === session?.user.id &&
     ["ENVIADA", "EM_ANALISE"].includes(solicitacao.status);
-  const podeExcluir = perfilEhAdministradorSistema(session?.user.perfilAtivo);
+  const podeExcluir =
+    perfilEhAdministradorSistema(session?.user.perfilAtivo) ||
+    (solicitacao.usuarioSolicitanteId === session?.user.id &&
+      solicitacao.status === "ENVIADA");
   const action = analisarSolicitacaoAction.bind(null, solicitacao.id);
   const excluirAction = excluirSolicitacaoAction.bind(null, solicitacao.id);
   const fusoHorario = resolverFusoHorarioUnidade(solicitacao.unidade);

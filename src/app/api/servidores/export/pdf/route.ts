@@ -1,9 +1,9 @@
-import { auth } from "@/auth";
 import { withHttpMetrics } from "@/lib/observability/http";
 import {
   aplicarEscopoOrgaoId,
   obterEscopoOrgaoDaSessao,
 } from "@/modules/auth/application/services/escopo-orgao.service";
+import { obterPermissoesDaSessao } from "@/modules/auth/application/services/permissao.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { listarServidoresParaExportacao } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
 import {
@@ -74,14 +74,18 @@ const columns: PdfTableColumn<ServidorExportacao>[] = [
 ];
 
 async function getServidoresExportPdf(request: Request) {
-  const session = await auth();
+  const permissao = await obterPermissoesDaSessao();
+  const permissoesExportacao = [
+    "servidores:gerenciar:global",
+    "servidores:consultar:global",
+    "servidores:gerenciar:seccional",
+    "servidores:consultar:seccional",
+  ];
 
   if (
-    !session?.user?.perfilAtivo?.permissoes?.includes(
-      "servidores:consultar:global",
-    ) &&
-    !session?.user?.perfilAtivo?.permissoes?.includes(
-      "servidores:gerenciar:global",
+    !permissao.permitido ||
+    !permissoesExportacao.some((codigo) =>
+      permissao.permissoes.includes(codigo),
     )
   ) {
     return new Response("Acesso negado.", { status: 403 });

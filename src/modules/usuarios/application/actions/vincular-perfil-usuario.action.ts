@@ -2,17 +2,21 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/shared/infrastructure/database/prisma";
-import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { invalidarCacheUsuarioAuthPorId } from "@/modules/auth/infrastructure/repositories/usuario-auth.repository";
 import {
   orgaoEstaNoEscopoGestaoUsuarios,
   resolverEscopoGestaoUsuarios,
+  usuarioEstaNoEscopoGestaoUsuarios,
 } from "../services/escopo-gestao-usuarios.service";
 import {
   vincularPerfilUsuarioSchema,
   type VincularPerfilUsuarioFormState,
 } from "../schemas/usuario.schema";
-import { buscarUsuarioPerfil } from "../../infrastructure/repositories/usuario.repository";
+import {
+  buscarUsuarioPerfil,
+  buscarUsuarioPorId,
+} from "../../infrastructure/repositories/usuario.repository";
 
 function extrairDados(formData: FormData) {
   return {
@@ -26,9 +30,10 @@ export async function vincularPerfilUsuarioAction(
   _estadoAnterior: VincularPerfilUsuarioFormState,
   formData: FormData,
 ): Promise<VincularPerfilUsuarioFormState> {
-  const permissao = await exigirPermissaoOuRedirecionar(
+  const permissao = await exigirUmaDasPermissoesOuRedirecionar([
     "usuarios:gerenciar:global",
-  );
+    "usuarios:gerenciar:seccional",
+  ]);
 
   const dados = extrairDados(formData);
   const parsed = vincularPerfilUsuarioSchema.safeParse(dados);
@@ -42,15 +47,26 @@ export async function vincularPerfilUsuarioAction(
     };
   }
 
-  const perfil = await prisma.perfil.findUnique({
-    where: { id: parsed.data.perfilId },
-    select: { codigo: true, nome: true },
-  });
+  const [perfil, usuario] = await Promise.all([
+    prisma.perfil.findUnique({
+      where: { id: parsed.data.perfilId },
+      select: { codigo: true, nome: true },
+    }),
+    buscarUsuarioPorId(parsed.data.usuarioId),
+  ]);
 
   if (!perfil) {
     return {
       sucesso: false,
       mensagem: "Perfil nao encontrado.",
+      campos: dados,
+    };
+  }
+
+  if (!usuario) {
+    return {
+      sucesso: false,
+      mensagem: "Usuario nao encontrado.",
       campos: dados,
     };
   }
@@ -84,6 +100,14 @@ export async function vincularPerfilUsuarioAction(
     return {
       sucesso: false,
       mensagem: "Selecione uma seccional permitida para o seu perfil ativo.",
+      campos: dados,
+    };
+  }
+
+  if (!usuarioEstaNoEscopoGestaoUsuarios(usuario, escopoGestaoUsuarios)) {
+    return {
+      sucesso: false,
+      mensagem: "Usuario fora do escopo do seu perfil ativo.",
       campos: dados,
     };
   }

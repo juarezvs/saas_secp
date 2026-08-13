@@ -12,6 +12,14 @@ export type TemaAcessibilidade = "light" | "dark";
 export type TemaVisualAcessibilidade = "padrao" | "azul" | "verde" | "cinza";
 export type TamanhoFonteAcessibilidade =
   (typeof TAMANHOS_FONTE_ACESSIBILIDADE)[number];
+export type PosicaoVlibrasAcessibilidade = {
+  x: number;
+  y: number;
+};
+export type PosicaoChatInternoAcessibilidade = {
+  x: number;
+  y: number;
+};
 
 export type PreferenciasAcessibilidade = {
   tema: TemaAcessibilidade;
@@ -19,6 +27,8 @@ export type PreferenciasAcessibilidade = {
   tamanhoFonte: TamanhoFonteAcessibilidade;
   fonteDislexia: boolean;
   altoContraste: boolean;
+  vlibrasPosicao: PosicaoVlibrasAcessibilidade | null;
+  chatInternoPosicao: PosicaoChatInternoAcessibilidade | null;
 };
 
 export const PREFERENCIAS_ACESSIBILIDADE_PADRAO: PreferenciasAcessibilidade = {
@@ -27,6 +37,8 @@ export const PREFERENCIAS_ACESSIBILIDADE_PADRAO: PreferenciasAcessibilidade = {
   tamanhoFonte: "16",
   fonteDislexia: false,
   altoContraste: false,
+  vlibrasPosicao: null,
+  chatInternoPosicao: null,
 };
 
 function normalizarTema(valor: unknown): TemaAcessibilidade {
@@ -62,6 +74,48 @@ function normalizarTamanhoFonte(valor: unknown): TamanhoFonteAcessibilidade {
   return "16";
 }
 
+function normalizarPosicaoVlibras(
+  valor: unknown,
+): PosicaoVlibrasAcessibilidade | null {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return null;
+  }
+
+  const objeto = valor as Record<string, unknown>;
+  const x = Number(objeto.x);
+  const y = Number(objeto.y);
+
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    return null;
+  }
+
+  return {
+    x: Math.min(Math.max(Math.round(x), 0), 10000),
+    y: Math.min(Math.max(Math.round(y), 0), 10000),
+  };
+}
+
+function normalizarPosicaoChatInterno(
+  valor: unknown,
+): PosicaoChatInternoAcessibilidade | null {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return null;
+  }
+
+  const objeto = valor as Record<string, unknown>;
+  const x = Number(objeto.x);
+  const y = Number(objeto.y);
+
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    return null;
+  }
+
+  return {
+    x: Math.min(Math.max(Math.round(x), 0), 10000),
+    y: Math.min(Math.max(Math.round(y), 0), 10000),
+  };
+}
+
 export function normalizarPreferenciasAcessibilidade(
   valor: unknown,
 ): PreferenciasAcessibilidade {
@@ -77,5 +131,7 @@ export function normalizarPreferenciasAcessibilidade(
     tamanhoFonte: normalizarTamanhoFonte(objeto.tamanhoFonte),
     fonteDislexia: objeto.fonteDislexia === true,
     altoContraste: objeto.altoContraste === true,
+    vlibrasPosicao: normalizarPosicaoVlibras(objeto.vlibrasPosicao),
+    chatInternoPosicao: normalizarPosicaoChatInterno(objeto.chatInternoPosicao),
   };
 }

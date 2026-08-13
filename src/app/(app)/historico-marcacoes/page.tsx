@@ -189,7 +189,12 @@ export default async function HistoricoMarcacoesPage({
                 </div>
 
                 <MarcacoesStepper
-                  marcacoes={grupo.marcacoes}
+                  marcacoes={grupo.marcacoes.map((marcacao) => ({
+                    ...marcacao,
+                    evidenciaFacialUrl: marcacao.evidenciaFacial
+                      ? `/api/marcacoes/${marcacao.id}/evidencia-facial`
+                      : null,
+                  }))}
                   variante="minimalista"
                   exigeIntervalo={
                     exigeIntervaloPorData.get(

@@ -4,6 +4,7 @@ import { ClipboardList, Plus } from "lucide-react";
 import { auth } from "@/auth";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   listarSolicitacoesDoUsuarioPaginado,
@@ -19,10 +20,26 @@ type SolicitacoesPageProps = {
   searchParams: Promise<{
     tipo?: string;
     servidor?: string;
+    competencia?: string;
     pagina?: string;
     itensPorPagina?: string;
   }>;
 };
+
+function competenciaAtual() {
+  const hoje = new Date();
+
+  return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(
+    2,
+    "0",
+  )}`;
+}
+
+function normalizarCompetencia(competencia?: string) {
+  return /^\d{4}-\d{2}$/.test(competencia ?? "")
+    ? competencia!
+    : competenciaAtual();
+}
 
 export default async function SolicitacoesPage({
   searchParams,
@@ -36,6 +53,7 @@ export default async function SolicitacoesPage({
 
   const session = await auth();
   const params = await searchParams;
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
   const permissoes = session?.user.perfilAtivo?.permissoes ?? [];
   const podeConsultarGlobal = permissoes.includes(
     "solicitacoes:consultar:global",
@@ -46,11 +64,14 @@ export default async function SolicitacoesPage({
   const perfilAtivoServidor =
     session?.user.perfilAtivo?.codigo?.toUpperCase() === "SERVIDOR";
   const servidorFiltro = perfilAtivoServidor ? undefined : params.servidor;
+  const competencia = normalizarCompetencia(params.competencia);
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
   const filtros = {
     servidor: servidorFiltro,
     tipo: params.tipo,
+    competencia,
+    orgaoIdsPermitidos: escopoOrgao.global ? undefined : escopoOrgao.orgaoIds,
   };
   const paginacao = {
     pagina,
@@ -81,16 +102,28 @@ export default async function SolicitacoesPage({
   const servidoresFiltro =
     session?.user && !perfilAtivoServidor
       ? podeConsultarGlobal
-        ? await listarServidoresFiltroSolicitacoesGlobais()
+        ? await listarServidoresFiltroSolicitacoesGlobais({
+            competencia,
+            orgaoIdsPermitidos: escopoOrgao.global
+              ? undefined
+              : escopoOrgao.orgaoIds,
+          })
         : podeAnalisarChefia
-          ? await listarServidoresFiltroSolicitacoesParaChefia(session.user.id)
-          : await listarServidoresFiltroSolicitacoesDoUsuario(session.user.id)
+          ? await listarServidoresFiltroSolicitacoesParaChefia(
+              session.user.id,
+              { competencia },
+            )
+          : await listarServidoresFiltroSolicitacoesDoUsuario(session.user.id, {
+              competencia,
+            })
       : [];
   const baseParams = new URLSearchParams();
 
   if (params.tipo) {
     baseParams.set("tipo", params.tipo);
   }
+
+  baseParams.set("competencia", competencia);
 
   if (servidorFiltro) {
     baseParams.set("servidor", servidorFiltro);
@@ -129,9 +162,11 @@ export default async function SolicitacoesPage({
       <SolicitacoesTable
         solicitacoes={resultado.solicitacoes}
         tipoSelecionado={params.tipo}
+        competencia={competencia}
         servidorFiltro={servidorFiltro}
         servidoresFiltro={servidoresFiltro}
         mostrarFiltroServidor={!perfilAtivoServidor}
+        usuarioIdAtual={session?.user.id}
         paginacao={{
           total: resultado.total,
           pagina: resultado.pagina,

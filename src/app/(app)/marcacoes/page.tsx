@@ -180,15 +180,17 @@ export default async function MarcacoesPage({
           escopo: "chefia",
         })
       : [];
-  const [
-    podeManterMarcacoesNutec,
-    marcacoesUsuarioResultado,
-  ] = await Promise.all([
-    permissao.usuarioId ? usuarioEhNutec(permissao.usuarioId) : false,
-    permissao.usuarioId
-      ? listarMarcacoesDoUsuarioNoDia(permissao.usuarioId)
-      : Promise.resolve({ servidor: null, marcacoes: [], exigeIntervalo: true }),
-  ]);
+  const [podeManterMarcacoesNutec, marcacoesUsuarioResultado] =
+    await Promise.all([
+      permissao.usuarioId ? usuarioEhNutec(permissao.usuarioId) : false,
+      permissao.usuarioId
+        ? listarMarcacoesDoUsuarioNoDia(permissao.usuarioId)
+        : Promise.resolve({
+            servidor: null,
+            marcacoes: [],
+            exigeIntervalo: true,
+          }),
+    ]);
   const servidorProprio = marcacoesUsuarioResultado.servidor;
   const servidorIdsPermitidosChefia = podeConsultarEscopoChefia
     ? Array.from(
@@ -251,7 +253,15 @@ export default async function MarcacoesPage({
         }
       />
 
-      <MarcacoesDiaCard marcacoes={marcacoes} exigeIntervalo={exigeIntervalo} />
+      <MarcacoesDiaCard
+        marcacoes={marcacoes.map((marcacao) => ({
+          ...marcacao,
+          evidenciaFacialUrl: marcacao.evidenciaFacial
+            ? `/api/marcacoes/${marcacao.id}/evidencia-facial`
+            : null,
+        }))}
+        exigeIntervalo={exigeIntervalo}
+      />
 
       {podeConsultarLista && (
         <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
@@ -480,7 +490,17 @@ export default async function MarcacoesPage({
                       </td>
 
                       <td className="px-5 py-4">
-                        <OrigemMarcacaoIcon origem={marcacao.fonte} />
+                        <div className="flex items-center gap-2">
+                          <OrigemMarcacaoIcon origem={marcacao.fonte} />
+                          {marcacao.evidenciaFacial ? (
+                            <img
+                              src={`/api/marcacoes/${marcacao.id}/evidencia-facial`}
+                              alt="Evidência facial da marcação"
+                              loading="lazy"
+                              className="size-8 rounded-full border object-cover"
+                            />
+                          ) : null}
+                        </div>
                       </td>
 
                       <td className="px-5 py-4">

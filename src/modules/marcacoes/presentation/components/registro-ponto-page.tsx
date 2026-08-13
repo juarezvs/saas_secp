@@ -14,8 +14,11 @@ import {
   BadgeCheck,
   Clock3,
   Coffee,
+  FileText,
+  Fingerprint,
   LogIn,
   LogOut,
+  Mail,
   PenLine,
   RotateCcw,
   ScanFace,
@@ -64,6 +67,7 @@ type RegistroPontoPageProps = {
     tipo: string;
     fonte: string;
     status: string;
+    evidenciaFacialUrl?: string | null;
   }>;
   proximaMarcacao: string | null;
   fluxoConcluido: boolean;
@@ -116,6 +120,30 @@ export function RegistroPontoPage({
 
     return () => window.clearTimeout(timer);
   }, [marcacaoDestacadaId]);
+
+  if (servidor && deveRegistrarWeb) {
+    return (
+      <RegistroPontoWebPage
+        servidor={servidor}
+        marcacoes={marcacoes}
+        proximaMarcacao={proximaMarcacao}
+        fluxoConcluido={fluxoConcluido}
+        onRegistrada={destacarMarcacaoRegistrada}
+      />
+    );
+  }
+
+  if (servidor && deveRegistrarFacial) {
+    return (
+      <RegistroPontoFacialPage
+        servidor={servidor}
+        marcacoes={marcacoes}
+        proximaMarcacao={proximaMarcacao}
+        fluxoConcluido={fluxoConcluido}
+        onRegistrada={destacarMarcacaoRegistrada}
+      />
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -218,12 +246,16 @@ export function RegistroPontoPage({
                   <Button
                     size="lg"
                     onClick={() => setReconhecimentoAberto(true)}
-                    leftIcon={<ScanFace className="size-5" aria-hidden="true" />}
+                    leftIcon={
+                      <ScanFace className="size-5" aria-hidden="true" />
+                    }
                   >
                     Registrar com reconhecimento facial
                   </Button>
                 ) : null}
-                {!fluxoConcluido && !deveRegistrarWeb && !deveRegistrarFacial ? (
+                {!fluxoConcluido &&
+                !deveRegistrarWeb &&
+                !deveRegistrarFacial ? (
                   <Badge variant="pendente">
                     Registro pelo SECP não autorizado
                   </Badge>
@@ -331,6 +363,403 @@ export function RegistroPontoPage({
   );
 }
 
+function RegistroPontoFacialPage({
+  servidor,
+  marcacoes,
+  proximaMarcacao,
+  fluxoConcluido,
+  onRegistrada,
+}: {
+  servidor: NonNullable<RegistroPontoPageProps["servidor"]>;
+  marcacoes: RegistroPontoPageProps["marcacoes"];
+  proximaMarcacao: string | null;
+  fluxoConcluido: boolean;
+  onRegistrada: (marcacaoId: string) => void;
+}) {
+  const router = useRouter();
+  const [registroConfirmado, setRegistroConfirmado] = useState(false);
+  const ultimaMarcacao = marcacoes[marcacoes.length - 1] ?? null;
+  const historico = [...marcacoes].reverse();
+
+  const handleRegistroConcluido = useCallback(
+    (marcacaoId: string | null) => {
+      setRegistroConfirmado(true);
+      if (marcacaoId) {
+        onRegistrada(marcacaoId);
+      }
+      router.refresh();
+    },
+    [onRegistrada, router],
+  );
+
+  return (
+    <div className="-m-6 min-h-[calc(100vh-4rem)] bg-slate-100 px-4 py-6 text-slate-950 md:px-6">
+      <div className="mx-auto flex min-h-[calc(100vh-7rem)] w-full max-w-7xl flex-col">
+        <header className="mb-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h1 className="text-2xl font-black tracking-normal md:text-3xl">
+                Reconhecimento Facial
+              </h1>
+              <p className="mt-1 text-sm text-slate-600">
+                Web - getUserMedia - Liveness check ativo
+              </p>
+            </div>
+            <div className="inline-flex max-w-full items-center gap-2 self-start rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-bold text-emerald-700 md:self-auto">
+              <span className="size-2 rounded-full bg-emerald-400" />
+              <span className="truncate">
+                Logado como {servidor.nome} - Mat. {servidor.matricula}
+              </span>
+            </div>
+          </div>
+        </header>
+
+        <main className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.95fr)]">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-[#5135f5]/10 p-2 text-[#5135f5]">
+                <ScanFace className="size-5" aria-hidden="true" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black">Reconhecimento Facial</h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Posicione o rosto na moldura para validar a identidade e
+                  registrar o ponto.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5">
+              {!servidor.biometriaAtiva ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-amber-950">
+                  <p className="font-bold">Biometria facial nao cadastrada</p>
+                  <p className="mt-2 text-sm leading-6">
+                    Cadastre a biometria antes de registrar ponto por
+                    reconhecimento facial.
+                  </p>
+                  <Link
+                    href="/biometria/cadastro"
+                    className="mt-4 inline-flex rounded-lg bg-[#5135f5] px-4 py-2 text-sm font-bold text-white hover:bg-[#452add]"
+                  >
+                    Cadastrar biometria
+                  </Link>
+                </div>
+              ) : fluxoConcluido ? (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950">
+                  <p className="font-bold">Jornada registrada</p>
+                  <p className="mt-2 text-sm">
+                    Todas as marcacoes ordinarias do dia ja foram registradas.
+                  </p>
+                </div>
+              ) : (
+                <ValidacaoFacialCard
+                  compact
+                  onRegistroConcluido={handleRegistroConcluido}
+                />
+              )}
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+              <span className="size-2 rounded-full bg-emerald-500" />
+              <span>Liveness: ativo</span>
+              <span className="text-slate-400">-</span>
+              <span>Anti-spoofing ativo</span>
+            </div>
+          </section>
+
+          <div className="space-y-4">
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+              <h2 className="text-lg font-black">Resultado</h2>
+              {registroConfirmado || fluxoConcluido ? (
+                <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950">
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck
+                      className="mt-0.5 size-5 shrink-0 text-emerald-700"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <p className="font-black">
+                        Ponto registrado com sucesso
+                      </p>
+                      <p className="mt-2 text-sm">
+                        Origem: Reconhecimento facial - Proxima:{" "}
+                        {proximaMarcacao ?? "jornada registrada"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 rounded-2xl border-2 border-dashed border-slate-200 px-5 py-7 text-center text-sm leading-6 text-slate-600">
+                  Nenhum reconhecimento ainda. Ative a camera e posicione o
+                  rosto na moldura.
+                </div>
+              )}
+
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <IndicadorFacial label="Face matching" valor="Template local" />
+                <IndicadorFacial label="Liveness" valor="Ativo" />
+                <IndicadorFacial label="Tempo" valor="Tempo real" />
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+              <h2 className="font-black">Historico de hoje</h2>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {historico.map((marcacao) => (
+                  <div
+                    key={marcacao.id}
+                    className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-xs text-slate-500">
+                          {obterRotuloTipoMarcacao(marcacao.tipo)}
+                        </p>
+                        <p className="mt-1 font-mono text-lg font-black tracking-normal">
+                          {formatarHoraCurta(
+                            marcacao.dataHora,
+                            marcacao.fusoHorario,
+                          )}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {rotuloOrigemWeb(marcacao.fonte)}
+                        </p>
+                      </div>
+                      {marcacao.evidenciaFacialUrl ? (
+                        <img
+                          src={marcacao.evidenciaFacialUrl}
+                          alt="Evidencia facial da marcacao"
+                          loading="lazy"
+                          className="size-12 shrink-0 rounded-xl border object-cover"
+                        />
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+
+                {historico.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-slate-200 px-5 py-4 text-sm text-slate-500">
+                    Nenhuma marcacao registrada hoje.
+                  </div>
+                ) : null}
+              </div>
+            </section>
+          </div>
+        </main>
+
+        <footer className="mt-6 border-t border-slate-200 py-5 text-xs text-slate-500">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <span>
+              © 2026 SECP - Sistema Eletronico de Controle de Ponto - Portaria
+              671 - REP-P - Todos os direitos reservados
+            </span>
+            <span>pt-BR - Suporte institucional - v3.4.1</span>
+          </div>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+function RegistroPontoWebPage({
+  servidor,
+  marcacoes,
+  proximaMarcacao,
+  fluxoConcluido,
+  onRegistrada,
+}: {
+  servidor: NonNullable<RegistroPontoPageProps["servidor"]>;
+  marcacoes: RegistroPontoPageProps["marcacoes"];
+  proximaMarcacao: string | null;
+  fluxoConcluido: boolean;
+  onRegistrada: (marcacaoId: string) => void;
+}) {
+  const router = useRouter();
+  const [estado, formAction, pendente] = useActionState(
+    registrarMarcacaoWebAutorizadaAction,
+    { erro: null, sucesso: null, marcacaoId: null, comprovante: null },
+  );
+  const ultimaMarcacao = marcacoes[marcacoes.length - 1] ?? null;
+  const historico = [...marcacoes].reverse();
+
+  useEffect(() => {
+    if (!estado.marcacaoId) return;
+
+    onRegistrada(estado.marcacaoId);
+    router.refresh();
+  }, [estado.marcacaoId, onRegistrada, router]);
+
+  return (
+    <div className="-m-6 min-h-[calc(100vh-4rem)] bg-slate-100 px-4 py-6 text-slate-950 md:px-6">
+      <div className="mx-auto flex min-h-[calc(100vh-7rem)] w-full max-w-6xl flex-col">
+        <header className="text-center">
+          <h1 className="text-2xl font-black tracking-normal md:text-3xl">
+            Marcação Web
+          </h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Autoatendimento do colaborador • Validação com comprovante e
+            protocolo
+          </p>
+        </header>
+
+        <main className="mx-auto mt-6 w-full max-w-3xl space-y-6">
+          <section className="rounded-[1.6rem] border border-slate-200 bg-white p-6 text-center shadow-sm md:p-8">
+            <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
+              <span className="size-2 rounded-full bg-emerald-400" />
+              <span className="truncate">
+                Logado como {servidor.nome} • Mat. {servidor.matricula}
+              </span>
+            </div>
+
+            <RelogioWeb />
+
+            <div className="mx-auto mt-6 inline-flex max-w-full items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-950">
+              <RotateCcw className="size-4 shrink-0 text-slate-500" />
+              <span className="truncate">
+                Última marcação:{" "}
+                {ultimaMarcacao
+                  ? `${obterRotuloTipoMarcacao(ultimaMarcacao.tipo)} às ${formatarHoraCurta(
+                      ultimaMarcacao.dataHora,
+                      ultimaMarcacao.fusoHorario,
+                    )}`
+                  : "sem registro hoje"}{" "}
+                • Próxima: {proximaMarcacao ?? "jornada registrada"}
+              </span>
+            </div>
+
+            <form action={formAction} className="mx-auto mt-8 max-w-md">
+              <button
+                type="submit"
+                disabled={pendente || fluxoConcluido}
+                className="flex h-[72px] w-full items-center justify-center gap-4 rounded-2xl bg-[#5135f5] px-6 text-lg font-black text-white shadow-[0_14px_28px_rgba(81,53,245,0.28)] transition hover:bg-[#452add] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Fingerprint className="size-7" aria-hidden="true" />
+                {pendente
+                  ? "REGISTRANDO..."
+                  : fluxoConcluido
+                    ? "JORNADA REGISTRADA"
+                    : "BATER PONTO AGORA"}
+              </button>
+            </form>
+
+            <p className="mt-3 text-xs text-slate-600">
+              Toque único • Registro com IP e geolocalização
+            </p>
+
+            {estado.erro ? (
+              <div className="mx-auto mt-6 max-w-2xl rounded-xl border border-red-200 bg-red-50 p-4 text-left text-sm font-semibold text-red-700">
+                {estado.erro}
+              </div>
+            ) : null}
+
+            {estado.comprovante ? (
+              <ComprovanteWebSucesso comprovante={estado.comprovante} />
+            ) : null}
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+            <h2 className="font-bold">Histórico de hoje</h2>
+            <div className="mt-4 flex flex-wrap gap-3">
+              {historico.map((marcacao) => (
+                <div
+                  key={marcacao.id}
+                  className="min-w-40 rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 text-center"
+                >
+                  <p className="text-xs text-slate-500">
+                    {obterRotuloTipoMarcacao(marcacao.tipo)}
+                  </p>
+                  <p className="mt-1 font-mono text-lg font-black tracking-normal">
+                    {formatarHoraCurta(marcacao.dataHora, marcacao.fusoHorario)}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {rotuloOrigemWeb(marcacao.fonte)}
+                  </p>
+                </div>
+              ))}
+
+              {historico.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-slate-200 px-5 py-4 text-sm text-slate-500">
+                  Nenhuma marcação registrada hoje.
+                </div>
+              ) : null}
+            </div>
+          </section>
+        </main>
+
+        <footer className="mt-auto border-t border-slate-200 py-5 text-xs text-slate-500">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <span>
+              © 2026 SECP • Sistema Eletrônico de Controle de Ponto • Portaria
+              671 • REP-P • Todos os direitos reservados
+            </span>
+            <span>pt-BR • Suporte institucional • v3.4.1</span>
+          </div>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+function ComprovanteWebSucesso({
+  comprovante,
+}: {
+  comprovante: NonNullable<
+    Awaited<ReturnType<typeof registrarMarcacaoWebAutorizadaAction>>
+  >["comprovante"];
+}) {
+  if (!comprovante) return null;
+
+  return (
+    <div className="mx-auto mt-7 max-w-2xl rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left text-emerald-950">
+      <div className="flex items-start gap-3">
+        <ShieldCheck className="mt-0.5 size-5 shrink-0 text-emerald-700" />
+        <div className="min-w-0">
+          <h2 className="text-base font-black text-emerald-800">
+            Ponto registrado com sucesso!
+          </h2>
+          <p className="mt-2 text-sm">
+            Tipo: <strong>{obterRotuloTipoMarcacao(comprovante.tipo)}</strong> •
+            Horário: <strong>{formatarHoraCurta(comprovante.horario)}</strong> •
+            Origem: {comprovante.origem}
+          </p>
+          <p className="mt-2 break-all font-mono text-xs font-bold">
+            Protocolo: {comprovante.protocolo} • NSR: {comprovante.nsr} • Hash:{" "}
+            {comprovante.hash}
+          </p>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-950 shadow-sm"
+            >
+              <FileText className="size-4" aria-hidden="true" />
+              Comprovante PDF
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-950 shadow-sm"
+            >
+              <Mail className="size-4" aria-hidden="true" />
+              Enviar por e-mail
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IndicadorFacial({ label, valor }: { label: string; valor: string }) {
+  return (
+    <div className="min-h-[54px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-center">
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="mt-1 truncate text-sm font-black text-slate-950">
+        {valor}
+      </p>
+    </div>
+  );
+}
+
 function RegistrarMarcacaoWebAssinaturaModal({
   proximaMarcacao,
   onRegistrada,
@@ -342,7 +771,7 @@ function RegistrarMarcacaoWebAssinaturaModal({
   const [aberto, setAberto] = useState(false);
   const [estado, formAction, pendente] = useActionState(
     registrarMarcacaoWebAutorizadaAction,
-    { erro: null, sucesso: null, marcacaoId: null },
+    { erro: null, sucesso: null, marcacaoId: null, comprovante: null },
   );
   const rotuloMarcacao = proximaMarcacao?.toLowerCase() ?? "o horário atual";
 
@@ -453,7 +882,10 @@ function StepperMarcacoes({
   );
 
   return (
-    <ol className="grid gap-2 sm:grid-cols-[repeat(var(--steps),minmax(0,1fr))]" style={{ "--steps": etapas.length } as React.CSSProperties}>
+    <ol
+      className="grid gap-2 sm:grid-cols-[repeat(var(--steps),minmax(0,1fr))]"
+      style={{ "--steps": etapas.length } as React.CSSProperties}
+    >
       {etapas.map((etapa, index) => {
         const marcacao = marcacoes.find((item) => item.tipo === etapa.tipo);
         const concluida = Boolean(marcacao);
@@ -461,7 +893,10 @@ function StepperMarcacoes({
         const Icon = etapa.icon;
 
         return (
-          <li key={etapa.tipo} className="relative flex items-center gap-3 sm:block">
+          <li
+            key={etapa.tipo}
+            className="relative flex items-center gap-3 sm:block"
+          >
             {index > 0 ? (
               <span
                 className={`hidden sm:absolute sm:left-[-50%] sm:right-[50%] sm:top-5 sm:block sm:h-px ${
@@ -534,6 +969,14 @@ function MarcacaoDoDiaLinha({
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <span>{formatarHora(marcacao.dataHora, marcacao.fusoHorario)}</span>
             <OrigemMarcacaoIcon origem={marcacao.fonte} />
+            {marcacao.evidenciaFacialUrl ? (
+              <img
+                src={marcacao.evidenciaFacialUrl}
+                alt="Evidência facial da marcação"
+                loading="lazy"
+                className="size-10 rounded-full border object-cover"
+              />
+            ) : null}
             {destacada ? (
               <span className="inline-flex animate-pulse items-center rounded-full border border-[var(--secp-theme-accent)] bg-card px-2.5 py-1 text-xs font-black text-[var(--secp-theme-accent)] shadow-sm">
                 Registrada agora
@@ -545,6 +988,45 @@ function MarcacaoDoDiaLinha({
       <Badge variant={marcacao.status === "VALIDA" ? "regular" : "pendente"}>
         {marcacao.status}
       </Badge>
+    </div>
+  );
+}
+
+function RelogioWeb() {
+  const [agora, setAgora] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setAgora(new Date()), 1000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const hora = useMemo(
+    () =>
+      new Intl.DateTimeFormat("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }).format(agora),
+    [agora],
+  );
+  const data = useMemo(
+    () =>
+      new Intl.DateTimeFormat("pt-BR", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }).format(agora),
+    [agora],
+  );
+
+  return (
+    <div className="mt-6">
+      <p className="font-mono text-6xl font-black leading-none tracking-normal text-slate-950 md:text-7xl">
+        {hora}
+      </p>
+      <p className="mt-2 text-sm text-slate-600">{data}</p>
     </div>
   );
 }
@@ -591,6 +1073,14 @@ function ContextoRegistro({ label, valor }: { label: string; valor: string }) {
   );
 }
 
+function formatarHoraCurta(dataHora: string, fusoHorario?: string | null) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: fusoHorario ?? "America/Manaus",
+  }).format(new Date(dataHora));
+}
+
 function formatarHora(dataHora: string, fusoHorario?: string | null) {
   return new Intl.DateTimeFormat("pt-BR", {
     hour: "2-digit",
@@ -598,4 +1088,11 @@ function formatarHora(dataHora: string, fusoHorario?: string | null) {
     second: "2-digit",
     timeZone: fusoHorario ?? "America/Manaus",
   }).format(new Date(dataHora));
+}
+
+function rotuloOrigemWeb(fonte: string) {
+  if (fonte === "BIOMETRIA_FACIAL") return "Facial";
+  if (fonte === "WEB") return "Web";
+
+  return fonte;
 }

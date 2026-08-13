@@ -1,9 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import {
-  obterEscopoOrgaoDaSessao,
-} from "@/modules/auth/application/services/escopo-orgao.service";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import {
   obterPermissoesDaSessao,
   usuarioPossuiAlgumaPermissaoNoPerfil,
@@ -29,6 +27,7 @@ const PERMISSOES_SINCRONIZAR_SARH = [
   "integracoes-sarh:configurar:global",
   "integracoes:sincronizar:global",
   "integracoes:gerenciar:global",
+  "integracoes:gerenciar:seccional",
 ];
 
 const ENDPOINTS_COMPATIVEIS_MATRICULA = new Set<SarhEndpointKey>([
@@ -70,7 +69,9 @@ function normalizarEndpointsPorMatricula(
   return compativeis.length ? compativeis : ENDPOINTS_PADRAO_MATRICULA;
 }
 
-export async function sincronizarSarhAction(formData: FormData): Promise<SincronizarSarhActionState> {
+export async function sincronizarSarhAction(
+  formData: FormData,
+): Promise<SincronizarSarhActionState> {
   const permissao = await obterPermissoesDaSessao();
 
   if (!permissao.permitido) {
@@ -98,7 +99,9 @@ export async function sincronizarSarhAction(formData: FormData): Promise<Sincron
   const codigoUnidadeSarh =
     Number(String(formData.get("codigoUnidadeSarh") ?? "")) || undefined;
   const orgaoId = String(formData.get("orgaoId") ?? "").trim() || null;
-  const endpoints = formData.getAll("endpoints").map(String) as SarhEndpointKey[];
+  const endpoints = formData
+    .getAll("endpoints")
+    .map(String) as SarhEndpointKey[];
   const endpointsNormalizados = normalizarEndpointsPorMatricula(
     endpoints,
     matricula,
@@ -152,11 +155,13 @@ export async function sincronizarSarhAction(formData: FormData): Promise<Sincron
   } catch (error) {
     return {
       ok: false,
-      mensagem: error instanceof Error ? error.message : "Falha inesperada ao sincronizar SARH.",
+      mensagem:
+        error instanceof Error
+          ? error.message
+          : "Falha inesperada ao sincronizar SARH.",
     };
   }
 }
-
 
 export async function sincronizarSarhComProgressoAction(
   _estadoAnterior: SincronizarSarhActionState,

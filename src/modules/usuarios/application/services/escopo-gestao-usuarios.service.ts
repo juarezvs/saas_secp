@@ -44,6 +44,41 @@ export function orgaoEstaNoEscopoGestaoUsuarios(
   );
 }
 
+export function usuarioEstaNoEscopoGestaoUsuarios(
+  usuario: {
+    tipo?: string | null;
+    servidor?: { orgaoId?: string | null } | null;
+    perfis?: Array<{ orgaoId?: string | null }>;
+  },
+  escopo: EscopoGestaoUsuarios,
+) {
+  if (escopo.permitirEscopoGlobal) {
+    return true;
+  }
+
+  if (
+    usuario.servidor?.orgaoId &&
+    orgaoEstaNoEscopoGestaoUsuarios(usuario.servidor.orgaoId, escopo)
+  ) {
+    return true;
+  }
+
+  if (
+    usuario.perfis?.some(
+      (perfil) =>
+        perfil.orgaoId && orgaoEstaNoEscopoGestaoUsuarios(perfil.orgaoId, escopo),
+    )
+  ) {
+    return true;
+  }
+
+  return (
+    usuario.tipo === "SISTEMA" &&
+    !usuario.servidor &&
+    (usuario.perfis?.length ?? 0) === 0
+  );
+}
+
 async function buscarOrgaoIdsDoPerfilAtivo(permissao: ResultadoPermissao) {
   if (!permissao.usuarioId || !permissao.perfilAtivoId) {
     return permissao.orgaoIds ?? [];

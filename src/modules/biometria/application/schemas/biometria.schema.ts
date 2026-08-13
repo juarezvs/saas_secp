@@ -39,4 +39,5 @@ export type BiometriaFormState = {
   autorizacaoId?: string;
   autorizacaoToken?: string;
   expiraEm?: string;
+  amostraId?: string;
 };

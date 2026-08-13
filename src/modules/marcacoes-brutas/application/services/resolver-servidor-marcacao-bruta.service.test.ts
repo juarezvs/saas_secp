@@ -146,6 +146,65 @@ describe("resolverServidorMarcacaoBrutaService", () => {
     );
   });
 
+  it("normaliza matricula numerica de Roraima removendo zeros a esquerda", async () => {
+    prismaMock.equipamentoBiometrico.findUnique.mockResolvedValue({
+      orgaoId: "orgao-rr",
+      orgao: { sigla: "SJRR" },
+      unidade: null,
+      configuracao: {
+        identificadorCpf: true,
+        identificadorMatriculaNumerica: true,
+      },
+    });
+    prismaMock.servidor.findFirst.mockResolvedValueOnce({
+      id: "servidor-rr",
+      matricula: "RR1235",
+      cpf: "12345678901",
+    });
+
+    const servidor = await resolverServidorMarcacaoBrutaService({
+      matricula: "000001235",
+      equipamentoId: "equipamento-rr",
+    });
+
+    expect(servidor?.matricula).toBe("RR1235");
+    expect(prismaMock.servidor.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          orgaoId: "orgao-rr",
+          OR: [
+            {
+              usuario: {
+                matricula: { equals: "RR1235", mode: "insensitive" },
+              },
+            },
+            { matricula: { equals: "RR1235", mode: "insensitive" } },
+          ],
+        }),
+      }),
+    );
+  });
+
+  it("nao normaliza matricula numerica quando equipamento desabilita esse identificador", async () => {
+    prismaMock.equipamentoBiometrico.findUnique.mockResolvedValue({
+      orgaoId: "orgao-rr",
+      orgao: { sigla: "SJRR" },
+      unidade: null,
+      configuracao: {
+        identificadorCpf: true,
+        identificadorMatriculaNumerica: false,
+      },
+    });
+
+    const servidor = await resolverServidorMarcacaoBrutaService({
+      matricula: "000001235",
+      equipamentoId: "equipamento-rr",
+    });
+
+    expect(servidor).toBeNull();
+    expect(prismaMock.servidor.findFirst).not.toHaveBeenCalled();
+  });
+
   it("resolve servidor por PIS dentro do orgao do equipamento", async () => {
     prismaMock.equipamentoBiometrico.findUnique.mockResolvedValue({
       orgaoId: "orgao-ma",

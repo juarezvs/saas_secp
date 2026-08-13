@@ -286,7 +286,12 @@ export async function DashboardServidor({
     await Promise.all([
       buscarNomeServidorPorUsuarioId(usuarioId),
       buscarContextoDashboardServidor(usuarioId),
-      contarNotificacoesUsuario(usuarioId),
+      contarNotificacoesUsuario(usuarioId, {
+        perfilAtivo: {
+          codigo: perfilAtivoCodigo ?? "SERVIDOR",
+          permissoes: permissoesPerfil,
+        },
+      }),
       buscarFrequenciaMesServidorPorUsuarioId(usuarioId),
       buscarMarcacoesDashboard(usuarioId),
       buscarResumoDashboardServidor(usuarioId),

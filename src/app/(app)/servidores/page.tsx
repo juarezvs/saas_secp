@@ -145,6 +145,8 @@ export default async function ServidoresPage({
   const permissoesSessao = await exigirUmaDasPermissoesOuRedirecionar([
     "servidores:gerenciar:global",
     "servidores:consultar:global",
+    "servidores:gerenciar:seccional",
+    "servidores:consultar:seccional",
     "homologacao:gerenciar:chefia",
     "minha-equipe:consultar:chefia",
     ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
@@ -152,12 +154,17 @@ export default async function ServidoresPage({
   const podeGerenciarServidor = usuarioPossuiAlgumaPermissaoNoPerfil(
     permissoesSessao.perfilAtivoCodigo,
     permissoesSessao.permissoes,
-    ["servidores:gerenciar:global"],
+    ["servidores:gerenciar:global", "servidores:gerenciar:seccional"],
   );
   const podeExportarServidores = usuarioPossuiAlgumaPermissaoNoPerfil(
     permissoesSessao.perfilAtivoCodigo,
     permissoesSessao.permissoes,
-    ["servidores:gerenciar:global", "servidores:consultar:global"],
+    [
+      "servidores:gerenciar:global",
+      "servidores:consultar:global",
+      "servidores:gerenciar:seccional",
+      "servidores:consultar:seccional",
+    ],
   );
 
   const params = searchParams ? await searchParams : {};

@@ -17,7 +17,7 @@ export default async function RecessoHomologacaoPage({
 }: RecessoHomologacaoPageProps) {
   const permissao = await exigirUmaDasPermissoesOuRedirecionar([
     "recesso:homologar:chefia",
-    "recesso:aceitar:secad",
+    "recesso:aceitar:seccional",
     "recesso:gerenciar:global",
   ]);
 
@@ -54,7 +54,7 @@ export default async function RecessoHomologacaoPage({
         homologacoes={recesso.homologacoes}
         podeHomologar={permissao.permissoes.includes("recesso:homologar:chefia")}
         podeAceitarSecad={
-          permissao.permissoes.includes("recesso:aceitar:secad") ||
+          permissao.permissoes.includes("recesso:aceitar:seccional") ||
           permissao.permissoes.includes("recesso:gerenciar:global")
         }
       />

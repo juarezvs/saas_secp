@@ -7,7 +7,10 @@ import {
   aplicarEscopoOrgaoId,
   obterEscopoOrgaoDaSessao,
 } from "@/modules/auth/application/services/escopo-orgao.service";
-import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import {
+  exigirUmaDasPermissoesOuRedirecionar,
+  usuarioPossuiAlgumaPermissaoNoPerfil,
+} from "@/modules/auth/application/services/permissao.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import {
   listarLotacoesAtivasParaFiltro,
@@ -34,7 +37,17 @@ type UsuariosPageProps = {
 export default async function UsuariosPage({
   searchParams,
 }: UsuariosPageProps) {
-  await exigirPermissaoOuRedirecionar("usuarios:gerenciar:global");
+  const permissoesSessao = await exigirUmaDasPermissoesOuRedirecionar([
+    "usuarios:gerenciar:global",
+    "usuarios:consultar:global",
+    "usuarios:gerenciar:seccional",
+    "usuarios:consultar:seccional",
+  ]);
+  const podeGerenciarUsuarios = usuarioPossuiAlgumaPermissaoNoPerfil(
+    permissoesSessao.perfilAtivoCodigo,
+    permissoesSessao.permissoes,
+    ["usuarios:gerenciar:global", "usuarios:gerenciar:seccional"],
+  );
 
   const params = searchParams ? await searchParams : {};
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
@@ -54,6 +67,8 @@ export default async function UsuariosPage({
       status: statusFiltro,
       pagina,
       itensPorPagina,
+      incluirUsuariosSistemaSemEscopo:
+        podeGerenciarUsuarios && !escopoOrgao.global,
     },
     escopoOrgao,
   );
@@ -136,13 +151,15 @@ export default async function UsuariosPage({
           />
         </div>
 
-        <Link
-          href="/usuarios/novo"
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        >
-          <Plus className="size-4" aria-hidden="true" />
-          Novo usuário
-        </Link>
+        {podeGerenciarUsuarios && (
+          <Link
+            href="/usuarios/novo"
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            Novo usuário
+          </Link>
+        )}
       </section>
 
       <DataTableShell

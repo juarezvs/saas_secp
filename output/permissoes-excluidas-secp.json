@@ -1,0 +1,2658 @@
+[
+  {
+    "codigo": "afastamentos:consultar:chefia",
+    "recurso": "afastamentos",
+    "acao": "consultar",
+    "escopo": "chefia",
+    "descricao": "Consultar afastamentos de servidores subordinados à chefia ou delegação vigente.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "recurso": "banco-horas",
+    "acao": "visualizar",
+    "escopo": "global",
+    "descricao": "Visualizar próprio banco de horas. Abrangencia: global.",
+    "codigo": "banco-horas:visualizar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometria",
+    "acao": "cadastrar",
+    "escopo": "global",
+    "descricao": "Cadastrar a própria biometria facial. Abrangencia: global.",
+    "codigo": "biometria:cadastrar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometria",
+    "acao": "consultar",
+    "escopo": "global",
+    "descricao": "Consultar o próprio cadastro biométrico facial. Abrangencia: global.",
+    "codigo": "biometria:consultar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometria",
+    "acao": "validar",
+    "escopo": "global",
+    "descricao": "Validar marcação com biometria facial própria. Abrangencia: global.",
+    "codigo": "biometria:validar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometriafacial",
+    "acao": "cadastrar",
+    "escopo": "global",
+    "descricao": "Cadastrar biometria facial de terceiros. Abrangencia: global.",
+    "codigo": "biometriafacial:cadastrar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometriafacial",
+    "acao": "recadastrar",
+    "escopo": "global",
+    "descricao": "Recadastrar biometria facial de terceiros. Abrangencia: global.",
+    "codigo": "biometriafacial:recadastrar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometriafacial",
+    "acao": "registrar",
+    "escopo": "global",
+    "descricao": "Usar reconhecimento facial no registro do proprio ponto. Abrangencia: global.",
+    "codigo": "biometriafacial:registrar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "boletim-frequencia",
+    "acao": "encaminhar",
+    "escopo": "global",
+    "descricao": "Encaminhar Boletim de Frequência à SECAP/NUCGP. Abrangencia: global.",
+    "codigo": "boletim-frequencia:encaminhar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "boletim-frequencia",
+    "acao": "gerar",
+    "escopo": "global",
+    "descricao": "Gerar Boletim de Frequência da unidade homologada. Abrangencia: global.",
+    "codigo": "boletim-frequencia:gerar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "boletim-frequencia",
+    "acao": "visualizar",
+    "escopo": "global",
+    "descricao": "Visualizar próprio boletim de frequência. Abrangencia: global.",
+    "codigo": "boletim-frequencia:visualizar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "contracheque",
+    "acao": "consultar",
+    "escopo": "global",
+    "descricao": "Consultar e exportar o próprio contracheque diretamente no SARH. Abrangencia: global.",
+    "codigo": "contracheque:consultar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "dashboard",
+    "acao": "visualizar",
+    "escopo": "global",
+    "descricao": "Visualizar dashboard próprio. Abrangencia: global.",
+    "codigo": "dashboard:visualizar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "espelho-ponto",
+    "acao": "visualizar",
+    "escopo": "global",
+    "descricao": "Visualizar próprio espelho de ponto. Abrangencia: global.",
+    "codigo": "espelho-ponto:visualizar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "analisar",
+    "escopo": "global",
+    "descricao": "Analisar solicitacoes de servico extraordinario como chefia ou delegado. Abrangencia: global.",
+    "codigo": "horas-extras:analisar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "codigo": "horas-extras:analisar-excecao:global",
+    "recurso": "horas-extras",
+    "acao": "analisar-excecao",
+    "escopo": "global",
+    "descricao": "Analisar excecoes de calculo de servico extraordinario.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "codigo": "horas-extras:aprovar-parcial:global",
+    "recurso": "horas-extras",
+    "acao": "aprovar-parcial",
+    "escopo": "global",
+    "descricao": "Aprovar parcialmente solicitacoes de servico extraordinario.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "codigo": "horas-extras:auditar:global",
+    "recurso": "horas-extras",
+    "acao": "auditar",
+    "escopo": "global",
+    "descricao": "Auditar solicitacoes, calculos e lotes de servico extraordinario.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "cancelar",
+    "escopo": "global",
+    "descricao": "Cancelar solicitacoes proprias de servico extraordinario ainda permitidas pelo fluxo. Abrangencia: global.",
+    "codigo": "horas-extras:cancelar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "codigo": "horas-extras:cancelar-autorizacao:global",
+    "recurso": "horas-extras",
+    "acao": "cancelar-autorizacao",
+    "escopo": "global",
+    "descricao": "Cancelar ou substituir autorizacoes de servico extraordinario.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "encaminhar-orcamento",
+    "escopo": "global",
+    "descricao": "Encaminhar solicitacoes de servico extraordinario para analise orcamentaria. Abrangencia: global.",
+    "codigo": "horas-extras:encaminhar-orcamento:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "codigo": "horas-extras:reprocessar:global",
+    "recurso": "horas-extras",
+    "acao": "reprocessar",
+    "escopo": "global",
+    "descricao": "Reprocessar calculos de servico extraordinario.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "solicitar",
+    "escopo": "global",
+    "descricao": "Criar solicitacoes de servico extraordinario para servidores da unidade. Abrangencia: global.",
+    "codigo": "horas-extras:solicitar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "visualizar",
+    "escopo": "global",
+    "descricao": "Visualizar as proprias solicitacoes e autorizacoes de servico extraordinario. Abrangencia: global.",
+    "codigo": "horas-extras:visualizar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "codigo": "integracoes-sarh:resolver-conflito:global",
+    "recurso": "integracoes-sarh",
+    "acao": "resolver-conflito",
+    "escopo": "global",
+    "descricao": "Resolver conflitos entre dados do SARH e dados protegidos do SECP.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "codigo": "integracoes-sarh:visualizar-payload:global",
+    "recurso": "integracoes-sarh",
+    "acao": "visualizar-payload",
+    "escopo": "global",
+    "descricao": "Visualizar payload bruto do SARH, com cuidados de LGPD.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "recurso": "jornada",
+    "acao": "visualizar",
+    "escopo": "global",
+    "descricao": "Visualizar própria jornada. Abrangencia: global.",
+    "codigo": "jornada:visualizar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "codigo": "jornadas:gerenciar-politicas:global",
+    "recurso": "jornadas",
+    "acao": "gerenciar-politicas",
+    "escopo": "global",
+    "descricao": "Gerenciar políticas de jornada.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "recurso": "marcacoes",
+    "acao": "registrar",
+    "escopo": "global",
+    "descricao": "Registrar a própria marcação de ponto. Abrangencia: global.",
+    "codigo": "marcacoes:registrar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "marcacoes",
+    "acao": "registrar-facial",
+    "escopo": "global",
+    "descricao": "Registrar marcação por reconhecimento facial. Abrangencia: global.",
+    "codigo": "marcacoes:registrar-facial:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "marcacoes",
+    "acao": "registrar-web",
+    "escopo": "global",
+    "descricao": "Registrar marcação via sistema web. Abrangencia: global.",
+    "codigo": "marcacoes:registrar-web:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "marcacoes",
+    "acao": "visualizar",
+    "escopo": "global",
+    "descricao": "Visualizar próprias marcações. Abrangencia: global.",
+    "codigo": "marcacoes:visualizar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "aceitar",
+    "escopo": "global",
+    "descricao": "Aceitar homologacao do recesso pela SECAD. Abrangencia: global.",
+    "codigo": "recesso:aceitar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "fechar",
+    "escopo": "global",
+    "descricao": "Fechar o proprio espelho de recesso. Abrangencia: global.",
+    "codigo": "recesso:fechar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "homologar",
+    "escopo": "global",
+    "descricao": "Homologar recesso dos servidores convocados. Abrangencia: global.",
+    "codigo": "recesso:homologar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "codigo": "recesso:relatorio:global",
+    "recurso": "recesso",
+    "acao": "relatorio",
+    "escopo": "global",
+    "descricao": "Gerar relatorio de pecunia do recesso para SEPAG.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "recurso": "solicitacoes",
+    "acao": "analisar",
+    "escopo": "global",
+    "descricao": "Analisar solicitações dos subordinados. Abrangencia: global.",
+    "codigo": "solicitacoes:analisar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "solicitacoes",
+    "acao": "criar",
+    "escopo": "global",
+    "descricao": "Criar solicitações próprias de frequência. Abrangencia: global.",
+    "codigo": "solicitacoes:criar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "solicitacoes",
+    "acao": "visualizar",
+    "escopo": "global",
+    "descricao": "Visualizar próprias solicitações. Abrangencia: global.",
+    "codigo": "solicitacoes:visualizar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "codigo": "substituicoes-funcao:aprovar-pagamento:global",
+    "recurso": "substituicoes-funcao",
+    "acao": "aprovar-pagamento",
+    "escopo": "global",
+    "descricao": "Aprovar, rejeitar ou cancelar pagamentos calculados de substituição em todas as seccionais.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "codigo": "substituicoes-funcao:calcular-pagamento:global",
+    "recurso": "substituicoes-funcao",
+    "acao": "calcular-pagamento",
+    "escopo": "global",
+    "descricao": "Calcular pagamento de substituição com base em afastamentos, faltas e regras de qualquer seccional.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "codigo": "substituicoes-funcao:configurar-valores:global",
+    "recurso": "substituicoes-funcao",
+    "acao": "configurar-valores",
+    "escopo": "global",
+    "descricao": "Configurar referências e valores de funções usados no cálculo de substituição em todas as seccionais.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "codigo": "substituicoes-funcao:enviar-folha:global",
+    "recurso": "substituicoes-funcao",
+    "acao": "enviar-folha",
+    "escopo": "global",
+    "descricao": "Marcar pagamentos de substituição como enviados para processamento em folha em todas as seccionais.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "recurso": "teams-aprovacoes",
+    "acao": "analisar",
+    "escopo": "global",
+    "descricao": "Analisar aprovações pelo Microsoft Teams. Abrangencia: global.",
+    "codigo": "teams-aprovacoes:analisar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-banco-horas",
+    "acao": "consultar",
+    "escopo": "global",
+    "descricao": "Consultar banco de horas pelo Microsoft Teams. Abrangencia: global.",
+    "codigo": "teams-banco-horas:consultar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-bot",
+    "acao": "usar",
+    "escopo": "global",
+    "descricao": "Usar o bot conversacional do SECP no Microsoft Teams. Abrangencia: global.",
+    "codigo": "teams-bot:usar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-homologacao",
+    "acao": "analisar",
+    "escopo": "global",
+    "descricao": "Analisar homologações pelo Microsoft Teams. Abrangencia: global.",
+    "codigo": "teams-homologacao:analisar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-notificacoes",
+    "acao": "receber",
+    "escopo": "global",
+    "descricao": "Receber notificações individuais do SECP no Microsoft Teams. Abrangencia: global.",
+    "codigo": "teams-notificacoes:receber:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-ponto",
+    "acao": "registrar",
+    "escopo": "global",
+    "descricao": "Registrar ponto pelo Microsoft Teams quando autorizado. Abrangencia: global.",
+    "codigo": "teams-ponto:registrar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-solicitacoes",
+    "acao": "criar",
+    "escopo": "global",
+    "descricao": "Criar solicitações pelo Microsoft Teams. Abrangencia: global.",
+    "codigo": "teams-solicitacoes:criar:global",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "afd",
+    "acao": "importar",
+    "escopo": "proprio",
+    "descricao": "Importar arquivos AFD de equipamentos biométricos. Abrangencia: proprio.",
+    "codigo": "afd:importar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "apuracao",
+    "acao": "recalcular",
+    "escopo": "proprio",
+    "descricao": "Recalcular apurações de frequência. Abrangencia: proprio.",
+    "codigo": "apuracao:recalcular:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "auditoria",
+    "acao": "consultar",
+    "escopo": "proprio",
+    "descricao": "Consultar trilhas de auditoria do sistema. Abrangencia: proprio.",
+    "codigo": "auditoria:consultar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "auditoria",
+    "acao": "detalhar",
+    "escopo": "proprio",
+    "descricao": "Detalhar eventos de auditoria do sistema. Abrangencia: proprio.",
+    "codigo": "auditoria:detalhar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "auditoria",
+    "acao": "exportar",
+    "escopo": "proprio",
+    "descricao": "Exportar trilhas de auditoria. Abrangencia: proprio.",
+    "codigo": "auditoria:exportar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "banco-horas",
+    "acao": "gerenciar",
+    "escopo": "proprio",
+    "descricao": "Gerenciar e recalcular banco de horas. Abrangencia: proprio.",
+    "codigo": "banco-horas:gerenciar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometria",
+    "acao": "gerenciar",
+    "escopo": "proprio",
+    "descricao": "Gerenciar cadastros biométricos faciais. Abrangencia: proprio.",
+    "codigo": "biometria:gerenciar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometriafacial",
+    "acao": "invalidar",
+    "escopo": "proprio",
+    "descricao": "Invalidar cadastro de biometria facial. Abrangencia: proprio.",
+    "codigo": "biometriafacial:invalidar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometriafacial",
+    "acao": "visualizar",
+    "escopo": "proprio",
+    "descricao": "Consultar eventos e tentativas de biometria facial. Abrangencia: proprio.",
+    "codigo": "biometriafacial:visualizar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "boletim-frequencia",
+    "acao": "consultar",
+    "escopo": "proprio",
+    "descricao": "Consultar Boletins de Frequência. Abrangencia: proprio.",
+    "codigo": "boletim-frequencia:consultar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "boletim-frequencia",
+    "acao": "encaminhar",
+    "escopo": "proprio",
+    "descricao": "Encaminhar Boletim de Frequência à SECAP/NUCGP. Abrangencia: proprio.",
+    "codigo": "boletim-frequencia:encaminhar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "boletim-frequencia",
+    "acao": "gerar",
+    "escopo": "proprio",
+    "descricao": "Gerar Boletim de Frequência da unidade homologada. Abrangencia: proprio.",
+    "codigo": "boletim-frequencia:gerar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "boletim-frequencia",
+    "acao": "receber",
+    "escopo": "proprio",
+    "descricao": "Registrar recebimento/conferência do Boletim pela SECAP/NUCGP. Abrangencia: proprio.",
+    "codigo": "boletim-frequencia:receber:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "codigo": "boletim-frequencia:visualizar:proprio",
+    "recurso": "boletim-frequencia",
+    "acao": "visualizar",
+    "escopo": "proprio",
+    "descricao": "Visualizar próprio boletim de frequência.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "recurso": "chefias",
+    "acao": "gerenciar",
+    "escopo": "proprio",
+    "descricao": "Gerenciar chefias, gestores, substitutos e delegações. Abrangencia: proprio.",
+    "codigo": "chefias:gerenciar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "configuracoes",
+    "acao": "gerenciar",
+    "escopo": "proprio",
+    "descricao": "Gerenciar parâmetros gerais do SECP. Abrangencia: proprio.",
+    "codigo": "configuracoes:gerenciar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "fusos-horarios",
+    "acao": "gerenciar",
+    "escopo": "proprio",
+    "descricao": "Gerenciar fusos horarios disponiveis para orgaos e unidades. Abrangencia: proprio.",
+    "codigo": "fusos-horarios:gerenciar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "codigo": "homologacao:consultar:proprio",
+    "recurso": "homologacao",
+    "acao": "consultar",
+    "escopo": "proprio",
+    "descricao": "Consultar a própria homologação mensal.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "recurso": "homologacao",
+    "acao": "gerenciar",
+    "escopo": "proprio",
+    "descricao": "Gerenciar homologações mensais de todas as unidades. Abrangencia: proprio.",
+    "codigo": "homologacao:gerenciar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "analisar",
+    "escopo": "proprio",
+    "descricao": "Analisar solicitacoes de servico extraordinario como chefia ou delegado. Abrangencia: proprio.",
+    "codigo": "horas-extras:analisar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "analisar-excecao",
+    "escopo": "proprio",
+    "descricao": "Analisar excecoes de calculo de servico extraordinario. Abrangencia: proprio.",
+    "codigo": "horas-extras:analisar-excecao:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "aprovar-parcial",
+    "escopo": "proprio",
+    "descricao": "Aprovar parcialmente solicitacoes de servico extraordinario. Abrangencia: proprio.",
+    "codigo": "horas-extras:aprovar-parcial:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "auditar",
+    "escopo": "proprio",
+    "descricao": "Auditar solicitacoes, calculos e lotes de servico extraordinario. Abrangencia: proprio.",
+    "codigo": "horas-extras:auditar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "cancelar-autorizacao",
+    "escopo": "proprio",
+    "descricao": "Cancelar ou substituir autorizacoes de servico extraordinario. Abrangencia: proprio.",
+    "codigo": "horas-extras:cancelar-autorizacao:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "configurar-politica",
+    "escopo": "proprio",
+    "descricao": "Configurar politicas versionadas de servico extraordinario. Abrangencia: proprio.",
+    "codigo": "horas-extras:configurar-politica:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "configurar-responsaveis",
+    "escopo": "proprio",
+    "descricao": "Configurar responsaveis funcionais do fluxo de servico extraordinario. Abrangencia: proprio.",
+    "codigo": "horas-extras:configurar-responsaveis:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "configurar-workflow",
+    "escopo": "proprio",
+    "descricao": "Configurar workflows versionados de servico extraordinario. Abrangencia: proprio.",
+    "codigo": "horas-extras:configurar-workflow:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "deliberar",
+    "escopo": "proprio",
+    "descricao": "Registrar deliberacao final de servico extraordinario. Abrangencia: proprio.",
+    "codigo": "horas-extras:deliberar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "devolver",
+    "escopo": "proprio",
+    "descricao": "Devolver solicitacoes de servico extraordinario para correcao. Abrangencia: proprio.",
+    "codigo": "horas-extras:devolver:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "encaminhar-orcamento",
+    "escopo": "proprio",
+    "descricao": "Encaminhar solicitacoes de servico extraordinario para analise orcamentaria. Abrangencia: proprio.",
+    "codigo": "horas-extras:encaminhar-orcamento:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "exportar",
+    "escopo": "proprio",
+    "descricao": "Exportar demonstrativos e lotes de servico extraordinario. Abrangencia: proprio.",
+    "codigo": "horas-extras:exportar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "fechar-lote",
+    "escopo": "proprio",
+    "descricao": "Fechar lote mensal de pagamento de servico extraordinario. Abrangencia: proprio.",
+    "codigo": "horas-extras:fechar-lote:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "gerar-lote",
+    "escopo": "proprio",
+    "descricao": "Gerar lote mensal de pagamento de servico extraordinario. Abrangencia: proprio.",
+    "codigo": "horas-extras:gerar-lote:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "rejeitar",
+    "escopo": "proprio",
+    "descricao": "Rejeitar solicitacoes de servico extraordinario conforme competencia do fluxo. Abrangencia: proprio.",
+    "codigo": "horas-extras:rejeitar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "reprocessar",
+    "escopo": "proprio",
+    "descricao": "Reprocessar calculos de servico extraordinario. Abrangencia: proprio.",
+    "codigo": "horas-extras:reprocessar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "responder-orcamento",
+    "escopo": "proprio",
+    "descricao": "Registrar parecer orcamentario para servico extraordinario. Abrangencia: proprio.",
+    "codigo": "horas-extras:responder-orcamento:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "visualizar-execucao",
+    "escopo": "proprio",
+    "descricao": "Visualizar execucao e calculos de servico extraordinario. Abrangencia: proprio.",
+    "codigo": "horas-extras:visualizar-execucao:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "visualizar-folha",
+    "escopo": "proprio",
+    "descricao": "Visualizar previa e lotes de pagamento de servico extraordinario. Abrangencia: proprio.",
+    "codigo": "horas-extras:visualizar-folha:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes",
+    "acao": "consultar",
+    "escopo": "proprio",
+    "descricao": "Consultar status, logs e equipamentos de integração. Abrangencia: proprio.",
+    "codigo": "integracoes:consultar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes",
+    "acao": "gerenciar",
+    "escopo": "proprio",
+    "descricao": "Gerenciar integrações externas e equipamentos biométricos. Abrangencia: proprio.",
+    "codigo": "integracoes:gerenciar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes",
+    "acao": "receber-webhook",
+    "escopo": "proprio",
+    "descricao": "Receber eventos externos por webhook. Abrangencia: proprio.",
+    "codigo": "integracoes:receber-webhook:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes",
+    "acao": "sincronizar",
+    "escopo": "proprio",
+    "descricao": "Executar sincronizações manuais com sistemas externos. Abrangencia: proprio.",
+    "codigo": "integracoes:sincronizar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "configurar",
+    "escopo": "proprio",
+    "descricao": "Configurar URL base, endpoints, timeouts e parâmetros da integração SARH. Abrangencia: proprio.",
+    "codigo": "integracoes-sarh:configurar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "consultar",
+    "escopo": "proprio",
+    "descricao": "Consultar painel, execuções, itens, erros e conflitos da integração SARH. Abrangencia: proprio.",
+    "codigo": "integracoes-sarh:consultar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "executar",
+    "escopo": "proprio",
+    "descricao": "Executar carga inicial ou sincronização manual com o SARH. Abrangencia: proprio.",
+    "codigo": "integracoes-sarh:executar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "reprocessar",
+    "escopo": "proprio",
+    "descricao": "Reprocessar item, matrícula, unidade, cargo ou execução SARH com falha. Abrangencia: proprio.",
+    "codigo": "integracoes-sarh:reprocessar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "resolver-conflito",
+    "escopo": "proprio",
+    "descricao": "Resolver conflitos entre dados do SARH e dados protegidos do SECP. Abrangencia: proprio.",
+    "codigo": "integracoes-sarh:resolver-conflito:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "simular",
+    "escopo": "proprio",
+    "descricao": "Executar simulação/dry-run da sincronização SARH sem gravar alterações de domínio. Abrangencia: proprio.",
+    "codigo": "integracoes-sarh:simular:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "visualizar-payload",
+    "escopo": "proprio",
+    "descricao": "Visualizar payload bruto do SARH, com cuidados de LGPD. Abrangencia: proprio.",
+    "codigo": "integracoes-sarh:visualizar-payload:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-teams",
+    "acao": "ativar",
+    "escopo": "proprio",
+    "descricao": "Ativar a integração Microsoft Teams. Abrangencia: proprio.",
+    "codigo": "integracoes-teams:ativar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-teams",
+    "acao": "baixar-manifesto",
+    "escopo": "proprio",
+    "descricao": "Baixar o manifesto do aplicativo Microsoft Teams do SECP. Abrangencia: proprio.",
+    "codigo": "integracoes-teams:baixar-manifesto:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-teams",
+    "acao": "configurar",
+    "escopo": "proprio",
+    "descricao": "Configurar parâmetros da integração Microsoft Teams. Abrangencia: proprio.",
+    "codigo": "integracoes-teams:configurar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-teams",
+    "acao": "desativar",
+    "escopo": "proprio",
+    "descricao": "Desativar a integração Microsoft Teams. Abrangencia: proprio.",
+    "codigo": "integracoes-teams:desativar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-teams",
+    "acao": "testar",
+    "escopo": "proprio",
+    "descricao": "Executar testes operacionais da integração Microsoft Teams. Abrangencia: proprio.",
+    "codigo": "integracoes-teams:testar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-teams",
+    "acao": "visualizar",
+    "escopo": "proprio",
+    "descricao": "Visualizar configuração e saúde da integração Microsoft Teams. Abrangencia: proprio.",
+    "codigo": "integracoes-teams:visualizar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "codigo": "jornada:visualizar:proprio",
+    "recurso": "jornada",
+    "acao": "visualizar",
+    "escopo": "proprio",
+    "descricao": "Visualizar própria jornada.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "recurso": "jornadas",
+    "acao": "gerenciar",
+    "escopo": "proprio",
+    "descricao": "Gerenciar jornadas, escalas e atribuições de jornada aos servidores. Abrangencia: proprio.",
+    "codigo": "jornadas:gerenciar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "jornadas",
+    "acao": "gerenciar-politicas",
+    "escopo": "proprio",
+    "descricao": "Gerenciar políticas de jornada. Abrangencia: proprio.",
+    "codigo": "jornadas:gerenciar-politicas:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "marcacoes",
+    "acao": "excluir",
+    "escopo": "proprio",
+    "descricao": "Excluir/cancelar marcacoes de ponto. Abrangencia: proprio.",
+    "codigo": "marcacoes:excluir:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "marcacoes",
+    "acao": "gerenciar",
+    "escopo": "proprio",
+    "descricao": "Gerenciar marcações. Abrangencia: proprio.",
+    "codigo": "marcacoes:gerenciar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "menus",
+    "acao": "personalizar",
+    "escopo": "proprio",
+    "descricao": "Personalizar menus laterais por perfil. Abrangencia: proprio.",
+    "codigo": "menus:personalizar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "minha-equipe",
+    "acao": "consultar",
+    "escopo": "proprio",
+    "descricao": "Consultar presença diária dos servidores subordinados à chefia ou delegação. Abrangencia: proprio.",
+    "codigo": "minha-equipe:consultar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "painel-executivo",
+    "acao": "consultar",
+    "escopo": "proprio",
+    "descricao": "Consultar painel executivo com indicadores gerenciais de frequencia, homologacao, pendencias e conformidade. Abrangencia: proprio.",
+    "codigo": "painel-executivo:consultar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "painel-executivo",
+    "acao": "equipamentos",
+    "escopo": "proprio",
+    "descricao": "Consultar indicadores tecnicos de equipamentos de ponto no painel executivo. Abrangencia: proprio.",
+    "codigo": "painel-executivo:equipamentos:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "perfis",
+    "acao": "gerenciar",
+    "escopo": "proprio",
+    "descricao": "Gerenciar perfis e permissões. Abrangencia: proprio.",
+    "codigo": "perfis:gerenciar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "procedimentos-frequencia",
+    "acao": "autorizar",
+    "escopo": "proprio",
+    "descricao": "Autorizar procedimentos administrativos de frequencia em todos os orgaos. Abrangencia: proprio.",
+    "codigo": "procedimentos-frequencia:autorizar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "procedimentos-frequencia",
+    "acao": "consultar",
+    "escopo": "proprio",
+    "descricao": "Consultar procedimentos administrativos de frequencia de todos os orgaos. Abrangencia: proprio.",
+    "codigo": "procedimentos-frequencia:consultar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "procedimentos-frequencia",
+    "acao": "emitir-nada-consta",
+    "escopo": "proprio",
+    "descricao": "Emitir Nada Consta de frequencia para servidores de todos os orgaos. Abrangencia: proprio.",
+    "codigo": "procedimentos-frequencia:emitir-nada-consta:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "procedimentos-frequencia",
+    "acao": "executar",
+    "escopo": "proprio",
+    "descricao": "Registrar execucao de procedimentos administrativos de frequencia em todos os orgaos. Abrangencia: proprio.",
+    "codigo": "procedimentos-frequencia:executar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "procedimentos-frequencia",
+    "acao": "gerenciar",
+    "escopo": "proprio",
+    "descricao": "Gerenciar procedimentos administrativos de frequencia de todos os orgaos. Abrangencia: proprio.",
+    "codigo": "procedimentos-frequencia:gerenciar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "aceitar",
+    "escopo": "proprio",
+    "descricao": "Aceitar homologacao do recesso pela SECAD. Abrangencia: proprio.",
+    "codigo": "recesso:aceitar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "convocacao",
+    "escopo": "proprio",
+    "descricao": "Gerenciar convocacoes do recesso forense. Abrangencia: proprio.",
+    "codigo": "recesso:convocacao:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "excluir",
+    "escopo": "proprio",
+    "descricao": "Excluir recesso forense cadastrado. Abrangencia: proprio.",
+    "codigo": "recesso:excluir:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "gerenciar",
+    "escopo": "proprio",
+    "descricao": "Gerenciar recesso forense anual. Abrangencia: proprio.",
+    "codigo": "recesso:gerenciar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "homologar",
+    "escopo": "proprio",
+    "descricao": "Homologar recesso dos servidores convocados. Abrangencia: proprio.",
+    "codigo": "recesso:homologar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "relatorio",
+    "escopo": "proprio",
+    "descricao": "Gerar relatorio de folgas do recesso para SECAP. Abrangencia: proprio.",
+    "codigo": "recesso:relatorio:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "regulamentacao-ponto",
+    "acao": "gerenciar",
+    "escopo": "proprio",
+    "descricao": "Gerenciar regras de regulamentação do ponto por órgão. Abrangencia: proprio.",
+    "codigo": "regulamentacao-ponto:gerenciar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "servidores",
+    "acao": "consultar",
+    "escopo": "proprio",
+    "descricao": "Consultar servidores. Abrangencia: proprio.",
+    "codigo": "servidores:consultar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "servidores",
+    "acao": "gerenciar",
+    "escopo": "proprio",
+    "descricao": "Gerenciar servidores e vínculos. Abrangencia: proprio.",
+    "codigo": "servidores:gerenciar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "solicitacoes",
+    "acao": "analisar",
+    "escopo": "proprio",
+    "descricao": "Analisar solicitações dos subordinados. Abrangencia: proprio.",
+    "codigo": "solicitacoes:analisar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "substituicoes-funcao",
+    "acao": "aprovar-pagamento",
+    "escopo": "proprio",
+    "descricao": "Aprovar, rejeitar ou cancelar pagamentos calculados de substituição em todas as seccionais. Abrangencia: proprio.",
+    "codigo": "substituicoes-funcao:aprovar-pagamento:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "substituicoes-funcao",
+    "acao": "calcular-pagamento",
+    "escopo": "proprio",
+    "descricao": "Calcular pagamento de substituição com base em afastamentos, faltas e regras de qualquer seccional. Abrangencia: proprio.",
+    "codigo": "substituicoes-funcao:calcular-pagamento:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "substituicoes-funcao",
+    "acao": "configurar-valores",
+    "escopo": "proprio",
+    "descricao": "Configurar referências e valores de funções usados no cálculo de substituição em todas as seccionais. Abrangencia: proprio.",
+    "codigo": "substituicoes-funcao:configurar-valores:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "substituicoes-funcao",
+    "acao": "consultar",
+    "escopo": "proprio",
+    "descricao": "Consultar substituições de função, titulares, substitutos e histórico em todas as seccionais. Abrangencia: proprio.",
+    "codigo": "substituicoes-funcao:consultar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "substituicoes-funcao",
+    "acao": "enviar-folha",
+    "escopo": "proprio",
+    "descricao": "Marcar pagamentos de substituição como enviados para processamento em folha em todas as seccionais. Abrangencia: proprio.",
+    "codigo": "substituicoes-funcao:enviar-folha:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "substituicoes-funcao",
+    "acao": "gerenciar",
+    "escopo": "proprio",
+    "descricao": "Cadastrar, editar, suspender e encerrar substituições de função em todas as seccionais. Abrangencia: proprio.",
+    "codigo": "substituicoes-funcao:gerenciar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-aprovacoes",
+    "acao": "analisar",
+    "escopo": "proprio",
+    "descricao": "Analisar aprovações pelo Microsoft Teams. Abrangencia: proprio.",
+    "codigo": "teams-aprovacoes:analisar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-homologacao",
+    "acao": "analisar",
+    "escopo": "proprio",
+    "descricao": "Analisar homologações pelo Microsoft Teams. Abrangencia: proprio.",
+    "codigo": "teams-homologacao:analisar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "unidades",
+    "acao": "gerenciar",
+    "escopo": "proprio",
+    "descricao": "Gerenciar estrutura organizacional. Abrangencia: proprio.",
+    "codigo": "unidades:gerenciar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "usuarios",
+    "acao": "consultar",
+    "escopo": "proprio",
+    "descricao": "Consultar usuários do sistema. Abrangencia: proprio.",
+    "codigo": "usuarios:consultar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "usuarios",
+    "acao": "gerenciar",
+    "escopo": "proprio",
+    "descricao": "Gerenciar usuários do sistema. Abrangencia: proprio.",
+    "codigo": "usuarios:gerenciar:proprio",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "afastamentos",
+    "acao": "consultar",
+    "escopo": "seccional",
+    "descricao": "Consultar afastamentos importados do SARH em âmbito global. Abrangencia: seccional.",
+    "codigo": "afastamentos:consultar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "auditoria",
+    "acao": "exportar",
+    "escopo": "seccional",
+    "descricao": "Exportar trilhas de auditoria. Abrangencia: seccional.",
+    "codigo": "auditoria:exportar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "banco-horas",
+    "acao": "visualizar",
+    "escopo": "seccional",
+    "descricao": "Visualizar próprio banco de horas. Abrangencia: seccional.",
+    "codigo": "banco-horas:visualizar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometria",
+    "acao": "cadastrar",
+    "escopo": "seccional",
+    "descricao": "Cadastrar a própria biometria facial. Abrangencia: seccional.",
+    "codigo": "biometria:cadastrar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometria",
+    "acao": "consultar",
+    "escopo": "seccional",
+    "descricao": "Consultar o próprio cadastro biométrico facial. Abrangencia: seccional.",
+    "codigo": "biometria:consultar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometria",
+    "acao": "gerenciar",
+    "escopo": "seccional",
+    "descricao": "Gerenciar cadastros biométricos faciais. Abrangencia: seccional.",
+    "codigo": "biometria:gerenciar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometria",
+    "acao": "validar",
+    "escopo": "seccional",
+    "descricao": "Validar marcação com biometria facial própria. Abrangencia: seccional.",
+    "codigo": "biometria:validar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometriafacial",
+    "acao": "invalidar",
+    "escopo": "seccional",
+    "descricao": "Invalidar cadastro de biometria facial. Abrangencia: seccional.",
+    "codigo": "biometriafacial:invalidar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometriafacial",
+    "acao": "registrar",
+    "escopo": "seccional",
+    "descricao": "Usar reconhecimento facial no registro do proprio ponto. Abrangencia: seccional.",
+    "codigo": "biometriafacial:registrar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometriafacial",
+    "acao": "visualizar",
+    "escopo": "seccional",
+    "descricao": "Consultar eventos e tentativas de biometria facial. Abrangencia: seccional.",
+    "codigo": "biometriafacial:visualizar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "boletim-frequencia",
+    "acao": "encaminhar",
+    "escopo": "seccional",
+    "descricao": "Encaminhar Boletim de Frequência à SECAP/NUCGP. Abrangencia: seccional.",
+    "codigo": "boletim-frequencia:encaminhar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "boletim-frequencia",
+    "acao": "gerar",
+    "escopo": "seccional",
+    "descricao": "Gerar Boletim de Frequência da unidade homologada. Abrangencia: seccional.",
+    "codigo": "boletim-frequencia:gerar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "boletim-frequencia",
+    "acao": "visualizar",
+    "escopo": "seccional",
+    "descricao": "Visualizar próprio boletim de frequência. Abrangencia: seccional.",
+    "codigo": "boletim-frequencia:visualizar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "contracheque",
+    "acao": "consultar",
+    "escopo": "seccional",
+    "descricao": "Consultar e exportar o próprio contracheque diretamente no SARH. Abrangencia: seccional.",
+    "codigo": "contracheque:consultar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "dashboard",
+    "acao": "visualizar",
+    "escopo": "seccional",
+    "descricao": "Visualizar dashboard próprio. Abrangencia: seccional.",
+    "codigo": "dashboard:visualizar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "espelho-ponto",
+    "acao": "visualizar",
+    "escopo": "seccional",
+    "descricao": "Visualizar próprio espelho de ponto. Abrangencia: seccional.",
+    "codigo": "espelho-ponto:visualizar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "fusos-horarios",
+    "acao": "gerenciar",
+    "escopo": "seccional",
+    "descricao": "Gerenciar fusos horarios disponiveis para orgaos e unidades. Abrangencia: seccional.",
+    "codigo": "fusos-horarios:gerenciar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "analisar",
+    "escopo": "seccional",
+    "descricao": "Analisar solicitacoes de servico extraordinario como chefia ou delegado. Abrangencia: seccional.",
+    "codigo": "horas-extras:analisar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "analisar-excecao",
+    "escopo": "seccional",
+    "descricao": "Analisar excecoes de calculo de servico extraordinario. Abrangencia: seccional.",
+    "codigo": "horas-extras:analisar-excecao:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "aprovar-parcial",
+    "escopo": "seccional",
+    "descricao": "Aprovar parcialmente solicitacoes de servico extraordinario. Abrangencia: seccional.",
+    "codigo": "horas-extras:aprovar-parcial:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "auditar",
+    "escopo": "seccional",
+    "descricao": "Auditar solicitacoes, calculos e lotes de servico extraordinario. Abrangencia: seccional.",
+    "codigo": "horas-extras:auditar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "cancelar",
+    "escopo": "seccional",
+    "descricao": "Cancelar solicitacoes proprias de servico extraordinario ainda permitidas pelo fluxo. Abrangencia: seccional.",
+    "codigo": "horas-extras:cancelar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "cancelar-autorizacao",
+    "escopo": "seccional",
+    "descricao": "Cancelar ou substituir autorizacoes de servico extraordinario. Abrangencia: seccional.",
+    "codigo": "horas-extras:cancelar-autorizacao:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "devolver",
+    "escopo": "seccional",
+    "descricao": "Devolver solicitacoes de servico extraordinario para correcao. Abrangencia: seccional.",
+    "codigo": "horas-extras:devolver:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "encaminhar-orcamento",
+    "escopo": "seccional",
+    "descricao": "Encaminhar solicitacoes de servico extraordinario para analise orcamentaria. Abrangencia: seccional.",
+    "codigo": "horas-extras:encaminhar-orcamento:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "exportar",
+    "escopo": "seccional",
+    "descricao": "Exportar demonstrativos e lotes de servico extraordinario. Abrangencia: seccional.",
+    "codigo": "horas-extras:exportar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "fechar-lote",
+    "escopo": "seccional",
+    "descricao": "Fechar lote mensal de pagamento de servico extraordinario. Abrangencia: seccional.",
+    "codigo": "horas-extras:fechar-lote:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "rejeitar",
+    "escopo": "seccional",
+    "descricao": "Rejeitar solicitacoes de servico extraordinario conforme competencia do fluxo. Abrangencia: seccional.",
+    "codigo": "horas-extras:rejeitar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "reprocessar",
+    "escopo": "seccional",
+    "descricao": "Reprocessar calculos de servico extraordinario. Abrangencia: seccional.",
+    "codigo": "horas-extras:reprocessar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "solicitar",
+    "escopo": "seccional",
+    "descricao": "Criar solicitacoes de servico extraordinario para servidores da unidade. Abrangencia: seccional.",
+    "codigo": "horas-extras:solicitar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "visualizar",
+    "escopo": "seccional",
+    "descricao": "Visualizar as proprias solicitacoes e autorizacoes de servico extraordinario. Abrangencia: seccional.",
+    "codigo": "horas-extras:visualizar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes",
+    "acao": "receber-webhook",
+    "escopo": "seccional",
+    "descricao": "Receber eventos externos por webhook. Abrangencia: seccional.",
+    "codigo": "integracoes:receber-webhook:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes",
+    "acao": "sincronizar",
+    "escopo": "seccional",
+    "descricao": "Executar sincronizações manuais com sistemas externos. Abrangencia: seccional.",
+    "codigo": "integracoes:sincronizar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "configurar",
+    "escopo": "seccional",
+    "descricao": "Configurar URL base, endpoints, timeouts e parâmetros da integração SARH. Abrangencia: seccional.",
+    "codigo": "integracoes-sarh:configurar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "consultar",
+    "escopo": "seccional",
+    "descricao": "Consultar painel, execuções, itens, erros e conflitos da integração SARH. Abrangencia: seccional.",
+    "codigo": "integracoes-sarh:consultar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "executar",
+    "escopo": "seccional",
+    "descricao": "Executar carga inicial ou sincronização manual com o SARH. Abrangencia: seccional.",
+    "codigo": "integracoes-sarh:executar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "reprocessar",
+    "escopo": "seccional",
+    "descricao": "Reprocessar item, matrícula, unidade, cargo ou execução SARH com falha. Abrangencia: seccional.",
+    "codigo": "integracoes-sarh:reprocessar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "resolver-conflito",
+    "escopo": "seccional",
+    "descricao": "Resolver conflitos entre dados do SARH e dados protegidos do SECP. Abrangencia: seccional.",
+    "codigo": "integracoes-sarh:resolver-conflito:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "simular",
+    "escopo": "seccional",
+    "descricao": "Executar simulação/dry-run da sincronização SARH sem gravar alterações de domínio. Abrangencia: seccional.",
+    "codigo": "integracoes-sarh:simular:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "visualizar-payload",
+    "escopo": "seccional",
+    "descricao": "Visualizar payload bruto do SARH, com cuidados de LGPD. Abrangencia: seccional.",
+    "codigo": "integracoes-sarh:visualizar-payload:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-teams",
+    "acao": "ativar",
+    "escopo": "seccional",
+    "descricao": "Ativar a integração Microsoft Teams. Abrangencia: seccional.",
+    "codigo": "integracoes-teams:ativar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-teams",
+    "acao": "baixar-manifesto",
+    "escopo": "seccional",
+    "descricao": "Baixar o manifesto do aplicativo Microsoft Teams do SECP. Abrangencia: seccional.",
+    "codigo": "integracoes-teams:baixar-manifesto:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-teams",
+    "acao": "configurar",
+    "escopo": "seccional",
+    "descricao": "Configurar parâmetros da integração Microsoft Teams. Abrangencia: seccional.",
+    "codigo": "integracoes-teams:configurar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-teams",
+    "acao": "desativar",
+    "escopo": "seccional",
+    "descricao": "Desativar a integração Microsoft Teams. Abrangencia: seccional.",
+    "codigo": "integracoes-teams:desativar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-teams",
+    "acao": "testar",
+    "escopo": "seccional",
+    "descricao": "Executar testes operacionais da integração Microsoft Teams. Abrangencia: seccional.",
+    "codigo": "integracoes-teams:testar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-teams",
+    "acao": "visualizar",
+    "escopo": "seccional",
+    "descricao": "Visualizar configuração e saúde da integração Microsoft Teams. Abrangencia: seccional.",
+    "codigo": "integracoes-teams:visualizar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "jornada",
+    "acao": "visualizar",
+    "escopo": "seccional",
+    "descricao": "Visualizar própria jornada. Abrangencia: seccional.",
+    "codigo": "jornada:visualizar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "jornadas",
+    "acao": "gerenciar-politicas",
+    "escopo": "seccional",
+    "descricao": "Gerenciar políticas de jornada. Abrangencia: seccional.",
+    "codigo": "jornadas:gerenciar-politicas:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "marcacoes",
+    "acao": "registrar",
+    "escopo": "seccional",
+    "descricao": "Registrar a própria marcação de ponto. Abrangencia: seccional.",
+    "codigo": "marcacoes:registrar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "marcacoes",
+    "acao": "registrar-facial",
+    "escopo": "seccional",
+    "descricao": "Registrar marcação por reconhecimento facial. Abrangencia: seccional.",
+    "codigo": "marcacoes:registrar-facial:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "marcacoes",
+    "acao": "registrar-web",
+    "escopo": "seccional",
+    "descricao": "Registrar marcação via sistema web. Abrangencia: seccional.",
+    "codigo": "marcacoes:registrar-web:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "marcacoes",
+    "acao": "visualizar",
+    "escopo": "seccional",
+    "descricao": "Visualizar próprias marcações. Abrangencia: seccional.",
+    "codigo": "marcacoes:visualizar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "painel-executivo",
+    "acao": "equipamentos",
+    "escopo": "seccional",
+    "descricao": "Consultar indicadores tecnicos de equipamentos de ponto no painel executivo. Abrangencia: seccional.",
+    "codigo": "painel-executivo:equipamentos:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "convocacao",
+    "escopo": "seccional",
+    "descricao": "Gerenciar convocacoes do recesso forense. Abrangencia: seccional.",
+    "codigo": "recesso:convocacao:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "excluir",
+    "escopo": "seccional",
+    "descricao": "Excluir recesso forense cadastrado. Abrangencia: seccional.",
+    "codigo": "recesso:excluir:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "fechar",
+    "escopo": "seccional",
+    "descricao": "Fechar o proprio espelho de recesso. Abrangencia: seccional.",
+    "codigo": "recesso:fechar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "homologar",
+    "escopo": "seccional",
+    "descricao": "Homologar recesso dos servidores convocados. Abrangencia: seccional.",
+    "codigo": "recesso:homologar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "codigo": "recesso:relatorio:seccional",
+    "recurso": "recesso",
+    "acao": "relatorio",
+    "escopo": "seccional",
+    "descricao": "Gerar relatorio de folgas do recesso para SECAP.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "recurso": "relatorios",
+    "acao": "exportar",
+    "escopo": "seccional",
+    "descricao": "Exportar relatórios globais em PDF. Abrangencia: seccional.",
+    "codigo": "relatorios:exportar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "relatorios-gerenciais",
+    "acao": "exportar",
+    "escopo": "seccional",
+    "descricao": "Exportar relatorios gerenciais de todos os servidores. Abrangencia: seccional.",
+    "codigo": "relatorios-gerenciais:exportar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "solicitacoes",
+    "acao": "analisar",
+    "escopo": "seccional",
+    "descricao": "Analisar solicitações dos subordinados. Abrangencia: seccional.",
+    "codigo": "solicitacoes:analisar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "solicitacoes",
+    "acao": "criar",
+    "escopo": "seccional",
+    "descricao": "Criar solicitações próprias de frequência. Abrangencia: seccional.",
+    "codigo": "solicitacoes:criar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "solicitacoes",
+    "acao": "visualizar",
+    "escopo": "seccional",
+    "descricao": "Visualizar próprias solicitações. Abrangencia: seccional.",
+    "codigo": "solicitacoes:visualizar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "codigo": "substituicoes-funcao:aprovar-pagamento:seccional",
+    "recurso": "substituicoes-funcao",
+    "acao": "aprovar-pagamento",
+    "escopo": "seccional",
+    "descricao": "Aprovar, rejeitar ou cancelar pagamentos calculados de substituição.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "codigo": "substituicoes-funcao:calcular-pagamento:seccional",
+    "recurso": "substituicoes-funcao",
+    "acao": "calcular-pagamento",
+    "escopo": "seccional",
+    "descricao": "Calcular pagamento de substituição com base em afastamentos, faltas e regras da seccional.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "codigo": "substituicoes-funcao:configurar-valores:seccional",
+    "recurso": "substituicoes-funcao",
+    "acao": "configurar-valores",
+    "escopo": "seccional",
+    "descricao": "Configurar referências e valores de funções usados no cálculo de substituição.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "codigo": "substituicoes-funcao:enviar-folha:seccional",
+    "recurso": "substituicoes-funcao",
+    "acao": "enviar-folha",
+    "escopo": "seccional",
+    "descricao": "Marcar pagamentos de substituição como enviados para processamento em folha.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "recurso": "teams-aprovacoes",
+    "acao": "analisar",
+    "escopo": "seccional",
+    "descricao": "Analisar aprovações pelo Microsoft Teams. Abrangencia: seccional.",
+    "codigo": "teams-aprovacoes:analisar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-banco-horas",
+    "acao": "consultar",
+    "escopo": "seccional",
+    "descricao": "Consultar banco de horas pelo Microsoft Teams. Abrangencia: seccional.",
+    "codigo": "teams-banco-horas:consultar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-bot",
+    "acao": "usar",
+    "escopo": "seccional",
+    "descricao": "Usar o bot conversacional do SECP no Microsoft Teams. Abrangencia: seccional.",
+    "codigo": "teams-bot:usar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-homologacao",
+    "acao": "analisar",
+    "escopo": "seccional",
+    "descricao": "Analisar homologações pelo Microsoft Teams. Abrangencia: seccional.",
+    "codigo": "teams-homologacao:analisar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-notificacoes",
+    "acao": "receber",
+    "escopo": "seccional",
+    "descricao": "Receber notificações individuais do SECP no Microsoft Teams. Abrangencia: seccional.",
+    "codigo": "teams-notificacoes:receber:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-ponto",
+    "acao": "registrar",
+    "escopo": "seccional",
+    "descricao": "Registrar ponto pelo Microsoft Teams quando autorizado. Abrangencia: seccional.",
+    "codigo": "teams-ponto:registrar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-solicitacoes",
+    "acao": "criar",
+    "escopo": "seccional",
+    "descricao": "Criar solicitações pelo Microsoft Teams. Abrangencia: seccional.",
+    "codigo": "teams-solicitacoes:criar:seccional",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "afastamentos",
+    "acao": "consultar",
+    "escopo": "subordinados",
+    "descricao": "Consultar afastamentos importados do SARH em âmbito global. Abrangencia: subordinados.",
+    "codigo": "afastamentos:consultar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "afd",
+    "acao": "importar",
+    "escopo": "subordinados",
+    "descricao": "Importar arquivos AFD de equipamentos biométricos. Abrangencia: subordinados.",
+    "codigo": "afd:importar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "apuracao",
+    "acao": "consultar",
+    "escopo": "subordinados",
+    "descricao": "Consultar apurações de todos os servidores. Abrangencia: subordinados.",
+    "codigo": "apuracao:consultar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "apuracao",
+    "acao": "recalcular",
+    "escopo": "subordinados",
+    "descricao": "Recalcular apurações de frequência. Abrangencia: subordinados.",
+    "codigo": "apuracao:recalcular:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "auditoria",
+    "acao": "consultar",
+    "escopo": "subordinados",
+    "descricao": "Consultar trilhas de auditoria do sistema. Abrangencia: subordinados.",
+    "codigo": "auditoria:consultar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "auditoria",
+    "acao": "detalhar",
+    "escopo": "subordinados",
+    "descricao": "Detalhar eventos de auditoria do sistema. Abrangencia: subordinados.",
+    "codigo": "auditoria:detalhar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "auditoria",
+    "acao": "exportar",
+    "escopo": "subordinados",
+    "descricao": "Exportar trilhas de auditoria. Abrangencia: subordinados.",
+    "codigo": "auditoria:exportar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "banco-horas",
+    "acao": "gerenciar",
+    "escopo": "subordinados",
+    "descricao": "Gerenciar e recalcular banco de horas. Abrangencia: subordinados.",
+    "codigo": "banco-horas:gerenciar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "banco-horas",
+    "acao": "visualizar",
+    "escopo": "subordinados",
+    "descricao": "Visualizar próprio banco de horas. Abrangencia: subordinados.",
+    "codigo": "banco-horas:visualizar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometria",
+    "acao": "cadastrar",
+    "escopo": "subordinados",
+    "descricao": "Cadastrar a própria biometria facial. Abrangencia: subordinados.",
+    "codigo": "biometria:cadastrar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometria",
+    "acao": "consultar",
+    "escopo": "subordinados",
+    "descricao": "Consultar o próprio cadastro biométrico facial. Abrangencia: subordinados.",
+    "codigo": "biometria:consultar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometria",
+    "acao": "gerenciar",
+    "escopo": "subordinados",
+    "descricao": "Gerenciar cadastros biométricos faciais. Abrangencia: subordinados.",
+    "codigo": "biometria:gerenciar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometria",
+    "acao": "validar",
+    "escopo": "subordinados",
+    "descricao": "Validar marcação com biometria facial própria. Abrangencia: subordinados.",
+    "codigo": "biometria:validar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometriafacial",
+    "acao": "cadastrar",
+    "escopo": "subordinados",
+    "descricao": "Cadastrar biometria facial de terceiros. Abrangencia: subordinados.",
+    "codigo": "biometriafacial:cadastrar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometriafacial",
+    "acao": "invalidar",
+    "escopo": "subordinados",
+    "descricao": "Invalidar cadastro de biometria facial. Abrangencia: subordinados.",
+    "codigo": "biometriafacial:invalidar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometriafacial",
+    "acao": "recadastrar",
+    "escopo": "subordinados",
+    "descricao": "Recadastrar biometria facial de terceiros. Abrangencia: subordinados.",
+    "codigo": "biometriafacial:recadastrar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometriafacial",
+    "acao": "registrar",
+    "escopo": "subordinados",
+    "descricao": "Usar reconhecimento facial no registro do proprio ponto. Abrangencia: subordinados.",
+    "codigo": "biometriafacial:registrar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "biometriafacial",
+    "acao": "visualizar",
+    "escopo": "subordinados",
+    "descricao": "Consultar eventos e tentativas de biometria facial. Abrangencia: subordinados.",
+    "codigo": "biometriafacial:visualizar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "boletim-frequencia",
+    "acao": "consultar",
+    "escopo": "subordinados",
+    "descricao": "Consultar Boletins de Frequência. Abrangencia: subordinados.",
+    "codigo": "boletim-frequencia:consultar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "boletim-frequencia",
+    "acao": "receber",
+    "escopo": "subordinados",
+    "descricao": "Registrar recebimento/conferência do Boletim pela SECAP/NUCGP. Abrangencia: subordinados.",
+    "codigo": "boletim-frequencia:receber:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "boletim-frequencia",
+    "acao": "visualizar",
+    "escopo": "subordinados",
+    "descricao": "Visualizar próprio boletim de frequência. Abrangencia: subordinados.",
+    "codigo": "boletim-frequencia:visualizar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "chefias",
+    "acao": "gerenciar",
+    "escopo": "subordinados",
+    "descricao": "Gerenciar chefias, gestores, substitutos e delegações. Abrangencia: subordinados.",
+    "codigo": "chefias:gerenciar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "configuracoes",
+    "acao": "gerenciar",
+    "escopo": "subordinados",
+    "descricao": "Gerenciar parâmetros gerais do SECP. Abrangencia: subordinados.",
+    "codigo": "configuracoes:gerenciar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "contracheque",
+    "acao": "consultar",
+    "escopo": "subordinados",
+    "descricao": "Consultar e exportar o próprio contracheque diretamente no SARH. Abrangencia: subordinados.",
+    "codigo": "contracheque:consultar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "dashboard",
+    "acao": "visualizar",
+    "escopo": "subordinados",
+    "descricao": "Visualizar dashboard próprio. Abrangencia: subordinados.",
+    "codigo": "dashboard:visualizar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "espelho-ponto",
+    "acao": "visualizar",
+    "escopo": "subordinados",
+    "descricao": "Visualizar próprio espelho de ponto. Abrangencia: subordinados.",
+    "codigo": "espelho-ponto:visualizar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "fusos-horarios",
+    "acao": "gerenciar",
+    "escopo": "subordinados",
+    "descricao": "Gerenciar fusos horarios disponiveis para orgaos e unidades. Abrangencia: subordinados.",
+    "codigo": "fusos-horarios:gerenciar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "homologacao",
+    "acao": "consultar",
+    "escopo": "subordinados",
+    "descricao": "Consultar homologações mensais de todas as unidades. Abrangencia: subordinados.",
+    "codigo": "homologacao:consultar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "analisar-excecao",
+    "escopo": "subordinados",
+    "descricao": "Analisar excecoes de calculo de servico extraordinario. Abrangencia: subordinados.",
+    "codigo": "horas-extras:analisar-excecao:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "aprovar-parcial",
+    "escopo": "subordinados",
+    "descricao": "Aprovar parcialmente solicitacoes de servico extraordinario. Abrangencia: subordinados.",
+    "codigo": "horas-extras:aprovar-parcial:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "auditar",
+    "escopo": "subordinados",
+    "descricao": "Auditar solicitacoes, calculos e lotes de servico extraordinario. Abrangencia: subordinados.",
+    "codigo": "horas-extras:auditar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "cancelar",
+    "escopo": "subordinados",
+    "descricao": "Cancelar solicitacoes proprias de servico extraordinario ainda permitidas pelo fluxo. Abrangencia: subordinados.",
+    "codigo": "horas-extras:cancelar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "cancelar-autorizacao",
+    "escopo": "subordinados",
+    "descricao": "Cancelar ou substituir autorizacoes de servico extraordinario. Abrangencia: subordinados.",
+    "codigo": "horas-extras:cancelar-autorizacao:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "configurar-politica",
+    "escopo": "subordinados",
+    "descricao": "Configurar politicas versionadas de servico extraordinario. Abrangencia: subordinados.",
+    "codigo": "horas-extras:configurar-politica:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "configurar-responsaveis",
+    "escopo": "subordinados",
+    "descricao": "Configurar responsaveis funcionais do fluxo de servico extraordinario. Abrangencia: subordinados.",
+    "codigo": "horas-extras:configurar-responsaveis:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "configurar-workflow",
+    "escopo": "subordinados",
+    "descricao": "Configurar workflows versionados de servico extraordinario. Abrangencia: subordinados.",
+    "codigo": "horas-extras:configurar-workflow:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "deliberar",
+    "escopo": "subordinados",
+    "descricao": "Registrar deliberacao final de servico extraordinario. Abrangencia: subordinados.",
+    "codigo": "horas-extras:deliberar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "devolver",
+    "escopo": "subordinados",
+    "descricao": "Devolver solicitacoes de servico extraordinario para correcao. Abrangencia: subordinados.",
+    "codigo": "horas-extras:devolver:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "encaminhar-orcamento",
+    "escopo": "subordinados",
+    "descricao": "Encaminhar solicitacoes de servico extraordinario para analise orcamentaria. Abrangencia: subordinados.",
+    "codigo": "horas-extras:encaminhar-orcamento:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "exportar",
+    "escopo": "subordinados",
+    "descricao": "Exportar demonstrativos e lotes de servico extraordinario. Abrangencia: subordinados.",
+    "codigo": "horas-extras:exportar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "fechar-lote",
+    "escopo": "subordinados",
+    "descricao": "Fechar lote mensal de pagamento de servico extraordinario. Abrangencia: subordinados.",
+    "codigo": "horas-extras:fechar-lote:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "gerar-lote",
+    "escopo": "subordinados",
+    "descricao": "Gerar lote mensal de pagamento de servico extraordinario. Abrangencia: subordinados.",
+    "codigo": "horas-extras:gerar-lote:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "rejeitar",
+    "escopo": "subordinados",
+    "descricao": "Rejeitar solicitacoes de servico extraordinario conforme competencia do fluxo. Abrangencia: subordinados.",
+    "codigo": "horas-extras:rejeitar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "reprocessar",
+    "escopo": "subordinados",
+    "descricao": "Reprocessar calculos de servico extraordinario. Abrangencia: subordinados.",
+    "codigo": "horas-extras:reprocessar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "responder-orcamento",
+    "escopo": "subordinados",
+    "descricao": "Registrar parecer orcamentario para servico extraordinario. Abrangencia: subordinados.",
+    "codigo": "horas-extras:responder-orcamento:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "codigo": "horas-extras:solicitar:subordinados",
+    "recurso": "horas-extras",
+    "acao": "solicitar",
+    "escopo": "subordinados",
+    "descricao": "Criar solicitacoes de servico extraordinario para servidores da unidade.",
+    "source": "declarada explicitamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "visualizar",
+    "escopo": "subordinados",
+    "descricao": "Visualizar as proprias solicitacoes e autorizacoes de servico extraordinario. Abrangencia: subordinados.",
+    "codigo": "horas-extras:visualizar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "visualizar-execucao",
+    "escopo": "subordinados",
+    "descricao": "Visualizar execucao e calculos de servico extraordinario. Abrangencia: subordinados.",
+    "codigo": "horas-extras:visualizar-execucao:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "horas-extras",
+    "acao": "visualizar-folha",
+    "escopo": "subordinados",
+    "descricao": "Visualizar previa e lotes de pagamento de servico extraordinario. Abrangencia: subordinados.",
+    "codigo": "horas-extras:visualizar-folha:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes",
+    "acao": "consultar",
+    "escopo": "subordinados",
+    "descricao": "Consultar status, logs e equipamentos de integração. Abrangencia: subordinados.",
+    "codigo": "integracoes:consultar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes",
+    "acao": "gerenciar",
+    "escopo": "subordinados",
+    "descricao": "Gerenciar integrações externas e equipamentos biométricos. Abrangencia: subordinados.",
+    "codigo": "integracoes:gerenciar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes",
+    "acao": "receber-webhook",
+    "escopo": "subordinados",
+    "descricao": "Receber eventos externos por webhook. Abrangencia: subordinados.",
+    "codigo": "integracoes:receber-webhook:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes",
+    "acao": "sincronizar",
+    "escopo": "subordinados",
+    "descricao": "Executar sincronizações manuais com sistemas externos. Abrangencia: subordinados.",
+    "codigo": "integracoes:sincronizar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "configurar",
+    "escopo": "subordinados",
+    "descricao": "Configurar URL base, endpoints, timeouts e parâmetros da integração SARH. Abrangencia: subordinados.",
+    "codigo": "integracoes-sarh:configurar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "consultar",
+    "escopo": "subordinados",
+    "descricao": "Consultar painel, execuções, itens, erros e conflitos da integração SARH. Abrangencia: subordinados.",
+    "codigo": "integracoes-sarh:consultar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "executar",
+    "escopo": "subordinados",
+    "descricao": "Executar carga inicial ou sincronização manual com o SARH. Abrangencia: subordinados.",
+    "codigo": "integracoes-sarh:executar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "reprocessar",
+    "escopo": "subordinados",
+    "descricao": "Reprocessar item, matrícula, unidade, cargo ou execução SARH com falha. Abrangencia: subordinados.",
+    "codigo": "integracoes-sarh:reprocessar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "resolver-conflito",
+    "escopo": "subordinados",
+    "descricao": "Resolver conflitos entre dados do SARH e dados protegidos do SECP. Abrangencia: subordinados.",
+    "codigo": "integracoes-sarh:resolver-conflito:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "simular",
+    "escopo": "subordinados",
+    "descricao": "Executar simulação/dry-run da sincronização SARH sem gravar alterações de domínio. Abrangencia: subordinados.",
+    "codigo": "integracoes-sarh:simular:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-sarh",
+    "acao": "visualizar-payload",
+    "escopo": "subordinados",
+    "descricao": "Visualizar payload bruto do SARH, com cuidados de LGPD. Abrangencia: subordinados.",
+    "codigo": "integracoes-sarh:visualizar-payload:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-teams",
+    "acao": "ativar",
+    "escopo": "subordinados",
+    "descricao": "Ativar a integração Microsoft Teams. Abrangencia: subordinados.",
+    "codigo": "integracoes-teams:ativar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-teams",
+    "acao": "baixar-manifesto",
+    "escopo": "subordinados",
+    "descricao": "Baixar o manifesto do aplicativo Microsoft Teams do SECP. Abrangencia: subordinados.",
+    "codigo": "integracoes-teams:baixar-manifesto:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-teams",
+    "acao": "configurar",
+    "escopo": "subordinados",
+    "descricao": "Configurar parâmetros da integração Microsoft Teams. Abrangencia: subordinados.",
+    "codigo": "integracoes-teams:configurar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-teams",
+    "acao": "desativar",
+    "escopo": "subordinados",
+    "descricao": "Desativar a integração Microsoft Teams. Abrangencia: subordinados.",
+    "codigo": "integracoes-teams:desativar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-teams",
+    "acao": "testar",
+    "escopo": "subordinados",
+    "descricao": "Executar testes operacionais da integração Microsoft Teams. Abrangencia: subordinados.",
+    "codigo": "integracoes-teams:testar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "integracoes-teams",
+    "acao": "visualizar",
+    "escopo": "subordinados",
+    "descricao": "Visualizar configuração e saúde da integração Microsoft Teams. Abrangencia: subordinados.",
+    "codigo": "integracoes-teams:visualizar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "jornada",
+    "acao": "visualizar",
+    "escopo": "subordinados",
+    "descricao": "Visualizar própria jornada. Abrangencia: subordinados.",
+    "codigo": "jornada:visualizar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "jornadas",
+    "acao": "gerenciar",
+    "escopo": "subordinados",
+    "descricao": "Gerenciar jornadas, escalas e atribuições de jornada aos servidores. Abrangencia: subordinados.",
+    "codigo": "jornadas:gerenciar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "jornadas",
+    "acao": "gerenciar-politicas",
+    "escopo": "subordinados",
+    "descricao": "Gerenciar políticas de jornada. Abrangencia: subordinados.",
+    "codigo": "jornadas:gerenciar-politicas:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "marcacoes",
+    "acao": "consultar",
+    "escopo": "subordinados",
+    "descricao": "Consultar marcações de todos os servidores. Abrangencia: subordinados.",
+    "codigo": "marcacoes:consultar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "marcacoes",
+    "acao": "excluir",
+    "escopo": "subordinados",
+    "descricao": "Excluir/cancelar marcacoes de ponto. Abrangencia: subordinados.",
+    "codigo": "marcacoes:excluir:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "marcacoes",
+    "acao": "gerenciar",
+    "escopo": "subordinados",
+    "descricao": "Gerenciar marcações. Abrangencia: subordinados.",
+    "codigo": "marcacoes:gerenciar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "marcacoes",
+    "acao": "registrar",
+    "escopo": "subordinados",
+    "descricao": "Registrar a própria marcação de ponto. Abrangencia: subordinados.",
+    "codigo": "marcacoes:registrar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "marcacoes",
+    "acao": "registrar-facial",
+    "escopo": "subordinados",
+    "descricao": "Registrar marcação por reconhecimento facial. Abrangencia: subordinados.",
+    "codigo": "marcacoes:registrar-facial:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "marcacoes",
+    "acao": "registrar-web",
+    "escopo": "subordinados",
+    "descricao": "Registrar marcação via sistema web. Abrangencia: subordinados.",
+    "codigo": "marcacoes:registrar-web:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "marcacoes",
+    "acao": "visualizar",
+    "escopo": "subordinados",
+    "descricao": "Visualizar próprias marcações. Abrangencia: subordinados.",
+    "codigo": "marcacoes:visualizar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "menus",
+    "acao": "personalizar",
+    "escopo": "subordinados",
+    "descricao": "Personalizar menus laterais por perfil. Abrangencia: subordinados.",
+    "codigo": "menus:personalizar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "painel-executivo",
+    "acao": "consultar",
+    "escopo": "subordinados",
+    "descricao": "Consultar painel executivo com indicadores gerenciais de frequencia, homologacao, pendencias e conformidade. Abrangencia: subordinados.",
+    "codigo": "painel-executivo:consultar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "painel-executivo",
+    "acao": "equipamentos",
+    "escopo": "subordinados",
+    "descricao": "Consultar indicadores tecnicos de equipamentos de ponto no painel executivo. Abrangencia: subordinados.",
+    "codigo": "painel-executivo:equipamentos:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "perfis",
+    "acao": "gerenciar",
+    "escopo": "subordinados",
+    "descricao": "Gerenciar perfis e permissões. Abrangencia: subordinados.",
+    "codigo": "perfis:gerenciar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "procedimentos-frequencia",
+    "acao": "autorizar",
+    "escopo": "subordinados",
+    "descricao": "Autorizar procedimentos administrativos de frequencia em todos os orgaos. Abrangencia: subordinados.",
+    "codigo": "procedimentos-frequencia:autorizar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "procedimentos-frequencia",
+    "acao": "consultar",
+    "escopo": "subordinados",
+    "descricao": "Consultar procedimentos administrativos de frequencia de todos os orgaos. Abrangencia: subordinados.",
+    "codigo": "procedimentos-frequencia:consultar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "procedimentos-frequencia",
+    "acao": "emitir-nada-consta",
+    "escopo": "subordinados",
+    "descricao": "Emitir Nada Consta de frequencia para servidores de todos os orgaos. Abrangencia: subordinados.",
+    "codigo": "procedimentos-frequencia:emitir-nada-consta:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "procedimentos-frequencia",
+    "acao": "executar",
+    "escopo": "subordinados",
+    "descricao": "Registrar execucao de procedimentos administrativos de frequencia em todos os orgaos. Abrangencia: subordinados.",
+    "codigo": "procedimentos-frequencia:executar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "procedimentos-frequencia",
+    "acao": "gerenciar",
+    "escopo": "subordinados",
+    "descricao": "Gerenciar procedimentos administrativos de frequencia de todos os orgaos. Abrangencia: subordinados.",
+    "codigo": "procedimentos-frequencia:gerenciar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "aceitar",
+    "escopo": "subordinados",
+    "descricao": "Aceitar homologacao do recesso pela SECAD. Abrangencia: subordinados.",
+    "codigo": "recesso:aceitar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "consultar",
+    "escopo": "subordinados",
+    "descricao": "Consultar o proprio recesso forense. Abrangencia: subordinados.",
+    "codigo": "recesso:consultar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "convocacao",
+    "escopo": "subordinados",
+    "descricao": "Gerenciar convocacoes do recesso forense. Abrangencia: subordinados.",
+    "codigo": "recesso:convocacao:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "excluir",
+    "escopo": "subordinados",
+    "descricao": "Excluir recesso forense cadastrado. Abrangencia: subordinados.",
+    "codigo": "recesso:excluir:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "fechar",
+    "escopo": "subordinados",
+    "descricao": "Fechar o proprio espelho de recesso. Abrangencia: subordinados.",
+    "codigo": "recesso:fechar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "gerenciar",
+    "escopo": "subordinados",
+    "descricao": "Gerenciar recesso forense anual. Abrangencia: subordinados.",
+    "codigo": "recesso:gerenciar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "recesso",
+    "acao": "relatorio",
+    "escopo": "subordinados",
+    "descricao": "Gerar relatorio de folgas do recesso para SECAP. Abrangencia: subordinados.",
+    "codigo": "recesso:relatorio:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "regulamentacao-ponto",
+    "acao": "gerenciar",
+    "escopo": "subordinados",
+    "descricao": "Gerenciar regras de regulamentação do ponto por órgão. Abrangencia: subordinados.",
+    "codigo": "regulamentacao-ponto:gerenciar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "relatorios",
+    "acao": "consultar",
+    "escopo": "subordinados",
+    "descricao": "Consultar relatórios globais de frequência, espelho, banco de horas e boletins. Abrangencia: subordinados.",
+    "codigo": "relatorios:consultar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "relatorios",
+    "acao": "exportar",
+    "escopo": "subordinados",
+    "descricao": "Exportar relatórios globais em PDF. Abrangencia: subordinados.",
+    "codigo": "relatorios:exportar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "relatorios-gerenciais",
+    "acao": "exportar",
+    "escopo": "subordinados",
+    "descricao": "Exportar relatorios gerenciais de todos os servidores. Abrangencia: subordinados.",
+    "codigo": "relatorios-gerenciais:exportar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "servidores",
+    "acao": "consultar",
+    "escopo": "subordinados",
+    "descricao": "Consultar servidores. Abrangencia: subordinados.",
+    "codigo": "servidores:consultar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "servidores",
+    "acao": "gerenciar",
+    "escopo": "subordinados",
+    "descricao": "Gerenciar servidores e vínculos. Abrangencia: subordinados.",
+    "codigo": "servidores:gerenciar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "solicitacoes",
+    "acao": "consultar",
+    "escopo": "subordinados",
+    "descricao": "Consultar todas as solicitações. Abrangencia: subordinados.",
+    "codigo": "solicitacoes:consultar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "solicitacoes",
+    "acao": "criar",
+    "escopo": "subordinados",
+    "descricao": "Criar solicitações próprias de frequência. Abrangencia: subordinados.",
+    "codigo": "solicitacoes:criar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "solicitacoes",
+    "acao": "visualizar",
+    "escopo": "subordinados",
+    "descricao": "Visualizar próprias solicitações. Abrangencia: subordinados.",
+    "codigo": "solicitacoes:visualizar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "substituicoes-funcao",
+    "acao": "aprovar-pagamento",
+    "escopo": "subordinados",
+    "descricao": "Aprovar, rejeitar ou cancelar pagamentos calculados de substituição em todas as seccionais. Abrangencia: subordinados.",
+    "codigo": "substituicoes-funcao:aprovar-pagamento:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "substituicoes-funcao",
+    "acao": "calcular-pagamento",
+    "escopo": "subordinados",
+    "descricao": "Calcular pagamento de substituição com base em afastamentos, faltas e regras de qualquer seccional. Abrangencia: subordinados.",
+    "codigo": "substituicoes-funcao:calcular-pagamento:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "substituicoes-funcao",
+    "acao": "configurar-valores",
+    "escopo": "subordinados",
+    "descricao": "Configurar referências e valores de funções usados no cálculo de substituição em todas as seccionais. Abrangencia: subordinados.",
+    "codigo": "substituicoes-funcao:configurar-valores:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "substituicoes-funcao",
+    "acao": "consultar",
+    "escopo": "subordinados",
+    "descricao": "Consultar substituições de função, titulares, substitutos e histórico em todas as seccionais. Abrangencia: subordinados.",
+    "codigo": "substituicoes-funcao:consultar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "substituicoes-funcao",
+    "acao": "enviar-folha",
+    "escopo": "subordinados",
+    "descricao": "Marcar pagamentos de substituição como enviados para processamento em folha em todas as seccionais. Abrangencia: subordinados.",
+    "codigo": "substituicoes-funcao:enviar-folha:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "substituicoes-funcao",
+    "acao": "gerenciar",
+    "escopo": "subordinados",
+    "descricao": "Cadastrar, editar, suspender e encerrar substituições de função em todas as seccionais. Abrangencia: subordinados.",
+    "codigo": "substituicoes-funcao:gerenciar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-aprovacoes",
+    "acao": "analisar",
+    "escopo": "subordinados",
+    "descricao": "Analisar aprovações pelo Microsoft Teams. Abrangencia: subordinados.",
+    "codigo": "teams-aprovacoes:analisar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-banco-horas",
+    "acao": "consultar",
+    "escopo": "subordinados",
+    "descricao": "Consultar banco de horas pelo Microsoft Teams. Abrangencia: subordinados.",
+    "codigo": "teams-banco-horas:consultar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-bot",
+    "acao": "usar",
+    "escopo": "subordinados",
+    "descricao": "Usar o bot conversacional do SECP no Microsoft Teams. Abrangencia: subordinados.",
+    "codigo": "teams-bot:usar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-homologacao",
+    "acao": "analisar",
+    "escopo": "subordinados",
+    "descricao": "Analisar homologações pelo Microsoft Teams. Abrangencia: subordinados.",
+    "codigo": "teams-homologacao:analisar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-notificacoes",
+    "acao": "receber",
+    "escopo": "subordinados",
+    "descricao": "Receber notificações individuais do SECP no Microsoft Teams. Abrangencia: subordinados.",
+    "codigo": "teams-notificacoes:receber:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-ponto",
+    "acao": "registrar",
+    "escopo": "subordinados",
+    "descricao": "Registrar ponto pelo Microsoft Teams quando autorizado. Abrangencia: subordinados.",
+    "codigo": "teams-ponto:registrar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "teams-solicitacoes",
+    "acao": "criar",
+    "escopo": "subordinados",
+    "descricao": "Criar solicitações pelo Microsoft Teams. Abrangencia: subordinados.",
+    "codigo": "teams-solicitacoes:criar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "unidades",
+    "acao": "gerenciar",
+    "escopo": "subordinados",
+    "descricao": "Gerenciar estrutura organizacional. Abrangencia: subordinados.",
+    "codigo": "unidades:gerenciar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "usuarios",
+    "acao": "consultar",
+    "escopo": "subordinados",
+    "descricao": "Consultar usuários do sistema. Abrangencia: subordinados.",
+    "codigo": "usuarios:consultar:subordinados",
+    "source": "gerada automaticamente"
+  },
+  {
+    "recurso": "usuarios",
+    "acao": "gerenciar",
+    "escopo": "subordinados",
+    "descricao": "Gerenciar usuários do sistema. Abrangencia: subordinados.",
+    "codigo": "usuarios:gerenciar:subordinados",
+    "source": "gerada automaticamente"
+  }
+]

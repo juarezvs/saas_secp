@@ -145,7 +145,7 @@ const permissoesHorasExtrasSeed = [
   {
     recurso: "horas-extras",
     acao: "solicitar",
-    escopo: "unidade",
+    escopo: "subordinados",
     descricao:
       "Criar solicitacoes de servico extraordinario para servidores da unidade.",
   },
@@ -192,14 +192,27 @@ const permissoesHorasExtrasSeed = [
     recurso: "horas-extras",
     acao: "aprovar-parcial",
     escopo: "global",
-    descricao:
-      "Aprovar parcialmente solicitacoes de servico extraordinario.",
+    descricao: "Aprovar parcialmente solicitacoes de servico extraordinario.",
   },
   {
     recurso: "horas-extras",
     acao: "cancelar-autorizacao",
     escopo: "global",
     descricao: "Cancelar ou substituir autorizacoes de servico extraordinario.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "cadastrar-autorizacao",
+    escopo: "global",
+    descricao:
+      "Cadastrar autorizacoes administrativas de horas extras ja formalizadas.",
+  },
+  {
+    recurso: "horas-extras",
+    acao: "retificar-autorizacao",
+    escopo: "global",
+    descricao:
+      "Retificar autorizacoes administrativas de horas extras com trilha de auditoria.",
   },
   {
     recurso: "horas-extras",
@@ -223,15 +236,13 @@ const permissoesHorasExtrasSeed = [
     recurso: "horas-extras",
     acao: "configurar-politica",
     escopo: "global",
-    descricao:
-      "Configurar politicas versionadas de servico extraordinario.",
+    descricao: "Configurar politicas versionadas de servico extraordinario.",
   },
   {
     recurso: "horas-extras",
     acao: "configurar-workflow",
     escopo: "global",
-    descricao:
-      "Configurar workflows versionados de servico extraordinario.",
+    descricao: "Configurar workflows versionados de servico extraordinario.",
   },
   {
     recurso: "horas-extras",
@@ -291,6 +302,229 @@ type PermissaoSeed = {
   descricao: string;
 };
 
+const CODIGOS_PERMISSOES_USUARIO_COM_USO_PRATICO = [
+  "afastamentos:consultar:global",
+  "afastamentos:consultar:proprio",
+  "afd:importar:global",
+  "afd:importar:seccional",
+  "apuracao:consultar:global",
+  "apuracao:consultar:proprio",
+  "apuracao:consultar:seccional",
+  "apuracao:recalcular:global",
+  "apuracao:recalcular:seccional",
+  "auditoria:consultar:global",
+  "auditoria:consultar:seccional",
+  "auditoria:detalhar:global",
+  "auditoria:detalhar:seccional",
+  "auditoria:exportar:global",
+  "auditoria:exportar:seccional",
+  "banco-horas:consultar:chefia",
+  "banco-horas:consultar:global",
+  "banco-horas:consultar:proprio",
+  "banco-horas:consultar:seccional",
+  "banco-horas:consultar:subordinados",
+  "banco-horas:gerenciar:global",
+  "banco-horas:gerenciar:seccional",
+  "banco-horas:visualizar:proprio",
+  "biometria:cadastrar:proprio",
+  "biometria:consultar:proprio",
+  "biometria:gerenciar:global",
+  "biometria:validar:proprio",
+  "biometriafacial:cadastrar:proprio",
+  "biometriafacial:cadastrar:seccional",
+  "biometriafacial:invalidar:global",
+  "biometriafacial:recadastrar:proprio",
+  "biometriafacial:recadastrar:seccional",
+  "biometriafacial:registrar:proprio",
+  "biometriafacial:visualizar:global",
+  "boletim-frequencia:consultar:global",
+  "boletim-frequencia:consultar:seccional",
+  "boletim-frequencia:encaminhar:chefia",
+  "boletim-frequencia:encaminhar:subordinados",
+  "boletim-frequencia:gerar:chefia",
+  "boletim-frequencia:gerar:subordinados",
+  "boletim-frequencia:receber:global",
+  "boletim-frequencia:receber:seccional",
+  "chefias:gerenciar:global",
+  "chefias:gerenciar:seccional",
+  "configuracoes:gerenciar:global",
+  "configuracoes:gerenciar:seccional",
+  "contracheque:consultar:proprio",
+  "dashboard:visualizar:proprio",
+  "espelho-ponto:visualizar:proprio",
+  "fusos-horarios:gerenciar:global",
+  "homologacao:consultar:global",
+  "homologacao:consultar:seccional",
+  "homologacao:gerenciar:chefia",
+  "homologacao:gerenciar:global",
+  "homologacao:gerenciar:seccional",
+  "homologacao:gerenciar:subordinados",
+  "horas-extras:analisar:chefia",
+  "horas-extras:analisar:subordinados",
+  "horas-extras:cancelar:proprio",
+  "horas-extras:configurar-politica:global",
+  "horas-extras:configurar-politica:seccional",
+  "horas-extras:configurar-responsaveis:global",
+  "horas-extras:configurar-responsaveis:seccional",
+  "horas-extras:configurar-workflow:global",
+  "horas-extras:configurar-workflow:seccional",
+  "horas-extras:deliberar:global",
+  "horas-extras:deliberar:seccional",
+  "horas-extras:devolver:global",
+  "horas-extras:encaminhar-orcamento:chefia",
+  "horas-extras:exportar:global",
+  "horas-extras:fechar-lote:global",
+  "horas-extras:gerar-lote:global",
+  "horas-extras:gerar-lote:seccional",
+  "horas-extras:rejeitar:global",
+  "horas-extras:responder-orcamento:global",
+  "horas-extras:responder-orcamento:seccional",
+  "horas-extras:solicitar:proprio",
+  "horas-extras:visualizar-execucao:global",
+  "horas-extras:visualizar-execucao:seccional",
+  "horas-extras:visualizar-folha:global",
+  "horas-extras:visualizar-folha:seccional",
+  "horas-extras:visualizar:proprio",
+  "integracoes-sarh:configurar:global",
+  "integracoes-sarh:consultar:global",
+  "integracoes-sarh:executar:global",
+  "integracoes-sarh:reprocessar:global",
+  "integracoes-sarh:simular:global",
+  "integracoes-teams:ativar:global",
+  "integracoes-teams:baixar-manifesto:global",
+  "integracoes-teams:configurar:global",
+  "integracoes-teams:desativar:global",
+  "integracoes-teams:testar:global",
+  "integracoes-teams:visualizar:global",
+  "integracoes:consultar:global",
+  "integracoes:consultar:seccional",
+  "integracoes:gerenciar:global",
+  "integracoes:gerenciar:seccional",
+  "integracoes:sincronizar:global",
+  "jornadas:gerenciar:global",
+  "jornadas:gerenciar:seccional",
+  "marcacoes:consultar:global",
+  "marcacoes:consultar:proprio",
+  "marcacoes:consultar:seccional",
+  "marcacoes:excluir:global",
+  "marcacoes:excluir:seccional",
+  "marcacoes:gerenciar:global",
+  "marcacoes:gerenciar:seccional",
+  "marcacoes:registrar-facial:proprio",
+  "marcacoes:registrar-totem:global",
+  "marcacoes:registrar-totem:seccional",
+  "marcacoes:registrar-web:proprio",
+  "marcacoes:registrar:proprio",
+  "marcacoes:visualizar:proprio",
+  "menus:personalizar:global",
+  "menus:personalizar:seccional",
+  "minha-equipe:consultar:chefia",
+  "minha-equipe:consultar:global",
+  "minha-equipe:consultar:seccional",
+  "minha-equipe:consultar:subordinados",
+  "painel-executivo:alertas-inteligentes:global",
+  "painel-executivo:auditoria-e-conformidade:global",
+  "painel-executivo:banco-de-horas:global",
+  "painel-executivo:consultar:global",
+  "painel-executivo:consultar:seccional",
+  "painel-executivo:controle-de-homologacao-mensal:global",
+  "painel-executivo:equipamentos-de-ponto:global",
+  "painel-executivo:equipamentos:global",
+  "painel-executivo:frequencia-e-assiduidade:global",
+  "painel-executivo:graficos-importantes:global",
+  "painel-executivo:indicadores-por-unidade-e-chefia:global",
+  "painel-executivo:indicadores:global",
+  "painel-executivo:jornada-e-carga-horaria:global",
+  "painel-executivo:justificativas-e-ocorrencias:global",
+  "painel-executivo:paineis:global",
+  "painel-executivo:pendencias-de-ponto:global",
+  "painel-executivo:relatorios-exportaveis:global",
+  "painel-executivo:teletrabalho-presencial-registro-web:global",
+  "perfis:gerenciar:global",
+  "perfis:gerenciar:seccional",
+  "procedimentos-frequencia:autorizar:global",
+  "procedimentos-frequencia:autorizar:seccional",
+  "procedimentos-frequencia:consultar:global",
+  "procedimentos-frequencia:consultar:seccional",
+  "procedimentos-frequencia:emitir-nada-consta:global",
+  "procedimentos-frequencia:emitir-nada-consta:seccional",
+  "procedimentos-frequencia:executar:global",
+  "procedimentos-frequencia:executar:seccional",
+  "procedimentos-frequencia:gerenciar:global",
+  "procedimentos-frequencia:gerenciar:seccional",
+  "programacao-ferias:consultar:global",
+  "programacao-ferias:consultar:proprio",
+  "programacao-ferias:consultar:seccional",
+  "programacao-ferias:consultar:subordinados",
+  "recesso:aceitar:seccional",
+  "recesso:consultar:global",
+  "recesso:consultar:proprio",
+  "recesso:consultar:seccional",
+  "recesso:convocacao:global",
+  "recesso:excluir:global",
+  "recesso:fechar:proprio",
+  "recesso:gerenciar:global",
+  "recesso:gerenciar:seccional",
+  "recesso:homologar:chefia",
+  "recesso:homologar:subordinados",
+  "regulamentacao-ponto:gerenciar:global",
+  "regulamentacao-ponto:gerenciar:seccional",
+  "relatorios-gerenciais:consultar:chefia",
+  "relatorios-gerenciais:consultar:global",
+  "relatorios-gerenciais:consultar:proprio",
+  "relatorios-gerenciais:consultar:seccional",
+  "relatorios-gerenciais:consultar:subordinados",
+  "relatorios-gerenciais:exportar:chefia",
+  "relatorios-gerenciais:exportar:global",
+  "relatorios-gerenciais:exportar:proprio",
+  "relatorios:consultar:global",
+  "relatorios:consultar:proprio",
+  "relatorios:consultar:seccional",
+  "relatorios:exportar:global",
+  "relatorios:exportar:proprio",
+  "servidores:consultar:global",
+  "servidores:consultar:seccional",
+  "servidores:gerenciar:global",
+  "servidores:gerenciar:seccional",
+  "solicitacoes:analisar:chefia",
+  "solicitacoes:analisar:subordinados",
+  "solicitacoes:consultar:global",
+  "solicitacoes:consultar:proprio",
+  "solicitacoes:consultar:seccional",
+  "solicitacoes:criar:proprio",
+  "solicitacoes:visualizar:proprio",
+  "substituicoes-funcao:consultar:global",
+  "substituicoes-funcao:consultar:seccional",
+  "substituicoes-funcao:gerenciar:global",
+  "substituicoes-funcao:gerenciar:seccional",
+  "substituicoes-funcao:relatorio:global",
+  "substituicoes-funcao:relatorio:proprio",
+  "substituicoes-funcao:relatorio:seccional",
+  "substituicoes-funcao:relatorio:subordinados",
+  "teams-aprovacoes:analisar:chefia",
+  "teams-banco-horas:consultar:proprio",
+  "teams-bot:usar:proprio",
+  "teams-homologacao:analisar:chefia",
+  "teams-notificacoes:receber:proprio",
+  "teams-ponto:registrar:proprio",
+  "teams-solicitacoes:criar:proprio",
+  "unidades:gerenciar:global",
+  "unidades:gerenciar:seccional",
+  "usuarios:consultar:global",
+  "usuarios:consultar:seccional",
+  "usuarios:gerenciar:global",
+  "usuarios:gerenciar:seccional",
+] as const;
+
+const CODIGOS_PERMISSOES_CONTROLE_SISTEMA = [
+  "integracoes:receber-webhook:global",
+] as const;
+
+const codigosPermissoesComUsoPratico = new Set<string>([
+  ...CODIGOS_PERMISSOES_USUARIO_COM_USO_PRATICO,
+  ...CODIGOS_PERMISSOES_CONTROLE_SISTEMA,
+]);
+
 const permissoesProgramacaoFeriasSeed = [
   {
     recurso: "programacao-ferias",
@@ -334,11 +568,15 @@ const codigosPermissoesHorasExtrasChefia = [
 ];
 
 const codigosPermissoesHorasExtrasGestao = [
-  "horas-extras:solicitar:unidade",
+  "horas-extras:solicitar:subordinados",
   "horas-extras:responder-orcamento:global",
   "horas-extras:deliberar:global",
   "horas-extras:aprovar-parcial:global",
   "horas-extras:cancelar-autorizacao:global",
+  "horas-extras:cadastrar-autorizacao:global",
+  "horas-extras:cadastrar-autorizacao:seccional",
+  "horas-extras:retificar-autorizacao:global",
+  "horas-extras:retificar-autorizacao:seccional",
   "horas-extras:visualizar-execucao:global",
   "horas-extras:analisar-excecao:global",
   "horas-extras:reprocessar:global",
@@ -562,6 +800,18 @@ const permissoesIniciais = [
     acao: "registrar-facial",
     escopo: "proprio",
     descricao: "Registrar marcação por reconhecimento facial.",
+  },
+  {
+    recurso: "marcacoes",
+    acao: "registrar-totem",
+    escopo: "seccional",
+    descricao: "Operar Totem de registro facial para servidores da seccional.",
+  },
+  {
+    recurso: "marcacoes",
+    acao: "registrar-totem",
+    escopo: "global",
+    descricao: "Operar Totem de registro facial para qualquer seccional.",
   },
   {
     recurso: "marcacoes",
@@ -859,7 +1109,7 @@ const permissoesIniciais = [
   {
     recurso: "integracoes",
     acao: "receber-webhook",
-    escopo: "sistema",
+    escopo: "global",
     descricao: "Receber eventos externos por webhook.",
   },
 
@@ -1007,109 +1257,99 @@ const permissoesIniciais = [
     recurso: "substituicoes-funcao",
     acao: "relatorio",
     escopo: "subordinados",
-    descricao: "Consultar relatório de substituições de função dos subordinados.",
+    descricao:
+      "Consultar relatório de substituições de função dos subordinados.",
   },
   {
     recurso: "substituicoes-funcao",
     acao: "relatorio",
     escopo: "seccional",
-    descricao: "Consultar relatório de substituições de função da própria seccional.",
+    descricao:
+      "Consultar relatório de substituições de função da própria seccional.",
   },
   {
     recurso: "substituicoes-funcao",
     acao: "relatorio",
     escopo: "global",
-    descricao: "Consultar relatório de substituições de função de todas as seccionais.",
+    descricao:
+      "Consultar relatório de substituições de função de todas as seccionais.",
   },
 
   // Integração Microsoft Teams
   {
-    codigo: "integracoes:teams:visualizar",
-    recurso: "integracoes:teams",
+    recurso: "integracoes-teams",
     acao: "visualizar",
     escopo: "global",
     descricao: "Visualizar configuração e saúde da integração Microsoft Teams.",
   },
   {
-    codigo: "integracoes:teams:configurar",
-    recurso: "integracoes:teams",
+    recurso: "integracoes-teams",
     acao: "configurar",
     escopo: "global",
     descricao: "Configurar parâmetros da integração Microsoft Teams.",
   },
   {
-    codigo: "integracoes:teams:ativar",
-    recurso: "integracoes:teams",
+    recurso: "integracoes-teams",
     acao: "ativar",
     escopo: "global",
     descricao: "Ativar a integração Microsoft Teams.",
   },
   {
-    codigo: "integracoes:teams:desativar",
-    recurso: "integracoes:teams",
+    recurso: "integracoes-teams",
     acao: "desativar",
     escopo: "global",
     descricao: "Desativar a integração Microsoft Teams.",
   },
   {
-    codigo: "integracoes:teams:testar",
-    recurso: "integracoes:teams",
+    recurso: "integracoes-teams",
     acao: "testar",
     escopo: "global",
     descricao: "Executar testes operacionais da integração Microsoft Teams.",
   },
   {
-    codigo: "integracoes:teams:baixar-manifesto",
-    recurso: "integracoes:teams",
+    recurso: "integracoes-teams",
     acao: "baixar-manifesto",
     escopo: "global",
     descricao: "Baixar o manifesto do aplicativo Microsoft Teams do SECP.",
   },
   {
-    codigo: "teams:bot:usar",
-    recurso: "teams:bot",
+    recurso: "teams-bot",
     acao: "usar",
     escopo: "proprio",
     descricao: "Usar o bot conversacional do SECP no Microsoft Teams.",
   },
   {
-    codigo: "teams:notificacoes:receber",
-    recurso: "teams:notificacoes",
+    recurso: "teams-notificacoes",
     acao: "receber",
     escopo: "proprio",
     descricao: "Receber notificações individuais do SECP no Microsoft Teams.",
   },
   {
-    codigo: "teams:ponto:registrar",
-    recurso: "teams:ponto",
+    recurso: "teams-ponto",
     acao: "registrar",
     escopo: "proprio",
     descricao: "Registrar ponto pelo Microsoft Teams quando autorizado.",
   },
   {
-    codigo: "teams:banco-horas:consultar",
-    recurso: "teams:banco-horas",
+    recurso: "teams-banco-horas",
     acao: "consultar",
     escopo: "proprio",
     descricao: "Consultar banco de horas pelo Microsoft Teams.",
   },
   {
-    codigo: "teams:solicitacoes:criar",
-    recurso: "teams:solicitacoes",
+    recurso: "teams-solicitacoes",
     acao: "criar",
     escopo: "proprio",
     descricao: "Criar solicitações pelo Microsoft Teams.",
   },
   {
-    codigo: "teams:aprovacoes:analisar",
-    recurso: "teams:aprovacoes",
+    recurso: "teams-aprovacoes",
     acao: "analisar",
     escopo: "chefia",
     descricao: "Analisar aprovações pelo Microsoft Teams.",
   },
   {
-    codigo: "teams:homologacao:analisar",
-    recurso: "teams:homologacao",
+    recurso: "teams-homologacao",
     acao: "analisar",
     escopo: "chefia",
     descricao: "Analisar homologações pelo Microsoft Teams.",
@@ -1162,19 +1402,19 @@ const permissoesIniciais = [
   {
     recurso: "biometriafacial",
     acao: "cadastrar",
-    escopo: "terceiros",
+    escopo: "seccional",
     descricao: "Cadastrar biometria facial de terceiros.",
   },
   {
     recurso: "biometriafacial",
     acao: "recadastrar",
-    escopo: "terceiros",
+    escopo: "seccional",
     descricao: "Recadastrar biometria facial de terceiros.",
   },
   {
     recurso: "biometriafacial",
     acao: "visualizar",
-    escopo: "auditoria",
+    escopo: "global",
     descricao: "Consultar eventos e tentativas de biometria facial.",
   },
   {
@@ -1189,7 +1429,8 @@ const permissoesIniciais = [
     recurso: "afd",
     acao: "importar",
     escopo: "seccional",
-    descricao: "Importar arquivos AFD de equipamentos biométricos da própria seccional.",
+    descricao:
+      "Importar arquivos AFD de equipamentos biométricos da própria seccional.",
   },
   {
     recurso: "afd",
@@ -1225,7 +1466,7 @@ const permissoesIniciais = [
   {
     recurso: "recesso",
     acao: "convocacao",
-    escopo: "gerenciar",
+    escopo: "global",
     descricao: "Gerenciar convocacoes do recesso forense.",
   },
   {
@@ -1243,19 +1484,19 @@ const permissoesIniciais = [
   {
     recurso: "recesso",
     acao: "aceitar",
-    escopo: "secad",
+    escopo: "seccional",
     descricao: "Aceitar homologacao do recesso pela SECAD.",
   },
   {
     recurso: "recesso",
     acao: "relatorio",
-    escopo: "sepag",
+    escopo: "global",
     descricao: "Gerar relatorio de pecunia do recesso para SEPAG.",
   },
   {
     recurso: "recesso",
     acao: "relatorio",
-    escopo: "secap",
+    escopo: "seccional",
     descricao: "Gerar relatorio de folgas do recesso para SECAP.",
   },
 
@@ -1308,11 +1549,11 @@ const codigosPermissoesServidor = [
   "afastamentos:consultar:proprio",
   "recesso:consultar:proprio",
   "recesso:fechar:proprio",
-  "teams:bot:usar",
-  "teams:notificacoes:receber",
-  "teams:ponto:registrar",
-  "teams:banco-horas:consultar",
-  "teams:solicitacoes:criar",
+  "teams-bot:usar:proprio",
+  "teams-notificacoes:receber:proprio",
+  "teams-ponto:registrar:proprio",
+  "teams-banco-horas:consultar:proprio",
+  "teams-solicitacoes:criar:proprio",
 ];
 
 const codigosPermissoesPessoaExterna = [
@@ -1348,12 +1589,12 @@ const codigosPermissoesChefia = [
   "afastamentos:consultar:chefia",
   "recesso:homologar:chefia",
   "recesso:consultar:global",
-  "teams:bot:usar",
-  "teams:notificacoes:receber",
-  "teams:banco-horas:consultar",
-  "teams:solicitacoes:criar",
-  "teams:aprovacoes:analisar",
-  "teams:homologacao:analisar",
+  "teams-bot:usar:proprio",
+  "teams-notificacoes:receber:proprio",
+  "teams-banco-horas:consultar:proprio",
+  "teams-solicitacoes:criar:proprio",
+  "teams-aprovacoes:analisar:chefia",
+  "teams-homologacao:analisar:chefia",
 ];
 
 const codigosPermissoesAdministrador = [
@@ -1388,6 +1629,7 @@ const codigosPermissoesAdministrador = [
   "marcacoes:consultar:global",
   "marcacoes:gerenciar:global",
   "marcacoes:excluir:global",
+  "marcacoes:registrar-totem:global",
   "apuracao:consultar:global",
   "apuracao:recalcular:global",
   "banco-horas:consultar:global",
@@ -1407,12 +1649,15 @@ const codigosPermissoesAdministrador = [
   "recesso:consultar:global",
   "recesso:gerenciar:global",
   "recesso:excluir:global",
-  "recesso:convocacao:gerenciar",
+  "recesso:convocacao:global",
   "integracoes:consultar:global",
   "integracoes:gerenciar:global",
-  "biometriafacial:cadastrar:terceiros",
-  "biometriafacial:recadastrar:terceiros",
-  "biometriafacial:visualizar:auditoria",
+  "auditoria:consultar:global",
+  "auditoria:detalhar:global",
+  "auditoria:exportar:global",
+  "biometriafacial:cadastrar:seccional",
+  "biometriafacial:recadastrar:seccional",
+  "biometriafacial:visualizar:global",
   "biometriafacial:invalidar:global",
 ];
 
@@ -1457,7 +1702,7 @@ const codigosPermissoesSecap = [
   "substituicoes-funcao:relatorio:global",
   "afastamentos:consultar:global",
   "recesso:consultar:global",
-  "recesso:relatorio:secap",
+  "recesso:relatorio:seccional",
 ];
 
 const codigosPermissoesSecad = [
@@ -1469,8 +1714,8 @@ const codigosPermissoesSecad = [
   "recesso:gerenciar:global",
   "recesso:excluir:global",
   "recesso:consultar:global",
-  "recesso:convocacao:gerenciar",
-  "recesso:aceitar:secad",
+  "recesso:convocacao:global",
+  "recesso:aceitar:seccional",
   "relatorios:consultar:global",
   "relatorios:exportar:global",
   "relatorios-gerenciais:consultar:global",
@@ -1510,12 +1755,12 @@ const codigosPermissoesSuporte = [
   "integracoes:consultar:global",
   "integracoes:gerenciar:global",
   "integracoes:sincronizar:global",
-  "integracoes:teams:visualizar",
-  "integracoes:teams:configurar",
-  "integracoes:teams:ativar",
-  "integracoes:teams:desativar",
-  "integracoes:teams:testar",
-  "integracoes:teams:baixar-manifesto",
+  "integracoes-teams:visualizar:global",
+  "integracoes-teams:configurar:global",
+  "integracoes-teams:ativar:global",
+  "integracoes-teams:desativar:global",
+  "integracoes-teams:testar:global",
+  "integracoes-teams:baixar-manifesto:global",
   "integracoes-sarh:consultar:global",
   "integracoes-sarh:configurar:global",
   "integracoes-sarh:executar:global",
@@ -1526,9 +1771,9 @@ const codigosPermissoesSuporte = [
   "afd:importar:global",
   "marcacoes:consultar:global",
   "biometria:gerenciar:global",
-  "biometriafacial:cadastrar:terceiros",
-  "biometriafacial:recadastrar:terceiros",
-  "biometriafacial:visualizar:auditoria",
+  "biometriafacial:cadastrar:seccional",
+  "biometriafacial:recadastrar:seccional",
+  "biometriafacial:visualizar:global",
   "biometriafacial:invalidar:global",
   "auditoria:consultar:global",
   "auditoria:detalhar:global",
@@ -1564,21 +1809,8 @@ function codigoPermissao(item: {
 }
 
 function escopoPadrao(escopo: string): AbrangenciaPadrao {
-  if (escopo === "chefia" || escopo === "unidade") {
+  if (escopo === "chefia") {
     return "subordinados";
-  }
-
-  if (escopo === "terceiros" || escopo === "secad" || escopo === "secap") {
-    return "seccional";
-  }
-
-  if (
-    escopo === "auditoria" ||
-    escopo === "gerenciar" ||
-    escopo === "sepag" ||
-    escopo === "sistema"
-  ) {
-    return "global";
   }
 
   if (ABRANGENCIAS_PADRAO.includes(escopo as AbrangenciaPadrao)) {
@@ -1623,7 +1855,7 @@ function criarPermissaoPadrao(
   };
 }
 
-function montarPermissoesSeedPadronizadas() {
+function montarPermissoesSeedCatalogoAmplo() {
   const permissoesBase: PermissaoSeed[] = [
     ...permissoesIniciais,
     ...permissoesProgramacaoFeriasSeed,
@@ -1660,11 +1892,18 @@ function montarPermissoesSeedPadronizadas() {
   return Array.from(permissoesPorTripla.values());
 }
 
+function montarPermissoesSeedPadronizadas() {
+  return montarPermissoesSeedCatalogoAmplo().filter((item) =>
+    codigosPermissoesComUsoPratico.has(codigoPermissao(item)),
+  );
+}
+
 async function criarPermissoes() {
   const permissoes = [];
   const codigosCriados = new Set<string>();
+  const itensPermissao = montarPermissoesSeedPadronizadas();
 
-  for (const item of montarPermissoesSeedPadronizadas()) {
+  for (const item of itensPermissao) {
     const codigo = codigoPermissao(item);
 
     if (codigosCriados.has(codigo)) {
@@ -1691,6 +1930,39 @@ async function criarPermissoes() {
     });
 
     permissoes.push(permissao);
+  }
+
+  const codigosCatalogoGerenciadoRemoviveis =
+    montarPermissoesSeedCatalogoAmplo()
+      .map(codigoPermissao)
+      .filter((codigo) => !codigosCriados.has(codigo));
+  const permissoesRemovidas = await prisma.permissao.findMany({
+    where: {
+      codigo: {
+        in: codigosCatalogoGerenciadoRemoviveis,
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+  const idsRemovidos = permissoesRemovidas.map((permissao) => permissao.id);
+
+  if (idsRemovidos.length > 0) {
+    await prisma.perfilPermissao.deleteMany({
+      where: {
+        permissaoId: {
+          in: idsRemovidos,
+        },
+      },
+    });
+    await prisma.permissao.deleteMany({
+      where: {
+        id: {
+          in: idsRemovidos,
+        },
+      },
+    });
   }
 
   return permissoes;
@@ -2069,15 +2341,6 @@ function normalizarCodigoPermissaoParaAbrangencia(
   codigo: string,
   abrangencia: AbrangenciaPadrao,
 ) {
-  const codigosCustomizadosTeams: Record<string, string> = {
-    "teams:aprovacoes:analisar": "teams:aprovacoes:analisar",
-    "teams:homologacao:analisar": "teams:homologacao:analisar",
-  };
-
-  if (codigosCustomizadosTeams[codigo]) {
-    return `${codigosCustomizadosTeams[codigo]}:${abrangencia}`;
-  }
-
   const partes = codigo.split(":");
   const ultimoSegmento = partes.at(-1);
 
@@ -2085,18 +2348,7 @@ function normalizarCodigoPermissaoParaAbrangencia(
     return codigo;
   }
 
-  const escoposConhecidos = new Set([
-    ...ABRANGENCIAS_PADRAO,
-    "auditoria",
-    "chefia",
-    "gerenciar",
-    "secad",
-    "secap",
-    "sepag",
-    "sistema",
-    "terceiros",
-    "unidade",
-  ]);
+  const escoposConhecidos = new Set([...ABRANGENCIAS_PADRAO, "chefia"]);
 
   if (!escoposConhecidos.has(ultimoSegmento)) {
     return codigo;
@@ -2135,7 +2387,9 @@ async function sincronizarPermissoesPorCodigoAoPerfil(
   perfilId: string,
   codigos: string[],
 ) {
-  const codigosUnicos = Array.from(new Set(codigos));
+  const codigosUnicos = Array.from(new Set(codigos)).filter((codigo) =>
+    codigosPermissoesComUsoPratico.has(codigo),
+  );
   const permissoes = await prisma.permissao.findMany({
     where: {
       codigo: {
@@ -2572,13 +2826,48 @@ async function criarConfiguracaoHorasExtrasPadrao(orgaoId: string) {
   });
 
   const rateRules = [
-    { dayType: "DIA_UTIL", ratePercent: "50", dailyLimitMinutes: 120, eligibilityThresholdMinutes: 480 },
-    { dayType: "SABADO", ratePercent: "50", dailyLimitMinutes: 480, eligibilityThresholdMinutes: 0 },
-    { dayType: "DOMINGO", ratePercent: "100", dailyLimitMinutes: 480, eligibilityThresholdMinutes: 0 },
-    { dayType: "FERIADO_NACIONAL", ratePercent: "100", dailyLimitMinutes: 480, eligibilityThresholdMinutes: 0 },
-    { dayType: "FERIADO_ESTADUAL", ratePercent: "100", dailyLimitMinutes: 480, eligibilityThresholdMinutes: 0 },
-    { dayType: "FERIADO_MUNICIPAL", ratePercent: "100", dailyLimitMinutes: 480, eligibilityThresholdMinutes: 0 },
-    { dayType: "FERIADO_REGIMENTAL", ratePercent: "100", dailyLimitMinutes: 480, eligibilityThresholdMinutes: 0 },
+    {
+      dayType: "DIA_UTIL",
+      ratePercent: "50",
+      dailyLimitMinutes: 120,
+      eligibilityThresholdMinutes: 480,
+    },
+    {
+      dayType: "SABADO",
+      ratePercent: "50",
+      dailyLimitMinutes: 480,
+      eligibilityThresholdMinutes: 0,
+    },
+    {
+      dayType: "DOMINGO",
+      ratePercent: "100",
+      dailyLimitMinutes: 480,
+      eligibilityThresholdMinutes: 0,
+    },
+    {
+      dayType: "FERIADO_NACIONAL",
+      ratePercent: "100",
+      dailyLimitMinutes: 480,
+      eligibilityThresholdMinutes: 0,
+    },
+    {
+      dayType: "FERIADO_ESTADUAL",
+      ratePercent: "100",
+      dailyLimitMinutes: 480,
+      eligibilityThresholdMinutes: 0,
+    },
+    {
+      dayType: "FERIADO_MUNICIPAL",
+      ratePercent: "100",
+      dailyLimitMinutes: 480,
+      eligibilityThresholdMinutes: 0,
+    },
+    {
+      dayType: "FERIADO_REGIMENTAL",
+      ratePercent: "100",
+      dailyLimitMinutes: 480,
+      eligibilityThresholdMinutes: 0,
+    },
   ] as const;
 
   for (const rule of rateRules) {
@@ -2617,7 +2906,9 @@ async function criarConfiguracaoHorasExtrasPadrao(orgaoId: string) {
 
   const workflowDefinition = await prisma.overtimeWorkflowDefinition.upsert({
     where: {
-      id: workflowDefinitionExistente?.id ?? "00000000-0000-0000-0000-000000000000",
+      id:
+        workflowDefinitionExistente?.id ??
+        "00000000-0000-0000-0000-000000000000",
     },
     update: {
       name: "Chefia, orçamento e deliberação final",
@@ -2670,13 +2961,55 @@ async function criarConfiguracaoHorasExtrasPadrao(orgaoId: string) {
   });
 
   const steps = [
-    { code: "SERVIDOR_SOLICITANTE", name: "Servidor solicitante", order: 1, requiredPermission: "horas-extras:solicitar:proprio", allowsPartialApproval: false },
-    { code: "ANALISE_CHEFIA", name: "Analise da chefia", order: 2, requiredPermission: "horas-extras:analisar:chefia", allowsPartialApproval: true },
-    { code: "ANALISE_ORCAMENTARIA", name: "Analise orcamentaria", order: 3, requiredPermission: "horas-extras:responder-orcamento:global", allowsPartialApproval: true },
-    { code: "DELIBERACAO_FINAL", name: "Deliberacao final", order: 4, requiredPermission: "horas-extras:deliberar:global", allowsPartialApproval: true },
-    { code: "EXECUCAO", name: "Execucao", order: 5, requiredPermission: "horas-extras:visualizar-execucao:global", allowsPartialApproval: false },
-    { code: "FECHAMENTO", name: "Fechamento", order: 6, requiredPermission: "horas-extras:gerar-lote:global", allowsPartialApproval: false },
-    { code: "PAGAMENTO", name: "Pagamento", order: 7, requiredPermission: "horas-extras:visualizar-folha:global", allowsPartialApproval: false },
+    {
+      code: "SERVIDOR_SOLICITANTE",
+      name: "Servidor solicitante",
+      order: 1,
+      requiredPermission: "horas-extras:solicitar:proprio",
+      allowsPartialApproval: false,
+    },
+    {
+      code: "ANALISE_CHEFIA",
+      name: "Analise da chefia",
+      order: 2,
+      requiredPermission: "horas-extras:analisar:chefia",
+      allowsPartialApproval: true,
+    },
+    {
+      code: "ANALISE_ORCAMENTARIA",
+      name: "Analise orcamentaria",
+      order: 3,
+      requiredPermission: "horas-extras:responder-orcamento:global",
+      allowsPartialApproval: true,
+    },
+    {
+      code: "DELIBERACAO_FINAL",
+      name: "Deliberacao final",
+      order: 4,
+      requiredPermission: "horas-extras:deliberar:global",
+      allowsPartialApproval: true,
+    },
+    {
+      code: "EXECUCAO",
+      name: "Execucao",
+      order: 5,
+      requiredPermission: "horas-extras:visualizar-execucao:global",
+      allowsPartialApproval: false,
+    },
+    {
+      code: "FECHAMENTO",
+      name: "Fechamento",
+      order: 6,
+      requiredPermission: "horas-extras:gerar-lote:global",
+      allowsPartialApproval: false,
+    },
+    {
+      code: "PAGAMENTO",
+      name: "Pagamento",
+      order: 7,
+      requiredPermission: "horas-extras:visualizar-folha:global",
+      allowsPartialApproval: false,
+    },
   ] as const;
 
   for (const step of steps) {
@@ -2705,13 +3038,48 @@ async function criarConfiguracaoHorasExtrasPadrao(orgaoId: string) {
   }
 
   const transitions = [
-    { fromStepCode: "SERVIDOR_SOLICITANTE", toStepCode: "ANALISE_CHEFIA", actionCode: "SUBMIT", requiredPermission: "horas-extras:solicitar:proprio" },
-    { fromStepCode: "ANALISE_CHEFIA", toStepCode: "SERVIDOR_SOLICITANTE", actionCode: "RETURN", requiredPermission: "horas-extras:devolver:global" },
-    { fromStepCode: "ANALISE_CHEFIA", toStepCode: "ANALISE_ORCAMENTARIA", actionCode: "FORWARD_BUDGET", requiredPermission: "horas-extras:encaminhar-orcamento:chefia" },
-    { fromStepCode: "ANALISE_ORCAMENTARIA", toStepCode: "DELIBERACAO_FINAL", actionCode: "BUDGET_REVIEWED", requiredPermission: "horas-extras:responder-orcamento:global" },
-    { fromStepCode: "DELIBERACAO_FINAL", toStepCode: "EXECUCAO", actionCode: "APPROVE", requiredPermission: "horas-extras:deliberar:global" },
-    { fromStepCode: "EXECUCAO", toStepCode: "FECHAMENTO", actionCode: "CLOSE_EXECUTION", requiredPermission: "horas-extras:visualizar-execucao:global" },
-    { fromStepCode: "FECHAMENTO", toStepCode: "PAGAMENTO", actionCode: "CLOSE_BATCH", requiredPermission: "horas-extras:fechar-lote:global" },
+    {
+      fromStepCode: "SERVIDOR_SOLICITANTE",
+      toStepCode: "ANALISE_CHEFIA",
+      actionCode: "SUBMIT",
+      requiredPermission: "horas-extras:solicitar:proprio",
+    },
+    {
+      fromStepCode: "ANALISE_CHEFIA",
+      toStepCode: "SERVIDOR_SOLICITANTE",
+      actionCode: "RETURN",
+      requiredPermission: "horas-extras:devolver:global",
+    },
+    {
+      fromStepCode: "ANALISE_CHEFIA",
+      toStepCode: "ANALISE_ORCAMENTARIA",
+      actionCode: "FORWARD_BUDGET",
+      requiredPermission: "horas-extras:encaminhar-orcamento:chefia",
+    },
+    {
+      fromStepCode: "ANALISE_ORCAMENTARIA",
+      toStepCode: "DELIBERACAO_FINAL",
+      actionCode: "BUDGET_REVIEWED",
+      requiredPermission: "horas-extras:responder-orcamento:global",
+    },
+    {
+      fromStepCode: "DELIBERACAO_FINAL",
+      toStepCode: "EXECUCAO",
+      actionCode: "APPROVE",
+      requiredPermission: "horas-extras:deliberar:global",
+    },
+    {
+      fromStepCode: "EXECUCAO",
+      toStepCode: "FECHAMENTO",
+      actionCode: "CLOSE_EXECUTION",
+      requiredPermission: "horas-extras:visualizar-execucao:global",
+    },
+    {
+      fromStepCode: "FECHAMENTO",
+      toStepCode: "PAGAMENTO",
+      actionCode: "CLOSE_BATCH",
+      requiredPermission: "horas-extras:fechar-lote:global",
+    },
   ] as const;
 
   for (const transition of transitions) {
@@ -2752,7 +3120,10 @@ async function criarProcedimentosFrequenciaPadrao() {
   });
 
   for (const orgao of orgaos) {
-    for (const [index, procedimento] of PROCEDIMENTOS_FREQUENCIA_PADRAO.entries()) {
+    for (const [
+      index,
+      procedimento,
+    ] of PROCEDIMENTOS_FREQUENCIA_PADRAO.entries()) {
       await prisma.procedimentoAdministrativoFrequencia.upsert({
         where: {
           orgaoId_codigo: {
@@ -2798,10 +3169,149 @@ async function criarProcedimentosFrequenciaPadrao() {
   }
 }
 
+const permissoesLegadasNormalizadas = [
+  {
+    de: ["integracoes", "teams", "visualizar"],
+    para: "integracoes-teams:visualizar:global",
+  },
+  {
+    de: ["integracoes", "teams", "configurar"],
+    para: "integracoes-teams:configurar:global",
+  },
+  {
+    de: ["integracoes", "teams", "ativar"],
+    para: "integracoes-teams:ativar:global",
+  },
+  {
+    de: ["integracoes", "teams", "desativar"],
+    para: "integracoes-teams:desativar:global",
+  },
+  {
+    de: ["integracoes", "teams", "testar"],
+    para: "integracoes-teams:testar:global",
+  },
+  {
+    de: ["integracoes", "teams", "baixar-manifesto"],
+    para: "integracoes-teams:baixar-manifesto:global",
+  },
+  { de: ["teams", "bot", "usar"], para: "teams-bot:usar:proprio" },
+  {
+    de: ["teams", "notificacoes", "receber"],
+    para: "teams-notificacoes:receber:proprio",
+  },
+  {
+    de: ["teams", "ponto", "registrar"],
+    para: "teams-ponto:registrar:proprio",
+  },
+  {
+    de: ["teams", "banco-horas", "consultar"],
+    para: "teams-banco-horas:consultar:proprio",
+  },
+  {
+    de: ["teams", "solicitacoes", "criar"],
+    para: "teams-solicitacoes:criar:proprio",
+  },
+  {
+    de: ["teams", "aprovacoes", "analisar"],
+    para: "teams-aprovacoes:analisar:chefia",
+  },
+  {
+    de: ["teams", "homologacao", "analisar"],
+    para: "teams-homologacao:analisar:chefia",
+  },
+  {
+    de: ["biometriafacial", "cadastrar", "terceiros"],
+    para: "biometriafacial:cadastrar:seccional",
+  },
+  {
+    de: ["biometriafacial", "recadastrar", "terceiros"],
+    para: "biometriafacial:recadastrar:seccional",
+  },
+  {
+    de: ["biometriafacial", "visualizar", "auditoria"],
+    para: "biometriafacial:visualizar:global",
+  },
+  {
+    de: ["integracoes", "receber-webhook", "sistema"],
+    para: "integracoes:receber-webhook:global",
+  },
+  {
+    de: ["horas-extras", "solicitar", "unidade"],
+    para: "horas-extras:solicitar:subordinados",
+  },
+  { de: ["recesso", "aceitar", "secad"], para: "recesso:aceitar:seccional" },
+  {
+    de: ["recesso", "convocacao", "gerenciar"],
+    para: "recesso:convocacao:global",
+  },
+  {
+    de: ["recesso", "relatorio", "secap"],
+    para: "recesso:relatorio:seccional",
+  },
+  { de: ["recesso", "relatorio", "sepag"], para: "recesso:relatorio:global" },
+] as const;
+
+async function normalizarPermissoesLegadas() {
+  for (const mapeamento of permissoesLegadasNormalizadas) {
+    const codigoLegado = mapeamento.de.join(":");
+    const [permissaoLegada, permissaoNormalizada] = await Promise.all([
+      prisma.permissao.findUnique({ where: { codigo: codigoLegado } }),
+      prisma.permissao.findUnique({ where: { codigo: mapeamento.para } }),
+    ]);
+
+    if (!permissaoLegada) {
+      continue;
+    }
+
+    if (!permissaoNormalizada) {
+      await prisma.$transaction([
+        prisma.perfilPermissao.deleteMany({
+          where: { permissaoId: permissaoLegada.id },
+        }),
+        prisma.permissao.delete({
+          where: { id: permissaoLegada.id },
+        }),
+      ]);
+      continue;
+    }
+
+    const vinculos = await prisma.perfilPermissao.findMany({
+      where: { permissaoId: permissaoLegada.id },
+      select: { perfilId: true },
+    });
+
+    await prisma.$transaction([
+      ...vinculos.map((vinculo) =>
+        prisma.perfilPermissao.upsert({
+          where: {
+            perfilId_permissaoId: {
+              perfilId: vinculo.perfilId,
+              permissaoId: permissaoNormalizada.id,
+            },
+          },
+          update: {},
+          create: {
+            perfilId: vinculo.perfilId,
+            permissaoId: permissaoNormalizada.id,
+          },
+        }),
+      ),
+      prisma.perfilPermissao.deleteMany({
+        where: { permissaoId: permissaoLegada.id },
+      }),
+    ]);
+
+    await prisma.permissao
+      .delete({ where: { id: permissaoLegada.id } })
+      .catch(() => undefined);
+  }
+}
+
 async function main() {
   console.log("Iniciando seed do SECP...");
 
   const permissoes = await criarPermissoes();
+  await normalizarPermissoesLegadas();
   await criarFusosHorarios();
 
   const perfilMaster = await criarPerfilMaster();
@@ -2865,7 +3375,7 @@ async function main() {
         ...codigosPermissoesPessoaExterna,
         "afastamentos:consultar:proprio",
         "programacao-ferias:consultar:proprio",
-  "substituicoes-funcao:relatorio:proprio",
+        "substituicoes-funcao:relatorio:proprio",
       ],
       "proprio",
     ),
@@ -2873,14 +3383,20 @@ async function main() {
   await sincronizarPermissoesPorCodigoAoPerfil(
     perfilPrestador.id,
     normalizarCodigosPermissoesPerfil(
-      [...codigosPermissoesPessoaExterna, "programacao-ferias:consultar:proprio"],
+      [
+        ...codigosPermissoesPessoaExterna,
+        "programacao-ferias:consultar:proprio",
+      ],
       "proprio",
     ),
   );
   await sincronizarPermissoesPorCodigoAoPerfil(
     perfilVoluntario.id,
     normalizarCodigosPermissoesPerfil(
-      [...codigosPermissoesPessoaExterna, "programacao-ferias:consultar:proprio"],
+      [
+        ...codigosPermissoesPessoaExterna,
+        "programacao-ferias:consultar:proprio",
+      ],
       "proprio",
     ),
   );
@@ -2891,14 +3407,14 @@ async function main() {
       "proprio",
     ),
   );
-  await sincronizarPermissoesPorCodigoAoPerfil(
-    perfilChefia.id,
-    [
-      ...normalizarCodigosPermissoesPerfil(codigosPermissoesServidor, "proprio"),
-      ...normalizarCodigosPermissoesPerfil(codigosPermissoesChefia, "subordinados"),
-      "programacao-ferias:consultar:subordinados",
-    ],
-  );
+  await sincronizarPermissoesPorCodigoAoPerfil(perfilChefia.id, [
+    ...normalizarCodigosPermissoesPerfil(codigosPermissoesServidor, "proprio"),
+    ...normalizarCodigosPermissoesPerfil(
+      codigosPermissoesChefia,
+      "subordinados",
+    ),
+    "programacao-ferias:consultar:subordinados",
+  ]);
   await sincronizarPermissoesPorCodigoAoPerfil(
     perfilSecap.id,
     normalizarCodigosPermissoesPerfil(codigosPermissoesSecap, "seccional"),
@@ -2985,4 +3501,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-

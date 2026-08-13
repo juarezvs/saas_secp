@@ -73,6 +73,18 @@ export async function homologarServidorMesAction(
     throw new Error("Status de homologação inválido.");
   }
 
+  if (
+    ["HOMOLOGADO_COM_RESSALVA", "DEVOLVIDO"].includes(status) &&
+    !observacaoChefia
+  ) {
+    return {
+      erro:
+        status === "DEVOLVIDO"
+          ? "Informe o motivo da devolucao para correcao."
+          : "Informe a ressalva antes de homologar com ressalva.",
+    };
+  }
+
   const assinatura = await validarAssinaturaDocumento({
     session,
     senha: senhaAssinatura,

@@ -30,10 +30,13 @@ export default async function IntegracaoSarhPage({
   searchParams,
 }: IntegracaoSarhPageProps) {
   await exigirUmaDasPermissoesOuRedirecionar([
+    "integracoes:consultar:seccional",
+    "integracoes:gerenciar:seccional",
+    "integracoes:consultar:global",
+    "integracoes:gerenciar:global",
     "integracoes-sarh:consultar:global",
     "integracoes-sarh:executar:global",
     "integracoes-sarh:configurar:global",
-    "integracoes:gerenciar:global",
   ]);
 
   const params = searchParams ? await searchParams : {};
@@ -49,8 +52,7 @@ export default async function IntegracaoSarhPage({
   const orgaoSelecionado =
     orgaos.find((orgao) => orgao.id === params.orgaoId)?.id ??
     (escopoOrgao.global ? null : (orgaos[0]?.id ?? null));
-  const configuracaoSarh =
-    await obterConfiguracaoSarhOracle(orgaoSelecionado);
+  const configuracaoSarh = await obterConfiguracaoSarhOracle(orgaoSelecionado);
   const integracoesHref = orgaoSelecionado
     ? `/administracao/integracoes?${new URLSearchParams({
         orgaoId: orgaoSelecionado,
@@ -107,9 +109,7 @@ export default async function IntegracaoSarhPage({
       />
 
       <div className="flex flex-col gap-2">
-        <p className="sr-only">
-          Administração / Integrações
-        </p>
+        <p className="sr-only">Administração / Integrações</p>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
           Integração com SARH
         </h1>

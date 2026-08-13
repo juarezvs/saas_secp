@@ -137,6 +137,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         tipoUsuario: usuarioAtual?.tipo ?? String(token.tipo),
         perfis,
         perfilPreferido: perfilAtivoPreferido,
+        respeitarPerfilPreferido: Boolean(perfilAtivoCookie),
       });
 
       session.user.id = usuarioAtual?.id ?? String(token.id);

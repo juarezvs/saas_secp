@@ -32,6 +32,7 @@ export function resolverPerfilAtivoDaSessao(
     tipoUsuario: usuario.tipo,
     perfis,
     perfilPreferido,
+    respeitarPerfilPreferido: Boolean(codigoNormalizado || usuario.perfilAtivo),
   });
 }
 

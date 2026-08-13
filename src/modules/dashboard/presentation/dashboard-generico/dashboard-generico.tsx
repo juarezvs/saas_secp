@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { Card } from "@/components/ui";
+import { PERMISSAO_PAINEL_EXECUTIVO } from "@/modules/painel-executivo/presentation/painel-executivo-data";
 
 type DashboardGenericoProps = {
   nome: string;
@@ -74,7 +75,7 @@ const atalhos = [
     descricao: "Indicadores institucionais e visão gerencial consolidada.",
     href: "/painel-executivo",
     icon: BarChart3,
-    permissoes: ["painel-executivo:visualizar:global"],
+    permissoes: [PERMISSAO_PAINEL_EXECUTIVO],
   },
   {
     titulo: "Administração",
@@ -135,4 +136,3 @@ export function DashboardGenerico({
     </div>
   );
 }
-

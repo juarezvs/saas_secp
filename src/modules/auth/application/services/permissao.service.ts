@@ -61,6 +61,7 @@ export async function obterPermissoesDaSessao(): Promise<ResultadoPermissao> {
     tipoUsuario: usuario.tipo,
     perfis: usuario.perfis,
     perfilPreferido,
+    respeitarPerfilPreferido: Boolean(session.user.perfilAtivo),
   });
 
   return {

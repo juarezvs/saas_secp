@@ -5,6 +5,7 @@ import {
   Bell,
   Clock3,
   Filter,
+  Fingerprint,
   Hourglass,
   Inbox,
   ShieldCheck,
@@ -27,6 +28,7 @@ const rotulosCategoria: Record<NotificacaoCategoria, string> = {
   frequencia: "Frequência",
   banco_horas: "Banco de horas",
   homologacao: "Homologação",
+  marcacao: "Marcação",
 };
 
 const rotulosPrioridade: Record<NotificacaoPrioridade, string> = {
@@ -49,6 +51,7 @@ const iconesCategoria = {
   frequencia: Bell,
   banco_horas: Hourglass,
   homologacao: ShieldCheck,
+  marcacao: Fingerprint,
 } satisfies Record<NotificacaoCategoria, typeof Bell>;
 
 function formatarDataHora(data: string) {
@@ -59,7 +62,11 @@ function formatarDataHora(data: string) {
   }).format(new Date(data));
 }
 
-function NotificacaoCard({ notificacao }: { notificacao: NotificacaoListaItem }) {
+function NotificacaoCard({
+  notificacao,
+}: {
+  notificacao: NotificacaoListaItem;
+}) {
   const Icone = iconesCategoria[notificacao.categoria];
 
   return (
@@ -188,7 +195,9 @@ export function NotificacoesListaFiltrada({
                   <input
                     type="checkbox"
                     checked={mostrarNaoLidas}
-                    onChange={(event) => setMostrarNaoLidas(event.target.checked)}
+                    onChange={(event) =>
+                      setMostrarNaoLidas(event.target.checked)
+                    }
                     className="size-4 rounded border-border text-blue-900"
                   />
                 </span>
@@ -246,4 +255,3 @@ export function NotificacoesListaFiltrada({
     </section>
   );
 }
-

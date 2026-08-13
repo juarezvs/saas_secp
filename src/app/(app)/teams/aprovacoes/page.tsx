@@ -3,7 +3,7 @@ import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application
 
 export default async function TeamsAprovacoesPage() {
   await exigirUmaDasPermissoesOuRedirecionar([
-    "teams:aprovacoes:analisar",
+    "teams-aprovacoes:analisar:chefia",
     "solicitacoes:analisar:chefia",
   ]);
 

@@ -16,7 +16,7 @@ import type {
 } from "../../domain/entities/usuario-autenticado";
 
 export async function buscarUsuarioParaLoginPorMatricula(
-  matricula: string
+  matricula: string,
 ): Promise<
   | (UsuarioAutenticado & {
       senhaHash: string | null;
@@ -27,11 +27,12 @@ export async function buscarUsuarioParaLoginPorMatricula(
   const matriculaNormalizada = matricula.trim().toUpperCase();
   const cacheKey = `secp:auth:usuario:${matriculaNormalizada}`;
   const ttl = Number(process.env.AUTH_SESSION_CACHE_TTL_SECONDS ?? "60");
-  const cached = ttl > 0
-    ? await obterCacheJson<Awaited<ReturnType<typeof buscarUsuarioParaLoginPorMatricula>>>(
-        cacheKey,
-      )
-    : null;
+  const cached =
+    ttl > 0
+      ? await obterCacheJson<
+          Awaited<ReturnType<typeof buscarUsuarioParaLoginPorMatricula>>
+        >(cacheKey)
+      : null;
 
   if (cached) {
     return cached;
@@ -86,6 +87,9 @@ export async function buscarUsuarioParaLoginPorMatricula(
     (item) => item.perfil.ativo,
   )) {
     const existente = perfisAgrupados.get(usuarioPerfil.perfil.id);
+    const perfilSistemaGlobal = perfilEhAdministradorSistema(
+      usuarioPerfil.perfil,
+    );
     const permissoes = usuarioPerfil.perfil.permissoes.map(
       (perfilPermissao) => perfilPermissao.permissao.codigo,
     );
@@ -99,13 +103,14 @@ export async function buscarUsuarioParaLoginPorMatricula(
         administrativo: usuarioPerfil.perfil.administrativo,
         excecao: usuarioPerfil.perfil.excecao,
         perfilDestinoExcecaoId: usuarioPerfil.perfil.perfilDestinoExcecaoId,
-        escopoGlobal: usuarioPerfil.orgaoId === null,
+        escopoGlobal: perfilSistemaGlobal || usuarioPerfil.orgaoId === null,
         orgaos: usuarioPerfil.orgao ? [usuarioPerfil.orgao] : [],
       });
       continue;
     }
 
-    existente.escopoGlobal ||= usuarioPerfil.orgaoId === null;
+    existente.escopoGlobal ||=
+      perfilSistemaGlobal || usuarioPerfil.orgaoId === null;
 
     if (
       usuarioPerfil.orgao &&
@@ -117,8 +122,9 @@ export async function buscarUsuarioParaLoginPorMatricula(
 
   const perfisBase: PerfilSessao[] = Array.from(perfisAgrupados.values());
 
-  const deveExpandirPermissoes =
-    perfisBase.some((perfil) => perfilEhAdministradorSistema(perfil));
+  const deveExpandirPermissoes = perfisBase.some((perfil) =>
+    perfilEhAdministradorSistema(perfil),
+  );
 
   const todasPermissoes = deveExpandirPermissoes
     ? await prisma.permissao.findMany({
@@ -178,7 +184,11 @@ export async function buscarUsuarioParaLoginPorMatricula(
   };
 
   if (ttl > 0) {
-    await definirCacheJson(cacheKey, resultado, Math.min(Math.max(ttl, 30), 120));
+    await definirCacheJson(
+      cacheKey,
+      resultado,
+      Math.min(Math.max(ttl, 30), 120),
+    );
   }
 
   return resultado;

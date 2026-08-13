@@ -163,6 +163,48 @@ export async function obterConfiguracaoLdapActiveDirectory(
     : fallback;
 }
 
+export async function obterConfiguracaoLdapActiveDirectoryFormulario(
+  orgaoId?: string | null,
+): Promise<LdapActiveDirectoryConfig> {
+  const ambiente = obterConfiguracaoLdapActiveDirectoryAmbiente();
+
+  if (!orgaoId) {
+    const integracaoGlobal = await prisma.integracaoSistema.findFirst({
+      where: { tipo: "LDAP", orgaoId: null },
+      orderBy: { atualizadoEm: "desc" },
+    });
+
+    return montarConfiguracaoDaIntegracao(integracaoGlobal, ambiente);
+  }
+
+  const integracaoOrgao = await prisma.integracaoSistema.findFirst({
+    where: { tipo: "LDAP", orgaoId },
+    orderBy: { atualizadoEm: "desc" },
+  });
+
+  if (integracaoOrgao) {
+    return montarConfiguracaoDaIntegracao(integracaoOrgao, {
+      ...ambiente,
+      orgaoId,
+    });
+  }
+
+  return {
+    ...ambiente,
+    orgaoId,
+    nome: "LDAP / Active Directory",
+    ativo: false,
+    authUrl: "",
+    ldapUrl: "",
+    baseDn: "",
+    dominio: "",
+    bindDn: "",
+    bindPassword: "",
+    userDnPattern: "",
+    searchFilter: "(sAMAccountName={{matricula}})",
+  };
+}
+
 export async function obterOuCriarIntegracaoLdapActiveDirectory() {
   const ambiente = obterConfiguracaoLdapActiveDirectoryAmbiente();
 

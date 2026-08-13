@@ -36,7 +36,7 @@ const PERMISSOES_ADMINISTRACAO = [
   "configuracoes:gerenciar:global",
   "banco-horas:gerenciar:seccional",
   "banco-horas:gerenciar:global",
-  "integracoes:teams:visualizar",
+  "integracoes-teams:visualizar:global",
   "menus:personalizar:seccional",
   "menus:personalizar:global",
   "procedimentos-frequencia:consultar:seccional",
@@ -219,7 +219,7 @@ export default async function AdministracaoPage() {
       descricao: "Configure bot, abas, notificações e manifesto do aplicativo Teams.",
       href: "/administracao/integracoes/teams",
       icon: MessageSquare,
-      permissoes: ["integracoes:teams:visualizar", "integracoes:teams:configurar"],
+      permissoes: ["integracoes-teams:visualizar:global", "integracoes-teams:configurar:global"],
     },
     {
       titulo: "Saúde dos workers",

@@ -47,6 +47,9 @@ export function RelatoriosListCard({
   if (servidorId) {
     queryGerencial.set("servidorId", servidorId);
   }
+  const queryHorasExtras = new URLSearchParams({
+    competencia: `${ano}-${String(mes).padStart(2, "0")}`,
+  });
 
   return (
     <div className="space-y-6">
@@ -55,14 +58,15 @@ export function RelatoriosListCard({
           <div>
             <h2 className="text-lg font-bold">Relatórios individuais</h2>
             <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-              Documentos por servidor para espelho de ponto e banco de horas.
+              Documentos por servidor na competÃªncia{" "}
+              {String(mes).padStart(2, "0")}/{ano}.
             </p>
           </div>
 
           {controles ? <div className="lg:ml-auto">{controles}</div> : null}
         </div>
 
-        <div className="grid gap-4 p-5 md:grid-cols-2">
+        <div className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
           <RelatorioCard
             titulo="Espelho de Ponto"
             descricao="Exporta o espelho mensal com apuracoes diarias, creditos, debitos e status visual."
@@ -98,13 +102,25 @@ export function RelatoriosListCard({
             </p>
           </div>
 
-          <div className="grid gap-4 p-5 lg:grid-cols-3">
+          <div className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
             <RelatorioCard
               titulo="Horas extras e banco de horas"
               descricao="Aponta creditos, debitos e saldo por servidor para gerir pagamentos e folgas."
               icon={BriefcaseBusiness}
               href={`/api/relatorios/gerenciais/horas-extras-banco-horas/pdf?${queryGerencial.toString()}`}
               assincrono
+            />
+            <RelatorioCard
+              titulo="Horas extras analitico"
+              descricao="CSV detalhado por autorizacao, servidor, intervalo, rubrica e valor calculado."
+              icon={Download}
+              href={`/api/horas-extras/relatorios/analitico?${queryHorasExtras.toString()}`}
+            />
+            <RelatorioCard
+              titulo="Horas extras sintetico"
+              descricao="CSV consolidado por servidor, competencia, rubricas, minutos e valor."
+              icon={Download}
+              href={`/api/horas-extras/relatorios/sintetico?${queryHorasExtras.toString()}`}
             />
             <RelatorioCard
               titulo="Absenteismo"
@@ -141,33 +157,37 @@ export function RelatoriosListCard({
           </p>
         </div>
 
-        <div className="divide-y">
+        <div className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
           {boletins.map((boletim) => (
-            <div
+            <article
               key={boletim.id}
-              className="flex flex-col justify-between gap-3 p-5 md:flex-row md:items-center"
+              className="rounded-lg border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm"
             >
-              <div>
+              <div className="flex min-h-32 flex-col">
                 <p className="font-semibold">
                   {boletim.unidade.sigla} -{" "}
                   {String(boletim.mesReferencia).padStart(2, "0")}/
                   {boletim.anoReferencia}
                 </p>
                 <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                  {boletim.unidade.nome} - {boletim.status}
+                  {boletim.unidade.nome}
                 </p>
+                <span className="mt-3 w-fit rounded-full border px-2.5 py-1 text-xs font-semibold text-[var(--muted-foreground)]">
+                  {boletim.status}
+                </span>
+                <div className="mt-auto pt-4">
+                  <RelatorioExportacaoButton
+                    href={`/api/relatorios/boletim/${boletim.id}/pdf`}
+                  >
+                    PDF
+                  </RelatorioExportacaoButton>
+                </div>
               </div>
-
-              <RelatorioExportacaoButton
-                href={`/api/relatorios/boletim/${boletim.id}/pdf`}
-              >
-                PDF
-              </RelatorioExportacaoButton>
-            </div>
+            </article>
           ))}
 
           {boletins.length === 0 && (
-            <div className="p-8 text-center text-sm text-[var(--muted-foreground)]">
+            <div className="rounded-lg border border-dashed p-8 text-center text-sm text-[var(--muted-foreground)] md:col-span-2 xl:col-span-3">
               Nenhum boletim disponivel para exportacao.
             </div>
           )}

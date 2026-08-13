@@ -3,11 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { exigirPermissao } from "@/modules/auth/application/services/permissao.service";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 export async function excluirRascunhoHorasExtrasAction(requestId: string) {
-  const permissao = await exigirPermissao("horas-extras:solicitar:proprio");
+  const permissao = await exigirUmaDasPermissoesOuRedirecionar([
+    "horas-extras:cancelar:proprio",
+    "horas-extras:solicitar:proprio",
+  ]);
 
   if (!permissao.usuarioId) {
     redirect("/horas-extras");
@@ -56,7 +59,11 @@ export async function excluirRascunhoHorasExtrasAction(requestId: string) {
           status: rascunho.currentLifecycleStatus,
         },
         metadados: {
-          permissao: "horas-extras:solicitar:proprio",
+          permissao: permissao.permissoes.includes(
+            "horas-extras:cancelar:proprio",
+          )
+            ? "horas-extras:cancelar:proprio"
+            : "horas-extras:solicitar:proprio",
           perfilAtivo: permissao.perfilAtivoCodigo,
         },
       },

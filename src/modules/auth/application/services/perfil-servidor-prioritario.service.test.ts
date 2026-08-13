@@ -67,12 +67,23 @@ describe("escolherPerfilInicial", () => {
     },
   );
 
-  it("respeita uma escolha explicita de perfil", () => {
+  it("prioriza o perfil servidor quando nao ha troca manual na sessao", () => {
     expect(
       escolherPerfilInicial({
         tipoUsuario: "SERVIDOR",
         perfis: [perfilServidor, perfilGestor],
         perfilPreferido: perfilGestor,
+      }),
+    ).toEqual(perfilServidor);
+  });
+
+  it("respeita o perfil escolhido manualmente durante a sessao", () => {
+    expect(
+      escolherPerfilInicial({
+        tipoUsuario: "SERVIDOR",
+        perfis: [perfilServidor, perfilGestor],
+        perfilPreferido: perfilGestor,
+        respeitarPerfilPreferido: true,
       }),
     ).toEqual(perfilGestor);
   });

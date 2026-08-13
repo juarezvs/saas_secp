@@ -15,7 +15,7 @@ const consultarAuditoriaFacialSchema = z.object({
 
 async function getBiometriaAdminAuditoria(request: NextRequest) {
   const acesso = await exigirPermissaoBiometriaFacialAdmin([
-    "biometriafacial:visualizar:auditoria",
+    "biometriafacial:visualizar:global",
   ]);
 
   if (!acesso.autorizado) {

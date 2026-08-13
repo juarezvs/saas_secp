@@ -25,6 +25,10 @@ async function getAuditoriaExportPdf(request: Request) {
 
   const permissoes = session?.user?.perfilAtivo?.permissoes ?? [];
   if (
+    !permissoes.includes("auditoria:exportar:seccional") &&
+    !permissoes.includes("auditoria:consultar:seccional") &&
+    !permissoes.includes("auditoria:detalhar:seccional") &&
+    !permissoes.includes("auditoria:exportar:global") &&
     !permissoes.includes("auditoria:consultar:global") &&
     !permissoes.includes("auditoria:detalhar:global")
   ) {
@@ -110,9 +114,17 @@ function AuditoriaPdfDocument({ eventos }: { eventos: EventoExportacao[] }) {
               { style: styles.cellEntidade },
               evento.entidade,
             ),
-            React.createElement(Text, { style: styles.cellId }, evento.entidadeId ?? "-"),
+            React.createElement(
+              Text,
+              { style: styles.cellId },
+              evento.entidadeId ?? "-",
+            ),
             React.createElement(Text, { style: styles.cellAcao }, evento.acao),
-            React.createElement(Text, { style: styles.cellIp }, evento.ip ?? "-"),
+            React.createElement(
+              Text,
+              { style: styles.cellIp },
+              evento.ip ?? "-",
+            ),
           ),
         ),
       ),

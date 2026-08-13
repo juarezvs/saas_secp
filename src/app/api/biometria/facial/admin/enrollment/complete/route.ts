@@ -32,8 +32,8 @@ async function postBiometriaAdminEnrollmentComplete(request: NextRequest) {
   }
 
   const acesso = await exigirPermissaoBiometriaFacialAdmin([
-    "biometriafacial:cadastrar:terceiros",
-    "biometriafacial:recadastrar:terceiros",
+    "biometriafacial:cadastrar:seccional",
+    "biometriafacial:recadastrar:seccional",
   ]);
 
   if (!acesso.autorizado) {

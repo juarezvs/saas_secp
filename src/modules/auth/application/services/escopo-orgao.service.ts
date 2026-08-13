@@ -37,6 +37,7 @@ export async function obterEscopoOrgaoDaSessao(): Promise<EscopoOrgaoSessao> {
     tipoUsuario: usuario.tipo,
     perfis: usuario.perfis,
     perfilPreferido,
+    respeitarPerfilPreferido: Boolean(session.user.perfilAtivo),
   });
 
   const orgaos = perfilAtivo?.orgaos ?? [];

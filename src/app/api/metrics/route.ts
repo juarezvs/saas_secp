@@ -3,7 +3,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { autorizarBearerToken } from "@/lib/observability/auth";
 import { withHttpMetrics } from "@/lib/observability/http";
 import { obterObservabilidade } from "@/lib/observability/metrics";
+import { coletarMetricasPgbouncer } from "@/lib/observability/pgbouncer-metrics";
 import { coletarMetricasFilas } from "@/lib/observability/queue-metrics";
+import { coletarMetricasUsuariosAtivos } from "@/lib/observability/user-activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +25,11 @@ export const GET = withHttpMetrics("/api/metrics", async (request: NextRequest) 
   }
 
   const observabilidade = obterObservabilidade();
-  await coletarMetricasFilas();
+  await Promise.all([
+    coletarMetricasFilas(),
+    coletarMetricasUsuariosAtivos(),
+    coletarMetricasPgbouncer(),
+  ]);
 
   return new Response(await observabilidade.registry.metrics(), {
     status: 200,
@@ -33,4 +39,3 @@ export const GET = withHttpMetrics("/api/metrics", async (request: NextRequest) 
     },
   });
 });
-

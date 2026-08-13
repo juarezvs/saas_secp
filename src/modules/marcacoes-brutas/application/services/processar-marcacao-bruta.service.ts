@@ -36,18 +36,6 @@ function cpfServidorCompativel(
   return cpfsServidor.includes(cpf);
 }
 
-function resolverMatriculaJuizProvavel(matricula: string | null | undefined) {
-  const digitos = somenteDigitos(matricula);
-
-  if (!digitos) {
-    return null;
-  }
-
-  const numero = digitos.replace(/^0+/, "") || "0";
-
-  return `JU${numero}`;
-}
-
 export async function processarMarcacaoBrutaService(params: {
   marcacaoBrutaId: string;
   usuarioIdAuditoria?: string;
@@ -125,56 +113,6 @@ export async function processarMarcacaoBrutaService(params: {
   }
 
   if (!servidor) {
-    const matriculaJuiz = resolverMatriculaJuizProvavel(bruta.matricula);
-
-    if (bruta.equipamentoId && matriculaJuiz) {
-      await prisma.$transaction([
-        prisma.marcacaoBruta.update({
-          where: { id: bruta.id },
-          data: {
-            processada: true,
-            processadaEm: new Date(),
-            servidorId: null,
-            marcacaoId: null,
-            matricula: matriculaJuiz,
-            payloadOriginal: {
-              ...((bruta.payloadOriginal &&
-              typeof bruta.payloadOriginal === "object" &&
-              !Array.isArray(bruta.payloadOriginal)
-                ? bruta.payloadOriginal
-                : {}) as Record<string, unknown>),
-              matriculaNormalizada: matriculaJuiz,
-              ignoradaPorProvavelJuiz: true,
-              motivoIgnorada:
-                "Matricula numerica de equipamento sem servidor correspondente no orgao; provavel juiz, sem registro de ponto.",
-            },
-          },
-        }),
-        prisma.auditoriaEvento.create({
-          data: {
-            usuarioId: params.usuarioIdAuditoria ?? null,
-            entidade: "MarcacaoBruta",
-            entidadeId: bruta.id,
-            acao: "MARCACAO_BRUTA_IGNORADA_PROVAVEL_JUIZ",
-            dadosDepois: {
-              matriculaOriginal: bruta.matricula,
-              matriculaJuiz,
-              equipamentoId: bruta.equipamentoId,
-              origem: bruta.origem,
-              dataHora: bruta.dataHora,
-              motivo:
-                "Matricula numerica de equipamento sem servidor correspondente no orgao; provavel juiz, sem registro de ponto.",
-            },
-          },
-        }),
-      ]);
-
-      return {
-        sucesso: true,
-        mensagem: "Marcacao bruta ignorada por provavel matricula de juiz.",
-      };
-    }
-
     return {
       sucesso: false,
       mensagem:

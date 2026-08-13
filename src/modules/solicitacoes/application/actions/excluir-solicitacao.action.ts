@@ -52,10 +52,7 @@ function competenciasDasDatas(datas: Date[]) {
   return Array.from(competencias.values());
 }
 
-function metadadosContemSolicitacao(
-  metadados: unknown,
-  solicitacaoId: string,
-) {
+function metadadosContemSolicitacao(metadados: unknown, solicitacaoId: string) {
   return (
     metadados &&
     typeof metadados === "object" &&
@@ -68,10 +65,6 @@ export async function excluirSolicitacaoAction(solicitacaoId: string) {
 
   if (!session?.user) {
     throw new Error("Sessao expirada. Faca login novamente.");
-  }
-
-  if (!perfilEhAdministradorSistema(session.user.perfilAtivo)) {
-    throw new Error("Apenas o Administrador do Sistema pode excluir solicitacoes.");
   }
 
   const solicitacao = await prisma.solicitacao.findUnique({
@@ -88,6 +81,19 @@ export async function excluirSolicitacaoAction(solicitacaoId: string) {
 
   if (!solicitacao) {
     redirect("/solicitacoes");
+  }
+
+  const exclusaoAdministrativa = perfilEhAdministradorSistema(
+    session.user.perfilAtivo,
+  );
+  const exclusaoPeloSolicitante =
+    solicitacao.usuarioSolicitanteId === session.user.id &&
+    solicitacao.status === "ENVIADA";
+
+  if (!exclusaoAdministrativa && !exclusaoPeloSolicitante) {
+    throw new Error(
+      "Apenas solicitacoes enviadas podem ser excluidas pelo proprio solicitante.",
+    );
   }
 
   const fusoHorario = await resolverFusoHorarioServidorNoBanco({
@@ -158,7 +164,9 @@ export async function excluirSolicitacaoAction(solicitacaoId: string) {
         usuarioId: session.user.id,
         entidade: "Solicitacao",
         entidadeId: solicitacao.id,
-        acao: "SOLICITACAO_EXCLUIDA_ADMIN",
+        acao: exclusaoAdministrativa
+          ? "SOLICITACAO_EXCLUIDA_ADMIN"
+          : "SOLICITACAO_EXCLUIDA_SOLICITANTE",
         dadosAntes: {
           solicitacao,
           marcacoesExcluidas: marcacoesGeradasPelaSolicitacao,
@@ -180,7 +188,9 @@ export async function excluirSolicitacaoAction(solicitacaoId: string) {
       servidorId: solicitacao.servidorId,
       dataReferencia,
       usuarioIdAuditoria: session.user.id,
-      origem: "SOLICITACAO_EXCLUIDA_ADMIN",
+      origem: exclusaoAdministrativa
+        ? "SOLICITACAO_EXCLUIDA_ADMIN"
+        : "SOLICITACAO_EXCLUIDA_SOLICITANTE",
       ignorarBloqueioHomologacao: true,
     });
   }
@@ -190,7 +200,9 @@ export async function excluirSolicitacaoAction(solicitacaoId: string) {
       servidorId: solicitacao.servidorId,
       ...competencia,
       usuarioIdAuditoria: session.user.id,
-      origem: "SOLICITACAO_EXCLUIDA_ADMIN",
+      origem: exclusaoAdministrativa
+        ? "SOLICITACAO_EXCLUIDA_ADMIN"
+        : "SOLICITACAO_EXCLUIDA_SOLICITANTE",
     });
   }
 

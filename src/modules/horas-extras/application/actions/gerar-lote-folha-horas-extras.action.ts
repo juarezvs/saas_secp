@@ -7,13 +7,11 @@ import { redirect } from "next/navigation";
 import { exigirPermissao } from "@/modules/auth/application/services/permissao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
-import { listarAutorizacoesHorasExtrasParaExecucao } from "../../infrastructure/repositories/horas-extras-execucao.repository";
 import {
   gerarLoteFolhaHorasExtrasSchema,
   type GerarLoteFolhaHorasExtrasFormState,
   type GerarLoteFolhaHorasExtrasInput,
 } from "../schemas/horas-extras-lote-folha.schema";
-import { rubricaHorasExtrasPorPercentual } from "../services/horas-extras-folha.service";
 
 function texto(formData: FormData, campo: string) {
   return String(formData.get(campo) ?? "").trim();
@@ -26,10 +24,6 @@ function extrairDados(
     orgaoId: texto(formData, "orgaoId"),
     competence: texto(formData, "competence"),
   };
-}
-
-function competenciaDaData(data: Date) {
-  return data.toISOString().slice(0, 7);
 }
 
 export async function gerarLoteFolhaHorasExtrasAction(
@@ -57,7 +51,7 @@ export async function gerarLoteFolhaHorasExtrasAction(
   ) {
     return {
       sucesso: false,
-      mensagem: "O órgão selecionado está fora do seu escopo.",
+      mensagem: "O orgao selecionado esta fora do seu escopo.",
       campos: parsed.data,
     };
   }
@@ -75,21 +69,45 @@ export async function gerarLoteFolhaHorasExtrasAction(
   if (loteAberto) {
     return {
       sucesso: false,
-      mensagem: "Já existe lote aberto para esta competência e órgão.",
+      mensagem: "Ja existe lote aberto para esta competencia e orgao.",
       campos: parsed.data,
     };
   }
 
-  const autorizacoes = await listarAutorizacoesHorasExtrasParaExecucao({
-    orgaoIds: [parsed.data.orgaoId],
-    escopoGlobal: false,
-    limite: 500,
+  const calculos = await prisma.horaExtraCalculo.findMany({
+    where: {
+      competencia: parsed.data.competence,
+      status: "CALCULADO",
+      autorizacao: {
+        orgaoId: parsed.data.orgaoId,
+        status: "CALCULADA",
+      },
+    },
+    include: {
+      autorizacao: true,
+      itens: {
+        include: {
+          servidorAutorizado: true,
+        },
+        orderBy: [{ data: "asc" }, { inicio: "asc" }],
+      },
+    },
+    orderBy: {
+      calculadoEm: "asc",
+    },
   });
   const linhasPorServidor = new Map<
     string,
     {
-      servidor: (typeof autorizacoes)[number]["servidor"];
+      servidor: {
+        matricula: string;
+        nome: string;
+        unidade: string | null;
+        orgao: string | null;
+      };
       linhas: Array<{
+        calculoId: string;
+        calculoItemId: string;
         authorizationId: string;
         authorizationDayId: string;
         requestId: string;
@@ -98,47 +116,42 @@ export async function gerarLoteFolhaHorasExtrasAction(
         minutes: number;
         ratePercent: string;
         rubricaCode: string;
-        requestNumber: string;
+        amountCentavos: number;
+        processoSei: string;
+        documentoAutorizacao: string;
       }>;
     }
   >();
 
-  for (const item of autorizacoes) {
-    const diasAutorizacao = new Map(
-      item.authorization.days.map((day) => [day.id, day]),
-    );
-
-    for (const dia of item.diasExecucao) {
-      if (
-        competenciaDaData(dia.date) !== parsed.data.competence ||
-        dia.executedMinutes <= 0
-      ) {
-        continue;
-      }
-
-      const diaAutorizacao = diasAutorizacao.get(dia.authorizationDayId);
-
-      if (!diaAutorizacao) {
-        continue;
-      }
-
-      const grupo = linhasPorServidor.get(item.authorization.employeeId) ?? {
-        servidor: item.servidor,
+  for (const calculo of calculos) {
+    for (const item of calculo.itens) {
+      const servidorAutorizado = item.servidorAutorizado;
+      const grupo = linhasPorServidor.get(servidorAutorizado.servidorId) ?? {
+        servidor: {
+          matricula: servidorAutorizado.matriculaSnapshot,
+          nome: servidorAutorizado.nomeSnapshot,
+          unidade: servidorAutorizado.unidadeSnapshot,
+          orgao: calculo.autorizacao.orgaoId,
+        },
         linhas: [],
       };
 
       grupo.linhas.push({
-        authorizationId: item.authorization.id,
-        authorizationDayId: dia.authorizationDayId,
-        requestId: item.authorization.requestId,
-        employeeId: item.authorization.employeeId,
-        date: dia.date,
-        minutes: dia.executedMinutes,
-        ratePercent: diaAutorizacao.ratePercent.toString(),
-        rubricaCode: rubricaHorasExtrasPorPercentual(diaAutorizacao.ratePercent),
-        requestNumber: item.authorization.request.requestNumber,
+        calculoId: calculo.id,
+        calculoItemId: item.id,
+        authorizationId: calculo.autorizacaoId,
+        authorizationDayId: item.classificacaoIntervaloId,
+        requestId: calculo.id,
+        employeeId: servidorAutorizado.servidorId,
+        date: item.data,
+        minutes: item.minutos,
+        ratePercent: item.percentual.toString(),
+        rubricaCode: item.rubrica ?? "",
+        amountCentavos: item.valorCentavos,
+        processoSei: calculo.autorizacao.processoSei,
+        documentoAutorizacao: calculo.autorizacao.documentoAutorizacao,
       });
-      linhasPorServidor.set(item.authorization.employeeId, grupo);
+      linhasPorServidor.set(servidorAutorizado.servidorId, grupo);
     }
   }
 
@@ -147,14 +160,25 @@ export async function gerarLoteFolhaHorasExtrasAction(
   if (grupos.length === 0) {
     return {
       sucesso: false,
-      mensagem: "Não há horas extras executadas para gerar lote nesta competência.",
+      mensagem:
+        "Nao ha horas extras calculadas e prontas para lote nesta competencia.",
       campos: parsed.data,
     };
   }
 
   const totalMinutes = grupos.reduce(
     (total, [, grupo]) =>
-      total + grupo.linhas.reduce((subtotal, linha) => subtotal + linha.minutes, 0),
+      total +
+      grupo.linhas.reduce((subtotal, linha) => subtotal + linha.minutes, 0),
+    0,
+  );
+  const totalAmountCentavos = grupos.reduce(
+    (total, [, grupo]) =>
+      total +
+      grupo.linhas.reduce(
+        (subtotal, linha) => subtotal + linha.amountCentavos,
+        0,
+      ),
     0,
   );
   const checksum = createHash("sha256")
@@ -163,8 +187,9 @@ export async function gerarLoteFolhaHorasExtrasAction(
         grupos.flatMap(([employeeId, grupo]) =>
           grupo.linhas.map((linha) => ({
             employeeId,
-            authorizationDayId: linha.authorizationDayId,
+            calculoItemId: linha.calculoItemId,
             minutes: linha.minutes,
+            amountCentavos: linha.amountCentavos,
           })),
         ),
       ),
@@ -180,10 +205,11 @@ export async function gerarLoteFolhaHorasExtrasAction(
         filters: {
           competence: parsed.data.competence,
           orgaoId: parsed.data.orgaoId,
+          origem: "HORAS_EXTRAS_REENGENHARIA_SECAP",
         },
         totalEmployees: grupos.length,
         totalMinutes,
-        totalAmount: 0,
+        totalAmount: totalAmountCentavos / 100,
         checksum,
         createdByUserId: permissao.usuarioId ?? null,
       },
@@ -194,17 +220,22 @@ export async function gerarLoteFolhaHorasExtrasAction(
         (total, linha) => total + linha.minutes,
         0,
       );
+      const valorServidorCentavos = grupo.linhas.reduce(
+        (total, linha) => total + linha.amountCentavos,
+        0,
+      );
       const batchEmployee = await tx.overtimePayrollBatchEmployee.create({
         data: {
           batchId: novoBatch.id,
           employeeId,
-          registration: grupo.servidor?.matricula ?? null,
-          employeeName: grupo.servidor?.nome ?? null,
-          organizationalUnitLabel: grupo.servidor?.unidade ?? null,
+          registration: grupo.servidor.matricula,
+          employeeName: grupo.servidor.nome,
+          organizationalUnitLabel: grupo.servidor.unidade,
           totalMinutes: minutosServidor,
-          totalAmount: 0,
+          totalAmount: valorServidorCentavos / 100,
           metadata: {
-            orgao: grupo.servidor?.orgao ?? null,
+            orgao: grupo.servidor.orgao,
+            origem: "HORAS_EXTRAS_REENGENHARIA_SECAP",
           },
         },
       });
@@ -221,14 +252,61 @@ export async function gerarLoteFolhaHorasExtrasAction(
           competence: parsed.data.competence,
           minutes: linha.minutes,
           ratePercent: linha.ratePercent,
-          amount: 0,
+          amount: linha.amountCentavos / 100,
           rubricaCode: linha.rubricaCode,
           metadata: {
-            requestNumber: linha.requestNumber,
+            origem: "HORAS_EXTRAS_REENGENHARIA_SECAP",
+            calculoId: linha.calculoId,
+            calculoItemId: linha.calculoItemId,
+            processoSei: linha.processoSei,
+            documentoAutorizacao: linha.documentoAutorizacao,
           },
         })),
       });
     }
+
+    const autorizacaoIds = [
+      ...new Set(calculos.map((calculo) => calculo.autorizacaoId)),
+    ];
+
+    await tx.autorizacaoHoraExtraAdministrativa.updateMany({
+      where: {
+        id: {
+          in: autorizacaoIds,
+        },
+      },
+      data: {
+        status: "PRONTA_PARA_FOLHA",
+      },
+    });
+
+    await tx.autorizacaoHoraExtraServidor.updateMany({
+      where: {
+        autorizacaoId: {
+          in: autorizacaoIds,
+        },
+        status: "CALCULADO",
+      },
+      data: {
+        status: "PRONTO_PARA_FOLHA",
+      },
+    });
+
+    await tx.horaExtraEvento.createMany({
+      data: autorizacaoIds.map((autorizacaoId) => ({
+        autorizacaoId,
+        usuarioId: permissao.usuarioId ?? null,
+        acao: "LOTE_FOLHA_GERADO",
+        dadosDepois: {
+          batchId: novoBatch.id,
+          competence: parsed.data.competence,
+        },
+        metadados: {
+          perfilAtivo: permissao.perfilAtivoCodigo,
+          origem: "HORAS_EXTRAS_REENGENHARIA_SECAP",
+        },
+      })),
+    });
 
     await tx.auditoriaEvento.create({
       data: {
@@ -241,11 +319,13 @@ export async function gerarLoteFolhaHorasExtrasAction(
           competence: parsed.data.competence,
           totalEmployees: grupos.length,
           totalMinutes,
+          totalAmountCentavos,
           checksum,
         },
         metadados: {
           permissao: "horas-extras:gerar-lote:global",
           perfilAtivo: permissao.perfilAtivoCodigo,
+          origem: "HORAS_EXTRAS_REENGENHARIA_SECAP",
         },
       },
     });
@@ -254,5 +334,6 @@ export async function gerarLoteFolhaHorasExtrasAction(
   });
 
   revalidatePath("/folha/horas-extras");
+  revalidatePath("/secap/horas-extras/autorizacoes");
   redirect(`/folha/horas-extras/${batch.id}`);
 }

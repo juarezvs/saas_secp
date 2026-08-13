@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { CompetenciaInput } from "@/components/ui";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   buscarServidorRelatorioPorUsuarioId,
@@ -38,7 +39,10 @@ function normalizarCompetencia(params: {
     mesCompetencia >= 1 &&
     mesCompetencia <= 12
       ? mesCompetencia
-      : mesParam && Number.isInteger(mesParam) && mesParam >= 1 && mesParam <= 12
+      : mesParam &&
+          Number.isInteger(mesParam) &&
+          mesParam >= 1 &&
+          mesParam <= 12
         ? mesParam
         : hoje.getMonth() + 1;
 
@@ -64,6 +68,10 @@ export default async function RelatoriosPage({
   ]);
 
   const session = await auth();
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const orgaoIdsPermitidos = escopoOrgao.global
+    ? undefined
+    : escopoOrgao.orgaoIds;
   const permissoes = session?.user.perfilAtivo?.permissoes ?? [];
   const podeConsultarGlobal = permissoes.includes(
     "relatorios:consultar:global",
@@ -95,7 +103,7 @@ export default async function RelatoriosPage({
     : null;
 
   const servidoresRelatoriosIndividuais = podeConsultarTodosServidores
-    ? await listarServidoresParaRelatorio()
+    ? await listarServidoresParaRelatorio({ orgaoIdsPermitidos })
     : [];
 
   const servidoresGerenciais = session?.user
@@ -128,7 +136,7 @@ export default async function RelatoriosPage({
         ? (servidorProprio?.id ?? null)
         : null;
 
-  const boletins = await listarBoletinsParaRelatorio();
+  const boletins = await listarBoletinsParaRelatorio({ orgaoIdsPermitidos });
 
   return (
     <div className="space-y-6">

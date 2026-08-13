@@ -33,6 +33,17 @@ type ControlIdLoadParams = {
   where?: Array<Record<string, unknown>>;
 };
 
+const CAMPOS_USUARIO_CONTROL_ID_BASICOS = ["id", "name", "registration"];
+const CAMPOS_USUARIO_CONTROL_ID_COMPLETOS = [
+  "id",
+  "name",
+  "registration",
+  "cpf",
+  "document",
+  "documento",
+  "pis",
+];
+
 type ControlIdAccessLog = {
   id?: unknown;
   time?: unknown;
@@ -176,8 +187,42 @@ function extrairCpfCadastroControlId(usuario: ControlIdUser | undefined) {
   return null;
 }
 
+function extrairPisCadastroControlId(usuario: ControlIdUser | undefined) {
+  if (!usuario) return null;
+
+  for (const valor of [usuario.pis, usuario.registration]) {
+    const digitos = valorTexto(valor)?.replace(/\D/g, "") ?? "";
+
+    if (!digitos) continue;
+
+    const normalizado =
+      digitos.length === 12 && digitos.startsWith("0")
+        ? digitos.slice(1)
+        : digitos.length <= 11
+          ? digitos.padStart(11, "0")
+          : digitos;
+
+    if (
+      normalizado.length >= 11 &&
+      normalizado.length <= 12 &&
+      !/^(\d)\1+$/.test(normalizado)
+    ) {
+      return normalizado;
+    }
+  }
+
+  return null;
+}
+
 function parseCsvSimples(linha: string) {
   return linha.split(";").map((valor) => valor.trim());
+}
+
+function erroCampoUsuarioControlIdNaoSuportado(error: unknown) {
+  return (
+    error instanceof Error &&
+    error.message.includes("is not a column of table users")
+  );
 }
 
 export function parseLinhaAfdIdClass(linha: string): {
@@ -515,17 +560,30 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
             },
           ]
         : undefined;
+    const paramsUsuarios = {
+      object: "users",
+      fields: CAMPOS_USUARIO_CONTROL_ID_COMPLETOS,
+      limit: ids && ids.size > 0 ? Math.max(ids.size, 1) : 10000,
+      offset: 0,
+      order: ["id", "ascending"],
+      where,
+    };
     const usuarios = await this.carregarObjetos<ControlIdUser>(
-      {
-        object: "users",
-        fields: ["id", "name", "registration"],
-        limit: ids && ids.size > 0 ? Math.max(ids.size, 1) : 10000,
-        offset: 0,
-        order: ["id", "ascending"],
-        where,
-      },
+      paramsUsuarios,
       session,
-    );
+    ).catch((error) => {
+      if (!erroCampoUsuarioControlIdNaoSuportado(error)) {
+        throw error;
+      }
+
+      return this.carregarObjetos<ControlIdUser>(
+        {
+          ...paramsUsuarios,
+          fields: CAMPOS_USUARIO_CONTROL_ID_BASICOS,
+        },
+        session,
+      );
+    });
 
     return new Map(
       usuarios
@@ -754,11 +812,14 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
       const usuario =
         idUsuario === null ? undefined : usuarios.get(Math.trunc(idUsuario));
       const cpf = extrairCpfCadastroControlId(usuario);
+      const pis = cpf ? null : extrairPisCadastroControlId(usuario);
       const registration = valorTexto(usuario?.registration);
       const registrationEhCpf =
         Boolean(cpf) && registration?.replace(/\D/g, "") === cpf;
+      const registrationEhPis =
+        Boolean(pis) && registration?.replace(/\D/g, "") === pis;
       const matricula =
-        (registrationEhCpf ? null : registration) ??
+        (registrationEhCpf || registrationEhPis ? null : registration) ??
         idComoTexto(log.user_id) ??
         idComoTexto(log.identifier_id);
 
@@ -771,6 +832,7 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
           nsr,
           matricula,
           cpf,
+          pis,
           dataHora,
           codigoExterno: nsr,
           payload: {
@@ -915,31 +977,49 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
       };
     }
 
+    const paramsUsuarios = {
+      object: "users",
+      fields: CAMPOS_USUARIO_CONTROL_ID_COMPLETOS,
+      limit: quantidade,
+      offset,
+      order: ["id", "ascending"],
+    };
     const usuarios = await this.carregarObjetos<ControlIdUser>(
-      {
-        object: "users",
-        fields: ["id", "name", "registration"],
-        limit: quantidade,
-        offset,
-        order: ["id", "ascending"],
-      },
+      paramsUsuarios,
       session,
-    );
+    ).catch((error) => {
+      if (!erroCampoUsuarioControlIdNaoSuportado(error)) {
+        throw error;
+      }
+
+      return this.carregarObjetos<ControlIdUser>(
+        {
+          ...paramsUsuarios,
+          fields: CAMPOS_USUARIO_CONTROL_ID_BASICOS,
+        },
+        session,
+      );
+    });
     const cadastros: CadastroBiometricoEquipamento[] = usuarios
       .map((usuario) => {
         const cpf = extrairCpfCadastroControlId(usuario);
+        const pis = cpf ? null : extrairPisCadastroControlId(usuario);
         const registration = valorTexto(usuario.registration);
         const registrationEhCpf =
           Boolean(cpf) && registration?.replace(/\D/g, "") === cpf;
+        const registrationEhPis =
+          Boolean(pis) && registration?.replace(/\D/g, "") === pis;
 
         return {
           codigo: idComoTexto(usuario.id),
           matricula:
-            (registrationEhCpf ? null : registration) ??
+            (registrationEhCpf || registrationEhPis ? null : registration) ??
             idComoTexto(usuario.id) ??
             cpf ??
+            pis ??
             "",
           cpf,
+          pis,
           nome: valorTexto(usuario.name),
           payload: usuario,
         };

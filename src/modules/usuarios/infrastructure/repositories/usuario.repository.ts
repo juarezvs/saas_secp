@@ -12,6 +12,7 @@ export type ListarUsuariosParams = {
   perfil?: string;
   orgaoId?: string;
   orgaoIdsPermitidos?: string[];
+  incluirUsuariosSistemaSemEscopo?: boolean;
   status?: string;
 };
 
@@ -36,9 +37,19 @@ function ehTipoUsuario(valor?: string | null) {
   ].includes(valor ?? "");
 }
 
+function normalizarTipoUsuario(valor?: string | null) {
+  const tipo = valor?.trim().toUpperCase();
+
+  if (tipo === "SISTEMAS") {
+    return "SISTEMA";
+  }
+
+  return tipo;
+}
+
 export function montarWhereUsuarios(params: ListarUsuariosParams) {
   const busca = params.busca?.trim();
-  const tipo = params.tipo?.trim();
+  const tipo = normalizarTipoUsuario(params.tipo);
   const orgaoId = params.orgaoId?.trim();
   const orgaoIdsPermitidos = params.orgaoIdsPermitidos?.filter(ehUuid);
   const whereEscopoOrgao =
@@ -53,6 +64,21 @@ export function montarWhereUsuarios(params: ListarUsuariosParams) {
             { perfis: { some: { orgaoId: { in: orgaoIdsPermitidos } } } },
           ]
         : [];
+  const whereUsuariosSistemaSemEscopo = params.incluirUsuariosSistemaSemEscopo
+    ? [
+        {
+          tipo: "SISTEMA" as const,
+          servidor: null,
+          perfis: {
+            none: {},
+          },
+        },
+      ]
+    : [];
+  const whereRestricaoEscopo = [
+    ...whereEscopoOrgao,
+    ...whereUsuariosSistemaSemEscopo,
+  ];
 
   const where = {
     ...(params.status === "ativo"
@@ -202,8 +228,8 @@ export function montarWhereUsuarios(params: ListarUsuariosParams) {
       : {}),
   };
 
-  return whereEscopoOrgao.length
-    ? { AND: [where, { OR: whereEscopoOrgao }] }
+  return whereRestricaoEscopo.length
+    ? { AND: [where, { OR: whereRestricaoEscopo }] }
     : where;
 }
 

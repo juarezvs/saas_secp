@@ -74,6 +74,7 @@ import {
   PERMISSOES_ACESSO_REGISTRO_PONTO_SECP,
   PERMISSOES_REGISTRO_PONTO_FACIAL,
 } from "@/modules/auth/domain/constants/perfis-sistema";
+import { PERMISSOES_TOTEM_REGISTRO } from "@/modules/totem/application/totem-permissoes";
 import {
   PERMISSAO_PAINEL_EXECUTIVO,
   PERMISSAO_PAINEL_EXECUTIVO_EQUIPAMENTOS,
@@ -191,6 +192,12 @@ export const MENU_ITEMS: MenuItem[] = [
     href: "/marcacoes/registrar",
     icon: Fingerprint,
     permissoes: PERMISSOES_ACESSO_REGISTRO_PONTO_SECP,
+  },
+  {
+    label: "Modo Totem",
+    href: "/totem",
+    icon: RadioTower,
+    permissoes: PERMISSOES_TOTEM_REGISTRO,
   },
   {
     label: "Ponto de Hoje",
@@ -430,6 +437,9 @@ export const MENU_ITEMS: MenuItem[] = [
     icon: UsersRound,
     somenteAdministrativo: true,
     permissoes: [
+      "programacao-ferias:consultar:subordinados",
+      "programacao-ferias:consultar:seccional",
+      "programacao-ferias:consultar:global",
       "minha-equipe:consultar:subordinados",
       "minha-equipe:consultar:seccional",
       "minha-equipe:consultar:global",
@@ -501,7 +511,7 @@ export const MENU_ITEMS: MenuItem[] = [
           "recesso:consultar:global",
           "recesso:gerenciar:global",
           "recesso:homologar:chefia",
-          "recesso:aceitar:secad",
+          "recesso:aceitar:seccional",
         ],
       },
       {
@@ -521,8 +531,32 @@ export const MENU_ITEMS: MenuItem[] = [
     icon: UsersRound,
     ocultarQuandoAdministrativo: true,
     permissoes: [
+      "programacao-ferias:consultar:subordinados",
+      "programacao-ferias:consultar:seccional",
+      "programacao-ferias:consultar:global",
       "minha-equipe:consultar:subordinados",
       "minha-equipe:consultar:chefia",
+    ],
+    children: [
+      {
+        label: "Programação de Férias",
+        href: "/minha-equipe/ferias",
+        icon: CalendarDays,
+        permissoes: [
+          "programacao-ferias:consultar:subordinados",
+          "programacao-ferias:consultar:seccional",
+          "programacao-ferias:consultar:global",
+        ],
+      },
+      {
+        label: "Presentes/Ausentes/Licenças",
+        href: "/minha-equipe/presencas",
+        icon: UsersRound,
+        permissoes: [
+          "minha-equipe:consultar:subordinados",
+          "minha-equipe:consultar:chefia",
+        ],
+      },
     ],
   },
   {
@@ -555,7 +589,7 @@ export const MENU_ITEMS: MenuItem[] = [
       "recesso:consultar:global",
       "recesso:gerenciar:global",
       "recesso:homologar:chefia",
-      "recesso:aceitar:secad",
+      "recesso:aceitar:seccional",
     ],
   },
   {

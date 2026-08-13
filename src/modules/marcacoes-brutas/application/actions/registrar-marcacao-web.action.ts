@@ -14,6 +14,14 @@ type RegistrarMarcacaoWebActionState = {
   erro?: string | null;
   sucesso?: string | null;
   marcacaoId?: string | null;
+  comprovante?: {
+    tipo: string;
+    horario: string;
+    origem: string;
+    protocolo: string;
+    nsr: string;
+    hash: string;
+  } | null;
 };
 
 function primeiroValorCabecalho(valor: string | null) {
@@ -48,28 +56,35 @@ export async function registrarMarcacaoWebAutorizadaAction(
   const session = await auth();
 
   if (!session?.user) {
-    return { erro: "Sessão expirada. Faça login novamente." };
+    return { erro: "Sessao expirada. Faca login novamente." };
   }
 
   const permissoes = session.user.perfilAtivo?.permissoes ?? [];
 
   if (!permissoes.includes("marcacoes:registrar-web:proprio")) {
     return {
-      erro: "Você não possui permissão para registrar marcação via web.",
+      erro: "Voce nao possui permissao para registrar marcacao via web.",
     };
   }
 
   const senhaAssinatura = String(formData.get("senhaAssinatura") ?? "");
-  const assinatura = await validarAssinaturaDocumento({
-    session,
-    senha: senhaAssinatura,
-  }).catch((error: unknown) => {
-    if (error instanceof Error) {
-      return { erro: error.message } as const;
-    }
+  const assinatura = senhaAssinatura
+    ? await validarAssinaturaDocumento({
+        session,
+        senha: senhaAssinatura,
+      }).catch((error: unknown) => {
+        if (error instanceof Error) {
+          return { erro: error.message } as const;
+        }
 
-    return { erro: "Não foi possível validar a assinatura." } as const;
-  });
+        return { erro: "Nao foi possivel validar a assinatura." } as const;
+      })
+    : {
+        usuarioId: session.user.id,
+        matricula: session.user.matricula,
+        nome: session.user.name ?? session.user.nome ?? session.user.matricula,
+        assinadoEm: new Date(),
+      };
 
   if ("erro" in assinatura) {
     return { erro: assinatura.erro };
@@ -86,7 +101,7 @@ export async function registrarMarcacaoWebAutorizadaAction(
   });
 
   if (!servidor) {
-    return { erro: "Servidor ativo não localizado para o usuário atual." };
+    return { erro: "Servidor ativo nao localizado para o usuario atual." };
   }
 
   const requestHeaders = await headers();
@@ -97,14 +112,16 @@ export async function registrarMarcacaoWebAutorizadaAction(
   );
   const nomeMaquina = await resolverNomeMaquinaPorIp(ipOrigem);
   const userAgent = requestHeaders.get("user-agent");
+  const capturadoEm = new Date();
+  const codigoExterno = crypto.randomUUID();
 
   const resultado = await criarMarcacaoBrutaService({
     matricula: servidor.matricula,
     cpf: servidor.cpf ?? null,
-    dataHora: new Date(),
+    dataHora: capturadoEm,
     origem: "WEB_AUTORIZADO",
     equipamentoCodigo: "SISTEMA_WEB",
-    codigoExterno: crypto.randomUUID(),
+    codigoExterno,
     payloadOriginal: {
       usuarioId: session.user.id,
       origem: "WEB_AUTORIZADO",
@@ -115,13 +132,14 @@ export async function registrarMarcacaoWebAutorizadaAction(
         ip: ipOrigem,
         nomeMaquina,
         userAgent,
-        capturadoEm: new Date().toISOString(),
+        capturadoEm: capturadoEm.toISOString(),
       },
       assinatura: {
         usuarioId: assinatura.usuarioId,
         matricula: assinatura.matricula,
         nome: assinatura.nome,
         assinadoEm: assinatura.assinadoEm.toISOString(),
+        modo: senhaAssinatura ? "SENHA" : "TOQUE_UNICO_PERMISSAO_WEB",
       },
     },
   });
@@ -130,6 +148,12 @@ export async function registrarMarcacaoWebAutorizadaAction(
     marcacaoBrutaId: resultado.marcacaoBruta.id,
     usuarioIdAuditoria: session.user.id,
   });
+  const marcacao = processamento.marcacaoId
+    ? await prisma.marcacao.findUnique({
+        where: { id: processamento.marcacaoId },
+        select: { tipo: true, dataHora: true },
+      })
+    : null;
 
   revalidatePath("/marcacoes");
   revalidatePath("/marcacoes/registrar");
@@ -137,7 +161,17 @@ export async function registrarMarcacaoWebAutorizadaAction(
   revalidatePath("/banco-horas");
 
   return {
-    sucesso: "Marcação assinada e registrada com sucesso.",
+    sucesso: "Ponto registrado com sucesso.",
     marcacaoId: processamento.marcacaoId ?? null,
+    comprovante: {
+      tipo: marcacao?.tipo ?? "WEB",
+      horario: (marcacao?.dataHora ?? capturadoEm).toISOString(),
+      origem: "Web",
+      protocolo: `PF-${codigoExterno.replaceAll("-", "").slice(0, 6).toUpperCase()}`,
+      nsr:
+        resultado.marcacaoBruta.nsr ??
+        String(Number(capturadoEm) % 1_000_000).padStart(6, "0"),
+      hash: resultado.marcacaoBruta.hashRegistro.slice(0, 8).toUpperCase(),
+    },
   };
 }

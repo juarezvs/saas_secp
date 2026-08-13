@@ -57,6 +57,9 @@ export default async function RegistrarMarcacaoPage() {
         tipo: marcacao.tipo,
         fonte: marcacao.fonte,
         status: marcacao.status,
+        evidenciaFacialUrl: marcacao.evidenciaFacial
+          ? `/api/marcacoes/${marcacao.id}/evidencia-facial`
+          : null,
       }))}
       proximaMarcacao={proximaMarcacao}
       fluxoConcluido={fluxoConcluido}

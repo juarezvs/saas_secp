@@ -198,12 +198,12 @@ export default async function ServidorDetalhePage({
     podeCadastrar: usuarioPossuiAlgumaPermissaoNoPerfil(
       perfilCodigo,
       permissoesAtivas,
-      ["biometriafacial:cadastrar:terceiros"],
+      ["biometriafacial:cadastrar:seccional"],
     ),
     podeRecadastrar: usuarioPossuiAlgumaPermissaoNoPerfil(
       perfilCodigo,
       permissoesAtivas,
-      ["biometriafacial:recadastrar:terceiros"],
+      ["biometriafacial:recadastrar:seccional"],
     ),
     podeInvalidar: usuarioPossuiAlgumaPermissaoNoPerfil(
       perfilCodigo,
@@ -213,7 +213,7 @@ export default async function ServidorDetalhePage({
     podeVerAuditoria: usuarioPossuiAlgumaPermissaoNoPerfil(
       perfilCodigo,
       permissoesAtivas,
-      ["biometriafacial:visualizar:auditoria"],
+      ["biometriafacial:visualizar:global"],
     ),
   };
   const actionLotacao = vincularLotacaoAction.bind(null, servidorId);

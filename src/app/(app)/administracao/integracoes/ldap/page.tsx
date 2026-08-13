@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { atualizarLdapActiveDirectoryAction } from "@/modules/integracoes/application/actions/atualizar-ldap-active-directory.action";
-import { obterConfiguracaoLdapActiveDirectory } from "@/modules/integracoes/application/services/ldap-active-directory-config.service";
+import { obterConfiguracaoLdapActiveDirectoryFormulario } from "@/modules/integracoes/application/services/ldap-active-directory-config.service";
 import { LdapActiveDirectoryForm } from "@/modules/integracoes/presentation/components/ldap-active-directory-form";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
@@ -39,7 +39,7 @@ export default async function IntegracaoLdapActiveDirectoryPage({
       ? null
       : (orgaos[0]?.id ?? null);
   const configuracao =
-    await obterConfiguracaoLdapActiveDirectory(orgaoSelecionado);
+    await obterConfiguracaoLdapActiveDirectoryFormulario(orgaoSelecionado);
   const integracoesHref = orgaoSelecionado
     ? `/administracao/integracoes?${new URLSearchParams({
         orgaoId: orgaoSelecionado,

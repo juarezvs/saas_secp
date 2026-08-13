@@ -136,7 +136,7 @@ export const dashboardServidorConfig = {
         "recesso:consultar:global",
         "recesso:gerenciar:global",
         "recesso:homologar:chefia",
-        "recesso:aceitar:secad",
+        "recesso:aceitar:seccional",
       ],
     },
     {

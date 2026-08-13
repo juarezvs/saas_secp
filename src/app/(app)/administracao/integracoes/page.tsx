@@ -203,6 +203,8 @@ export default async function AdministracaoIntegracoesPage({
   searchParams,
 }: AdministracaoIntegracoesPageProps) {
   await exigirUmaDasPermissoesOuRedirecionar([
+    "integracoes:consultar:seccional",
+    "integracoes:gerenciar:seccional",
     "integracoes:consultar:global",
     "integracoes:gerenciar:global",
     "integracoes-sarh:consultar:global",

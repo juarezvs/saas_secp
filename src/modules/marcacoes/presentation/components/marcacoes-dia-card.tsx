@@ -10,6 +10,7 @@ type MarcacaoDiaItem = {
   status: string;
   observacao: string | null;
   fusoHorario?: string | null;
+  evidenciaFacialUrl?: string | null;
 };
 
 export function MarcacoesDiaCard({

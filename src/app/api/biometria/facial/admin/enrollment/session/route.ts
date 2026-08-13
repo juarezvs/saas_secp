@@ -28,8 +28,8 @@ async function postBiometriaAdminEnrollmentSession(request: NextRequest) {
 
   const permissoes =
     parsed.data.modo === "recadastro"
-      ? ["biometriafacial:recadastrar:terceiros"]
-      : ["biometriafacial:cadastrar:terceiros"];
+      ? ["biometriafacial:recadastrar:seccional"]
+      : ["biometriafacial:cadastrar:seccional"];
   const acesso = await exigirPermissaoBiometriaFacialAdmin(permissoes);
 
   if (!acesso.autorizado) {

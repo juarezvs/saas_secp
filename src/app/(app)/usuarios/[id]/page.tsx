@@ -3,9 +3,12 @@ import { notFound } from "next/navigation";
 import { Edit, UserRound } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
-import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
-import { resolverEscopoGestaoUsuarios } from "@/modules/usuarios/application/services/escopo-gestao-usuarios.service";
+import {
+  resolverEscopoGestaoUsuarios,
+  usuarioEstaNoEscopoGestaoUsuarios,
+} from "@/modules/usuarios/application/services/escopo-gestao-usuarios.service";
 import {
   buscarUsuarioPorId,
   listarPerfisAtivosParaUsuario,
@@ -22,9 +25,10 @@ type UsuarioDetalhePageProps = {
 export default async function UsuarioDetalhePage({
   params,
 }: UsuarioDetalhePageProps) {
-  const permissao = await exigirPermissaoOuRedirecionar(
+  const permissao = await exigirUmaDasPermissoesOuRedirecionar([
     "usuarios:gerenciar:global",
-  );
+    "usuarios:gerenciar:seccional",
+  ]);
   const escopoGestaoUsuarios = await resolverEscopoGestaoUsuarios(permissao);
 
   const { id } = await params;
@@ -43,6 +47,13 @@ export default async function UsuarioDetalhePage({
     notFound();
   }
 
+  if (!usuarioEstaNoEscopoGestaoUsuarios(usuario, escopoGestaoUsuarios)) {
+    notFound();
+  }
+
+  const perfisDisponiveis = escopoGestaoUsuarios.permitirEscopoGlobal
+    ? perfisAtivos
+    : perfisAtivos.filter((perfil) => perfil.codigo !== "MASTER");
   const lotacaoAtual = usuario.servidor?.lotacoes[0];
   const jornadaAtual = usuario.servidor?.jornadas[0];
 
@@ -130,7 +141,7 @@ export default async function UsuarioDetalhePage({
 
       <VincularPerfilUsuarioForm
         usuarioId={usuario.id}
-        perfis={perfisAtivos}
+        perfis={perfisDisponiveis}
         orgaos={orgaos}
         permitirEscopoGlobal={escopoGestaoUsuarios.permitirEscopoGlobal}
       />

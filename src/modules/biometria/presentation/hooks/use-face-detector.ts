@@ -19,6 +19,10 @@ export type FaceSnapshot = {
   frameVector: number[];
 };
 
+export type FaceSnapshotMultiplo = FaceSnapshot & {
+  indice: number;
+};
+
 type HumanFace = {
   embedding?: number[] | Float32Array;
   description?: number[] | Float32Array;
@@ -83,7 +87,7 @@ async function carregarHuman() {
         detector: {
           enabled: true,
           rotation: true,
-          maxDetected: 2,
+          maxDetected: 8,
         },
         mesh: { enabled: true },
         iris: { enabled: true },
@@ -192,6 +196,42 @@ export function useFaceDetector() {
     } satisfies FaceSnapshot;
   }, []);
 
+  const detectarMultiplas = useCallback(async (video: HTMLVideoElement) => {
+    const human = await carregarHuman();
+    const result = await human.detect(video);
+    const faces = result.face ?? [];
+    const { hash, vetor } = await criarAssinaturaFrame(video, canvasRef);
+
+    return faces.map((face, indice) => {
+      const angulos = normalizarAngulosHuman(face.rotation?.angle);
+      const felicidade =
+        face.emotion?.find((item) => item.emotion?.toLowerCase() === "happy")
+          ?.score ?? 0;
+
+      return {
+        timestamp: Date.now(),
+        indice,
+        faces: faces.length,
+        score: limitar01(face.score ?? face.boxScore ?? 0),
+        box: face.box ?? null,
+        embedding: face.embedding
+          ? Array.from(face.embedding)
+          : face.description
+            ? Array.from(face.description)
+            : null,
+        yaw: angulos.yaw,
+        pitch: angulos.pitch,
+        roll: angulos.roll,
+        felicidade: limitar01(felicidade),
+        gestos: (result.gesture ?? [])
+          .map((item) => item.gesture?.toLowerCase() ?? "")
+          .filter(Boolean),
+        frameHash: `${hash}-${indice}`,
+        frameVector: vetor,
+      } satisfies FaceSnapshotMultiplo;
+    });
+  }, []);
+
   useEffect(() => {
     return () => {
       canvasRef.current = null;
@@ -204,6 +244,7 @@ export function useFaceDetector() {
     erro,
     preparar,
     detectar,
+    detectarMultiplas,
   };
 }
 

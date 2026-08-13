@@ -68,3 +68,31 @@ export type OvertimeDateSelection = {
   intervalDays?: number;
 };
 
+export type StatusAutorizacaoHoraExtra =
+  | "RASCUNHO"
+  | "REGISTRADA_NO_SECP"
+  | "VIGENTE"
+  | "EM_EXECUCAO"
+  | "AGUARDANDO_CONFERENCIA"
+  | "EM_CONFERENCIA"
+  | "PENDENTE_AJUSTE"
+  | "ATESTADA"
+  | "CALCULADA"
+  | "PRONTA_PARA_FOLHA"
+  | "ENVIADA_PARA_FOLHA"
+  | "PAGA"
+  | "CANCELADA";
+
+export type StatusServidorAutorizacaoHoraExtra =
+  | "AUTORIZADO"
+  | "SEM_EXECUCAO"
+  | "EXECUCAO_EM_ANDAMENTO"
+  | "PENDENTE_CONFERENCIA"
+  | "PENDENTE_DECISAO_GESTOR"
+  | "REGULAR"
+  | "COM_DIVERGENCIA"
+  | "ATESTADO"
+  | "CALCULADO"
+  | "PRONTO_PARA_FOLHA"
+  | "PROCESSADO_EM_FOLHA"
+  | "CANCELADO";

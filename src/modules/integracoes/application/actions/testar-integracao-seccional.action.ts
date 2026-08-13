@@ -145,7 +145,9 @@ async function testarLdap(orgaoId: string, matricula: string, senha: string) {
   }
 
   if (!matricula || !senha) {
-    throw new Error("Informe matricula e senha para testar o Active Directory.");
+    throw new Error(
+      "Informe matricula e senha para testar o Active Directory.",
+    );
   }
 
   const autenticado = await autenticarNoActiveDirectory(
@@ -183,6 +185,7 @@ async function testarRelogio(orgaoId: string) {
 export async function testarIntegracaoSeccionalAction(formData: FormData) {
   await exigirUmaDasPermissoesOuRedirecionar([
     "integracoes:gerenciar:global",
+    "integracoes:gerenciar:seccional",
     "integracoes-sarh:configurar:global",
   ]);
 
