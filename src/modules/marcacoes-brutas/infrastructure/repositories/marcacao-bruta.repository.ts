@@ -29,6 +29,7 @@ function ehOrigemMarcacaoBruta(valor?: string | null) {
     "IMPORTACAO_AFD",
     "WEB_AUTORIZADO",
     "FACIAL_AUTORIZADO",
+    "TOTEM_FACIAL_SECP",
   ].includes(valor ?? "");
 }
 

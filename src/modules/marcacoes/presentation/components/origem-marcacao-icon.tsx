@@ -30,14 +30,19 @@ const origemConfig: Record<string, OrigemConfig> = {
     className: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300",
   },
   BIOMETRIA_FACIAL: {
-    label: "Reconhecimento facial",
+    label: "Reconhecimento facial individual",
     icon: ScanFace,
     className: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300",
   },
   FACIAL_AUTORIZADO: {
-    label: "Reconhecimento facial",
+    label: "Reconhecimento facial individual",
     icon: ScanFace,
     className: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300",
+  },
+  TOTEM_FACIAL_SECP: {
+    label: "TOTEM_FACIAL_SECP",
+    icon: ScanFace,
+    className: "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950 dark:text-indigo-300",
   },
   EQUIPAMENTO_BIOMETRICO: {
     label: "Equipamento biométrico",

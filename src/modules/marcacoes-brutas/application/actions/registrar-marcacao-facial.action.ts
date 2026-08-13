@@ -142,7 +142,7 @@ export async function registrarMarcacaoFacialAutorizadaAction(
       equipamentoOrigem: {
         tipo: "SISTEMA_WEB_FACIAL",
         codigo: "SISTEMA_WEB_FACIAL",
-        nome: "Sistema Web SECP - reconhecimento facial",
+        nome: "Reconhecimento facial individual",
         ip: ipOrigem,
         nomeMaquina,
         userAgent,

@@ -19,18 +19,22 @@ export async function resolverEscopoGestaoUsuarios(
   const orgaoIdsPerfilAtivo = permissao.usuarioId
     ? await buscarOrgaoIdsDoPerfilAtivo(permissao)
     : [];
+  const orgaoIdsSessao = permissao.orgaoIds ?? [];
+  const orgaoIdsPermitidos = orgaoIdsPerfilAtivo.length
+    ? orgaoIdsPerfilAtivo
+    : orgaoIdsSessao;
 
   if (permitirEscopoGlobal) {
     return {
       permitirEscopoGlobal,
-      orgaoIdsPermitidos: orgaoIdsPerfilAtivo,
+      orgaoIdsPermitidos,
     };
   }
 
   return {
     permitirEscopoGlobal,
-    orgaoIdsPermitidos: orgaoIdsPerfilAtivo.length
-      ? orgaoIdsPerfilAtivo
+    orgaoIdsPermitidos: orgaoIdsPermitidos.length
+      ? orgaoIdsPermitidos
       : [ORGAO_ID_SEM_ACESSO],
   };
 }

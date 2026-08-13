@@ -218,7 +218,7 @@ export async function POST(request: Request) {
       validada: true,
       criadoPorUsuarioId: session.user.id,
       metadados: {
-        origem: "TOTEM_MULTI_FACIAL",
+        origem: "TOTEM_FACIAL_SECP",
         operadorUsuarioId: session.user.id,
         metadadosCliente: payload.metadados ?? null,
       },
@@ -230,11 +230,11 @@ export async function POST(request: Request) {
     matricula: servidor.matricula,
     cpf: servidor.cpf,
     dataHora: agora,
-    origem: "FACIAL_AUTORIZADO",
+    origem: "TOTEM_FACIAL_SECP",
     equipamentoCodigo: "TOTEM_FACIAL_SECP",
     codigoExterno: crypto.randomUUID(),
     payloadOriginal: {
-      origem: "TOTEM_MULTI_FACIAL",
+      origem: "TOTEM_FACIAL_SECP",
       operadorUsuarioId: session.user.id,
       servidorId: servidor.id,
       ip: ipOrigem,
@@ -276,7 +276,7 @@ export async function POST(request: Request) {
       data: {
         metadados: {
           ...metadadosAtuais,
-          origemRegistro: "TOTEM_MULTI_FACIAL",
+          origemRegistro: "TOTEM_FACIAL_SECP",
           operadorTotemUsuarioId: session.user.id,
           registradoNoTotemEm: agora.toISOString(),
         },
@@ -292,7 +292,7 @@ export async function POST(request: Request) {
       similaridade: melhor.similaridade,
       distancia: melhor.distancia,
       metadados: {
-        origem: "TOTEM_MULTI_FACIAL",
+        origem: "TOTEM_FACIAL_SECP",
         operadorUsuarioId: session.user.id,
         ip: ipOrigem,
         userAgent,

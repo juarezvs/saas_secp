@@ -40,7 +40,8 @@ export async function criarMarcacaoBrutaService(params: {
     | "EQUIPAMENTO_BIOMETRICO"
     | "IMPORTACAO_AFD"
     | "WEB_AUTORIZADO"
-    | "FACIAL_AUTORIZADO";
+    | "FACIAL_AUTORIZADO"
+    | "TOTEM_FACIAL_SECP";
   nsr?: string | null;
   codigoExterno?: string | null;
   payloadOriginal?: unknown;

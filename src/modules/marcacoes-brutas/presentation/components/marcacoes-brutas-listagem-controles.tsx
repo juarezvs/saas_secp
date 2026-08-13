@@ -76,7 +76,11 @@ export function MarcacoesBrutasListagemControles({
         { value: "EQUIPAMENTO_BIOMETRICO", label: "Equipamento biometrico" },
         { value: "IMPORTACAO_AFD", label: "Importacao AFD" },
         { value: "WEB_AUTORIZADO", label: "Web autorizado" },
-        { value: "FACIAL_AUTORIZADO", label: "Facial autorizado" },
+        {
+          value: "FACIAL_AUTORIZADO",
+          label: "Reconhecimento facial individual",
+        },
+        { value: "TOTEM_FACIAL_SECP", label: "TOTEM_FACIAL_SECP" },
       ],
     },
     {

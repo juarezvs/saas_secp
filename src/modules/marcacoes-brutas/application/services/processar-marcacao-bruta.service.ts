@@ -343,7 +343,8 @@ export async function processarMarcacaoBrutaService(params: {
           bruta.origem === "EQUIPAMENTO_BIOMETRICO" ||
           bruta.origem === "IMPORTACAO_AFD"
             ? "EQUIPAMENTO_BIOMETRICO"
-            : bruta.origem === "FACIAL_AUTORIZADO"
+            : bruta.origem === "FACIAL_AUTORIZADO" ||
+                bruta.origem === "TOTEM_FACIAL_SECP"
               ? "BIOMETRIA_FACIAL"
             : "WEB",
         status: "VALIDA",

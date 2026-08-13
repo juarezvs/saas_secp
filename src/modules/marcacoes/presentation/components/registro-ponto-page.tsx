@@ -1091,7 +1091,7 @@ function formatarHora(dataHora: string, fusoHorario?: string | null) {
 }
 
 function rotuloOrigemWeb(fonte: string) {
-  if (fonte === "BIOMETRIA_FACIAL") return "Facial";
+  if (fonte === "BIOMETRIA_FACIAL") return "Reconhecimento facial individual";
   if (fonte === "WEB") return "Web";
 
   return fonte;
