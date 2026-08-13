@@ -206,7 +206,19 @@ function proximoNsr(configuracao: unknown) {
 
 function equipamentoOperacionalSuportado(equipamento: EquipamentoOperacional) {
   const fabricante = equipamento.fabricante?.toUpperCase();
-  return fabricante === "HENRY" || fabricante === "DIMEP" || fabricante === "CONTROL_ID";
+  const configuracao = getConfiguracao(equipamento.configuracao) as Record<string, unknown>;
+  const protocolo =
+    typeof configuracao.protocolo === "string"
+      ? configuracao.protocolo.toUpperCase()
+      : "";
+
+  return (
+    fabricante === "HENRY" ||
+    fabricante === "DIMEP" ||
+    fabricante === "CONTROL_ID" ||
+    fabricante === "INTELBRAS" ||
+    protocolo === "INTELBRAS_BIO_T"
+  );
 }
 
 export function RelogioPontoAdminPanel({
@@ -266,8 +278,9 @@ export function RelogioPontoAdminPanel({
       <div className="p-5">
         {relogios.length === 0 ? (
           <div className="rounded-lg border border-dashed p-8 text-center text-sm text-[var(--muted-foreground)]">
-            Nenhum equipamento de ponto suportado cadastrado. Cadastre Henry ou
-            Dimep Smart Print ou Control iD FACE ID para habilitar operacoes e monitoramento.
+            Nenhum equipamento de ponto suportado cadastrado. Cadastre Henry,
+            Dimep Smart Print, Control iD FACE ID ou Intelbras Bio-T para
+            habilitar operacoes e monitoramento.
           </div>
         ) : (
           <>
