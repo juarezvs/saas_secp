@@ -32,8 +32,8 @@ export function montarWhereOrgaos(params: ListarOrgaosParams = {}) {
   return {
     ...(orgaoId && ehUuid(orgaoId)
       ? { id: orgaoId }
-      : orgaoIdsPermitidos?.length
-        ? { id: { in: orgaoIdsPermitidos } }
+      : params.orgaoIdsPermitidos !== undefined
+        ? { id: { in: orgaoIdsPermitidos ?? [] } }
         : {}),
 
     ...(params.status === "ativo"

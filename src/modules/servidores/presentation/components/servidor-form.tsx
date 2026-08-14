@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useActionState } from "react";
 import { Loader2, Save } from "lucide-react";
 
@@ -9,6 +8,7 @@ import {
   tiposVinculoServidor,
   type ServidorFormState,
 } from "../../application/schemas/servidor.schema";
+import { IdentificadoresPontoField } from "./identificadores-ponto-field";
 
 type OrgaoItem = {
   id: string;
@@ -22,8 +22,14 @@ type ServidorFormProps = {
     formData: FormData,
   ) => Promise<ServidorFormState>;
   orgaos: OrgaoItem[];
+  categorias: Array<{
+    id: string;
+    codigo: string;
+    nome: string;
+  }>;
   valoresIniciais?: {
     orgaoId?: string;
+    categoriaPessoaId?: string | null;
     matricula?: string;
     cpf: string;
     pis?: string | null;
@@ -38,6 +44,7 @@ type ServidorFormProps = {
     descricaoSituacaoSarh?: string | null;
     sinalizacaoForaExpediente?: string | null;
     ativo?: boolean;
+    identificadoresPonto?: string[];
   };
   modo: "criar" | "editar";
 };
@@ -63,6 +70,7 @@ function obterErro(erros: Record<string, string[]> | undefined, campo: string) {
 export function ServidorForm({
   action,
   orgaos,
+  categorias,
   valoresIniciais,
   modo,
 }: ServidorFormProps) {
@@ -93,48 +101,6 @@ export function ServidorForm({
       <section className="rounded-xl border bg-(--card) p-6 text-(--card-foreground) shadow-sm">
         <h2 className="text-lg font-bold">Dados funcionais</h2>
 
-        {campos?.cpf && (
-          <div className="mt-5 flex items-center gap-4 rounded-lg border bg-[var(--muted)] p-4">
-            <Image
-              src={`/api/servidores/foto/${campos.cpf}`}
-              alt=""
-              width={76}
-              height={76}
-              unoptimized
-              className="size-[4.75rem] rounded-full border-4 border-white bg-slate-100 object-cover shadow-sm ring-2 ring-blue-100 dark:border-slate-950 dark:bg-slate-800 dark:ring-blue-900/60"
-            />
-            <div className="min-w-0">
-              <p className="text-sm font-semibold">
-                {campos.nomeFuncional ?? campos.nome ?? "Servidor"}
-              </p>
-              <p className="mt-1 font-mono text-xs text-[var(--muted-foreground)]">
-                CPF {campos.cpf}
-              </p>
-              {campos.cargoDescricao && (
-                <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-                  {campos.cargoDescricao}
-                </p>
-              )}
-              {campos.funcaoDescricao && (
-                <p className="mt-1 text-xs font-semibold text-blue-900 dark:text-blue-300">
-                  {campos.funcaoDescricao}
-                </p>
-              )}
-              {(campos.descricaoProvimentoSarh ||
-                campos.descricaoSituacaoSarh) && (
-                <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-                  {[
-                    campos.descricaoProvimentoSarh,
-                    campos.descricaoSituacaoSarh,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
         <div className="mt-5 grid gap-5 md:grid-cols-2">
           <div className="space-y-2">
             <label htmlFor="orgaoId" className="text-sm font-semibold">
@@ -159,6 +125,36 @@ export function ServidorForm({
             {obterErro(estado.erros, "orgaoId") && (
               <p className="text-sm text-red-600">
                 {obterErro(estado.erros, "orgaoId")}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor="categoriaPessoaId"
+              className="text-sm font-semibold"
+            >
+              Categoria
+            </label>
+
+            <SearchableSelect
+              id="categoriaPessoaId"
+              name="categoriaPessoaId"
+              defaultValue={campos?.categoriaPessoaId ?? ""}
+              placeholder="Selecione a categoria"
+              searchPlaceholder="Pesquisar categoria..."
+              emptyMessage="Nenhuma categoria encontrada."
+              options={categorias.map((categoria) => ({
+                value: categoria.id,
+                label: categoria.nome,
+                searchText: categoria.codigo,
+              }))}
+              required
+            />
+
+            {obterErro(estado.erros, "categoriaPessoaId") && (
+              <p className="text-sm text-red-600">
+                {obterErro(estado.erros, "categoriaPessoaId")}
               </p>
             )}
           </div>
@@ -371,6 +367,12 @@ export function ServidorForm({
               </p>
             )}
           </div>
+
+          <IdentificadoresPontoField
+            matricula={campos?.matricula}
+            valorInicial={campos?.identificadoresPonto}
+            erro={obterErro(estado.erros, "identificadoresPonto")}
+          />
         </div>
       </section>
 
@@ -386,10 +388,9 @@ export function ServidorForm({
             <Save className="size-4" aria-hidden="true" />
           )}
 
-          {modo === "criar" ? "Criar servidor" : "Salvar alterações"}
+          {modo === "criar" ? "Criar pessoa" : "Salvar alterações"}
         </button>
       </div>
     </form>
   );
 }
-

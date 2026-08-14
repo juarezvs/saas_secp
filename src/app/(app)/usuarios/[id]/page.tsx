@@ -35,7 +35,11 @@ export default async function UsuarioDetalhePage({
 
   const [usuario, perfisAtivos, orgaos] = await Promise.all([
     buscarUsuarioPorId(id),
-    listarPerfisAtivosParaUsuario(),
+    listarPerfisAtivosParaUsuario(
+      escopoGestaoUsuarios.permitirEscopoGlobal
+        ? {}
+        : { orgaoIdsPermitidos: escopoGestaoUsuarios.orgaoIdsPermitidos },
+    ),
     listarOrgaosAtivos(
       escopoGestaoUsuarios.permitirEscopoGlobal &&
         escopoGestaoUsuarios.orgaoIdsPermitidos.length === 0

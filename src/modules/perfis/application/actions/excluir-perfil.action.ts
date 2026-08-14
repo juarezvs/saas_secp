@@ -3,13 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 export async function excluirPerfilAction(perfilId: string) {
-  const permissao = await exigirPermissaoOuRedirecionar(
+  const permissao = await exigirUmaDasPermissoesOuRedirecionar([
     "perfis:gerenciar:global",
-  );
+    "perfis:gerenciar:seccional",
+  ]);
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
 
   const perfil = await prisma.perfil.findUnique({
     where: { id: perfilId },
@@ -31,7 +34,13 @@ export async function excluirPerfilAction(perfilId: string) {
     return;
   }
 
-  if (perfil.sistema || perfil._count.usuarios > 0) {
+  if (
+    perfil.sistema ||
+    perfil._count.usuarios > 0 ||
+    (!escopoOrgao.global &&
+      perfil.orgaoId &&
+      !escopoOrgao.orgaoIds.includes(perfil.orgaoId))
+  ) {
     revalidatePath(`/perfis/${perfilId}`);
     return;
   }

@@ -6,7 +6,6 @@ import {
   BadgeCheck,
   BarChart3,
   Ban,
-  BriefcaseBusiness,
   Building2,
   CalendarClock,
   CalendarDays,
@@ -49,7 +48,6 @@ import {
   ToggleLeft,
   TreePalm,
   Upload,
-  UserCheck,
   UserCog,
   Users,
   UsersRound,
@@ -106,7 +104,10 @@ const ICONES_MENU_ROTAS: IconeMenuRota[] = [
   { href: "/administracao/personalizar-menu", icon: Palette },
   { href: "/administracao/regulamentacao-ponto", icon: SlidersHorizontal },
   { href: "/administracao/procedimentos-frequencia", icon: ClipboardList },
-  { href: "/administracao/procedimentos-frequencia/nada-consta", icon: FileCheck2 },
+  {
+    href: "/administracao/procedimentos-frequencia/nada-consta",
+    icon: FileCheck2,
+  },
   { href: "/administracao/banco-horas", icon: Hourglass },
   { href: "/administracao/horas-extras", icon: FileCog },
   { href: "/administracao/calendario", icon: CalendarDays },
@@ -118,9 +119,6 @@ const ICONES_MENU_ROTAS: IconeMenuRota[] = [
   { href: "/orgaos", icon: Landmark },
   { href: "/unidades", icon: Building2 },
   { href: "/servidores", icon: Users },
-  { href: "/estagiarios", icon: UserCheck },
-  { href: "/prestadores", icon: BriefcaseBusiness },
-  { href: "/voluntarios", icon: UsersRound },
   { href: "/chefias", icon: Network },
   { href: "/jornadas", icon: CalendarClock },
   { href: "/afd", icon: Upload },
@@ -138,7 +136,11 @@ function normalizarHref(href: string) {
   };
 }
 
-function rotaCorresponde(pathname: string, searchParams: URLSearchParams, href: string) {
+function rotaCorresponde(
+  pathname: string,
+  searchParams: URLSearchParams,
+  href: string,
+) {
   const rota = normalizarHref(href);
   const pathnameAtual = pathname.replace(/\/+$/, "") || "/dashboard";
 
@@ -154,7 +156,10 @@ function rotaCorresponde(pathname: string, searchParams: URLSearchParams, href: 
     );
   }
 
-  return pathnameAtual === rota.pathname || pathnameAtual.startsWith(`${rota.pathname}/`);
+  return (
+    pathnameAtual === rota.pathname ||
+    pathnameAtual.startsWith(`${rota.pathname}/`)
+  );
 }
 
 export function PageHeaderMenuIcon() {

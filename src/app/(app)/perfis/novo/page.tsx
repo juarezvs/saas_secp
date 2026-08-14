@@ -2,7 +2,9 @@ import { ShieldAlert } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
-import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
 import { criarPerfilAction } from "@/modules/perfis/application/actions/criar-perfil.action";
 import {
   listarPerfisParaFiltro,
@@ -11,11 +13,19 @@ import {
 import { PerfilForm } from "@/modules/perfis/presentation/components/perfil-form";
 
 export default async function NovoPerfilPage() {
-  await exigirPermissaoOuRedirecionar("perfis:gerenciar:global");
+  await exigirUmaDasPermissoesOuRedirecionar([
+    "perfis:gerenciar:global",
+    "perfis:gerenciar:seccional",
+  ]);
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const orgaoIdsPermitidos = escopoOrgao.global
+    ? undefined
+    : escopoOrgao.orgaoIds;
 
-  const [permissoes, perfisDestinoExcecao] = await Promise.all([
+  const [permissoes, perfisDestinoExcecao, orgaosPermitidos] = await Promise.all([
     listarPermissoesOrdenadas(),
-    listarPerfisParaFiltro(),
+    listarPerfisParaFiltro({ orgaoIdsPermitidos }),
+    listarOrgaosAtivos({ orgaoIdsPermitidos }),
   ]);
 
   return (
@@ -41,6 +51,8 @@ export default async function NovoPerfilPage() {
         action={criarPerfilAction}
         permissoes={permissoes}
         perfisDestinoExcecao={perfisDestinoExcecao}
+        orgaosPermitidos={orgaosPermitidos}
+        permitirPerfilGlobal={escopoOrgao.global}
         modo="criar"
         valoresIniciais={{
           ativo: true,

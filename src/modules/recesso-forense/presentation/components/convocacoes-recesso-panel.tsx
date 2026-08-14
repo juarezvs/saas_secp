@@ -159,10 +159,10 @@ export function ConvocacoesRecessoPanel({
                     {convocacao.dataPortaria
                       ? formatarDataRecesso(convocacao.dataPortaria)
                       : "Sem data"}{" "}
-                    - {convocacao.unidade?.sigla ?? "Unidade n?o informada"} -
+                    - {convocacao.unidade?.sigla ?? "Unidade não informada"} -
                     Chefia:{" "}
                     {convocacao.chefiaResponsavel?.usuario.nome ??
-                      "n?o definida"}
+                      "não definida"}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">

@@ -15,6 +15,7 @@ type RegistrarMarcacaoWebActionState = {
   sucesso?: string | null;
   marcacaoId?: string | null;
   comprovante?: {
+    marcacaoId: string | null;
     tipo: string;
     horario: string;
     origem: string;
@@ -164,6 +165,7 @@ export async function registrarMarcacaoWebAutorizadaAction(
     sucesso: "Ponto registrado com sucesso.",
     marcacaoId: processamento.marcacaoId ?? null,
     comprovante: {
+      marcacaoId: processamento.marcacaoId ?? null,
       tipo: marcacao?.tipo ?? "WEB",
       horario: (marcacao?.dataHora ?? capturadoEm).toISOString(),
       origem: "Web",

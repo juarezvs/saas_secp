@@ -2,22 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
-import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import {
-  perfilSchema,
-  type PerfilFormState,
-} from "../schemas/perfil.schema";
+
 import {
   buscarPerfilPorId,
   codigoPerfilExiste,
 } from "../../infrastructure/repositories/perfil.repository";
+import { perfilSchema, type PerfilFormState } from "../schemas/perfil.schema";
 
 function extrairDadosPerfil(formData: FormData) {
   return {
-    codigo: String(formData.get("codigo") ?? "")
-      .trim()
-      .toUpperCase(),
+    codigo: String(formData.get("codigo") ?? "").trim().toUpperCase(),
     nome: String(formData.get("nome") ?? "").trim(),
     descricao: String(formData.get("descricao") ?? "").trim(),
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
@@ -29,19 +26,56 @@ function extrairDadosPerfil(formData: FormData) {
     perfilDestinoExcecaoId: String(
       formData.get("perfilDestinoExcecaoId") ?? "",
     ),
+    orgaoId: String(formData.get("orgaoId") ?? ""),
     permissoes: formData.getAll("permissoes").map(String),
   };
+}
+
+async function resolverOrgaoPerfil(params: {
+  orgaoId: string;
+  orgaoIdsPermitidos: string[];
+  escopoGlobal: boolean;
+  orgaoIdAtual?: string | null;
+}) {
+  const orgaoId =
+    params.orgaoId ||
+    params.orgaoIdAtual ||
+    (!params.escopoGlobal && params.orgaoIdsPermitidos.length === 1
+      ? params.orgaoIdsPermitidos[0]
+      : "");
+
+  if (!orgaoId) {
+    return null;
+  }
+
+  if (!params.escopoGlobal && !params.orgaoIdsPermitidos.includes(orgaoId)) {
+    throw new Error("A seccional informada não pertence ao escopo do perfil ativo.");
+  }
+
+  return prisma.orgao.findUnique({
+    where: { id: orgaoId },
+    select: { id: true, sigla: true },
+  });
+}
+
+function aplicarPrefixoSeccional(codigo: string, sigla?: string) {
+  const codigoNormalizado = codigo.trim().toUpperCase();
+  const prefixo = `${(sigla ?? "SECP").toUpperCase()}-`;
+
+  return codigoNormalizado.startsWith(prefixo)
+    ? codigoNormalizado
+    : `${prefixo}${codigoNormalizado}`;
 }
 
 export async function atualizarPerfilAction(
   perfilId: string,
   _estadoAnterior: PerfilFormState,
-  formData: FormData
+  formData: FormData,
 ): Promise<PerfilFormState> {
-  const permissao = await exigirPermissaoOuRedirecionar(
-    "perfis:gerenciar:global"
-  );
-
+  const permissao = await exigirUmaDasPermissoesOuRedirecionar([
+    "perfis:gerenciar:global",
+    "perfis:gerenciar:seccional",
+  ]);
   const perfilAtual = await buscarPerfilPorId(perfilId);
 
   if (!perfilAtual) {
@@ -51,8 +85,21 @@ export async function atualizarPerfilAction(
     };
   }
 
-  const dados = extrairDadosPerfil(formData);
+  const escopoGlobal = permissao.perfilAtivoEscopoGlobal ?? false;
+  const orgaoIdsPermitidos = permissao.orgaoIds ?? [];
 
+  if (
+    !escopoGlobal &&
+    perfilAtual.orgaoId &&
+    !orgaoIdsPermitidos.includes(perfilAtual.orgaoId)
+  ) {
+    return {
+      sucesso: false,
+      mensagem: "Este perfil não pertence ao escopo do perfil ativo.",
+    };
+  }
+
+  const dados = extrairDadosPerfil(formData);
   const parsed = perfilSchema.safeParse(dados);
 
   if (!parsed.success) {
@@ -64,7 +111,33 @@ export async function atualizarPerfilAction(
     };
   }
 
-  const existe = await codigoPerfilExiste(parsed.data.codigo, perfilId);
+  const orgao = perfilAtual.sistema
+    ? null
+    : await resolverOrgaoPerfil({
+        orgaoId: parsed.data.orgaoId ?? "",
+        orgaoIdAtual: perfilAtual.orgaoId,
+        orgaoIdsPermitidos,
+        escopoGlobal,
+      }).catch((error: unknown) => {
+        if (error instanceof Error) {
+          return { erro: error.message } as const;
+        }
+
+        return { erro: "Não foi possível validar a seccional do perfil." } as const;
+      });
+
+  if (orgao && "erro" in orgao) {
+    return {
+      sucesso: false,
+      mensagem: orgao.erro,
+      campos: dados,
+    };
+  }
+
+  const codigo = perfilAtual.sistema
+    ? perfilAtual.codigo
+    : aplicarPrefixoSeccional(parsed.data.codigo, orgao?.sigla);
+  const existe = await codigoPerfilExiste(codigo, perfilId);
 
   if (existe) {
     return {
@@ -73,7 +146,7 @@ export async function atualizarPerfilAction(
       erros: {
         codigo: ["Já existe outro perfil com este código."],
       },
-      campos: dados,
+      campos: { ...dados, codigo },
     };
   }
 
@@ -83,12 +156,13 @@ export async function atualizarPerfilAction(
         id: perfilId,
       },
       data: {
-        codigo: parsed.data.codigo,
+        codigo,
         nome: parsed.data.nome,
         descricao: parsed.data.descricao || null,
         ativo: parsed.data.ativo,
         administrativo: parsed.data.administrativo,
         excecao: parsed.data.excecao,
+        orgaoId: perfilAtual.sistema ? null : (orgao?.id ?? null),
         perfilDestinoExcecaoId: parsed.data.excecao
           ? parsed.data.perfilDestinoExcecaoId || null
           : null,
@@ -125,17 +199,19 @@ export async function atualizarPerfilAction(
           ativo: perfilAtual.ativo,
           administrativo: perfilAtual.administrativo,
           excecao: perfilAtual.excecao,
+          orgaoId: perfilAtual.orgaoId,
           perfilDestinoExcecaoId: perfilAtual.perfilDestinoExcecaoId,
           permissoes: perfilAtual.permissoes.map((item) => item.permissaoId),
         },
         dadosDepois: {
           id: perfilId,
-          codigo: parsed.data.codigo,
+          codigo,
           nome: parsed.data.nome,
           descricao: parsed.data.descricao || null,
           ativo: parsed.data.ativo,
           administrativo: parsed.data.administrativo,
           excecao: parsed.data.excecao,
+          orgaoId: perfilAtual.sistema ? null : (orgao?.id ?? null),
           perfilDestinoExcecaoId: parsed.data.excecao
             ? parsed.data.perfilDestinoExcecaoId || null
             : null,

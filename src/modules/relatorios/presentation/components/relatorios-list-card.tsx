@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import {
   AlertTriangle,
   BriefcaseBusiness,
@@ -58,7 +58,7 @@ export function RelatoriosListCard({
           <div>
             <h2 className="text-lg font-bold">Relatórios individuais</h2>
             <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-              Documentos por servidor na competÃªncia{" "}
+              Documentos por servidor na competência{" "}
               {String(mes).padStart(2, "0")}/{ano}.
             </p>
           </div>

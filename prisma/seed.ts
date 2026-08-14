@@ -3317,6 +3317,47 @@ async function normalizarPermissoesLegadas() {
   }
 }
 
+async function criarCategoriasPessoasPadrao() {
+  const categorias = [
+    {
+      codigo: "SERVIDOR",
+      nome: "Servidor",
+      descricao: "Categoria padrao para servidores.",
+    },
+    {
+      codigo: "ESTAGIARIO",
+      nome: "Estagiario",
+      descricao: "Categoria padrao para estagiarios.",
+    },
+    {
+      codigo: "VOLUNTARIO",
+      nome: "Voluntario",
+      descricao: "Categoria padrao para voluntarios.",
+    },
+    {
+      codigo: "PRESTADOR",
+      nome: "Prestador",
+      descricao: "Categoria padrao para prestadores.",
+    },
+  ];
+
+  for (const categoria of categorias) {
+    await prisma.categoriaPessoa.upsert({
+      where: { codigo: categoria.codigo },
+      update: {
+        nome: categoria.nome,
+        descricao: categoria.descricao,
+        ativo: true,
+        sistema: true,
+      },
+      create: {
+        ...categoria,
+        sistema: true,
+      },
+    });
+  }
+}
+
 async function main() {
   console.log("Iniciando seed do SECP...");
 
@@ -3458,6 +3499,7 @@ async function main() {
 
   const orgao = await criarEstruturaInicial();
   await criarJornadasPadrao();
+  await criarCategoriasPessoasPadrao();
   const configuracaoHorasExtras = await criarConfiguracaoHorasExtrasPadrao(
     orgao.id,
   );

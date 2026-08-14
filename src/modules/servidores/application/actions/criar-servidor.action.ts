@@ -10,7 +10,9 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 
 import {
   cpfServidorExiste,
+  identificadorPontoExiste,
   matriculaServidorExiste,
+  normalizarIdentificadorPonto,
   pisServidorExiste,
   usuarioMatriculaExiste,
 } from "../../infrastructure/repositories/servidor.repository";
@@ -41,14 +43,21 @@ function extrairDadosServidor(formData: FormData): Partial<ServidorInput> {
     formData.get("sinalizacaoForaExpediente") ?? "PADRAO",
   );
 
+  const matricula = String(formData.get("matricula") ?? "").trim();
+  const identificadores = formData
+    .getAll("identificadoresPonto")
+    .map((valor) => String(valor).trim())
+    .filter(Boolean);
+
   return {
     orgaoId: String(formData.get("orgaoId") ?? ""),
+    categoriaPessoaId: String(formData.get("categoriaPessoaId") ?? ""),
     tipoUsuario: tiposUsuarioPessoaPonto.includes(
       tipoUsuario as ServidorInput["tipoUsuario"],
     )
       ? (tipoUsuario as ServidorInput["tipoUsuario"])
       : "SERVIDOR",
-    matricula: String(formData.get("matricula") ?? "").trim(),
+    matricula,
     cpf: String(formData.get("cpf") ?? "").replace(/\D/g, ""),
     pis: String(formData.get("pis") ?? "").replace(/\D/g, ""),
     nome: String(formData.get("nome") ?? "").trim(),
@@ -63,7 +72,26 @@ function extrairDadosServidor(formData: FormData): Partial<ServidorInput> {
       ? (sinalizacaoForaExpediente as ServidorInput["sinalizacaoForaExpediente"])
       : "PADRAO",
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
+    identificadoresPonto: Array.from(new Set([matricula, ...identificadores])),
   };
+}
+
+function deduplicarIdentificadoresPonto(valores: string[]) {
+  const identificadores: string[] = [];
+  const vistos = new Set<string>();
+
+  for (const valor of valores) {
+    const normalizado = normalizarIdentificadorPonto(valor);
+
+    if (!normalizado || vistos.has(normalizado)) {
+      continue;
+    }
+
+    vistos.add(normalizado);
+    identificadores.push(valor.trim());
+  }
+
+  return identificadores;
 }
 
 export async function criarServidorAction(
@@ -87,6 +115,9 @@ export async function criarServidorAction(
   }
 
   const matricula = parsed.data.matricula;
+  const identificadoresPonto = deduplicarIdentificadoresPonto(
+    parsed.data.identificadoresPonto,
+  );
 
   if (await matriculaServidorExiste(matricula)) {
     return {
@@ -133,6 +164,21 @@ export async function criarServidorAction(
     };
   }
 
+  for (const identificador of identificadoresPonto) {
+    if (await identificadorPontoExiste(identificador)) {
+      return {
+        sucesso: false,
+        mensagem: "Ja existe uma pessoa com este identificador de ponto.",
+        erros: {
+          identificadoresPonto: [
+            `Identificador ja vinculado a outra pessoa: ${identificador}`,
+          ],
+        },
+        campos: dados,
+      };
+    }
+  }
+
   const servidor = await prisma.$transaction(async (tx) => {
     const usuario = await tx.usuario.create({
       data: {
@@ -157,6 +203,15 @@ export async function criarServidorAction(
             id: parsed.data.orgaoId,
           },
         },
+        ...(parsed.data.categoriaPessoaId
+          ? {
+              categoriaPessoa: {
+                connect: {
+                  id: parsed.data.categoriaPessoaId,
+                },
+              },
+            }
+          : {}),
         matricula,
         cpf: parsed.data.cpf || null,
         pis: parsed.data.pis || null,
@@ -172,6 +227,16 @@ export async function criarServidorAction(
 
     await garantirJornadaPadraoServidorService(tx, novoServidor.id);
 
+    await tx.identificadorPontoServidor.createMany({
+      data: identificadoresPonto.map((identificador, indice) => ({
+        servidorId: novoServidor.id,
+        valor: identificador,
+        valorNormalizado: normalizarIdentificadorPonto(identificador)!,
+        principal: indice === 0,
+      })),
+      skipDuplicates: true,
+    });
+
     await tx.auditoriaEvento.create({
       data: {
         usuarioId: permissao.usuarioId,
@@ -185,6 +250,7 @@ export async function criarServidorAction(
             cpf: novoServidor.cpf,
             pis: novoServidor.pis,
             orgaoId: novoServidor.orgaoId,
+            categoriaPessoaId: novoServidor.categoriaPessoaId,
             vinculo: novoServidor.vinculo,
             horasForaExpedienteInconsistente:
               novoServidor.horasForaExpedienteInconsistente,
@@ -211,6 +277,7 @@ export async function criarServidorAction(
     cpf: parsed.data.cpf ?? null,
     pis: parsed.data.pis || null,
     matricula,
+    identificadores: identificadoresPonto,
     usuarioIdAuditoria: permissao.usuarioId,
   });
 

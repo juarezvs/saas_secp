@@ -103,14 +103,13 @@ export async function buscarUsuarioParaLoginPorMatricula(
         administrativo: usuarioPerfil.perfil.administrativo,
         excecao: usuarioPerfil.perfil.excecao,
         perfilDestinoExcecaoId: usuarioPerfil.perfil.perfilDestinoExcecaoId,
-        escopoGlobal: perfilSistemaGlobal || usuarioPerfil.orgaoId === null,
+        escopoGlobal: perfilSistemaGlobal,
         orgaos: usuarioPerfil.orgao ? [usuarioPerfil.orgao] : [],
       });
       continue;
     }
 
-    existente.escopoGlobal ||=
-      perfilSistemaGlobal || usuarioPerfil.orgaoId === null;
+    existente.escopoGlobal ||= perfilSistemaGlobal;
 
     if (
       usuarioPerfil.orgao &&

@@ -6,16 +6,32 @@ import type {
   MenusPersonalizadosPorPerfil,
 } from "../../domain/menu-personalizado";
 
-const GRUPOS_PADRAO_MENU: Record<string, { label: string; icone: string; ordem: number }> = {
+const GRUPOS_PADRAO_MENU: Record<
+  string,
+  { label: string; icone: string; ordem: number }
+> = {
   equipe: { label: "Minha Equipe", icone: "equipe", ordem: 20 },
-  frequencia: { label: "Frequencia e Banco de Horas", icone: "banco", ordem: 30 },
-  horasExtras: { label: "Servico Extraordinario", icone: "settings", ordem: 40 },
+  frequencia: {
+    label: "Frequencia e Banco de Horas",
+    icone: "banco",
+    ordem: 30,
+  },
+  horasExtras: {
+    label: "Servico Extraordinario",
+    icone: "settings",
+    ordem: 40,
+  },
   recesso: { label: "Recesso Forense", icone: "calendario", ordem: 50 },
-  gestaoPessoas: { label: "Gestao de Pessoas", icone: "users", ordem: 60 },
+  cadastro: { label: "Cadastro", icone: "users", ordem: 60 },
+  gestaoPessoas: { label: "Gestao de Pessoas", icone: "users", ordem: 65 },
   painel: { label: "Painel executivo", icone: "relatorios", ordem: 70 },
   biometria: { label: "Biometria facial", icone: "settings", ordem: 80 },
   administracao: { label: "Administracao", icone: "administracao", ordem: 90 },
-  integracoesAuditoria: { label: "Integracoes e Auditoria", icone: "settings", ordem: 100 },
+  integracoesAuditoria: {
+    label: "Integracoes e Auditoria",
+    icone: "settings",
+    ordem: 100,
+  },
 };
 
 function grupoPadraoItemMenu(href: string) {
@@ -78,17 +94,8 @@ function grupoPadraoItemMenu(href: string) {
     return "biometria";
   }
 
-  if (
-    [
-      "/servidores",
-      "/estagiarios",
-      "/prestadores",
-      "/voluntarios",
-      "/chefias",
-      "/jornadas",
-    ].includes(href)
-  ) {
-    return "gestaoPessoas";
+  if (["/servidores", "/chefias", "/jornadas"].includes(href)) {
+    return "cadastro";
   }
 
   if (
@@ -120,29 +127,32 @@ function grupoPadraoItemMenu(href: string) {
   return null;
 }
 
-function normalizarMenuPerfil(perfilId: string, dados: {
-  grupos: Array<{
-    id: string;
-    label: string;
-    icone: string | null;
-    ordem: number;
-    ativo: boolean;
-    itens: Array<{
+function normalizarMenuPerfil(
+  perfilId: string,
+  dados: {
+    grupos: Array<{
+      id: string;
+      label: string;
+      icone: string | null;
+      ordem: number;
+      ativo: boolean;
+      itens: Array<{
+        id: string;
+        itemCatalogo: string;
+        label: string | null;
+        ordem: number;
+        ativo: boolean;
+      }>;
+    }>;
+    itensRaiz: Array<{
       id: string;
       itemCatalogo: string;
       label: string | null;
       ordem: number;
       ativo: boolean;
     }>;
-  }>;
-  itensRaiz: Array<{
-    id: string;
-    itemCatalogo: string;
-    label: string | null;
-    ordem: number;
-    ativo: boolean;
-  }>;
-}): MenuPersonalizadoPerfil {
+  },
+): MenuPersonalizadoPerfil {
   return {
     perfilId,
     grupos: dados.grupos,
@@ -205,7 +215,9 @@ async function sincronizarNovosItensCatalogoPerfil(perfilId: string) {
       where: { perfilId },
       select: { id: true, label: true },
     });
-    const gruposPorLabel = new Map(grupos.map((grupo) => [grupo.label, grupo.id]));
+    const gruposPorLabel = new Map(
+      grupos.map((grupo) => [grupo.label, grupo.id]),
+    );
     const gruposCriados = new Map<string, string>();
 
     for (const item of itensFaltantes) {
@@ -253,10 +265,44 @@ async function sincronizarNovosItensCatalogoPerfil(perfilId: string) {
   });
 }
 
+async function removerItensForaDoCatalogoPerfil(perfilId: string) {
+  const itensCatalogo = MENU_CATALOGO.map((item) => item.id);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.menuItemPerfil.deleteMany({
+      where: {
+        perfilId,
+        itemCatalogo: { notIn: itensCatalogo },
+      },
+    });
+
+    const grupos = await tx.menuGrupoPerfil.findMany({
+      where: { perfilId },
+      select: {
+        id: true,
+        _count: { select: { itens: true } },
+      },
+    });
+    const gruposVazios = grupos
+      .filter((grupo) => grupo._count.itens === 0)
+      .map((grupo) => grupo.id);
+
+    if (gruposVazios.length > 0) {
+      await tx.menuGrupoPerfil.deleteMany({
+        where: {
+          perfilId,
+          id: { in: gruposVazios },
+        },
+      });
+    }
+  });
+}
+
 export async function buscarMenuPersonalizadoPerfil(
   perfilId: string,
 ): Promise<MenuPersonalizadoPerfil> {
   await removerGrupoMeuPontoPadraoPerfil(perfilId);
+  await removerItensForaDoCatalogoPerfil(perfilId);
   await sincronizarNovosItensCatalogoPerfil(perfilId);
 
   const [grupos, itensRaiz] = await Promise.all([

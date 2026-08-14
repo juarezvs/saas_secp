@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { createHash } from "crypto";
 import { revalidatePath } from "next/cache";
@@ -334,6 +334,6 @@ export async function gerarLoteFolhaHorasExtrasAction(
   });
 
   revalidatePath("/folha/horas-extras");
-  revalidatePath("/secap/horas-extras/autorizacoes");
+  revalidatePath("/horas-extras/autorizacoes");
   redirect(`/folha/horas-extras/${batch.id}`);
 }

@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Menu, Plus, RotateCcw } from "lucide-react";
 
@@ -97,7 +97,7 @@ export default async function PersonalizarMenuPage({
               id="perfilId"
               name="perfilId"
               defaultValue={perfilSelecionado.id}
-              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground"
             >
               {perfis.map((perfil) => (
                 <option key={perfil.id} value={perfil.id}>
@@ -120,7 +120,7 @@ export default async function PersonalizarMenuPage({
                 id="label"
                 name="label"
                 placeholder="Ex.: Configurador"
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <div className="space-y-2">
@@ -131,7 +131,7 @@ export default async function PersonalizarMenuPage({
                 id="icone"
                 name="icone"
                 placeholder="settings, users, menu"
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <button className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-secp-blue-900 px-4 text-sm font-semibold text-white transition hover:bg-secp-blue-800">

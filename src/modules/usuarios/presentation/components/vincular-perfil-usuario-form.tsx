@@ -13,6 +13,10 @@ type PerfilItem = {
   id: string;
   codigo: string;
   nome: string;
+  orgao?: {
+    sigla: string;
+    nome: string;
+  } | null;
 };
 
 type OrgaoItem = {
@@ -82,8 +86,10 @@ export function VincularPerfilUsuarioForm({
           emptyMessage="Nenhum perfil encontrado."
           options={perfis.map((perfil) => ({
             value: perfil.id,
-            label: `${perfil.codigo} - ${perfil.nome}`,
-            searchText: `${perfil.codigo} ${perfil.nome}`,
+            label: perfil.orgao
+              ? `${perfil.codigo} - ${perfil.nome} (${perfil.orgao.sigla})`
+              : `${perfil.codigo} - ${perfil.nome}`,
+            searchText: `${perfil.codigo} ${perfil.nome} ${perfil.orgao?.sigla ?? ""}`,
           }))}
           required
         />

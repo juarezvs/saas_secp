@@ -16,6 +16,7 @@ import { descriptografarTemplateFacial } from "@/modules/biometria/infrastructur
 import { criarMarcacaoBrutaService } from "@/modules/marcacoes-brutas/application/services/criar-marcacao-bruta.service";
 import { processarMarcacaoBrutaService } from "@/modules/marcacoes-brutas/application/services/processar-marcacao-bruta.service";
 import { PERMISSOES_TOTEM_REGISTRO } from "@/modules/totem/application/totem-permissoes";
+import { reconhecerCandidatoTotemSeguro } from "@/modules/totem/application/totem-reconhecimento-facial.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 const JANELA_ANTIDUPLICIDADE_MS = 10 * 60 * 1000;
@@ -33,6 +34,18 @@ function primeiroValorCabecalho(valor: string | null) {
 
 function normalizarIp(valor: string | null) {
   return valor?.replace(/^::ffff:/, "").trim() || null;
+}
+
+function numeroMetadado(
+  metadados: unknown,
+  chave: "yaw" | "pitch" | "roll" | "facesNoFrame",
+) {
+  if (!metadados || typeof metadados !== "object" || Array.isArray(metadados)) {
+    return null;
+  }
+
+  const valor = (metadados as Record<string, unknown>)[chave];
+  return typeof valor === "number" && Number.isFinite(valor) ? valor : null;
 }
 
 function templateCadastrado(biometria: {
@@ -122,11 +135,11 @@ export async function POST(request: Request) {
   });
 
   const templateNormalizado = normalizarVetor(template);
-  let melhor: {
+  const candidatos: Array<{
     biometria: (typeof biometrias)[number];
     distancia: number;
     similaridade: number;
-  } | null = null;
+  }> = [];
 
   for (const biometria of biometrias) {
     try {
@@ -140,34 +153,43 @@ export async function POST(request: Request) {
         templateNormalizado,
       );
 
-      if (!melhor || distancia < melhor.distancia) {
-        melhor = { biometria, distancia, similaridade };
-      }
+      candidatos.push({ biometria, distancia, similaridade });
     } catch {
       continue;
     }
   }
 
-  if (!melhor) {
-    return NextResponse.json({
-      reconhecido: false,
-      mensagem: "Nenhuma biometria ativa disponivel no escopo do Totem.",
-    });
-  }
-
+  const candidatosOrdenados = [...candidatos].sort(
+    (a, b) => a.distancia - b.distancia,
+  );
   const limiar =
-    melhor.biometria.limiarDistancia ??
+    candidatosOrdenados[0]?.biometria.limiarDistancia ??
     BIOMETRIA_FACIAL_THRESHOLDS.limiarDistanciaCosseno;
+  const reconhecimento = reconhecerCandidatoTotemSeguro({
+    candidatos,
+    qualidade,
+    yaw: numeroMetadado(payload.metadados, "yaw"),
+    pitch: numeroMetadado(payload.metadados, "pitch"),
+    roll: numeroMetadado(payload.metadados, "roll"),
+    limiarDistanciaCadastro: limiar,
+  });
 
-  if (melhor.distancia > limiar) {
+  if (!reconhecimento.seguro) {
     return NextResponse.json({
       reconhecido: false,
-      mensagem: "Face detectada, mas sem correspondencia confiavel.",
-      distancia: melhor.distancia,
-      similaridade: melhor.similaridade,
+      mensagem: reconhecimento.motivo,
+      distancia: reconhecimento.melhor?.distancia,
+      similaridade: reconhecimento.melhor?.similaridade,
+      segundoMelhor: reconhecimento.segundo
+        ? {
+            distancia: reconhecimento.segundo.distancia,
+            similaridade: reconhecimento.segundo.similaridade,
+          }
+        : null,
     });
   }
 
+  const melhor = reconhecimento.melhor;
   const servidor = melhor.biometria.servidor;
   const agora = new Date();
   const limiteDuplicidade = new Date(
@@ -221,6 +243,17 @@ export async function POST(request: Request) {
         origem: "TOTEM_FACIAL_SECP",
         operadorUsuarioId: session.user.id,
         metadadosCliente: payload.metadados ?? null,
+        politicaReconhecimento: {
+          limiarDistanciaAplicado: limiar,
+          facesNoFrame: numeroMetadado(payload.metadados, "facesNoFrame"),
+        },
+        segundoMelhor: reconhecimento.segundo
+          ? {
+              servidorId: reconhecimento.segundo.biometria.servidorId,
+              distancia: reconhecimento.segundo.distancia,
+              similaridade: reconhecimento.segundo.similaridade,
+            }
+          : null,
       },
     },
   });
@@ -239,6 +272,16 @@ export async function POST(request: Request) {
       servidorId: servidor.id,
       ip: ipOrigem,
       userAgent,
+      qualidade,
+      distancia: melhor.distancia,
+      similaridade: melhor.similaridade,
+      segundoMelhor: reconhecimento.segundo
+        ? {
+            servidorId: reconhecimento.segundo.biometria.servidorId,
+            distancia: reconhecimento.segundo.distancia,
+            similaridade: reconhecimento.segundo.similaridade,
+          }
+        : null,
     },
   });
 
@@ -279,6 +322,9 @@ export async function POST(request: Request) {
           origemRegistro: "TOTEM_FACIAL_SECP",
           operadorTotemUsuarioId: session.user.id,
           registradoNoTotemEm: agora.toISOString(),
+          qualidadeFacial: qualidade,
+          distanciaFacial: melhor.distancia,
+          similaridadeFacial: melhor.similaridade,
         },
       },
     });
@@ -297,6 +343,13 @@ export async function POST(request: Request) {
         ip: ipOrigem,
         userAgent,
         registradoEm: agora.toISOString(),
+        segundoMelhor: reconhecimento.segundo
+          ? {
+              servidorId: reconhecimento.segundo.biometria.servidorId,
+              distancia: reconhecimento.segundo.distancia,
+              similaridade: reconhecimento.segundo.similaridade,
+            }
+          : null,
       },
     });
   });

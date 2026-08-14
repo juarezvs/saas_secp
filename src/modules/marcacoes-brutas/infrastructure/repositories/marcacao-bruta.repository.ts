@@ -284,6 +284,7 @@ export async function listarMarcacoesBrutasPorServidorPendente(params: {
   cpf?: string | null;
   pis?: string | null;
   matricula?: string | null;
+  identificadores?: string[];
 }) {
   const filtros = [];
 
@@ -303,6 +304,20 @@ export async function listarMarcacoesBrutasPorServidorPendente(params: {
     filtros.push({
       matricula: params.matricula,
     });
+  }
+
+  const identificadores = params.identificadores
+    ?.map((valor) => valor.trim())
+    .filter(Boolean);
+
+  if (identificadores?.length) {
+    filtros.push(
+      ...identificadores.map((identificador) => ({
+        matricula: { equals: identificador, mode: "insensitive" as const },
+      })),
+      { cpf: { in: identificadores } },
+      { pis: { in: identificadores } },
+    );
   }
 
   if (filtros.length === 0) {

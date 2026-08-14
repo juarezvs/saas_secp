@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -8,7 +8,6 @@ import {
   BadgeCheck,
   BarChart3,
   Ban,
-  BriefcaseBusiness,
   Building2,
   CalendarDays,
   CalendarClock,
@@ -30,7 +29,6 @@ import {
   FileText,
   Fingerprint,
   GraduationCap,
-  Handshake,
   History,
   Hourglass,
   KeyRound,
@@ -160,7 +158,7 @@ const SUBITENS_SOLICITACOES_PONTO: MenuItem[] = [
     permissoes: ["solicitacoes:criar:proprio"],
   },
   {
-    label: "Capacitação",
+    label: "Capacita??o",
     href: "/solicitacoes/nova?tipo=CAPACITACAO",
     icon: GraduationCap,
     permissoes: ["solicitacoes:criar:proprio"],
@@ -172,7 +170,7 @@ const SUBITENS_SOLICITACOES_PONTO: MenuItem[] = [
     permissoes: ["solicitacoes:criar:proprio"],
   },
   {
-    label: "Hora crédito prévia",
+    label: "Hora cr?dito pr?via",
     href: "/solicitacoes/nova?tipo=HORA_CREDITO_PREVIA",
     icon: Clock,
     permissoes: ["solicitacoes:criar:proprio"],
@@ -247,7 +245,7 @@ export const MENU_ITEMS: MenuItem[] = [
     permissoes: ["afastamentos:consultar:proprio"],
   },
   {
-    label: "Minhas férias",
+    label: "Minhas f?rias",
     href: "/minhas-ferias",
     icon: TreePalm,
     permissoes: [
@@ -346,7 +344,7 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
     children: [
       {
-        label: "Minhas solicitações",
+        label: "Minhas solicita??es",
         href: "/horas-extras",
         icon: CalendarClock,
         permissoes: [
@@ -355,8 +353,8 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
-        label: "Autorizações",
-        href: "/secap/horas-extras/autorizacoes",
+        label: "Autorizações de horas-extras",
+        href: "/horas-extras/autorizacoes",
         icon: FileCheck2,
         permissoes: [
           "horas-extras:cadastrar-autorizacao:seccional",
@@ -366,7 +364,7 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
-        label: "Gestão",
+        label: "Gest?o",
         href: "/gestao/horas-extras",
         icon: ClipboardCheck,
         permissoes: [
@@ -429,7 +427,7 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
     children: [
       {
-        label: "Minhas solicitações",
+        label: "Minhas solicita??es",
         href: "/solicitacoes",
         icon: ListChecks,
         permissoes: [
@@ -481,7 +479,7 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
-        label: "Homologação",
+        label: "Homologa??o",
         href: "/homologacao",
         icon: ShieldCheck,
         permissoes: [
@@ -502,7 +500,7 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
         children: [
           {
-            label: "Minhas solicitações",
+            label: "Minhas solicita??es",
             href: "/solicitacoes",
             icon: ClipboardList,
             permissoes: [
@@ -573,7 +571,7 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
-    label: "Homologação",
+    label: "Homologa??o",
     href: "/homologacao",
     icon: ShieldCheck,
     permissoes: [
@@ -583,7 +581,7 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
-    label: "Boletim de frequência",
+    label: "Boletim de frequ?ncia",
     href: "/boletim-frequencia",
     icon: FileSpreadsheet,
     permissoes: [
@@ -649,7 +647,7 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
     children: [
       {
-        label: "Meu cadastro/validação",
+        label: "Meu cadastro/valida??o",
         href: "/biometria",
         icon: ScanFace,
         permissoes: PERMISSOES_REGISTRO_PONTO_FACIAL,
@@ -663,7 +661,34 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
-    label: "Administração",
+    label: "Cadastro",
+    href: "/servidores",
+    icon: Users,
+    somenteAdministrativo: true,
+    permissoes: [
+      "servidores:gerenciar:global",
+      "servidores:gerenciar:seccional",
+      "servidores:consultar:seccional",
+      "servidores:consultar:global",
+      ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
+    ],
+    children: [
+      {
+        label: "Gestão de Pessoas",
+        href: "/servidores",
+        icon: Users,
+        permissoes: [
+          "servidores:gerenciar:global",
+          "servidores:gerenciar:seccional",
+          "servidores:consultar:seccional",
+          "servidores:consultar:global",
+          ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
+        ],
+      },
+    ],
+  },
+  {
+    label: "Administra??o",
     href: "/administracao",
     icon: Settings,
     permissoes: [
@@ -717,7 +742,7 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
     children: [
       {
-        label: "Liberação de Rotinas",
+        label: "Libera??o de Rotinas",
         href: "/administracao/liberacao-rotinas",
         icon: ToggleLeft,
         permissoes: [
@@ -729,10 +754,13 @@ export const MENU_ITEMS: MenuItem[] = [
         label: "Personalizar Menu",
         href: "/administracao/personalizar-menu",
         icon: Palette,
-        permissoes: ["menus:personalizar:seccional", "menus:personalizar:global"],
+        permissoes: [
+          "menus:personalizar:seccional",
+          "menus:personalizar:global",
+        ],
       },
       {
-        label: "Perfis e permissões",
+        label: "Perfis e permiss?es",
         href: "/perfis",
         icon: ShieldCheck,
         permissoes: ["perfis:gerenciar:seccional", "perfis:gerenciar:global"],
@@ -752,60 +780,18 @@ export const MENU_ITEMS: MenuItem[] = [
         label: "Órgãos",
         href: "/orgaos",
         icon: Landmark,
-        permissoes: ["unidades:gerenciar:seccional", "unidades:gerenciar:global"],
+        permissoes: [
+          "unidades:gerenciar:seccional",
+          "unidades:gerenciar:global",
+        ],
       },
       {
         label: "Unidades",
         href: "/unidades",
         icon: Building2,
-        permissoes: ["unidades:gerenciar:seccional", "unidades:gerenciar:global"],
-      },
-      {
-        label: "Servidores",
-        href: "/servidores",
-        icon: Users,
         permissoes: [
-          "servidores:gerenciar:global",
-          "servidores:gerenciar:seccional",
-          "servidores:consultar:seccional",
-          "servidores:consultar:global",
-          ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
-        ],
-      },
-      {
-        label: "Estagiarios",
-        href: "/estagiarios",
-        icon: GraduationCap,
-        permissoes: [
-          "servidores:gerenciar:global",
-          "servidores:gerenciar:seccional",
-          "servidores:consultar:seccional",
-          "servidores:consultar:global",
-          ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
-        ],
-      },
-      {
-        label: "Prestadores",
-        href: "/prestadores",
-        icon: BriefcaseBusiness,
-        permissoes: [
-          "servidores:gerenciar:global",
-          "servidores:gerenciar:seccional",
-          "servidores:consultar:seccional",
-          "servidores:consultar:global",
-          ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
-        ],
-      },
-      {
-        label: "Voluntarios",
-        href: "/voluntarios",
-        icon: Handshake,
-        permissoes: [
-          "servidores:gerenciar:global",
-          "servidores:gerenciar:seccional",
-          "servidores:consultar:seccional",
-          "servidores:consultar:global",
-          ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
+          "unidades:gerenciar:seccional",
+          "unidades:gerenciar:global",
         ],
       },
       {
@@ -818,7 +804,10 @@ export const MENU_ITEMS: MenuItem[] = [
         label: "Jornadas",
         href: "/jornadas",
         icon: CalendarClock,
-        permissoes: ["jornadas:gerenciar:seccional", "jornadas:gerenciar:global"],
+        permissoes: [
+          "jornadas:gerenciar:seccional",
+          "jornadas:gerenciar:global",
+        ],
       },
       {
         label: "AFD",
@@ -838,7 +827,7 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
-        label: "Regulamentação do ponto",
+        label: "Regulamenta??o do ponto",
         href: "/administracao/regulamentacao-ponto",
         icon: SlidersHorizontal,
         permissoes: [
@@ -847,7 +836,7 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
-        label: "Procedimentos de frequência",
+        label: "Procedimentos de frequ?ncia",
         href: "/administracao/procedimentos-frequencia",
         icon: ClipboardList,
         permissoes: [
@@ -898,7 +887,7 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
-        label: "Credenciais e integrações",
+        label: "Credenciais e integra??es",
         href: "/administracao/integracoes",
         icon: KeyRound,
         permissoes: [
@@ -920,7 +909,7 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
-        label: "Equipamentos biométricos",
+        label: "Equipamentos biom?tricos",
         href: "/equipamentos",
         icon: RadioTower,
         permissoes: [
@@ -1302,7 +1291,7 @@ function ThemeSelector({
       temaArmazenado === "verde" ||
       temaArmazenado === "cinza"
     ) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Restaura a preferência visual salva no navegador após a hidratação.
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Restaura a prefer?ncia visual salva no navegador ap?s a hidrata??o.
       setTema(temaArmazenado);
       aplicarTemaVisual(temaArmazenado);
       window.dispatchEvent(
@@ -1406,11 +1395,7 @@ function MenuPrincipal({
   );
   const itensPadraoVisiveis = useMemo(
     () =>
-      filtrarItensVisiveis(
-        itensPadraoComIcones,
-        perfilAtivo,
-        rotinasSeccional,
-      ),
+      filtrarItensVisiveis(itensPadraoComIcones, perfilAtivo, rotinasSeccional),
     [itensPadraoComIcones, perfilAtivo, rotinasSeccional],
   );
   const itensVisiveis = useMemo(
@@ -1550,7 +1535,7 @@ function MenuPrincipal({
         })}
         {itensVisiveis.length === 0 && (
           <li className="rounded-md border border-dashed border-border px-3 py-4 text-xs text-muted-foreground">
-            Nenhum item disponível para o perfil ativo.
+            Nenhum item dispon?vel para o perfil ativo.
           </li>
         )}
       </ul>

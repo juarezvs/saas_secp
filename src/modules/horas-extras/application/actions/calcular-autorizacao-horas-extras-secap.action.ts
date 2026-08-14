@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 
@@ -75,7 +75,7 @@ export async function calcularAutorizacaoHorasExtrasSecapAction(
       remuneracaoProvider: new ContrachequeSarhRemuneracaoProvider(),
     });
 
-    revalidatePath("/secap/horas-extras/autorizacoes");
+    revalidatePath("/horas-extras/autorizacoes");
     revalidatePath("/folha/horas-extras");
 
     return {

@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 
@@ -61,7 +61,7 @@ export async function gerarAtestoHorasExtrasAction(
       perfilAtivoCodigo: permissao.perfilAtivoCodigo,
     });
 
-    revalidatePath("/secap/horas-extras/autorizacoes");
+    revalidatePath("/horas-extras/autorizacoes");
     revalidatePath("/gestao/horas-extras");
 
     return {

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useActionState, useState } from "react";
 import { Eye, EyeOff, Loader2, Save } from "lucide-react";
@@ -140,7 +140,7 @@ export function EquipamentoBiometricoForm({
       <input type="hidden" name="equipamentoId" value={ehEdicao ? equipamento?.id : ""} />
 
       <h2 className="text-lg font-bold">
-        {ehEdicao ? "Editar equipamento biometrico" : "Cadastrar equipamento biometrico"}
+        {ehEdicao ? "Editar equipamento biométrico" : "Cadastrar equipamento biométrico"}
       </h2>
 
       {estado.mensagem && (
@@ -389,7 +389,7 @@ export function EquipamentoBiometricoForm({
           <span>
             <span className="block font-semibold">Usa PIS/PASEP</span>
             <span className="text-xs text-[var(--muted-foreground)]">
-              Identificador numÃ©rico pode ser tratado como PIS/PASEP.
+              Identificador numérico pode ser tratado como PIS/PASEP.
             </span>
           </span>
         </label>
@@ -405,7 +405,7 @@ export function EquipamentoBiometricoForm({
             )}
           />
           <span>
-            <span className="block font-semibold">Usa matrÃ­cula com sigla</span>
+            <span className="block font-semibold">Usa matrícula com sigla</span>
             <span className="text-xs text-[var(--muted-foreground)]">
               Exemplo: RR1235, AM200401.
             </span>
@@ -423,9 +423,9 @@ export function EquipamentoBiometricoForm({
             )}
           />
           <span>
-            <span className="block font-semibold">Usa matrÃ­cula sÃ³ com nÃºmeros</span>
+            <span className="block font-semibold">Usa matrícula só com números</span>
             <span className="text-xs text-[var(--muted-foreground)]">
-              Exemplo: 000001235 vira RR1235 no Ã³rgÃ£o SJRR.
+              Exemplo: 000001235 vira RR1235 no órgão SJRR.
             </span>
           </span>
         </label>

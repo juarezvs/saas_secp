@@ -48,6 +48,11 @@ const pisSchema = z
 
 export const servidorSchema = z.object({
   orgaoId: z.string().uuid("Informe o órgão."),
+  categoriaPessoaId: z
+    .string()
+    .uuid("Informe a categoria da pessoa.")
+    .optional()
+    .or(z.literal("")),
   tipoUsuario: z.enum(tiposUsuarioPessoaPonto).default("SERVIDOR"),
   matricula: z
     .string()
@@ -82,6 +87,15 @@ export const servidorSchema = z.object({
     })
     .default("PADRAO"),
   ativo: z.coerce.boolean().default(true),
+  identificadoresPonto: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(1, "Informe o identificador de ponto.")
+        .max(80, "O identificador deve ter no maximo 80 caracteres."),
+    )
+    .default([]),
 });
 
 export type ServidorInput = z.infer<typeof servidorSchema>;

@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { Edit, ShieldCheck, UsersRound } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
-import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { excluirPerfilAction } from "@/modules/perfis/application/actions/excluir-perfil.action";
 import { buscarPerfilPorId } from "@/modules/perfis/infrastructure/repositories/perfil.repository";
 import { ExcluirPerfilButton } from "@/modules/perfis/presentation/components/excluir-perfil-button";
@@ -17,12 +18,24 @@ type PerfilDetalhePageProps = {
 export default async function PerfilDetalhePage({
   params,
 }: PerfilDetalhePageProps) {
-  await exigirPermissaoOuRedirecionar("perfis:gerenciar:global");
+  await exigirUmaDasPermissoesOuRedirecionar([
+    "perfis:gerenciar:global",
+    "perfis:gerenciar:seccional",
+  ]);
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
 
   const { id } = await params;
   const perfil = await buscarPerfilPorId(id);
 
   if (!perfil) {
+    notFound();
+  }
+
+  if (
+    !escopoOrgao.global &&
+    perfil.orgaoId &&
+    !escopoOrgao.orgaoIds.includes(perfil.orgaoId)
+  ) {
     notFound();
   }
 

@@ -384,13 +384,31 @@ export async function buscarUsuarioPorId(id: string) {
   });
 }
 
-export async function listarPerfisAtivosParaUsuario() {
+export async function listarPerfisAtivosParaUsuario(params: {
+  orgaoIdsPermitidos?: string[];
+} = {}) {
   return prisma.perfil.findMany({
     where: {
       ativo: true,
+      ...(params.orgaoIdsPermitidos
+        ? {
+            OR: [
+              { orgaoId: null },
+              { orgaoId: { in: params.orgaoIdsPermitidos } },
+            ],
+          }
+        : {}),
     },
     orderBy: {
       nome: "asc",
+    },
+    include: {
+      orgao: {
+        select: {
+          sigla: true,
+          nome: true,
+        },
+      },
     },
   });
 }

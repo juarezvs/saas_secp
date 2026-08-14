@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
-import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
 import { atualizarPerfilAction } from "@/modules/perfis/application/actions/atualizar-perfil.action";
 import {
   buscarPerfilPorId,
@@ -19,14 +21,22 @@ type EditarPerfilPageProps = {
 export default async function EditarPerfilPage({
   params,
 }: EditarPerfilPageProps) {
-  await exigirPermissaoOuRedirecionar("perfis:gerenciar:global");
+  await exigirUmaDasPermissoesOuRedirecionar([
+    "perfis:gerenciar:global",
+    "perfis:gerenciar:seccional",
+  ]);
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const orgaoIdsPermitidos = escopoOrgao.global
+    ? undefined
+    : escopoOrgao.orgaoIds;
 
   const { id } = await params;
 
-  const [perfil, permissoes, perfis] = await Promise.all([
+  const [perfil, permissoes, perfis, orgaosPermitidos] = await Promise.all([
     buscarPerfilPorId(id),
     listarPermissoesOrdenadas(),
-    listarPerfisParaFiltro(),
+    listarPerfisParaFiltro({ orgaoIdsPermitidos }),
+    listarOrgaosAtivos({ orgaoIdsPermitidos }),
   ]);
 
   if (!perfil) {
@@ -70,11 +80,14 @@ export default async function EditarPerfilPage({
         action={action}
         permissoes={permissoes}
         perfisDestinoExcecao={perfis.filter((item) => item.id !== perfil.id)}
+        orgaosPermitidos={orgaosPermitidos}
+        permitirPerfilGlobal={escopoOrgao.global}
         modo="editar"
         valoresIniciais={{
           codigo: perfil.codigo,
           nome: perfil.nome,
           descricao: perfil.descricao,
+          orgaoId: perfil.orgaoId,
           ativo: perfil.ativo,
           administrativo: perfil.administrativo,
           excecao: perfil.excecao,

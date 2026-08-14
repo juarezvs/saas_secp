@@ -4,7 +4,7 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
-import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   listarPerfisParaFiltro,
   listarPerfisPaginado,
@@ -25,7 +25,10 @@ type PerfisPageProps = {
 };
 
 export default async function PerfisPage({ searchParams }: PerfisPageProps) {
-  await exigirPermissaoOuRedirecionar("perfis:gerenciar:global");
+  await exigirUmaDasPermissoesOuRedirecionar([
+    "perfis:gerenciar:global",
+    "perfis:gerenciar:seccional",
+  ]);
 
   const params = searchParams ? await searchParams : {};
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
@@ -51,7 +54,9 @@ export default async function PerfisPage({ searchParams }: PerfisPageProps) {
   ]);
   const perfisOptions = perfisFiltro.map((perfil) => ({
     value: perfil.nome,
-    label: `${perfil.nome} (${perfil.codigo})`,
+    label: perfil.orgao
+      ? `${perfil.nome} (${perfil.orgao.sigla})`
+      : `${perfil.nome} (${perfil.codigo})`,
     searchText: perfil.codigo,
   }));
   const permissoesOptions = permissoesFiltro.map((permissao) => ({
@@ -161,7 +166,11 @@ export default async function PerfisPage({ searchParams }: PerfisPageProps) {
                   </td>
 
                   <td className="px-5 py-4">
-                    <div className="font-semibold">{perfil.nome}</div>
+                    <div className="font-semibold">
+                      {perfil.orgao
+                        ? `${perfil.nome} (${perfil.orgao.sigla})`
+                        : perfil.nome}
+                    </div>
                     {perfil.descricao && (
                       <div className="mt-1 max-w-xl text-xs leading-5 text-[var(--muted-foreground)]">
                         {perfil.descricao}

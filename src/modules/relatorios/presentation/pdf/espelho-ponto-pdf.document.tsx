@@ -874,7 +874,7 @@ function resumirMarcacoesMescladas({
         rotuloDescricao:
           diaInstitucional.descricao &&
           diaInstitucional.descricao !== "Feriado institucional"
-            ? `Feriado — ${diaInstitucional.descricao}`
+            ? `Feriado â€” ${diaInstitucional.descricao}`
             : "Feriado",
       };
     }

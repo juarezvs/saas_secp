@@ -10,6 +10,7 @@ export type ListarServidoresParams = {
   pis?: string;
   nome?: string;
   tipoUsuario?: string;
+  categoriaPessoaId?: string;
   orgaoId?: string;
   orgaoIdsPermitidos?: string[];
   servidorIdsPermitidos?: string[];
@@ -42,6 +43,7 @@ function ehTipoUsuario(
 const servidorListagemInclude = {
   usuario: true,
   orgao: true,
+  categoriaPessoa: true,
   cargo: true,
   lotacoes: {
     where: { status: "ATIVO" },
@@ -60,6 +62,7 @@ const servidorListagemInclude = {
 const servidorExportacaoInclude = {
   usuario: true,
   orgao: true,
+  categoriaPessoa: true,
   cargo: true,
   lotacoes: {
     where: { status: "ATIVO" },
@@ -129,6 +132,10 @@ export function montarWhereServidores(
             tipo: params.tipoUsuario,
           },
         }
+      : {}),
+
+    ...(params.categoriaPessoaId && ehUuid(params.categoriaPessoaId)
+      ? { categoriaPessoaId: params.categoriaPessoaId }
       : {}),
 
     ...(orgaoId && ehUuid(orgaoId)
@@ -381,7 +388,11 @@ export async function buscarServidorPorId(id: string) {
         },
       },
       orgao: true,
+      categoriaPessoa: true,
       cargo: true,
+      identificadoresPonto: {
+        orderBy: [{ principal: "desc" }, { valor: "asc" }],
+      },
       lotacoes: {
         where: { status: "ATIVO" },
         include: {
@@ -706,6 +717,68 @@ export async function listarOrgaosAtivosParaServidor(params?: {
       sigla: "asc",
     },
   });
+}
+
+export async function listarCategoriasPessoasAtivas(params?: {
+  orgaoIdsPermitidos?: string[];
+  incluirGlobais?: boolean;
+}) {
+  const orgaoIds = params?.orgaoIdsPermitidos?.filter(ehUuid);
+
+  return prisma.categoriaPessoa.findMany({
+    where: {
+      ativo: true,
+      ...(orgaoIds?.length
+        ? {
+            OR: [
+              { orgaoId: { in: orgaoIds } },
+              ...(params?.incluirGlobais === false ? [] : [{ orgaoId: null }]),
+            ],
+          }
+        : {}),
+    },
+    include: {
+      orgao: true,
+    },
+    orderBy: [{ orgaoId: "asc" }, { nome: "asc" }],
+  });
+}
+
+export async function identificadorPontoExiste(
+  valor: string,
+  ignorarServidorId?: string,
+) {
+  const normalizado = normalizarIdentificadorPonto(valor);
+
+  if (!normalizado) {
+    return false;
+  }
+
+  const registro = await prisma.identificadorPontoServidor.findUnique({
+    where: {
+      valorNormalizado: normalizado,
+    },
+    select: {
+      servidorId: true,
+    },
+  });
+
+  if (!registro) {
+    return false;
+  }
+
+  return registro.servidorId !== ignorarServidorId;
+}
+
+export function normalizarIdentificadorPonto(valor: string | null | undefined) {
+  const normalizado = valor
+    ?.trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .toUpperCase();
+
+  return normalizado || null;
 }
 
 export async function usuarioMatriculaExiste(

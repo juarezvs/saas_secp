@@ -17,20 +17,7 @@ export function montarWherePerfis(params: ListarPerfisParams) {
   return {
     ...(params.orgaoIdsPermitidos
       ? {
-          usuarios: {
-            some: {
-              OR: [
-                { orgaoId: { in: params.orgaoIdsPermitidos } },
-                {
-                  usuario: {
-                    servidor: {
-                      orgaoId: { in: params.orgaoIdsPermitidos },
-                    },
-                  },
-                },
-              ],
-            },
-          },
+          OR: [{ orgaoId: null }, { orgaoId: { in: params.orgaoIdsPermitidos } }],
         }
       : {}),
     ...(params.status === "ativo"
@@ -144,6 +131,13 @@ function includePerfilListagem(params?: { orgaoIdsPermitidos?: string[] }) {
         permissao: true,
       },
     },
+    orgao: {
+      select: {
+        id: true,
+        sigla: true,
+        nome: true,
+      },
+    },
     _count: {
       select: {
         usuarios: filtroUsuario ? { where: filtroUsuario } : true,
@@ -200,6 +194,12 @@ export async function listarPerfisParaFiltro(params: {
       id: true,
       codigo: true,
       nome: true,
+      orgao: {
+        select: {
+          sigla: true,
+          nome: true,
+        },
+      },
     },
     orderBy: [{ nome: "asc" }, { codigo: "asc" }],
   });
@@ -245,6 +245,13 @@ export async function buscarPerfilPorId(id: string) {
       id,
     },
     include: {
+      orgao: {
+        select: {
+          id: true,
+          sigla: true,
+          nome: true,
+        },
+      },
       perfilDestinoExcecao: {
         select: {
           id: true,

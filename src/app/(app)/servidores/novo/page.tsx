@@ -5,7 +5,10 @@ import { PageHeader } from "@/components/layout/page-header";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { criarServidorAction } from "@/modules/servidores/application/actions/criar-servidor.action";
-import { listarOrgaosAtivosParaServidor } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
+import {
+  listarCategoriasPessoasAtivas,
+  listarOrgaosAtivosParaServidor,
+} from "@/modules/servidores/infrastructure/repositories/servidor.repository";
 import { ServidorForm } from "@/modules/servidores/presentation/components/servidor-form";
 
 type NovoServidorPageProps = {
@@ -54,11 +57,11 @@ function contextoNovoCadastro(tipoUsuario: string) {
   }
 
   return {
-    titulo: "Novo servidor",
-    breadcrumb: "Servidores",
+    titulo: "Nova pessoa",
+    breadcrumb: "Pessoas",
     href: "/servidores",
     descricao:
-      "Cadastre o servidor e crie o usuario associado que sera usado para autenticacao e autorizacao no SECP.",
+      "Cadastre a pessoa e crie o usuario associado que sera usado para autenticacao e autorizacao no SECP.",
   };
 }
 
@@ -76,7 +79,13 @@ export default async function NovoServidorPage({
     : escopoOrgao.orgaoIds.length
       ? escopoOrgao.orgaoIds
       : ["00000000-0000-4000-8000-000000000000"];
-  const orgaos = await listarOrgaosAtivosParaServidor({ orgaoIdsPermitidos });
+  const [orgaos, categorias] = await Promise.all([
+    listarOrgaosAtivosParaServidor({ orgaoIdsPermitidos }),
+    listarCategoriasPessoasAtivas({ orgaoIdsPermitidos }),
+  ]);
+  const categoriaPadrao = categorias.find(
+    (categoria) => categoria.codigo === tipoUsuario,
+  );
 
   return (
     <div className="space-y-6">
@@ -100,8 +109,10 @@ export default async function NovoServidorPage({
       <ServidorForm
         action={criarServidorAction}
         orgaos={orgaos}
+        categorias={categorias}
         modo="criar"
         valoresIniciais={{
+          categoriaPessoaId: categoriaPadrao?.id ?? null,
           cpf: "",
           pis: "",
           ativo: true,

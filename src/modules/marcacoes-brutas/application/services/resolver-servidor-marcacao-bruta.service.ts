@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { normalizarIdentificadorPonto } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
 
 function somenteDigitos(valor: string | null | undefined) {
   return valor?.replace(/\D/g, "") || null;
@@ -136,6 +137,41 @@ export async function resolverServidorMarcacaoBrutaService(params: {
     matricula,
     siglaOrgaoEquipamento,
   );
+  const identificadoresRecebidos = Array.from(
+    new Set(
+      [params.matricula, params.cpf, params.pis]
+        .map((valor) => normalizarIdentificadorPonto(valor))
+        .filter((valor): valor is string => Boolean(valor)),
+    ),
+  );
+
+  if (identificadoresRecebidos.length > 0) {
+    const vinculoIdentificador =
+      await prisma.identificadorPontoServidor.findFirst({
+        where: {
+          ativo: true,
+          valorNormalizado: { in: identificadoresRecebidos },
+          servidor: {
+            ativo: true,
+            ...(orgaoIdEquipamento ? { orgaoId: orgaoIdEquipamento } : {}),
+          },
+        },
+        select: {
+          servidor: {
+            select: {
+              id: true,
+              matricula: true,
+              cpf: true,
+              pis: true,
+            },
+          },
+        },
+      });
+
+    if (vinculoIdentificador?.servidor) {
+      return vinculoIdentificador.servidor;
+    }
+  }
 
   if (cpf && aceitaCpf) {
     const filtroCpf = [{ cpf }, { usuario: { cpf } }];

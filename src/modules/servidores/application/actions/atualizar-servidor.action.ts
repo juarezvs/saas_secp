@@ -9,7 +9,9 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 
 import {
   buscarServidorPorId,
+  identificadorPontoExiste,
   matriculaServidorExiste,
+  normalizarIdentificadorPonto,
   pisServidorExiste,
   usuarioMatriculaExiste,
 } from "../../infrastructure/repositories/servidor.repository";
@@ -38,9 +40,16 @@ function extrairDadosServidor(formData: FormData): Partial<ServidorInput> {
     formData.get("sinalizacaoForaExpediente") ?? "PADRAO",
   );
 
+  const matricula = String(formData.get("matricula") ?? "").trim();
+  const identificadores = formData
+    .getAll("identificadoresPonto")
+    .map((valor) => String(valor).trim())
+    .filter(Boolean);
+
   return {
     orgaoId: String(formData.get("orgaoId") ?? ""),
-    matricula: String(formData.get("matricula") ?? "").trim(),
+    categoriaPessoaId: String(formData.get("categoriaPessoaId") ?? ""),
+    matricula,
     cpf: String(formData.get("cpf") ?? "").replace(/\D/g, ""),
     pis: String(formData.get("pis") ?? "").replace(/\D/g, ""),
     nome: String(formData.get("nome") ?? "").trim(),
@@ -55,7 +64,26 @@ function extrairDadosServidor(formData: FormData): Partial<ServidorInput> {
       ? (sinalizacaoForaExpediente as ServidorInput["sinalizacaoForaExpediente"])
       : "PADRAO",
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
+    identificadoresPonto: Array.from(new Set([matricula, ...identificadores])),
   };
+}
+
+function deduplicarIdentificadoresPonto(valores: string[]) {
+  const identificadores: string[] = [];
+  const vistos = new Set<string>();
+
+  for (const valor of valores) {
+    const normalizado = normalizarIdentificadorPonto(valor);
+
+    if (!normalizado || vistos.has(normalizado)) {
+      continue;
+    }
+
+    vistos.add(normalizado);
+    identificadores.push(valor.trim());
+  }
+
+  return identificadores;
 }
 
 export async function atualizarServidorAction(
@@ -89,6 +117,9 @@ export async function atualizarServidorAction(
   }
 
   const matricula = parsed.data.matricula;
+  const identificadoresPonto = deduplicarIdentificadoresPonto(
+    parsed.data.identificadoresPonto,
+  );
 
   if (await matriculaServidorExiste(matricula, servidorId)) {
     return {
@@ -123,6 +154,21 @@ export async function atualizarServidorAction(
     };
   }
 
+  for (const identificador of identificadoresPonto) {
+    if (await identificadorPontoExiste(identificador, servidorId)) {
+      return {
+        sucesso: false,
+        mensagem: "Ja existe outra pessoa com este identificador de ponto.",
+        erros: {
+          identificadoresPonto: [
+            `Identificador ja vinculado a outra pessoa: ${identificador}`,
+          ],
+        },
+        campos: dados,
+      };
+    }
+  }
+
   await prisma.$transaction(async (tx) => {
     await tx.usuario.update({
       where: {
@@ -143,6 +189,7 @@ export async function atualizarServidorAction(
       },
       data: {
         orgaoId: parsed.data.orgaoId,
+        categoriaPessoaId: parsed.data.categoriaPessoaId || null,
         matricula,
         cpf: parsed.data.cpf || null,
         pis: parsed.data.pis || null,
@@ -154,6 +201,22 @@ export async function atualizarServidorAction(
             : parsed.data.sinalizacaoForaExpediente === "SINALIZAR",
         ativo: parsed.data.ativo,
       },
+    });
+
+    await tx.identificadorPontoServidor.deleteMany({
+      where: {
+        servidorId,
+      },
+    });
+
+    await tx.identificadorPontoServidor.createMany({
+      data: identificadoresPonto.map((identificador, indice) => ({
+        servidorId,
+        valor: identificador,
+        valorNormalizado: normalizarIdentificadorPonto(identificador)!,
+        principal: indice === 0,
+      })),
+      skipDuplicates: true,
     });
 
     await tx.auditoriaEvento.create({
@@ -169,6 +232,7 @@ export async function atualizarServidorAction(
             cpf: servidorAtual.cpf,
             pis: servidorAtual.pis,
             orgaoId: servidorAtual.orgaoId,
+            categoriaPessoaId: servidorAtual.categoriaPessoaId,
             vinculo: servidorAtual.vinculo,
             nomeFuncional: servidorAtual.nomeFuncional,
             horasForaExpedienteInconsistente:
@@ -191,6 +255,7 @@ export async function atualizarServidorAction(
             cpf: parsed.data.cpf || null,
             pis: parsed.data.pis || null,
             orgaoId: parsed.data.orgaoId,
+            categoriaPessoaId: parsed.data.categoriaPessoaId || null,
             vinculo: parsed.data.vinculo,
             nomeFuncional: parsed.data.nomeFuncional || null,
             horasForaExpedienteInconsistente:
@@ -217,6 +282,7 @@ export async function atualizarServidorAction(
     cpf: parsed.data.cpf || null,
     pis: parsed.data.pis || null,
     matricula: parsed.data.matricula,
+    identificadores: identificadoresPonto,
     usuarioIdAuditoria: permissao.usuarioId,
   });
 

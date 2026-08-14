@@ -31,11 +31,13 @@ import {
   criarDispensaPontoServidorAction,
   encerrarDispensaPontoServidorAction,
 } from "@/modules/servidores/application/actions/dispensa-ponto-servidor.action";
+import { reprocessarIdentificadoresPontoServidorAction } from "@/modules/servidores/application/actions/reprocessar-identificadores-ponto-servidor.action";
 import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { vincularLotacaoAction } from "@/modules/servidores/application/actions/vincular-lotacao.action";
 import { DispensaPontoServidorCard } from "@/modules/servidores/presentation/components/dispensa-ponto-servidor-card";
 import { AfastamentosServidorCard } from "@/modules/servidores/presentation/components/afastamentos-servidor-card";
 import { LotacaoForm } from "@/modules/servidores/presentation/components/lotacao-form";
+import { ReprocessarIdentificadoresPontoButton } from "@/modules/servidores/presentation/components/reprocessar-identificadores-ponto-button";
 import { ServidorLotacoesCard } from "@/modules/servidores/presentation/components/servidor-lotacoes-card";
 import { ServidorBiometriaFacialCard } from "@/modules/servidores/presentation/components/servidor-biometria-facial-card";
 
@@ -44,6 +46,7 @@ type ServidorDetalhePageProps = {
     id: string;
   }>;
   searchParams?: Promise<{
+    aba?: string;
     paginaAfastamentos?: string;
     paginaFerias?: string;
     paginaOutros?: string;
@@ -51,7 +54,29 @@ type ServidorDetalhePageProps = {
   }>;
 };
 
+type AbaServidor =
+  | "dados"
+  | "perfis"
+  | "jornadas"
+  | "lotacoes"
+  | "biometria"
+  | "afastamentos"
+  | "ponto";
 type AbaAfastamentos = "ferias" | "outros";
+
+const ABAS_SERVIDOR: Array<{ valor: AbaServidor; label: string }> = [
+  { valor: "dados", label: "Dados" },
+  { valor: "perfis", label: "Perfis" },
+  { valor: "jornadas", label: "Jornadas" },
+  { valor: "lotacoes", label: "Lotações" },
+  { valor: "biometria", label: "Biometria" },
+  { valor: "afastamentos", label: "Afastamentos" },
+  { valor: "ponto", label: "Ponto" },
+];
+
+const ABAS_SERVIDOR_VALIDAS = new Set<AbaServidor>(
+  ABAS_SERVIDOR.map((aba) => aba.valor),
+);
 
 const ROTULOS_TIPO_PESSOA: Record<
   string,
@@ -69,10 +94,10 @@ const ROTULOS_TIPO_PESSOA: Record<
     singularTitulo: "Servidor",
   },
   ESTAGIARIO: {
-    breadcrumb: "Estagiarios",
+    breadcrumb: "Estagiários",
     href: "/estagiarios",
-    singular: "estagiario",
-    singularTitulo: "Estagiario",
+    singular: "estagiário",
+    singularTitulo: "Estagiário",
   },
   PRESTADOR: {
     breadcrumb: "Prestadores",
@@ -126,6 +151,7 @@ export default async function ServidorDetalhePage({
 
   const { id } = await params;
   const query = searchParams ? await searchParams : {};
+  const abaSolicitada = query.aba as AbaServidor | undefined;
   const abaAfastamentos: AbaAfastamentos =
     query.abaAfastamentos === "outros" ? "outros" : "ferias";
   const paginaFerias = Number(
@@ -194,6 +220,12 @@ export default async function ServidorDetalhePage({
     permissoesAtivas,
     ["servidores:gerenciar:global"],
   );
+  const abaServidor: AbaServidor =
+    abaSolicitada && ABAS_SERVIDOR_VALIDAS.has(abaSolicitada)
+      ? abaSolicitada === "ponto" && !podeGerenciarServidor
+        ? "dados"
+        : abaSolicitada
+      : "dados";
   const permissoesBiometria = {
     podeCadastrar: usuarioPossuiAlgumaPermissaoNoPerfil(
       perfilCodigo,
@@ -231,6 +263,8 @@ export default async function ServidorDetalhePage({
     null,
     servidorId,
   );
+  const actionReprocessarIdentificadores =
+    reprocessarIdentificadoresPontoServidorAction.bind(null, servidorId);
   const dispensasPonto = servidor.dispensasPonto.map((dispensa) => ({
     id: dispensa.id,
     motivo: dispensa.motivo,
@@ -250,6 +284,7 @@ export default async function ServidorDetalhePage({
 
   function montarHrefPaginaAfastamentos(novaPagina: number) {
     const params = new URLSearchParams();
+    params.set("aba", "afastamentos");
     params.set("abaAfastamentos", abaAfastamentos);
     params.set(
       abaAfastamentos === "ferias" ? "paginaFerias" : "paginaOutros",
@@ -260,18 +295,31 @@ export default async function ServidorDetalhePage({
 
   function montarHrefAbaAfastamentos(aba: AbaAfastamentos) {
     const params = new URLSearchParams();
+    params.set("aba", "afastamentos");
     params.set("abaAfastamentos", aba);
     return `/servidores/${servidorId}?${params.toString()}`;
   }
 
+  function montarHrefAbaServidor(aba: AbaServidor) {
+    const params = new URLSearchParams();
+    params.set("aba", aba);
+    if (aba === "afastamentos") {
+      params.set("abaAfastamentos", abaAfastamentos);
+      params.set("paginaFerias", String(paginaFerias));
+      params.set("paginaOutros", String(paginaOutros));
+    }
+    return `/servidores/${servidorId}?${params.toString()}`;
+  }
+
   const tituloAfastamentos =
-    abaAfastamentos === "ferias"
-      ? "Férias registradas"
-      : "Outros afastamentos";
+    abaAfastamentos === "ferias" ? "Férias registradas" : "Outros afastamentos";
   const descricaoAfastamentos =
     abaAfastamentos === "ferias"
       ? "Períodos de férias importados do SARH e vinculados à matrícula funcional do servidor."
       : "Licenças, afastamentos diversos e demais registros importados do SARH para este servidor.";
+  const abasServidorVisiveis = ABAS_SERVIDOR.filter(
+    (aba) => aba.valor !== "ponto" || podeGerenciarServidor,
+  );
 
   return (
     <div className="space-y-6">
@@ -345,85 +393,145 @@ export default async function ServidorDetalhePage({
         descricao="A lotação define a unidade em que a carga mensal será apurada e a chefia responsável pela análise, compensação e homologação da frequência."
       />
 
-      <section className="grid gap-4 md:grid-cols-4">
-        <div className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
-          <p className="text-sm text-[var(--muted-foreground)]">Órgão</p>
-          <h2 className="mt-2 text-2xl font-bold">{servidor.orgao.sigla}</h2>
-        </div>
+      <nav
+        aria-label="Seções do servidor"
+        className="flex flex-wrap gap-2 rounded-xl border bg-card p-2"
+      >
+        {abasServidorVisiveis.map((aba) => (
+          <Link
+            key={aba.valor}
+            href={montarHrefAbaServidor(aba.valor)}
+            className={classeAba(abaServidor === aba.valor)}
+            aria-current={abaServidor === aba.valor ? "page" : undefined}
+          >
+            {aba.label}
+          </Link>
+        ))}
+      </nav>
 
-        <div className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
-          <p className="text-sm text-[var(--muted-foreground)]">Vínculo</p>
-          <h2 className="mt-2 text-base font-bold">{servidor.vinculo}</h2>
-        </div>
+      {abaServidor === "dados" && (
+        <>
+          <section className="grid gap-4 md:grid-cols-4">
+            <div className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
+              <p className="text-sm text-[var(--muted-foreground)]">Órgão</p>
+              <h2 className="mt-2 text-2xl font-bold">
+                {servidor.orgao.sigla}
+              </h2>
+            </div>
 
-        <div className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
-          <p className="text-sm text-[var(--muted-foreground)]">Perfis</p>
-          <h2 className="mt-2 text-2xl font-bold">
-            {servidor.usuario.perfis.length}
-          </h2>
-        </div>
+            <div className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
+              <p className="text-sm text-[var(--muted-foreground)]">Vínculo</p>
+              <h2 className="mt-2 text-base font-bold">{servidor.vinculo}</h2>
+            </div>
 
-        <div className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
-          <p className="text-sm text-[var(--muted-foreground)]">Status</p>
-          <h2 className="mt-2 text-2xl font-bold">
-            {servidor.ativo ? "Ativo" : "Inativo"}
-          </h2>
-        </div>
-      </section>
+            <div className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
+              <p className="text-sm text-[var(--muted-foreground)]">Perfis</p>
+              <h2 className="mt-2 text-2xl font-bold">
+                {servidor.usuario.perfis.length}
+              </h2>
+            </div>
 
-      <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
-        <div className="flex items-center gap-2 border-b p-5">
-          <UserRound className="size-5 text-blue-900 dark:text-blue-300" />
-          <h2 className="text-lg font-bold">Dados do usuário</h2>
-        </div>
+            <div className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
+              <p className="text-sm text-[var(--muted-foreground)]">Status</p>
+              <h2 className="mt-2 text-2xl font-bold">
+                {servidor.ativo ? "Ativo" : "Inativo"}
+              </h2>
+            </div>
+          </section>
 
-        <div className="grid gap-4 p-5 md:grid-cols-2">
-          <div>
-            <p className="text-sm text-[var(--muted-foreground)]">Nome</p>
-            <p className="mt-1 font-semibold">{nomeFuncional}</p>
-          </div>
+          <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
+            <div className="flex items-center gap-2 border-b p-5">
+              <UserRound className="size-5 text-blue-900 dark:text-blue-300" />
+              <h2 className="text-lg font-bold">Dados do usuário</h2>
+            </div>
 
-          <div>
-            <p className="text-sm text-[var(--muted-foreground)]">E-mail</p>
-            <p className="mt-1 font-semibold">
-              {servidor.usuario.email ?? "-"}
-            </p>
-          </div>
+            <div className="grid gap-4 p-5 md:grid-cols-2">
+              <div>
+                <p className="text-sm text-[var(--muted-foreground)]">Nome</p>
+                <p className="mt-1 font-semibold">{nomeFuncional}</p>
+              </div>
 
-          <div>
-            <p className="text-sm text-[var(--muted-foreground)]">CPF</p>
-            <p className="mt-1 font-mono text-sm font-semibold">
-              {servidor.cpf ?? servidor.usuario.cpf ?? "-"}
-            </p>
-          </div>
+              <div>
+                <p className="text-sm text-[var(--muted-foreground)]">E-mail</p>
+                <p className="mt-1 font-semibold">
+                  {servidor.usuario.email ?? "-"}
+                </p>
+              </div>
 
-          <div>
-            <p className="text-sm text-[var(--muted-foreground)]">PIS/PASEP</p>
-            <p className="mt-1 font-mono text-sm font-semibold">
-              {servidor.pis ?? "-"}
-            </p>
-          </div>
+              <div>
+                <p className="text-sm text-[var(--muted-foreground)]">CPF</p>
+                <p className="mt-1 font-mono text-sm font-semibold">
+                  {servidor.cpf ?? servidor.usuario.cpf ?? "-"}
+                </p>
+              </div>
 
-          <div>
-            <p className="text-sm text-[var(--muted-foreground)]">
-              Nome funcional
-            </p>
-            <p className="mt-1 font-semibold">
-              {servidor.nomeFuncional ?? "-"}
-            </p>
-          </div>
+              <div>
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  PIS/PASEP
+                </p>
+                <p className="mt-1 font-mono text-sm font-semibold">
+                  {servidor.pis ?? "-"}
+                </p>
+              </div>
 
-          <div>
-            <p className="text-sm text-[var(--muted-foreground)]">
-              Tipo de usuário
-            </p>
-            <p className="mt-1 font-semibold">{servidor.usuario.tipo}</p>
-          </div>
-        </div>
-      </section>
+              <div>
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  Nome funcional
+                </p>
+                <p className="mt-1 font-semibold">
+                  {servidor.nomeFuncional ?? "-"}
+                </p>
+              </div>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
+              <div>
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  Tipo de usuário
+                </p>
+                <p className="mt-1 font-semibold">{servidor.usuario.tipo}</p>
+              </div>
+
+              <div className="md:col-span-2">
+                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                  <div>
+                    <p className="text-sm text-[var(--muted-foreground)]">
+                      Identificadores de ponto
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                      Usados para associar marcações recebidas por equipamentos
+                      biométricos diferentes.
+                    </p>
+                  </div>
+
+                  {podeGerenciarServidor && (
+                    <ReprocessarIdentificadoresPontoButton
+                      action={actionReprocessarIdentificadores}
+                    />
+                  )}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {servidor.identificadoresPonto.length > 0 ? (
+                    servidor.identificadoresPonto.map((identificador) => (
+                      <span
+                        key={identificador.id}
+                        className="rounded-md border bg-[var(--muted)] px-2 py-1 font-mono text-xs font-semibold"
+                      >
+                        {identificador.valor}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-[var(--muted-foreground)]">
+                      -
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
+
+      {abaServidor === "perfis" && (
+        <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
           <div className="flex items-center gap-2 border-b p-5">
             <ShieldCheck className="size-5 text-blue-900 dark:text-blue-300" />
             <h2 className="text-lg font-bold">Perfis vinculados</h2>
@@ -443,11 +551,12 @@ export default async function ServidorDetalhePage({
                 </div>
 
                 <span
-                  className={`w-fit rounded-full px-2 py-1 text-xs font-semibold ${
+                  className={[
+                    "w-fit rounded-full px-2 py-1 text-xs font-semibold",
                     usuarioPerfil.ativo
                       ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
-                      : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                  }`}
+                      : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+                  ].join(" ")}
                 >
                   {usuarioPerfil.ativo ? "Ativo" : "Inativo"}
                 </span>
@@ -460,9 +569,11 @@ export default async function ServidorDetalhePage({
               </div>
             )}
           </div>
-        </div>
+        </section>
+      )}
 
-        <div className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
+      {abaServidor === "jornadas" && (
+        <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
           <div className="flex items-center gap-2 border-b p-5">
             <CalendarClock className="size-5 text-blue-900 dark:text-blue-300" />
             <h2 className="text-lg font-bold">Jornadas vinculadas</h2>
@@ -482,11 +593,12 @@ export default async function ServidorDetalhePage({
                   </div>
 
                   <span
-                    className={`w-fit rounded-full px-2 py-1 text-xs font-semibold ${
+                    className={[
+                      "w-fit rounded-full px-2 py-1 text-xs font-semibold",
                       jornadaServidor.ativo
                         ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
-                        : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                    }`}
+                        : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+                    ].join(" ")}
                   >
                     {jornadaServidor.ativo ? "Vigente" : "Encerrada"}
                   </span>
@@ -525,100 +637,110 @@ export default async function ServidorDetalhePage({
 
             {servidor.jornadas.length === 0 && (
               <div className="p-8 text-center text-sm text-[var(--muted-foreground)]">
-                Nenhuma jornada vinculada a este ${rotuloPessoa.singular}.
+                Nenhuma jornada vinculada a este {rotuloPessoa.singular}.
               </div>
             )}
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      <ServidorLotacoesCard lotacoes={servidor.lotacoes} />
+      {abaServidor === "lotacoes" && (
+        <ServidorLotacoesCard lotacoes={servidor.lotacoes} />
+      )}
 
-      <ServidorBiometriaFacialCard
-        servidorId={servidorId}
-        servidorNome={nomeFuncional}
-        resumo={{
-          status: resumoBiometria.biometria?.status ?? "NAO_CADASTRADO",
-          amostrasQuantidade:
-            resumoBiometria.biometria?.amostrasQuantidade ?? 0,
-          qualidadeMedia: resumoBiometria.biometria?.qualidadeMedia ?? null,
-          atualizadoEm:
-            resumoBiometria.biometria?.atualizadoEm.toISOString() ?? null,
-          revogadoEm:
-            resumoBiometria.biometria?.revogadoEm?.toISOString() ?? null,
-          ultimaTentativaEm:
-            resumoBiometria.ultimaSessao?.criadoEm.toISOString() ??
-            resumoBiometria.ultimaAmostra?.criadoEm.toISOString() ??
-            null,
-          ultimaTentativaStatus:
-            resumoBiometria.ultimaSessao?.status ??
-            (resumoBiometria.ultimaAmostra
-              ? resumoBiometria.ultimaAmostra.validada
-                ? "VALIDADA"
-                : "NÃO VALIDADA"
-              : null),
-          ultimoEventoEm:
-            resumoBiometria.ultimoEvento?.criadoEm.toISOString() ?? null,
-          ultimoEventoAcao: resumoBiometria.ultimoEvento?.acao ?? null,
-          ultimoEventoUsuario: resumoBiometria.ultimoEvento?.usuario
-            ? `${resumoBiometria.ultimoEvento.usuario.matricula} - ${resumoBiometria.ultimoEvento.usuario.nome}`
-            : null,
-        }}
-        permissoes={permissoesBiometria}
-      />
-
-      <nav
-        aria-label="Tipos de afastamento"
-        className="flex flex-wrap gap-2 rounded-xl border bg-card p-2"
-      >
-        <Link
-          href={montarHrefAbaAfastamentos("ferias")}
-          className={classeAba(abaAfastamentos === "ferias")}
-        >
-          Férias
-          <span className="ml-2 rounded-full bg-background/80 px-2 py-0.5 text-xs text-foreground">
-            {totalFerias}
-          </span>
-        </Link>
-        <Link
-          href={montarHrefAbaAfastamentos("outros")}
-          className={classeAba(abaAfastamentos === "outros")}
-        >
-          Outros afastamentos
-          <span className="ml-2 rounded-full bg-background/80 px-2 py-0.5 text-xs text-foreground">
-            {totalOutros}
-          </span>
-        </Link>
-      </nav>
-
-      <AfastamentosServidorCard
-        afastamentos={afastamentosResultado.afastamentos}
-        titulo={tituloAfastamentos}
-        descricao={descricaoAfastamentos}
-        resumo={{
-          total: afastamentosResultado.total,
-          vigentes: afastamentosResultado.vigentes,
-          futuros: afastamentosResultado.futuros,
-        }}
-        paginacao={{
-          total: afastamentosResultado.total,
-          pagina: afastamentosResultado.pagina,
-          totalPaginas: afastamentosResultado.totalPaginas,
-          itensPorPagina: afastamentosResultado.itensPorPagina,
-          montarHrefPagina: montarHrefPaginaAfastamentos,
-        }}
-      />
-
-      {podeGerenciarServidor && (
-        <DispensaPontoServidorCard
-          dispensas={dispensasPonto}
-          fusoHorario={fusoHorario}
-          action={actionDispensaPonto}
+      {abaServidor === "biometria" && (
+        <ServidorBiometriaFacialCard
+          servidorId={servidorId}
+          servidorNome={nomeFuncional}
+          resumo={{
+            status: resumoBiometria.biometria?.status ?? "NAO_CADASTRADO",
+            amostrasQuantidade:
+              resumoBiometria.biometria?.amostrasQuantidade ?? 0,
+            qualidadeMedia: resumoBiometria.biometria?.qualidadeMedia ?? null,
+            atualizadoEm:
+              resumoBiometria.biometria?.atualizadoEm.toISOString() ?? null,
+            revogadoEm:
+              resumoBiometria.biometria?.revogadoEm?.toISOString() ?? null,
+            ultimaTentativaEm:
+              resumoBiometria.ultimaSessao?.criadoEm.toISOString() ??
+              resumoBiometria.ultimaAmostra?.criadoEm.toISOString() ??
+              null,
+            ultimaTentativaStatus:
+              resumoBiometria.ultimaSessao?.status ??
+              (resumoBiometria.ultimaAmostra
+                ? resumoBiometria.ultimaAmostra.validada
+                  ? "VALIDADA"
+                  : "NÃO VALIDADA"
+                : null),
+            ultimoEventoEm:
+              resumoBiometria.ultimoEvento?.criadoEm.toISOString() ?? null,
+            ultimoEventoAcao: resumoBiometria.ultimoEvento?.acao ?? null,
+            ultimoEventoUsuario: resumoBiometria.ultimoEvento?.usuario
+              ? resumoBiometria.ultimoEvento.usuario.matricula +
+                " - " +
+                resumoBiometria.ultimoEvento.usuario.nome
+              : null,
+          }}
+          permissoes={permissoesBiometria}
         />
       )}
 
-      {podeGerenciarServidor && (
-        <LotacaoForm action={actionLotacao} unidades={unidades} />
+      {abaServidor === "afastamentos" && (
+        <div className="space-y-4">
+          <nav
+            aria-label="Tipos de afastamento"
+            className="flex flex-wrap gap-2 rounded-xl border bg-card p-2"
+          >
+            <Link
+              href={montarHrefAbaAfastamentos("ferias")}
+              className={classeAba(abaAfastamentos === "ferias")}
+            >
+              Férias
+              <span className="ml-2 rounded-full bg-background/80 px-2 py-0.5 text-xs text-foreground">
+                {totalFerias}
+              </span>
+            </Link>
+            <Link
+              href={montarHrefAbaAfastamentos("outros")}
+              className={classeAba(abaAfastamentos === "outros")}
+            >
+              Outros afastamentos
+              <span className="ml-2 rounded-full bg-background/80 px-2 py-0.5 text-xs text-foreground">
+                {totalOutros}
+              </span>
+            </Link>
+          </nav>
+
+          <AfastamentosServidorCard
+            afastamentos={afastamentosResultado.afastamentos}
+            titulo={tituloAfastamentos}
+            descricao={descricaoAfastamentos}
+            resumo={{
+              total: afastamentosResultado.total,
+              vigentes: afastamentosResultado.vigentes,
+              futuros: afastamentosResultado.futuros,
+            }}
+            paginacao={{
+              total: afastamentosResultado.total,
+              pagina: afastamentosResultado.pagina,
+              totalPaginas: afastamentosResultado.totalPaginas,
+              itensPorPagina: afastamentosResultado.itensPorPagina,
+              montarHrefPagina: montarHrefPaginaAfastamentos,
+            }}
+          />
+        </div>
+      )}
+
+      {abaServidor === "ponto" && podeGerenciarServidor && (
+        <div className="space-y-4">
+          <DispensaPontoServidorCard
+            dispensas={dispensasPonto}
+            fusoHorario={fusoHorario}
+            action={actionDispensaPonto}
+          />
+
+          <LotacaoForm action={actionLotacao} unidades={unidades} />
+        </div>
       )}
     </div>
   );

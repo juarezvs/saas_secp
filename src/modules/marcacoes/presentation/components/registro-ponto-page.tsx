@@ -378,7 +378,6 @@ function RegistroPontoFacialPage({
 }) {
   const router = useRouter();
   const [registroConfirmado, setRegistroConfirmado] = useState(false);
-  const ultimaMarcacao = marcacoes[marcacoes.length - 1] ?? null;
   const historico = [...marcacoes].reverse();
 
   const handleRegistroConcluido = useCallback(
@@ -393,7 +392,7 @@ function RegistroPontoFacialPage({
   );
 
   return (
-    <div className="-m-6 min-h-[calc(100vh-4rem)] bg-slate-100 px-4 py-6 text-slate-950 md:px-6">
+    <div className="-m-6 min-h-[calc(100vh-4rem)] bg-[var(--background)] px-4 py-6 text-[var(--foreground)] md:px-6">
       <div className="mx-auto flex min-h-[calc(100vh-7rem)] w-full max-w-7xl flex-col">
         <header className="mb-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -401,12 +400,12 @@ function RegistroPontoFacialPage({
               <h1 className="text-2xl font-black tracking-normal md:text-3xl">
                 Reconhecimento Facial
               </h1>
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                 Web - getUserMedia - Liveness check ativo
               </p>
             </div>
-            <div className="inline-flex max-w-full items-center gap-2 self-start rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-bold text-emerald-700 md:self-auto">
-              <span className="size-2 rounded-full bg-emerald-400" />
+            <div className="inline-flex max-w-full items-center gap-2 self-start rounded-full border border-[var(--secp-theme-accent)]/30 bg-[var(--secp-theme-accent-soft)] px-3 py-1.5 text-xs font-bold text-[var(--secp-theme-accent)] md:self-auto">
+              <span className="size-2 rounded-full bg-[var(--secp-theme-accent)]" />
               <span className="truncate">
                 Logado como {servidor.nome} - Mat. {servidor.matricula}
               </span>
@@ -415,14 +414,14 @@ function RegistroPontoFacialPage({
         </header>
 
         <main className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.95fr)]">
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+          <section className="rounded-2xl border border-border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm md:p-6">
             <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-[#5135f5]/10 p-2 text-[#5135f5]">
+              <div className="rounded-lg bg-[var(--secp-theme-accent-soft)] p-2 text-[var(--secp-theme-accent)]">
                 <ScanFace className="size-5" aria-hidden="true" />
               </div>
               <div>
                 <h2 className="text-lg font-black">Reconhecimento Facial</h2>
-                <p className="mt-1 text-sm text-slate-600">
+                <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                   Posicione o rosto na moldura para validar a identidade e
                   registrar o ponto.
                 </p>
@@ -432,23 +431,23 @@ function RegistroPontoFacialPage({
             <div className="mt-5">
               {!servidor.biometriaAtiva ? (
                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-amber-950">
-                  <p className="font-bold">Biometria facial nao cadastrada</p>
+                  <p className="font-bold">Biometria facial não cadastrada</p>
                   <p className="mt-2 text-sm leading-6">
                     Cadastre a biometria antes de registrar ponto por
                     reconhecimento facial.
                   </p>
                   <Link
                     href="/biometria/cadastro"
-                    className="mt-4 inline-flex rounded-lg bg-[#5135f5] px-4 py-2 text-sm font-bold text-white hover:bg-[#452add]"
+                    className="mt-4 inline-flex rounded-lg bg-[var(--secp-theme-accent)] px-4 py-2 text-sm font-bold text-white hover:brightness-95 dark:text-slate-950"
                   >
                     Cadastrar biometria
                   </Link>
                 </div>
               ) : fluxoConcluido ? (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950">
+                <div className="rounded-xl border border-[var(--secp-theme-accent)]/30 bg-[var(--secp-theme-accent-soft)] p-5 text-[var(--foreground)]">
                   <p className="font-bold">Jornada registrada</p>
                   <p className="mt-2 text-sm">
-                    Todas as marcacoes ordinarias do dia ja foram registradas.
+                    Todas as marcações ordinárias do dia já foram registradas.
                   </p>
                 </div>
               ) : (
@@ -460,21 +459,21 @@ function RegistroPontoFacialPage({
             </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-              <span className="size-2 rounded-full bg-emerald-500" />
+              <span className="size-2 rounded-full bg-[var(--secp-theme-accent)]" />
               <span>Liveness: ativo</span>
-              <span className="text-slate-400">-</span>
+              <span className="text-[var(--muted-foreground)]">-</span>
               <span>Anti-spoofing ativo</span>
             </div>
           </section>
 
           <div className="space-y-4">
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+            <section className="rounded-2xl border border-border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm md:p-6">
               <h2 className="text-lg font-black">Resultado</h2>
               {registroConfirmado || fluxoConcluido ? (
-                <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-950">
+                <div className="mt-4 rounded-2xl border border-[var(--secp-theme-accent)]/30 bg-[var(--secp-theme-accent-soft)] p-5 text-[var(--foreground)]">
                   <div className="flex items-start gap-3">
                     <ShieldCheck
-                      className="mt-0.5 size-5 shrink-0 text-emerald-700"
+                      className="mt-0.5 size-5 shrink-0 text-[var(--secp-theme-accent)]"
                       aria-hidden="true"
                     />
                     <div>
@@ -482,15 +481,15 @@ function RegistroPontoFacialPage({
                         Ponto registrado com sucesso
                       </p>
                       <p className="mt-2 text-sm">
-                        Origem: Reconhecimento facial - Proxima:{" "}
+                        Origem: Reconhecimento facial - Próxima:{" "}
                         {proximaMarcacao ?? "jornada registrada"}
                       </p>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="mt-4 rounded-2xl border-2 border-dashed border-slate-200 px-5 py-7 text-center text-sm leading-6 text-slate-600">
-                  Nenhum reconhecimento ainda. Ative a camera e posicione o
+                <div className="mt-4 rounded-2xl border-2 border-dashed border-border px-5 py-7 text-center text-sm leading-6 text-[var(--muted-foreground)]">
+                  Nenhum reconhecimento ainda. Ative a câmera e posicione o
                   rosto na moldura.
                 </div>
               )}
@@ -502,17 +501,17 @@ function RegistroPontoFacialPage({
               </div>
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-              <h2 className="font-black">Historico de hoje</h2>
+            <section className="rounded-2xl border border-border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm md:p-6">
+              <h2 className="font-black">Histórico de hoje</h2>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {historico.map((marcacao) => (
                   <div
                     key={marcacao.id}
-                    className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+                    className="rounded-xl border border-border bg-[var(--muted)] px-4 py-3"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate text-xs text-slate-500">
+                        <p className="truncate text-xs text-[var(--muted-foreground)]">
                           {obterRotuloTipoMarcacao(marcacao.tipo)}
                         </p>
                         <p className="mt-1 font-mono text-lg font-black tracking-normal">
@@ -521,14 +520,14 @@ function RegistroPontoFacialPage({
                             marcacao.fusoHorario,
                           )}
                         </p>
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="mt-1 text-xs text-[var(--muted-foreground)]">
                           {rotuloOrigemWeb(marcacao.fonte)}
                         </p>
                       </div>
                       {marcacao.evidenciaFacialUrl ? (
                         <img
                           src={marcacao.evidenciaFacialUrl}
-                          alt="Evidencia facial da marcacao"
+                          alt="Evidência facial da marcação"
                           loading="lazy"
                           className="size-12 shrink-0 rounded-xl border object-cover"
                         />
@@ -538,8 +537,8 @@ function RegistroPontoFacialPage({
                 ))}
 
                 {historico.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-slate-200 px-5 py-4 text-sm text-slate-500">
-                    Nenhuma marcacao registrada hoje.
+                  <div className="rounded-xl border border-dashed border-border px-5 py-4 text-sm text-[var(--muted-foreground)]">
+                    Nenhuma marcação registrada hoje.
                   </div>
                 ) : null}
               </div>
@@ -547,13 +546,13 @@ function RegistroPontoFacialPage({
           </div>
         </main>
 
-        <footer className="mt-6 border-t border-slate-200 py-5 text-xs text-slate-500">
+        <footer className="mt-6 border-t border-border py-5 text-xs text-[var(--muted-foreground)]">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <span>
-              © 2026 SECP - Sistema Eletronico de Controle de Ponto - Portaria
-              671 - REP-P - Todos os direitos reservados
+              © 2026 SECP • Sistema Eletrônico de Controle de Ponto • Portaria
+              671 • REP-P • Todos os direitos reservados
             </span>
-            <span>pt-BR - Suporte institucional - v3.4.1</span>
+            <span>pt-BR • Suporte institucional • v3.4.1</span>
           </div>
         </footer>
       </div>
@@ -590,22 +589,22 @@ function RegistroPontoWebPage({
   }, [estado.marcacaoId, onRegistrada, router]);
 
   return (
-    <div className="-m-6 min-h-[calc(100vh-4rem)] bg-slate-100 px-4 py-6 text-slate-950 md:px-6">
+    <div className="-m-6 min-h-[calc(100vh-4rem)] bg-[var(--background)] px-4 py-6 text-[var(--foreground)] md:px-6">
       <div className="mx-auto flex min-h-[calc(100vh-7rem)] w-full max-w-6xl flex-col">
         <header className="text-center">
           <h1 className="text-2xl font-black tracking-normal md:text-3xl">
             Marcação Web
           </h1>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
             Autoatendimento do colaborador • Validação com comprovante e
             protocolo
           </p>
         </header>
 
         <main className="mx-auto mt-6 w-full max-w-3xl space-y-6">
-          <section className="rounded-[1.6rem] border border-slate-200 bg-white p-6 text-center shadow-sm md:p-8">
-            <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
-              <span className="size-2 rounded-full bg-emerald-400" />
+          <section className="rounded-[1.6rem] border border-border bg-[var(--card)] p-6 text-center text-[var(--card-foreground)] shadow-sm md:p-8">
+            <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-[var(--secp-theme-accent)]/30 bg-[var(--secp-theme-accent-soft)] px-3 py-1.5 text-xs font-bold text-[var(--secp-theme-accent)]">
+              <span className="size-2 rounded-full bg-[var(--secp-theme-accent)]" />
               <span className="truncate">
                 Logado como {servidor.nome} • Mat. {servidor.matricula}
               </span>
@@ -613,12 +612,12 @@ function RegistroPontoWebPage({
 
             <RelogioWeb />
 
-            <div className="mx-auto mt-6 inline-flex max-w-full items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-950">
-              <RotateCcw className="size-4 shrink-0 text-slate-500" />
+            <div className="mx-auto mt-6 inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-[var(--muted)] px-4 py-2 text-sm text-[var(--foreground)]">
+              <RotateCcw className="size-4 shrink-0 text-[var(--muted-foreground)]" />
               <span className="truncate">
                 Última marcação:{" "}
                 {ultimaMarcacao
-                  ? `${obterRotuloTipoMarcacao(ultimaMarcacao.tipo)} às ${formatarHoraCurta(
+                  ? `${obterRotuloTipoMarcacao(ultimaMarcacao.tipo)} ?s ${formatarHoraCurta(
                       ultimaMarcacao.dataHora,
                       ultimaMarcacao.fusoHorario,
                     )}`
@@ -631,7 +630,7 @@ function RegistroPontoWebPage({
               <button
                 type="submit"
                 disabled={pendente || fluxoConcluido}
-                className="flex h-[72px] w-full items-center justify-center gap-4 rounded-2xl bg-[#5135f5] px-6 text-lg font-black text-white shadow-[0_14px_28px_rgba(81,53,245,0.28)] transition hover:bg-[#452add] disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex h-[72px] w-full items-center justify-center gap-4 rounded-2xl bg-[var(--secp-theme-accent)] px-6 text-lg font-black text-white shadow-lg transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60 dark:text-slate-950"
               >
                 <Fingerprint className="size-7" aria-hidden="true" />
                 {pendente
@@ -642,12 +641,12 @@ function RegistroPontoWebPage({
               </button>
             </form>
 
-            <p className="mt-3 text-xs text-slate-600">
+            <p className="mt-3 text-xs text-[var(--muted-foreground)]">
               Toque único • Registro com IP e geolocalização
             </p>
 
             {estado.erro ? (
-              <div className="mx-auto mt-6 max-w-2xl rounded-xl border border-red-200 bg-red-50 p-4 text-left text-sm font-semibold text-red-700">
+              <div className="mx-auto mt-6 max-w-2xl rounded-xl border border-red-200 bg-red-50 p-4 text-left text-sm font-semibold text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
                 {estado.erro}
               </div>
             ) : null}
@@ -657,28 +656,28 @@ function RegistroPontoWebPage({
             ) : null}
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+          <section className="rounded-2xl border border-border bg-[var(--card)] p-4 text-[var(--card-foreground)] shadow-sm md:p-5">
             <h2 className="font-bold">Histórico de hoje</h2>
             <div className="mt-4 flex flex-wrap gap-3">
               {historico.map((marcacao) => (
                 <div
                   key={marcacao.id}
-                  className="min-w-40 rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 text-center"
+                  className="min-w-40 rounded-xl border border-border bg-[var(--muted)] px-5 py-4 text-center"
                 >
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-[var(--muted-foreground)]">
                     {obterRotuloTipoMarcacao(marcacao.tipo)}
                   </p>
                   <p className="mt-1 font-mono text-lg font-black tracking-normal">
                     {formatarHoraCurta(marcacao.dataHora, marcacao.fusoHorario)}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-[var(--muted-foreground)]">
                     {rotuloOrigemWeb(marcacao.fonte)}
                   </p>
                 </div>
               ))}
 
               {historico.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-200 px-5 py-4 text-sm text-slate-500">
+                <div className="rounded-xl border border-dashed border-border px-5 py-4 text-sm text-[var(--muted-foreground)]">
                   Nenhuma marcação registrada hoje.
                 </div>
               ) : null}
@@ -686,7 +685,7 @@ function RegistroPontoWebPage({
           </section>
         </main>
 
-        <footer className="mt-auto border-t border-slate-200 py-5 text-xs text-slate-500">
+        <footer className="mt-auto border-t border-border py-5 text-xs text-[var(--muted-foreground)]">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <span>
               © 2026 SECP • Sistema Eletrônico de Controle de Ponto • Portaria
@@ -710,11 +709,11 @@ function ComprovanteWebSucesso({
   if (!comprovante) return null;
 
   return (
-    <div className="mx-auto mt-7 max-w-2xl rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left text-emerald-950">
+    <div className="mx-auto mt-7 max-w-2xl rounded-2xl border border-[var(--secp-theme-accent)]/30 bg-[var(--secp-theme-accent-soft)] p-4 text-left text-[var(--foreground)]">
       <div className="flex items-start gap-3">
-        <ShieldCheck className="mt-0.5 size-5 shrink-0 text-emerald-700" />
+        <ShieldCheck className="mt-0.5 size-5 shrink-0 text-[var(--secp-theme-accent)]" />
         <div className="min-w-0">
-          <h2 className="text-base font-black text-emerald-800">
+          <h2 className="text-base font-black text-[var(--secp-theme-accent)]">
             Ponto registrado com sucesso!
           </h2>
           <p className="mt-2 text-sm">
@@ -728,16 +727,22 @@ function ComprovanteWebSucesso({
           </p>
 
           <div className="mt-4 flex flex-wrap gap-2">
+            {comprovante.marcacaoId ? (
+              <a
+                href={`/api/marcacoes/${comprovante.marcacaoId}/comprovante/pdf`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-[var(--card)] px-3 text-xs font-bold text-[var(--foreground)] shadow-sm"
+              >
+                <FileText className="size-4" aria-hidden="true" />
+                Comprovante PDF
+              </a>
+            ) : null}
             <button
               type="button"
-              className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-950 shadow-sm"
-            >
-              <FileText className="size-4" aria-hidden="true" />
-              Comprovante PDF
-            </button>
-            <button
-              type="button"
-              className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-950 shadow-sm"
+              disabled
+              title="Envio por e-mail depende de configuração SMTP ou serviço de mensagens transacionais."
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-[var(--card)] px-3 text-xs font-bold text-[var(--muted-foreground)] opacity-70 shadow-sm"
             >
               <Mail className="size-4" aria-hidden="true" />
               Enviar por e-mail
@@ -751,9 +756,9 @@ function ComprovanteWebSucesso({
 
 function IndicadorFacial({ label, valor }: { label: string; valor: string }) {
   return (
-    <div className="min-h-[54px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-center">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 truncate text-sm font-black text-slate-950">
+    <div className="min-h-[54px] rounded-xl border border-border bg-[var(--muted)] px-3 py-2 text-center">
+      <p className="text-xs text-[var(--muted-foreground)]">{label}</p>
+      <p className="mt-1 truncate text-sm font-black text-[var(--foreground)]">
         {valor}
       </p>
     </div>
@@ -843,7 +848,7 @@ function RegistrarMarcacaoWebAssinaturaModal({
               type="password"
               required
               autoComplete="current-password"
-              className="mt-2 h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+              className="mt-2 h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm text-[var(--foreground)]"
             />
             {estado.erro ? (
               <p className="mt-2 text-sm font-semibold text-red-700 dark:text-red-300">
@@ -851,14 +856,14 @@ function RegistrarMarcacaoWebAssinaturaModal({
               </p>
             ) : null}
             {estado.sucesso ? (
-              <p className="mt-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+              <p className="mt-2 text-sm font-semibold text-[var(--secp-theme-accent)]">
                 {estado.sucesso}
               </p>
             ) : null}
           </div>
         </form>
 
-        <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100">
+        <div className="mt-4 rounded-md border border-border bg-[var(--muted)] p-4 text-sm leading-6 text-[var(--foreground)]">
           A marcação será gravada com data e hora atuais, origem Sistema Web e
           assinatura eletrônica do usuário logado.
         </div>
@@ -1023,10 +1028,10 @@ function RelogioWeb() {
 
   return (
     <div className="mt-6">
-      <p className="font-mono text-6xl font-black leading-none tracking-normal text-slate-950 md:text-7xl">
+      <p className="font-mono text-6xl font-black leading-none tracking-normal text-[var(--foreground)] md:text-7xl">
         {hora}
       </p>
-      <p className="mt-2 text-sm text-slate-600">{data}</p>
+      <p className="mt-2 text-sm text-[var(--muted-foreground)]">{data}</p>
     </div>
   );
 }

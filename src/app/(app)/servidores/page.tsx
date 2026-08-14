@@ -29,6 +29,7 @@ import {
 } from "@/modules/servidores/application/services/funcao-cargo-servidor.service";
 import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
 import {
+  listarCategoriasPessoasAtivas,
   listarLotacoesAtivasParaFiltro,
   listarServidoresParaFiltro,
   listarServidoresPaginado,
@@ -43,6 +44,7 @@ type ServidoresPageProps = {
     pis?: string;
     nome?: string;
     tipoUsuario?: string;
+    categoriaPessoaId?: string;
     orgaoId?: string;
     vinculo?: string;
     lotacao?: string;
@@ -71,17 +73,17 @@ const CONTEXTOS_PESSOA: Record<
 > = {
   SERVIDOR: {
     hrefBase: "/servidores",
-    breadcrumb: "Servidores",
-    eyebrow: "Cadastro funcional",
-    titulo: "Servidores",
+    breadcrumb: "Pessoas",
+    eyebrow: "Cadastro unificado",
+    titulo: "Pessoas",
     descricao:
-      "Gerencie servidores, vinculos funcionais, usuarios relacionados e lotacoes em unidades organizacionais.",
-    regraTitulo: "Servidor, jornada, frequencia e consulta",
+      "Gerencie pessoas, categorias, vinculos funcionais, usuarios relacionados e lotacoes em unidades organizacionais.",
+    regraTitulo: "Pessoa, categoria, jornada e frequencia",
     regraDescricao:
-      "O cadastro funcional sustenta a jornada, a apuracao mensal, o banco de horas, a homologacao pela chefia e a consulta da propria frequencia pelo servidor.",
-    novoLabel: "Novo servidor",
-    tabelaTitulo: "Servidores cadastrados",
-    colunaPessoa: "Servidor",
+      "O cadastro unificado sustenta a jornada, a apuracao mensal, o banco de horas, a homologacao pela chefia e a coleta pelos identificadores de ponto.",
+    novoLabel: "Nova pessoa",
+    tabelaTitulo: "Pessoas cadastradas",
+    colunaPessoa: "Pessoa",
   },
   ESTAGIARIO: {
     hrefBase: "/estagiarios",
@@ -196,8 +198,7 @@ export default async function ServidoresPage({
     : undefined;
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
-  const statusFiltro =
-    tipoUsuario === "SERVIDOR" ? (params.status ?? "ativo") : "ativo";
+  const statusFiltro = "ativo";
   const filtrosEscopados = aplicarEscopoOrgaoId(
     {
       busca: params.busca ?? "",
@@ -209,6 +210,7 @@ export default async function ServidoresPage({
       orgaoId: params.orgaoId ?? "",
       vinculo: params.vinculo ?? "",
       lotacao: params.lotacao ?? "",
+      categoriaPessoaId: params.categoriaPessoaId ?? "",
       status: statusFiltro,
       servidorIdsPermitidos: servidorIdsPermitidosChefia,
       pagina,
@@ -220,9 +222,10 @@ export default async function ServidoresPage({
   const orgaoIdsPermitidos = escopoOrgao.global
     ? undefined
     : escopoOrgao.orgaoIds;
-  const [orgaos, resultado, servidoresFiltro, lotacoesFiltro] =
+  const [orgaos, categorias, resultado, servidoresFiltro, lotacoesFiltro] =
     await Promise.all([
       listarOrgaosAtivos(aplicarEscopoOrgaoId({ orgaoId: "" }, escopoOrgao)),
+      listarCategoriasPessoasAtivas({ orgaoIdsPermitidos }),
       listarServidoresPaginado(filtrosEscopados),
       listarServidoresParaFiltro({
         orgaoIdsPermitidos,
@@ -267,6 +270,7 @@ export default async function ServidoresPage({
     "pis",
     "nome",
     "tipoUsuario",
+    "categoriaPessoaId",
     "orgaoId",
     "vinculo",
     "lotacao",
@@ -341,6 +345,11 @@ export default async function ServidoresPage({
             orgaos={orgaos}
             servidores={servidoresOptions}
             lotacoes={lotacoesOptions}
+            categorias={categorias.map((categoria) => ({
+              value: categoria.id,
+              label: categoria.nome,
+              searchText: categoria.codigo,
+            }))}
             tipoUsuarioFixo={tipoUsuario}
             exportCsvHref={
               podeExportarServidores
@@ -356,24 +365,22 @@ export default async function ServidoresPage({
         }
       >
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1180px] text-left text-sm">
+          <table className="w-full min-w-[1040px] text-left text-sm">
             <caption className="sr-only">
-              Listagem de pessoas com matrícula, CPF, nome, órgão, vínculo,
-              lotação atual, contadores, status e ações.
+              Listagem de pessoas ativas com matr?cula, CPF, PIS/PASEP, nome,
+              ?rg?o, lota??o atual, contadores e a??es.
             </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
-                <th className="px-5 py-3">Matrícula</th>
-                <th className="px-5 py-3">CPF</th>
-                <th className="px-5 py-3">PIS/PASEP</th>
+                <th className="px-5 py-3">Matr?cula</th>
+                <th className="px-5 py-3">CPF / PIS/PASEP</th>
+                <th className="px-5 py-3">Categoria</th>
                 <th className="px-5 py-3">{contextoPessoa.colunaPessoa}</th>
-                <th className="px-5 py-3">Órgão</th>
-                <th className="px-5 py-3">Vínculo</th>
-                <th className="px-5 py-3">Lotação atual</th>
-                <th className="px-5 py-3">Lotações</th>
+                <th className="px-5 py-3">?rg?o</th>
+                <th className="px-5 py-3">Lota??o atual</th>
+                <th className="px-5 py-3">Lota??es</th>
                 <th className="px-5 py-3">Gestores</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Ações</th>
+                <th className="px-5 py-3 text-right">A??es</th>
               </tr>
             </thead>
 
@@ -393,10 +400,15 @@ export default async function ServidoresPage({
                       {servidor.matricula}
                     </td>
                     <td className="px-5 py-4 font-mono text-xs">
-                      {servidor.cpf ?? servidor.usuario.cpf ?? "-"}
+                      <div>{servidor.cpf ?? servidor.usuario.cpf ?? "-"}</div>
+                      <div className="mt-1 text-[11px] text-[var(--muted-foreground)]">
+                        {servidor.pis
+                          ? `PIS/PASEP ${servidor.pis}`
+                          : "PIS/PASEP -"}
+                      </div>
                     </td>
-                    <td className="px-5 py-4 font-mono text-xs">
-                      {servidor.pis ?? "-"}
+                    <td className="px-5 py-4">
+                      {servidor.categoriaPessoa?.nome ?? "-"}
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
@@ -432,30 +444,11 @@ export default async function ServidoresPage({
                       </div>
                     </td>
                     <td className="px-5 py-4">{servidor.orgao.sigla}</td>
-                    <td className="px-5 py-4 text-xs font-semibold uppercase text-[var(--muted-foreground)]">
-                      <div>{servidor.vinculo}</div>
-                      {servidor.descricaoProvimentoSarh && (
-                        <div className="mt-1 max-w-32 truncate text-[10px] normal-case text-[var(--muted-foreground)]">
-                          {servidor.descricaoProvimentoSarh}
-                        </div>
-                      )}
-                    </td>
                     <td className="px-5 py-4">
                       {lotacaoAtual ? lotacaoAtual.unidade.sigla : "-"}
                     </td>
                     <td className="px-5 py-4">{servidor._count.lotacoes}</td>
                     <td className="px-5 py-4">{servidor._count.gestores}</td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                          servidor.ativo
-                            ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
-                            : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                        }`}
-                      >
-                        {servidor.ativo ? "Ativo" : "Inativo"}
-                      </span>
-                    </td>
                     <td className="px-5 py-4 text-right">
                       <Link
                         href={`/servidores/${servidor.id}`}
@@ -472,7 +465,7 @@ export default async function ServidoresPage({
               {resultado.servidores.length === 0 && (
                 <tr>
                   <td
-                    colSpan={10}
+                    colSpan={9}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
                     Nenhum registro encontrado para os filtros informados.

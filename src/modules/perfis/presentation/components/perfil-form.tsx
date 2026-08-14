@@ -25,10 +25,17 @@ type PerfilFormProps = {
     codigo: string;
     nome: string;
   }>;
+  orgaosPermitidos?: Array<{
+    id: string;
+    sigla: string;
+    nome: string;
+  }>;
+  permitirPerfilGlobal?: boolean;
   valoresIniciais?: {
     codigo?: string;
     nome?: string;
     descricao?: string | null;
+    orgaoId?: string | null;
     ativo?: boolean;
     administrativo?: boolean;
     excecao?: boolean;
@@ -54,6 +61,8 @@ export function PerfilForm({
   action,
   permissoes,
   perfisDestinoExcecao,
+  orgaosPermitidos = [],
+  permitirPerfilGlobal = false,
   valoresIniciais,
   modo,
 }: PerfilFormProps) {
@@ -122,6 +131,37 @@ export function PerfilForm({
               </p>
             )}
           </div>
+
+          {orgaosPermitidos.length > 0 ? (
+            <div className="space-y-2 md:col-span-2">
+              <label htmlFor="orgaoId" className="text-sm font-semibold">
+                Seccional do perfil
+              </label>
+
+              <select
+                id="orgaoId"
+                name="orgaoId"
+                defaultValue={campos?.orgaoId ?? ""}
+                className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm text-[var(--card-foreground)] outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+                required={!permitirPerfilGlobal}
+              >
+                {permitirPerfilGlobal ? (
+                  <option value="">Perfil padrão/global</option>
+                ) : null}
+                {orgaosPermitidos.map((orgao) => (
+                  <option key={orgao.id} value={orgao.id}>
+                    {orgao.sigla} - {orgao.nome}
+                  </option>
+                ))}
+              </select>
+
+              <p className="text-xs text-[var(--muted-foreground)]">
+                Perfis globais recebem o prefixo SECP; perfis seccionais
+                recebem automaticamente a sigla da seccional como prefixo do
+                código.
+              </p>
+            </div>
+          ) : null}
 
           <div className="space-y-2 md:col-span-2">
             <label htmlFor="descricao" className="text-sm font-semibold">

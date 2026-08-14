@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { createElement, useMemo, useState, useTransition } from "react";
 import type { ElementType } from "react";
@@ -435,7 +435,7 @@ function AddItemForm({
       <input
         name="label"
         placeholder="Rotulo opcional"
-        className="h-10 rounded-md border bg-background px-3 text-sm"
+        className="h-10 rounded-md border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground"
       />
       <button className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-secp-blue-900 px-4 text-sm font-semibold text-white transition hover:bg-secp-blue-800">
         <Plus className="size-4" />
@@ -468,7 +468,7 @@ function RotuloEditavelItem({
           name="label"
           defaultValue={item.label || label}
           autoFocus
-          className="h-8 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm font-semibold"
+          className="h-8 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm font-semibold text-foreground placeholder:text-muted-foreground"
         />
         <button
           type="submit"
@@ -535,7 +535,7 @@ function RotuloEditavelGrupo({
           value={labelEditado}
           onChange={(event) => setLabelEditado(event.target.value)}
           autoFocus
-          className="h-8 min-w-[12rem] flex-1 rounded-md border bg-background px-2 text-sm font-semibold"
+          className="h-8 min-w-[12rem] flex-1 rounded-md border bg-background px-2 text-sm font-semibold text-foreground placeholder:text-muted-foreground"
         />
         <button
           type="submit"

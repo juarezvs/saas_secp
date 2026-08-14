@@ -1,5 +1,9 @@
-import { PeriodoHomologadoError, verificarPeriodoHomologado } from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
+import {
+  PeriodoHomologadoError,
+  verificarPeriodoHomologado,
+} from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
 import { recalcularMesServidorService } from "@/modules/recalculo/application/services/recalcular-mes-servidor.service";
+import { normalizarIdentificadorPonto } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
 import { listarIdsDescendentesDaUnidade } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
@@ -34,6 +38,18 @@ function ehTexto(valor: string | null | undefined): valor is string {
   return Boolean(valor);
 }
 
+function normalizarListaIdentificadores(
+  valores: Array<string | null | undefined>,
+) {
+  return Array.from(
+    new Set(
+      valores
+        .map((valor) => normalizarIdentificadorPonto(valor))
+        .filter((valor): valor is string => Boolean(valor)),
+    ),
+  );
+}
+
 function competenciaDaData(servidorId: string, dataReferencia: Date) {
   return {
     servidorId,
@@ -56,7 +72,9 @@ function intervaloBuscaCompetencia(ano: number, mes: number) {
 
 function metadadosCancelamento(metadados: unknown, usuarioId?: string | null) {
   const base =
-    typeof metadados === "object" && metadados !== null && !Array.isArray(metadados)
+    typeof metadados === "object" &&
+    metadados !== null &&
+    !Array.isArray(metadados)
       ? metadados
       : {};
 
@@ -84,6 +102,15 @@ async function listarServidoresDoEscopo(params: {
         matricula: true,
         cpf: true,
         pis: true,
+        identificadoresPonto: {
+          where: {
+            ativo: true,
+          },
+          select: {
+            valor: true,
+            valorNormalizado: true,
+          },
+        },
       },
     });
 
@@ -118,6 +145,15 @@ async function listarServidoresDoEscopo(params: {
           matricula: true,
           cpf: true,
           pis: true,
+          identificadoresPonto: {
+            where: {
+              ativo: true,
+            },
+            select: {
+              valor: true,
+              valorNormalizado: true,
+            },
+          },
         },
       },
     },
@@ -166,7 +202,20 @@ export async function reprocessarMarcacoesBrutasEscopoService(params: {
     .filter(ehTexto);
   const cpfs = servidores.map((servidor) => servidor.cpf).filter(ehTexto);
   const pises = servidores.map((servidor) => servidor.pis).filter(ehTexto);
-  const brutas = await prisma.marcacaoBruta.findMany({
+  const identificadoresNormalizados = new Set(
+    normalizarListaIdentificadores(
+      servidores.flatMap((servidor) => [
+        servidor.matricula,
+        servidor.cpf,
+        servidor.pis,
+        ...servidor.identificadoresPonto.flatMap((identificador) => [
+          identificador.valor,
+          identificador.valorNormalizado,
+        ]),
+      ]),
+    ),
+  );
+  const brutasBase = await prisma.marcacaoBruta.findMany({
     where: {
       dataHora: {
         gte: inicioBusca,
@@ -179,17 +228,38 @@ export async function reprocessarMarcacoesBrutasEscopoService(params: {
         ...(pises.length > 0
           ? [{ pis: { in: pises } }, { cpf: { in: pises } }]
           : []),
+        ...(identificadoresNormalizados.size > 0
+          ? [
+              { cpf: { not: null } },
+              { pis: { not: null } },
+              { matricula: { not: null } },
+            ]
+          : []),
       ],
     },
     select: {
       id: true,
       processada: true,
       marcacaoId: true,
+      servidorId: true,
+      cpf: true,
+      pis: true,
+      matricula: true,
     },
     orderBy: {
       dataHora: "asc",
     },
   });
+  const brutas = brutasBase.filter(
+    (bruta) =>
+      (bruta.servidorId && servidorIds.includes(bruta.servidorId)) ||
+      [bruta.cpf, bruta.pis, bruta.matricula].some((valor) => {
+        const normalizado = normalizarIdentificadorPonto(valor);
+        return normalizado
+          ? identificadoresNormalizados.has(normalizado)
+          : false;
+      }),
+  );
 
   let reprocessadas = 0;
   let jaPendentes = 0;

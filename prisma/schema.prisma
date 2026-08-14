@@ -807,6 +807,7 @@ model Perfil {
   ativo                  Boolean @default(true)
   administrativo         Boolean @default(false)
   excecao                Boolean @default(false) @map("excecao")
+  orgaoId                String? @map("orgao_id") @db.Uuid
   perfilDestinoExcecaoId String? @map("perfil_destino_excecao_id") @db.Uuid
 
   criadoEm     DateTime @default(now()) @map("criado_em")
@@ -816,9 +817,11 @@ model Perfil {
   permissoes           PerfilPermissao[]
   menusGrupos          MenuGrupoPerfil[]
   menusItens           MenuItemPerfil[]
+  orgao                 Orgao?            @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
   perfilDestinoExcecao Perfil?           @relation("PerfilExcecaoDestino", fields: [perfilDestinoExcecaoId], references: [id], onDelete: SetNull)
   excecoesRecebidas    Perfil[]          @relation("PerfilExcecaoDestino")
 
+  @@index([orgaoId])
   @@index([perfilDestinoExcecaoId])
   @@map("perfis")
 }
@@ -967,6 +970,7 @@ model Orgao {
 
   unidades                         UnidadeOrganizacional[]
   servidores                       Servidor[]
+  categoriasPessoas                CategoriaPessoa[]
   equipamentosBiometricos          EquipamentoBiometrico[]
   regulamentacaoPonto              RegulamentacaoPontoOrgao?
   integracoes                      IntegracaoSistema[]
@@ -981,6 +985,7 @@ model Orgao {
   substituicoesFuncao              SubstituicaoFuncao[]
   pagamentosSubstituicaoFuncao     PagamentoSubstituicaoFuncao[]
   autorizacoesHoraExtra            AutorizacaoHoraExtraAdministrativa[]
+  perfis                           Perfil[]
 
   @@index([uf])
   @@index([municipioIbge])
@@ -1228,6 +1233,7 @@ model Servidor {
   id        String @id @default(uuid()) @db.Uuid
   usuarioId String @unique @map("usuario_id") @db.Uuid
   orgaoId   String @map("orgao_id") @db.Uuid
+  categoriaPessoaId String? @map("categoria_pessoa_id") @db.Uuid
 
   matricula     String              @unique @db.VarChar(50)
   cpf           String?             @unique @db.VarChar(11)
@@ -1265,8 +1271,10 @@ model Servidor {
   usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   orgao   Orgao   @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
   cargo   Cargo?  @relation(fields: [cargoId], references: [id], onDelete: SetNull)
+  categoriaPessoa CategoriaPessoa? @relation(fields: [categoriaPessoaId], references: [id], onDelete: SetNull)
 
   lotacoes                             Lotacao[]
+  identificadoresPonto                 IdentificadorPontoServidor[]
   gestores                             GestorUnidade[]
   jornadas                             JornadaServidor[]
   marcacoes                            Marcacao[]
@@ -1299,11 +1307,52 @@ model Servidor {
   autorizacoesHoraExtra                 AutorizacaoHoraExtraServidor[]
 
   @@index([orgaoId])
+  @@index([categoriaPessoaId])
   @@index([cargoId])
   @@index([pis])
   @@index([codigoLotacaoSarh])
   @@index([origemSarh])
   @@map("servidores")
+}
+
+model CategoriaPessoa {
+  id      String  @id @default(uuid()) @db.Uuid
+  orgaoId String? @map("orgao_id") @db.Uuid
+
+  codigo    String  @unique @db.VarChar(80)
+  nome      String  @db.VarChar(120)
+  descricao String? @db.Text
+  ativo     Boolean @default(true)
+  sistema   Boolean @default(false)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  orgao      Orgao?     @relation(fields: [orgaoId], references: [id], onDelete: Cascade)
+  servidores Servidor[]
+
+  @@index([orgaoId])
+  @@index([ativo])
+  @@map("categorias_pessoas")
+}
+
+model IdentificadorPontoServidor {
+  id         String @id @default(uuid()) @db.Uuid
+  servidorId String @map("servidor_id") @db.Uuid
+
+  valor             String  @db.VarChar(80)
+  valorNormalizado  String  @unique @map("valor_normalizado") @db.VarChar(80)
+  principal         Boolean @default(false)
+  ativo             Boolean @default(true)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  servidor Servidor @relation(fields: [servidorId], references: [id], onDelete: Cascade)
+
+  @@index([servidorId])
+  @@index([ativo])
+  @@map("identificadores_ponto_servidores")
 }
 
 model Lotacao {

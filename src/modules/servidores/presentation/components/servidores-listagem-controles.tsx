@@ -1,7 +1,4 @@
-import {
-  DataTableToolbar,
-  type DataTableFiltro,
-} from "@/components/listagens";
+import { DataTableToolbar, type DataTableFiltro } from "@/components/listagens";
 
 type OrgaoOption = {
   id: string;
@@ -18,6 +15,7 @@ type ServidoresListagemControlesProps = {
   orgaos: OrgaoOption[];
   servidores: FiltroOption[];
   lotacoes: FiltroOption[];
+  categorias?: FiltroOption[];
   tipoUsuarioFixo?: string;
   exportCsvHref?: string;
   exportPdfHref?: string;
@@ -34,6 +32,7 @@ export function ServidoresListagemControles({
   orgaos,
   servidores,
   lotacoes,
+  categorias = [],
   tipoUsuarioFixo,
   exportCsvHref,
   exportPdfHref,
@@ -68,6 +67,14 @@ export function ServidoresListagemControles({
       placeholder: "Todas",
       searchPlaceholder: "Pesquisar lotação...",
       options: [{ value: "", label: "Todas" }, ...lotacoes],
+    },
+    {
+      tipo: "searchable-select",
+      nome: "categoriaPessoaId",
+      label: "Categoria",
+      placeholder: "Todas",
+      searchPlaceholder: "Pesquisar categoria...",
+      options: [{ value: "", label: "Todas" }, ...categorias],
     },
     ...(tipoUsuarioFixo
       ? []
@@ -108,17 +115,6 @@ export function ServidoresListagemControles({
               { value: "REDISTRIBUIDO", label: "Redistribuído" },
               { value: "REMOVIDO", label: "Removido" },
               { value: "EXERCICIO_PROVISORIO", label: "Exercício provisório" },
-            ],
-          },
-          {
-            tipo: "select" as const,
-            nome: "status",
-            label: "Status",
-            defaultValue: "ativo",
-            options: [
-              { value: "", label: "Todos" },
-              { value: "ativo", label: "Ativos" },
-              { value: "inativo", label: "Inativos" },
             ],
           },
         ]),

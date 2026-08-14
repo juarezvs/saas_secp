@@ -12,9 +12,11 @@ export type EscopoGestaoUsuarios = {
 export async function resolverEscopoGestaoUsuarios(
   permissao: ResultadoPermissao,
 ): Promise<EscopoGestaoUsuarios> {
-  const permitirEscopoGlobal = perfilEhAdministradorSistema({
-    codigo: permissao.perfilAtivoCodigo,
-  });
+  const permitirEscopoGlobal =
+    Boolean(permissao.perfilAtivoEscopoGlobal) &&
+    perfilEhAdministradorSistema({
+      codigo: permissao.perfilAtivoCodigo,
+    });
 
   const orgaoIdsPerfilAtivo = permissao.usuarioId
     ? await buscarOrgaoIdsDoPerfilAtivo(permissao)
