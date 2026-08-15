@@ -20,6 +20,8 @@ type ConfiguracaoEquipamento = {
   timeoutMs?: unknown;
   ultimoNsrColetado?: unknown;
   proximoNsrColeta?: unknown;
+  coletarPorStartTime?: unknown;
+  startTimeInicial?: unknown;
   webhookToken?: unknown;
   eventosOnline?: unknown;
   identificadorMatriculaNumerica?: unknown;
@@ -116,6 +118,16 @@ function valorTexto(valor: unknown) {
 function valorNumero(valor: unknown) {
   const numero = Number(valor);
   return Number.isFinite(numero) ? numero : null;
+}
+
+function valorPayloadNumero(payload: unknown, chave: string) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return null;
+  }
+
+  const valor = (payload as Record<string, unknown>)[chave];
+
+  return valor === null || valor === undefined ? null : valorNumero(valor);
 }
 
 function prefixoMatriculaPorSiglaOrgao(sigla: string | null | undefined) {
@@ -497,6 +509,16 @@ async function coletarMarcacoesRelogioPontoSemLock(
   if (params.atualizarCursor !== false && proximoNsr) {
     configuracaoAtualizada.proximoNsrColeta = proximoNsr;
     configuracaoAtualizada.ultimoNsrColetado = Number(proximoNsr) - 1;
+
+    const proximoStartTime = valorPayloadNumero(
+      resultado.payload,
+      "proximoStartTime",
+    );
+
+    if (proximoStartTime !== null) {
+      configuracaoAtualizada.coletarPorStartTime = true;
+      configuracaoAtualizada.startTimeInicial = proximoStartTime;
+    }
   }
 
   await prisma.$transaction(async (tx) => {

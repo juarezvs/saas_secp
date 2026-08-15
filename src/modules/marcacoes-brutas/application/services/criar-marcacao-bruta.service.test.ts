@@ -102,4 +102,54 @@ describe("criarMarcacaoBrutaService", () => {
       }),
     );
   });
+
+  it("retorna marcacao existente quando a criacao encontra hash duplicado", async () => {
+    const dataHora = new Date("2026-01-29T12:00:00.000Z");
+    const existente = {
+      id: "bruta-duplicada",
+      cpf: null,
+      pis: null,
+      matricula: "1",
+      servidorId: null,
+      marcacaoId: null,
+      processada: false,
+      processadaEm: null,
+      dataHora,
+      equipamentoCodigo: "SJAC_BIO_T_172_17_250_34",
+      equipamentoId: "equipamento-34",
+      arquivoAfdId: null,
+      origem: "EQUIPAMENTO_BIOMETRICO",
+      nsr: "1",
+      codigoExterno: "1",
+      hashRegistro: "hash-duplicado",
+      payloadOriginal: {},
+      criadoEm: new Date("2026-08-14T10:00:00.000Z"),
+    };
+
+    prismaMock.marcacaoBruta.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(existente);
+    prismaMock.marcacaoBruta.findFirst.mockResolvedValue(null);
+    prismaMock.marcacaoBruta.create.mockRejectedValue({
+      code: "P2002",
+      meta: {
+        target: ["hash_registro"],
+      },
+    });
+
+    const resultado = await criarMarcacaoBrutaService({
+      matricula: "1",
+      dataHora,
+      equipamentoCodigo: "SJAC_BIO_T_172_17_250_34",
+      equipamentoId: "equipamento-34",
+      origem: "EQUIPAMENTO_BIOMETRICO",
+      nsr: "1",
+      codigoExterno: "1",
+    });
+
+    expect(resultado).toMatchObject({
+      criada: false,
+      marcacaoBruta: existente,
+    });
+  });
 });

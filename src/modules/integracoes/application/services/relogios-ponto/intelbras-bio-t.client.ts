@@ -152,6 +152,18 @@ function dataUnix(valor: string | null) {
   return Number.isNaN(data.getTime()) ? null : data;
 }
 
+function maiorCreateTime(registros: IntelbrasRegistro[]) {
+  return registros.reduce<number | null>((maior, registro) => {
+    const createTime = valorNumero(registro.CreateTime);
+
+    if (createTime === null) {
+      return maior;
+    }
+
+    return maior === null ? createTime : Math.max(maior, createTime);
+  }, null);
+}
+
 function dataTexto(valor: string | null) {
   if (!valor) return null;
 
@@ -397,6 +409,7 @@ export class IntelbrasBioTClient implements RelogioPontoProvider {
       return recNo !== null && recNo >= nsrInicial;
     });
     const selecionados = registros.slice(0, quantidade);
+    const proximoStartTime = maiorCreateTime(selecionados);
     const marcacoes = selecionados
       .filter((registro) => incluirNegados || registro.Status === "1")
       .map((registro) => {
@@ -443,6 +456,8 @@ export class IntelbrasBioTClient implements RelogioPontoProvider {
         recebidos: registros.length,
         consultados: valorNumero(payload.found),
         incluirEventosNegados: incluirNegados,
+        startTimeUsado: startTime,
+        proximoStartTime,
       },
     };
   }

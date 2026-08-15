@@ -2,6 +2,9 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 const rotasPublicas = ["/login"];
+const apisPublicasComToken = [
+  "/api/integracoes/equipamentos-biometricos/webhook",
+];
 const cookiesSessao = ["__Secure-authjs.session-token", "authjs.session-token"];
 
 function possuiCookieSessao(req: NextRequest) {
@@ -18,7 +21,9 @@ function possuiCookieSessao(req: NextRequest) {
 }
 
 function origemPublica(req: NextRequest) {
-  const protocolo = req.headers.get("x-forwarded-proto") ?? req.nextUrl.protocol.replace(":", "");
+  const protocolo =
+    req.headers.get("x-forwarded-proto") ??
+    req.nextUrl.protocol.replace(":", "");
   const host = req.headers.get("host") ?? req.nextUrl.host;
 
   return `${protocolo}://${host}`;
@@ -29,12 +34,17 @@ export default function proxy(req: NextRequest) {
   const usuarioAutenticado = possuiCookieSessao(req);
 
   const rotaPublica =
-    pathname === "/" || rotasPublicas.some((rota) => pathname.startsWith(rota));
+    pathname === "/" ||
+    rotasPublicas.some((rota) => pathname.startsWith(rota)) ||
+    apisPublicasComToken.some((rota) => pathname.startsWith(rota));
 
   if (!usuarioAutenticado && !rotaPublica) {
     const origem = origemPublica(req);
     const url = new URL("/login", origem);
-    const callbackUrl = new URL(req.nextUrl.pathname + req.nextUrl.search, origem);
+    const callbackUrl = new URL(
+      req.nextUrl.pathname + req.nextUrl.search,
+      origem,
+    );
     url.searchParams.set("callbackUrl", callbackUrl.href);
 
     return NextResponse.redirect(url);
@@ -49,11 +59,12 @@ export const config = {
      * Protege tudo, exceto:
      * - API auth
      * - sondas de observabilidade
+     * - webhooks de equipamentos biometricos validados por token proprio
      * - arquivos estáticos
      * - imagens
      * - favicon
      * - assets públicos com extensão (png, css, js, etc.)
      */
-    "/((?!api/auth|api/metrics|api/health|api/ready|_next/static|_next/image|favicon.ico|.*\\..*).*)",
+    "/((?!api/auth|api/metrics|api/health|api/ready|api/integracoes/equipamentos-biometricos/webhook|_next/static|_next/image|favicon.ico|.*\\..*).*)",
   ],
 };

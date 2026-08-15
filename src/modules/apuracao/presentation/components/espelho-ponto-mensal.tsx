@@ -12,6 +12,10 @@ import {
   rotuloSolicitacaoEspelho,
   type SolicitacaoAplicadaEspelho,
 } from "../../application/services/classificar-espelho-mensal.service";
+import {
+  descricaoMarcacao,
+  marcacaoPossuiAjuste,
+} from "../../application/services/espelho-marcacao-origem.service";
 import { AfastamentoTipoIcone } from "@/modules/servidores/presentation/components/afastamento-tipo-icone";
 
 type ApuracaoMensalItem = {
@@ -49,6 +53,7 @@ type MarcacaoItem = {
   tipo: string;
   fonte?: string | null;
   status: string;
+  metadados?: unknown;
 };
 
 type DiaInstitucionalEspelho = {
@@ -1055,29 +1060,6 @@ function ehFimDeSemanaInstitucional(dia: DiaInstitucionalEspelho | null) {
 
 function ehDiaInstitucionalLazer(dia: DiaInstitucionalEspelho | null) {
   return dia?.tipo === "FERIADO" || dia?.tipo === "PONTO_FACULTATIVO";
-}
-
-function marcacaoPossuiAjuste(marcacao: MarcacaoItem) {
-  return (
-    marcacao.status === "AJUSTADA" ||
-    marcacao.fonte === "MANUAL_ADMINISTRATIVO" ||
-    marcacao.tipo === "AJUSTE" ||
-    marcacao.tipo === "MANUAL"
-  );
-}
-
-function descricaoMarcacao(marcacao: MarcacaoItem) {
-  const partes = [marcacao.tipo, marcacao.status];
-
-  if (marcacao.fonte) {
-    partes.push(marcacao.fonte);
-  }
-
-  if (marcacaoPossuiAjuste(marcacao)) {
-    partes.push("ajuste aplicado");
-  }
-
-  return partes.join(" - ");
 }
 
 function extrairDiaInstitucional(

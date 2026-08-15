@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
@@ -28,7 +29,9 @@ function extrairDados(formData: FormData) {
     senha: String(formData.get("senha") ?? ""),
     usuarioDados: String(formData.get("usuarioDados") ?? "").trim(),
     senhaDados: String(formData.get("senhaDados") ?? ""),
-    usuarioConfiguracao: String(formData.get("usuarioConfiguracao") ?? "").trim(),
+    usuarioConfiguracao: String(
+      formData.get("usuarioConfiguracao") ?? "",
+    ).trim(),
     senhaConfiguracao: String(formData.get("senhaConfiguracao") ?? ""),
     timeoutMs: String(formData.get("timeoutMs") ?? ""),
     proximoNsrColeta: String(formData.get("proximoNsrColeta") ?? ""),
@@ -53,6 +56,14 @@ function configuracaoRecord(configuracao: unknown) {
   return configuracao && typeof configuracao === "object"
     ? (configuracao as Record<string, unknown>)
     : {};
+}
+
+function textoConfiguracao(valor: unknown) {
+  return typeof valor === "string" && valor.trim() ? valor.trim() : null;
+}
+
+function gerarWebhookTokenEquipamento() {
+  return randomBytes(24).toString("hex");
 }
 
 export async function registrarEquipamentoBiometricoAction(
@@ -124,7 +135,9 @@ export async function registrarEquipamentoBiometricoAction(
         : null;
 
       if (equipamentoId && !equipamentoAtual) {
-        throw new Error("Equipamento biometrico nao encontrado para atualizacao.");
+        throw new Error(
+          "Equipamento biometrico nao encontrado para atualizacao.",
+        );
       }
 
       const configAtual = configuracaoRecord(equipamentoAtual?.configuracao);
@@ -146,7 +159,9 @@ export async function registrarEquipamentoBiometricoAction(
       }
 
       if (unidade && unidade.orgaoId !== orgaoId) {
-        throw new Error("A unidade selecionada nao pertence ao orgao informado.");
+        throw new Error(
+          "A unidade selecionada nao pertence ao orgao informado.",
+        );
       }
 
       const orgao = await tx.orgao.findUnique({
@@ -162,13 +177,21 @@ export async function registrarEquipamentoBiometricoAction(
         throw new Error("Orgao fora do escopo do perfil ativo.");
       }
 
+      const webhookToken =
+        parsed.data.webhookToken ||
+        textoConfiguracao(configAtual.webhookToken) ||
+        (parsed.data.protocolo === "GENERIC"
+          ? undefined
+          : gerarWebhookTokenEquipamento());
+
       const configEditada = Object.fromEntries(
         Object.entries({
           protocolo: parsed.data.protocolo,
           usuario: parsed.data.usuario || undefined,
           senha: parsed.data.senha || configAtual.senha || undefined,
           usuarioDados: parsed.data.usuarioDados || undefined,
-          senhaDados: parsed.data.senhaDados || configAtual.senhaDados || undefined,
+          senhaDados:
+            parsed.data.senhaDados || configAtual.senhaDados || undefined,
           usuarioConfiguracao: parsed.data.usuarioConfiguracao || undefined,
           senhaConfiguracao:
             parsed.data.senhaConfiguracao ||
@@ -182,7 +205,7 @@ export async function registrarEquipamentoBiometricoAction(
             typeof parsed.data.proximoNsrColeta === "number"
               ? parsed.data.proximoNsrColeta
               : undefined,
-          webhookToken: parsed.data.webhookToken || undefined,
+          webhookToken,
           identificadorCpf: parsed.data.identificadorCpf,
           identificadorPis: parsed.data.identificadorPis,
           identificadorMatriculaComSigla:
@@ -226,7 +249,9 @@ export async function registrarEquipamentoBiometricoAction(
           });
 
       if (!integracao) {
-        throw new Error("Nao foi possivel preparar a integracao do equipamento.");
+        throw new Error(
+          "Nao foi possivel preparar a integracao do equipamento.",
+        );
       }
 
       const dadosEquipamento = {
@@ -247,7 +272,7 @@ export async function registrarEquipamentoBiometricoAction(
                 ? "CONTROL_ID"
                 : parsed.data.protocolo === "INTELBRAS_BIO_T"
                   ? "INTELBRAS"
-                : parsed.data.fabricante || null,
+                  : parsed.data.fabricante || null,
         modelo: parsed.data.modelo || null,
         numeroSerie: parsed.data.numeroSerie || null,
         localizacao: parsed.data.localizacao || null,

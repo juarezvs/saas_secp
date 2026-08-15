@@ -231,6 +231,7 @@ export default async function ServidoresPage({
         orgaoIdsPermitidos,
         servidorIdsPermitidos: servidorIdsPermitidosChefia,
         tipoUsuario,
+        semLimite: permissoesSessao.perfilAtivoEscopoGlobal,
       }),
       listarLotacoesAtivasParaFiltro({
         orgaoIdsPermitidos,
@@ -245,7 +246,7 @@ export default async function ServidoresPage({
     return {
       value: nome,
       label: `${nome} (${servidor.matricula})`,
-      searchText: `${servidor.matricula} ${lotacao?.sigla ?? ""} ${
+      searchText: `${servidor.matricula} ${nome} ${lotacao?.sigla ?? ""} ${
         lotacao?.nome ?? ""
       }`,
     };

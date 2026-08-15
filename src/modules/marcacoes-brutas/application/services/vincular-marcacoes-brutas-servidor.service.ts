@@ -28,6 +28,7 @@ function marcacaoBrutaCombinaComIdentificadores(
 }
 
 async function listarPendentesPorIdentificadores(params: {
+  servidorId: string;
   cpf?: string | null;
   pis?: string | null;
   matricula?: string | null;
@@ -52,15 +53,21 @@ async function listarPendentesPorIdentificadores(params: {
     const lote = await prisma.marcacaoBruta.findMany({
       where: {
         processada: false,
-        servidorId: null,
         OR: [
-          { cpf: { not: null } },
-          { pis: { not: null } },
-          { matricula: { not: null } },
+          { servidorId: params.servidorId },
+          {
+            servidorId: null,
+            OR: [
+              { cpf: { not: null } },
+              { pis: { not: null } },
+              { matricula: { not: null } },
+            ],
+          },
         ],
       },
       select: {
         id: true,
+        servidorId: true,
         cpf: true,
         pis: true,
         matricula: true,
@@ -75,7 +82,10 @@ async function listarPendentesPorIdentificadores(params: {
     }
 
     for (const bruta of lote) {
-      if (marcacaoBrutaCombinaComIdentificadores(bruta, identificadoresSet)) {
+      if (
+        bruta.servidorId === params.servidorId ||
+        marcacaoBrutaCombinaComIdentificadores(bruta, identificadoresSet)
+      ) {
         resultado.push({ id: bruta.id });
       }
     }
@@ -95,6 +105,7 @@ export async function vincularMarcacoesBrutasServidorService(params: {
   usuarioIdAuditoria?: string | null;
 }) {
   const pendentes = await listarPendentesPorIdentificadores({
+    servidorId: params.servidorId,
     cpf: params.cpf,
     pis: params.pis,
     matricula: params.matricula,

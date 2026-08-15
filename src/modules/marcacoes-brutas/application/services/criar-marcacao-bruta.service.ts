@@ -11,6 +11,29 @@ function payloadComoObjeto(valor: unknown) {
     : {};
 }
 
+function erroChaveUnicaHashRegistro(error: unknown) {
+  const mensagem =
+    error instanceof Error
+      ? error.message
+      : typeof error === "object" && error && "message" in error
+        ? String(error.message)
+        : "";
+
+  return (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    error.code === "P2002" &&
+    "meta" in error &&
+    typeof error.meta === "object" &&
+    error.meta !== null &&
+    (("target" in error.meta &&
+      Array.isArray(error.meta.target) &&
+      error.meta.target.includes("hash_registro")) ||
+      mensagem.includes("hash_registro"))
+  );
+}
+
 function deveBuscarMesmoEventoFisico(params: {
   origem: string;
   nsr?: string | null;
@@ -199,23 +222,46 @@ export async function criarMarcacaoBrutaService(params: {
     }
   }
 
-  const marcacaoBruta = await prisma.marcacaoBruta.create({
-    data: {
-      cpf: params.cpf ?? null,
-      pis: params.pis ?? null,
-      matricula: params.matricula ?? null,
-      servidorId: params.servidorId ?? null,
-      dataHora: params.dataHora,
-      equipamentoCodigo: params.equipamentoCodigo ?? null,
-      equipamentoId: params.equipamentoId ?? null,
-      arquivoAfdId: params.arquivoAfdId ?? null,
-      origem: params.origem,
-      nsr: params.nsr ?? null,
-      codigoExterno: params.codigoExterno ?? null,
-      hashRegistro,
-      payloadOriginal: params.payloadOriginal ?? undefined,
-    },
-  });
+  let marcacaoBruta;
+
+  try {
+    marcacaoBruta = await prisma.marcacaoBruta.create({
+      data: {
+        cpf: params.cpf ?? null,
+        pis: params.pis ?? null,
+        matricula: params.matricula ?? null,
+        servidorId: params.servidorId ?? null,
+        dataHora: params.dataHora,
+        equipamentoCodigo: params.equipamentoCodigo ?? null,
+        equipamentoId: params.equipamentoId ?? null,
+        arquivoAfdId: params.arquivoAfdId ?? null,
+        origem: params.origem,
+        nsr: params.nsr ?? null,
+        codigoExterno: params.codigoExterno ?? null,
+        hashRegistro,
+        payloadOriginal: params.payloadOriginal ?? undefined,
+      },
+    });
+  } catch (error) {
+    if (!erroChaveUnicaHashRegistro(error)) {
+      throw error;
+    }
+
+    const existenteAposConcorrencia = await prisma.marcacaoBruta.findUnique({
+      where: {
+        hashRegistro,
+      },
+    });
+
+    if (!existenteAposConcorrencia) {
+      throw error;
+    }
+
+    return {
+      criada: false,
+      marcacaoBruta: existenteAposConcorrencia,
+    };
+  }
 
   return {
     criada: true,
