@@ -60,6 +60,13 @@ export async function buscarUsuarioParaLoginPorMatricula(
           },
           perfil: {
             include: {
+              orgao: {
+                select: {
+                  id: true,
+                  sigla: true,
+                  nome: true,
+                },
+              },
               permissoes: {
                 include: {
                   permissao: true,
@@ -82,6 +89,7 @@ export async function buscarUsuarioParaLoginPorMatricula(
   }
 
   const perfisAgrupados = new Map<string, PerfilSessao>();
+  const orgaoIdsVinculadosPorPerfil = new Map<string, Set<string>>();
 
   for (const usuarioPerfil of usuario.perfis.filter(
     (item) => item.perfil.ativo,
@@ -93,6 +101,17 @@ export async function buscarUsuarioParaLoginPorMatricula(
     const permissoes = usuarioPerfil.perfil.permissoes.map(
       (perfilPermissao) => perfilPermissao.permissao.codigo,
     );
+    const orgaoPerfil = usuarioPerfil.orgao ?? usuarioPerfil.perfil.orgao;
+    const orgaoIdVinculado =
+      usuarioPerfil.orgaoId ?? usuarioPerfil.perfil.orgaoId;
+
+    if (orgaoIdVinculado) {
+      const orgaoIds =
+        orgaoIdsVinculadosPorPerfil.get(usuarioPerfil.perfil.id) ??
+        new Set<string>();
+      orgaoIds.add(orgaoIdVinculado);
+      orgaoIdsVinculadosPorPerfil.set(usuarioPerfil.perfil.id, orgaoIds);
+    }
 
     if (!existente) {
       perfisAgrupados.set(usuarioPerfil.perfil.id, {
@@ -104,7 +123,7 @@ export async function buscarUsuarioParaLoginPorMatricula(
         excecao: usuarioPerfil.perfil.excecao,
         perfilDestinoExcecaoId: usuarioPerfil.perfil.perfilDestinoExcecaoId,
         escopoGlobal: perfilSistemaGlobal,
-        orgaos: usuarioPerfil.orgao ? [usuarioPerfil.orgao] : [],
+        orgaos: orgaoPerfil ? [orgaoPerfil] : [],
       });
       continue;
     }
@@ -112,14 +131,58 @@ export async function buscarUsuarioParaLoginPorMatricula(
     existente.escopoGlobal ||= perfilSistemaGlobal;
 
     if (
-      usuarioPerfil.orgao &&
-      !existente.orgaos?.some((orgao) => orgao.id === usuarioPerfil.orgaoId)
+      orgaoPerfil &&
+      !existente.orgaos?.some((orgao) => orgao.id === orgaoPerfil.id)
     ) {
-      existente.orgaos = [...(existente.orgaos ?? []), usuarioPerfil.orgao];
+      existente.orgaos = [...(existente.orgaos ?? []), orgaoPerfil];
     }
   }
 
   const perfisBase: PerfilSessao[] = Array.from(perfisAgrupados.values());
+  const orgaoIdsVinculados = Array.from(
+    new Set(
+      Array.from(orgaoIdsVinculadosPorPerfil.values()).flatMap((orgaoIds) =>
+        Array.from(orgaoIds),
+      ),
+    ),
+  );
+  const orgaosVinculados = orgaoIdsVinculados.length
+    ? await prisma.orgao.findMany({
+        where: {
+          id: {
+            in: orgaoIdsVinculados,
+          },
+          ativo: true,
+        },
+        select: {
+          id: true,
+          sigla: true,
+          nome: true,
+        },
+      })
+    : [];
+  const orgaosVinculadosPorId = new Map(
+    orgaosVinculados.map((orgao) => [orgao.id, orgao]),
+  );
+
+  for (const perfil of perfisBase) {
+    const orgaoIds = orgaoIdsVinculadosPorPerfil.get(perfil.id);
+
+    if (!orgaoIds?.size) {
+      continue;
+    }
+
+    for (const orgaoId of orgaoIds) {
+      const orgao = orgaosVinculadosPorId.get(orgaoId);
+
+      if (
+        orgao &&
+        !perfil.orgaos?.some((orgaoAtual) => orgaoAtual.id === orgao.id)
+      ) {
+        perfil.orgaos = [...(perfil.orgaos ?? []), orgao];
+      }
+    }
+  }
 
   const deveExpandirPermissoes = perfisBase.some((perfil) =>
     perfilEhAdministradorSistema(perfil),

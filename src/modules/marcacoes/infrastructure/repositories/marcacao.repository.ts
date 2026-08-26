@@ -102,13 +102,15 @@ export async function listarMarcacoesDoServidorNoDia(params: {
   servidorId: string;
   dataHora: Date;
   fusoHorario?: string | null;
+  dataReferencia?: Date;
 }) {
   const fusoHorario =
     params.fusoHorario ??
     (await resolverFusoHorarioServidorNoBanco({
       servidorId: params.servidorId,
     }));
-  const dataReferencia = obterDataReferencia(params.dataHora, fusoHorario);
+  const dataReferencia =
+    params.dataReferencia ?? obterDataReferencia(params.dataHora, fusoHorario);
 
   return prisma.marcacao.findMany({
     where: {

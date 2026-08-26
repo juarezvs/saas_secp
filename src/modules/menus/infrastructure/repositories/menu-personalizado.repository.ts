@@ -12,23 +12,23 @@ const GRUPOS_PADRAO_MENU: Record<
 > = {
   equipe: { label: "Minha Equipe", icone: "equipe", ordem: 20 },
   frequencia: {
-    label: "Frequencia e Banco de Horas",
+    label: "Frequência e Banco de Horas",
     icone: "banco",
     ordem: 30,
   },
   horasExtras: {
-    label: "Servico Extraordinario",
+    label: "Serviço Extraordinário",
     icone: "settings",
     ordem: 40,
   },
   recesso: { label: "Recesso Forense", icone: "calendario", ordem: 50 },
   cadastro: { label: "Cadastro", icone: "users", ordem: 60 },
-  gestaoPessoas: { label: "Gestao de Pessoas", icone: "users", ordem: 65 },
+  gestaoPessoas: { label: "Gestão de Pessoas", icone: "users", ordem: 65 },
   painel: { label: "Painel executivo", icone: "relatorios", ordem: 70 },
   biometria: { label: "Biometria facial", icone: "settings", ordem: 80 },
-  administracao: { label: "Administracao", icone: "administracao", ordem: 90 },
+  administracao: { label: "Administração", icone: "administracao", ordem: 90 },
   integracoesAuditoria: {
-    label: "Integracoes e Auditoria",
+    label: "Integrações e Auditoria",
     icone: "settings",
     ordem: 100,
   },

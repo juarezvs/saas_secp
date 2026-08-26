@@ -473,25 +473,62 @@ export class HenryRepWebServerClient implements RelogioPontoProvider {
 
   async testarConexao(): Promise<ResultadoSaudeRelogioPonto> {
     try {
-      const usuarios = await this.enviarComando("RQ", "U")
-        .then((resposta) => parseNumeroResposta(resposta.dados))
-        .catch(() => null);
-      const registros = await this.enviarComando("RQ", "R")
-        .then((resposta) => parseNumeroResposta(resposta.dados))
-        .catch(() => null);
-      const dataHoraEquipamento = await this.enviarComando("RH")
-        .then((resposta) => resposta.dados || null)
-        .catch(() => null);
-      const empregador = await this.enviarComando("RE", "T]1")
-        .then((resposta) => parseEmpregador(resposta.dados))
-        .catch(() => null);
+      const consultar = async <T>(
+        consulta: () => Promise<T>,
+      ): Promise<{ ok: boolean; valor: T | null; erro: unknown }> => {
+        try {
+          return { ok: true, valor: await consulta(), erro: null };
+        } catch (error) {
+          return { ok: false, valor: null, erro: error };
+        }
+      };
+      const usuariosResultado = await consultar(() =>
+        this.enviarComando("RQ", "U").then((resposta) =>
+          parseNumeroResposta(resposta.dados),
+        ),
+      );
+      const registrosResultado = await consultar(() =>
+        this.enviarComando("RQ", "R").then((resposta) =>
+          parseNumeroResposta(resposta.dados),
+        ),
+      );
+      const dataHoraResultado = await consultar(() =>
+        this.enviarComando("RH").then((resposta) => resposta.dados || null),
+      );
+      const empregadorResultado = await consultar(() =>
+        this.enviarComando("RE", "T]1").then((resposta) =>
+          parseEmpregador(resposta.dados),
+        ),
+      );
+      const consultas = [
+        usuariosResultado,
+        registrosResultado,
+        dataHoraResultado,
+        empregadorResultado,
+      ];
+
+      if (!consultas.some((consulta) => consulta.ok)) {
+        const primeiroErro = consultas.find((consulta) => consulta.erro)?.erro;
+        throw primeiroErro instanceof Error
+          ? primeiroErro
+          : new Error("Henry REP Web Server nao respondeu aos comandos de status.");
+      }
+
+      const usuarios = usuariosResultado.valor;
+      const registros = registrosResultado.valor;
+      const dataHoraEquipamento = dataHoraResultado.valor;
+      const empregador = empregadorResultado.valor;
       const dataHora = dataHoraEquipamento
         ? parseDataHoraResposta(dataHoraEquipamento)
         : null;
 
       return {
-        status: "ONLINE",
-        mensagem: "Henry REP Web Server respondeu aos comandos de status.",
+        status: consultas.every((consulta) => consulta.ok)
+          ? "ONLINE"
+          : "DEGRADADO",
+        mensagem: consultas.every((consulta) => consulta.ok)
+          ? "Henry REP Web Server respondeu aos comandos de status."
+          : "Henry REP Web Server respondeu parcialmente aos comandos de status.",
         dataHoraConsulta: new Date(),
         quantidadeUsuarios: usuarios,
         quantidadeRegistros: registros,
@@ -502,6 +539,12 @@ export class HenryRepWebServerClient implements RelogioPontoProvider {
           dataHoraEquipamento,
           dataHoraEquipamentoIso: dataHora?.toISOString() ?? null,
           empregador,
+          consultas: {
+            usuarios: usuariosResultado.ok,
+            registros: registrosResultado.ok,
+            dataHora: dataHoraResultado.ok,
+            empregador: empregadorResultado.ok,
+          },
         },
       };
     } catch (error) {

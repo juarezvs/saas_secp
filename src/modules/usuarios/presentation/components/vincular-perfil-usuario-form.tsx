@@ -77,9 +77,10 @@ export function VincularPerfilUsuarioForm({
 
       <div className="mt-4 flex flex-col gap-3 md:flex-row">
         <SearchableSelect
+          key={`perfil-${estado.campos?.perfilId ?? "novo"}`}
           id="vincular-perfil-perfil"
           name="perfilId"
-          defaultValue=""
+          defaultValue={estado.campos?.perfilId ?? ""}
           className="flex-1"
           placeholder="Selecione o perfil"
           searchPlaceholder="Pesquisar perfil..."
@@ -94,25 +95,25 @@ export function VincularPerfilUsuarioForm({
           required
         />
 
-        <SearchableSelect
+        <select
+          key={`orgao-${estado.campos?.orgaoId ?? "novo"}`}
           id="vincular-perfil-orgao"
           name="orgaoId"
-          defaultValue=""
-          className="flex-1"
-          placeholder={
-            permitirEscopoGlobal
-              ? "Global (somente Master)"
-              : "Selecione a seccional"
-          }
-          searchPlaceholder="Pesquisar seccional..."
-          emptyMessage="Nenhuma seccional encontrada."
-          options={orgaos.map((orgao) => ({
-            value: orgao.id,
-            label: `${orgao.sigla} - ${orgao.nome}`,
-            searchText: `${orgao.sigla} ${orgao.nome}`,
-          }))}
+          defaultValue={estado.campos?.orgaoId ?? ""}
           required={!permitirEscopoGlobal}
-        />
+          className="h-10 flex-1 rounded-md border bg-[var(--card)] px-3 text-sm text-[var(--card-foreground)] outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+        >
+          <option value="">
+            {permitirEscopoGlobal
+              ? "Global (somente Master)"
+              : "Selecione a seccional"}
+          </option>
+          {orgaos.map((orgao) => (
+            <option key={orgao.id} value={orgao.id}>
+              {orgao.sigla} - {orgao.nome}
+            </option>
+          ))}
+        </select>
 
         <button
           type="submit"

@@ -22,9 +22,17 @@ export async function resolverEscopoGestaoUsuarios(
     ? await buscarOrgaoIdsDoPerfilAtivo(permissao)
     : [];
   const orgaoIdsSessao = permissao.orgaoIds ?? [];
+  const orgaoIdServidor =
+    permissao.usuarioId && !orgaoIdsPerfilAtivo.length && !orgaoIdsSessao.length
+      ? await buscarOrgaoIdServidorUsuario(permissao.usuarioId)
+      : null;
   const orgaoIdsPermitidos = orgaoIdsPerfilAtivo.length
     ? orgaoIdsPerfilAtivo
-    : orgaoIdsSessao;
+    : orgaoIdsSessao.length
+      ? orgaoIdsSessao
+      : orgaoIdServidor
+        ? [orgaoIdServidor]
+        : [];
 
   if (permitirEscopoGlobal) {
     return {
@@ -54,11 +62,15 @@ export function orgaoPodeSerVinculadoNoEscopoGestaoUsuarios(
   orgaoId: string,
   escopo: EscopoGestaoUsuarios,
 ) {
+  if (escopo.permitirEscopoGlobal) {
+    return true;
+  }
+
   if (escopo.orgaoIdsPermitidos.length > 0) {
     return escopo.orgaoIdsPermitidos.includes(orgaoId);
   }
 
-  return escopo.permitirEscopoGlobal;
+  return false;
 }
 
 export function usuarioEstaNoEscopoGestaoUsuarios(
@@ -106,17 +118,40 @@ async function buscarOrgaoIdsDoPerfilAtivo(permissao: ResultadoPermissao) {
       usuarioId: permissao.usuarioId,
       perfilId: permissao.perfilAtivoId,
       ativo: true,
-      orgaoId: {
-        not: null,
-      },
+      OR: [{ orgaoId: { not: null } }, { perfil: { orgaoId: { not: null } } }],
     },
     select: {
       orgaoId: true,
+      perfil: {
+        select: {
+          orgaoId: true,
+        },
+      },
     },
-    distinct: ["orgaoId"],
   });
 
-  return vinculos
-    .map((vinculo) => vinculo.orgaoId)
-    .filter((orgaoId): orgaoId is string => Boolean(orgaoId));
+  return Array.from(
+    new Set(
+      vinculos
+        .map((vinculo) => vinculo.orgaoId ?? vinculo.perfil.orgaoId)
+        .filter((orgaoId): orgaoId is string => Boolean(orgaoId)),
+    ),
+  );
+}
+
+async function buscarOrgaoIdServidorUsuario(usuarioId: string) {
+  const usuario = await prisma.usuario.findUnique({
+    where: {
+      id: usuarioId,
+    },
+    select: {
+      servidor: {
+        select: {
+          orgaoId: true,
+        },
+      },
+    },
+  });
+
+  return usuario?.servidor?.orgaoId ?? null;
 }

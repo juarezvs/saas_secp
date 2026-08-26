@@ -25,6 +25,7 @@ export const perfilSchema = z
     ativo: z.coerce.boolean().default(true),
     administrativo: z.coerce.boolean().default(false),
     excecao: z.coerce.boolean().default(false),
+    global: z.coerce.boolean().default(false),
     perfilDestinoExcecaoId: z
       .string()
       .uuid("Selecione um perfil destino válido.")
@@ -60,6 +61,7 @@ export type PerfilFormState = {
     ativo?: boolean;
     administrativo?: boolean;
     excecao?: boolean;
+    global?: boolean;
     perfilDestinoExcecaoId?: string | null;
     permissoes?: string[];
     orgaoId?: string | null;

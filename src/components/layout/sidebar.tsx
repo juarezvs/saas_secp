@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -158,7 +158,7 @@ const SUBITENS_SOLICITACOES_PONTO: MenuItem[] = [
     permissoes: ["solicitacoes:criar:proprio"],
   },
   {
-    label: "Capacita??o",
+    label: "Capacitação",
     href: "/solicitacoes/nova?tipo=CAPACITACAO",
     icon: GraduationCap,
     permissoes: ["solicitacoes:criar:proprio"],
@@ -170,7 +170,7 @@ const SUBITENS_SOLICITACOES_PONTO: MenuItem[] = [
     permissoes: ["solicitacoes:criar:proprio"],
   },
   {
-    label: "Hora cr?dito pr?via",
+    label: "Hora crédito prévia",
     href: "/solicitacoes/nova?tipo=HORA_CREDITO_PREVIA",
     icon: Clock,
     permissoes: ["solicitacoes:criar:proprio"],
@@ -245,7 +245,7 @@ export const MENU_ITEMS: MenuItem[] = [
     permissoes: ["afastamentos:consultar:proprio"],
   },
   {
-    label: "Minhas f?rias",
+    label: "Minhas férias",
     href: "/minhas-ferias",
     icon: TreePalm,
     permissoes: [
@@ -288,7 +288,7 @@ export const MENU_ITEMS: MenuItem[] = [
         perfis: ["ADMIN", "ADMINISTRADOR", "GESTOR", "RH"],
       },
       {
-        label: "Solicitacoes de banco de horas",
+        label: "Solicitações de banco de horas",
         href: "/banco-horas/solicitacoes",
         icon: ClipboardPenLine,
         permissoes: ["solicitacoes:criar:proprio"],
@@ -310,7 +310,7 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
-        label: "Relatorios",
+        label: "Relatórios",
         href: "/banco-horas/relatorios",
         icon: FileSearch,
         permissoes: [
@@ -344,7 +344,7 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
     children: [
       {
-        label: "Minhas solicita??es",
+        label: "Minhas solicitações",
         href: "/horas-extras",
         icon: CalendarClock,
         permissoes: [
@@ -364,7 +364,7 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
-        label: "Gest?o",
+        label: "Gestão",
         href: "/gestao/horas-extras",
         icon: ClipboardCheck,
         permissoes: [
@@ -427,7 +427,7 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
     children: [
       {
-        label: "Minhas solicita??es",
+        label: "Minhas solicitações",
         href: "/solicitacoes",
         icon: ListChecks,
         permissoes: [
@@ -479,7 +479,7 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
-        label: "Homologa??o",
+        label: "Homologação",
         href: "/homologacao",
         icon: ShieldCheck,
         permissoes: [
@@ -500,7 +500,7 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
         children: [
           {
-            label: "Minhas solicita??es",
+            label: "Minhas solicitações",
             href: "/solicitacoes",
             icon: ClipboardList,
             permissoes: [
@@ -571,7 +571,7 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
-    label: "Homologa??o",
+    label: "Homologação",
     href: "/homologacao",
     icon: ShieldCheck,
     permissoes: [
@@ -581,7 +581,7 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
-    label: "Boletim de frequ?ncia",
+    label: "Boletim de frequência",
     href: "/boletim-frequencia",
     icon: FileSpreadsheet,
     permissoes: [
@@ -647,7 +647,7 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
     children: [
       {
-        label: "Meu cadastro/valida??o",
+        label: "Meu cadastro/validação",
         href: "/biometria",
         icon: ScanFace,
         permissoes: PERMISSOES_REGISTRO_PONTO_FACIAL,
@@ -688,7 +688,7 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
-    label: "Administra??o",
+    label: "Administração",
     href: "/administracao",
     icon: Settings,
     permissoes: [
@@ -742,7 +742,7 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
     children: [
       {
-        label: "Libera??o de Rotinas",
+        label: "Liberação de Rotinas",
         href: "/administracao/liberacao-rotinas",
         icon: ToggleLeft,
         permissoes: [
@@ -760,7 +760,7 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
-        label: "Perfis e permiss?es",
+        label: "Perfis e permissões",
         href: "/perfis",
         icon: ShieldCheck,
         permissoes: ["perfis:gerenciar:seccional", "perfis:gerenciar:global"],
@@ -801,7 +801,7 @@ export const MENU_ITEMS: MenuItem[] = [
         permissoes: ["chefias:gerenciar:seccional", "chefias:gerenciar:global"],
       },
       {
-        label: "Jornadas",
+        label: "Horário de Trabalho",
         href: "/jornadas",
         icon: CalendarClock,
         permissoes: [
@@ -827,7 +827,7 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
-        label: "Regulamenta??o do ponto",
+        label: "Regulamentação do ponto",
         href: "/administracao/regulamentacao-ponto",
         icon: SlidersHorizontal,
         permissoes: [
@@ -836,7 +836,7 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
-        label: "Procedimentos de frequ?ncia",
+        label: "Procedimentos de frequência",
         href: "/administracao/procedimentos-frequencia",
         icon: ClipboardList,
         permissoes: [
@@ -887,7 +887,7 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
-        label: "Credenciais e integra??es",
+        label: "Credenciais e integrações",
         href: "/administracao/integracoes",
         icon: KeyRound,
         permissoes: [
@@ -909,7 +909,7 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
-        label: "Equipamentos biom?tricos",
+        label: "Equipamentos biométricos",
         href: "/equipamentos",
         icon: RadioTower,
         permissoes: [
@@ -1291,7 +1291,7 @@ function ThemeSelector({
       temaArmazenado === "verde" ||
       temaArmazenado === "cinza"
     ) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Restaura a prefer?ncia visual salva no navegador ap?s a hidrata??o.
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Restaura a preferência visual salva no navegador após a hidratação.
       setTema(temaArmazenado);
       aplicarTemaVisual(temaArmazenado);
       window.dispatchEvent(
@@ -1535,7 +1535,7 @@ function MenuPrincipal({
         })}
         {itensVisiveis.length === 0 && (
           <li className="rounded-md border border-dashed border-border px-3 py-4 text-xs text-muted-foreground">
-            Nenhum item dispon?vel para o perfil ativo.
+            Nenhum item disponível para o perfil ativo.
           </li>
         )}
       </ul>

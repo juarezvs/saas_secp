@@ -105,6 +105,10 @@ type DiaInstitucionalEspelho = {
   geraApuracaoRegular: boolean;
 };
 
+type PrevisaoJornadaDiaPdf = {
+  tipoDia: string | null;
+};
+
 const AZUL_MODELO = "#000080";
 const BORDA_MODELO = "#4b5563";
 
@@ -418,7 +422,10 @@ export function EspelhoPontoPdfDocument({
   const orgaoSigla = servidor?.orgao?.sigla ?? unidade?.orgao?.sigla;
   const marcacoesPorDia = agruparMarcacoesPorDia(dados.marcacoes);
   const apuracoesPorDia = new Map(
-    dados.apuracoes.map((item) => [chaveDataReferenciaUtc(item.dataReferencia), item]),
+    dados.apuracoes.map((item) => [
+      chaveDataReferenciaUtc(item.dataReferencia),
+      item,
+    ]),
   );
   const brasaoRepublica = `data:image/png;base64,${readFileSync(
     `${process.cwd()}/public/brasao-republica.png`,
@@ -454,7 +461,9 @@ export function EspelhoPontoPdfDocument({
               <Text style={styles.periodoHeader}>PERÍODO</Text>
               <View style={styles.periodoCell}>
                 <Text style={styles.periodoLabel}>MÊS</Text>
-                <Text style={styles.periodoValue}>{nomeMesReferencia(dados.mes)}</Text>
+                <Text style={styles.periodoValue}>
+                  {nomeMesReferencia(dados.mes)}
+                </Text>
               </View>
               <View style={styles.periodoCell}>
                 <Text style={styles.periodoLabel}>ANO</Text>
@@ -499,7 +508,9 @@ export function EspelhoPontoPdfDocument({
               </View>
 
               <View style={styles.vistoBox}>
-                <Text style={styles.sectionBar}>VISTO DO DIRIGENTE (SOB CARIMBO)</Text>
+                <Text style={styles.sectionBar}>
+                  VISTO DO DIRIGENTE (SOB CARIMBO)
+                </Text>
               </View>
             </View>
           </View>
@@ -535,7 +546,9 @@ function AutenticacaoDocumento({
           <View style={styles.assinaturaIcon}>
             <CadeadoAssinatura />
             <Text style={styles.assinaturaIconText}>SECP</Text>
-            <Text style={styles.assinaturaIconSmall}>assinatura eletrônica</Text>
+            <Text style={styles.assinaturaIconSmall}>
+              assinatura eletrônica
+            </Text>
           </View>
           <Text style={styles.assinaturaTexto}>
             Documento assinado eletronicamente por{" "}
@@ -592,7 +605,10 @@ function TabelaFrequencia({
   apuracoesPorDia: Map<string, ApuracaoEspelhoPdfItem>;
 }) {
   const quantidadeDias = new Date(Date.UTC(ano, mes, 0)).getUTCDate();
-  const dias = Array.from({ length: quantidadeDias }, (_, indice) => indice + 1);
+  const dias = Array.from(
+    { length: quantidadeDias },
+    (_, indice) => indice + 1,
+  );
 
   return (
     <View style={styles.table}>
@@ -602,9 +618,15 @@ function TabelaFrequencia({
         <CabecalhoCelula width={colunas.hora}>1ª{"\n"}SAÍDA</CabecalhoCelula>
         <CabecalhoCelula width={colunas.hora}>2ª{"\n"}ENTRADA</CabecalhoCelula>
         <CabecalhoCelula width={colunas.hora}>2ª{"\n"}SAÍDA</CabecalhoCelula>
-        <CabecalhoCelula width={colunas.total}>HORAS{"\n"}NORMAIS</CabecalhoCelula>
-        <CabecalhoCelula width={colunas.total}>HORAS{"\n"}ALMOÇO</CabecalhoCelula>
-        <CabecalhoCelula width={colunas.total}>HORAS{"\n"}TRAB.</CabecalhoCelula>
+        <CabecalhoCelula width={colunas.total}>
+          HORAS{"\n"}NORMAIS
+        </CabecalhoCelula>
+        <CabecalhoCelula width={colunas.total}>
+          HORAS{"\n"}ALMOÇO
+        </CabecalhoCelula>
+        <CabecalhoCelula width={colunas.total}>
+          HORAS{"\n"}TRAB.
+        </CabecalhoCelula>
         <CabecalhoCelula width={colunas.status} ultimo>
           STATUS
         </CabecalhoCelula>
@@ -671,7 +693,9 @@ function CabecalhoCelula({
   children: ReactNode;
 }) {
   return (
-    <View style={[styles.headerCell, { width, borderRightWidth: ultimo ? 0 : 1 }]}>
+    <View
+      style={[styles.headerCell, { width, borderRightWidth: ultimo ? 0 : 1 }]}
+    >
       <Text style={styles.headerText}>{children}</Text>
     </View>
   );
@@ -711,7 +735,10 @@ function distribuirMarcacoesNasColunas(marcacoes: MarcacaoPdfItem[]) {
       continue;
     }
 
-    horarios[indice] = formatarHoraLocal(marcacao.dataHora, marcacao.fusoHorario);
+    horarios[indice] = formatarHoraLocal(
+      marcacao.dataHora,
+      marcacao.fusoHorario,
+    );
   }
 
   for (const marcacao of restantes) {
@@ -721,7 +748,10 @@ function distribuirMarcacoesNasColunas(marcacoes: MarcacaoPdfItem[]) {
       break;
     }
 
-    horarios[indiceLivre] = formatarHoraLocal(marcacao.dataHora, marcacao.fusoHorario);
+    horarios[indiceLivre] = formatarHoraLocal(
+      marcacao.dataHora,
+      marcacao.fusoHorario,
+    );
   }
 
   return horarios;
@@ -734,6 +764,7 @@ function obterResumoDia(
 ) {
   if (apuracao) {
     const diaInstitucional = extrairDiaInstitucional(apuracao.metadados);
+    const previsaoJornada = extrairPrevisaoJornadaDia(apuracao.metadados);
 
     const classificacao = classificarDiaEspelho(apuracao);
     const solicitacaoIntegral = classificacao.solicitacoesAplicadas.find(
@@ -760,6 +791,7 @@ function obterResumoDia(
     if (marcacoes.length === 0) {
       const resumoMesclado = resumirMarcacoesMescladas({
         diaInstitucional,
+        previsaoJornada,
         solicitacao: solicitacaoIntegral ?? null,
       });
 
@@ -855,9 +887,11 @@ type SolicitacaoMescladaPdf = {
 
 function resumirMarcacoesMescladas({
   diaInstitucional,
+  previsaoJornada,
   solicitacao,
 }: {
   diaInstitucional: DiaInstitucionalEspelho | null;
+  previsaoJornada?: PrevisaoJornadaDiaPdf | null;
   solicitacao: SolicitacaoMescladaPdf | null;
 }): ResumoMarcacoesMescladasPdf | null {
   if (diaInstitucional) {
@@ -870,25 +904,42 @@ function resumirMarcacoesMescladas({
 
     if (diaInstitucional.tipo === "FERIADO") {
       return {
-        rotuloStatus: "Feriado",
-        rotuloDescricao:
-          diaInstitucional.descricao &&
-          diaInstitucional.descricao !== "Feriado institucional"
-            ? `Feriado â€” ${diaInstitucional.descricao}`
-            : "Feriado",
+        rotuloStatus: "Regular",
+        rotuloDescricao: rotuloDiaInstitucional(diaInstitucional),
       };
     }
 
     if (diaInstitucional.tipo === "PONTO_FACULTATIVO") {
       return {
         rotuloStatus: "Regular",
-        rotuloDescricao: "Ponto facultativo",
+        rotuloDescricao: rotuloDiaInstitucional(diaInstitucional),
       };
     }
 
     return {
       rotuloStatus: "Regular",
       rotuloDescricao: rotuloDiaInstitucional(diaInstitucional),
+    };
+  }
+
+  if (previsaoJornada?.tipoDia === "FOLGA") {
+    return {
+      rotuloStatus: "Regular",
+      rotuloDescricao: "Descanso previsto na jornada",
+    };
+  }
+
+  if (previsaoJornada?.tipoDia === "HOME_OFFICE") {
+    return {
+      rotuloStatus: "Regular",
+      rotuloDescricao: "home office",
+    };
+  }
+
+  if (previsaoJornada?.tipoDia === "TELETRABALHO") {
+    return {
+      rotuloStatus: "Regular",
+      rotuloDescricao: "teletrabalho",
     };
   }
 
@@ -945,8 +996,7 @@ function resumirAfastamentoEspelho(
 
   return {
     rotuloTipo: "Férias",
-    rotuloCompleto:
-      situacao === "Em férias" ? situacao : `Férias ${situacao}`,
+    rotuloCompleto: situacao === "Em férias" ? situacao : `Férias ${situacao}`,
   };
 }
 
@@ -978,20 +1028,12 @@ function dataReferenciaUtc(valor: Date | string | null | undefined) {
     return null;
   }
 
-  return Date.UTC(
-    data.getUTCFullYear(),
-    data.getUTCMonth(),
-    data.getUTCDate(),
-  );
+  return Date.UTC(data.getUTCFullYear(), data.getUTCMonth(), data.getUTCDate());
 }
 
 function hojeUtc() {
   const hoje = new Date();
-  return Date.UTC(
-    hoje.getUTCFullYear(),
-    hoje.getUTCMonth(),
-    hoje.getUTCDate(),
-  );
+  return Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate());
 }
 
 function classificarSituacaoFeriasEspelho({
@@ -1162,7 +1204,9 @@ function normalizarCaminhoUnidadePorOrgao(
     (unidade) => unidade.sigla.trim() === siglaOrgao,
   );
 
-  return indiceUnidadeOrgao >= 0 ? unidades.slice(indiceUnidadeOrgao) : unidades;
+  return indiceUnidadeOrgao >= 0
+    ? unidades.slice(indiceUnidadeOrgao)
+    : unidades;
 }
 
 function montarHierarquiaUnidade(unidade: UnidadeEspelho) {
@@ -1322,6 +1366,27 @@ function extrairDiaInstitucional(
   };
 }
 
+function extrairPrevisaoJornadaDia(
+  metadados: unknown,
+): PrevisaoJornadaDiaPdf | null {
+  if (!metadados || typeof metadados !== "object" || Array.isArray(metadados)) {
+    return null;
+  }
+
+  const previsao = (metadados as { previsaoJornadaDia?: unknown })
+    .previsaoJornadaDia;
+
+  if (!previsao || typeof previsao !== "object" || Array.isArray(previsao)) {
+    return null;
+  }
+
+  const dados = previsao as { tipoDia?: unknown };
+
+  return {
+    tipoDia: typeof dados.tipoDia === "string" ? dados.tipoDia : null,
+  };
+}
+
 function rotuloTipoDiaInstitucional(tipo: string) {
   const rotulos: Record<string, string> = {
     SABADO: "Sábado",
@@ -1335,27 +1400,42 @@ function rotuloTipoDiaInstitucional(tipo: string) {
   return rotulos[tipo] ?? tipo.replaceAll("_", " ");
 }
 
+function formatarTextoEventoInstitucional(texto: string | null | undefined) {
+  const normalizado = texto?.trim();
+
+  if (!normalizado) return "";
+
+  const minusculo = normalizado.toLocaleLowerCase("pt-BR");
+
+  return `${minusculo.charAt(0).toLocaleUpperCase("pt-BR")}${minusculo.slice(1)}`;
+}
+
+function formatarDescricaoEventoInstitucional(
+  texto: string | null | undefined,
+) {
+  return texto?.trim().toLocaleLowerCase("pt-BR") ?? "";
+}
+
 function rotuloDiaInstitucional(dia: DiaInstitucionalEspelho) {
   if (dia.tipo === "FERIADO" && dia.descricao !== "Feriado institucional") {
-    return `Feriado: ${dia.descricao}`;
+    return `Feriado: ${formatarDescricaoEventoInstitucional(dia.descricao)}`;
   }
 
   if (
     dia.tipo === "PONTO_FACULTATIVO" &&
     dia.descricao !== "Ponto facultativo"
   ) {
-    return `Ponto facultativo: ${dia.descricao}`;
+    return `Ponto facultativo: ${formatarDescricaoEventoInstitucional(dia.descricao)}`;
   }
 
-  if (
-    dia.tipo === "SUSPENSAO_EXPEDIENTE" &&
-    dia.descricao !== "Suspensão de expediente"
-  ) {
-    return `Suspensão: ${dia.descricao}`;
+  if (dia.tipo === "SUSPENSAO_EXPEDIENTE") {
+    return dia.descricao && dia.descricao !== "Suspensão de expediente"
+      ? `Suspensão: ${formatarDescricaoEventoInstitucional(dia.descricao)}`
+      : "Suspensão de expediente";
   }
 
   if (dia.tipo === "RECESSO_FORENSE") {
-    return dia.descricao;
+    return formatarTextoEventoInstitucional(dia.descricao);
   }
 
   return rotuloTipoDiaInstitucional(dia.tipo);

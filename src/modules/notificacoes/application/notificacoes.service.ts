@@ -3,6 +3,7 @@ import { nomeServidor } from "@/modules/servidores/application/services/nome-ser
 import type { PerfilSessao } from "@/modules/auth/domain/entities/usuario-autenticado";
 
 const DIAS_RETORNO_SOLICITACAO = 30;
+const ORGAO_ID_SEM_ACESSO = "00000000-0000-4000-8000-000000000000";
 
 export type NotificacaoPrioridade = "alta" | "media" | "baixa";
 export type NotificacaoCategoria =
@@ -57,7 +58,7 @@ function whereOrgaoPerfil(contexto?: ContextoNotificacoes) {
   const orgaoIds = orgaoIdsDoPerfil(contexto);
 
   if (orgaoIds.length === 0) {
-    return { id: "__sem_orgao_permitido__" };
+    return { id: ORGAO_ID_SEM_ACESSO };
   }
 
   return { id: { in: orgaoIds } };

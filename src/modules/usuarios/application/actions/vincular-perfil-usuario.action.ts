@@ -50,7 +50,7 @@ export async function vincularPerfilUsuarioAction(
   const [perfil, usuario] = await Promise.all([
     prisma.perfil.findUnique({
       where: { id: parsed.data.perfilId },
-      select: { codigo: true, nome: true },
+      select: { codigo: true, nome: true, global: true, orgaoId: true },
     }),
     buscarUsuarioPorId(parsed.data.usuarioId),
   ]);
@@ -102,6 +102,45 @@ export async function vincularPerfilUsuarioAction(
     return {
       sucesso: false,
       mensagem: "Selecione uma seccional vinculada ao seu perfil ativo.",
+      campos: dados,
+    };
+  }
+
+  if (
+    !perfil.global &&
+    !perfil.orgaoId
+  ) {
+    return {
+      sucesso: false,
+      mensagem: "Perfil sem escopo global ou seccional nao pode ser vinculado neste cadastro.",
+      campos: dados,
+    };
+  }
+
+  if (
+    !perfil.global &&
+    perfil.orgaoId &&
+    !orgaoPodeSerVinculadoNoEscopoGestaoUsuarios(
+      perfil.orgaoId,
+      escopoGestaoUsuarios,
+    )
+  ) {
+    return {
+      sucesso: false,
+      mensagem: "Perfil fora do escopo do seu perfil ativo.",
+      campos: dados,
+    };
+  }
+
+  if (
+    !perfil.global &&
+    perfil.orgaoId &&
+    parsed.data.orgaoId &&
+    perfil.orgaoId !== parsed.data.orgaoId
+  ) {
+    return {
+      sucesso: false,
+      mensagem: "Perfil seccional deve ser vinculado na propria seccional do perfil.",
       campos: dados,
     };
   }

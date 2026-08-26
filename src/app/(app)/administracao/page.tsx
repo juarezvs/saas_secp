@@ -138,8 +138,8 @@ export default async function AdministracaoPage() {
       permissoes: ["substituicoes-funcao:relatorio:proprio", "substituicoes-funcao:relatorio:subordinados", "substituicoes-funcao:relatorio:seccional", "substituicoes-funcao:relatorio:global"],
     },
     {
-      titulo: "Jornadas",
-      descricao: "Cadastre jornadas, escalas e atribuições aplicáveis às pessoas.",
+      titulo: "Horário de Trabalho",
+      descricao: "Cadastre horários, escalas e atribuições aplicáveis às pessoas.",
       href: hrefComOrgao("/jornadas"),
       icon: CalendarClock,
       permissoes: ["jornadas:gerenciar:seccional", "jornadas:gerenciar:global"],

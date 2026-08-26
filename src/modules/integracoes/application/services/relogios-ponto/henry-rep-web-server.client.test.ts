@@ -144,4 +144,12 @@ describe("HenryRepWebServerClient", () => {
       }),
     );
   });
+
+  it("nao marca como online quando nenhum comando de status responde", async () => {
+    const porta = await criarServidorFake(() => "99+ER+010");
+    const saude = await criarClient(porta).testarConexao();
+
+    expect(saude.status).toBe("OFFLINE");
+    expect(saude.mensagem).toContain("Comando desconhecido");
+  });
 });

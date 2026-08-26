@@ -7,10 +7,12 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY docker/oracle /tmp/oracle
+COPY docker/certs /tmp/certs
 
 RUN set -eux; \
   apt-get update \
   && apt-get install -y --no-install-recommends openssl ca-certificates curl unzip libaio1 libnsl2 \
+  && if [ -d /tmp/certs ]; then find /tmp/certs -type f -name '*.crt' -exec cp {} /usr/local/share/ca-certificates/ \; && update-ca-certificates; fi \
   && mkdir -p /opt/oracle \
   && instantclient_zip="$(find /tmp/oracle -maxdepth 1 -type f -name 'instantclient-basiclite-linux*x64*.zip' | head -n 1)" \
   && if [ -n "$instantclient_zip" ]; then cp "$instantclient_zip" /tmp/instantclient.zip; else curl -fsSL https://download.oracle.com/otn_software/linux/instantclient/instantclient-basiclite-linuxx64.zip -o /tmp/instantclient.zip; fi \
@@ -24,6 +26,7 @@ RUN set -eux; \
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 ENV PGCLIENTENCODING=UTF8
+ENV NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/trf1-ac-raiz.crt
 
 ENV SARH_ORACLE_HOME=/opt/oracle/instantclient
 ENV LD_LIBRARY_PATH=/opt/oracle/instantclient

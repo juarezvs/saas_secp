@@ -18,7 +18,7 @@ function ehUuid(valor?: string | null): valor is string {
     return false;
   }
 
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i.test(
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     valor,
   );
 }
@@ -105,6 +105,40 @@ export async function listarOrgaosAtivos(params: ListarOrgaosParams = {}) {
       nome: true,
     },
   });
+}
+
+export async function buscarOrgaoAtivoDoServidorUsuario(usuarioId: string) {
+  const usuario = await prisma.usuario.findUnique({
+    where: {
+      id: usuarioId,
+    },
+    select: {
+      servidor: {
+        select: {
+          orgao: {
+            select: {
+              id: true,
+              sigla: true,
+              nome: true,
+              ativo: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const orgao = usuario?.servidor?.orgao;
+
+  if (!orgao?.ativo) {
+    return null;
+  }
+
+  return {
+    id: orgao.id,
+    sigla: orgao.sigla,
+    nome: orgao.nome,
+  };
 }
 
 export async function listarOrgaos() {

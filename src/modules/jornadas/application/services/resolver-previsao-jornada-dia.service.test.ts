@@ -91,4 +91,121 @@ describe("resolverPrevisaoJornadaDia", () => {
       cruzaMeiaNoite: false,
     });
   });
+
+  it("resolve escala ciclica da jornada pela data de inicio da atribuicao", () => {
+    const previsaoExpediente = resolverPrevisaoJornadaDia({
+      jornada: {
+        ...jornadaBase,
+        dias: [
+          {
+            diaSemana: null,
+            ordemNoCiclo: 1,
+            tipoDia: "TRABALHO",
+            cargaPrevistaMinutos: 720,
+            faixas: [
+              {
+                tipo: "TRABALHO",
+                horaInicio: "07:00",
+                horaFim: "19:00",
+                cruzaMeiaNoite: false,
+                ordem: 1,
+              },
+            ],
+          },
+          {
+            diaSemana: null,
+            ordemNoCiclo: 2,
+            tipoDia: "FOLGA",
+            cargaPrevistaMinutos: 0,
+            faixas: [],
+          },
+        ],
+      },
+      dataReferencia: new Date("2026-06-01T00:00:00Z"),
+      dataAncoragemJornada: new Date("2026-06-01T00:00:00Z"),
+    });
+    const previsaoFolga = resolverPrevisaoJornadaDia({
+      jornada: {
+        ...jornadaBase,
+        dias: [
+          {
+            diaSemana: null,
+            ordemNoCiclo: 1,
+            tipoDia: "TRABALHO",
+            cargaPrevistaMinutos: 720,
+            faixas: [
+              {
+                tipo: "TRABALHO",
+                horaInicio: "07:00",
+                horaFim: "19:00",
+                cruzaMeiaNoite: false,
+                ordem: 1,
+              },
+            ],
+          },
+          {
+            diaSemana: null,
+            ordemNoCiclo: 2,
+            tipoDia: "FOLGA",
+            cargaPrevistaMinutos: 0,
+            faixas: [],
+          },
+        ],
+      },
+      dataReferencia: new Date("2026-06-02T00:00:00Z"),
+      dataAncoragemJornada: new Date("2026-06-01T00:00:00Z"),
+    });
+
+    expect(previsaoExpediente.fonte).toBe("JORNADA_DIA");
+    expect(previsaoExpediente.escalaPosicaoCiclo).toBe(1);
+    expect(previsaoExpediente.trabalha).toBe(true);
+    expect(previsaoExpediente.cargaPrevistaMinutos).toBe(720);
+    expect(previsaoExpediente.faixas).toHaveLength(1);
+    expect(previsaoFolga.escalaPosicaoCiclo).toBe(2);
+    expect(previsaoFolga.trabalha).toBe(false);
+    expect(previsaoFolga.tipoDia).toBe("FOLGA");
+  });
+
+  it("resolve dia home office do horario hibrido como nao presencial", () => {
+    const previsao = resolverPrevisaoJornadaDia({
+      jornada: {
+        ...jornadaBase,
+        tipo: "HIBRIDO",
+        dias: [
+          {
+            diaSemana: "SEGUNDA",
+            ordemNoCiclo: null,
+            tipoDia: "HOME_OFFICE",
+            cargaPrevistaMinutos: 0,
+            faixas: [],
+          },
+        ],
+      },
+      dataReferencia: new Date("2026-06-01T00:00:00Z"),
+    });
+
+    expect(previsao.tipoDia).toBe("HOME_OFFICE");
+    expect(previsao.trabalha).toBe(false);
+    expect(previsao.cargaPrevistaMinutos).toBe(0);
+  });
+
+  it("mantem horario de teletrabalho como previsao remota quando nao ha grade diaria", () => {
+    const previsao = resolverPrevisaoJornadaDia({
+      jornada: {
+        ...jornadaBase,
+        tipo: "TELETRABALHO",
+        dias: [],
+      },
+      dataReferencia: new Date("2026-06-01T00:00:00Z"),
+    });
+
+    expect(previsao.tipoDia).toBe("TELETRABALHO");
+    expect(previsao.trabalha).toBe(true);
+    expect(previsao.cargaPrevistaMinutos).toBe(420);
+    expect(previsao.janela).toEqual({
+      inicio: "08:00",
+      fim: "15:00",
+      cruzaMeiaNoite: false,
+    });
+  });
 });

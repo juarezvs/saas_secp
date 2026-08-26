@@ -58,6 +58,7 @@ export default async function NovoPerfilPage() {
           ativo: true,
           administrativo: false,
           excecao: false,
+          global: false,
           perfilDestinoExcecaoId: null,
           permissoes: [],
         }}

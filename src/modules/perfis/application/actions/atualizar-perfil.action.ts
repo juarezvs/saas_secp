@@ -23,6 +23,8 @@ function extrairDadosPerfil(formData: FormData) {
       formData.get("administrativo") === "true",
     excecao:
       formData.get("excecao") === "on" || formData.get("excecao") === "true",
+    global:
+      formData.get("global") === "on" || formData.get("global") === "true",
     perfilDestinoExcecaoId: String(
       formData.get("perfilDestinoExcecaoId") ?? "",
     ),
@@ -90,8 +92,8 @@ export async function atualizarPerfilAction(
 
   if (
     !escopoGlobal &&
-    perfilAtual.orgaoId &&
-    !orgaoIdsPermitidos.includes(perfilAtual.orgaoId)
+    !perfilAtual.global &&
+    (!perfilAtual.orgaoId || !orgaoIdsPermitidos.includes(perfilAtual.orgaoId))
   ) {
     return {
       sucesso: false,
@@ -138,6 +140,9 @@ export async function atualizarPerfilAction(
     ? perfilAtual.codigo
     : aplicarPrefixoSeccional(parsed.data.codigo, orgao?.sigla);
   const existe = await codigoPerfilExiste(codigo, perfilId);
+  const proximoGlobal =
+    !orgao && (escopoGlobal ? parsed.data.global : perfilAtual.global);
+  const proximoOrgaoId = perfilAtual.sistema ? null : (orgao?.id ?? null);
 
   if (existe) {
     return {
@@ -162,7 +167,8 @@ export async function atualizarPerfilAction(
         ativo: parsed.data.ativo,
         administrativo: parsed.data.administrativo,
         excecao: parsed.data.excecao,
-        orgaoId: perfilAtual.sistema ? null : (orgao?.id ?? null),
+        global: proximoGlobal,
+        orgaoId: proximoOrgaoId,
         perfilDestinoExcecaoId: parsed.data.excecao
           ? parsed.data.perfilDestinoExcecaoId || null
           : null,
@@ -199,6 +205,7 @@ export async function atualizarPerfilAction(
           ativo: perfilAtual.ativo,
           administrativo: perfilAtual.administrativo,
           excecao: perfilAtual.excecao,
+          global: perfilAtual.global,
           orgaoId: perfilAtual.orgaoId,
           perfilDestinoExcecaoId: perfilAtual.perfilDestinoExcecaoId,
           permissoes: perfilAtual.permissoes.map((item) => item.permissaoId),
@@ -211,7 +218,8 @@ export async function atualizarPerfilAction(
           ativo: parsed.data.ativo,
           administrativo: parsed.data.administrativo,
           excecao: parsed.data.excecao,
-          orgaoId: perfilAtual.sistema ? null : (orgao?.id ?? null),
+          global: proximoGlobal,
+          orgaoId: proximoOrgaoId,
           perfilDestinoExcecaoId: parsed.data.excecao
             ? parsed.data.perfilDestinoExcecaoId || null
             : null,

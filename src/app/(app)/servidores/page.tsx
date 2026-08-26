@@ -230,8 +230,7 @@ export default async function ServidoresPage({
       listarServidoresParaFiltro({
         orgaoIdsPermitidos,
         servidorIdsPermitidos: servidorIdsPermitidosChefia,
-        tipoUsuario,
-        semLimite: permissoesSessao.perfilAtivoEscopoGlobal,
+        semLimite: true,
       }),
       listarLotacoesAtivasParaFiltro({
         orgaoIdsPermitidos,

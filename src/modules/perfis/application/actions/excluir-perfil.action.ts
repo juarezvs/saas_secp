@@ -38,8 +38,8 @@ export async function excluirPerfilAction(perfilId: string) {
     perfil.sistema ||
     perfil._count.usuarios > 0 ||
     (!escopoOrgao.global &&
-      perfil.orgaoId &&
-      !escopoOrgao.orgaoIds.includes(perfil.orgaoId))
+      !perfil.global &&
+      (!perfil.orgaoId || !escopoOrgao.orgaoIds.includes(perfil.orgaoId)))
   ) {
     revalidatePath(`/perfis/${perfilId}`);
     return;

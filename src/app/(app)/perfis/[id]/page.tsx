@@ -7,7 +7,9 @@ import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/es
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { excluirPerfilAction } from "@/modules/perfis/application/actions/excluir-perfil.action";
 import { buscarPerfilPorId } from "@/modules/perfis/infrastructure/repositories/perfil.repository";
+import { AtribuirPessoaPerfilModal } from "@/modules/perfis/presentation/components/atribuir-pessoa-perfil-modal";
 import { ExcluirPerfilButton } from "@/modules/perfis/presentation/components/excluir-perfil-button";
+import { listarPessoasAtivasParaAtribuirPerfil } from "@/modules/usuarios/infrastructure/repositories/usuario.repository";
 
 type PerfilDetalhePageProps = {
   params: Promise<{
@@ -33,14 +35,30 @@ export default async function PerfilDetalhePage({
 
   if (
     !escopoOrgao.global &&
-    perfil.orgaoId &&
-    !escopoOrgao.orgaoIds.includes(perfil.orgaoId)
+    !perfil.global &&
+    (!perfil.orgaoId || !escopoOrgao.orgaoIds.includes(perfil.orgaoId))
   ) {
     notFound();
   }
 
   const excluirAction = excluirPerfilAction.bind(null, perfil.id);
   const podeExcluirPerfil = !perfil.sistema && perfil.usuarios.length === 0;
+  const orgaoIdsPessoas =
+    perfil.orgaoId !== null && perfil.orgaoId !== undefined
+      ? [perfil.orgaoId]
+      : escopoOrgao.global
+        ? undefined
+        : escopoOrgao.orgaoIds;
+  const pessoas = await listarPessoasAtivasParaAtribuirPerfil({
+    orgaoIdsPermitidos: orgaoIdsPessoas,
+  });
+  const pessoasOptions = pessoas.map((pessoa) => ({
+    usuarioId: pessoa.usuario.id,
+    matricula: pessoa.matricula || pessoa.usuario.matricula,
+    nome: pessoa.nomeFuncional || pessoa.usuario.nome,
+    orgaoSigla: pessoa.orgao.sigla,
+    lotacao: pessoa.lotacoes[0]?.unidade.sigla ?? null,
+  }));
 
   return (
     <div className="space-y-6">
@@ -68,6 +86,12 @@ export default async function PerfilDetalhePage({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <AtribuirPessoaPerfilModal
+            perfilId={perfil.id}
+            perfilNome={perfil.nome}
+            pessoas={pessoasOptions}
+          />
+
           {podeExcluirPerfil && (
             <ExcluirPerfilButton action={excluirAction} nome={perfil.nome} />
           )}

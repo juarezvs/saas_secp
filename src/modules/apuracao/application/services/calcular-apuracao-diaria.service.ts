@@ -22,6 +22,7 @@ type JornadaCalculo = {
   cargaDiariaMinutos: number;
   cargaPrevistaMinutos?: number | null;
   trabalhaNoDia?: boolean;
+  tipoDiaPrevisto?: string | null;
   controlaHorario?: boolean;
   janelaPrevista?: {
     inicio: string;
@@ -37,6 +38,8 @@ type JornadaCalculo = {
   saidaMaximaDiferenciada: string | null;
   servidorDedicacaoIntegral?: boolean;
 };
+
+const CARGA_TRABALHO_REMOTO_MINUTOS = 7 * 60;
 
 type DiaInstitucionalCalculo = {
   tipo: string;
@@ -143,6 +146,41 @@ function criarResultadoSemExpediente(params: {
   };
 }
 
+function criarResultadoTrabalhoRemotoSemMarcacao(params: {
+  tipoDiaPrevisto: "HOME_OFFICE" | "TELETRABALHO";
+}): ResultadoCalculoApuracaoDiaria {
+  const descricao =
+    params.tipoDiaPrevisto === "HOME_OFFICE"
+      ? "Home office sem registro de ponto no dia; carga prevista considerada cumprida."
+      : "Teletrabalho sem registro de ponto no dia; carga prevista considerada cumprida.";
+
+  return {
+    cargaPrevistaMinutos: CARGA_TRABALHO_REMOTO_MINUTOS,
+    minutosTrabalhados: CARGA_TRABALHO_REMOTO_MINUTOS,
+    minutosIntervalo: 0,
+    minutosCredito: 0,
+    minutosDebito: 0,
+    resultado: "REGULAR",
+    status: "CALCULADA",
+    primeiraEntrada: null,
+    saidaIntervalo: null,
+    retornoIntervalo: null,
+    ultimaSaida: null,
+    janelaExpediente: null,
+    minutosForaExpediente: 0,
+    dispensaPontoEletronico: null,
+    trabalhoRemoto: {
+      ativo: true,
+      regime: "TOTAL",
+      diaSemana: params.tipoDiaPrevisto,
+      exigeRegistroPonto: false,
+      descricao,
+    },
+    frequenciaManual: null,
+    ocorrencias: [],
+  };
+}
+
 export function calcularApuracaoDiaria(params: {
   marcacoes: MarcacaoCalculo[];
   jornada: JornadaCalculo | null;
@@ -166,6 +204,7 @@ export function calcularApuracaoDiaria(params: {
   );
   const jornadaSemExpediente =
     jornada &&
+    !["HOME_OFFICE", "TELETRABALHO"].includes(jornada.tipoDiaPrevisto ?? "") &&
     (jornada.trabalhaNoDia === false ||
       jornada.controlaHorario === false ||
       jornada.cargaPrevistaMinutos === 0);
@@ -208,7 +247,12 @@ export function calcularApuracaoDiaria(params: {
     };
   }
 
-  const cargaBaseDia = jornada.cargaPrevistaMinutos ?? jornada.cargaDiariaMinutos;
+  const trabalhoRemotoPrevisto =
+    jornada.tipoDiaPrevisto === "HOME_OFFICE" ||
+    jornada.tipoDiaPrevisto === "TELETRABALHO";
+  const cargaBaseDia = trabalhoRemotoPrevisto
+    ? CARGA_TRABALHO_REMOTO_MINUTOS
+    : (jornada.cargaPrevistaMinutos ?? jornada.cargaDiariaMinutos);
   const cargaPrevistaDia = diaSemExpediente
     ? 0
     : calcularCargaPrevistaComJanela(
@@ -247,8 +291,17 @@ export function calcularApuracaoDiaria(params: {
 
   const ocorrencias: OcorrenciaCalculada[] = [];
   const janelaExpediente = janelaExpedienteDia;
+  const trabalhoRemotoSemMarcacao =
+    trabalhoRemotoPrevisto && ordenadas.length === 0;
 
   if (ordenadas.length === 0) {
+    if (trabalhoRemotoSemMarcacao) {
+      return criarResultadoTrabalhoRemotoSemMarcacao({
+        tipoDiaPrevisto: jornada.tipoDiaPrevisto as
+          "HOME_OFFICE" | "TELETRABALHO",
+      });
+    }
+
     if (diaSemExpediente) {
       return criarResultadoSemExpediente({
         marcacoes: ordenadas,
@@ -515,8 +568,8 @@ export function calcularApuracaoDiaria(params: {
       !regras.jornada7hCreditoExigeIntervalo ||
       Boolean(
         saidaIntervalo &&
-          retornoIntervalo &&
-          minutosIntervalo >= regras.jornada7hIntervaloMinimoMinutos,
+        retornoIntervalo &&
+        minutosIntervalo >= regras.jornada7hIntervaloMinimoMinutos,
       );
 
     minutosCredito = intervaloCumprido
@@ -524,10 +577,7 @@ export function calcularApuracaoDiaria(params: {
       : 0;
     minutosDebito = 0;
 
-    if (
-      minutosTrabalhados >= creditoMinimoJornada7h &&
-      !intervaloCumprido
-    ) {
+    if (minutosTrabalhados >= creditoMinimoJornada7h && !intervaloCumprido) {
       ocorrencias.push({
         tipo: "INTERVALO_INVALIDO",
         descricao: `A jornada de 7 horas somente gera credito apos ${Math.floor(

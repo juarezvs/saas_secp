@@ -69,21 +69,21 @@ export default async function JornadasPage({
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Jornadas" }]} />
+      <Breadcrumb items={[{ label: "Horário de Trabalho" }]} />
 
       <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-            Jornada e escala
+            Horário de Trabalho
           </p>
 
           <PageHeader
             icon={CalendarClock}
-            titulo="Jornadas"
-            descricao="Gerencie jornadas de 7h, 8h, especiais e atribuicoes de jornada aos servidores."
+            titulo="Horário de Trabalho"
+            descricao="Gerencie horários semanais, cíclicos, mensais e suas associações às pessoas."
             artigo="Arts. 4, 8 e 18"
-            regraTitulo="Jornada cadastrada e apuração futura"
-            regraDescricao="O sistema deve manter a jornada a ser cumprida pelo servidor, permitindo apurar a carga mensal e comparar com a jornada esperada no mês de referência."
+            regraTitulo="Horário cadastrado e apuração futura"
+            regraDescricao="O sistema deve manter o horário a ser cumprido pela pessoa, permitindo apurar a carga mensal e comparar com o esperado no mês de referência."
           />
         </div>
 
@@ -92,21 +92,21 @@ export default async function JornadasPage({
             href="/jornadas/atribuicoes"
             className="inline-flex items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
-            Atribuir jornada
+            Associar horário em lote
           </Link>
           <Link
             href="/jornadas/nova"
             className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             <Plus className="size-4" aria-hidden="true" />
-            Nova jornada
+            Novo horário
           </Link>
         </div>
       </section>
 
       <DataTableShell
-        title="Jornadas cadastradas"
-        description="Use a pesquisa geral ou filtre por código, nome, tipo e status."
+        title="Horários cadastrados"
+        description="Use a pesquisa geral ou filtre por código, descrição, tipo e status."
         total={resultado.total}
         pagina={resultado.pagina}
         totalPaginas={resultado.totalPaginas}
@@ -122,18 +122,17 @@ export default async function JornadasPage({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[920px] text-left text-sm">
             <caption className="sr-only">
-              Listagem de jornadas com código, nome, tipo, carga, intervalo,
-              escalas, servidores, status e ações.
+              Listagem de horários de trabalho com código, descrição, tipo,
+              carga, intervalo, pessoas, status e ações.
             </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
                 <th className="px-5 py-3">Código</th>
-                <th className="px-5 py-3">Nome</th>
+                <th className="px-5 py-3">Descrição</th>
                 <th className="px-5 py-3">Tipo</th>
                 <th className="px-5 py-3">Carga</th>
                 <th className="px-5 py-3">Intervalo</th>
-                <th className="px-5 py-3">Escalas</th>
-                <th className="px-5 py-3">Servidores</th>
+                <th className="px-5 py-3">Pessoas</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3 text-right">Ações</th>
               </tr>
@@ -166,7 +165,6 @@ export default async function JornadasPage({
                         } min`
                       : "Não"}
                   </td>
-                  <td className="px-5 py-4">{jornada._count.escalas}</td>
                   <td className="px-5 py-4">{jornada._count.servidores}</td>
                   <td className="px-5 py-4">
                     <span
@@ -194,10 +192,10 @@ export default async function JornadasPage({
               {resultado.jornadas.length === 0 && (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={8}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
-                    Nenhuma jornada encontrada para os filtros informados.
+                    Nenhum horário encontrado para os filtros informados.
                   </td>
                 </tr>
               )}

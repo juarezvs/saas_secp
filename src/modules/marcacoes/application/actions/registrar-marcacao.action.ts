@@ -16,6 +16,7 @@ import { resolverJornadaVigenteDoServidor } from "@/modules/jornadas/application
 import { recalcularDiaEBancoHorasServidorService } from "@/modules/recalculo/application/services/recalcular-dia-e-banco-horas-servidor.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { resolverFusoHorarioServidor } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
+import { buscarRegulamentacaoPontoServidor } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 
 import {
   buscarServidorPorUsuarioId,
@@ -30,6 +31,7 @@ import {
   formatarDataHoraPtBr,
   obterDataReferencia,
 } from "../services/data-marcacao.service";
+import { resolverDataReferenciaOperacionalMarcacaoService } from "../services/resolver-data-referencia-operacional-marcacao.service";
 
 function extrairDados(formData: FormData) {
   return {
@@ -107,9 +109,23 @@ export async function registrarMarcacaoAction(
 
   const agora = new Date();
   const fusoHorario = resolverFusoHorarioServidor(servidor);
+  const dataReferenciaCivil = obterDataReferencia(agora, fusoHorario);
+  const regulamentacaoPonto = await buscarRegulamentacaoPontoServidor(
+    servidor.id,
+  );
+  const resolucaoDataReferencia =
+    await resolverDataReferenciaOperacionalMarcacaoService(prisma, {
+      servidorId: servidor.id,
+      dataHora: agora,
+      dataReferenciaCivil,
+      fusoHorario,
+      origem: "BIOMETRIA_FACIAL",
+      regulamentacaoPonto,
+    });
+  const dataReferencia = resolucaoDataReferencia.dataReferencia;
   const jornadaVigente = await resolverJornadaVigenteDoServidor(
     servidor.id,
-    agora,
+    dataReferencia,
   );
 
   if (!jornadaVigente) {
@@ -146,6 +162,7 @@ export async function registrarMarcacaoAction(
     servidorId: servidor.id,
     dataHora: agora,
     fusoHorario,
+    dataReferencia,
   });
 
   let classificacao;
@@ -176,8 +193,6 @@ export async function registrarMarcacaoAction(
     null;
 
   const userAgent = requestHeaders.get("user-agent");
-
-  const dataReferencia = obterDataReferencia(agora, fusoHorario);
 
   try {
     await verificarPeriodoHomologado({
@@ -218,6 +233,10 @@ export async function registrarMarcacaoAction(
           descricao: classificacao.descricao,
           exigeReconhecimentoFacial,
           biometriaValidadaNestaEtapa: true,
+          dataReferenciaCivil: resolucaoDataReferencia.dataReferenciaCivil,
+          dataReferenciaOperacionalAjustada:
+            resolucaoDataReferencia.ajustadaParaDiaAnterior,
+          motivoAjusteDataReferencia: resolucaoDataReferencia.motivo,
           jornada: {
             id: jornadaVigente.jornadaId,
             codigo: jornadaVigente.codigo,

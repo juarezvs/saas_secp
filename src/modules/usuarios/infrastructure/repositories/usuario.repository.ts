@@ -387,14 +387,16 @@ export async function buscarUsuarioPorId(id: string) {
 export async function listarPerfisAtivosParaUsuario(params: {
   orgaoIdsPermitidos?: string[];
 } = {}) {
+  const orgaoIdsPermitidos = params.orgaoIdsPermitidos?.filter(ehUuid);
+
   return prisma.perfil.findMany({
     where: {
       ativo: true,
-      ...(params.orgaoIdsPermitidos
+      ...(orgaoIdsPermitidos
         ? {
             OR: [
-              { orgaoId: null },
-              { orgaoId: { in: params.orgaoIdsPermitidos } },
+              { global: true },
+              { orgaoId: { in: orgaoIdsPermitidos } },
             ],
           }
         : {}),
@@ -470,5 +472,59 @@ export async function buscarUsuarioPerfil(params: {
       perfilId: params.perfilId,
       orgaoId: params.orgaoId ?? null,
     },
+  });
+}
+
+export async function listarPessoasAtivasParaAtribuirPerfil(params: {
+  orgaoIdsPermitidos?: string[];
+} = {}) {
+  return prisma.servidor.findMany({
+    where: {
+      ativo: true,
+      usuario: {
+        ativo: true,
+      },
+      ...(params.orgaoIdsPermitidos?.length
+        ? { orgaoId: { in: params.orgaoIdsPermitidos } }
+        : {}),
+    },
+    select: {
+      id: true,
+      matricula: true,
+      nomeFuncional: true,
+      orgaoId: true,
+      orgao: {
+        select: {
+          sigla: true,
+          nome: true,
+        },
+      },
+      usuario: {
+        select: {
+          id: true,
+          nome: true,
+          matricula: true,
+          tipo: true,
+        },
+      },
+      lotacoes: {
+        where: { status: "ATIVO" },
+        select: {
+          unidade: {
+            select: {
+              sigla: true,
+              nome: true,
+            },
+          },
+        },
+        orderBy: { dataInicio: "desc" },
+        take: 1,
+      },
+    },
+    orderBy: [
+      { nomeFuncional: "asc" },
+      { usuario: { nome: "asc" } },
+      { matricula: "asc" },
+    ],
   });
 }

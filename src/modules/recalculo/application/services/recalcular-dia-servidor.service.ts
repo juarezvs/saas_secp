@@ -300,6 +300,8 @@ export async function recalcularDiaServidorService(
         jornada: jornadaServidor.jornada,
         escala: jornadaServidor.escala,
         dataReferencia: dataNormalizada,
+        dataAncoragemJornada:
+          jornadaServidor.jornada.vigenciaInicio ?? jornadaServidor.dataInicio,
       })
     : null;
   const jornadaVigenteSnapshot = jornadaServidor
@@ -376,6 +378,7 @@ export async function recalcularDiaServidorService(
             previsaoJornadaDia?.cargaPrevistaMinutos ??
             jornadaServidor.jornada.cargaDiariaMinutos,
           trabalhaNoDia: previsaoJornadaDia?.trabalha ?? true,
+          tipoDiaPrevisto: previsaoJornadaDia?.tipoDia ?? null,
           controlaHorario: jornadaServidor.jornada.controlaHorario,
           janelaPrevista: previsaoJornadaDia?.janela
             ? {

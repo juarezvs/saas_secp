@@ -13,13 +13,57 @@ export type ListarPerfisParams = {
 
 export function montarWherePerfis(params: ListarPerfisParams) {
   const busca = params.busca?.trim();
+  const filtros: Array<Record<string, unknown>> = [];
+
+  if (params.orgaoIdsPermitidos) {
+    filtros.push({
+      OR: [
+        { global: true },
+        { orgaoId: { in: params.orgaoIdsPermitidos } },
+      ],
+    });
+  }
+
+  if (busca) {
+    filtros.push({
+      OR: [
+        { codigo: { contains: busca, mode: "insensitive" as const } },
+        { nome: { contains: busca, mode: "insensitive" as const } },
+        { descricao: { contains: busca, mode: "insensitive" as const } },
+        {
+          permissoes: {
+            some: {
+              permissao: {
+                OR: [
+                  {
+                    codigo: {
+                      contains: busca,
+                      mode: "insensitive" as const,
+                    },
+                  },
+                  {
+                    recurso: {
+                      contains: busca,
+                      mode: "insensitive" as const,
+                    },
+                  },
+                  {
+                    acao: {
+                      contains: busca,
+                      mode: "insensitive" as const,
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      ],
+    });
+  }
 
   return {
-    ...(params.orgaoIdsPermitidos
-      ? {
-          OR: [{ orgaoId: null }, { orgaoId: { in: params.orgaoIdsPermitidos } }],
-        }
-      : {}),
+    ...(filtros.length ? { AND: filtros } : {}),
     ...(params.status === "ativo"
       ? { ativo: true }
       : params.status === "inativo"
@@ -69,43 +113,6 @@ export function montarWherePerfis(params: ListarPerfisParams) {
         }
       : {}),
 
-    ...(busca
-      ? {
-          OR: [
-            { codigo: { contains: busca, mode: "insensitive" as const } },
-            { nome: { contains: busca, mode: "insensitive" as const } },
-            { descricao: { contains: busca, mode: "insensitive" as const } },
-            {
-              permissoes: {
-                some: {
-                  permissao: {
-                    OR: [
-                      {
-                        codigo: {
-                          contains: busca,
-                          mode: "insensitive" as const,
-                        },
-                      },
-                      {
-                        recurso: {
-                          contains: busca,
-                          mode: "insensitive" as const,
-                        },
-                      },
-                      {
-                        acao: {
-                          contains: busca,
-                          mode: "insensitive" as const,
-                        },
-                      },
-                    ],
-                  },
-                },
-              },
-            },
-          ],
-        }
-      : {}),
   };
 }
 
@@ -194,6 +201,7 @@ export async function listarPerfisParaFiltro(params: {
       id: true,
       codigo: true,
       nome: true,
+      global: true,
       orgao: {
         select: {
           sigla: true,

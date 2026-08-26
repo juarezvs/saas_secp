@@ -1,4 +1,4 @@
-﻿export type MenuCatalogoItem = {
+export type MenuCatalogoItem = {
   id: string;
   label: string;
   href: string;
@@ -29,7 +29,7 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
   },
   {
     id: "/historico-marcacoes",
-    label: "Histórico de marca??es",
+    label: "Histórico de marcações",
     href: "/historico-marcacoes",
     permissoes: ["marcacoes:consultar:proprio", "marcacoes:visualizar:proprio"],
   },
@@ -68,7 +68,7 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
   },
   {
     id: "/minhas-ferias",
-    label: "Minhas f?rias",
+    label: "Minhas férias",
     href: "/minhas-ferias",
     permissoes: [
       "programacao-ferias:consultar:proprio",
@@ -97,7 +97,7 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
   },
   {
     id: "/gestao/horas-extras",
-    label: "Gest?o de horas extras",
+    label: "Gestão de horas extras",
     href: "/gestao/horas-extras",
     permissoes: [
       "horas-extras:analisar:subordinados",
@@ -198,7 +198,7 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
   },
   {
     id: "/minha-equipe/ferias",
-    label: "Programação de f?rias",
+    label: "Programação de férias",
     href: "/minha-equipe/ferias",
     permissoes: [
       "programacao-ferias:consultar:subordinados",
@@ -208,7 +208,7 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
   },
   {
     id: "/minha-equipe/presencas",
-    label: "Presentes, ausentes e licen?as",
+    label: "Presentes, ausentes e licenças",
     href: "/minha-equipe/presencas",
     permissoes: [
       "minha-equipe:consultar:subordinados",
@@ -219,7 +219,7 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
   },
   {
     id: "/homologacao",
-    label: "Homologa??o",
+    label: "Homologação",
     href: "/homologacao",
     permissoes: [
       "homologacao:gerenciar:subordinados",
@@ -275,7 +275,7 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
   },
   {
     id: "/boletim-frequencia",
-    label: "Boletim de frequ?ncia",
+    label: "Boletim de frequência",
     href: "/boletim-frequencia",
     permissoes: [
       "boletim-frequencia:gerar:subordinados",
@@ -322,7 +322,7 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
   },
   {
     id: "/administracao",
-    label: "Administra??o",
+    label: "Administração",
     href: "/administracao",
     permissoes: [
       "configuracoes:gerenciar:seccional",
@@ -331,7 +331,7 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
   },
   {
     id: "/administracao/liberacao-rotinas",
-    label: "Libera??o de rotinas",
+    label: "Liberação de rotinas",
     href: "/administracao/liberacao-rotinas",
     permissoes: [
       "configuracoes:gerenciar:seccional",
@@ -340,7 +340,7 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
   },
   {
     id: "/perfis",
-    label: "Perfis e permiss?es",
+    label: "Perfis e permissões",
     href: "/perfis",
     permissoes: ["perfis:gerenciar:seccional", "perfis:gerenciar:global"],
   },
@@ -386,7 +386,7 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
   },
   {
     id: "/administracao/substituicoes-funcao",
-    label: "Substitui??es de fun??o",
+    label: "Substituições de função",
     href: "/administracao/substituicoes-funcao",
     permissoes: [
       "substituicoes-funcao:consultar:seccional",
@@ -408,7 +408,7 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
   },
   {
     id: "/jornadas",
-    label: "Jornadas",
+    label: "Horário de Trabalho",
     href: "/jornadas",
     permissoes: ["jornadas:gerenciar:seccional", "jornadas:gerenciar:global"],
   },
@@ -431,7 +431,7 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
   },
   {
     id: "/administracao/regulamentacao-ponto",
-    label: "Regulamenta??o do ponto",
+    label: "Regulamentação do ponto",
     href: "/administracao/regulamentacao-ponto",
     permissoes: [
       "regulamentacao-ponto:gerenciar:seccional",
@@ -440,7 +440,7 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
   },
   {
     id: "/administracao/procedimentos-frequencia",
-    label: "Procedimentos de frequ?ncia",
+    label: "Procedimentos de frequência",
     href: "/administracao/procedimentos-frequencia",
     permissoes: [
       "procedimentos-frequencia:consultar:seccional",
@@ -451,7 +451,7 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
   },
   {
     id: "/administracao/procedimentos-frequencia/nada-consta",
-    label: "Nada Consta de frequ?ncia",
+    label: "Nada Consta de frequência",
     href: "/administracao/procedimentos-frequencia/nada-consta",
     permissoes: [
       "procedimentos-frequencia:emitir-nada-consta:seccional",
@@ -497,7 +497,7 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
   },
   {
     id: "/administracao/integracoes",
-    label: "Credenciais e integra??es",
+    label: "Credenciais e integrações",
     href: "/administracao/integracoes",
     permissoes: [
       "integracoes:consultar:seccional",
@@ -508,7 +508,7 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
   },
   {
     id: "/administracao/integracoes/sarh",
-    label: "Integra??o SARH",
+    label: "Integração SARH",
     href: "/administracao/integracoes/sarh",
     permissoes: [
       "integracoes:consultar:seccional",
@@ -548,7 +548,7 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
   },
   {
     id: "/equipamentos",
-    label: "Equipamentos biom?tricos",
+    label: "Equipamentos biométricos",
     href: "/equipamentos",
     permissoes: [
       "integracoes:consultar:seccional",

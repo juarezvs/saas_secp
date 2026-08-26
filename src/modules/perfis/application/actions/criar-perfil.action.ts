@@ -19,6 +19,8 @@ function extrairDadosPerfil(formData: FormData) {
       formData.get("administrativo") === "true",
     excecao:
       formData.get("excecao") === "on" || formData.get("excecao") === "true",
+    global:
+      formData.get("global") === "on" || formData.get("global") === "true",
     perfilDestinoExcecaoId: String(
       formData.get("perfilDestinoExcecaoId") ?? "",
     ),
@@ -102,23 +104,9 @@ export async function criarPerfilAction(
   }
 
   const codigo = aplicarPrefixoSeccional(parsed.data.codigo, orgao?.sigla);
-  const orgaosReplicacao =
-    !orgao && (permissao.perfilAtivoEscopoGlobal ?? false)
-      ? await prisma.orgao.findMany({
-          where: { ativo: true },
-          select: { id: true, sigla: true },
-          orderBy: { sigla: "asc" },
-        })
-      : [];
-  const codigosReplicacao = orgaosReplicacao.map((item) =>
-    aplicarPrefixoSeccional(parsed.data.codigo, item.sigla),
-  );
-  const codigosParaValidar = [codigo, ...codigosReplicacao];
   const perfilExistente = await prisma.perfil.findFirst({
     where: {
-      codigo: {
-        in: codigosParaValidar,
-      },
+      codigo,
     },
     select: {
       codigo: true,
@@ -145,6 +133,7 @@ export async function criarPerfilAction(
         ativo: parsed.data.ativo,
         administrativo: parsed.data.administrativo,
         excecao: parsed.data.excecao,
+        global: !orgao && parsed.data.global,
         orgaoId: orgao?.id ?? null,
         perfilDestinoExcecaoId: parsed.data.excecao
           ? parsed.data.perfilDestinoExcecaoId || null
@@ -153,41 +142,12 @@ export async function criarPerfilAction(
       },
     });
 
-    const perfisReplicados = [];
-
-    for (const orgaoReplicacao of orgaosReplicacao) {
-      perfisReplicados.push(
-        await tx.perfil.create({
-          data: {
-            codigo: aplicarPrefixoSeccional(
-              parsed.data.codigo,
-              orgaoReplicacao.sigla,
-            ),
-            nome: parsed.data.nome,
-            descricao: parsed.data.descricao || null,
-            ativo: parsed.data.ativo,
-            administrativo: parsed.data.administrativo,
-            excecao: parsed.data.excecao,
-            orgaoId: orgaoReplicacao.id,
-            perfilDestinoExcecaoId: parsed.data.excecao
-              ? parsed.data.perfilDestinoExcecaoId || null
-              : null,
-            sistema: false,
-          },
-        }),
-      );
-    }
-
-    const perfisCriados = [novoPerfil, ...perfisReplicados];
-
     if (parsed.data.permissoes.length > 0) {
       await tx.perfilPermissao.createMany({
-        data: perfisCriados.flatMap((perfilCriado) =>
-          parsed.data.permissoes.map((permissaoId) => ({
-            perfilId: perfilCriado.id,
-            permissaoId,
-          })),
-        ),
+        data: parsed.data.permissoes.map((permissaoId) => ({
+          perfilId: novoPerfil.id,
+          permissaoId,
+        })),
         skipDuplicates: true,
       });
     }
@@ -206,14 +166,10 @@ export async function criarPerfilAction(
           ativo: novoPerfil.ativo,
           administrativo: novoPerfil.administrativo,
           excecao: novoPerfil.excecao,
+          global: novoPerfil.global,
           orgaoId: novoPerfil.orgaoId,
           perfilDestinoExcecaoId: novoPerfil.perfilDestinoExcecaoId,
           permissoes: parsed.data.permissoes,
-          replicados: perfisReplicados.map((perfilReplicado) => ({
-            id: perfilReplicado.id,
-            codigo: perfilReplicado.codigo,
-            orgaoId: perfilReplicado.orgaoId,
-          })),
         },
       },
     });

@@ -9,7 +9,7 @@ type FaixaHorario = {
 };
 
 type DiaJornada = {
-  diaSemana: DiaSemana | null;
+  diaSemana: DiaSemana | string | null;
   ordemNoCiclo: number | null;
   tipoDia: string;
   cargaPrevistaMinutos: number;
@@ -52,6 +52,7 @@ export type PrevisaoJornadaDia = {
   tipoDia: string;
   trabalha: boolean;
   cargaPrevistaMinutos: number;
+  faixas: FaixaHorario[];
   janela: {
     inicio: string;
     fim: string;
@@ -98,7 +99,10 @@ function resolverPosicaoCiclo(escala: EscalaJornada, dataReferencia: Date) {
 }
 
 function diaTrabalha(tipoDia: string, trabalha = true) {
-  return trabalha && !["FOLGA", "SEM_EXPEDIENTE"].includes(tipoDia);
+  return (
+    trabalha &&
+    !["FOLGA", "SEM_EXPEDIENTE", "HOME_OFFICE"].includes(tipoDia)
+  );
 }
 
 function previsaoPorEscala(
@@ -131,20 +135,53 @@ function previsaoPorEscala(
         : null,
     escalaPosicaoCiclo: dia.posicaoCiclo ?? posicaoCiclo,
     diaSemana,
+    faixas:
+      trabalha && dia.horarioEntrada && dia.horarioSaida
+        ? [
+            {
+              tipo: "TRABALHO",
+              horaInicio: dia.horarioEntrada,
+              horaFim: dia.horarioSaida,
+              cruzaMeiaNoite: dia.cruzaMeiaNoite,
+              ordem: 1,
+            },
+          ]
+        : [],
   };
 }
 
 function previsaoPorJornadaDia(
   jornada: JornadaConfigurada,
   dataReferencia: Date,
+  dataAncoragemCiclo?: Date | null,
 ): PrevisaoJornadaDia | null {
   const diaSemana = diaSemanaData(dataReferencia);
-  const dia = jornada.dias.find((item) => item.diaSemana === diaSemana);
+  const diasCiclo = jornada.dias
+    .filter((item) => item.ordemNoCiclo)
+    .sort((a, b) => Number(a.ordemNoCiclo ?? 0) - Number(b.ordemNoCiclo ?? 0));
+  const tamanhoCiclo =
+    jornada.tipo === "ESCALA_CICLICA" && diasCiclo.length > 0
+      ? Math.max(...diasCiclo.map((item) => Number(item.ordemNoCiclo ?? 0)))
+      : 0;
+  const posicaoCiclo =
+    tamanhoCiclo > 0 && dataAncoragemCiclo
+      ? ((diasEntre(dataAncoragemCiclo, dataReferencia) % tamanhoCiclo) +
+          tamanhoCiclo) %
+          tamanhoCiclo +
+        1
+      : null;
+  const dia =
+    posicaoCiclo !== null
+      ? diasCiclo.find((item) => item.ordemNoCiclo === posicaoCiclo)
+      : jornada.dias.find((item) => item.diaSemana === diaSemana);
 
   if (!dia) return null;
 
   const trabalha = diaTrabalha(dia.tipoDia);
-  const faixaTrabalho = dia.faixas.find((faixa) => faixa.tipo === "TRABALHO");
+  const faixasTrabalho = dia.faixas
+    .filter((faixa) => faixa.tipo === "TRABALHO")
+    .sort((a, b) => a.ordem - b.ordem);
+  const faixaTrabalho = faixasTrabalho[0];
 
   return {
     fonte: "JORNADA_DIA",
@@ -161,6 +198,7 @@ function previsaoPorJornadaDia(
         : null,
     escalaPosicaoCiclo: dia.ordemNoCiclo,
     diaSemana,
+    faixas: trabalha ? faixasTrabalho : [],
   };
 }
 
@@ -168,6 +206,7 @@ export function resolverPrevisaoJornadaDia(params: {
   jornada: JornadaConfigurada;
   escala?: EscalaJornada | null;
   dataReferencia: Date;
+  dataAncoragemJornada?: Date | null;
 }): PrevisaoJornadaDia {
   const diaSemana = diaSemanaData(params.dataReferencia);
   const porEscala = params.escala
@@ -176,10 +215,32 @@ export function resolverPrevisaoJornadaDia(params: {
   const porJornada = previsaoPorJornadaDia(
     params.jornada,
     params.dataReferencia,
+    params.dataAncoragemJornada ?? null,
   );
 
   if (porEscala) return porEscala;
   if (porJornada) return porJornada;
+
+  if (params.jornada.tipo === "TELETRABALHO") {
+    return {
+      fonte: "JORNADA_PADRAO",
+      tipoDia: "TELETRABALHO",
+      trabalha: true,
+      cargaPrevistaMinutos: params.jornada.cargaDiariaMinutos,
+      janela:
+        params.jornada.horarioEntradaPadrao &&
+        params.jornada.horarioSaidaPadrao
+          ? {
+              inicio: params.jornada.horarioEntradaPadrao,
+              fim: params.jornada.horarioSaidaPadrao,
+              cruzaMeiaNoite: params.jornada.cruzaMeiaNoite,
+            }
+          : null,
+      escalaPosicaoCiclo: null,
+      diaSemana,
+      faixas: [],
+    };
+  }
 
   return {
     fonte: "JORNADA_PADRAO",
@@ -202,5 +263,6 @@ export function resolverPrevisaoJornadaDia(params: {
         : null,
     escalaPosicaoCiclo: null,
     diaSemana,
+    faixas: [],
   };
 }

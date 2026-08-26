@@ -523,4 +523,81 @@ describe("calcularApuracaoDiaria", () => {
       diferenciada: false,
     });
   });
+
+  it("considera carga prevista cumprida em teletrabalho sem marcacao", () => {
+    const resultado = calcularApuracaoDiaria({
+      jornada: {
+        ...jornada7h,
+        tipoDiaPrevisto: "TELETRABALHO",
+        cargaPrevistaMinutos: 420,
+        janelaPrevista: {
+          inicio: "08:00",
+          fim: "15:00",
+        },
+      },
+      marcacoes: [],
+      regulamentacao: regulamentacaoLocalLegada,
+    });
+
+    expect(resultado.resultado).toBe("REGULAR");
+    expect(resultado.status).toBe("CALCULADA");
+    expect(resultado.cargaPrevistaMinutos).toBe(420);
+    expect(resultado.minutosTrabalhados).toBe(420);
+    expect(resultado.minutosDebito).toBe(0);
+    expect(resultado.trabalhoRemoto).toEqual(
+      expect.objectContaining({
+        ativo: true,
+        regime: "TOTAL",
+        exigeRegistroPonto: false,
+      }),
+    );
+  });
+
+  it("considera 7 horas previstas e cumpridas em home office sem marcacao", () => {
+    const resultado = calcularApuracaoDiaria({
+      jornada: {
+        ...jornada7h,
+        tipoDiaPrevisto: "HOME_OFFICE",
+        trabalhaNoDia: false,
+        cargaPrevistaMinutos: 0,
+        janelaPrevista: null,
+      },
+      marcacoes: [],
+      regulamentacao: regulamentacaoLocalLegada,
+    });
+
+    expect(resultado.resultado).toBe("REGULAR");
+    expect(resultado.status).toBe("CALCULADA");
+    expect(resultado.cargaPrevistaMinutos).toBe(420);
+    expect(resultado.minutosTrabalhados).toBe(420);
+    expect(resultado.minutosDebito).toBe(0);
+    expect(resultado.trabalhoRemoto).toEqual(
+      expect.objectContaining({
+        ativo: true,
+        regime: "TOTAL",
+        diaSemana: "HOME_OFFICE",
+        exigeRegistroPonto: false,
+      }),
+    );
+  });
+
+  it("considera horarios previstos do teletrabalho quando ha marcacoes", () => {
+    const resultado = calcularApuracaoDiaria({
+      jornada: {
+        ...jornada7h,
+        tipoDiaPrevisto: "TELETRABALHO",
+        cargaPrevistaMinutos: 420,
+        janelaPrevista: {
+          inicio: "08:00",
+          fim: "15:00",
+        },
+      },
+      marcacoes: [marcacao("ENTRADA", "08:00"), marcacao("SAIDA", "15:00")],
+      regulamentacao: regulamentacaoLocalLegada,
+    });
+
+    expect(resultado.resultado).toBe("REGULAR");
+    expect(resultado.minutosTrabalhados).toBe(420);
+    expect(resultado.minutosDebito).toBe(0);
+  });
 });

@@ -7,15 +7,37 @@ import { calcularCargaPrevistaComJanela } from "@/modules/apuracao/application/s
 import { normalizarFusoHorario } from "@/modules/marcacoes/application/services/data-marcacao.service";
 import { logger } from "@/lib/observability/logger";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { resolverPrevisaoJornadaDia } from "@/modules/jornadas/application/services/resolver-previsao-jornada-dia.service";
 
 import { normalizarDataReferencia } from "./calcular-tempo.service";
+
+const CARGA_TRABALHO_REMOTO_MINUTOS = 7 * 60;
 
 type JornadaEspelhoMensal = {
   id: string;
   dataInicio: Date;
   dataFim: Date | null;
   jornada: {
+    tipo?: string;
     cargaDiariaMinutos: number;
+    horarioEntradaPadrao?: string | null;
+    horarioSaidaPadrao?: string | null;
+    cruzaMeiaNoite?: boolean;
+    controlaHorario?: boolean;
+    vigenciaInicio?: Date | null;
+    dias?: Array<{
+      diaSemana: string | null;
+      ordemNoCiclo: number | null;
+      tipoDia: string;
+      cargaPrevistaMinutos: number;
+      faixas: Array<{
+        tipo: string;
+        horaInicio: string;
+        horaFim: string;
+        cruzaMeiaNoite: boolean;
+        ordem: number;
+      }>;
+    }>;
   };
 };
 
@@ -427,6 +449,98 @@ function ajustarApuracaoPorCompensacao(
   };
 }
 
+function apuracaoSemMarcacao(item: ApuracaoEspelhoMensal) {
+  return (
+    !item.primeiraEntrada &&
+    !item.saidaIntervalo &&
+    !item.retornoIntervalo &&
+    !item.ultimaSaida &&
+    item.minutosTrabalhados === 0
+  );
+}
+
+function previsaoDispensaApuracaoRegular(
+  previsao: ReturnType<typeof resolverPrevisaoJornadaDia> | null,
+) {
+  return (
+    Boolean(previsao) &&
+    (!previsao!.trabalha || previsao!.tipoDia === "FOLGA") &&
+    previsao!.tipoDia !== "HOME_OFFICE"
+  );
+}
+
+function previsaoTrabalhoRemoto(
+  previsao: ReturnType<typeof resolverPrevisaoJornadaDia> | null,
+) {
+  return (
+    previsao?.tipoDia === "HOME_OFFICE" || previsao?.tipoDia === "TELETRABALHO"
+  );
+}
+
+function aplicarPrevisaoSemExpediente(
+  item: ItemEspelhoMensalCompleto,
+): ItemEspelhoMensalCompleto {
+  return {
+    ...item,
+    cargaPrevistaMinutos: 0,
+    minutosCredito: 0,
+    minutosDebito: 0,
+    resultado: "SEM_EXPEDIENTE",
+    status: "CALCULADA",
+    ocorrencias: (item.ocorrencias ?? []).filter(
+      (ocorrencia) => !["DEBITO", "FALTA"].includes(ocorrencia.tipo),
+    ),
+    minutosDebitoApurado: 0,
+    minutosDebitoCompensado: 0,
+    minutosHoraExtraAutorizada: 0,
+    minutosHoraExtraNaoAutorizada: 0,
+    minutosBancoHoras: 0,
+  };
+}
+
+function aplicarPrevisaoTrabalhoRemoto(
+  item: ItemEspelhoMensalCompleto,
+): ItemEspelhoMensalCompleto {
+  const metadados = metadadosComoObjeto(item.metadados);
+  const previsao = metadados.previsaoJornadaDia as
+    { tipoDia?: unknown } | undefined;
+  const tipoDia =
+    previsao?.tipoDia === "HOME_OFFICE" ? "HOME_OFFICE" : "TELETRABALHO";
+  const descricao =
+    tipoDia === "HOME_OFFICE"
+      ? "Home office sem registro de ponto no dia; carga prevista considerada cumprida."
+      : "Teletrabalho sem registro de ponto no dia; carga prevista considerada cumprida.";
+
+  return {
+    ...item,
+    cargaPrevistaMinutos: CARGA_TRABALHO_REMOTO_MINUTOS,
+    minutosTrabalhados: CARGA_TRABALHO_REMOTO_MINUTOS,
+    minutosIntervalo: 0,
+    minutosCredito: 0,
+    minutosDebito: 0,
+    resultado: "REGULAR",
+    status: "CALCULADA",
+    ocorrencias: (item.ocorrencias ?? []).filter(
+      (ocorrencia) => !["DEBITO", "FALTA"].includes(ocorrencia.tipo),
+    ),
+    metadados: {
+      ...metadados,
+      trabalhoRemoto: {
+        ativo: true,
+        regime: "TOTAL",
+        diaSemana: tipoDia,
+        exigeRegistroPonto: false,
+        descricao,
+      },
+    },
+    minutosDebitoApurado: 0,
+    minutosDebitoCompensado: 0,
+    minutosHoraExtraAutorizada: 0,
+    minutosHoraExtraNaoAutorizada: 0,
+    minutosBancoHoras: 0,
+  };
+}
+
 function jornadaVigenteNoDia(
   jornadas: JornadaEspelhoMensal[],
   dataReferencia: Date,
@@ -458,6 +572,7 @@ async function preencherDiasDaCompetencia(params: {
   const dias: Array<{
     dataReferencia: Date;
     cargaPrevistaMinutos: number;
+    previsaoJornadaDia: ReturnType<typeof resolverPrevisaoJornadaDia> | null;
     tipoDiaInstitucional: string;
     descricaoDiaInstitucional: string | null;
     contaComoDiaUtil: boolean;
@@ -476,9 +591,30 @@ async function preencherDiasDaCompetencia(params: {
       classificacao.contaComoDiaUtil && classificacao.geraApuracaoRegular
         ? jornadaVigenteNoDia(params.jornadas, dataReferencia)
         : null;
+    const previsaoJornadaDia = jornada
+      ? resolverPrevisaoJornadaDia({
+          jornada: {
+            tipo: jornada.jornada.tipo ?? "FIXA_SEMANAL",
+            cargaDiariaMinutos: jornada.jornada.cargaDiariaMinutos,
+            horarioEntradaPadrao: jornada.jornada.horarioEntradaPadrao ?? null,
+            horarioSaidaPadrao: jornada.jornada.horarioSaidaPadrao ?? null,
+            cruzaMeiaNoite: jornada.jornada.cruzaMeiaNoite ?? false,
+            controlaHorario: jornada.jornada.controlaHorario ?? true,
+            dias: jornada.jornada.dias ?? [],
+          },
+          dataReferencia,
+          dataAncoragemJornada:
+            jornada.jornada.vigenciaInicio ?? jornada.dataInicio,
+        })
+      : null;
+    const cargaPrevistaBase = previsaoTrabalhoRemoto(previsaoJornadaDia)
+      ? CARGA_TRABALHO_REMOTO_MINUTOS
+      : (previsaoJornadaDia?.cargaPrevistaMinutos ??
+        jornada?.jornada.cargaDiariaMinutos ??
+        0);
     const cargaPrevistaMinutos = jornada
       ? calcularCargaPrevistaComJanela(
-          jornada.jornada.cargaDiariaMinutos,
+          cargaPrevistaBase,
           classificacao.janelaInicio && classificacao.janelaFim
             ? {
                 inicio: classificacao.janelaInicio,
@@ -493,6 +629,7 @@ async function preencherDiasDaCompetencia(params: {
     dias.push({
       dataReferencia,
       cargaPrevistaMinutos,
+      previsaoJornadaDia,
       tipoDiaInstitucional: classificacao.tipo,
       descricaoDiaInstitucional: classificacao.descricao,
       contaComoDiaUtil: classificacao.contaComoDiaUtil,
@@ -695,13 +832,15 @@ export async function montarEspelhoMensalCompleto(params: {
       fim,
     }),
   );
-  const apuracoesPorData = medidor.medirSincrono("mapear_apuracoes", () =>
-    new Map(
-      params.apuracoes.map((apuracao) => [
-        chaveData(apuracao.dataReferencia),
-        ajustarApuracaoPorCompensacao(apuracao),
-      ]),
-    ),
+  const apuracoesPorData = medidor.medirSincrono(
+    "mapear_apuracoes",
+    () =>
+      new Map(
+        params.apuracoes.map((apuracao) => [
+          chaveData(apuracao.dataReferencia),
+          ajustarApuracaoPorCompensacao(apuracao),
+        ]),
+      ),
   );
   const hoje = normalizarDataReferencia(
     params.hoje ?? hojeNoFuso(params.fusoHorario),
@@ -721,14 +860,25 @@ export async function montarEspelhoMensalCompleto(params: {
           ...apuracao,
           metadados: {
             ...metadadosDiaInstitucional(dia),
+            previsaoJornadaDia: dia.previsaoJornadaDia,
             ...metadadosComoObjeto(apuracao.metadados),
           },
           contabilizarSaldos,
           geradoParaCompetencia: false,
         };
+        const itemAjustado =
+          apuracaoSemMarcacao(apuracao) &&
+          previsaoDispensaApuracaoRegular(dia.previsaoJornadaDia)
+            ? aplicarPrevisaoSemExpediente(item)
+            : apuracaoSemMarcacao(apuracao) &&
+                previsaoTrabalhoRemoto(dia.previsaoJornadaDia)
+              ? aplicarPrevisaoTrabalhoRemoto(item)
+              : item;
 
         return ajustarDiaAtualEmAndamento(
-          afastamento ? aplicarAfastamentoSarh(item, afastamento) : item,
+          afastamento
+            ? aplicarAfastamentoSarh(itemAjustado, afastamento)
+            : itemAjustado,
           {
             hoje,
             agora: params.hoje,
@@ -745,11 +895,24 @@ export async function montarEspelhoMensalCompleto(params: {
         minutosIntervalo: 0,
         minutosCredito: 0,
         minutosDebito: 0,
-        resultado: dia.geraApuracaoRegular ? "PENDENTE" : "SEM_EXPEDIENTE",
-        status: dia.geraApuracaoRegular ? "PENDENTE" : "CALCULADA",
+        resultado: previsaoDispensaApuracaoRegular(dia.previsaoJornadaDia)
+          ? "SEM_EXPEDIENTE"
+          : previsaoTrabalhoRemoto(dia.previsaoJornadaDia)
+            ? "REGULAR"
+            : dia.geraApuracaoRegular
+              ? "PENDENTE"
+              : "SEM_EXPEDIENTE",
+        status: previsaoDispensaApuracaoRegular(dia.previsaoJornadaDia)
+          ? "CALCULADA"
+          : previsaoTrabalhoRemoto(dia.previsaoJornadaDia)
+            ? "CALCULADA"
+            : dia.geraApuracaoRegular
+              ? "PENDENTE"
+              : "CALCULADA",
         metadados: {
           origem: "ESPELHO_COMPETENCIA_COMPLETA",
           ...metadadosDiaInstitucional(dia),
+          previsaoJornadaDia: dia.previsaoJornadaDia,
         },
         ocorrencias: [],
         contabilizarSaldos,
@@ -760,9 +923,14 @@ export async function montarEspelhoMensalCompleto(params: {
         minutosHoraExtraNaoAutorizada: 0,
         minutosBancoHoras: 0,
       };
+      const itemComPrevisao = previsaoTrabalhoRemoto(dia.previsaoJornadaDia)
+        ? aplicarPrevisaoTrabalhoRemoto(item)
+        : item;
 
       return ajustarDiaAtualEmAndamento(
-        afastamento ? aplicarAfastamentoSarh(item, afastamento) : item,
+        afastamento
+          ? aplicarAfastamentoSarh(itemComPrevisao, afastamento)
+          : itemComPrevisao,
         {
           hoje,
           agora: params.hoje,
@@ -773,8 +941,7 @@ export async function montarEspelhoMensalCompleto(params: {
   );
   const cargaPrevistaMensalMinutos = medidor.medirSincrono(
     "somar_carga_prevista",
-    () =>
-      itens.reduce((total, item) => total + item.cargaPrevistaMinutos, 0),
+    () => itens.reduce((total, item) => total + item.cargaPrevistaMinutos, 0),
   );
   const medicao = medidor.finalizar();
 

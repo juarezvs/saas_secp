@@ -124,6 +124,8 @@ enum TipoJornada {
   CARGA_DIARIA
   CARGA_SEMANAL
   CARGA_MENSAL
+  HIBRIDO
+  TELETRABALHO
   ESCALA_CICLICA
   ESCALA_VARIAVEL
   TURNO_FIXO
@@ -807,6 +809,7 @@ model Perfil {
   ativo                  Boolean @default(true)
   administrativo         Boolean @default(false)
   excecao                Boolean @default(false) @map("excecao")
+  global                 Boolean @default(false) @map("global")
   orgaoId                String? @map("orgao_id") @db.Uuid
   perfilDestinoExcecaoId String? @map("perfil_destino_excecao_id") @db.Uuid
 
@@ -1027,6 +1030,8 @@ model RegulamentacaoPontoOrgao {
   expedientePadraoFim                            String  @default("18:00") @map("expediente_padrao_fim") @db.VarChar(5)
   entradaMinimaPermitida                         String  @default("07:00") @map("entrada_minima_permitida") @db.VarChar(5)
   saidaMaximaPermitida                           String  @default("19:00") @map("saida_maxima_permitida") @db.VarChar(5)
+  limiteViradaMadrugada                          String  @default("04:00") @map("limite_virada_madrugada") @db.VarChar(5)
+  inicioJanelaNoite                              String  @default("18:00") @map("inicio_janela_noite") @db.VarChar(5)
   prazoHomologacaoDiaMesSeguinte                 Int     @default(10) @map("prazo_homologacao_dia_mes_seguinte")
   prazoAjustePontoDiaMesSeguinte                 Int     @default(10) @map("prazo_ajuste_ponto_dia_mes_seguinte")
   percentualCreditoSabado                        Int     @default(50) @map("percentual_credito_sabado")
@@ -1791,6 +1796,8 @@ model JornadaDia {
   diaSemana            DiaSemana? @map("dia_semana")
   ordemNoCiclo         Int?       @map("ordem_no_ciclo")
   tipoDia              String     @default("TRABALHO") @map("tipo_dia") @db.VarChar(30)
+  fechamentoCiclo      String?    @map("fechamento_ciclo") @db.VarChar(6)
+  intervaloLivre       Boolean    @default(false) @map("intervalo_livre")
   cargaPrevistaMinutos Int        @default(0) @map("carga_prevista_minutos")
 
   criadoEm     DateTime @default(now()) @map("criado_em")

@@ -22,16 +22,21 @@ export function JornadasListagemControles({
       comIconeBusca: true,
     },
     { tipo: "texto", nome: "codigo", label: "Código" },
-    { tipo: "texto", nome: "nome", label: "Nome" },
+    { tipo: "texto", nome: "nome", label: "Descrição" },
     {
       tipo: "select",
       nome: "tipo",
       label: "Tipo",
       options: [
         { value: "", label: "Todos" },
-        { value: "SETE_HORAS", label: "7 horas" },
-        { value: "OITO_HORAS", label: "8 horas" },
-        { value: "ESPECIAL", label: "Especial" },
+        { value: "FIXA_SEMANAL", label: "Semanal" },
+        { value: "HIBRIDO", label: "Híbrido" },
+        { value: "TELETRABALHO", label: "Teletrabalho" },
+        { value: "ESCALA_CICLICA", label: "Escala cíclica" },
+        {
+          value: "CARGA_MENSAL",
+          label: "Escala mensal - horário padrão",
+        },
       ],
     },
     {
@@ -40,8 +45,8 @@ export function JornadasListagemControles({
       label: "Status",
       options: [
         { value: "", label: "Todos" },
-        { value: "ativa", label: "Ativas" },
-        { value: "inativa", label: "Inativas" },
+        { value: "ativa", label: "Ativos" },
+        { value: "inativa", label: "Inativos" },
       ],
     },
   ];

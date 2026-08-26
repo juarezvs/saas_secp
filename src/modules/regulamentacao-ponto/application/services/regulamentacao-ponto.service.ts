@@ -16,6 +16,8 @@ export type RegulamentacaoPonto = {
   expedientePadraoFim: string;
   entradaMinimaPermitida: string;
   saidaMaximaPermitida: string;
+  limiteViradaMadrugada: string;
+  inicioJanelaNoite: string;
   prazoHomologacaoDiaMesSeguinte: number;
   prazoAjustePontoDiaMesSeguinte: number;
   percentualCreditoSabado: number;
@@ -46,6 +48,8 @@ export const REGULAMENTACAO_PONTO_PADRAO: RegulamentacaoPonto = {
   expedientePadraoFim: "18:00",
   entradaMinimaPermitida: "07:00",
   saidaMaximaPermitida: "19:00",
+  limiteViradaMadrugada: "04:00",
+  inicioJanelaNoite: "18:00",
   prazoHomologacaoDiaMesSeguinte: 10,
   prazoAjustePontoDiaMesSeguinte: 10,
   percentualCreditoSabado: 50,
@@ -75,6 +79,8 @@ type RegulamentacaoBanco = {
   expedientePadraoFim: string;
   entradaMinimaPermitida: string;
   saidaMaximaPermitida: string;
+  limiteViradaMadrugada: string;
+  inicioJanelaNoite: string;
   prazoHomologacaoDiaMesSeguinte: number;
   prazoAjustePontoDiaMesSeguinte: number;
   percentualCreditoSabado: number;
@@ -163,6 +169,12 @@ export function normalizarRegulamentacaoPonto(
     expedientePadraoFim: regulamentacao.expedientePadraoFim,
     entradaMinimaPermitida: regulamentacao.entradaMinimaPermitida,
     saidaMaximaPermitida: regulamentacao.saidaMaximaPermitida,
+    limiteViradaMadrugada:
+      regulamentacao.limiteViradaMadrugada ??
+      REGULAMENTACAO_PONTO_PADRAO.limiteViradaMadrugada,
+    inicioJanelaNoite:
+      regulamentacao.inicioJanelaNoite ??
+      REGULAMENTACAO_PONTO_PADRAO.inicioJanelaNoite,
     prazoHomologacaoDiaMesSeguinte:
       regulamentacao.prazoHomologacaoDiaMesSeguinte,
     prazoAjustePontoDiaMesSeguinte:

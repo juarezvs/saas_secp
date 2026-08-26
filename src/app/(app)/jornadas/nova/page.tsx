@@ -4,7 +4,7 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { criarJornadaAction } from "@/modules/jornadas/application/actions/criar-jornada.action";
-import { JornadaForm } from "@/modules/jornadas/presentation/components/jornada-form";
+import { HorarioForm } from "@/modules/jornadas/presentation/components/horario-form";
 
 export default async function NovaJornadaPage() {
   await exigirPermissaoOuRedirecionar("jornadas:gerenciar:global");
@@ -13,28 +13,28 @@ export default async function NovaJornadaPage() {
     <div className="space-y-6">
       <Breadcrumb
         items={[
-          { label: "Jornadas", href: "/jornadas" },
-          { label: "Nova jornada" },
+          { label: "Horário de Trabalho", href: "/jornadas" },
+          { label: "Novo horário" },
         ]}
       />
 
       <PageHeader
         icon={CalendarClock}
-        titulo="Nova jornada"
-        descricao="Cadastre jornadas ordinárias, especiais, flexíveis ou cíclicas que poderão ser atribuídas aos servidores."
+        titulo="Novo horário"
+        descricao="Cadastre o horário de trabalho que poderá ser associado às pessoas."
         artigo="Art. 4"
-        regraTitulo="Jornada de 7h ou 8h"
-        regraDescricao="A Portaria prevê jornada de 7 horas ininterruptas ou de 8 horas em dois turnos, com intervalo regulamentar para repouso e alimentação."
+        regraTitulo="Horário de trabalho"
+        regraDescricao="O cadastro do horário define a carga prevista e as faixas de trabalho usadas na apuração."
       />
 
-      <JornadaForm
+      <HorarioForm
         action={criarJornadaAction}
         modo="criar"
         valoresIniciais={{
-          tipo: "SETE_HORAS",
-          cargaDiariaMinutos: 420,
+          tipo: "FIXA_SEMANAL",
+          cargaDiariaMinutos: 480,
           horarioEntradaPadrao: "08:00",
-          horarioSaidaPadrao: "15:00",
+          horarioSaidaPadrao: "17:00",
           ativo: true,
           horarioDiferenciadoPermitido: true,
           entradaMinimaDiferenciada: "06:00",

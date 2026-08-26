@@ -272,8 +272,17 @@ export async function buscarDadosEspelhoPontoPdf(params: {
       },
       include: {
         jornada: {
-          select: {
-            cargaDiariaMinutos: true,
+          include: {
+            dias: {
+              include: {
+                faixas: {
+                  orderBy: {
+                    ordem: "asc",
+                  },
+                },
+              },
+              orderBy: [{ ordemNoCiclo: "asc" }, { diaSemana: "asc" }],
+            },
           },
         },
       },

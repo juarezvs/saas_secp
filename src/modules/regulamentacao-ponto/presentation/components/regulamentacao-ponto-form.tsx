@@ -26,6 +26,8 @@ type RegrasFormulario = {
   expedientePadraoFim: string;
   entradaMinimaPermitida: string;
   saidaMaximaPermitida: string;
+  limiteViradaMadrugada: string;
+  inicioJanelaNoite: string;
   prazoHomologacaoDiaMesSeguinte: number;
   prazoAjustePontoDiaMesSeguinte: number;
   percentualCreditoSabado: number;
@@ -317,6 +319,40 @@ export function RegulamentacaoPontoForm({
             />
           </div>
         </label>
+
+        <fieldset className="space-y-2 md:col-span-2">
+          <legend className="text-sm font-semibold">
+            Regra de virada operacional
+          </legend>
+          <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
+            Define quando uma marcação na madrugada fecha a sequência aberta na
+            noite anterior e passa a compor o espelho do dia anterior.
+          </span>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="space-y-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+                Limite da madrugada
+              </span>
+              <input
+                name="limiteViradaMadrugada"
+                type="time"
+                defaultValue={valores.limiteViradaMadrugada}
+                className="h-11 w-full rounded-md border bg-[var(--card)] px-3 font-mono text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+                Início da janela noturna
+              </span>
+              <input
+                name="inicioJanelaNoite"
+                type="time"
+                defaultValue={valores.inicioJanelaNoite}
+                className="h-11 w-full rounded-md border bg-[var(--card)] px-3 font-mono text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              />
+            </label>
+          </div>
+        </fieldset>
 
         <label className="space-y-2">
           <span className="text-sm font-semibold">Prazo de homologação</span>

@@ -4,7 +4,10 @@ import { Edit, UserRound } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
+import {
+  buscarOrgaoAtivoDoServidorUsuario,
+  listarOrgaosAtivos,
+} from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
 import {
   resolverEscopoGestaoUsuarios,
   usuarioEstaNoEscopoGestaoUsuarios,
@@ -32,20 +35,26 @@ export default async function UsuarioDetalhePage({
   const escopoGestaoUsuarios = await resolverEscopoGestaoUsuarios(permissao);
 
   const { id } = await params;
+  const orgaoIdsPermitidosVinculo = escopoGestaoUsuarios.permitirEscopoGlobal
+    ? undefined
+    : escopoGestaoUsuarios.orgaoIdsPermitidos;
 
-  const [usuario, perfisAtivos, orgaos] = await Promise.all([
+  const [usuario, perfisAtivos, orgaosIniciais, orgaoServidorUsuarioLogado] =
+    await Promise.all([
     buscarUsuarioPorId(id),
-    listarPerfisAtivosParaUsuario(
+    listarPerfisAtivosParaUsuario({
+      orgaoIdsPermitidos: orgaoIdsPermitidosVinculo,
+    }),
+    listarOrgaosAtivos(
       escopoGestaoUsuarios.permitirEscopoGlobal
         ? {}
-        : { orgaoIdsPermitidos: escopoGestaoUsuarios.orgaoIdsPermitidos },
+        : {
+            orgaoIdsPermitidos: orgaoIdsPermitidosVinculo,
+          },
     ),
-    listarOrgaosAtivos(
-      escopoGestaoUsuarios.permitirEscopoGlobal &&
-        escopoGestaoUsuarios.orgaoIdsPermitidos.length === 0
-        ? {}
-        : { orgaoIdsPermitidos: escopoGestaoUsuarios.orgaoIdsPermitidos },
-    ),
+    permissao.usuarioId
+      ? buscarOrgaoAtivoDoServidorUsuario(permissao.usuarioId)
+      : Promise.resolve(null),
   ]);
 
   if (!usuario) {
@@ -59,6 +68,12 @@ export default async function UsuarioDetalhePage({
   const perfisDisponiveis = escopoGestaoUsuarios.permitirEscopoGlobal
     ? perfisAtivos
     : perfisAtivos.filter((perfil) => perfil.codigo !== "MASTER");
+  const orgaos =
+    !escopoGestaoUsuarios.permitirEscopoGlobal &&
+    !orgaosIniciais.length &&
+    orgaoServidorUsuarioLogado
+      ? [orgaoServidorUsuarioLogado]
+      : orgaosIniciais;
   const lotacaoAtual = usuario.servidor?.lotacoes[0];
   const jornadaAtual = usuario.servidor?.jornadas[0];
 

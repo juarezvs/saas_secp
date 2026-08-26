@@ -1,5 +1,12 @@
 import type { ReactNode } from "react";
-import { AlertTriangle, CheckCircle2, Clock3, PartyPopper } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock3,
+  Laptop,
+  PartyPopper,
+  Wifi,
+} from "lucide-react";
 
 import { minutosParaTexto } from "../../application/services/calcular-tempo.service";
 import { autorizarHoraExtraBancoHorasAction } from "../../application/actions/autorizar-hora-extra-banco-horas.action";
@@ -88,6 +95,13 @@ export function EspelhoPontoMensal({
   };
 }) {
   const marcacoesPorDia = agruparMarcacoesPorDia(marcacoes);
+  const quantidadeColunasMarcacoes = calcularQuantidadeColunasMarcacoes(
+    apuracoes,
+    marcacoesPorDia,
+  );
+  const rotulosColunasMarcacoes = rotulosColunasTempo(
+    quantidadeColunasMarcacoes,
+  );
 
   const totais = apuracoes.reduce(
     (acc, item) => {
@@ -198,356 +212,414 @@ export function EspelhoPontoMensal({
           destaque={destaque}
         />
       ) : (
-      <div className="max-w-full overflow-x-clip">
-        <table className="w-full min-w-[1580px] border-separate border-spacing-0 text-left text-sm">
-          <thead className="sticky top-[calc(4.5rem+51.5rem)] z-20 text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] shadow-sm md:top-[calc(4.5rem+18.5rem)] xl:top-[calc(4.5rem+9.35rem)]">
-            <tr className="bg-[var(--card)]">
-              <th
-                className="w-14 rounded-tl-xl border-b border-r px-5 py-4 text-center align-middle font-bold"
-                rowSpan={2}
-              >
-                Sit.
-              </th>
-              <th
-                className="border-b px-5 py-4 align-middle font-bold"
-                rowSpan={2}
-              >
-                Data
-              </th>
-              <th className="border-b px-2 py-3 text-center" colSpan={4}>
-                <span className="inline-flex rounded-full border bg-[var(--muted)] px-3 py-1 text-[10px] font-black tracking-wide text-foreground shadow-sm">
-                  Marcações
-                </span>
-              </th>
-              <th
-                className="border-b border-l px-5 py-4 align-middle font-bold"
-                rowSpan={2}
-              >
-                Resumo
-              </th>
-              <th className="border-b border-l px-2 py-3 text-center" colSpan={3}>
-                <span className="inline-flex rounded-full border bg-[var(--muted)] px-3 py-1 text-[10px] font-black tracking-wide text-foreground shadow-sm">
-                  Jornada
-                </span>
-              </th>
-              <th className="border-b border-l px-2 py-3 text-center" colSpan={3}>
-                <span className="inline-flex rounded-full border bg-emerald-50 px-3 py-1 text-[10px] font-black tracking-wide text-emerald-800 shadow-sm dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
-                  Banco de Horas
-                </span>
-              </th>
-              <th className="border-b border-l px-2 py-3 text-center" colSpan={2}>
-                <span className="inline-flex rounded-full border bg-amber-50 px-3 py-1 text-[10px] font-black tracking-wide text-amber-800 shadow-sm dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
-                  Horas Extras
-                </span>
-              </th>
-              {acoesBancoHoras?.habilitadas ? (
+        <div className="max-w-full overflow-x-clip">
+          <table className="w-full min-w-[1580px] border-separate border-spacing-0 text-left text-sm">
+            <thead className="sticky top-[calc(4.5rem+51.5rem)] z-20 text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] shadow-sm md:top-[calc(4.5rem+18.5rem)] xl:top-[calc(4.5rem+9.35rem)]">
+              <tr className="bg-[var(--card)]">
                 <th
-                  className="rounded-tr-xl border-b border-l px-5 py-4 align-middle font-bold"
+                  className="w-14 rounded-tl-xl border-b border-r px-5 py-4 text-center align-middle font-bold"
                   rowSpan={2}
                 >
-                  Ações
+                  Sit.
                 </th>
-              ) : null}
-            </tr>
-            <tr className="border-b bg-[var(--muted)]">
-              <th className="border-b px-5 py-3 font-bold text-foreground">
-                Entrada
-              </th>
-              <th className="border-b px-5 py-3 font-bold text-foreground">
-                Saída
-              </th>
-              <th className="border-b px-5 py-3 font-bold text-foreground">
-                Retorno
-              </th>
-              <th className="border-b px-5 py-3 font-bold text-foreground">
-                Saída final
-              </th>
-              <th className="border-b border-l px-5 py-3 font-bold text-foreground">
-                Previsto
-              </th>
-              <th className="border-b px-5 py-3 font-bold text-foreground">
-                Intervalo
-              </th>
-              <th className="border-b px-5 py-3 font-bold text-foreground">
-                Trabalhado
-              </th>
-              <th className="border-b border-l px-5 py-3 font-bold text-emerald-700 dark:text-emerald-300">
-                Crédito
-              </th>
-              <th className="border-b px-5 py-3 font-bold text-red-700 dark:text-red-300">
-                Débito
-              </th>
-              <th className="border-b px-5 py-3 font-bold text-foreground">
-                Saldo
-              </th>
-              <th className="border-b border-l px-5 py-3 font-bold text-foreground">
-                Autorizada
-              </th>
-              <th className="border-b px-5 py-3 font-bold text-foreground">
-                Não autorizada
-              </th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {apuracoes.map((item) => {
-              const chaveReferencia = chaveDataReferenciaUtc(
-                item.dataReferencia,
-              );
-              const marcacoesDoDia = marcacoesPorDia.get(chaveReferencia) ?? [];
-              const exigeIntervalo = extrairExigeIntervalo(item.metadados);
-              const horarios = distribuirMarcacoesNasColunas(
-                marcacoesDoDia,
-                exigeIntervalo,
-              );
-              const trabalhoRemoto = extrairTrabalhoRemoto(item.metadados);
-              const classificacao = classificarDiaEspelho(item);
-              const diaInstitucional = extrairDiaInstitucional(item.metadados);
-              const dispensaPonto = classificacao.dispensaPonto;
-              const solicitacoesAplicadas = classificacao.solicitacoesAplicadas;
-              const justificativaAusenciaMesclada =
-                encontrarJustificativaAusenciaMesclada(solicitacoesAplicadas);
-              const conferencia = conferenciaEspelho(item.status, item);
-              const possuiMarcacaoAjustada =
-                marcacoesDoDia.some(marcacaoPossuiAjuste);
-              const possuiAfastamento = (item.ocorrencias ?? []).some(
-                (ocorrencia) => ocorrencia.tipo === "AFASTAMENTO",
-              );
-              const afastamentoPrincipal = encontrarAfastamentoPrincipal(
-                item.ocorrencias,
-              );
-              const resumoAfastamento =
-                afastamentoPrincipal && marcacoesDoDia.length === 0
-                  ? resumirAfastamentoEspelho(
-                      afastamentoPrincipal,
-                      item.dataReferencia,
-                    )
-                  : null;
-              const resumoMarcacoesMescladas =
-                !resumoAfastamento && marcacoesDoDia.length === 0
-                  ? resumirMarcacoesMescladas({
-                      diaInstitucional,
-                      solicitacao: justificativaAusenciaMesclada,
-                    })
-                  : null;
-              const dicaSemaforo = montarDicaSemaforo({
-                item,
-                conferencia,
-                possuiMarcacaoAjustada,
-                solicitacoesAplicadas,
-              });
-              const mesclarMarcacoesOcorrencias =
-                !dispensaPonto &&
-                !trabalhoRemoto &&
-                Boolean(resumoMarcacoesMescladas);
-              const diaDestacado = itemEhDestaque(item, destaque);
-              const idDia = `espelho-dia-${chaveReferencia}`;
-
-              return (
-                <tr
-                  key={item.id}
-                  id={idDia}
-                  className={classeLinhaEspelho(diaDestacado)}
+                <th
+                  className="border-b px-5 py-4 align-middle font-bold"
+                  rowSpan={2}
                 >
-                  <td className="px-5 py-4 text-center">
-                    <IconeSemaforo
-                      tom={conferencia.tom}
-                      title={dicaSemaforo}
-                      aria-label={dicaSemaforo}
-                    />
-                  </td>
+                  Data
+                </th>
+                <th
+                  className="border-b px-2 py-3 text-center"
+                  colSpan={quantidadeColunasMarcacoes}
+                >
+                  <span className="inline-flex rounded-full border bg-[var(--muted)] px-3 py-1 text-[10px] font-black tracking-wide text-foreground shadow-sm">
+                    Marcações
+                  </span>
+                </th>
+                <th
+                  className="border-b border-l px-5 py-4 align-middle font-bold"
+                  rowSpan={2}
+                >
+                  Apontamentos
+                </th>
+                <th
+                  className="border-b border-l px-2 py-3 text-center"
+                  colSpan={3}
+                >
+                  <span className="inline-flex rounded-full border bg-[var(--muted)] px-3 py-1 text-[10px] font-black tracking-wide text-foreground shadow-sm">
+                    Jornada
+                  </span>
+                </th>
+                <th
+                  className="border-b border-l px-2 py-3 text-center"
+                  colSpan={3}
+                >
+                  <span className="inline-flex rounded-full border bg-emerald-50 px-3 py-1 text-[10px] font-black tracking-wide text-emerald-800 shadow-sm dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
+                    Banco de Horas
+                  </span>
+                </th>
+                <th
+                  className="border-b border-l px-2 py-3 text-center"
+                  colSpan={2}
+                >
+                  <span className="inline-flex rounded-full border bg-amber-50 px-3 py-1 text-[10px] font-black tracking-wide text-amber-800 shadow-sm dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+                    Horas Extras
+                  </span>
+                </th>
+                {acoesBancoHoras?.habilitadas ? (
+                  <th
+                    className="rounded-tr-xl border-b border-l px-5 py-4 align-middle font-bold"
+                    rowSpan={2}
+                  >
+                    Ações
+                  </th>
+                ) : null}
+              </tr>
+              <tr className="border-b bg-[var(--muted)]">
+                {rotulosColunasMarcacoes.map((rotulo) => (
+                  <th
+                    key={rotulo}
+                    className="border-b px-5 py-3 font-bold text-foreground"
+                  >
+                    {rotulo}
+                  </th>
+                ))}
+                <th className="border-b border-l px-5 py-3 font-bold text-foreground">
+                  Previsto
+                </th>
+                <th className="border-b px-5 py-3 font-bold text-foreground">
+                  Intervalo
+                </th>
+                <th className="border-b px-5 py-3 font-bold text-foreground">
+                  Trabalhado
+                </th>
+                <th className="border-b border-l px-5 py-3 font-bold text-emerald-700 dark:text-emerald-300">
+                  Crédito
+                </th>
+                <th className="border-b px-5 py-3 font-bold text-red-700 dark:text-red-300">
+                  Débito
+                </th>
+                <th className="border-b px-5 py-3 font-bold text-foreground">
+                  Saldo
+                </th>
+                <th className="border-b border-l px-5 py-3 font-bold text-foreground">
+                  Autorizada
+                </th>
+                <th className="border-b px-5 py-3 font-bold text-foreground">
+                  Não autorizada
+                </th>
+              </tr>
+            </thead>
 
-                  <td className="whitespace-nowrap px-5 py-4 font-medium">
-                    {formatarDataReferenciaUtc(item.dataReferencia)}
-                  </td>
+            <tbody>
+              {apuracoes.map((item) => {
+                const chaveReferencia = chaveDataReferenciaUtc(
+                  item.dataReferencia,
+                );
+                const marcacoesDoDia =
+                  marcacoesPorDia.get(chaveReferencia) ?? [];
+                const exigeIntervalo = extrairExigeIntervalo(item.metadados);
+                const previsaoJornada = extrairPrevisaoJornadaDia(
+                  item.metadados,
+                );
+                const horarios = distribuirMarcacoesNasColunas(
+                  marcacoesDoDia,
+                  exigeIntervalo,
+                  quantidadeColunasMarcacoes,
+                );
+                const trabalhoRemoto = extrairTrabalhoRemoto(item.metadados);
+                const classificacao = classificarDiaEspelho(item);
+                const diaInstitucional = extrairDiaInstitucional(
+                  item.metadados,
+                );
+                const dispensaPonto = classificacao.dispensaPonto;
+                const solicitacoesAplicadas =
+                  classificacao.solicitacoesAplicadas;
+                const justificativaAusenciaMesclada =
+                  encontrarJustificativaAusenciaMesclada(solicitacoesAplicadas);
+                const conferencia = conferenciaEspelho(item.status, item);
+                const possuiMarcacaoAjustada =
+                  marcacoesDoDia.some(marcacaoPossuiAjuste);
+                const possuiAfastamento = (item.ocorrencias ?? []).some(
+                  (ocorrencia) => ocorrencia.tipo === "AFASTAMENTO",
+                );
+                const afastamentoPrincipal = encontrarAfastamentoPrincipal(
+                  item.ocorrencias,
+                );
+                const resumoAfastamento =
+                  afastamentoPrincipal && marcacoesDoDia.length === 0
+                    ? resumirAfastamentoEspelho(
+                        afastamentoPrincipal,
+                        item.dataReferencia,
+                      )
+                    : null;
+                const textoResumoHorario = textoResumoHorarioPrevisto(
+                  previsaoJornada,
+                  marcacoesDoDia.length,
+                );
+                const resumoMarcacoesMescladas =
+                  !resumoAfastamento &&
+                  !textoResumoHorario &&
+                  marcacoesDoDia.length === 0
+                    ? resumirMarcacoesMescladas({
+                        diaInstitucional,
+                        previsaoJornada,
+                        solicitacao: justificativaAusenciaMesclada,
+                      })
+                    : null;
+                const dicaSemaforo = montarDicaSemaforo({
+                  item,
+                  conferencia,
+                  possuiMarcacaoAjustada,
+                  solicitacoesAplicadas,
+                });
+                const mesclarMarcacoesOcorrencias = Boolean(
+                  resumoMarcacoesMescladas,
+                );
+                const diaDestacado = itemEhDestaque(item, destaque);
+                const idDia = `espelho-dia-${chaveReferencia}`;
 
-                  {resumoAfastamento ? (
-                    <td colSpan={4} className="px-5 py-4">
-                      <BadgeAfastamentoResumo resumo={resumoAfastamento} />
-                    </td>
-                  ) : resumoMarcacoesMescladas ? (
-                    <td colSpan={4} className="px-5 py-4">
-                      <BadgeResumoMarcacoesMescladas
-                        resumo={resumoMarcacoesMescladas}
+                return (
+                  <tr
+                    key={item.id}
+                    id={idDia}
+                    className={classeLinhaEspelho(diaDestacado)}
+                  >
+                    <td className="px-5 py-4 text-center">
+                      <IconeSemaforo
+                        tom={conferencia.tom}
+                        title={dicaSemaforo}
+                        aria-label={dicaSemaforo}
                       />
                     </td>
-                  ) : (
-                    horarios.map((horario, indice) => (
-                      <td
-                        key={`${item.id}-horario-${indice}`}
-                        className="whitespace-nowrap px-5 py-4 font-mono"
-                      >
-                        {horario ? (
-                          <span
-                            className={`rounded-full border px-2 py-1 text-xs ${
-                              horario.ajustada
-                                ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
-                                : "bg-[var(--muted)]"
-                            }`}
-                            title={horario.title}
-                          >
-                            {horario.valor}
-                            {horario.ajustada ? "*" : ""}
-                          </span>
-                        ) : (
-                          <span className="text-[var(--muted-foreground)]">-</span>
-                        )}
-                      </td>
-                    ))
-                  )}
 
-                  <td className="px-5 py-4">
+                    <td className="whitespace-nowrap px-5 py-4 font-medium">
+                      {formatarDataReferenciaUtc(item.dataReferencia)}
+                    </td>
+
                     {resumoAfastamento ? (
-                      <BadgeAfastamentoTipo resumo={resumoAfastamento} />
-                    ) : mesclarMarcacoesOcorrencias ? (
-                      resumoMarcacoesMescladas ? (
+                      <td
+                        colSpan={quantidadeColunasMarcacoes}
+                        className="px-5 py-4"
+                      >
+                        <BadgeAfastamentoResumo resumo={resumoAfastamento} />
+                      </td>
+                    ) : textoResumoHorario ? (
+                      Array.from({ length: quantidadeColunasMarcacoes }).map(
+                        (_, indice) => (
+                          <td
+                            key={`${item.id}-resumo-horario-${indice}`}
+                            className="px-5 py-4"
+                          >
+                            <span className="inline-flex rounded-full border border-slate-200 bg-[var(--muted)] px-3 py-1 text-xs font-bold text-[var(--muted-foreground)]">
+                              {textoResumoHorario}
+                            </span>
+                          </td>
+                        ),
+                      )
+                    ) : resumoMarcacoesMescladas ? (
+                      <td
+                        colSpan={quantidadeColunasMarcacoes}
+                        className="px-5 py-4"
+                      >
+                        <BadgeResumoMarcacoesMescladas
+                          resumo={resumoMarcacoesMescladas}
+                        />
+                      </td>
+                    ) : (
+                      horarios.map((horario, indice) => (
+                        <td
+                          key={`${item.id}-horario-${indice}`}
+                          className="whitespace-nowrap px-5 py-4 font-mono"
+                        >
+                          {horario ? (
+                            <span
+                              className={`rounded-full border px-2 py-1 text-xs ${
+                                horario.ajustada
+                                  ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
+                                  : "bg-[var(--muted)]"
+                              }`}
+                              title={horario.title}
+                            >
+                              {horario.valor}
+                              {horario.ajustada ? "*" : ""}
+                            </span>
+                          ) : (
+                            <span className="text-[var(--muted-foreground)]">
+                              -
+                            </span>
+                          )}
+                        </td>
+                      ))
+                    )}
+
+                    <td className="px-5 py-4">
+                      {resumoAfastamento ? (
+                        <BadgeAfastamentoTipo resumo={resumoAfastamento} />
+                      ) : mesclarMarcacoesOcorrencias &&
+                        previsaoJornada?.tipoDia === "HOME_OFFICE" ? (
+                        <span
+                          className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300"
+                          title="Dia previsto como home office em horário híbrido."
+                        >
+                          Híbrido
+                        </span>
+                      ) : mesclarMarcacoesOcorrencias &&
+                        resumoMarcacoesMescladas &&
+                        resumoMarcacoesMescladas.classe !== "neutro" ? (
                         <BadgeTipoMarcacoesMescladas
                           resumo={resumoMarcacoesMescladas}
                         />
-                      ) : null
-                    ) : dispensaPonto ? (
-                      <span
-                        className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
-                        title="Marcações preservadas internamente para rastreio, mas desconsideradas visualmente pela dispensa de ponto."
-                      >
-                        Dispensa de ponto
-                      </span>
-                    ) : trabalhoRemoto ? (
-                      <span
-                        className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300"
-                        title={trabalhoRemoto.descricao}
-                      >
-                        {trabalhoRemoto.regime === "TOTAL"
-                          ? "Teletrabalho"
-                          : "Trabalho remoto"}
-                      </span>
-                    ) : marcacoesDoDia.length > 0 ? (
-                      <StatusResultado item={item} />
-                    ) : diaInstitucional &&
-                      !ehFimDeSemanaInstitucional(diaInstitucional) ? (
-                      <BadgeDiaInstitucional dia={diaInstitucional} />
-                    ) : possuiAfastamento ? null : (
-                      <StatusResultado item={item} />
-                    )}
+                      ) : mesclarMarcacoesOcorrencias ? (
+                        <span className="text-xs font-medium text-[var(--muted-foreground)]">
+                          -
+                        </span>
+                      ) : dispensaPonto ? (
+                        <span
+                          className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
+                          title="Marcações preservadas internamente para rastreio, mas desconsideradas visualmente pela dispensa de ponto."
+                        >
+                          Dispensa de ponto
+                        </span>
+                      ) : trabalhoRemoto ? (
+                        <span
+                          className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300"
+                          title={trabalhoRemoto.descricao}
+                        >
+                          {trabalhoRemoto.regime === "TOTAL"
+                            ? "Teletrabalho"
+                            : "Trabalho remoto"}
+                        </span>
+                      ) : marcacoesDoDia.length > 0 ? (
+                        <StatusResultado item={item} />
+                      ) : diaInstitucional &&
+                        !ehFimDeSemanaInstitucional(diaInstitucional) ? (
+                        <BadgeDiaInstitucional dia={diaInstitucional} />
+                      ) : possuiAfastamento ? null : (
+                        <StatusResultado item={item} />
+                      )}
 
-                    {!resumoAfastamento && !mesclarMarcacoesOcorrencias && (
-                      <div className={possuiAfastamento ? undefined : "mt-2"}>
-                        <OcorrenciasDia
-                          ocultarVazio
-                          ocultarDispensaPonto={dispensaPonto}
-                          dispensaPonto={classificacao.dispensaPonto}
-                          diaInstitucional={diaInstitucional}
-                          ocorrencias={item.ocorrencias ?? []}
-                          solicitacoes={solicitacoesAplicadas}
-                          destaqueOcorrenciaId={destaque?.ocorrenciaId}
-                        />
-                      </div>
-                    )}
-                  </td>
+                      {!resumoAfastamento && !mesclarMarcacoesOcorrencias && (
+                        <div className={possuiAfastamento ? undefined : "mt-2"}>
+                          <OcorrenciasDia
+                            ocultarVazio
+                            ocultarDispensaPonto={dispensaPonto}
+                            dispensaPonto={classificacao.dispensaPonto}
+                            diaInstitucional={diaInstitucional}
+                            ocorrencias={item.ocorrencias ?? []}
+                            solicitacoes={solicitacoesAplicadas}
+                            destaqueOcorrenciaId={destaque?.ocorrenciaId}
+                          />
+                        </div>
+                      )}
+                    </td>
 
-                  <td className="px-5 py-4">
-                    {minutosParaTexto(item.cargaPrevistaMinutos)}
-                  </td>
-
-                  <td className="px-5 py-4">
-                    {minutosParaTexto(item.minutosIntervalo ?? 0)}
-                  </td>
-
-                  <td className="px-5 py-4">
-                    {minutosParaTexto(item.minutosTrabalhados)}
-                  </td>
-
-                  <td className="px-5 py-4">
-                    <ValorTempo
-                      tipo="credito"
-                      minutos={item.minutosCredito}
-                      estado={
-                        (item.minutosHoraExtraNaoAutorizada ?? 0) > 0
-                          ? "pendente"
-                          : (item.minutosBancoHoras ?? 0) > 0
-                            ? "validado"
-                            : undefined
-                      }
-                      detalhe={
-                        (item.minutosHoraExtraNaoAutorizada ?? 0) > 0
-                          ? "Crédito apurado aguardando autorização da chefia para entrar no banco de horas."
-                          : (item.minutosBancoHoras ?? 0) > 0
-                            ? "Crédito computado no banco de horas."
-                            : undefined
-                      }
-                    />
-                  </td>
-
-                  <td className="px-5 py-4">
-                    <ValorTempo
-                      tipo="debito"
-                      minutos={item.minutosDebito}
-                      detalhe={
-                        item.minutosDebitoCompensado &&
-                        item.minutosDebitoCompensado > 0
-                          ? `Apurado: ${minutosParaTexto(
-                              item.minutosDebitoApurado ?? item.minutosDebito,
-                            )}. Compensado: ${minutosParaTexto(
-                              item.minutosDebitoCompensado,
-                            )}.`
-                          : undefined
-                      }
-                    />
-                  </td>
-
-                  <td className="px-5 py-4">
-                    <ValorSaldoBancoHoras minutos={item.minutosBancoHoras ?? 0} />
-                  </td>
-
-                  <td className="px-5 py-4">
-                    <ValorTempo
-                      tipo="credito"
-                      minutos={item.minutosHoraExtraAutorizada ?? 0}
-                    />
-                  </td>
-
-                  <td className="px-5 py-4">
-                    <ValorTempo
-                      tipo="debito"
-                      minutos={item.minutosHoraExtraNaoAutorizada ?? 0}
-                      detalhe={
-                        (item.minutosHoraExtraNaoAutorizada ?? 0) > 0
-                          ? "Horas excedentes sem autorização prévia. Não entram no banco de horas até autorização da chefia."
-                          : undefined
-                      }
-                    />
-                  </td>
-
-                  {acoesBancoHoras?.habilitadas && acoesBancoHoras.bancoHorasAtivo !== false ? (
                     <td className="px-5 py-4">
-                      <AcoesBancoHorasDia
-                        servidorId={acoesBancoHoras.servidorId}
-                        anoReferencia={acoesBancoHoras.anoReferencia}
-                        mesReferencia={acoesBancoHoras.mesReferencia}
-                        dataReferencia={item.dataReferencia}
-                        minutosNaoAutorizados={
-                          item.minutosHoraExtraNaoAutorizada ?? 0
+                      {minutosParaTexto(item.cargaPrevistaMinutos)}
+                    </td>
+
+                    <td className="px-5 py-4">
+                      {minutosParaTexto(item.minutosIntervalo ?? 0)}
+                    </td>
+
+                    <td className="px-5 py-4">
+                      {minutosParaTexto(item.minutosTrabalhados)}
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <ValorTempo
+                        tipo="credito"
+                        minutos={item.minutosCredito}
+                        estado={
+                          (item.minutosHoraExtraNaoAutorizada ?? 0) > 0
+                            ? "pendente"
+                            : (item.minutosBancoHoras ?? 0) > 0
+                              ? "validado"
+                              : undefined
+                        }
+                        detalhe={
+                          (item.minutosHoraExtraNaoAutorizada ?? 0) > 0
+                            ? "Crédito apurado aguardando autorização da chefia para entrar no banco de horas."
+                            : (item.minutosBancoHoras ?? 0) > 0
+                              ? "Crédito computado no banco de horas."
+                              : undefined
                         }
                       />
                     </td>
-                  ) : null}
-                </tr>
-              );
-            })}
 
-            {apuracoes.length === 0 && (
-              <tr>
-                <td
-                  colSpan={acoesBancoHoras?.habilitadas ? 16 : 15}
-                  className="px-5 py-10 text-center text-[var(--muted-foreground)]"
-                >
-                  Nenhuma apuração calculada para o mês.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                    <td className="px-5 py-4">
+                      <ValorTempo
+                        tipo="debito"
+                        minutos={item.minutosDebito}
+                        detalhe={
+                          item.minutosDebitoCompensado &&
+                          item.minutosDebitoCompensado > 0
+                            ? `Apurado: ${minutosParaTexto(
+                                item.minutosDebitoApurado ?? item.minutosDebito,
+                              )}. Compensado: ${minutosParaTexto(
+                                item.minutosDebitoCompensado,
+                              )}.`
+                            : undefined
+                        }
+                      />
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <ValorSaldoBancoHoras
+                        minutos={item.minutosBancoHoras ?? 0}
+                      />
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <ValorTempo
+                        tipo="credito"
+                        minutos={item.minutosHoraExtraAutorizada ?? 0}
+                      />
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <ValorTempo
+                        tipo="debito"
+                        minutos={item.minutosHoraExtraNaoAutorizada ?? 0}
+                        detalhe={
+                          (item.minutosHoraExtraNaoAutorizada ?? 0) > 0
+                            ? "Horas excedentes sem autorização prévia. Não entram no banco de horas até autorização da chefia."
+                            : undefined
+                        }
+                      />
+                    </td>
+
+                    {acoesBancoHoras?.habilitadas &&
+                    acoesBancoHoras.bancoHorasAtivo !== false ? (
+                      <td className="px-5 py-4">
+                        <AcoesBancoHorasDia
+                          servidorId={acoesBancoHoras.servidorId}
+                          anoReferencia={acoesBancoHoras.anoReferencia}
+                          mesReferencia={acoesBancoHoras.mesReferencia}
+                          dataReferencia={item.dataReferencia}
+                          minutosNaoAutorizados={
+                            item.minutosHoraExtraNaoAutorizada ?? 0
+                          }
+                        />
+                      </td>
+                    ) : null}
+                  </tr>
+                );
+              })}
+
+              {apuracoes.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={acoesBancoHoras?.habilitadas ? 16 : 15}
+                    className="px-5 py-10 text-center text-[var(--muted-foreground)]"
+                  >
+                    Nenhuma apuração calculada para o mês.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       )}
     </section>
   );
@@ -568,9 +640,9 @@ function itemEhDestaque(
     destaque.dataReferencia === chaveDataReferenciaUtc(item.dataReferencia);
   const mesmaOcorrencia = Boolean(
     destaque.ocorrenciaId &&
-      (item.ocorrencias ?? []).some(
-        (ocorrencia) => ocorrencia.id === destaque.ocorrenciaId,
-      ),
+    (item.ocorrencias ?? []).some(
+      (ocorrencia) => ocorrencia.id === destaque.ocorrenciaId,
+    ),
   );
 
   return mesmaData || mesmaOcorrencia;
@@ -631,7 +703,11 @@ function EspelhoPontoMensalCompacto({
             const idDia = `espelho-dia-${chaveReferencia}`;
 
             return (
-              <tr key={item.id} id={idDia} className={classeLinhaEspelho(diaDestacado)}>
+              <tr
+                key={item.id}
+                id={idDia}
+                className={classeLinhaEspelho(diaDestacado)}
+              >
                 <td className="whitespace-nowrap px-5 py-4 font-medium">
                   {formatarDataReferenciaUtc(item.dataReferencia)}
                 </td>
@@ -801,12 +877,12 @@ function OcorrenciasDia({
             "destaque" in item && item.destaque
               ? "border-amber-400 bg-amber-100 text-amber-950 ring-2 ring-amber-300 dark:border-amber-500 dark:bg-amber-950 dark:text-amber-100 dark:ring-amber-700"
               : item.classe === "erro"
-              ? "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
-              : item.classe === "alerta"
-                ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
-                : item.classe === "neutro"
-                  ? "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300"
-                  : "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
+                ? "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
+                : item.classe === "alerta"
+                  ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
+                  : item.classe === "neutro"
+                    ? "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300"
+                    : "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
           }`}
           title={item.title}
         >
@@ -841,6 +917,7 @@ type ResumoMarcacoesMescladas = {
   classe: "ok" | "alerta" | "erro" | "neutro";
   title?: string;
   iconeLazer?: boolean;
+  iconeTrabalhoRemoto?: boolean;
 };
 
 function BadgeAfastamentoResumo({
@@ -894,9 +971,18 @@ function BadgeResumoMarcacoesMescladas({
       title={resumo.title}
     >
       {resumo.iconeLazer && (
-        <PartyPopper className="mr-2 mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        <PartyPopper
+          className="mr-2 mt-0.5 size-4 shrink-0"
+          aria-hidden="true"
+        />
+      )}
+      {resumo.iconeTrabalhoRemoto && (
+        <Laptop className="mr-2 mt-0.5 size-4 shrink-0" aria-hidden="true" />
       )}
       {resumo.rotuloDescricao}
+      {resumo.iconeTrabalhoRemoto && (
+        <Wifi className="ml-2 mt-0.5 size-4 shrink-0" aria-hidden="true" />
+      )}
     </span>
   );
 }
@@ -945,7 +1031,7 @@ function StatusResultado({ item }: { item: ApuracaoMensalItem }) {
       ? "Folga"
       : ["CREDITO", "DEBITO"].includes(item.resultado)
         ? "Regular"
-      : rotuloResultadoEspelho(item.resultado);
+        : rotuloResultadoEspelho(item.resultado);
   const tipo =
     item.resultado === "REGULAR" ||
     item.resultado === "CREDITO" ||
@@ -1142,9 +1228,11 @@ function encontrarAfastamentoPrincipal(
 
 function resumirMarcacoesMescladas({
   diaInstitucional,
+  previsaoJornada,
   solicitacao,
 }: {
   diaInstitucional: DiaInstitucionalEspelho | null;
+  previsaoJornada?: ReturnType<typeof extrairPrevisaoJornadaDia> | null;
   solicitacao: SolicitacaoAplicadaEspelho | null;
 }): ResumoMarcacoesMescladas | null {
   if (diaInstitucional) {
@@ -1159,12 +1247,8 @@ function resumirMarcacoesMescladas({
 
     if (diaInstitucional.tipo === "FERIADO") {
       return {
-        rotuloStatus: "Feriado",
-        rotuloDescricao:
-          diaInstitucional.descricao &&
-          diaInstitucional.descricao !== "Feriado institucional"
-            ? `Feriado — ${diaInstitucional.descricao}`
-            : "Feriado",
+        rotuloStatus: "Regular",
+        rotuloDescricao: rotuloDiaInstitucional(diaInstitucional),
         classe: "neutro",
         title: diaInstitucional.descricao,
         iconeLazer: true,
@@ -1174,7 +1258,7 @@ function resumirMarcacoesMescladas({
     if (diaInstitucional.tipo === "PONTO_FACULTATIVO") {
       return {
         rotuloStatus: "Regular",
-        rotuloDescricao: "Ponto facultativo",
+        rotuloDescricao: rotuloDiaInstitucional(diaInstitucional),
         classe: "neutro",
         title: diaInstitucional.descricao,
         iconeLazer: true,
@@ -1187,6 +1271,35 @@ function resumirMarcacoesMescladas({
       classe: diaInstitucional.geraApuracaoRegular ? "alerta" : "neutro",
       title: diaInstitucional.descricao,
       iconeLazer: ehDiaInstitucionalLazer(diaInstitucional),
+    };
+  }
+
+  if (previsaoJornada?.tipoDia === "FOLGA") {
+    return {
+      rotuloStatus: "Regular",
+      rotuloDescricao: "Descanso previsto na jornada",
+      classe: "neutro",
+      title: "Dia sem expediente por descanso previsto na jornada.",
+    };
+  }
+
+  if (previsaoJornada?.tipoDia === "HOME_OFFICE") {
+    return {
+      rotuloStatus: "Regular",
+      rotuloDescricao: "home office",
+      classe: "neutro",
+      title: "Dia previsto como home office no horário híbrido.",
+      iconeTrabalhoRemoto: true,
+    };
+  }
+
+  if (previsaoJornada?.tipoDia === "TELETRABALHO") {
+    return {
+      rotuloStatus: "Regular",
+      rotuloDescricao: "teletrabalho",
+      classe: "neutro",
+      title: "Dia previsto como teletrabalho.",
+      iconeTrabalhoRemoto: true,
     };
   }
 
@@ -1264,7 +1377,9 @@ function resumirAfastamentoEspelho(
     dataReferencia,
   });
   const rotuloCompleto =
-    situacao.rotulo === "Em férias" ? situacao.rotulo : `Férias ${situacao.rotulo}`;
+    situacao.rotulo === "Em férias"
+      ? situacao.rotulo
+      : `Férias ${situacao.rotulo}`;
 
   return {
     tipo: "FERIAS",
@@ -1304,20 +1419,12 @@ function dataReferenciaUtc(valor: Date | string | null | undefined) {
     return null;
   }
 
-  return Date.UTC(
-    data.getUTCFullYear(),
-    data.getUTCMonth(),
-    data.getUTCDate(),
-  );
+  return Date.UTC(data.getUTCFullYear(), data.getUTCMonth(), data.getUTCDate());
 }
 
 function hojeUtc() {
   const hoje = new Date();
-  return Date.UTC(
-    hoje.getUTCFullYear(),
-    hoje.getUTCMonth(),
-    hoje.getUTCDate(),
-  );
+  return Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate());
 }
 
 function classificarSituacaoFeriasEspelho({
@@ -1358,7 +1465,9 @@ function classificarSituacaoFeriasEspelho({
     return { rotulo: "adiadas", classe: "alerta" as const };
   }
 
-  const referencia = dataReferenciaUtc(dataReferencia ?? detalhes?.dataReferencia as string | null);
+  const referencia = dataReferenciaUtc(
+    dataReferencia ?? (detalhes?.dataReferencia as string | null),
+  );
   const inicio = dataReferenciaUtc(detalhes?.dataInicio as string | null);
   const fim = dataReferenciaUtc(detalhes?.dataFim as string | null);
   const hoje = hojeUtc();
@@ -1449,27 +1558,42 @@ function rotuloTipoDiaInstitucional(tipo: string) {
   return rotulos[tipo] ?? tipo.replaceAll("_", " ");
 }
 
+function formatarTextoEventoInstitucional(texto: string | null | undefined) {
+  const normalizado = texto?.trim();
+
+  if (!normalizado) return "";
+
+  const minusculo = normalizado.toLocaleLowerCase("pt-BR");
+
+  return `${minusculo.charAt(0).toLocaleUpperCase("pt-BR")}${minusculo.slice(1)}`;
+}
+
+function formatarDescricaoEventoInstitucional(
+  texto: string | null | undefined,
+) {
+  return texto?.trim().toLocaleLowerCase("pt-BR") ?? "";
+}
+
 function rotuloDiaInstitucional(dia: DiaInstitucionalEspelho) {
   if (dia.tipo === "FERIADO" && dia.descricao !== "Feriado institucional") {
-    return `Feriado: ${dia.descricao}`;
+    return `Feriado: ${formatarDescricaoEventoInstitucional(dia.descricao)}`;
   }
 
   if (
     dia.tipo === "PONTO_FACULTATIVO" &&
     dia.descricao !== "Ponto facultativo"
   ) {
-    return `Ponto facultativo: ${dia.descricao}`;
+    return `Ponto facultativo: ${formatarDescricaoEventoInstitucional(dia.descricao)}`;
   }
 
-  if (
-    dia.tipo === "SUSPENSAO_EXPEDIENTE" &&
-    dia.descricao !== "Suspensão de expediente"
-  ) {
-    return `Suspensão: ${dia.descricao}`;
+  if (dia.tipo === "SUSPENSAO_EXPEDIENTE") {
+    return dia.descricao && dia.descricao !== "Suspensão de expediente"
+      ? `Suspensão: ${formatarDescricaoEventoInstitucional(dia.descricao)}`
+      : "Suspensão de expediente";
   }
 
   if (dia.tipo === "RECESSO_FORENSE") {
-    return dia.descricao;
+    return formatarTextoEventoInstitucional(dia.descricao);
   }
 
   return rotuloTipoDiaInstitucional(dia.tipo);
@@ -1649,9 +1773,9 @@ function ValorTempo({
             ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
             : estado === "validado"
               ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
-          : tipo === "credito"
-            ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
-            : "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
+              : tipo === "credito"
+                ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300"
+                : "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
       }`}
       title={detalhe}
     >
@@ -1662,7 +1786,8 @@ function ValorTempo({
 
 function ValorSaldoBancoHoras({ minutos }: { minutos: number }) {
   const tipo = minutos >= 0 ? "credito" : "debito";
-  const valor = minutos === 0 ? minutosParaTexto(0) : formatarSaldoBancoHoras(minutos);
+  const valor =
+    minutos === 0 ? minutosParaTexto(0) : formatarSaldoBancoHoras(minutos);
 
   return (
     <span
@@ -1697,7 +1822,10 @@ function AcoesBancoHorasDia({
   }
 
   return (
-    <form action={autorizarHoraExtraBancoHorasAction} className="flex items-center gap-2">
+    <form
+      action={autorizarHoraExtraBancoHorasAction}
+      className="flex items-center gap-2"
+    >
       <input type="hidden" name="servidorId" value={servidorId} />
       <input type="hidden" name="anoReferencia" value={anoReferencia} />
       <input type="hidden" name="mesReferencia" value={mesReferencia} />
@@ -1706,7 +1834,11 @@ function AcoesBancoHorasDia({
         name="dataReferencia"
         value={chaveDataReferenciaUtc(dataReferencia)}
       />
-      <input type="hidden" name="minutosMaximos" value={minutosNaoAutorizados} />
+      <input
+        type="hidden"
+        name="minutosMaximos"
+        value={minutosNaoAutorizados}
+      />
       <TempoAutorizadoInput
         key={`${servidorId}-${chaveDataReferenciaUtc(
           dataReferencia,
@@ -1749,12 +1881,13 @@ function agruparMarcacoesPorDia(marcacoes: MarcacaoItem[]) {
 function distribuirMarcacoesNasColunas(
   marcacoes: MarcacaoItem[],
   exigeIntervalo = true,
+  quantidadeColunas = 4,
 ) {
   const horarios: Array<{
     valor: string;
     ajustada: boolean;
     title: string;
-  } | null> = [null, null, null, null];
+  } | null> = Array.from({ length: quantidadeColunas }, () => null);
   const indicePorTipo: Record<string, number> = exigeIntervalo
     ? {
         ENTRADA: 0,
@@ -1792,6 +1925,73 @@ function distribuirMarcacoesNasColunas(
   }
 
   return horarios;
+}
+
+function rotulosColunasTempo(quantidadeColunas: number) {
+  const rotulos = [
+    "1ª Entrada",
+    "1ª Saída",
+    "2ª Entrada",
+    "2ª Saída",
+    "3ª Entrada",
+    "3ª Saída",
+  ];
+
+  return rotulos.slice(0, Math.max(2, Math.min(6, quantidadeColunas)));
+}
+
+function extrairPrevisaoJornadaDia(metadados: unknown) {
+  const previsao = metadadosComoObjeto(metadados).previsaoJornadaDia;
+
+  if (!previsao || typeof previsao !== "object" || Array.isArray(previsao)) {
+    return null;
+  }
+
+  const dados = previsao as {
+    tipoDia?: unknown;
+    trabalha?: unknown;
+    faixas?: unknown;
+  };
+
+  return {
+    tipoDia: typeof dados.tipoDia === "string" ? dados.tipoDia : null,
+    trabalha: typeof dados.trabalha === "boolean" ? dados.trabalha : null,
+    faixas: Array.isArray(dados.faixas) ? dados.faixas : [],
+  };
+}
+
+function textoResumoHorarioPrevisto(
+  previsao: ReturnType<typeof extrairPrevisaoJornadaDia>,
+  quantidadeMarcacoes: number,
+) {
+  if (!previsao || quantidadeMarcacoes > 0) return null;
+
+  return null;
+}
+
+function quantidadeColunasPrevistas(item: ApuracaoMensalItem) {
+  const previsao = extrairPrevisaoJornadaDia(item.metadados);
+  const quantidadeFaixas = previsao?.faixas.length ?? 0;
+
+  if (quantidadeFaixas <= 0) return 4;
+
+  return Math.max(2, Math.min(6, quantidadeFaixas * 2));
+}
+
+function calcularQuantidadeColunasMarcacoes(
+  apuracoes: ApuracaoMensalItem[],
+  marcacoesPorDia: Map<string, MarcacaoItem[]>,
+) {
+  const maiorPrevisao = apuracoes.reduce(
+    (maior, item) => Math.max(maior, quantidadeColunasPrevistas(item)),
+    4,
+  );
+  const maiorMarcacoes = Array.from(marcacoesPorDia.values()).reduce(
+    (maior, marcacoesDia) => Math.max(maior, marcacoesDia.length),
+    0,
+  );
+
+  return Math.min(6, Math.max(4, maiorPrevisao, maiorMarcacoes));
 }
 
 function formatarMarcacaoTabela(marcacao: MarcacaoItem) {

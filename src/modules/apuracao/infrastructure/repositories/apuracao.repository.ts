@@ -169,8 +169,17 @@ export async function listarApuracoesDoServidorNoMes(params: {
       },
       include: {
         jornada: {
-          select: {
-            cargaDiariaMinutos: true,
+          include: {
+            dias: {
+              include: {
+                faixas: {
+                  orderBy: {
+                    ordem: "asc",
+                  },
+                },
+              },
+              orderBy: [{ ordemNoCiclo: "asc" }, { diaSemana: "asc" }],
+            },
           },
         },
       },

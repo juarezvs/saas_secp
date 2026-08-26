@@ -137,6 +137,10 @@ const descricoesTipo: Record<string, string> = {
     "Use quando o controle principal é a carga semanal. Informe a carga semanal e configure os dias esperados quando houver.",
   CARGA_MENSAL:
     "Use quando o controle principal é a carga mensal. Informe a carga mensal e mantenha a previsão diária como referência.",
+  HIBRIDO:
+    "Use quando a pessoa alterna dias presenciais e dias em home office dentro da grade semanal.",
+  TELETRABALHO:
+    "Use quando a rotina é de teletrabalho, sem falta por ausência de marcação, mas com horários previstos para registros realizados.",
   ESCALA_CICLICA:
     "Use para ciclos como 12x36, 24x72 ou outros regimes por posição. Depois de salvar, cadastre a escala cíclica no detalhe da jornada.",
   ESCALA_VARIAVEL:
@@ -167,6 +171,9 @@ const rotulosDia: Record<string, string> = {
 
 const rotulosTipoDia: Record<string, string> = {
   TRABALHO: "Trabalho",
+  PRESENCIAL: "Presencial",
+  HOME_OFFICE: "Home office",
+  TELETRABALHO: "Teletrabalho",
   FOLGA: "Folga",
   PLANTAO: "Plantão",
   COMPENSADO: "Compensado",

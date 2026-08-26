@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { prisma } from "@/shared/infrastructure/database/prisma";
 import { buscarUsuarioParaLoginPorMatricula } from "../../infrastructure/repositories/usuario-auth.repository";
 import { escolherPerfilInicial } from "./perfil-servidor-prioritario.service";
 
@@ -40,7 +41,23 @@ export async function obterEscopoOrgaoDaSessao(): Promise<EscopoOrgaoSessao> {
     respeitarPerfilPreferido: Boolean(session.user.perfilAtivo),
   });
 
-  const orgaos = perfilAtivo?.orgaos ?? [];
+  let orgaos = perfilAtivo?.orgaos ?? [];
+
+  if (!orgaos.length && usuario.orgaoId) {
+    const orgaoServidor = await prisma.orgao.findFirst({
+      where: {
+        id: usuario.orgaoId,
+        ativo: true,
+      },
+      select: {
+        id: true,
+        sigla: true,
+        nome: true,
+      },
+    });
+
+    orgaos = orgaoServidor ? [orgaoServidor] : [];
+  }
 
   return {
     global: Boolean(perfilAtivo?.escopoGlobal),

@@ -9,6 +9,8 @@ export const tiposJornada = [
   "CARGA_DIARIA",
   "CARGA_SEMANAL",
   "CARGA_MENSAL",
+  "HIBRIDO",
+  "TELETRABALHO",
   "ESCALA_CICLICA",
   "ESCALA_VARIAVEL",
   "TURNO_FIXO",
@@ -22,6 +24,11 @@ export const tiposJornada = [
 function validarHoraHHMM(valor: string | undefined | null) {
   if (!valor) return true;
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(valor);
+}
+
+function validarDuracaoHoras(valor: string | undefined | null) {
+  if (!valor) return true;
+  return /^\d{1,3}:[0-5]\d$/.test(valor);
 }
 
 function horaParaMinutos(valor: string | undefined | null) {
@@ -44,7 +51,7 @@ function textoOpcional(max: number) {
 
 const dataOpcional = z.string().optional().or(z.literal(""));
 const horaOpcional = z.string().optional().or(z.literal(""));
-const uuidOpcional = z.string().uuid("Identificador invalido.").optional().or(z.literal(""));
+const uuidOpcional = z.string().uuid("Identificador inválido.").optional().or(z.literal(""));
 
 export const diasSemana = [
   "DOMINGO",
@@ -58,6 +65,10 @@ export const diasSemana = [
 
 export const tiposDiaJornada = [
   "TRABALHO",
+  "PRESENCIAL",
+  "HOME_OFFICE",
+  "TELETRABALHO",
+  "EXTRA",
   "FOLGA",
   "PLANTAO",
   "COMPENSADO",
@@ -84,6 +95,8 @@ export const jornadaDiaSchema = z.object({
   diaSemana: z.enum(diasSemana).optional().or(z.literal("")),
   ordemNoCiclo: z.coerce.number().int().min(1).optional().nullable(),
   tipoDia: z.enum(tiposDiaJornada).default("TRABALHO"),
+  fechamentoCiclo: z.string().trim().max(6).optional().or(z.literal("")),
+  intervaloLivre: z.coerce.boolean().default(false),
   cargaPrevistaMinutos: z.coerce.number().int().min(0).max(1440).default(0),
   faixas: z.array(jornadaFaixaSchema).default([]),
 });
@@ -94,14 +107,14 @@ export const jornadaSchema = z
     codigo: z
       .string()
       .trim()
-      .min(2, "Informe um codigo.")
-      .max(80, "O codigo deve ter no maximo 80 caracteres.")
-      .regex(/^[A-Z0-9_]+$/, "Use letras maiusculas, numeros e underscore."),
+      .min(2, "Informe um código.")
+      .max(80, "O código deve ter no máximo 80 caracteres.")
+      .regex(/^[A-Z0-9_]+$/, "Use letras maiúsculas, números e underscore."),
     nome: z
       .string()
       .trim()
       .min(3, "Informe o nome da jornada.")
-      .max(150, "O nome deve ter no maximo 150 caracteres."),
+      .max(150, "O nome deve ter no máximo 150 caracteres."),
     descricao: textoOpcional(1000),
     tipo: z.enum(tiposJornada, {
       error: "Informe o tipo de jornada.",
@@ -109,8 +122,8 @@ export const jornadaSchema = z
     cargaDiariaMinutos: z.coerce
       .number()
       .int()
-      .min(0, "Carga minima invalida.")
-      .max(720, "Carga diaria maxima invalida."),
+      .min(0, "Carga mínima inválida.")
+      .max(720, "Carga diária máxima inválida."),
     cargaSemanalMinutos: z.coerce.number().int().optional().nullable(),
     cargaMensalMinutos: z.coerce.number().int().optional().nullable(),
     cargaMinimaDiariaMinutos: z.coerce.number().int().optional().nullable(),
@@ -165,15 +178,18 @@ export const jornadaSchema = z
     const saidaPadrao = horaParaMinutos(data.horarioSaidaPadrao);
     const exigeHorarioPadrao =
       data.controlaHorario &&
-      !["CARGA_SEMANAL", "CARGA_MENSAL", "SEM_CONTROLE_CONVENCIONAL"].includes(
-        data.tipo,
-      );
+      ![
+        "CARGA_SEMANAL",
+        "CARGA_MENSAL",
+        "ESCALA_CICLICA",
+        "SEM_CONTROLE_CONVENCIONAL",
+      ].includes(data.tipo);
 
     if (exigeHorarioPadrao && entradaPadrao === null) {
       ctx.addIssue({
         code: "custom",
         path: ["horarioEntradaPadrao"],
-        message: "Informe a entrada padrao da jornada.",
+        message: "Informe a entrada padrão da jornada.",
       });
     }
 
@@ -181,7 +197,7 @@ export const jornadaSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["horarioSaidaPadrao"],
-        message: "Informe a saida padrao da jornada.",
+        message: "Informe a saída padrão da jornada.",
       });
     }
 
@@ -194,15 +210,19 @@ export const jornadaSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["horarioSaidaPadrao"],
-        message: "A saida padrao deve ser posterior a entrada.",
+        message: "A saída padrão deve ser posterior à entrada.",
       });
     }
 
-    if (data.controlaHorario && data.cargaDiariaMinutos < 60) {
+    if (
+      data.controlaHorario &&
+      data.tipo !== "ESCALA_CICLICA" &&
+      data.cargaDiariaMinutos < 60
+    ) {
       ctx.addIssue({
         code: "custom",
         path: ["cargaDiariaMinutos"],
-        message: "Informe a carga diaria em minutos.",
+        message: "Informe a carga diária em minutos.",
       });
     }
 
@@ -231,7 +251,7 @@ export const jornadaSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["vigenciaFim"],
-        message: "A vigencia final nao pode ser anterior a inicial.",
+        message: "A vigência final não pode ser anterior à inicial.",
       });
     }
 
@@ -252,7 +272,7 @@ export const jornadaSchema = z
           code: "custom",
           path: ["entradaMinimaDiferenciada"],
           message:
-            "A entrada diferenciada deve respeitar o limite minimo de 06:00.",
+            "A entrada diferenciada deve respeitar o limite mínimo de 06:00.",
         });
       }
 
@@ -265,7 +285,7 @@ export const jornadaSchema = z
           code: "custom",
           path: ["saidaMaximaDiferenciada"],
           message:
-            "A saida diferenciada deve respeitar o limite maximo de 19:00.",
+            "A saída diferenciada deve respeitar o limite máximo de 19:00.",
         });
       }
 
@@ -277,7 +297,7 @@ export const jornadaSchema = z
         ctx.addIssue({
           code: "custom",
           path: ["saidaMaximaDiferenciada"],
-          message: "A saida diferenciada deve ser posterior a entrada.",
+          message: "A saída diferenciada deve ser posterior à entrada.",
         });
       }
     }
@@ -303,7 +323,7 @@ export const jornadaSchema = z
         code: "custom",
         path: ["fundamentoNormativo"],
         message:
-          "Informe o fundamento legal/normativo da jornada especial ou profissao regulamentada.",
+          "Informe o fundamento legal/normativo da jornada especial ou profissão regulamentada.",
       });
     }
 
@@ -312,7 +332,7 @@ export const jornadaSchema = z
         ctx.addIssue({
           code: "custom",
           path: ["intervaloMinimoMinutos"],
-          message: "O intervalo minimo deve ser de pelo menos 60 minutos.",
+          message: "O intervalo mínimo deve ser de pelo menos 60 minutos.",
         });
       }
 
@@ -320,7 +340,7 @@ export const jornadaSchema = z
         ctx.addIssue({
           code: "custom",
           path: ["intervaloMaximoMinutos"],
-          message: "O intervalo maximo nao pode superar 180 minutos.",
+          message: "O intervalo máximo não pode superar 180 minutos.",
         });
       }
 
@@ -332,12 +352,14 @@ export const jornadaSchema = z
         ctx.addIssue({
           code: "custom",
           path: ["intervaloMaximoMinutos"],
-          message: "O intervalo maximo nao pode ser menor que o minimo.",
+          message: "O intervalo máximo não pode ser menor que o mínimo.",
         });
       }
     }
 
-    const diasTrabalho = data.dias.filter((dia) => dia.tipoDia !== "FOLGA");
+    const diasTrabalho = data.dias.filter(
+      (dia) => !["FOLGA", "SEM_EXPEDIENTE", "HOME_OFFICE"].includes(dia.tipoDia),
+    );
     const exigeDiaConfigurado = [
       "FIXA_SEMANAL",
       "FLEXIVEL",
@@ -359,13 +381,33 @@ export const jornadaSchema = z
     }
 
     data.dias.forEach((dia, indiceDia) => {
-      const diaTrabalhado = dia.tipoDia !== "FOLGA" && dia.tipoDia !== "SEM_EXPEDIENTE";
+      const diaTrabalhado = ![
+        "FOLGA",
+        "SEM_EXPEDIENTE",
+        "HOME_OFFICE",
+      ].includes(dia.tipoDia);
+
+      if (diaTrabalhado && dia.faixas.length === 0) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["dias", indiceDia, "faixas", 0, "horaInicio"],
+          message: "Informe a hora inicial no formato HH:mm.",
+        });
+      }
 
       if (diaTrabalhado && dia.cargaPrevistaMinutos <= 0) {
         ctx.addIssue({
           code: "custom",
           path: ["dias", indiceDia, "cargaPrevistaMinutos"],
           message: "Informe a carga prevista do dia trabalhado.",
+        });
+      }
+
+      if (!validarDuracaoHoras(dia.fechamentoCiclo)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["dias", indiceDia, "fechamentoCiclo"],
+          message: "Informe o fechamento no formato HH:mm.",
         });
       }
 

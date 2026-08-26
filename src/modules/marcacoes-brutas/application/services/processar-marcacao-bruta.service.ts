@@ -4,6 +4,7 @@ import { classificarProximaMarcacao } from "@/modules/marcacoes/application/serv
 import { recalcularDiaEBancoHorasServidorService } from "@/modules/recalculo/application/services/recalcular-dia-e-banco-horas-servidor.service";
 import { normalizarMarcacoesSemIntervaloService } from "@/modules/marcacoes/application/services/normalizar-marcacoes-sem-intervalo.service";
 import { resolverDataReferenciaOperacionalMarcacaoService } from "@/modules/marcacoes/application/services/resolver-data-referencia-operacional-marcacao.service";
+import { buscarRegulamentacaoPontoServidor } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 import { verificarPeriodoHomologado } from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
 import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import {
@@ -146,6 +147,9 @@ export async function processarMarcacaoBrutaService(params: {
     dataReferencia: dataReferenciaCivil,
   });
   dataReferenciaCivil = obterDataReferencia(bruta.dataHora, fusoHorario);
+  const regulamentacaoPonto = await buscarRegulamentacaoPontoServidor(
+    servidor.id,
+  );
   const resolucaoDataReferencia =
     await resolverDataReferenciaOperacionalMarcacaoService(prisma, {
       servidorId: servidor.id,
@@ -153,6 +157,7 @@ export async function processarMarcacaoBrutaService(params: {
       dataReferenciaCivil,
       fusoHorario,
       origem: bruta.origem,
+      regulamentacaoPonto,
     });
   const dataReferencia = resolucaoDataReferencia.dataReferencia;
 

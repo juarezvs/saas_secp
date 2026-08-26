@@ -54,9 +54,11 @@ export function ServidoresListagemControles({
     {
       tipo: "searchable-select",
       nome: "nome",
-      label: rotuloPessoa.singular,
+      label: tipoUsuarioFixo ? rotuloPessoa.singular : "Pessoa",
       placeholder: "Todos",
-      searchPlaceholder: `Pesquisar ${rotuloPessoa.singular.toLowerCase()}...`,
+      searchPlaceholder: tipoUsuarioFixo
+        ? `Pesquisar ${rotuloPessoa.singular.toLowerCase()}...`
+        : "Pesquisar pessoa...",
       options: [{ value: "", label: "Todos" }, ...servidores],
       className: "lg:col-span-2",
     },

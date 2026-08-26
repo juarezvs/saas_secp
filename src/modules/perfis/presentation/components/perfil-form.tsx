@@ -39,6 +39,7 @@ type PerfilFormProps = {
     ativo?: boolean;
     administrativo?: boolean;
     excecao?: boolean;
+    global?: boolean;
     perfilDestinoExcecaoId?: string | null;
     permissoes?: string[];
   };
@@ -72,6 +73,10 @@ export function PerfilForm({
   const [excecaoAtiva, setExcecaoAtiva] = useState(
     campos?.excecao ?? false,
   );
+  const [orgaoIdSelecionado, setOrgaoIdSelecionado] = useState(
+    campos?.orgaoId ?? "",
+  );
+  const podeMarcarGlobal = permitirPerfilGlobal && !orgaoIdSelecionado;
 
   return (
     <form action={formAction} className="space-y-6">
@@ -142,11 +147,14 @@ export function PerfilForm({
                 id="orgaoId"
                 name="orgaoId"
                 defaultValue={campos?.orgaoId ?? ""}
+                onChange={(event) =>
+                  setOrgaoIdSelecionado(event.currentTarget.value)
+                }
                 className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm text-[var(--card-foreground)] outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
                 required={!permitirPerfilGlobal}
               >
                 {permitirPerfilGlobal ? (
-                  <option value="">Perfil padrão/global</option>
+                  <option value="">Sem seccional</option>
                 ) : null}
                 {orgaosPermitidos.map((orgao) => (
                   <option key={orgao.id} value={orgao.id}>
@@ -156,11 +164,37 @@ export function PerfilForm({
               </select>
 
               <p className="text-xs text-[var(--muted-foreground)]">
-                Perfis globais recebem o prefixo SECP; perfis seccionais
+                Perfis sem seccional recebem o prefixo SECP; perfis seccionais
                 recebem automaticamente a sigla da seccional como prefixo do
                 código.
               </p>
             </div>
+          ) : null}
+
+          {permitirPerfilGlobal ? (
+            <label
+              className={`flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm md:col-span-2 ${
+                podeMarcarGlobal ? "" : "opacity-70"
+              }`}
+            >
+              <input
+                key={podeMarcarGlobal ? "global-enabled" : "global-disabled"}
+                type="checkbox"
+                name="global"
+                defaultChecked={podeMarcarGlobal && (campos?.global ?? false)}
+                disabled={!podeMarcarGlobal}
+                className="size-4 rounded border-slate-300"
+              />
+
+              <span>
+                <span className="block font-semibold">Perfil global</span>
+                <span className="text-xs text-[var(--muted-foreground)]">
+                  Quando marcado, este perfil fica disponível para todas as
+                  seccionais. Sem essa marcação, perfis sem seccional ficam
+                  visíveis apenas para usuários com escopo global.
+                </span>
+              </span>
+            </label>
           ) : null}
 
           <div className="space-y-2 md:col-span-2">

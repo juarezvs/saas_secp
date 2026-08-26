@@ -48,43 +48,126 @@ function normalizarTipoJornada(
     : undefined;
 }
 
+function rotuloCampoErro(path: Array<PropertyKey>, tipo?: TipoJornada) {
+  const [campo, indiceDia, subcampo, indiceFaixa, campoFaixa] = path;
+
+  if (campo === "dias" && typeof indiceDia === "number") {
+    const rotuloDia =
+      tipo === "ESCALA_CICLICA"
+        ? `${indiceDia + 1}º Ciclo`
+        : {
+            DOMINGO: "Domingo",
+            SEGUNDA: "Segunda-feira",
+            TERCA: "Terça-feira",
+            QUARTA: "Quarta-feira",
+            QUINTA: "Quinta-feira",
+            SEXTA: "Sexta-feira",
+            SABADO: "Sábado",
+          }[diasSemana[indiceDia]] ?? `Linha ${indiceDia + 1}`;
+
+    if (subcampo === "faixas" && typeof indiceFaixa === "number") {
+      const ordem = indiceFaixa + 1;
+      const rotuloOrdem =
+        ordem === 1 ? "1ª" : ordem === 2 ? "2ª" : ordem === 3 ? "3ª" : `${ordem}ª`;
+      const rotuloCampo = campoFaixa === "horaFim" ? "Saída" : "Entrada";
+
+      return `${rotuloDia} - ${rotuloOrdem} ${rotuloCampo}`;
+    }
+
+    if (subcampo === "cargaPrevistaMinutos") return `${rotuloDia} - Carga`;
+    if (subcampo === "fechamentoCiclo") return `${rotuloDia} - Fechamento`;
+    if (subcampo === "tipoDia") return `${rotuloDia} - Tipo`;
+
+    return rotuloDia;
+  }
+
+  const rotulos: Record<string, string> = {
+    codigo: "Código",
+    nome: "Descrição do horário",
+    descricao: "Observações",
+    tipo: "Tipo de horário",
+    vigenciaInicio:
+      tipo === "ESCALA_CICLICA" ? "Início do Ciclo" : "Vigência inicial",
+    vigenciaFim: "Vigência final",
+    horarioEntradaPadrao: "1ª Entrada",
+    horarioSaidaPadrao: "Última saída",
+    cargaDiariaMinutos: "Carga diária",
+    cargaSemanalMinutos: "Carga semanal",
+    cargaMensalMinutos: "Carga mensal",
+    fundamentoNormativo: "Fundamento normativo",
+    dias: tipo === "ESCALA_CICLICA" ? "Ciclos" : "Grade semanal",
+  };
+
+  return rotulos[String(campo)] ?? "Campo";
+}
+
+function primeiraMensagemValidacao(
+  erro: { issues: Array<{ path: Array<PropertyKey>; message: string }> },
+  tipo?: TipoJornada,
+) {
+  const primeiraIssue = erro.issues[0];
+  if (!primeiraIssue) return "Verifique os campos do formulário.";
+
+  return `${rotuloCampoErro(primeiraIssue.path, tipo)}: ${primeiraIssue.message}`;
+}
+
+function normalizarTipoDia(valor: FormDataEntryValue | null) {
+  const tipoDiaFormulario = String(valor ?? "TRABALHO");
+
+  return tiposDiaJornada.includes(
+    tipoDiaFormulario as (typeof tiposDiaJornada)[number],
+  )
+    ? (tipoDiaFormulario as (typeof tiposDiaJornada)[number])
+    : "TRABALHO";
+}
+
+function extrairFaixas(
+  formData: FormData,
+  prefixo: string,
+): NonNullable<JornadaInput["dias"]>[number]["faixas"] {
+  return [1, 2, 3]
+    .map((ordem) => {
+      const inicio =
+        valorOpcionalString(formData.get(`${prefixo}.entrada${ordem}`)) ||
+        (ordem === 1
+          ? valorOpcionalString(formData.get(`${prefixo}.faixaTrabalhoInicio`))
+          : "");
+      const fim =
+        valorOpcionalString(formData.get(`${prefixo}.saida${ordem}`)) ||
+        (ordem === 1
+          ? valorOpcionalString(formData.get(`${prefixo}.faixaTrabalhoFim`))
+          : "");
+
+      return {
+        tipo: "TRABALHO" as const,
+        horaInicio: inicio,
+        horaFim: fim,
+        obrigatoria: true,
+        cruzaMeiaNoite:
+          formData.get(`${prefixo}.cruzaMeiaNoite`) === "on" ||
+          formData.get(`${prefixo}.cruzaMeiaNoite`) === "true" ||
+          (Boolean(inicio) && Boolean(fim) && fim < inicio),
+        ordem,
+      };
+    })
+    .filter((faixa) => faixa.horaInicio || faixa.horaFim);
+}
+
 function extrairDadosJornada(formData: FormData): Partial<JornadaInput> {
-  const dias = diasSemana.map((diaSemana) => {
+  const tipo = normalizarTipoJornada(formData.get("tipo"));
+  const diasSemanais = diasSemana.map((diaSemana) => {
     const prefixo = `dias.${diaSemana}`;
-    const faixaTrabalhoInicio = valorOpcionalString(
-      formData.get(`${prefixo}.faixaTrabalhoInicio`),
-    );
-    const faixaTrabalhoFim = valorOpcionalString(
-      formData.get(`${prefixo}.faixaTrabalhoFim`),
-    );
+    const faixasTrabalho = extrairFaixas(formData, prefixo);
     const faixaNucleoInicio = valorOpcionalString(
       formData.get(`${prefixo}.faixaNucleoInicio`),
     );
     const faixaNucleoFim = valorOpcionalString(
       formData.get(`${prefixo}.faixaNucleoFim`),
     );
-    const tipoDiaFormulario = String(
-      formData.get(`${prefixo}.tipoDia`) ?? "TRABALHO",
-    );
-    const tipoDia = tiposDiaJornada.includes(
-      tipoDiaFormulario as (typeof tiposDiaJornada)[number],
-    )
-      ? (tipoDiaFormulario as (typeof tiposDiaJornada)[number])
-      : "TRABALHO";
-    const faixas = [];
-
-    if (faixaTrabalhoInicio || faixaTrabalhoFim) {
-      faixas.push({
-        tipo: "TRABALHO" as const,
-        horaInicio: faixaTrabalhoInicio,
-        horaFim: faixaTrabalhoFim,
-        obrigatoria: true,
-        cruzaMeiaNoite:
-          formData.get(`${prefixo}.cruzaMeiaNoite`) === "on" ||
-          formData.get(`${prefixo}.cruzaMeiaNoite`) === "true",
-        ordem: 1,
-      });
-    }
+    const tipoDia = normalizarTipoDia(formData.get(`${prefixo}.tipoDia`));
+    const faixas: NonNullable<JornadaInput["dias"]>[number]["faixas"] = [
+      ...faixasTrabalho,
+    ];
 
     if (faixaNucleoInicio || faixaNucleoFim) {
       faixas.push({
@@ -100,12 +183,54 @@ function extrairDadosJornada(formData: FormData): Partial<JornadaInput> {
     return {
       diaSemana,
       tipoDia,
+      fechamentoCiclo: "",
+      intervaloLivre: false,
       cargaPrevistaMinutos: valorOpcionalNumero(
         formData.get(`${prefixo}.cargaPrevistaMinutos`),
       ) ?? 0,
       faixas,
     };
   });
+  const quantidadeCiclos = Math.max(
+    1,
+    Number(formData.get("ciclos.quantidade") ?? 1),
+  );
+  const diasCiclicos: NonNullable<JornadaInput["dias"]> = [];
+  let ordemNoCiclo = 1;
+
+  for (let indice = 0; indice < quantidadeCiclos; indice += 1) {
+    const prefixo = `ciclos.${indice}`;
+    const duracao = Math.max(
+      1,
+      valorOpcionalNumero(formData.get(`${prefixo}.duracaoDias`)) ?? 1,
+    );
+    const tipoDia = normalizarTipoDia(formData.get(`${prefixo}.tipoDia`));
+    const faixas = extrairFaixas(formData, prefixo);
+    const fechamentoCiclo = valorOpcionalString(
+      formData.get(`${prefixo}.fechamento`),
+    );
+    const intervaloLivre =
+      formData.get(`${prefixo}.intervaloLivre`) === "on" ||
+      formData.get(`${prefixo}.intervaloLivre`) === "true";
+    const cargaPrevistaMinutos =
+      valorOpcionalNumero(formData.get(`${prefixo}.cargaPrevistaMinutos`)) ??
+      0;
+
+    for (let dia = 0; dia < duracao; dia += 1) {
+      diasCiclicos.push({
+        diaSemana: "",
+        ordemNoCiclo,
+        tipoDia,
+        fechamentoCiclo,
+        intervaloLivre,
+        cargaPrevistaMinutos,
+        faixas,
+      });
+      ordemNoCiclo += 1;
+    }
+  }
+
+  const dias = tipo === "ESCALA_CICLICA" ? diasCiclicos : diasSemanais;
 
   return {
     orgaoId: valorOpcionalString(formData.get("orgaoId")),
@@ -114,7 +239,7 @@ function extrairDadosJornada(formData: FormData): Partial<JornadaInput> {
       .toUpperCase(),
     nome: String(formData.get("nome") ?? "").trim(),
     descricao: valorOpcionalString(formData.get("descricao")),
-    tipo: normalizarTipoJornada(formData.get("tipo")),
+    tipo,
     cargaDiariaMinutos: Number(formData.get("cargaDiariaMinutos") ?? 0),
     cargaSemanalMinutos: valorOpcionalNumero(
       formData.get("cargaSemanalMinutos"),
@@ -213,7 +338,7 @@ export async function atualizarJornadaAction(
   if (!parsed.success) {
     return {
       sucesso: false,
-      mensagem: "Verifique os campos do formulário.",
+      mensagem: primeiraMensagemValidacao(parsed.error, dados.tipo),
       erros: parsed.error.flatten().fieldErrors,
       campos: dados,
     };
@@ -288,6 +413,8 @@ export async function atualizarJornadaAction(
         diaSemana: dia.diaSemana || null,
         ordemNoCiclo: dia.ordemNoCiclo ?? null,
         tipoDia: dia.tipoDia,
+        fechamentoCiclo: dia.fechamentoCiclo || null,
+        intervaloLivre: Boolean(dia.intervaloLivre),
         cargaPrevistaMinutos: dia.cargaPrevistaMinutos,
       })),
     });
@@ -358,5 +485,5 @@ export async function atualizarJornadaAction(
   revalidatePath("/jornadas");
   revalidatePath(`/jornadas/${jornadaId}`);
 
-  redirect(`/jornadas/${jornadaId}`);
+  redirect(`/jornadas/${jornadaId}?horarioSalvo=1`);
 }

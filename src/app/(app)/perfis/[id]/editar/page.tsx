@@ -43,6 +43,14 @@ export default async function EditarPerfilPage({
     notFound();
   }
 
+  if (
+    !escopoOrgao.global &&
+    !perfil.global &&
+    (!perfil.orgaoId || !escopoOrgao.orgaoIds.includes(perfil.orgaoId))
+  ) {
+    notFound();
+  }
+
   const action = atualizarPerfilAction.bind(null, perfil.id);
 
   return (
@@ -91,6 +99,7 @@ export default async function EditarPerfilPage({
           ativo: perfil.ativo,
           administrativo: perfil.administrativo,
           excecao: perfil.excecao,
+          global: perfil.global,
           perfilDestinoExcecaoId: perfil.perfilDestinoExcecaoId,
           permissoes: perfil.permissoes.map((item) => item.permissaoId),
         }}

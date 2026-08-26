@@ -50,6 +50,8 @@ const regulamentacaoSchema = z.object({
   expedientePadraoFim: horaSchema,
   entradaMinimaPermitida: horaSchema,
   saidaMaximaPermitida: horaSchema,
+  limiteViradaMadrugada: horaSchema,
+  inicioJanelaNoite: horaSchema,
   prazoHomologacaoDiaMesSeguinte: z.coerce.number().int().min(1).max(31),
   prazoAjustePontoDiaMesSeguinte: z.coerce.number().int().min(1).max(31),
   percentualCreditoSabado: z.coerce.number().int().min(0).max(300),
@@ -102,6 +104,10 @@ function extrairDados(formData: FormData) {
     expedientePadraoFim: String(formData.get("expedientePadraoFim") ?? ""),
     entradaMinimaPermitida: String(formData.get("entradaMinimaPermitida") ?? ""),
     saidaMaximaPermitida: String(formData.get("saidaMaximaPermitida") ?? ""),
+    limiteViradaMadrugada: String(
+      formData.get("limiteViradaMadrugada") ?? "",
+    ),
+    inicioJanelaNoite: String(formData.get("inicioJanelaNoite") ?? ""),
     prazoHomologacaoDiaMesSeguinte: formData.get(
       "prazoHomologacaoDiaMesSeguinte",
     ),

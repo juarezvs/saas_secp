@@ -154,15 +154,6 @@ export async function buscarJornadaPorId(id: string) {
       id,
     },
     include: {
-      escalas: {
-        include: {
-          dias: {
-            orderBy: {
-              posicaoCiclo: "asc",
-            },
-          },
-        },
-      },
       dias: {
         include: {
           faixas: {
