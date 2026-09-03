@@ -7,6 +7,7 @@ import {
   exigirUmaDasPermissoesOuRedirecionar,
   usuarioPossuiAlgumaPermissaoNoPerfil,
 } from "@/modules/auth/application/services/permissao.service";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 import {
@@ -96,15 +97,62 @@ async function exigirServidorNoEscopoRecesso(
   }
 }
 
+async function validarPortariaNoOrgaoDoRecesso(params: {
+  recessoId: string;
+  unidadeId?: string | null;
+  chefiaResponsavelId?: string | null;
+}) {
+  const recesso = await prisma.recessoForense.findUnique({
+    where: { id: params.recessoId },
+    select: { orgaoId: true },
+  });
+
+  if (!recesso?.orgaoId) {
+    return "Recesso sem seccional vinculada. Regularize o cadastro antes de criar portarias.";
+  }
+
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+
+  if (!escopoOrgao.global && !escopoOrgao.orgaoIds.includes(recesso.orgaoId)) {
+    return "Recesso fora do escopo do perfil ativo.";
+  }
+
+  if (params.unidadeId) {
+    const unidade = await prisma.unidadeOrganizacional.findUnique({
+      where: { id: params.unidadeId },
+      select: { orgaoId: true },
+    });
+
+    if (unidade?.orgaoId !== recesso.orgaoId) {
+      return "A unidade da portaria deve pertencer a mesma seccional do recesso.";
+    }
+  }
+
+  if (params.chefiaResponsavelId) {
+    const chefia = await prisma.servidor.findUnique({
+      where: { id: params.chefiaResponsavelId },
+      select: { orgaoId: true },
+    });
+
+    if (chefia?.orgaoId !== recesso.orgaoId) {
+      return "A chefia responsavel deve pertencer a mesma seccional do recesso.";
+    }
+  }
+
+  return null;
+}
+
 export async function criarRecessoForenseAction(
   _estadoAnterior: RecessoFormState,
   formData: FormData,
 ): Promise<RecessoFormState> {
   const permissao = await exigirUmaDasPermissoesOuRedirecionar([
     "recesso:gerenciar:global",
+    "recesso:gerenciar:seccional",
   ]);
 
   const dados = {
+    orgaoId: texto(formData, "orgaoId"),
     ano: numero(formData, "ano"),
     observacao: texto(formData, "observacao"),
   };
@@ -119,8 +167,21 @@ export async function criarRecessoForenseAction(
     );
   }
 
-  const existente = await prisma.recessoForense.findUnique({
-    where: { ano: parsed.data.ano },
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+
+  if (
+    !escopoOrgao.global &&
+    !escopoOrgao.orgaoIds.includes(parsed.data.orgaoId)
+  ) {
+    return estadoErro(
+      "Seccional fora do escopo do perfil ativo.",
+      { orgaoId: ["Seccional fora do escopo do perfil ativo."] },
+      dados,
+    );
+  }
+
+  const existente = await prisma.recessoForense.findFirst({
+    where: { ano: parsed.data.ano, orgaoId: parsed.data.orgaoId },
   });
 
   if (existente) {
@@ -135,6 +196,7 @@ export async function criarRecessoForenseAction(
     const criado = await tx.recessoForense.create({
       data: {
         ano: parsed.data.ano,
+        orgaoId: parsed.data.orgaoId,
         dataInicio: parsed.data.dataInicio,
         dataFim: parsed.data.dataFim,
         status: "ABERTO",
@@ -165,7 +227,9 @@ export async function criarConvocacaoRecessoAction(
 ): Promise<RecessoFormState> {
   const permissao = await exigirUmaDasPermissoesOuRedirecionar([
     "recesso:convocacao:global",
+    "recesso:convocacao:seccional",
     "recesso:gerenciar:global",
+    "recesso:gerenciar:seccional",
   ]);
 
   const dados = {
@@ -185,6 +249,16 @@ export async function criarConvocacaoRecessoAction(
       parsed.error.flatten().fieldErrors,
       dados,
     );
+  }
+
+  const erroEscopoPortaria = await validarPortariaNoOrgaoDoRecesso({
+    recessoId: parsed.data.recessoId,
+    unidadeId: parsed.data.unidadeId || null,
+    chefiaResponsavelId: parsed.data.chefiaResponsavelId || null,
+  });
+
+  if (erroEscopoPortaria) {
+    return estadoErro(erroEscopoPortaria, undefined, dados);
   }
 
   const convocacao = await prisma.$transaction(async (tx) => {
@@ -222,7 +296,9 @@ export async function criarConvocacaoRecessoAction(
   });
 
   revalidatePath(`/recesso-forense/${parsed.data.recessoId}`);
-  redirect(`/recesso-forense/${parsed.data.recessoId}/convocacoes?convocacao=${convocacao.id}`);
+  redirect(
+    `/recesso-forense/${parsed.data.recessoId}/convocacoes?convocacao=${convocacao.id}`,
+  );
 }
 
 export async function atualizarConvocacaoRecessoAction(
@@ -231,7 +307,9 @@ export async function atualizarConvocacaoRecessoAction(
 ): Promise<RecessoFormState> {
   const permissao = await exigirUmaDasPermissoesOuRedirecionar([
     "recesso:convocacao:global",
+    "recesso:convocacao:seccional",
     "recesso:gerenciar:global",
+    "recesso:gerenciar:seccional",
   ]);
 
   const dados = {
@@ -267,6 +345,16 @@ export async function atualizarConvocacaoRecessoAction(
 
   if (existente.status === "CANCELADA") {
     return estadoErro("Uma portaria cancelada não pode ser atualizada.");
+  }
+
+  const erroEscopoPortaria = await validarPortariaNoOrgaoDoRecesso({
+    recessoId: parsed.data.recessoId,
+    unidadeId: parsed.data.unidadeId || null,
+    chefiaResponsavelId: parsed.data.chefiaResponsavelId || null,
+  });
+
+  if (erroEscopoPortaria) {
+    return estadoErro(erroEscopoPortaria, undefined, dados);
   }
 
   const atualizada = await prisma.$transaction(async (tx) => {
@@ -584,7 +672,9 @@ export async function escolherCompensacaoRecessoAction(formData: FormData) {
   );
 
   const servidorSessao = permissao.usuarioId
-    ? await prisma.servidor.findUnique({ where: { usuarioId: permissao.usuarioId } })
+    ? await prisma.servidor.findUnique({
+        where: { usuarioId: permissao.usuarioId },
+      })
     : null;
 
   const convocadoAtual = await prisma.convocadoRecesso.findUnique({
@@ -644,7 +734,9 @@ export async function fecharRecessoServidorAction(formData: FormData) {
   );
 
   const servidorSessao = permissao.usuarioId
-    ? await prisma.servidor.findUnique({ where: { usuarioId: permissao.usuarioId } })
+    ? await prisma.servidor.findUnique({
+        where: { usuarioId: permissao.usuarioId },
+      })
     : null;
 
   if (!podeGerenciar && parsed.servidorId !== servidorSessao?.id) {
@@ -660,12 +752,14 @@ export async function fecharRecessoServidorAction(formData: FormData) {
     });
 
     const convocadosMes = convocados.filter(
-      (convocado) => convocado.dataConvocacao.getUTCMonth() + 1 === parsed.mesReferencia,
+      (convocado) =>
+        convocado.dataConvocacao.getUTCMonth() + 1 === parsed.mesReferencia,
     );
 
     const resumo = {
       total: convocadosMes.length,
-      pecunia: convocadosMes.filter((item) => item.escolha === "PECUNIA").length,
+      pecunia: convocadosMes.filter((item) => item.escolha === "PECUNIA")
+        .length,
       folga: convocadosMes.filter((item) => item.escolha === "FOLGA").length,
       minutos: convocadosMes.reduce(
         (total, item) => total + item.minutosTrabalhados,
@@ -741,7 +835,9 @@ export async function fecharRecessoServidorAction(formData: FormData) {
   });
 
   revalidatePath(`/recesso-forense/${parsed.recessoId}`);
-  redirect(`/recesso-forense/${parsed.recessoId}/homologacao?homologacao=${homologacao.id}`);
+  redirect(
+    `/recesso-forense/${parsed.recessoId}/homologacao?homologacao=${homologacao.id}`,
+  );
 }
 
 export async function homologarRecessoAction(formData: FormData) {

@@ -26,7 +26,9 @@ function ehPessoaExternaPontoSarh(matricula: string) {
   return /(?:ES|PS|VO)$/i.test(matricula.trim());
 }
 
-function endpointPessoaSarh(matricula: string): Extract<
+function endpointPessoaSarh(
+  matricula: string,
+): Extract<
   SarhEndpointKey,
   "servidores" | "estagiarios" | "prestadores" | "voluntarios"
 > {
@@ -63,7 +65,9 @@ function afastamentoSarhEhFerias(afastamento: SarhAfastamentoDto) {
     afastamento.categoria,
     afastamento.tipoDescricao,
     afastamento.origemTabela,
-  ].some((valor) => textoNormalizadoSarh(String(valor ?? "")).includes("FERIAS"));
+  ].some((valor) =>
+    textoNormalizadoSarh(String(valor ?? "")).includes("FERIAS"),
+  );
 }
 
 export class SarhSyncCanceladoError extends Error {
@@ -148,25 +152,25 @@ export class SincronizarSarhUseCase {
     const verificarCancelamento = async () => {
       const cancelada =
         (await input.verificarCancelamento?.(execucao.id)) ??
-        ((await this.prisma.integracaoSarhExecucao.findUnique({
-          where: { id: execucao.id },
-          select: { status: true },
-        }))?.status === "CANCELADA");
+        (
+          await this.prisma.integracaoSarhExecucao.findUnique({
+            where: { id: execucao.id },
+            select: { status: true },
+          })
+        )?.status === "CANCELADA";
 
       if (cancelada) {
         throw new SarhSyncCanceladoError();
       }
     };
 
-    const publicarProgresso = async (
-      params: {
-        endpointAtual: SarhEndpointKey | null;
-        endpointIndice: number;
-        percentualEndpoint: number;
-        etapa: string;
-        status?: SarhSyncProgress["status"];
-      },
-    ) => {
+    const publicarProgresso = async (params: {
+      endpointAtual: SarhEndpointKey | null;
+      endpointIndice: number;
+      percentualEndpoint: number;
+      etapa: string;
+      status?: SarhSyncProgress["status"];
+    }) => {
       await verificarCancelamento();
 
       const percentualEndpoint = Math.max(
@@ -201,13 +205,18 @@ export class SincronizarSarhUseCase {
     };
 
     const buscarServidoresSarh = async () => {
-      servidoresSarhCache ??= await sarhClient.buscarServidores();
+      servidoresSarhCache ??= await sarhClient.buscarServidores({
+        matricula: input.matricula,
+      });
       return servidoresSarhCache;
     };
 
     const buscarLotacoesServidoresSarh = async () => {
-      lotacoesServidoresSarhCache ??=
-        await sarhClient.buscarLotacoesServidores();
+      lotacoesServidoresSarhCache ??= await sarhClient.buscarLotacoesServidores(
+        {
+          matricula: input.matricula,
+        },
+      );
       return lotacoesServidoresSarhCache;
     };
 
@@ -448,10 +457,8 @@ export class SincronizarSarhUseCase {
           }
 
           return (
-            codigoLotacaoPermitido(
-              codigoLotacao,
-              codigosPermitidos,
-            ) || Boolean(matriculasPermitidas?.has(matricula))
+            codigoLotacaoPermitido(codigoLotacao, codigosPermitidos) ||
+            Boolean(matriculasPermitidas?.has(matricula))
           );
         });
         let processados = 0;
@@ -575,7 +582,9 @@ export class SincronizarSarhUseCase {
           1,
           somenteFerias ? "Buscando férias" : "Buscando afastamentos",
         );
-        const afastamentos = await sarhClient.buscarAfastamentos();
+        const afastamentos = await sarhClient.buscarAfastamentos({
+          matricula: input.matricula,
+        });
         const matriculaFiltro = input.matricula?.toUpperCase();
         const matriculasPermitidas = await resolverMatriculasPermitidas();
         const filtrados = afastamentos.filter((afastamento) => {
@@ -593,8 +602,9 @@ export class SincronizarSarhUseCase {
             return false;
           }
 
-          return !matriculasPermitidas || Boolean(
-            matricula && matriculasPermitidas.has(matricula),
+          return (
+            !matriculasPermitidas ||
+            Boolean(matricula && matriculasPermitidas.has(matricula))
           );
         });
         let processados = 0;

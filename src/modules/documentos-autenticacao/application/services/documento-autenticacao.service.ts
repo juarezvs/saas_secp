@@ -67,6 +67,38 @@ type DadosEspelhoPontoAutenticacao = {
   mes: number;
 };
 
+type DadosNadaConstaFrequenciaAutenticacao = {
+  execucaoId: string;
+  servidor: {
+    id: string;
+    matricula: string;
+    nomeFuncional?: string | null;
+    usuario: {
+      nome: string;
+    };
+    orgao?: {
+      sigla: string | null;
+    } | null;
+    lotacoes: {
+      unidade: UnidadeDocumento;
+      cargo?: {
+        descricao: string;
+      } | null;
+    }[];
+  } | null;
+  orgao?: {
+    sigla: string | null;
+    nome?: string | null;
+  } | null;
+  processoSei?: string | null;
+  dataInicio?: Date | string | null;
+  dataFim?: Date | string | null;
+  criadoEm: Date | string;
+  resultado: string | null;
+  dadosResultado: unknown;
+  usuarioResponsavel?: UsuarioDocumento | null;
+};
+
 function serializarEstavel(valor: unknown): string {
   if (valor instanceof Date) {
     return valor.toISOString();
@@ -79,7 +111,10 @@ function serializarEstavel(valor: unknown): string {
   if (valor && typeof valor === "object") {
     return `{${Object.entries(valor)
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([chave, item]) => `${JSON.stringify(chave)}:${serializarEstavel(item)}`)
+      .map(
+        ([chave, item]) =>
+          `${JSON.stringify(chave)}:${serializarEstavel(item)}`,
+      )
       .join(",")}}`;
   }
 
@@ -87,7 +122,10 @@ function serializarEstavel(valor: unknown): string {
 }
 
 function gerarHashDocumento(payload: unknown) {
-  return crypto.createHash("sha256").update(serializarEstavel(payload)).digest("hex");
+  return crypto
+    .createHash("sha256")
+    .update(serializarEstavel(payload))
+    .digest("hex");
 }
 
 function gerarCodigoDocumento() {
@@ -105,7 +143,8 @@ function gerarCrc(codigo: string, hashDocumento: string) {
 
 function funcaoUsuario(usuario?: UsuarioDocumento | null) {
   const servidor = usuario?.servidor;
-  const cargo = servidor?.cargo?.descricao ?? servidor?.lotacoes?.[0]?.cargo?.descricao;
+  const cargo =
+    servidor?.cargo?.descricao ?? servidor?.lotacoes?.[0]?.cargo?.descricao;
   const unidade = servidor?.lotacoes?.[0]?.unidade?.sigla;
 
   return [cargo, unidade].filter(Boolean).join(" - ") || null;
@@ -298,6 +337,117 @@ export async function prepararAutenticacaoEspelhoPonto(params: {
       ano: params.dados.ano,
       mes: params.dados.mes,
       statusHomologacao: homologacao?.status ?? null,
+    },
+    assinaturas,
+    criadoPorUsuarioId: params.criadoPorUsuarioId,
+  };
+  const documento =
+    existente ??
+    (await prisma.documentoAutenticacao.create({
+      data: dadosDocumento,
+    }));
+  const url = `${urlBaseAplicacao(params.requestUrl)}/autenticidade/${
+    documento.codigo
+  }?crc=${documento.crc}`;
+
+  return {
+    codigo: documento.codigo,
+    crc: documento.crc,
+    url,
+    qrCodeDataUrl: await QRCode.toDataURL(url, {
+      errorCorrectionLevel: "M",
+      margin: 1,
+      width: 180,
+    }),
+    hashDocumento,
+    assinaturas,
+  };
+}
+
+export async function prepararAutenticacaoNadaConstaFrequencia(params: {
+  dados: DadosNadaConstaFrequenciaAutenticacao;
+  requestUrl: string;
+  criadoPorUsuarioId: string;
+}): Promise<DadosAutenticacaoDocumento | null> {
+  const servidor = params.dados.servidor;
+
+  if (!servidor) {
+    return null;
+  }
+
+  const dataInicio = params.dados.dataInicio
+    ? new Date(params.dados.dataInicio)
+    : null;
+  const dataFim = params.dados.dataFim ? new Date(params.dados.dataFim) : null;
+  const periodo =
+    dataInicio && dataFim
+      ? `${dataInicio.toISOString().slice(0, 10)}:${dataFim
+          .toISOString()
+          .slice(0, 10)}`
+      : null;
+  const competenciaDocumento =
+    dataInicio && dataFim
+      ? `${dataInicio.toISOString().slice(0, 10).replaceAll("-", "")}-${dataFim
+          .toISOString()
+          .slice(0, 10)
+          .replaceAll("-", "")}`
+      : null;
+  const usuarioResponsavel = params.dados.usuarioResponsavel;
+  const assinaturas = deduplicarAssinaturas([
+    ...(usuarioResponsavel
+      ? [
+          {
+            nome: usuarioResponsavel.nome,
+            funcao:
+              funcaoUsuario(usuarioResponsavel) ?? "Responsavel pela emissao",
+            data: new Date(params.dados.criadoEm).toISOString(),
+            tipo: "Emissao",
+          },
+        ]
+      : []),
+  ]);
+  const payloadHash = {
+    tipo: "NADA_CONSTA_FREQUENCIA",
+    execucaoId: params.dados.execucaoId,
+    servidorId: servidor.id,
+    matricula: servidor.matricula,
+    processoSei: params.dados.processoSei ?? null,
+    periodo,
+    resultado: params.dados.resultado,
+    dadosResultado: params.dados.dadosResultado,
+    assinaturas,
+  };
+  const hashDocumento = gerarHashDocumento(payloadHash);
+  const existente = await prisma.documentoAutenticacao.findFirst({
+    where: {
+      tipoDocumento: "NADA_CONSTA_FREQUENCIA",
+      entidade: "ProcedimentoAdministrativoFrequenciaExecucao",
+      entidadeId: params.dados.execucaoId,
+      competencia: competenciaDocumento,
+      hashDocumento,
+    },
+  });
+  const codigo = existente?.codigo ?? gerarCodigoDocumento();
+  const crc = gerarCrc(codigo, hashDocumento);
+  const unidade = servidor.lotacoes[0]?.unidade;
+  const dadosDocumento = {
+    codigo,
+    crc,
+    tipoDocumento: "NADA_CONSTA_FREQUENCIA",
+    entidade: "ProcedimentoAdministrativoFrequenciaExecucao",
+    entidadeId: params.dados.execucaoId,
+    titulo: "Nada Consta de frequencia",
+    competencia: competenciaDocumento,
+    orgao: params.dados.orgao?.sigla ?? servidor.orgao?.sigla ?? null,
+    unidade: unidade?.sigla ?? null,
+    servidorNome: nomeServidor(servidor) || servidor.usuario.nome,
+    servidorMatricula: servidor.matricula,
+    hashDocumento,
+    dadosResumo: {
+      processoSei: params.dados.processoSei ?? null,
+      periodo,
+      dataInicio: dataInicio?.toISOString().slice(0, 10) ?? null,
+      dataFim: dataFim?.toISOString().slice(0, 10) ?? null,
     },
     assinaturas,
     criadoPorUsuarioId: params.criadoPorUsuarioId,

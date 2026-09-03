@@ -110,8 +110,7 @@ function extrairDados(formData: FormData): Partial<CriarSolicitacaoInput> {
     tipoMarcacao: String(formData.get("tipoMarcacao") ?? ""),
     horaAjuste: String(formData.get("horaAjuste") ?? ""),
     tipoCompensacao: String(formData.get("tipoCompensacao") ?? "") as
-      | CriarSolicitacaoInput["tipoCompensacao"]
-      | "",
+      CriarSolicitacaoInput["tipoCompensacao"] | "",
     horasSolicitadas: formData.get("horasSolicitadas")
       ? Number(formData.get("horasSolicitadas"))
       : undefined,
@@ -185,6 +184,7 @@ export async function criarSolicitacaoAction(
 
   const chefiaResolvida = await resolverChefiaResponsavelDaUnidade(
     lotacaoAtual.unidadeId,
+    { ignorarServidorId: servidor.id },
   );
   const fusoHorario = resolverFusoHorarioServidor(servidor);
   const dataReferencia = valorOpcionalData(parsed.data.dataReferencia);
@@ -227,9 +227,7 @@ export async function criarSolicitacaoAction(
   }
 
   if (
-    TIPOS_SOLICITACAO_COM_RECALCULO_APOS_DEFERIMENTO.includes(
-      parsed.data.tipo,
-    )
+    TIPOS_SOLICITACAO_COM_RECALCULO_APOS_DEFERIMENTO.includes(parsed.data.tipo)
   ) {
     const datasImpactadas = listarDatasImpactadasSolicitacao(
       { dataReferencia, dataInicio, dataFim },

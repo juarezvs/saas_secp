@@ -10,6 +10,11 @@ type RecessoForenseFormProps = {
     state: RecessoFormState,
     formData: FormData,
   ) => Promise<RecessoFormState>;
+  orgaos: Array<{
+    id: string;
+    sigla: string;
+    nome: string;
+  }>;
 };
 
 const estadoInicial: RecessoFormState = {
@@ -21,9 +26,13 @@ function erro(estado: RecessoFormState, campo: string) {
   return estado.erros?.[campo]?.[0];
 }
 
-export function RecessoForenseForm({ action }: RecessoForenseFormProps) {
+export function RecessoForenseForm({
+  action,
+  orgaos,
+}: RecessoForenseFormProps) {
   const [estado, formAction, pendente] = useActionState(action, estadoInicial);
   const anoAtual = new Date().getFullYear();
+  const orgaoPadrao = String(estado.campos?.orgaoId ?? orgaos[0]?.id ?? "");
 
   return (
     <form action={formAction} className="space-y-6">
@@ -44,6 +53,27 @@ export function RecessoForenseForm({ action }: RecessoForenseFormProps) {
         </p>
 
         <div className="mt-5 grid gap-5 md:grid-cols-2">
+          <div className="space-y-2">
+            <label htmlFor="orgaoId" className="text-sm font-semibold">
+              Seccional
+            </label>
+            <select
+              id="orgaoId"
+              name="orgaoId"
+              defaultValue={orgaoPadrao}
+              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              required
+            >
+              {orgaos.map((orgao) => (
+                <option key={orgao.id} value={orgao.id}>
+                  {orgao.sigla} - {orgao.nome}
+                </option>
+              ))}
+            </select>
+            {erro(estado, "orgaoId") && (
+              <p className="text-sm text-red-600">{erro(estado, "orgaoId")}</p>
+            )}
+          </div>
           <div className="space-y-2">
             <label htmlFor="ano" className="text-sm font-semibold">
               Ano de referência
@@ -66,8 +96,7 @@ export function RecessoForenseForm({ action }: RecessoForenseFormProps) {
           <div className="rounded-lg border bg-[var(--muted)] p-4 text-sm">
             <p className="font-semibold">Regra fixa</p>
             <p className="mt-1 text-[var(--muted-foreground)]">
-              De 20/12 a 06/01, com fechamento separado para dezembro e
-              janeiro.
+              De 20/12 a 06/01, com fechamento separado para dezembro e janeiro.
             </p>
           </div>
 

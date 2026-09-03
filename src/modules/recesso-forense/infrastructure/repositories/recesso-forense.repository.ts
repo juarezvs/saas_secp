@@ -6,10 +6,26 @@ type EscopoServidoresRecesso = {
   exibirTodasConvocacoes?: boolean;
 };
 
-export async function listarRecessosForenses() {
+function filtroOrgaosPermitidos(orgaoIdsPermitidos?: string[]) {
+  return orgaoIdsPermitidos
+    ? {
+        orgaoId: {
+          in: orgaoIdsPermitidos,
+        },
+      }
+    : {};
+}
+
+export async function listarRecessosForenses(
+  params: {
+    orgaoIdsPermitidos?: string[];
+  } = {},
+) {
   return prisma.recessoForense.findMany({
+    where: filtroOrgaosPermitidos(params.orgaoIdsPermitidos),
     orderBy: { ano: "desc" },
     include: {
+      orgao: true,
       convocacoes: true,
       convocados: true,
       homologacoes: true,
@@ -26,20 +42,24 @@ export async function buscarRecessoForensePorId(
     : {};
   const filtroConvocacoes =
     params.servidorIdsPermitidos && !params.exibirTodasConvocacoes
-    ? {
-        convocados: {
-          some: {
-            servidorId: {
-              in: params.servidorIdsPermitidos,
+      ? {
+          convocados: {
+            some: {
+              servidorId: {
+                in: params.servidorIdsPermitidos,
+              },
             },
           },
-        },
-      }
-    : {};
+        }
+      : {};
 
-  return prisma.recessoForense.findUnique({
-    where: { id },
+  return prisma.recessoForense.findFirst({
+    where: {
+      id,
+      ...filtroOrgaosPermitidos(params.orgaoIdsPermitidos),
+    },
     include: {
+      orgao: true,
       criadoPor: true,
       fechadoPor: true,
       convocacoes: {
@@ -102,18 +122,25 @@ export async function buscarRecessoForensePorId(
   });
 }
 
-export async function buscarRecessoForensePorAno(ano: number) {
-  return prisma.recessoForense.findUnique({
-    where: { ano },
+export async function buscarRecessoForensePorAno(
+  ano: number,
+  orgaoId?: string | null,
+) {
+  return prisma.recessoForense.findFirst({
+    where: { ano, orgaoId: orgaoId ?? null },
   });
 }
 
 export async function listarRecessosForensesNoPeriodo(
   inicio: Date,
   fimExclusivo: Date,
+  params: {
+    orgaoIdsPermitidos?: string[];
+  } = {},
 ) {
   return prisma.recessoForense.findMany({
     where: {
+      ...filtroOrgaosPermitidos(params.orgaoIdsPermitidos),
       status: {
         not: "CANCELADO",
       },
@@ -128,9 +155,11 @@ export async function listarRecessosForensesNoPeriodo(
   });
 }
 
-export async function listarUnidadesParaRecesso(params: {
-  orgaoIdsPermitidos?: string[];
-} = {}) {
+export async function listarUnidadesParaRecesso(
+  params: {
+    orgaoIdsPermitidos?: string[];
+  } = {},
+) {
   return prisma.unidadeOrganizacional.findMany({
     where: {
       ativo: true,
@@ -196,6 +225,7 @@ export async function listarRecessosDoServidor(usuarioId: string) {
           },
         },
         {
+          orgaoId: servidor.orgaoId,
           status: {
             in: ["ABERTO", "EM_CONVOCACAO", "EM_EXECUCAO"],
           },
@@ -218,9 +248,13 @@ export async function listarRecessosDoServidor(usuarioId: string) {
   });
 }
 
-export async function listarRecessosPorServidores(servidorIds: string[]) {
+export async function listarRecessosPorServidores(
+  servidorIds: string[],
+  params: { orgaoIdsPermitidos?: string[] } = {},
+) {
   return prisma.recessoForense.findMany({
     where: {
+      ...filtroOrgaosPermitidos(params.orgaoIdsPermitidos),
       OR: [
         {
           convocados: {

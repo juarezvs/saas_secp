@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { withHttpMetrics } from "@/lib/observability/http";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { obterPermissoesDaSessao } from "@/modules/auth/application/services/permissao.service";
+import { ENDPOINTS_PADRAO_SARH_MATRICULA } from "@/modules/integracoes/sarh/application/sarh-sync.dto";
 import {
   SarhEscopoSincronizacaoError,
   resolverEscopoSincronizacaoSarh,
@@ -41,12 +42,27 @@ const ENDPOINTS_VALIDOS = new Set<SarhEndpointKey>([
   "calendarios",
 ]);
 
+const ENDPOINTS_PESSOAS: SarhEndpointKey[] = [
+  "servidores",
+  "estagiarios",
+  "prestadores",
+  "voluntarios",
+  "lotacoesServidores",
+  "tiposAfastamento",
+  "afastamentos",
+  "ferias",
+  "chefias",
+  "substituicoes",
+  "calendarios",
+];
+
 const ENDPOINTS_COMPATIVEIS_MATRICULA = new Set<SarhEndpointKey>([
   "servidores",
   "estagiarios",
   "prestadores",
   "voluntarios",
   "lotacoesServidores",
+  "tiposAfastamento",
   "afastamentos",
   "ferias",
   "chefias",
@@ -55,22 +71,13 @@ const ENDPOINTS_COMPATIVEIS_MATRICULA = new Set<SarhEndpointKey>([
 ]);
 
 const ENDPOINTS_PADRAO_MATRICULA: SarhEndpointKey[] = [
-  "servidores",
-  "estagiarios",
-  "prestadores",
-  "voluntarios",
-  "lotacoesServidores",
-  "afastamentos",
-  "ferias",
-  "chefias",
-  "substituicoes",
-  "calendarios",
+  ...ENDPOINTS_PADRAO_SARH_MATRICULA,
 ];
 
 type SincronizarSarhRequest = {
   modo?: "simulacao" | "aplicar";
   tipo?: TipoExecucaoSarh;
-  endpoints?: SarhEndpointKey[];
+  endpoints?: Array<SarhEndpointKey | "pessoas">;
   orgaoId?: string;
   matricula?: string;
   codigoUnidadeSarh?: number;
@@ -97,8 +104,18 @@ function normalizarEndpoints(endpoints: unknown, matricula?: string) {
     return matricula ? ENDPOINTS_PADRAO_MATRICULA : undefined;
   }
 
-  const validos = endpoints.filter((endpoint): endpoint is SarhEndpointKey =>
-    ENDPOINTS_VALIDOS.has(endpoint as SarhEndpointKey),
+  const validos = Array.from(
+    new Set(
+      endpoints.flatMap((endpoint) => {
+        if (endpoint === "pessoas") {
+          return ENDPOINTS_PESSOAS;
+        }
+
+        return ENDPOINTS_VALIDOS.has(endpoint as SarhEndpointKey)
+          ? [endpoint as SarhEndpointKey]
+          : [];
+      }),
+    ),
   );
 
   if (!matricula) {
@@ -119,6 +136,61 @@ function isSarhSyncProgress(valor: unknown): valor is SarhSyncProgress {
     "percentualGeral" in valor &&
     "percentualEndpoint" in valor,
   );
+}
+
+function limiteJobAtivoSemProgressoMs() {
+  const minutos = Number(process.env.SARH_SYNC_STALE_JOB_MINUTES ?? "15");
+
+  return Math.max(Number.isFinite(minutos) ? minutos : 15, 1) * 60 * 1000;
+}
+
+function progressoAtualizadoEm(progresso: unknown) {
+  if (!progresso || typeof progresso !== "object") {
+    return null;
+  }
+
+  const atualizadoEm = (progresso as { atualizadoEm?: unknown }).atualizadoEm;
+
+  return typeof atualizadoEm === "string" ? Date.parse(atualizadoEm) : null;
+}
+
+function jobAtivoSemProgresso(params: {
+  estado: string;
+  progresso: unknown;
+  processedOn?: number;
+  timestamp: number;
+}) {
+  if (params.estado !== "active") {
+    return false;
+  }
+
+  const referencia =
+    progressoAtualizadoEm(params.progresso) ??
+    params.processedOn ??
+    params.timestamp;
+
+  return Date.now() - referencia > limiteJobAtivoSemProgressoMs();
+}
+
+async function marcarExecucaoSarhSemProgresso(progresso: SarhSyncProgress) {
+  if (!progresso.execucaoId) {
+    return;
+  }
+
+  const { prisma } = await import("@/shared/infrastructure/database/prisma");
+
+  await prisma.integracaoSarhExecucao.updateMany({
+    where: {
+      id: progresso.execucaoId,
+      status: { in: ["AGENDADA", "EM_EXECUCAO"] },
+    },
+    data: {
+      status: "FALHOU",
+      mensagemErro:
+        "Sincronizacao SARH ficou ativa sem atualizacao de progresso e foi considerada interrompida.",
+      finalizadoEm: new Date(),
+    },
+  });
 }
 
 function usuarioPodeAcessarJob(params: {
@@ -233,10 +305,72 @@ async function getSincronizarSarh(request: Request) {
     return acesso.erro;
   }
 
-  const jobId = new URL(request.url).searchParams.get("jobId");
+  const url = new URL(request.url);
+  const jobId = url.searchParams.get("jobId");
+  const orgaoId = url.searchParams.get("orgaoId")?.trim() || null;
   const { obterSarhSyncQueue, progressoSarhAgendado } =
     await import("@/modules/integracoes/sarh/application/queues/sarh-sync-queue");
-  const job = jobId ? await obterSarhSyncQueue().getJob(jobId) : null;
+  const queue = obterSarhSyncQueue();
+  const escopoUsuario = await obterEscopoOrgaoDaSessao();
+  let job = jobId ? await queue.getJob(jobId) : null;
+
+  if (!job && !jobId) {
+    const jobs = await queue.getJobs(
+      ["active", "waiting", "delayed", "completed", "failed"],
+      0,
+      100,
+      true,
+    );
+
+    const prioridadeEstado = (estado: string) => {
+      if (estado === "active") return 0;
+      if (estado === "waiting") return 1;
+      if (estado === "delayed") return 2;
+      if (estado === "failed") return 3;
+      if (estado === "completed") return 4;
+      if (estado === "cancelled") return 5;
+
+      return 6;
+    };
+    const jobsAcessiveis = await Promise.all(
+      jobs
+        .filter((jobCandidato) => {
+          if ((jobCandidato.data.orgaoId ?? null) !== orgaoId) {
+            return false;
+          }
+
+          return usuarioPodeAcessarJob({
+            escopoUsuario,
+            escopoJob: jobCandidato.data.escopoSincronizacao,
+          });
+        })
+        .map(async (jobCandidato) => ({
+          job: jobCandidato,
+          estado: await jobCandidato.getState(),
+          ativoSemProgresso: jobAtivoSemProgresso({
+            estado: await jobCandidato.getState(),
+            progresso: jobCandidato.progress,
+            processedOn: jobCandidato.processedOn,
+            timestamp: jobCandidato.timestamp,
+          }),
+        })),
+    );
+
+    job =
+      jobsAcessiveis.sort((a, b) => {
+        const prioridadeA = a.ativoSemProgresso
+          ? prioridadeEstado("failed")
+          : prioridadeEstado(a.estado);
+        const prioridadeB = b.ativoSemProgresso
+          ? prioridadeEstado("failed")
+          : prioridadeEstado(b.estado);
+        const prioridade = prioridadeA - prioridadeB;
+
+        return prioridade === 0
+          ? b.job.timestamp - a.job.timestamp
+          : prioridade;
+      })[0]?.job ?? null;
+  }
 
   if (!job) {
     return NextResponse.json(
@@ -244,8 +378,6 @@ async function getSincronizarSarh(request: Request) {
       { status: 404 },
     );
   }
-
-  const escopoUsuario = await obterEscopoOrgaoDaSessao();
 
   if (
     !usuarioPodeAcessarJob({
@@ -257,19 +389,43 @@ async function getSincronizarSarh(request: Request) {
   }
 
   const estado = await job.getState();
-  const progresso = isSarhSyncProgress(job.progress)
+  const progressoOriginal = isSarhSyncProgress(job.progress)
     ? job.progress
     : progressoSarhAgendado();
+  const ativoSemProgresso = jobAtivoSemProgresso({
+    estado,
+    progresso: progressoOriginal,
+    processedOn: job.processedOn,
+    timestamp: job.timestamp,
+  });
+  const progresso = ativoSemProgresso
+    ? ({
+        ...progressoOriginal,
+        percentualGeral: 100,
+        percentualEndpoint: 100,
+        etapa:
+          "Sincronizacao SARH sem atualizacao recente de progresso. Inicie uma nova sincronizacao.",
+        status: "FALHOU",
+      } satisfies SarhSyncProgress)
+    : progressoOriginal;
+
+  if (ativoSemProgresso) {
+    await marcarExecucaoSarhSemProgresso(progressoOriginal);
+  }
 
   return NextResponse.json({
     jobId: job.id,
-    estado,
+    estado: ativoSemProgresso ? ("failed" satisfies JobEstado) : estado,
     progresso,
     resultado:
-      estado === "completed"
+      !ativoSemProgresso && estado === "completed"
         ? (job.returnvalue as SarhResumoExecucao | null)
         : null,
-    erro: estado === "failed" ? job.failedReason : null,
+    erro: ativoSemProgresso
+      ? "Job SARH ativo sem atualizacao recente de progresso."
+      : estado === "failed"
+        ? job.failedReason
+        : null,
   });
 }
 

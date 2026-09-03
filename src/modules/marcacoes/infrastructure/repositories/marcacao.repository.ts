@@ -116,7 +116,9 @@ export async function listarMarcacoesDoServidorNoDia(params: {
     where: {
       servidorId: params.servidorId,
       dataReferencia,
-      status: "VALIDA",
+      status: {
+        in: ["VALIDA", "PENDENTE", "AJUSTADA"],
+      },
     },
     orderBy: {
       dataHora: "asc",

@@ -33,7 +33,9 @@ export default async function RecessoConvocacoesPage({
 }: RecessoConvocacoesPageProps) {
   const permissao = await exigirUmaDasPermissoesOuRedirecionar([
     "recesso:convocacao:global",
+    "recesso:convocacao:seccional",
     "recesso:gerenciar:global",
+    "recesso:gerenciar:seccional",
     "recesso:homologar:chefia",
   ]);
 
@@ -49,10 +51,13 @@ export default async function RecessoConvocacoesPage({
   const podeGerenciarPortarias =
     !escopoRecesso.restrito &&
     (permissao.permissoes.includes("recesso:convocacao:global") ||
-      permissao.permissoes.includes("recesso:gerenciar:global"));
+      permissao.permissoes.includes("recesso:convocacao:seccional") ||
+      permissao.permissoes.includes("recesso:gerenciar:global") ||
+      permissao.permissoes.includes("recesso:gerenciar:seccional"));
   const [recesso, unidades, servidores] = await Promise.all([
     buscarRecessoForensePorId(id, {
       servidorIdsPermitidos: escopoRecesso.servidorIdsPermitidos,
+      orgaoIdsPermitidos,
       exibirTodasConvocacoes: !escopoRecesso.perfilServidor,
     }),
     listarUnidadesParaRecesso({ orgaoIdsPermitidos }),
@@ -67,9 +72,9 @@ export default async function RecessoConvocacoesPage({
   }
 
   const convocacaoSelecionada = podeGerenciarPortarias
-    ? recesso.convocacoes.find(
+    ? (recesso.convocacoes.find(
         (convocacao) => convocacao.id === filtros.convocacao,
-      ) ?? null
+      ) ?? null)
     : null;
 
   return (
@@ -77,7 +82,10 @@ export default async function RecessoConvocacoesPage({
       <Breadcrumb
         items={[
           { label: "Recesso forense", href: "/recesso-forense" },
-          { label: String(recesso.ano), href: `/recesso-forense/${recesso.id}` },
+          {
+            label: String(recesso.ano),
+            href: `/recesso-forense/${recesso.id}`,
+          },
           { label: "Convocações" },
         ]}
       />

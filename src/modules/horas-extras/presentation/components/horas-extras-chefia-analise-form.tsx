@@ -2,12 +2,46 @@
 
 import { useActionState } from "react";
 
-import { Button, Card, CardContent, CardHeader, CardTitle, Label, Textarea } from "@/components/ui";
+import {
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Label,
+  Textarea,
+} from "@/components/ui";
 import { analisarHorasExtrasChefiaAction } from "../../application/actions/analisar-horas-extras-chefia.action";
-import type { AnalisarHorasExtrasChefiaFormState } from "../../application/schemas/horas-extras-analise-chefia.schema";
+import {
+  acoesAnaliseChefiaHorasExtras,
+  type AnalisarHorasExtrasChefiaFormState,
+  type AnalisarHorasExtrasChefiaInput,
+} from "../../application/schemas/horas-extras-analise-chefia.schema";
 
 const estadoInicial: AnalisarHorasExtrasChefiaFormState = {
   sucesso: false,
+};
+
+type AcaoAnaliseChefia = AnalisarHorasExtrasChefiaInput["action"];
+
+type AcaoDisponivel = {
+  actionCode: AcaoAnaliseChefia;
+  toStepCode: string | null;
+};
+
+const acoesChefia = new Set<string>(acoesAnaliseChefiaHorasExtras);
+
+const rotulosAcao: Record<AcaoAnaliseChefia, string> = {
+  APPROVE: "Deferir",
+  REJECT: "Indeferir",
+};
+
+const variantesAcao: Record<
+  AcaoAnaliseChefia,
+  "primary" | "outline" | "danger"
+> = {
+  APPROVE: "primary",
+  REJECT: "danger",
 };
 
 function erro(estado: AnalisarHorasExtrasChefiaFormState, campo: string) {
@@ -16,18 +50,23 @@ function erro(estado: AnalisarHorasExtrasChefiaFormState, campo: string) {
 
 export function HorasExtrasChefiaAnaliseForm({
   requestId,
+  acoesDisponiveis,
 }: {
   requestId: string;
+  acoesDisponiveis: AcaoDisponivel[];
 }) {
   const [estado, formAction, pendente] = useActionState(
     analisarHorasExtrasChefiaAction,
     estadoInicial,
   );
+  const acoesRenderizadas = acoesDisponiveis.filter((acao) =>
+    acoesChefia.has(acao.actionCode),
+  );
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Análise da chefia</CardTitle>
+        <CardTitle>Analise da chefia</CardTitle>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-4">
@@ -40,7 +79,7 @@ export function HorasExtrasChefiaAnaliseForm({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="reason">Justificativa da análise</Label>
+            <Label htmlFor="reason">Justificativa da analise</Label>
             <Textarea
               id="reason"
               name="reason"
@@ -54,36 +93,27 @@ export function HorasExtrasChefiaAnaliseForm({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button
-              type="submit"
-              name="action"
-              value="FORWARD_BUDGET"
-              loading={pendente}
-            >
-              Encaminhar ao orçamento
-            </Button>
-            <Button
-              type="submit"
-              name="action"
-              value="RETURN"
-              variant="outline"
-              loading={pendente}
-            >
-              Devolver
-            </Button>
-            <Button
-              type="submit"
-              name="action"
-              value="REJECT"
-              variant="danger"
-              loading={pendente}
-            >
-              Rejeitar
-            </Button>
+            {acoesRenderizadas.length > 0 ? (
+              acoesRenderizadas.map((acao) => (
+                <Button
+                  key={`${acao.actionCode}-${acao.toStepCode ?? "terminal"}`}
+                  type="submit"
+                  name="action"
+                  value={acao.actionCode}
+                  variant={variantesAcao[acao.actionCode]}
+                  loading={pendente}
+                >
+                  {rotulosAcao[acao.actionCode]}
+                </Button>
+              ))
+            ) : (
+              <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-950">
+                A solicitacao nao esta pendente de analise da chefia.
+              </p>
+            )}
           </div>
         </form>
       </CardContent>
     </Card>
   );
 }
-

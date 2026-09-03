@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  erroCampoAccessLogControlIdNaoSuportado,
   normalizarCpfControlId,
   parseLinhaAfdIdClass,
   parseLinhaCadastroAfdIdClass,
@@ -64,5 +65,17 @@ describe("parseLinhaCadastroAfdIdClass", () => {
       nome: "BERNARDO WANGHON MAIA JUNIOR",
       operacao: "INCLUSAO",
     });
+  });
+});
+
+describe("erroCampoAccessLogControlIdNaoSuportado", () => {
+  it("reconhece mensagem curta retornada por alguns Control iD", () => {
+    expect(
+      erroCampoAccessLogControlIdNaoSuportado(
+        new Error(
+          'Control iD HTTP 400: {"error":"confidence is not a column of table access_logs","code":1}',
+        ),
+      ),
+    ).toBe(true);
   });
 });

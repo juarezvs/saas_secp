@@ -53,6 +53,7 @@ export function obterSarhSyncQueue() {
 
 export function progressoSarhAgendado(): SarhSyncProgress {
   return {
+    atualizadoEm: new Date().toISOString(),
     percentualGeral: 0,
     percentualEndpoint: 0,
     endpointAtual: null,
@@ -72,6 +73,63 @@ export function progressoSarhAgendado(): SarhSyncProgress {
   };
 }
 
+function limiteJobAtivoSemProgressoMs() {
+  const minutos = Number(process.env.SARH_SYNC_STALE_JOB_MINUTES ?? "15");
+
+  return Math.max(Number.isFinite(minutos) ? minutos : 15, 1) * 60 * 1000;
+}
+
+function progressoAtualizadoEm(progresso: unknown) {
+  if (!progresso || typeof progresso !== "object") {
+    return null;
+  }
+
+  const atualizadoEm = (progresso as { atualizadoEm?: unknown }).atualizadoEm;
+
+  return typeof atualizadoEm === "string" ? Date.parse(atualizadoEm) : null;
+}
+
+async function jobAtivoSemProgresso(
+  job: Awaited<ReturnType<Queue<SarhSyncJob>["getJob"]>>,
+) {
+  if (!job || (await job.getState()) !== "active") {
+    return false;
+  }
+
+  const referencia =
+    progressoAtualizadoEm(job.progress) ?? job.processedOn ?? job.timestamp;
+
+  return Date.now() - referencia > limiteJobAtivoSemProgressoMs();
+}
+
+function mesmoEscopoOperacional(
+  jobExistente: SarhSyncJob,
+  novoJob: SarhSyncJob,
+) {
+  if ((jobExistente.orgaoId ?? null) !== (novoJob.orgaoId ?? null)) {
+    return false;
+  }
+
+  if ((jobExistente.matricula ?? null) || (novoJob.matricula ?? null)) {
+    return (jobExistente.matricula ?? null) === (novoJob.matricula ?? null);
+  }
+
+  if (
+    (jobExistente.codigoUnidadeSarh ?? null) ||
+    (novoJob.codigoUnidadeSarh ?? null)
+  ) {
+    return (
+      (jobExistente.codigoUnidadeSarh ?? null) ===
+      (novoJob.codigoUnidadeSarh ?? null)
+    );
+  }
+
+  return (
+    JSON.stringify(jobExistente.escopoSincronizacao ?? null) ===
+    JSON.stringify(novoJob.escopoSincronizacao ?? null)
+  );
+}
+
 export async function enfileirarSincronizacaoSarh(job: SarhSyncJob) {
   const sarhSyncQueue = obterSarhSyncQueue();
   const jobsEmAndamento = await sarhSyncQueue.getJobs([
@@ -79,19 +137,20 @@ export async function enfileirarSincronizacaoSarh(job: SarhSyncJob) {
     "waiting",
     "delayed",
   ]);
-  const escopoJob = JSON.stringify(job.escopoSincronizacao ?? null);
-  const existente = jobsEmAndamento.find((jobEmAndamento) => {
-    const data = jobEmAndamento.data;
-
-    return (
-      JSON.stringify(data.escopoSincronizacao ?? null) === escopoJob &&
-      data.orgaoId === job.orgaoId &&
-      data.codigoUnidadeSarh === job.codigoUnidadeSarh &&
-      JSON.stringify(data.codigosUnidadesSarhPermitidos ?? []) ===
-        JSON.stringify(job.codigosUnidadesSarhPermitidos ?? []) &&
-      data.matricula === job.matricula
-    );
-  });
+  const candidatos = await Promise.all(
+    jobsEmAndamento
+      .filter((jobEmAndamento) =>
+        mesmoEscopoOperacional(jobEmAndamento.data, job),
+      )
+      .map(async (jobEmAndamento) => ({
+        job: jobEmAndamento,
+        ativoSemProgresso: await jobAtivoSemProgresso(jobEmAndamento),
+      })),
+  );
+  const existente = candidatos
+    .filter((candidato) => !candidato.ativoSemProgresso)
+    .map((candidato) => candidato.job)
+    .sort((a, b) => b.timestamp - a.timestamp)[0];
 
   if (existente) {
     return existente;

@@ -45,6 +45,7 @@ type MovimentoBancoHorasEspelho = {
   tipo: string;
   status: string;
   minutos: number;
+  metadados?: unknown;
   autorizacaoBancoHoras?: {
     solicitacao?: {
       id: string;
@@ -272,6 +273,13 @@ function movimentosCompensacaoCredito(
   );
 }
 
+function movimentoEhCreditoExcedenteLegal(
+  movimento: MovimentoBancoHorasEspelho,
+) {
+  const metadados = metadadosComoObjeto(movimento.metadados);
+  return metadados.origem === "HORAS_EXTRAS_EXCEDENTE_LIMITE_DIARIO";
+}
+
 function extrairJanelaExpediente(metadados: unknown) {
   const janela = metadadosComoObjeto(metadados).janelaExpediente;
 
@@ -348,13 +356,15 @@ function resumirMovimentosBancoHoras(
   const movimentosAtivos = (movimentos ?? []).filter((movimento) =>
     ["PENDENTE", "VALIDADO", "DESCONSIDERADO"].includes(movimento.status),
   );
-  const creditoBanco = movimentosAtivos
-    .filter(
-      (movimento) =>
-        ["CREDITO", "COMPENSACAO_DEBITO"].includes(movimento.tipo) &&
-        ["PENDENTE", "VALIDADO"].includes(movimento.status),
-    )
-    .reduce((total, movimento) => total + movimento.minutos, 0);
+  const creditosBanco = movimentosAtivos.filter(
+    (movimento) =>
+      ["CREDITO", "COMPENSACAO_DEBITO"].includes(movimento.tipo) &&
+      ["PENDENTE", "VALIDADO"].includes(movimento.status),
+  );
+  const creditoBanco = creditosBanco.reduce(
+    (total, movimento) => total + movimento.minutos,
+    0,
+  );
   const debitoBanco = movimentosAtivos
     .filter(
       (movimento) =>
@@ -364,7 +374,9 @@ function resumirMovimentosBancoHoras(
     .reduce((total, movimento) => total + movimento.minutos, 0);
 
   return {
-    minutosHoraExtraAutorizada: creditoBanco,
+    minutosHoraExtraAutorizada: creditosBanco
+      .filter((movimento) => !movimentoEhCreditoExcedenteLegal(movimento))
+      .reduce((total, movimento) => total + movimento.minutos, 0),
     minutosHoraExtraNaoAutorizada: movimentosAtivos
       .filter(
         (movimento) =>

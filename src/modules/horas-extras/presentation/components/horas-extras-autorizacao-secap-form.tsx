@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 import { registrarAutorizacaoHorasExtrasSecapAction } from "../../application/actions/registrar-autorizacao-horas-extras-secap.action";
 import type { RegistrarAutorizacaoHoraExtraSecapFormState } from "../../application/schemas/horas-extras-autorizacao-secap.schema";
@@ -98,6 +99,14 @@ function minutosParaRotulo(minutos: number) {
   return `${String(horas).padStart(2, "0")}:${String(resto).padStart(2, "0")}`;
 }
 
+function minutosParaHorasInput(minutos: number) {
+  return Number((Number(minutos || 0) / 60).toFixed(2));
+}
+
+function horasParaMinutos(horas: string) {
+  return Math.round(Number(horas || 0) * 60);
+}
+
 export function HorasExtrasAutorizacaoSecapForm({
   orgaos,
   unidades,
@@ -122,7 +131,35 @@ export function HorasExtrasAutorizacaoSecapForm({
     ServidorAutorizadoForm[]
   >([novoServidor()]);
 
-  const unidadesDoOrgao = unidades.filter((unidade) => unidade.orgaoId === orgaoId);
+  const unidadesDoOrgao = useMemo(
+    () => unidades.filter((unidade) => unidade.orgaoId === orgaoId),
+    [orgaoId, unidades],
+  );
+  const unidadesDoOrgaoOptions = useMemo(
+    () =>
+      unidadesDoOrgao.map((unidade) => ({
+        value: unidade.id,
+        label: `${unidade.sigla} - ${unidade.nome}`,
+        searchText: `${unidade.sigla} ${unidade.nome}`,
+      })),
+    [unidadesDoOrgao],
+  );
+  const servidoresOptions = useMemo(
+    () =>
+      servidores.map((item) => {
+        const lotacoes = item.lotacoes
+          .map((lotacao) => `${lotacao.unidade.sigla} ${lotacao.unidade.nome}`)
+          .join(" ");
+        const nome = item.nomeFuncional ?? item.usuario.nome;
+
+        return {
+          value: item.id,
+          label: `${item.matricula} - ${nome}`,
+          searchText: `${item.matricula} ${nome} ${lotacoes}`,
+        };
+      }),
+    [servidores],
+  );
   const totalAutorizado = servidoresAutorizados.reduce(
     (total, servidor) => total + Number(servidor.quantidadeMaximaMinutos || 0),
     0,
@@ -222,6 +259,9 @@ export function HorasExtrasAutorizacaoSecapForm({
               onChange={(event) => {
                 setOrgaoId(event.target.value);
                 setUnidadeId("");
+                setServidoresAutorizados((atuais) =>
+                  atuais.map((servidor) => ({ ...servidor, unidadeId: "" })),
+                );
               }}
               className="h-10 w-full rounded-md border bg-background px-3"
               required
@@ -237,19 +277,18 @@ export function HorasExtrasAutorizacaoSecapForm({
 
           <label className="space-y-1 text-sm">
             <span className="font-medium">Unidade</span>
-            <select
-              value={unidadeId}
-              onChange={(event) => setUnidadeId(event.target.value)}
-              className="h-10 w-full rounded-md border bg-background px-3"
+            <SearchableSelect
+              key={`unidade-autorizacao-${orgaoId}`}
+              id="unidadeId"
+              name="unidadeId"
+              defaultValue={unidadeId}
+              onValueChange={setUnidadeId}
+              options={unidadesDoOrgaoOptions}
+              placeholder="Selecione"
+              searchPlaceholder="Pesquisar por sigla ou nome..."
+              emptyMessage="Nenhuma unidade encontrada."
               required
-            >
-              <option value="">Selecione</option>
-              {unidadesDoOrgao.map((unidade) => (
-                <option key={unidade.id} value={unidade.id}>
-                  {unidade.sigla} - {unidade.nome}
-                </option>
-              ))}
-            </select>
+            />
           </label>
 
           <label className="space-y-1 text-sm">
@@ -391,41 +430,37 @@ export function HorasExtrasAutorizacaoSecapForm({
               <div className="grid gap-4 md:grid-cols-3">
                 <label className="space-y-1 text-sm md:col-span-2">
                   <span className="font-medium">Servidor</span>
-                  <select
-                    value={servidor.servidorId}
-                    onChange={(event) =>
-                      atualizarServidor(index, { servidorId: event.target.value })
+                  <SearchableSelect
+                    id={`servidores-${index}-servidorId`}
+                    name={`servidores[${index}].servidorId`}
+                    defaultValue={servidor.servidorId}
+                    onValueChange={(value) =>
+                      atualizarServidor(index, { servidorId: value })
                     }
-                    className="h-10 w-full rounded-md border bg-background px-3"
+                    options={servidoresOptions}
+                    placeholder="Selecione"
+                    searchPlaceholder="Pesquisar por matrícula, nome ou lotação..."
+                    emptyMessage="Nenhum servidor encontrado."
                     required
-                  >
-                    <option value="">Selecione</option>
-                    {servidores.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.matricula} -{" "}
-                        {item.nomeFuncional ?? item.usuario.nome}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </label>
 
                 <label className="space-y-1 text-sm">
                   <span className="font-medium">Unidade do servidor</span>
-                  <select
-                    value={servidor.unidadeId}
-                    onChange={(event) =>
-                      atualizarServidor(index, { unidadeId: event.target.value })
+                  <SearchableSelect
+                    key={`servidor-${index}-unidade-${orgaoId}`}
+                    id={`servidores-${index}-unidadeId`}
+                    name={`servidores[${index}].unidadeId`}
+                    defaultValue={servidor.unidadeId}
+                    onValueChange={(value) =>
+                      atualizarServidor(index, { unidadeId: value })
                     }
-                    className="h-10 w-full rounded-md border bg-background px-3"
+                    options={unidadesDoOrgaoOptions}
+                    placeholder="Selecione"
+                    searchPlaceholder="Pesquisar por sigla ou nome..."
+                    emptyMessage="Nenhuma unidade encontrada."
                     required
-                  >
-                    <option value="">Selecione</option>
-                    {unidadesDoOrgao.map((unidade) => (
-                      <option key={unidade.id} value={unidade.id}>
-                        {unidade.sigla} - {unidade.nome}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </label>
 
                 <label className="space-y-1 text-sm">
@@ -457,14 +492,20 @@ export function HorasExtrasAutorizacaoSecapForm({
                 </label>
 
                 <label className="space-y-1 text-sm">
-                  <span className="font-medium">Total autorizado</span>
+                  <span className="font-medium">Total autorizado (horas)</span>
                   <input
                     type="number"
-                    min={1}
-                    value={servidor.quantidadeMaximaMinutos}
+                    min={0.01}
+                    step={0.25}
+                    inputMode="decimal"
+                    value={minutosParaHorasInput(
+                      servidor.quantidadeMaximaMinutos,
+                    )}
                     onChange={(event) =>
                       atualizarServidor(index, {
-                        quantidadeMaximaMinutos: Number(event.target.value),
+                        quantidadeMaximaMinutos: horasParaMinutos(
+                          event.target.value,
+                        ),
                       })
                     }
                     className="h-10 w-full rounded-md border bg-background px-3"

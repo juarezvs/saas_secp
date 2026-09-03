@@ -18,15 +18,27 @@ import type {
 
 const STORAGE_JOB_ID = "secp:sarh-sync:job-id";
 
-const endpointsDisponiveis: Array<[SarhEndpointKey, string]> = [
+type SarhEndpointOpcao = SarhEndpointKey | "pessoas";
+
+const endpointsPessoas: SarhEndpointKey[] = [
+  "servidores",
+  "estagiarios",
+  "prestadores",
+  "voluntarios",
+  "lotacoesServidores",
+  "tiposAfastamento",
+  "afastamentos",
+  "ferias",
+  "chefias",
+  "substituicoes",
+  "calendarios",
+];
+
+const endpointsDisponiveis: Array<[SarhEndpointOpcao, string]> = [
   ["empresas", "Empresas / Seções Judiciárias"],
   ["lotacoes", "Lotações / Departamentos"],
   ["cargos", "Cargos"],
-  ["servidores", "Servidores"],
-  ["estagiarios", "Estagiários"],
-  ["prestadores", "Prestadores"],
-  ["voluntarios", "Voluntários"],
-  ["lotacoesServidores", "Lotações dos servidores"],
+  ["pessoas", "Pessoas"],
   ["tiposAfastamento", "Tipos de afastamento"],
   ["afastamentos", "Afastamentos"],
   ["ferias", "Férias"],
@@ -41,6 +53,7 @@ const endpointsCompativeisComMatricula = new Set<SarhEndpointKey>([
   "prestadores",
   "voluntarios",
   "lotacoesServidores",
+  "tiposAfastamento",
   "afastamentos",
   "ferias",
   "chefias",
@@ -49,7 +62,17 @@ const endpointsCompativeisComMatricula = new Set<SarhEndpointKey>([
 ]);
 
 const todosEndpoints = endpointsDisponiveis.map(([value]) => value);
-const endpointLabels = new Map(endpointsDisponiveis);
+const endpointLabels = new Map<SarhEndpointKey, string>([
+  ...endpointsDisponiveis.filter(
+    (endpoint): endpoint is [SarhEndpointKey, string] =>
+      endpoint[0] !== "pessoas",
+  ),
+  ["servidores", "Pessoas"],
+  ["estagiarios", "Pessoas"],
+  ["prestadores", "Pessoas"],
+  ["voluntarios", "Pessoas"],
+  ["lotacoesServidores", "Pessoas"],
+]);
 
 type JobEstado =
   | "waiting"
@@ -108,29 +131,36 @@ function montarResumo(
     ["Ignorados", contadores.totalIgnorados],
     ["Erros", contadores.totalErros],
     ["Conflitos", contadores.totalConflitos],
-  ].map(([rotulo, valor]) => ({ rotulo: String(rotulo), valor: Number(valor) }));
+  ].map(([rotulo, valor]) => ({
+    rotulo: String(rotulo),
+    valor: Number(valor),
+  }));
 }
 
 function estadoEmAndamento(estado: JobEstado | null) {
   return estado === "waiting" || estado === "delayed" || estado === "active";
 }
 
+function storageKeyJobSarh(orgaoId?: string | null) {
+  return `${STORAGE_JOB_ID}:${orgaoId || "global"}`;
+}
+
 export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
+  const storageKey = useMemo(() => storageKeyJobSarh(orgaoId), [orgaoId]);
   const [matriculaFiltro, setMatriculaFiltro] = useState("");
   const [endpointsSelecionados, setEndpointsSelecionados] =
-    useState<SarhEndpointKey[]>(todosEndpoints);
+    useState<SarhEndpointOpcao[]>(todosEndpoints);
   const [modoSelecionado, setModoSelecionado] = useState<
     "simulacao" | "aplicar" | null
   >(null);
   const [jobId, setJobId] = useState<string | null>(() =>
     typeof window === "undefined"
       ? null
-      : window.localStorage.getItem(STORAGE_JOB_ID),
+      : window.localStorage.getItem(storageKeyJobSarh(orgaoId)),
   );
   const [estadoJob, setEstadoJob] = useState<JobEstado | null>(null);
-  const [progresso, setProgresso] = useState<SarhSyncProgress>(
-    progressoInicial,
-  );
+  const [progresso, setProgresso] =
+    useState<SarhSyncProgress>(progressoInicial);
   const [resultado, setResultado] = useState<SarhResumoExecucao | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [enfileirando, setEnfileirando] = useState(false);
@@ -205,11 +235,43 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
         status.estado === "cancelled"
       ) {
         pararPolling();
-        window.localStorage.removeItem(STORAGE_JOB_ID);
+        window.localStorage.removeItem(storageKey);
       }
     },
-    [pararPolling],
+    [pararPolling, storageKey],
   );
+
+  const consultarUltimaSincronizacao = useCallback(async () => {
+    const params = new URLSearchParams();
+
+    if (orgaoId) {
+      params.set("orgaoId", orgaoId);
+    }
+
+    const response = await fetch(
+      `/api/integracoes/sarh/sincronizar?${params.toString()}`,
+      { cache: "no-store" },
+    );
+
+    if (response.status === 404) {
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error("NÃ£o foi possÃ­vel consultar a sincronizaÃ§Ã£o SARH.");
+    }
+
+    const status = (await response.json()) as SarhSyncStatusResponse;
+    setJobId(status.jobId);
+    setEstadoJob(status.estado);
+    setProgresso(status.progresso);
+    setResultado(status.resultado ?? null);
+    setErro(status.erro ?? null);
+
+    if (estadoEmAndamento(status.estado)) {
+      window.localStorage.setItem(storageKey, status.jobId);
+    }
+  }, [orgaoId, storageKey]);
 
   const iniciarPolling = useCallback(
     (id: string) => {
@@ -227,6 +289,32 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
   );
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const jobIdArmazenado = window.localStorage.getItem(storageKey);
+
+    const timeout = setTimeout(() => {
+      if (jobIdArmazenado) {
+        setJobId(jobIdArmazenado);
+        return;
+      }
+
+      setJobId(null);
+      setEstadoJob(null);
+      setResultado(null);
+      setErro(null);
+      setProgresso(progressoInicial());
+      void consultarUltimaSincronizacao().catch((error) => {
+        setErro(error instanceof Error ? error.message : String(error));
+      });
+    }, 0);
+
+    return () => clearTimeout(timeout);
+  }, [consultarUltimaSincronizacao, storageKey]);
+
+  useEffect(() => {
     if (jobId) {
       const timeout = setTimeout(() => iniciarPolling(jobId), 0);
 
@@ -239,18 +327,34 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
     return () => pararPolling();
   }, [iniciarPolling, jobId, pararPolling]);
 
-  function endpointsEfetivos() {
+  function expandirEndpoints(opcoes: SarhEndpointOpcao[]): SarhEndpointKey[] {
+    return Array.from(
+      new Set(
+        opcoes.flatMap((endpoint) =>
+          endpoint === "pessoas" ? endpointsPessoas : [endpoint],
+        ),
+      ),
+    );
+  }
+
+  function endpointsEfetivos(): SarhEndpointKey[] {
+    const endpointsExpandidos = expandirEndpoints(endpointsSelecionados);
+
     if (!matriculaFiltro.trim()) {
-      return endpointsSelecionados;
+      return endpointsExpandidos;
     }
 
-    const compativeis = endpointsSelecionados.filter((endpoint) =>
+    if (endpointsSelecionados.length === todosEndpoints.length) {
+      return endpointsPessoas;
+    }
+
+    const compativeis = endpointsExpandidos.filter((endpoint) =>
       endpointsCompativeisComMatricula.has(endpoint),
     );
 
     return compativeis.length
       ? compativeis
-      : todosEndpoints.filter((endpoint) =>
+      : expandirEndpoints(todosEndpoints).filter((endpoint) =>
           endpointsCompativeisComMatricula.has(endpoint),
         );
   }
@@ -294,7 +398,7 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
       setJobId(status.jobId);
       setEstadoJob(status.estado);
       setProgresso(status.progresso);
-      window.localStorage.setItem(STORAGE_JOB_ID, status.jobId);
+      window.localStorage.setItem(storageKey, status.jobId);
       iniciarPolling(status.jobId);
     } catch (error) {
       setErro(error instanceof Error ? error.message : String(error));
@@ -331,7 +435,7 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
       setResultado(status.resultado ?? null);
       setErro(status.erro ?? null);
       pararPolling();
-      window.localStorage.removeItem(STORAGE_JOB_ID);
+      window.localStorage.removeItem(storageKey);
     } catch (error) {
       setErro(error instanceof Error ? error.message : String(error));
     } finally {
@@ -339,7 +443,7 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
     }
   }
 
-  function alternarEndpoint(endpoint: SarhEndpointKey, marcado: boolean) {
+  function alternarEndpoint(endpoint: SarhEndpointOpcao, marcado: boolean) {
     setEndpointsSelecionados((atuais) => {
       if (marcado) {
         return atuais.includes(endpoint) ? atuais : [...atuais, endpoint];
@@ -354,17 +458,7 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
 
     if (!valor.trim()) return;
 
-    setEndpointsSelecionados((atuais) => {
-      const compativeis = atuais.filter((endpoint) =>
-        endpointsCompativeisComMatricula.has(endpoint),
-      );
-
-      return compativeis.length
-        ? compativeis
-        : todosEndpoints.filter((endpoint) =>
-            endpointsCompativeisComMatricula.has(endpoint),
-          );
-    });
+    setEndpointsSelecionados(["pessoas"]);
   }
 
   return (
@@ -555,7 +649,9 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
         </legend>
         <div className="grid gap-2 text-sm text-slate-700 dark:text-slate-200">
           {endpointsDisponiveis.map(([value, label]) => {
-            const compativel = endpointsCompativeisComMatricula.has(value);
+            const compativel =
+              value === "pessoas" ||
+              endpointsCompativeisComMatricula.has(value);
             const desabilitadoPorMatricula = matriculaAtiva && !compativel;
 
             return (

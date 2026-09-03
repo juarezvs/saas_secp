@@ -25,7 +25,10 @@ async function processarSincronizacaoSarh(job: Job<SarhSyncJob>) {
   const resultado = await useCase.execute({
     ...job.data,
     atualizarProgresso: async (progresso) => {
-      await job.updateProgress(progresso);
+      await job.updateProgress({
+        ...progresso,
+        atualizadoEm: new Date().toISOString(),
+      });
     },
     verificarCancelamento: async (execucaoId) => {
       const execucao = await prisma.integracaoSarhExecucao.findUnique({
@@ -46,7 +49,23 @@ export function criarSarhSyncWorker() {
     processarSincronizacaoSarh,
     {
       connection: sarhSyncConnection,
-      concurrency: Number(process.env.SARH_SYNC_CONCURRENCY ?? "1"),
+      concurrency: Number(process.env.SARH_SYNC_CONCURRENCY ?? "4"),
+      lockDuration: Math.max(
+        Number(process.env.SARH_SYNC_LOCK_DURATION_MS ?? "600000"),
+        30000,
+      ),
+      lockRenewTime: Math.max(
+        Number(process.env.SARH_SYNC_LOCK_RENEW_TIME_MS ?? "120000"),
+        15000,
+      ),
+      stalledInterval: Math.max(
+        Number(process.env.SARH_SYNC_STALLED_INTERVAL_MS ?? "60000"),
+        30000,
+      ),
+      maxStalledCount: Math.max(
+        Number(process.env.SARH_SYNC_MAX_STALLED_COUNT ?? "2"),
+        1,
+      ),
     },
   );
 

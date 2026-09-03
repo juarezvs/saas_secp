@@ -1,8 +1,13 @@
 import { z } from "zod";
 
+export const acoesAnaliseChefiaHorasExtras = [
+  "APPROVE",
+  "REJECT",
+] as const;
+
 export const analisarHorasExtrasChefiaSchema = z.object({
   requestId: z.string().uuid("Solicitacao invalida."),
-  action: z.enum(["RETURN", "REJECT", "FORWARD_BUDGET"]),
+  action: z.enum(acoesAnaliseChefiaHorasExtras),
   reason: z.string().trim().min(5, "Informe uma justificativa com pelo menos 5 caracteres."),
 });
 
@@ -16,4 +21,3 @@ export type AnalisarHorasExtrasChefiaFormState = {
   erros?: Record<string, string[]>;
   campos?: Partial<AnalisarHorasExtrasChefiaInput>;
 };
-

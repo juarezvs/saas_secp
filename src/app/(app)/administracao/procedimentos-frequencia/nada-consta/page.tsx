@@ -15,6 +15,12 @@ import { NadaConstaPdfButton } from "@/modules/procedimentos-frequencia/presenta
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 function resumoDaExecucao(execucao: {
+  id: string;
+  criadoEm: Date;
+  dataInicio: Date | null;
+  dataFim: Date | null;
+  processoSei: string | null;
+  justificativa: string;
   dadosResultado: unknown;
   resultado: string | null;
   servidor: {
@@ -22,6 +28,11 @@ function resumoDaExecucao(execucao: {
     nomeFuncional: string | null;
     nomeCompletoSarh: string | null;
     usuario: { nome: string };
+    cargo?: { descricao: string } | null;
+    lotacoes: {
+      cargo?: { descricao: string } | null;
+      unidade: { sigla: string; nome: string };
+    }[];
   } | null;
   orgao: { sigla: string; nome: string };
 }): NadaConstaFrequenciaResumo | null {
@@ -33,8 +44,17 @@ function resumoDaExecucao(execucao: {
   if (!dados || !execucao.servidor) {
     return null;
   }
+  const dataInicio =
+    typeof dados.dataInicio === "string"
+      ? dados.dataInicio
+      : (execucao.dataInicio ?? execucao.criadoEm).toISOString().slice(0, 10);
+  const dataFim =
+    typeof dados.dataFim === "string"
+      ? dados.dataFim
+      : (execucao.dataFim ?? execucao.criadoEm).toISOString().slice(0, 10);
 
   return {
+    execucaoId: execucao.id,
     servidorNome:
       execucao.servidor.nomeFuncional ??
       execucao.servidor.nomeCompletoSarh ??
@@ -42,13 +62,30 @@ function resumoDaExecucao(execucao: {
     servidorMatricula: execucao.servidor.matricula,
     orgaoSigla: execucao.orgao.sigla,
     secaoJudiciaria: execucao.orgao.nome,
+    unidadeSigla: execucao.servidor.lotacoes[0]?.unidade.sigla ?? null,
+    cargoDescricao:
+      execucao.servidor.cargo?.descricao ??
+      execucao.servidor.lotacoes[0]?.cargo?.descricao ??
+      null,
+    processoSei: execucao.processoSei,
+    justificativa: execucao.justificativa,
+    dataInicio,
+    dataFim,
+    emitidoEm:
+      typeof dados.emitidoEm === "string"
+        ? dados.emitidoEm
+        : execucao.criadoEm.toISOString(),
+    diasPrevistosTrabalho: Number(dados.diasPrevistosTrabalho ?? 0),
+    diasTrabalhadosRegistrados: Number(dados.diasTrabalhadosRegistrados ?? 0),
+    afastamentosNoPeriodo: Number(dados.afastamentosNoPeriodo ?? 0),
     saldoBancoHorasMinutos: Number(dados.saldoBancoHorasMinutos ?? 0),
     debitosVencidosMinutos: Number(dados.debitosVencidosMinutos ?? 0),
     faltasNaoResolvidas: Number(dados.faltasNaoResolvidas ?? 0),
     pendenciasHomologacao: Number(dados.pendenciasHomologacao ?? 0),
     resultado:
       dados.resultado === "NADA_CONSTA" ? "NADA_CONSTA" : "COM_PENDENCIAS",
-    mensagem: execucao.resultado ?? "Resultado registrado no motor de procedimentos.",
+    mensagem:
+      execucao.resultado ?? "Resultado registrado no motor de procedimentos.",
   };
 }
 
@@ -113,8 +150,27 @@ export default async function NadaConstaFrequenciaPage() {
             matricula: true,
             nomeFuncional: true,
             nomeCompletoSarh: true,
+            cargo: {
+              select: { descricao: true },
+            },
             usuario: {
               select: { nome: true },
+            },
+            lotacoes: {
+              where: { status: "ATIVO" },
+              orderBy: { dataInicio: "desc" },
+              take: 1,
+              select: {
+                cargo: {
+                  select: { descricao: true },
+                },
+                unidade: {
+                  select: {
+                    sigla: true,
+                    nome: true,
+                  },
+                },
+              },
             },
           },
         },

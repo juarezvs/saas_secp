@@ -133,20 +133,6 @@ function proximoNumeroSolicitacao(params: {
   return `HE-${params.ano}-${String(params.sequencial).padStart(5, "0")}`;
 }
 
-function resolverEtapaAposEnvio(
-  workflowVersion: NonNullable<
-    Awaited<ReturnType<typeof buscarConfiguracaoAtivaHorasExtras>>["workflowVersion"]
-  >,
-) {
-  return (
-    workflowVersion.transitions.find(
-      (transition) =>
-        transition.fromStepCode === workflowVersion.initialStepCode &&
-        transition.actionCode === "SUBMIT",
-    )?.toStepCode ?? workflowVersion.initialStepCode
-  );
-}
-
 function diaSeguinte(data: Date) {
   const proxima = new Date(data);
   proxima.setUTCDate(proxima.getUTCDate() + 1);
@@ -291,7 +277,7 @@ export async function criarSolicitacaoHorasExtrasAction(
     configuracao.policyVersion.rateRules.map((rule) => [rule.dayType, rule]),
   );
   const submitted = parsed.data.intent === "submit";
-  const stepAfterSubmit = resolverEtapaAposEnvio(configuracao.workflowVersion);
+  const stepAfterSubmit = "ANALISE_CHEFIA";
   const now = new Date();
   const rascunhoExistente = parsed.data.requestId
     ? await prisma.overtimeRequest.findFirst({

@@ -27,9 +27,7 @@ function formatarMinutos(minutos: number) {
 export default async function GestaoHorasExtrasDetalhePage({
   params,
 }: PageProps) {
-  const permissao = await exigirPermissaoOuRedirecionar(
-    "horas-extras:analisar:chefia",
-  );
+  await exigirPermissaoOuRedirecionar("horas-extras:analisar:chefia");
   const { id } = await params;
   const solicitacao = await buscarSolicitacaoHorasExtrasPorId(id);
 
@@ -37,18 +35,17 @@ export default async function GestaoHorasExtrasDetalhePage({
     notFound();
   }
 
-  if (
-    !permissao.perfilAtivoEscopoGlobal &&
-    permissao.orgaoIds?.length &&
-    !permissao.orgaoIds.includes(solicitacao.orgaoId)
-  ) {
-    notFound();
-  }
-
   const totalMinutos = solicitacao.days.reduce(
     (total, day) => total + day.requestedMinutes,
     0,
   );
+  const acoesDisponiveisChefia =
+    solicitacao.currentWorkflowStepCode === "ANALISE_CHEFIA"
+      ? [
+          { actionCode: "APPROVE" as const, toStepCode: null },
+          { actionCode: "REJECT" as const, toStepCode: null },
+        ]
+      : [];
 
   return (
     <div className="space-y-6">
@@ -135,7 +132,10 @@ export default async function GestaoHorasExtrasDetalhePage({
           </Card>
 
           {solicitacao.currentWorkflowStepCode === "ANALISE_CHEFIA" && (
-            <HorasExtrasChefiaAnaliseForm requestId={solicitacao.id} />
+            <HorasExtrasChefiaAnaliseForm
+              requestId={solicitacao.id}
+              acoesDisponiveis={acoesDisponiveisChefia}
+            />
           )}
         </div>
       </div>

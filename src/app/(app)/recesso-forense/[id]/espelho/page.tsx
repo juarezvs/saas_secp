@@ -46,7 +46,7 @@ export default async function RecessoEspelhoPage({
 
   const servidor = await buscarServidorPorUsuarioId(session.user.id);
 
-  if (!servidor) {
+  if (!servidor || recesso.orgaoId !== servidor.orgaoId) {
     notFound();
   }
 
@@ -79,7 +79,10 @@ export default async function RecessoEspelhoPage({
       <Breadcrumb
         items={[
           { label: "Recesso forense", href: "/recesso-forense" },
-          { label: String(recesso.ano), href: `/recesso-forense/${recesso.id}` },
+          {
+            label: String(recesso.ano),
+            href: `/recesso-forense/${recesso.id}`,
+          },
           { label: "Espelho" },
         ]}
       />

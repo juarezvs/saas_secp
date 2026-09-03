@@ -2,12 +2,17 @@ import { CalendarRange } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
-import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { criarRecessoForenseAction } from "@/modules/recesso-forense/application/actions/recesso-forense.actions";
 import { RecessoForenseForm } from "@/modules/recesso-forense/presentation/components/recesso-forense-form";
 
 export default async function NovoRecessoForensePage() {
-  await exigirPermissaoOuRedirecionar("recesso:gerenciar:global");
+  await exigirUmaDasPermissoesOuRedirecionar([
+    "recesso:gerenciar:global",
+    "recesso:gerenciar:seccional",
+  ]);
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
 
   return (
     <div className="space-y-6">
@@ -27,7 +32,10 @@ export default async function NovoRecessoForensePage() {
         regraDescricao="O recesso deve ser tratado em módulo próprio, com convocações, escolhas, homologação e fechamento separados do ponto ordinário."
       />
 
-      <RecessoForenseForm action={criarRecessoForenseAction} />
+      <RecessoForenseForm
+        action={criarRecessoForenseAction}
+        orgaos={escopoOrgao.orgaos}
+      />
     </div>
   );
 }

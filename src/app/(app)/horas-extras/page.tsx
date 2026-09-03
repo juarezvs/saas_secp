@@ -64,8 +64,6 @@ export default async function HorasExtrasPage() {
         : "Não foi possível consultar a configuração de horas extras.";
   }
 
-  const workflowAtivo = configuracao?.workflows[0];
-  const workflowVersionAtiva = workflowAtivo?.versions[0];
   const politicaAtiva = configuracao?.policies[0];
   const politicaVersionAtiva = politicaAtiva?.versions[0];
 
@@ -76,7 +74,7 @@ export default async function HorasExtrasPage() {
       <PageHeader
         icon={CalendarClock}
         titulo="Horas extras"
-        descricao="Solicitação, autorização, execução e pagamento de serviço extraordinário com política e workflow versionados."
+        descricao="Solicitacao, deferimento da chefia e apuracao pelo tempo extraordinario efetivamente trabalhado."
         actions={
           <Link
             href="/horas-extras/nova"
@@ -92,7 +90,7 @@ export default async function HorasExtrasPage() {
         <Card className="border-amber-200 bg-amber-50 text-amber-950">
           <CardContent className="pt-5 text-sm leading-6">
             Configuração persistente indisponível. Aplique a migration de horas
-            extras e execute o seed para visualizar política e workflow ativos.
+            extras e execute o seed para visualizar a politica ativa.
           </CardContent>
         </Card>
       )}
@@ -164,21 +162,12 @@ export default async function HorasExtrasPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Workflow</CardTitle>
+            <CardTitle>Regra de apuracao</CardTitle>
           </CardHeader>
           <CardContent className="text-sm leading-6 text-muted-foreground">
-            {workflowAtivo && workflowVersionAtiva ? (
-              <>
-                <span className="font-semibold text-foreground">
-                  {workflowAtivo.name}
-                </span>
-                <span className="block">
-                  {workflowVersionAtiva.steps.length} etapas configuradas.
-                </span>
-              </>
-            ) : (
-              "O fluxo alvo será configurável por órgão, com chefia, orçamento, deliberação final, execução, fechamento e pagamento."
-            )}
+            A chefia defere ou indefere a solicitacao. Quando deferida, o SECP
+            cruza o periodo autorizado com as marcacoes reais: o menor valor vira
+            hora extra autorizada e o excedente fica como hora extra nao autorizada.
           </CardContent>
         </Card>
 

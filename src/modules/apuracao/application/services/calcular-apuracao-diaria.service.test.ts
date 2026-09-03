@@ -417,7 +417,7 @@ describe("calcularApuracaoDiaria", () => {
     });
   });
 
-  it("contabiliza e sinaliza tempo anterior as 06:00 mesmo com autorizacao", () => {
+  it("contabiliza e sinaliza tempo anterior as 06:00 sem tornar inconsistente", () => {
     const resultado = calcularApuracaoDiaria({
       jornada: {
         ...jornada7h,
@@ -429,10 +429,10 @@ describe("calcularApuracaoDiaria", () => {
 
     expect(resultado.minutosTrabalhados).toBe(450);
     expect(resultado.minutosForaExpediente).toBe(30);
-    expect(resultado.status).toBe("INCONSISTENTE");
+    expect(resultado.status).toBe("CALCULADA");
   });
 
-  it("recorta os dois turnos da jornada de 8h pela janela padrao", () => {
+  it("usa a janela padrao como referencia nos dois turnos da jornada de 8h", () => {
     const resultado = calcularApuracaoDiaria({
       jornada: jornada8h,
       marcacoes: [
@@ -447,7 +447,7 @@ describe("calcularApuracaoDiaria", () => {
     expect(resultado.minutosTrabalhados).toBe(600);
     expect(resultado.minutosForaExpediente).toBe(60);
     expect(resultado.minutosCredito).toBe(120);
-    expect(resultado.status).toBe("INCONSISTENTE");
+    expect(resultado.status).toBe("CALCULADA");
   });
 
   it("calcula jornada operacional com saida depois da meia-noite", () => {

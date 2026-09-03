@@ -34,6 +34,7 @@ function whereSolicitacoesParaUnidadesChefia(params: {
   usuarioId: string;
   unidadeIds: string[];
 }) {
+  const hoje = new Date();
   const filtrosUnidades: Prisma.SolicitacaoWhereInput[] =
     params.unidadeIds.length > 0
       ? [
@@ -74,7 +75,10 @@ function whereSolicitacoesParaUnidadesChefia(params: {
                 usuarioId: params.usuarioId,
               },
               ativo: true,
-              dataFim: null,
+              dataInicio: {
+                lte: hoje,
+              },
+              OR: [{ dataFim: null }, { dataFim: { gte: hoje } }],
               papel: {
                 in: ["GESTOR_TITULAR", "GESTOR_SUBSTITUTO", "DELEGADO_CHEFIA"],
               },

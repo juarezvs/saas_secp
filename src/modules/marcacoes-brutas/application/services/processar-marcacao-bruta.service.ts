@@ -1,6 +1,10 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { obterDataReferencia } from "@/modules/marcacoes/application/services/data-marcacao.service";
-import { classificarProximaMarcacao } from "@/modules/marcacoes/application/services/classificar-marcacao.service";
+import {
+  LIMITE_MARCACOES_DIARIAS,
+  classificarProximaMarcacao,
+  contarMarcacoesDiarias,
+} from "@/modules/marcacoes/application/services/classificar-marcacao.service";
 import { recalcularDiaEBancoHorasServidorService } from "@/modules/recalculo/application/services/recalcular-dia-e-banco-horas-servidor.service";
 import { normalizarMarcacoesSemIntervaloService } from "@/modules/marcacoes/application/services/normalizar-marcacoes-sem-intervalo.service";
 import { resolverDataReferenciaOperacionalMarcacaoService } from "@/modules/marcacoes/application/services/resolver-data-referencia-operacional-marcacao.service";
@@ -304,6 +308,46 @@ export async function processarMarcacaoBrutaService(params: {
       sucesso: true,
       mensagem: "Marcação bruta duplicada vinculada à marcação existente.",
       marcacaoId: marcacaoDuplicada.id,
+    };
+  }
+
+  const quantidadeMarcacoesDiarias = contarMarcacoesDiarias(marcacoesDoDia);
+
+  if (quantidadeMarcacoesDiarias >= LIMITE_MARCACOES_DIARIAS) {
+    await prisma.$transaction([
+      prisma.marcacaoBruta.update({
+        where: { id: bruta.id },
+        data: {
+          processada: true,
+          processadaEm: new Date(),
+          servidorId: servidor.id,
+          marcacaoId: null,
+        },
+      }),
+      prisma.auditoriaEvento.create({
+        data: {
+          usuarioId: params.usuarioIdAuditoria ?? null,
+          entidade: "MarcacaoBruta",
+          entidadeId: bruta.id,
+          acao: "MARCACAO_BRUTA_DESCARTADA_LIMITE_DIARIO",
+          dadosDepois: {
+            servidorId: servidor.id,
+            dataHora: bruta.dataHora,
+            dataReferencia,
+            origem: bruta.origem,
+            limiteDiario: LIMITE_MARCACOES_DIARIAS,
+            quantidadeExistente: quantidadeMarcacoesDiarias,
+          },
+        },
+      }),
+    ]);
+
+    return {
+      sucesso: false,
+      mensagem:
+        "Limite diario de 6 marcacoes atingido para este servidor. A marcacao bruta foi descartada sem gerar registro de ponto.",
+      servidorId: servidor.id,
+      dataReferencia,
     };
   }
 

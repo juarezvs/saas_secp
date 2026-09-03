@@ -738,11 +738,11 @@ model Usuario {
   substituicoesFuncaoCriadas         SubstituicaoFuncao[]                           @relation("SubstituicoesFuncaoCriadasPor")
   pagamentosSubstituicaoCalculados   PagamentoSubstituicaoFuncao[]                  @relation("PagamentosSubstituicaoCalculadosPor")
   pagamentosSubstituicaoAprovados    PagamentoSubstituicaoFuncao[]                  @relation("PagamentosSubstituicaoAprovadosPor")
-  autorizacoesHoraExtraRegistradas    AutorizacaoHoraExtraAdministrativa[]           @relation("AutorizacoesHoraExtraRegistradasPor")
-  decisoesClassificacaoHoraExtra      HoraExtraClassificacaoIntervalo[]              @relation("DecisoesClassificacaoHoraExtraPorUsuario")
-  atestosHoraExtraEmitidos            HoraExtraAtesto[]                              @relation("AtestosHoraExtraEmitidosPor")
-  calculosHoraExtraExecutados          HoraExtraCalculo[]                             @relation("CalculosHoraExtraExecutadosPor")
-  eventosHoraExtra                    HoraExtraEvento[]                              @relation("EventosHoraExtraPorUsuario")
+  autorizacoesHoraExtraRegistradas   AutorizacaoHoraExtraAdministrativa[]           @relation("AutorizacoesHoraExtraRegistradasPor")
+  decisoesClassificacaoHoraExtra     HoraExtraClassificacaoIntervalo[]              @relation("DecisoesClassificacaoHoraExtraPorUsuario")
+  atestosHoraExtraEmitidos           HoraExtraAtesto[]                              @relation("AtestosHoraExtraEmitidosPor")
+  calculosHoraExtraExecutados        HoraExtraCalculo[]                             @relation("CalculosHoraExtraExecutadosPor")
+  eventosHoraExtra                   HoraExtraEvento[]                              @relation("EventosHoraExtraPorUsuario")
   teamsVinculos                      TeamsUsuarioVinculado[]
   teamsLogs                          TeamsLog[]
   teamsNotificacoes                  TeamsNotificacao[]
@@ -820,7 +820,7 @@ model Perfil {
   permissoes           PerfilPermissao[]
   menusGrupos          MenuGrupoPerfil[]
   menusItens           MenuItemPerfil[]
-  orgao                 Orgao?            @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+  orgao                Orgao?            @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
   perfilDestinoExcecao Perfil?           @relation("PerfilExcecaoDestino", fields: [perfilDestinoExcecaoId], references: [id], onDelete: SetNull)
   excecoesRecebidas    Perfil[]          @relation("PerfilExcecaoDestino")
 
@@ -978,6 +978,7 @@ model Orgao {
   regulamentacaoPonto              RegulamentacaoPontoOrgao?
   integracoes                      IntegracaoSistema[]
   calendariosInstitucionais        CalendarioInstitucional[]
+  recessosForenses                 RecessoForense[]
   usuariosPerfis                   UsuarioPerfil[]
   overtimePolicies                 OvertimePolicy[]
   overtimeWorkflowDefinitions      OvertimeWorkflowDefinition[]
@@ -1185,16 +1186,16 @@ model UnidadeOrganizacional {
 
   lotacoes                          Lotacao[]
   gestores                          GestorUnidade[]
-  solicitacoes                      Solicitacao[]                 @relation("SolicitacoesPorUnidade")
+  solicitacoes                      Solicitacao[]                        @relation("SolicitacoesPorUnidade")
   fechamentosMensais                FechamentoMensalUnidade[]
   boletimFrequencias                BoletimFrequencia[]
   equipamentosBiometricos           EquipamentoBiometrico[]
   convocacoesRecesso                ConvocacaoRecesso[]
   calendariosInstitucionais         CalendarioInstitucional[]
-  overtimePoliciesScoped            OvertimePolicy[]              @relation("OvertimePolicyScopeUnit")
-  overtimePolicyVersionsScoped      OvertimePolicyVersion[]       @relation("OvertimePolicyVersionScopeUnit")
-  overtimeWorkflowDefinitionsScoped OvertimeWorkflowDefinition[]  @relation("OvertimeWorkflowDefinitionScopeUnit")
-  overtimeWorkflowVersionsScoped    OvertimeWorkflowVersion[]     @relation("OvertimeWorkflowVersionScopeUnit")
+  overtimePoliciesScoped            OvertimePolicy[]                     @relation("OvertimePolicyScopeUnit")
+  overtimePolicyVersionsScoped      OvertimePolicyVersion[]              @relation("OvertimePolicyVersionScopeUnit")
+  overtimeWorkflowDefinitionsScoped OvertimeWorkflowDefinition[]         @relation("OvertimeWorkflowDefinitionScopeUnit")
+  overtimeWorkflowVersionsScoped    OvertimeWorkflowVersion[]            @relation("OvertimeWorkflowVersionScopeUnit")
   substituicoesFuncao               SubstituicaoFuncao[]
   pagamentosSubstituicaoFuncao      PagamentoSubstituicaoFuncao[]
   autorizacoesHoraExtra             AutorizacaoHoraExtraAdministrativa[]
@@ -1235,9 +1236,9 @@ model Cargo {
 }
 
 model Servidor {
-  id        String @id @default(uuid()) @db.Uuid
-  usuarioId String @unique @map("usuario_id") @db.Uuid
-  orgaoId   String @map("orgao_id") @db.Uuid
+  id                String  @id @default(uuid()) @db.Uuid
+  usuarioId         String  @unique @map("usuario_id") @db.Uuid
+  orgaoId           String  @map("orgao_id") @db.Uuid
   categoriaPessoaId String? @map("categoria_pessoa_id") @db.Uuid
 
   matricula     String              @unique @db.VarChar(50)
@@ -1273,9 +1274,9 @@ model Servidor {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  orgao   Orgao   @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
-  cargo   Cargo?  @relation(fields: [cargoId], references: [id], onDelete: SetNull)
+  usuario         Usuario          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  orgao           Orgao            @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+  cargo           Cargo?           @relation(fields: [cargoId], references: [id], onDelete: SetNull)
   categoriaPessoa CategoriaPessoa? @relation(fields: [categoriaPessoaId], references: [id], onDelete: SetNull)
 
   lotacoes                             Lotacao[]
@@ -1309,7 +1310,7 @@ model Servidor {
   homologacoesRecesso                  HomologacaoRecesso[]
   sessoesCadastroFacial                SessaoCadastroFacial[]
   teamsVinculos                        TeamsUsuarioVinculado[]
-  autorizacoesHoraExtra                 AutorizacaoHoraExtraServidor[]
+  autorizacoesHoraExtra                AutorizacaoHoraExtraServidor[]
 
   @@index([orgaoId])
   @@index([categoriaPessoaId])
@@ -1345,10 +1346,10 @@ model IdentificadorPontoServidor {
   id         String @id @default(uuid()) @db.Uuid
   servidorId String @map("servidor_id") @db.Uuid
 
-  valor             String  @db.VarChar(80)
-  valorNormalizado  String  @unique @map("valor_normalizado") @db.VarChar(80)
-  principal         Boolean @default(false)
-  ativo             Boolean @default(true)
+  valor            String  @db.VarChar(80)
+  valorNormalizado String  @unique @map("valor_normalizado") @db.VarChar(80)
+  principal        Boolean @default(false)
+  ativo            Boolean @default(true)
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
@@ -3083,8 +3084,9 @@ model CalendarioInstitucional {
 }
 
 model RecessoForense {
-  id  String @id @default(uuid()) @db.Uuid
-  ano Int    @unique
+  id      String  @id @default(uuid()) @db.Uuid
+  ano     Int
+  orgaoId String? @map("orgao_id") @db.Uuid
 
   dataInicio DateTime @map("data_inicio") @db.Date
   dataFim    DateTime @map("data_fim") @db.Date
@@ -3099,6 +3101,7 @@ model RecessoForense {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
+  orgao      Orgao?   @relation(fields: [orgaoId], references: [id], onDelete: SetNull)
   criadoPor  Usuario? @relation("RecessosCriadosPorUsuario", fields: [criadoPorUsuarioId], references: [id], onDelete: SetNull)
   fechadoPor Usuario? @relation("RecessosFechadosPorUsuario", fields: [fechadoPorUsuarioId], references: [id], onDelete: SetNull)
 
@@ -3107,6 +3110,8 @@ model RecessoForense {
   espelhos     EspelhoRecesso[]
   homologacoes HomologacaoRecesso[]
 
+  @@unique([ano, orgaoId])
+  @@index([orgaoId])
   @@index([status])
   @@index([dataInicio, dataFim])
   @@map("recessos_forenses")
@@ -3741,29 +3746,29 @@ model AutorizacaoHoraExtraAdministrativa {
   orgaoId   String @map("orgao_id") @db.Uuid
   unidadeId String @map("unidade_id") @db.Uuid
 
-  processoSei          String  @map("processo_sei") @db.VarChar(80)
-  documentoAutorizacao String  @map("documento_autorizacao") @db.VarChar(160)
-  mesReferencia        String  @map("mes_referencia") @db.VarChar(7)
-  dataAutorizacao      DateTime @map("data_autorizacao") @db.Date
-  autoridadeAutorizadora String? @map("autoridade_autorizadora") @db.VarChar(200)
-  observacoes          String? @db.Text
-  origemDocumento      String? @map("origem_documento") @db.VarChar(200)
+  processoSei            String   @map("processo_sei") @db.VarChar(80)
+  documentoAutorizacao   String   @map("documento_autorizacao") @db.VarChar(160)
+  mesReferencia          String   @map("mes_referencia") @db.VarChar(7)
+  dataAutorizacao        DateTime @map("data_autorizacao") @db.Date
+  autoridadeAutorizadora String?  @map("autoridade_autorizadora") @db.VarChar(200)
+  observacoes            String?  @db.Text
+  origemDocumento        String?  @map("origem_documento") @db.VarChar(200)
 
   modalidade ModalidadeAutorizacaoHoraExtra
   status     StatusAutorizacaoHoraExtra     @default(RASCUNHO)
   versao     Int                            @default(1)
 
-  conteudoOriginalAutorizado Json? @map("conteudo_original_autorizado")
-  registradaPorUsuarioId     String? @map("registrada_por_usuario_id") @db.Uuid
+  conteudoOriginalAutorizado Json?     @map("conteudo_original_autorizado")
+  registradaPorUsuarioId     String?   @map("registrada_por_usuario_id") @db.Uuid
   registradaEm               DateTime? @map("registrada_em")
   canceladaEm                DateTime? @map("cancelada_em")
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  orgao         Orgao                  @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
-  unidade       UnidadeOrganizacional  @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
-  registradaPor Usuario?              @relation("AutorizacoesHoraExtraRegistradasPor", fields: [registradaPorUsuarioId], references: [id], onDelete: SetNull)
+  orgao         Orgao                          @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+  unidade       UnidadeOrganizacional          @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
+  registradaPor Usuario?                       @relation("AutorizacoesHoraExtraRegistradasPor", fields: [registradaPorUsuarioId], references: [id], onDelete: SetNull)
   servidores    AutorizacaoHoraExtraServidor[]
   atestos       HoraExtraAtesto[]
   calculos      HoraExtraCalculo[]
@@ -3791,24 +3796,24 @@ model AutorizacaoHoraExtraServidor {
   unidadeSnapshot   String? @map("unidade_snapshot") @db.VarChar(250)
   cargoSnapshot     String? @map("cargo_snapshot") @db.VarChar(250)
 
-  periodoInicio            DateTime @map("periodo_inicio") @db.Date
-  periodoFim               DateTime @map("periodo_fim") @db.Date
-  quantidadeMaximaMinutos  Int      @map("quantidade_maxima_minutos")
-  limitesPorTipoDia        Json?    @map("limites_por_tipo_dia")
-  status                   StatusServidorAutorizacaoHoraExtra @default(AUTORIZADO)
+  periodoInicio           DateTime                           @map("periodo_inicio") @db.Date
+  periodoFim              DateTime                           @map("periodo_fim") @db.Date
+  quantidadeMaximaMinutos Int                                @map("quantidade_maxima_minutos")
+  limitesPorTipoDia       Json?                              @map("limites_por_tipo_dia")
+  status                  StatusServidorAutorizacaoHoraExtra @default(AUTORIZADO)
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  autorizacao     AutorizacaoHoraExtraAdministrativa @relation(fields: [autorizacaoId], references: [id], onDelete: Restrict)
-  servidor        Servidor                           @relation(fields: [servidorId], references: [id], onDelete: Restrict)
-  unidade         UnidadeOrganizacional              @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
-  regras          AutorizacaoHoraExtraRegra[]
-  execucoes       HoraExtraExecucaoIntervalo[]
-  classificacoes  HoraExtraClassificacaoIntervalo[]
-  calculosItens   HoraExtraCalculoItem[]
+  autorizacao           AutorizacaoHoraExtraAdministrativa @relation(fields: [autorizacaoId], references: [id], onDelete: Restrict)
+  servidor              Servidor                           @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  unidade               UnidadeOrganizacional              @relation(fields: [unidadeId], references: [id], onDelete: Restrict)
+  regras                AutorizacaoHoraExtraRegra[]
+  execucoes             HoraExtraExecucaoIntervalo[]
+  classificacoes        HoraExtraClassificacaoIntervalo[]
+  calculosItens         HoraExtraCalculoItem[]
   remuneracoesSnapshots HoraExtraRemuneracaoSnapshot[]
-  eventos         HoraExtraEvento[]
+  eventos               HoraExtraEvento[]
 
   @@unique([autorizacaoId, servidorId])
   @@index([autorizacaoId])
@@ -3824,11 +3829,11 @@ model AutorizacaoHoraExtraRegra {
 
   servidorAutorizadoId String @map("servidor_autorizado_id") @db.Uuid
 
-  data          DateTime?       @db.Date
+  data          DateTime?        @db.Date
   tipoDia       OvertimeDayType? @map("tipo_dia")
-  limiteMinutos Int?            @map("limite_minutos")
-  faixaInicio   String?         @map("faixa_inicio") @db.VarChar(5)
-  faixaFim      String?         @map("faixa_fim") @db.VarChar(5)
+  limiteMinutos Int?             @map("limite_minutos")
+  faixaInicio   String?          @map("faixa_inicio") @db.VarChar(5)
+  faixaFim      String?          @map("faixa_fim") @db.VarChar(5)
   metadados     Json?
 
   criadoEm DateTime @default(now()) @map("criado_em")
@@ -3846,16 +3851,16 @@ model HoraExtraExecucaoIntervalo {
 
   servidorAutorizadoId String @map("servidor_autorizado_id") @db.Uuid
 
-  marcacaoOrigemId String? @map("marcacao_origem_id") @db.Uuid
-  data             DateTime @db.Date
-  inicio           String   @db.VarChar(5)
-  fim              String   @db.VarChar(5)
-  minutosTrabalhados Int   @map("minutos_trabalhados")
-  origem           Json?
+  marcacaoOrigemId   String?  @map("marcacao_origem_id") @db.Uuid
+  data               DateTime @db.Date
+  inicio             String   @db.VarChar(5)
+  fim                String   @db.VarChar(5)
+  minutosTrabalhados Int      @map("minutos_trabalhados")
+  origem             Json?
 
   criadoEm DateTime @default(now()) @map("criado_em")
 
-  servidorAutorizado AutorizacaoHoraExtraServidor @relation(fields: [servidorAutorizadoId], references: [id], onDelete: Cascade)
+  servidorAutorizado AutorizacaoHoraExtraServidor      @relation(fields: [servidorAutorizadoId], references: [id], onDelete: Cascade)
   classificacoes     HoraExtraClassificacaoIntervalo[]
 
   @@index([servidorAutorizadoId])
@@ -3870,16 +3875,16 @@ model HoraExtraClassificacaoIntervalo {
   servidorAutorizadoId String  @map("servidor_autorizado_id") @db.Uuid
   execucaoIntervaloId  String? @map("execucao_intervalo_id") @db.Uuid
 
-  data      DateTime @db.Date
-  inicio    String   @db.VarChar(5)
-  fim       String   @db.VarChar(5)
+  data      DateTime                        @db.Date
+  inicio    String                          @db.VarChar(5)
+  fim       String                          @db.VarChar(5)
   minutos   Int
   categoria CategoriaClassificacaoHoraExtra
-  motivo    String   @db.Text
+  motivo    String                          @db.Text
 
-  decisaoGestorUsuarioId String?  @map("decisao_gestor_usuario_id") @db.Uuid
-  decididaEm             DateTime? @map("decidida_em")
-  justificativa          String?  @db.Text
+  decisaoGestorUsuarioId String?                          @map("decisao_gestor_usuario_id") @db.Uuid
+  decididaEm             DateTime?                        @map("decidida_em")
+  justificativa          String?                          @db.Text
   classificacaoAnterior  CategoriaClassificacaoHoraExtra? @map("classificacao_anterior")
   metadados              Json?
 
@@ -3901,13 +3906,13 @@ model HoraExtraClassificacaoIntervalo {
 model HoraExtraAtesto {
   id String @id @default(uuid()) @db.Uuid
 
-  autorizacaoId    String @map("autorizacao_id") @db.Uuid
-  gestorUsuarioId  String @map("gestor_usuario_id") @db.Uuid
+  autorizacaoId   String @map("autorizacao_id") @db.Uuid
+  gestorUsuarioId String @map("gestor_usuario_id") @db.Uuid
 
-  texto       String @db.Text
+  texto       String   @db.Text
   snapshot    Json?
   emitidoEm   DateTime @default(now()) @map("emitido_em")
-  documentoId String? @map("documento_id") @db.Uuid
+  documentoId String?  @map("documento_id") @db.Uuid
 
   autorizacao AutorizacaoHoraExtraAdministrativa @relation(fields: [autorizacaoId], references: [id], onDelete: Restrict)
   gestor      Usuario                            @relation("AtestosHoraExtraEmitidosPor", fields: [gestorUsuarioId], references: [id], onDelete: Restrict)
@@ -3921,26 +3926,26 @@ model HoraExtraAtesto {
 model HoraExtraCalculo {
   id String @id @default(uuid()) @db.Uuid
 
-  autorizacaoId        String @map("autorizacao_id") @db.Uuid
+  autorizacaoId         String  @map("autorizacao_id") @db.Uuid
   calculadoPorUsuarioId String? @map("calculado_por_usuario_id") @db.Uuid
 
-  competencia         String @db.VarChar(7)
-  status              StatusCalculoHoraExtra @default(CALCULADO)
-  versao              Int @default(1)
-  totalServidores     Int @default(0) @map("total_servidores")
-  totalMinutos        Int @default(0) @map("total_minutos")
-  totalValorCentavos  Int @default(0) @map("total_valor_centavos")
-  divisorMinutos      Int @map("divisor_minutos")
-  politicaVersaoId    String? @map("politica_versao_id") @db.Uuid
-  memoriaCalculo      Json? @map("memoria_calculo")
-  erroMensagem        String? @map("erro_mensagem") @db.Text
-  calculadoEm         DateTime @default(now()) @map("calculado_em")
-  criadoEm            DateTime @default(now()) @map("criado_em")
-  atualizadoEm        DateTime @updatedAt @map("atualizado_em")
+  competencia        String                 @db.VarChar(7)
+  status             StatusCalculoHoraExtra @default(CALCULADO)
+  versao             Int                    @default(1)
+  totalServidores    Int                    @default(0) @map("total_servidores")
+  totalMinutos       Int                    @default(0) @map("total_minutos")
+  totalValorCentavos Int                    @default(0) @map("total_valor_centavos")
+  divisorMinutos     Int                    @map("divisor_minutos")
+  politicaVersaoId   String?                @map("politica_versao_id") @db.Uuid
+  memoriaCalculo     Json?                  @map("memoria_calculo")
+  erroMensagem       String?                @map("erro_mensagem") @db.Text
+  calculadoEm        DateTime               @default(now()) @map("calculado_em")
+  criadoEm           DateTime               @default(now()) @map("criado_em")
+  atualizadoEm       DateTime               @updatedAt @map("atualizado_em")
 
-  autorizacao         AutorizacaoHoraExtraAdministrativa @relation(fields: [autorizacaoId], references: [id], onDelete: Restrict)
-  calculadoPor        Usuario? @relation("CalculosHoraExtraExecutadosPor", fields: [calculadoPorUsuarioId], references: [id], onDelete: SetNull)
-  itens               HoraExtraCalculoItem[]
+  autorizacao           AutorizacaoHoraExtraAdministrativa @relation(fields: [autorizacaoId], references: [id], onDelete: Restrict)
+  calculadoPor          Usuario?                           @relation("CalculosHoraExtraExecutadosPor", fields: [calculadoPorUsuarioId], references: [id], onDelete: SetNull)
+  itens                 HoraExtraCalculoItem[]
   remuneracoesSnapshots HoraExtraRemuneracaoSnapshot[]
 
   @@index([autorizacaoId])
@@ -3954,26 +3959,26 @@ model HoraExtraCalculo {
 model HoraExtraCalculoItem {
   id String @id @default(uuid()) @db.Uuid
 
-  calculoId              String @map("calculo_id") @db.Uuid
-  servidorAutorizadoId   String @map("servidor_autorizado_id") @db.Uuid
+  calculoId                String @map("calculo_id") @db.Uuid
+  servidorAutorizadoId     String @map("servidor_autorizado_id") @db.Uuid
   classificacaoIntervaloId String @map("classificacao_intervalo_id") @db.Uuid
 
-  data                   DateTime @db.Date
-  inicio                 String @db.VarChar(5)
-  fim                    String @db.VarChar(5)
-  minutos                Int
-  tipoDia                OvertimeDayType @map("tipo_dia")
-  vigenciaRemuneratoriaId String @map("vigencia_remuneratoria_id") @db.VarChar(160)
-  remuneracaoBaseCentavos Int @map("remuneracao_base_centavos")
-  divisorMinutos         Int @map("divisor_minutos")
-  percentual             Decimal @db.Decimal(7, 4)
-  rubrica                String? @db.VarChar(80)
-  valorCentavos          Int @map("valor_centavos")
-  memoriaCalculo         Json? @map("memoria_calculo")
-  criadoEm               DateTime @default(now()) @map("criado_em")
+  data                    DateTime        @db.Date
+  inicio                  String          @db.VarChar(5)
+  fim                     String          @db.VarChar(5)
+  minutos                 Int
+  tipoDia                 OvertimeDayType @map("tipo_dia")
+  vigenciaRemuneratoriaId String          @map("vigencia_remuneratoria_id") @db.VarChar(160)
+  remuneracaoBaseCentavos Int             @map("remuneracao_base_centavos")
+  divisorMinutos          Int             @map("divisor_minutos")
+  percentual              Decimal         @db.Decimal(7, 4)
+  rubrica                 String?         @db.VarChar(80)
+  valorCentavos           Int             @map("valor_centavos")
+  memoriaCalculo          Json?           @map("memoria_calculo")
+  criadoEm                DateTime        @default(now()) @map("criado_em")
 
-  calculo                HoraExtraCalculo @relation(fields: [calculoId], references: [id], onDelete: Cascade)
-  servidorAutorizado     AutorizacaoHoraExtraServidor @relation(fields: [servidorAutorizadoId], references: [id], onDelete: Cascade)
+  calculo                HoraExtraCalculo                @relation(fields: [calculoId], references: [id], onDelete: Cascade)
+  servidorAutorizado     AutorizacaoHoraExtraServidor    @relation(fields: [servidorAutorizadoId], references: [id], onDelete: Cascade)
   classificacaoIntervalo HoraExtraClassificacaoIntervalo @relation(fields: [classificacaoIntervaloId], references: [id], onDelete: Restrict)
 
   @@unique([calculoId, classificacaoIntervaloId])
@@ -3992,16 +3997,16 @@ model HoraExtraRemuneracaoSnapshot {
   servidorAutorizadoId String @map("servidor_autorizado_id") @db.Uuid
   vigenciaId           String @map("vigencia_id") @db.VarChar(160)
 
-  inicio                  DateTime @db.Date
+  inicio                  DateTime  @db.Date
   fim                     DateTime? @db.Date
-  remuneracaoBaseCentavos Int @map("remuneracao_base_centavos")
-  origem                  String @db.VarChar(40)
-  fonteDocumento          String? @map("fonte_documento") @db.VarChar(200)
+  remuneracaoBaseCentavos Int       @map("remuneracao_base_centavos")
+  origem                  String    @db.VarChar(40)
+  fonteDocumento          String?   @map("fonte_documento") @db.VarChar(200)
   consultadoEm            DateTime? @map("consultado_em")
   payload                 Json?
-  criadoEm                DateTime @default(now()) @map("criado_em")
+  criadoEm                DateTime  @default(now()) @map("criado_em")
 
-  calculo            HoraExtraCalculo @relation(fields: [calculoId], references: [id], onDelete: Cascade)
+  calculo            HoraExtraCalculo             @relation(fields: [calculoId], references: [id], onDelete: Cascade)
   servidorAutorizado AutorizacaoHoraExtraServidor @relation(fields: [servidorAutorizadoId], references: [id], onDelete: Cascade)
 
   @@unique([calculoId, servidorAutorizadoId, vigenciaId])
@@ -4018,10 +4023,10 @@ model HoraExtraEvento {
   servidorAutorizadoId String? @map("servidor_autorizado_id") @db.Uuid
   usuarioId            String? @map("usuario_id") @db.Uuid
 
-  acao          String  @db.VarChar(120)
-  dadosAntes    Json?   @map("dados_antes")
-  dadosDepois   Json?   @map("dados_depois")
-  justificativa String? @db.Text
+  acao          String   @db.VarChar(120)
+  dadosAntes    Json?    @map("dados_antes")
+  dadosDepois   Json?    @map("dados_depois")
+  justificativa String?  @db.Text
   metadados     Json?
   criadoEm      DateTime @default(now()) @map("criado_em")
 

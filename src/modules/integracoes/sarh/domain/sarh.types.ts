@@ -162,12 +162,7 @@ export type SarhCalendarioDto = {
   data: string;
   descricao: string;
   tipo: "FERIADO" | "PONTO_FACULTATIVO" | "SUSPENSAO_EXPEDIENTE";
-  abrangencia:
-    | "NACIONAL"
-    | "ESTADUAL"
-    | "MUNICIPAL"
-    | "ORGAO"
-    | "UNIDADE";
+  abrangencia: "NACIONAL" | "ESTADUAL" | "MUNICIPAL" | "ORGAO" | "UNIDADE";
   uf: string | null;
   municipio?: string | null;
   municipioIbge?: string | null;
@@ -277,6 +272,7 @@ export type SarhResumoExecucao = {
 
 export type SarhSyncProgress = {
   execucaoId?: string;
+  atualizadoEm?: string;
   percentualGeral: number;
   percentualEndpoint: number;
   endpointAtual: SarhEndpointKey | null;

@@ -7,7 +7,10 @@ import {
   PeriodoHomologadoError,
   verificarPeriodoHomologado,
 } from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
-import { validarERegistrarProcedimentoFrequencia } from "@/modules/procedimentos-frequencia/application/services/motor-procedimentos-frequencia.service";
+import {
+  ProcedimentoFrequenciaError,
+  validarERegistrarProcedimentoFrequencia,
+} from "@/modules/procedimentos-frequencia/application/services/motor-procedimentos-frequencia.service";
 import { recalcularPosSolicitacaoService } from "@/modules/recalculo/application/services/recalcular-pos-solicitacao.service";
 import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
@@ -199,6 +202,19 @@ function revalidarCompetenciasDoEspelho(params: {
   }
 }
 
+function permissoesParaProcedimentoAnalise(params: {
+  permissoes: string[];
+  podeConsultarGlobal: boolean;
+}) {
+  if (!params.podeConsultarGlobal) {
+    return params.permissoes;
+  }
+
+  return Array.from(
+    new Set([...params.permissoes, "solicitacoes:analisar:global"]),
+  );
+}
+
 export async function analisarSolicitacaoAction(
   solicitacaoId: string,
   _estadoAnterior: AnalisarSolicitacaoFormState,
@@ -306,7 +322,8 @@ export async function analisarSolicitacaoAction(
     }
   }
 
-  await prisma.$transaction(async (tx) => {
+  try {
+    await prisma.$transaction(async (tx) => {
     let dadosResultado: JsonInputValue | undefined;
 
     if (novoStatus === "DEFERIDA") {
@@ -316,7 +333,10 @@ export async function analisarSolicitacaoAction(
           categoria: categoriaProcedimentoSolicitacao(solicitacaoAtual.tipo),
           servidorId: solicitacaoAtual.servidorId,
           usuarioId: session.user.id,
-          permissoesUsuario: permissoes,
+          permissoesUsuario: permissoesParaProcedimentoAnalise({
+            permissoes,
+            podeConsultarGlobal,
+          }),
           dataInicio:
             solicitacaoAtual.dataInicio ??
             solicitacaoAtual.dataReferencia ??
@@ -432,7 +452,18 @@ export async function analisarSolicitacaoAction(
         },
       },
     });
-  });
+    });
+  } catch (error) {
+    if (error instanceof ProcedimentoFrequenciaError) {
+      return {
+        sucesso: false,
+        mensagem: error.message,
+        campos: parsed.data,
+      };
+    }
+
+    throw error;
+  }
 
   const resultadoRecalculo =
     novoStatus === "DEFERIDA" &&

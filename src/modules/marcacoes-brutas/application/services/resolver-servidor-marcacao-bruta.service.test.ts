@@ -4,6 +4,9 @@ const prismaMock = vi.hoisted(() => ({
   equipamentoBiometrico: {
     findUnique: vi.fn(),
   },
+  identificadorPontoServidor: {
+    findFirst: vi.fn(),
+  },
   servidor: {
     findFirst: vi.fn(),
   },
@@ -18,6 +21,7 @@ import { resolverServidorMarcacaoBrutaService } from "./resolver-servidor-marcac
 describe("resolverServidorMarcacaoBrutaService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    prismaMock.identificadorPontoServidor.findFirst.mockResolvedValue(null);
   });
 
   it("prioriza CPF e ignora matricula divergente quando o CPF localiza servidor", async () => {
@@ -183,6 +187,43 @@ describe("resolverServidorMarcacaoBrutaService", () => {
         }),
       }),
     );
+  });
+
+  it("resolve matricula numerica pelo identificador com prefixo do orgao", async () => {
+    prismaMock.equipamentoBiometrico.findUnique.mockResolvedValue({
+      orgaoId: "orgao-rr",
+      orgao: { sigla: "SJRR" },
+      unidade: null,
+      configuracao: {
+        identificadorMatriculaNumerica: true,
+      },
+    });
+    prismaMock.identificadorPontoServidor.findFirst.mockResolvedValueOnce({
+      servidor: {
+        id: "servidor-rr-identificador",
+        matricula: "RR20011",
+        cpf: "12345678901",
+        pis: null,
+      },
+    });
+
+    const servidor = await resolverServidorMarcacaoBrutaService({
+      matricula: "00000000000000006248",
+      equipamentoId: "equipamento-rr",
+    });
+
+    expect(servidor?.id).toBe("servidor-rr-identificador");
+    expect(prismaMock.identificadorPontoServidor.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          valorNormalizado: { in: ["00000000000000006248", "RR6248"] },
+          servidor: expect.objectContaining({
+            orgaoId: "orgao-rr",
+          }),
+        }),
+      }),
+    );
+    expect(prismaMock.servidor.findFirst).not.toHaveBeenCalled();
   });
 
   it("nao normaliza matricula numerica quando equipamento desabilita esse identificador", async () => {

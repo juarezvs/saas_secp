@@ -552,8 +552,8 @@ export function RegulamentacaoPontoForm({
               Sinalizar marcação fora do expediente
             </span>
             <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
-              Marca como inconsistente quando o horário registrado estiver fora
-              da regra de expediente aplicável.
+              Usa a janela de expediente como referência no espelho, sem impedir
+              ou invalidar o registro da marcação.
             </span>
           </span>
         </label>

@@ -13,18 +13,16 @@ function normalizarValores(valores: Array<string | null | undefined>) {
   );
 }
 
-function marcacaoBrutaCombinaComIdentificadores(
-  bruta: {
-    cpf: string | null;
-    pis: string | null;
-    matricula: string | null;
-  },
-  identificadoresNormalizados: Set<string>,
+function valoresOriginaisNormalizados(
+  valores: Array<string | null | undefined>,
 ) {
-  return [bruta.cpf, bruta.pis, bruta.matricula].some((valor) => {
-    const normalizado = normalizarIdentificadorPonto(valor);
-    return normalizado ? identificadoresNormalizados.has(normalizado) : false;
-  });
+  return Array.from(
+    new Set(
+      valores
+        .map((valor) => valor?.trim())
+        .filter((valor): valor is string => Boolean(valor)),
+    ),
+  );
 }
 
 async function listarPendentesPorIdentificadores(params: {
@@ -45,8 +43,20 @@ async function listarPendentesPorIdentificadores(params: {
     return [];
   }
 
-  const identificadoresSet = new Set(identificadoresNormalizados);
   const resultado: Array<{ id: string }> = [];
+  const cpfs = valoresOriginaisNormalizados([
+    params.cpf,
+    ...identificadoresNormalizados.filter((valor) => /^\d{11}$/.test(valor)),
+  ]);
+  const pises = valoresOriginaisNormalizados([
+    params.pis,
+    ...identificadoresNormalizados.filter((valor) => /^\d{11,12}$/.test(valor)),
+  ]);
+  const matriculas = valoresOriginaisNormalizados([
+    params.matricula,
+    ...(params.identificadores ?? []),
+    ...identificadoresNormalizados,
+  ]);
   let cursorId: string | undefined;
 
   while (true) {
@@ -55,22 +65,15 @@ async function listarPendentesPorIdentificadores(params: {
         processada: false,
         OR: [
           { servidorId: params.servidorId },
-          {
-            servidorId: null,
-            OR: [
-              { cpf: { not: null } },
-              { pis: { not: null } },
-              { matricula: { not: null } },
-            ],
-          },
+          ...(cpfs.length ? [{ servidorId: null, cpf: { in: cpfs } }] : []),
+          ...(pises.length ? [{ servidorId: null, pis: { in: pises } }] : []),
+          ...(matriculas.length
+            ? [{ servidorId: null, matricula: { in: matriculas } }]
+            : []),
         ],
       },
       select: {
         id: true,
-        servidorId: true,
-        cpf: true,
-        pis: true,
-        matricula: true,
       },
       orderBy: [{ dataHora: "asc" }, { id: "asc" }],
       take: 500,
@@ -82,12 +85,7 @@ async function listarPendentesPorIdentificadores(params: {
     }
 
     for (const bruta of lote) {
-      if (
-        bruta.servidorId === params.servidorId ||
-        marcacaoBrutaCombinaComIdentificadores(bruta, identificadoresSet)
-      ) {
-        resultado.push({ id: bruta.id });
-      }
+      resultado.push({ id: bruta.id });
     }
 
     cursorId = lote.at(-1)?.id;

@@ -8,10 +8,21 @@ import { validarERegistrarProcedimentoFrequencia } from "@/modules/procedimentos
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 export type NadaConstaFrequenciaResumo = {
+  execucaoId?: string;
   servidorNome: string;
   servidorMatricula: string;
   orgaoSigla: string;
   secaoJudiciaria?: string | null;
+  unidadeSigla?: string | null;
+  cargoDescricao?: string | null;
+  processoSei?: string | null;
+  justificativa?: string | null;
+  dataInicio: string;
+  dataFim: string;
+  emitidoEm?: string;
+  diasPrevistosTrabalho: number;
+  diasTrabalhadosRegistrados: number;
+  afastamentosNoPeriodo: number;
   saldoBancoHorasMinutos: number;
   debitosVencidosMinutos: number;
   faltasNaoResolvidas: number;
@@ -28,6 +39,8 @@ export type NadaConstaFrequenciaFormState = {
     servidorId?: string;
     processoSei?: string;
     justificativa?: string;
+    dataInicio?: string;
+    dataFim?: string;
   };
   resumo?: NadaConstaFrequenciaResumo;
 };
@@ -36,6 +49,8 @@ const estadoCampos = (formData: FormData) => ({
   servidorId: String(formData.get("servidorId") ?? "").trim(),
   processoSei: String(formData.get("processoSei") ?? "").trim(),
   justificativa: String(formData.get("justificativa") ?? "").trim(),
+  dataInicio: String(formData.get("dataInicio") ?? "").trim(),
+  dataFim: String(formData.get("dataFim") ?? "").trim(),
 });
 
 function minutosParaHora(minutos: number) {
@@ -46,13 +61,56 @@ function minutosParaHora(minutos: number) {
   ).padStart(2, "0")}`;
 }
 
-function montarMensagemNadaConsta(resumo: Omit<NadaConstaFrequenciaResumo, "mensagem">) {
+function parseDataCampo(valor: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(valor)) return null;
+
+  const [ano, mes, dia] = valor.split("-").map(Number);
+  const data = new Date(Date.UTC(ano, mes - 1, dia));
+
+  return Number.isNaN(data.getTime()) ? null : data;
+}
+
+function formatarDataInput(data: Date) {
+  return data.toISOString().slice(0, 10);
+}
+
+function formatarDataBr(valor: string) {
+  const data = parseDataCampo(valor);
+
+  return data ? data.toLocaleDateString("pt-BR", { timeZone: "UTC" }) : valor;
+}
+
+function competenciasEntre(inicio: Date, fim: Date) {
+  const competencias: { anoReferencia: number; mesReferencia: number }[] = [];
+  const cursor = new Date(
+    Date.UTC(inicio.getUTCFullYear(), inicio.getUTCMonth(), 1),
+  );
+  const limite = new Date(Date.UTC(fim.getUTCFullYear(), fim.getUTCMonth(), 1));
+
+  while (cursor <= limite) {
+    competencias.push({
+      anoReferencia: cursor.getUTCFullYear(),
+      mesReferencia: cursor.getUTCMonth() + 1,
+    });
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+  }
+
+  return competencias;
+}
+
+function montarMensagemNadaConsta(
+  resumo: Omit<NadaConstaFrequenciaResumo, "mensagem">,
+) {
+  const periodo = `${formatarDataBr(resumo.dataInicio)} a ${formatarDataBr(
+    resumo.dataFim,
+  )}`;
+
   if (resumo.resultado === "NADA_CONSTA") {
-    return `Nada consta para ${resumo.servidorNome} (${resumo.servidorMatricula}) quanto a saldo negativo, debitos vencidos, faltas nao resolvidas e homologacoes pendentes.`;
+    return `Nada consta para ${resumo.servidorNome} (${resumo.servidorMatricula}) no periodo de ${periodo} quanto a saldo negativo, debitos vencidos, faltas nao resolvidas e homologacoes pendentes.`;
   }
 
   return [
-    `Constam pendencias para ${resumo.servidorNome} (${resumo.servidorMatricula}).`,
+    `Constam pendencias para ${resumo.servidorNome} (${resumo.servidorMatricula}) no periodo de ${periodo}.`,
     `Saldo atual: ${minutosParaHora(resumo.saldoBancoHorasMinutos)}.`,
     `Debitos vencidos: ${minutosParaHora(resumo.debitosVencidosMinutos)}.`,
     `Faltas nao resolvidas: ${resumo.faltasNaoResolvidas}.`,
@@ -84,6 +142,23 @@ export async function emitirNadaConstaFrequenciaAction(
     erros.justificativa = ["Informe a justificativa administrativa."];
   }
 
+  const dataInicio = parseDataCampo(campos.dataInicio);
+  const dataFim = parseDataCampo(campos.dataFim);
+
+  if (!dataInicio) {
+    erros.dataInicio = ["Informe a data inicial do periodo."];
+  }
+
+  if (!dataFim) {
+    erros.dataFim = ["Informe a data final do periodo."];
+  }
+
+  if (dataInicio && dataFim && dataInicio > dataFim) {
+    erros.dataFim = [
+      "A data final deve ser igual ou posterior a data inicial.",
+    ];
+  }
+
   if (Object.keys(erros).length > 0) {
     return {
       sucesso: false,
@@ -111,6 +186,29 @@ export async function emitirNadaConstaFrequenciaAction(
           nome: true,
         },
       },
+      cargo: {
+        select: {
+          descricao: true,
+        },
+      },
+      lotacoes: {
+        where: { status: "ATIVO" },
+        orderBy: { dataInicio: "desc" },
+        take: 1,
+        select: {
+          cargo: {
+            select: {
+              descricao: true,
+            },
+          },
+          unidade: {
+            select: {
+              sigla: true,
+              nome: true,
+            },
+          },
+        },
+      },
       usuario: {
         select: {
           nome: true,
@@ -128,12 +226,20 @@ export async function emitirNadaConstaFrequenciaAction(
   }
 
   const hoje = new Date();
+  const periodo = {
+    gte: dataInicio!,
+    lte: dataFim!,
+  };
+  const competenciasPeriodo = competenciasEntre(dataInicio!, dataFim!);
   const [
     saldo,
     debitosVencidos,
     faltasApuradas,
     faltasOcorrencias,
     pendenciasHomologacao,
+    diasPrevistosTrabalho,
+    diasTrabalhadosRegistrados,
+    afastamentosNoPeriodo,
   ] = await Promise.all([
     prisma.bancoHorasSaldo.findUnique({
       where: { servidorId: servidor.id },
@@ -142,6 +248,7 @@ export async function emitirNadaConstaFrequenciaAction(
     prisma.movimentoBancoHoras.aggregate({
       where: {
         servidorId: servidor.id,
+        dataReferencia: periodo,
         tipo: { in: ["DEBITO", "COMPENSACAO_DEBITO"] },
         status: { in: ["PENDENTE", "VALIDADO", "EXPIRADO"] },
         OR: [{ status: "EXPIRADO" }, { expiraEm: { lt: hoje } }],
@@ -151,6 +258,7 @@ export async function emitirNadaConstaFrequenciaAction(
     prisma.apuracaoDiaria.count({
       where: {
         servidorId: servidor.id,
+        dataReferencia: periodo,
         resultado: "FALTA",
         status: { notIn: ["FECHADA", "HOMOLOGADA"] },
       },
@@ -160,22 +268,65 @@ export async function emitirNadaConstaFrequenciaAction(
         servidorId: servidor.id,
         tipo: "FALTA",
         resolvida: false,
+        apuracaoDiaria: {
+          dataReferencia: periodo,
+        },
       },
     }),
     prisma.homologacaoServidorMes.count({
       where: {
         servidorId: servidor.id,
         status: { in: ["PENDENTE", "COM_PENDENCIAS", "DEVOLVIDO"] },
+        fechamento: {
+          OR: competenciasPeriodo,
+        },
+      },
+    }),
+    prisma.apuracaoDiaria.count({
+      where: {
+        servidorId: servidor.id,
+        dataReferencia: periodo,
+        cargaPrevistaMinutos: { gt: 0 },
+      },
+    }),
+    prisma.apuracaoDiaria.count({
+      where: {
+        servidorId: servidor.id,
+        dataReferencia: periodo,
+        minutosTrabalhados: { gt: 0 },
+      },
+    }),
+    prisma.afastamentoSarh.count({
+      where: {
+        servidorId: servidor.id,
+        ativo: true,
+        dataInicio: { lte: dataFim! },
+        OR: [{ dataFim: null }, { dataFim: { gte: dataInicio! } }],
       },
     }),
   ]);
 
   const resumoSemMensagem = {
     servidorNome:
-      servidor.nomeFuncional ?? servidor.nomeCompletoSarh ?? servidor.usuario.nome,
+      servidor.nomeFuncional ??
+      servidor.nomeCompletoSarh ??
+      servidor.usuario.nome,
     servidorMatricula: servidor.matricula,
     orgaoSigla: servidor.orgao.sigla,
     secaoJudiciaria: servidor.orgao.nome,
+    unidadeSigla: servidor.lotacoes[0]?.unidade.sigla ?? null,
+    cargoDescricao:
+      servidor.cargo?.descricao ??
+      servidor.lotacoes[0]?.cargo?.descricao ??
+      null,
+    processoSei: campos.processoSei,
+    justificativa: campos.justificativa,
+    dataInicio: formatarDataInput(dataInicio!),
+    dataFim: formatarDataInput(dataFim!),
+    emitidoEm: hoje.toISOString(),
+    diasPrevistosTrabalho,
+    diasTrabalhadosRegistrados,
+    afastamentosNoPeriodo,
     saldoBancoHorasMinutos: saldo?.saldoMinutos ?? 0,
     debitosVencidosMinutos: debitosVencidos._sum.minutos ?? 0,
     faltasNaoResolvidas: faltasApuradas + faltasOcorrencias,
@@ -192,6 +343,7 @@ export async function emitirNadaConstaFrequenciaAction(
     ...resumoSemMensagem,
     mensagem: montarMensagemNadaConsta(resumoSemMensagem),
   };
+  let execucaoId: string | undefined;
 
   await prisma.$transaction(async (tx) => {
     const procedimento = await validarERegistrarProcedimentoFrequencia({
@@ -200,7 +352,8 @@ export async function emitirNadaConstaFrequenciaAction(
       servidorId: servidor.id,
       usuarioId: permissao.usuarioId,
       permissoesUsuario: permissao.permissoes,
-      dataInicio: hoje,
+      dataInicio: dataInicio!,
+      dataFim: dataFim!,
       processoSei: campos.processoSei,
       documentoSei: campos.processoSei,
       justificativa: campos.justificativa,
@@ -212,10 +365,13 @@ export async function emitirNadaConstaFrequenciaAction(
         origem: "NADA_CONSTA_FREQUENCIA",
         servidorMatricula: servidor.matricula,
         orgaoSigla: servidor.orgao.sigla,
+        dataInicio: resumo.dataInicio,
+        dataFim: resumo.dataFim,
       } satisfies Prisma.InputJsonValue,
     });
 
     if (procedimento.execucao) {
+      execucaoId = procedimento.execucao.id;
       await tx.procedimentoAdministrativoFrequenciaExecucao.update({
         where: { id: procedimento.execucao.id },
         data: {
@@ -228,6 +384,14 @@ export async function emitirNadaConstaFrequenciaAction(
             debitosVencidosMinutos: resumo.debitosVencidosMinutos,
             faltasNaoResolvidas: resumo.faltasNaoResolvidas,
             pendenciasHomologacao: resumo.pendenciasHomologacao,
+            diasPrevistosTrabalho: resumo.diasPrevistosTrabalho,
+            diasTrabalhadosRegistrados: resumo.diasTrabalhadosRegistrados,
+            afastamentosNoPeriodo: resumo.afastamentosNoPeriodo,
+            dataInicio: resumo.dataInicio,
+            dataFim: resumo.dataFim,
+            emitidoEm: resumo.emitidoEm,
+            processoSei: resumo.processoSei,
+            justificativa: resumo.justificativa,
           } satisfies Prisma.InputJsonValue,
         },
       });
@@ -241,6 +405,6 @@ export async function emitirNadaConstaFrequenciaAction(
     sucesso: true,
     mensagem: "Nada Consta de frequencia emitido e registrado no motor.",
     campos,
-    resumo,
+    resumo: { ...resumo, execucaoId },
   };
 }

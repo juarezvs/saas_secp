@@ -8,6 +8,26 @@ type AutenticarUsuarioParams = {
   senha: string;
 };
 
+function matriculaEhJuiz(matricula: string) {
+  return matricula.trim().toUpperCase().startsWith("JU");
+}
+
+function resolverOrgaosAutenticacao(usuario: Awaited<
+  ReturnType<typeof buscarUsuarioParaLoginPorMatricula>
+>) {
+  if (!usuario) {
+    return null;
+  }
+
+  if (matriculaEhJuiz(usuario.matricula)) {
+    return usuario.orgaoIdsAutenticacao.length > 0
+      ? usuario.orgaoIdsAutenticacao
+      : usuario.orgaoId;
+  }
+
+  return usuario.orgaoId;
+}
+
 export async function autenticarUsuarioPorCredenciais({
   matricula,
   senha,
@@ -41,7 +61,7 @@ export async function autenticarUsuarioPorCredenciais({
   const senhaAdValida = await autenticarNoActiveDirectory(
     usuario.matricula,
     senha,
-    usuario.orgaoId,
+    resolverOrgaosAutenticacao(usuario),
   );
   const senhaLocalValida =
     !senhaAdValida &&

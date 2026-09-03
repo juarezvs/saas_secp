@@ -32,6 +32,7 @@ export type DataTableFiltroSelect = {
   }[];
   className?: string;
   defaultValue?: string;
+  limparAoAlterar?: string[];
 };
 
 export type DataTableFiltroSearchableSelect = {
@@ -47,6 +48,7 @@ export type DataTableFiltroSearchableSelect = {
   placeholder?: string;
   searchPlaceholder?: string;
   defaultValue?: string;
+  limparAoAlterar?: string[];
 };
 
 export type DataTableFiltroCompetencia = {
@@ -99,9 +101,13 @@ export function DataTableToolbar({
 
   const aplicarParametro = useCallback(
     (nome: string, valor: string) => {
+      const filtro = filtros.find((item) => item.nome === nome);
+      const dependentes =
+        filtro && "limparAoAlterar" in filtro ? filtro.limparAoAlterar : [];
       const params = criarQueryStringAtualizada(searchParams, {
         [nome]: valor,
         pagina: "1",
+        ...Object.fromEntries((dependentes ?? []).map((item) => [item, ""])),
       });
 
       const destino = montarHrefComQuery(pathname, params);
@@ -110,7 +116,7 @@ export function DataTableToolbar({
         router.push(destino);
       });
     },
-    [pathname, router, searchParams],
+    [filtros, pathname, router, searchParams],
   );
 
   const aplicarParametrosTexto = useCallback(
@@ -200,9 +206,7 @@ export function DataTableToolbar({
                   defaultValue={value}
                   options={filtro.options}
                   placeholder={filtro.placeholder ?? "Todos"}
-                  searchPlaceholder={
-                    filtro.searchPlaceholder ?? "Pesquisar..."
-                  }
+                  searchPlaceholder={filtro.searchPlaceholder ?? "Pesquisar..."}
                   className="mt-2"
                   onValueChange={(novoValor) =>
                     aplicarParametro(filtro.nome, novoValor)

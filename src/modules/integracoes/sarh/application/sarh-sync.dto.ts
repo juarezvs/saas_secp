@@ -34,3 +34,17 @@ export const ENDPOINTS_PADRAO_SARH: SarhEndpointKey[] = [
   "substituicoes",
   "calendarios",
 ];
+
+export const ENDPOINTS_PADRAO_SARH_MATRICULA: SarhEndpointKey[] = [
+  "servidores",
+  "estagiarios",
+  "prestadores",
+  "voluntarios",
+  "lotacoesServidores",
+  "tiposAfastamento",
+  "afastamentos",
+  "ferias",
+  "chefias",
+  "substituicoes",
+  "calendarios",
+];

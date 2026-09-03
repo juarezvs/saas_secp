@@ -225,6 +225,18 @@ function erroCampoUsuarioControlIdNaoSuportado(error: unknown) {
   );
 }
 
+export function erroCampoAccessLogControlIdNaoSuportado(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return (
+    error.message.includes("is not a column of table access_logs") ||
+    (error.message.includes("is not a column") &&
+      error.message.includes("access_logs"))
+  );
+}
+
 export function parseLinhaAfdIdClass(linha: string): {
   nsr: string;
   dataHora: Date;
@@ -233,7 +245,9 @@ export function parseLinhaAfdIdClass(linha: string): {
   matricula: string | null;
   identificador: string;
 } | null {
-  const match = linha.match(/^(\d{9})3(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4})(\d{12})/);
+  const match = linha.match(
+    /^(\d{9})3(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{4})(\d{12})/,
+  );
 
   if (!match) return null;
 
@@ -298,7 +312,11 @@ function parseLinhaIdentificadorAfdIdClass(
       dataHora: marcacao.dataHora,
       tipoRegistro: "MARCACAO",
       identificador: marcacao.identificador,
-      tipoIdentificador: marcacao.cpf ? "CPF" : marcacao.pis ? "PIS" : "DESCONHECIDO",
+      tipoIdentificador: marcacao.cpf
+        ? "CPF"
+        : marcacao.pis
+          ? "PIS"
+          : "DESCONHECIDO",
       cpf: marcacao.cpf,
       pis: marcacao.pis,
       linhaOriginal: linha,
@@ -383,7 +401,11 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
       const request = transport.request(
         {
           hostname: url.hostname,
-          port: url.port ? Number(url.port) : url.protocol === "https:" ? 443 : 80,
+          port: url.port
+            ? Number(url.port)
+            : url.protocol === "https:"
+              ? 443
+              : 80,
           path: `${url.pathname}${url.search}`,
           method: "POST",
           headers: {
@@ -420,7 +442,11 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
                 return;
               }
 
-              if (payload && typeof payload === "object" && "error" in payload) {
+              if (
+                payload &&
+                typeof payload === "object" &&
+                "error" in payload
+              ) {
                 const erro = (payload as Record<string, unknown>).error;
                 reject(
                   new Error(
@@ -441,7 +467,9 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
       );
 
       request.on("timeout", () => {
-        request.destroy(new Error(`Tempo limite ao conectar no ${this.rotulo}.`));
+        request.destroy(
+          new Error(`Tempo limite ao conectar no ${this.rotulo}.`),
+        );
       });
       request.on("error", reject);
       request.end(dados);
@@ -523,9 +551,64 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
     return session;
   }
 
-  private async carregarObjetos<T>(params: ControlIdLoadParams, session: string) {
-    const payload = await this.post<unknown>("/load_objects.fcgi", params, session);
+  private async carregarObjetos<T>(
+    params: ControlIdLoadParams,
+    session: string,
+  ) {
+    const payload = await this.post<unknown>(
+      "/load_objects.fcgi",
+      params,
+      session,
+    );
     return normalizarLista<T>(payload, params.object);
+  }
+
+  private async carregarAccessLogs(
+    params: Omit<ControlIdLoadParams, "object">,
+    session: string,
+  ) {
+    const camposCompletos = [
+      "id",
+      "time",
+      "event",
+      "device_id",
+      "identifier_id",
+      "user_id",
+      "portal_id",
+    ];
+    const camposBasicos = [
+      "id",
+      "time",
+      "event",
+      "device_id",
+      "identifier_id",
+      "user_id",
+      "portal_id",
+    ];
+
+    try {
+      return await this.carregarObjetos<ControlIdAccessLog>(
+        {
+          ...params,
+          object: "access_logs",
+          fields: camposCompletos,
+        },
+        session,
+      );
+    } catch (error) {
+      if (!erroCampoAccessLogControlIdNaoSuportado(error)) {
+        throw error;
+      }
+
+      return this.carregarObjetos<ControlIdAccessLog>(
+        {
+          ...params,
+          object: "access_logs",
+          fields: camposBasicos,
+        },
+        session,
+      );
+    }
   }
 
   private async executarIdClass<T>(
@@ -589,9 +672,11 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
       usuarios
         .map((usuario) => {
           const id = valorNumero(usuario.id);
-          return id === null ? null : [Math.trunc(id), usuario] as const;
+          return id === null ? null : ([Math.trunc(id), usuario] as const);
         })
-        .filter((item): item is readonly [number, ControlIdUser] => Boolean(item)),
+        .filter((item): item is readonly [number, ControlIdUser] =>
+          Boolean(item),
+        ),
     );
   }
 
@@ -697,7 +782,10 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
   }): Promise<ResultadoColetaRelogioPonto> {
     const session = await this.login();
     const nsrInicial = Math.max(Number(params.nsrInicial || 1), 1);
-    const quantidade = Math.min(Math.max(Number(params.quantidade ?? 100), 1), 500);
+    const quantidade = Math.min(
+      Math.max(Number(params.quantidade ?? 100), 1),
+      500,
+    );
 
     if (this.protocolo === "CONTROL_ID_IDCLASS_BIO") {
       const afd = await this.executarIdClassTexto(
@@ -709,9 +797,8 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
       const linhas = afd.split(/\r?\n/).map((linha) => linha.trim());
       const registros = linhas
         .map((linha) => parseLinhaAfdIdClass(linha))
-        .filter(
-          (marcacao): marcacao is NonNullable<typeof marcacao> =>
-            Boolean(marcacao),
+        .filter((marcacao): marcacao is NonNullable<typeof marcacao> =>
+          Boolean(marcacao),
         );
       const selecionados = registros.slice(0, quantidade);
       const maiorNsr = linhas.reduce(
@@ -753,21 +840,11 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
 
     const eventoAcessoConcedido =
       valorNumero(this.config.eventoAcessoConcedido) ?? 7;
-    const incluirEventosNegados = valorBooleano(this.config.incluirEventosNegados);
-    const logs = await this.carregarObjetos<ControlIdAccessLog>(
+    const incluirEventosNegados = valorBooleano(
+      this.config.incluirEventosNegados,
+    );
+    const logs = await this.carregarAccessLogs(
       {
-        object: "access_logs",
-        fields: [
-          "id",
-          "time",
-          "event",
-          "device_id",
-          "identifier_id",
-          "user_id",
-          "portal_id",
-          "confidence",
-          "mask",
-        ],
         limit: quantidade,
         offset: 0,
         order: ["id", "ascending"],
@@ -846,7 +923,8 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
 
     return {
       marcacoes,
-      proximoNsr: maiorNsr >= nsrInicial ? String(maiorNsr + 1) : String(nsrInicial),
+      proximoNsr:
+        maiorNsr >= nsrInicial ? String(maiorNsr + 1) : String(nsrInicial),
       mensagem: `${marcacoes.length} marcacao(oes) lida(s) do ${this.rotulo}.`,
       payload: {
         protocolo: this.protocolo,
@@ -862,12 +940,17 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
     quantidade?: number;
   }): Promise<ResultadoAnaliseAfdRelogioPonto> {
     if (this.protocolo !== "CONTROL_ID_IDCLASS_BIO") {
-      throw new Error("Analise AFD 671 disponivel apenas para Control iD idClass Bio.");
+      throw new Error(
+        "Analise AFD 671 disponivel apenas para Control iD idClass Bio.",
+      );
     }
 
     const session = await this.login();
     const nsrInicial = Math.max(Number(params.nsrInicial || 1), 1);
-    const quantidade = Math.min(Math.max(Number(params.quantidade ?? 100), 1), 500);
+    const quantidade = Math.min(
+      Math.max(Number(params.quantidade ?? 100), 1),
+      500,
+    );
     const afd = await this.executarIdClassTexto(
       "get_afd",
       session,
@@ -905,13 +988,13 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
   ): Promise<ResultadoEnvioBiometriaRelogioPonto> {
     return {
       sucesso: false,
-      mensagem:
-        `Envio de biometrias para ${this.rotulo} ainda nao foi habilitado. A coleta de marcacoes pela Access API esta disponivel.`,
+      mensagem: `Envio de biometrias para ${this.rotulo} ainda nao foi habilitado. A coleta de marcacoes pela Access API esta disponivel.`,
       enviados: 0,
       rejeitados: servidores.length,
       detalhes: {
         protocolo: this.protocolo,
-        motivo: "Sincronizacao facial exige mapeamento dos objetos de usuario/face antes de gravar cadastros no equipamento.",
+        motivo:
+          "Sincronizacao facial exige mapeamento dos objetos de usuario/face antes de gravar cadastros no equipamento.",
       },
     };
   }
@@ -922,7 +1005,10 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
   }): Promise<ResultadoLeituraCadastrosBiometricos> {
     const session = await this.login();
     const offset = Math.max(Number(params?.indiceInicial ?? 0), 0);
-    const quantidade = Math.min(Math.max(Number(params?.quantidade ?? 100), 1), 500);
+    const quantidade = Math.min(
+      Math.max(Number(params?.quantidade ?? 100), 1),
+      500,
+    );
 
     if (this.protocolo === "CONTROL_ID_IDCLASS_BIO") {
       const csv = await this.executarIdClassTexto(
@@ -1040,8 +1126,7 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
   async configurarEventosOnline() {
     return {
       sucesso: false,
-      mensagem:
-        `Eventos online do ${this.rotulo} nao foram ativados por esta integracao. Use a coleta progressiva via Access API.`,
+      mensagem: `Eventos online do ${this.rotulo} nao foram ativados por esta integracao. Use a coleta progressiva via Access API.`,
       payload: {
         protocolo: this.protocolo,
       },

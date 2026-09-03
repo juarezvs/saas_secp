@@ -5,6 +5,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import {
+  invalidarCacheUsuarioAuthPorId,
+  invalidarCacheUsuarioAuthPorMatricula,
+} from "@/modules/auth/infrastructure/repositories/usuario-auth.repository";
 import type { EscopoGestaoUsuarios } from "../services/escopo-gestao-usuarios.service";
 import {
   orgaoPodeSerVinculadoNoEscopoGestaoUsuarios,
@@ -234,6 +238,9 @@ export async function atualizarUsuarioAction(
 
   revalidatePath("/usuarios");
   revalidatePath(`/usuarios/${usuarioId}`);
+  await invalidarCacheUsuarioAuthPorId(usuarioId);
+  await invalidarCacheUsuarioAuthPorMatricula(usuarioAtual.matricula);
+  await invalidarCacheUsuarioAuthPorMatricula(parsed.data.matricula);
 
   redirect(`/usuarios/${usuarioId}`);
 }

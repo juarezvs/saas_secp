@@ -78,11 +78,37 @@ function ResultadoCard({ resumo }: { resumo: NadaConstaFrequenciaResumo }) {
       <div className="mt-5 grid gap-3 md:grid-cols-4">
         <div className="rounded-md border p-3">
           <p className="text-xs font-semibold text-[var(--muted-foreground)]">
+            Período
+          </p>
+          <p className="mt-1 font-black">
+            {new Date(resumo.dataInicio).toLocaleDateString("pt-BR", {
+              timeZone: "UTC",
+            })}{" "}
+            a{" "}
+            {new Date(resumo.dataFim).toLocaleDateString("pt-BR", {
+              timeZone: "UTC",
+            })}
+          </p>
+        </div>
+        <div className="rounded-md border p-3">
+          <p className="text-xs font-semibold text-[var(--muted-foreground)]">
             Saldo
           </p>
           <p className="mt-1 font-black">
             {minutosParaHora(resumo.saldoBancoHorasMinutos)}
           </p>
+        </div>
+        <div className="rounded-md border p-3">
+          <p className="text-xs font-semibold text-[var(--muted-foreground)]">
+            Dias previstos
+          </p>
+          <p className="mt-1 font-black">{resumo.diasPrevistosTrabalho}</p>
+        </div>
+        <div className="rounded-md border p-3">
+          <p className="text-xs font-semibold text-[var(--muted-foreground)]">
+            Dias registrados
+          </p>
+          <p className="mt-1 font-black">{resumo.diasTrabalhadosRegistrados}</p>
         </div>
         <div className="rounded-md border p-3">
           <p className="text-xs font-semibold text-[var(--muted-foreground)]">
@@ -94,13 +120,13 @@ function ResultadoCard({ resumo }: { resumo: NadaConstaFrequenciaResumo }) {
         </div>
         <div className="rounded-md border p-3">
           <p className="text-xs font-semibold text-[var(--muted-foreground)]">
-            Faltas
+            Faltas não resolvidas
           </p>
           <p className="mt-1 font-black">{resumo.faltasNaoResolvidas}</p>
         </div>
         <div className="rounded-md border p-3">
           <p className="text-xs font-semibold text-[var(--muted-foreground)]">
-            Homologações
+            Homologações pendentes
           </p>
           <p className="mt-1 font-black">{resumo.pendenciasHomologacao}</p>
         </div>
@@ -151,8 +177,42 @@ export function NadaConstaFrequenciaForm({
               }))}
             />
             {erro(estado, "servidorId") ? (
-              <span className="text-xs text-red-600">{erro(estado, "servidorId")}</span>
+              <span className="text-xs text-red-600">
+                {erro(estado, "servidorId")}
+              </span>
             ) : null}
+          </label>
+
+          <label className="grid gap-1 text-sm font-semibold">
+            Período de apuração
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-1">
+                <input
+                  type="date"
+                  name="dataInicio"
+                  defaultValue={estado.campos?.dataInicio ?? ""}
+                  className="h-11 rounded-md border bg-[var(--background)] px-3 text-sm"
+                />
+                {erro(estado, "dataInicio") ? (
+                  <span className="text-xs text-red-600">
+                    {erro(estado, "dataInicio")}
+                  </span>
+                ) : null}
+              </div>
+              <div className="grid gap-1">
+                <input
+                  type="date"
+                  name="dataFim"
+                  defaultValue={estado.campos?.dataFim ?? ""}
+                  className="h-11 rounded-md border bg-[var(--background)] px-3 text-sm"
+                />
+                {erro(estado, "dataFim") ? (
+                  <span className="text-xs text-red-600">
+                    {erro(estado, "dataFim")}
+                  </span>
+                ) : null}
+              </div>
+            </div>
           </label>
 
           <label className="grid gap-1 text-sm font-semibold">
@@ -164,7 +224,9 @@ export function NadaConstaFrequenciaForm({
               placeholder="Ex.: 0000000-00.2026.4.01.8000"
             />
             {erro(estado, "processoSei") ? (
-              <span className="text-xs text-red-600">{erro(estado, "processoSei")}</span>
+              <span className="text-xs text-red-600">
+                {erro(estado, "processoSei")}
+              </span>
             ) : null}
           </label>
 
@@ -178,7 +240,9 @@ export function NadaConstaFrequenciaForm({
               placeholder="Informe o motivo da emissão e o destino do documento."
             />
             {erro(estado, "justificativa") ? (
-              <span className="text-xs text-red-600">{erro(estado, "justificativa")}</span>
+              <span className="text-xs text-red-600">
+                {erro(estado, "justificativa")}
+              </span>
             ) : null}
           </label>
         </div>

@@ -1,4 +1,5 @@
 import { DatabaseZap } from "lucide-react";
+import { redirect } from "next/navigation";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
@@ -117,6 +118,74 @@ export default async function MarcacoesBrutasPage({
       ? equipamentosVisiveis
       : [];
 
+  const servidorIdParam = params.servidorId?.trim();
+  const equipamentoCodigoParam = params.equipamentoCodigo?.trim();
+  const [servidorSelecionadoValido, equipamentoSelecionadoValido] =
+    await Promise.all([
+      servidorIdParam
+        ? prisma.servidor.findFirst({
+            where: {
+              AND: [
+                { id: servidorIdParam },
+                ...(escopoMarcacoesBrutas.servidorIdsPermitidos !== undefined
+                  ? [
+                      {
+                        id: {
+                          in: escopoMarcacoesBrutas.servidorIdsPermitidos,
+                        },
+                      },
+                    ]
+                  : escopoMarcacoesBrutas.orgaoIdsPermitidos?.length
+                    ? [
+                        {
+                          orgaoId: {
+                            in: escopoMarcacoesBrutas.orgaoIdsPermitidos,
+                          },
+                        },
+                      ]
+                    : []),
+                ...(orgaoIdsFiltro?.length
+                  ? [{ orgaoId: { in: orgaoIdsFiltro } }]
+                  : []),
+              ],
+            },
+            select: { id: true },
+          })
+        : Promise.resolve(null),
+      equipamentoCodigoParam && orgaoIdsFiltro
+        ? Promise.resolve(
+            equipamentosFiltro.some(
+              (equipamento) => equipamento.codigo === equipamentoCodigoParam,
+            ),
+          )
+        : Promise.resolve(Boolean(equipamentoCodigoParam)),
+    ]);
+
+  const servidorIdFiltro =
+    servidorIdParam && servidorSelecionadoValido ? servidorIdParam : undefined;
+  const equipamentoCodigoFiltro =
+    equipamentoCodigoParam && equipamentoSelecionadoValido
+      ? equipamentoCodigoParam
+      : undefined;
+
+  if (
+    (servidorIdParam && !servidorIdFiltro) ||
+    (equipamentoCodigoParam && !equipamentoCodigoFiltro)
+  ) {
+    const query = new URLSearchParams();
+
+    for (const [chave, valor] of Object.entries(params)) {
+      if (!valor || chave === "servidorId" || chave === "equipamentoCodigo") {
+        continue;
+      }
+
+      query.set(chave, valor);
+    }
+
+    query.set("pagina", "1");
+    redirect(`/marcacoes-brutas?${query.toString()}`);
+  }
+
   const [resultado, servidores, unidades] = await Promise.all([
     listarMarcacoesBrutasPaginado({
       busca: params.busca,
@@ -126,13 +195,14 @@ export default async function MarcacoesBrutasPage({
       dataFim: params.dataFim,
       cpf: params.cpf,
       matricula: params.matricula,
-      servidorId: params.servidorId,
-      equipamentoCodigo: params.equipamentoCodigo,
+      servidorId: servidorIdFiltro,
+      equipamentoCodigo: equipamentoCodigoFiltro,
       nsr: params.nsr,
       orgaoId: params.orgaoId ? orgaoIdsFiltro?.[0] : undefined,
       pagina,
       itensPorPagina,
-      orgaoIdsPermitidos: orgaoIdsFiltro ?? escopoMarcacoesBrutas.orgaoIdsPermitidos,
+      orgaoIdsPermitidos:
+        orgaoIdsFiltro ?? escopoMarcacoesBrutas.orgaoIdsPermitidos,
       servidorIdsPermitidos: escopoMarcacoesBrutas.servidorIdsPermitidos,
       equipamentoIdsPermitidos: equipamentosFiltro.map(
         (equipamento) => equipamento.id,

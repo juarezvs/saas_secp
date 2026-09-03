@@ -212,24 +212,39 @@ export function EspelhoPontoMensal({
           destaque={destaque}
         />
       ) : (
-        <div className="max-w-full overflow-x-clip">
-          <table className="w-full min-w-[1580px] border-separate border-spacing-0 text-left text-sm">
+        <div className="max-w-full overflow-x-auto xl:overflow-x-clip">
+          <table className="w-full min-w-[900px] table-fixed border-separate border-spacing-0 text-left text-[11px] xl:min-w-0 xl:text-xs">
+            <colgroup>
+              <col className="w-8" />
+              <col className="w-[4rem]" />
+              {rotulosColunasMarcacoes.map((rotulo) => (
+                <col key={`col-${rotulo}`} className="w-[3.15rem]" />
+              ))}
+              <col className="w-[4.35rem]" />
+              <col className="w-[4.75rem]" />
+              <col className="w-[4rem]" />
+              <col className="w-[4rem]" />
+              <col className="w-[3.7rem]" />
+              <col className="w-[3.15rem]" />
+              <col className="w-[4rem]" />
+              {acoesBancoHoras?.habilitadas ? <col className="w-12" /> : null}
+            </colgroup>
             <thead className="sticky top-[calc(4.5rem+51.5rem)] z-20 text-[11px] uppercase tracking-wide text-[var(--muted-foreground)] shadow-sm md:top-[calc(4.5rem+18.5rem)] xl:top-[calc(4.5rem+9.35rem)]">
               <tr className="bg-[var(--card)]">
                 <th
-                  className="w-14 rounded-tl-xl border-b border-r px-5 py-4 text-center align-middle font-bold"
+                  className="rounded-tl-xl border-b border-r px-1.5 py-3 text-center align-middle font-bold"
                   rowSpan={2}
                 >
                   Sit.
                 </th>
                 <th
-                  className="border-b px-5 py-4 align-middle font-bold"
+                  className="border-b border-r px-1.5 py-3 align-middle font-bold"
                   rowSpan={2}
                 >
-                  Data
+                  DIA
                 </th>
                 <th
-                  className="border-b px-2 py-3 text-center"
+                  className="border-b border-l px-2 py-3 text-center"
                   colSpan={quantidadeColunasMarcacoes}
                 >
                   <span className="inline-flex rounded-full border bg-[var(--muted)] px-3 py-1 text-[10px] font-black tracking-wide text-foreground shadow-sm">
@@ -237,14 +252,8 @@ export function EspelhoPontoMensal({
                   </span>
                 </th>
                 <th
-                  className="border-b border-l px-5 py-4 align-middle font-bold"
-                  rowSpan={2}
-                >
-                  Apontamentos
-                </th>
-                <th
                   className="border-b border-l px-2 py-3 text-center"
-                  colSpan={3}
+                  colSpan={2}
                 >
                   <span className="inline-flex rounded-full border bg-[var(--muted)] px-3 py-1 text-[10px] font-black tracking-wide text-foreground shadow-sm">
                     Jornada
@@ -268,10 +277,10 @@ export function EspelhoPontoMensal({
                 </th>
                 {acoesBancoHoras?.habilitadas ? (
                   <th
-                    className="rounded-tr-xl border-b border-l px-5 py-4 align-middle font-bold"
+                    className="rounded-tr-xl border-b border-l px-1.5 py-3 align-middle font-bold"
                     rowSpan={2}
                   >
-                    Ações
+                    Ação
                   </th>
                 ) : null}
               </tr>
@@ -279,34 +288,31 @@ export function EspelhoPontoMensal({
                 {rotulosColunasMarcacoes.map((rotulo) => (
                   <th
                     key={rotulo}
-                    className="border-b px-5 py-3 font-bold text-foreground"
+                    className="border-b px-1.5 py-2 font-bold text-foreground"
                   >
                     {rotulo}
                   </th>
                 ))}
-                <th className="border-b border-l px-5 py-3 font-bold text-foreground">
-                  Previsto
-                </th>
-                <th className="border-b px-5 py-3 font-bold text-foreground">
+                <th className="border-b border-l px-1.5 py-2 font-bold text-foreground">
                   Intervalo
                 </th>
-                <th className="border-b px-5 py-3 font-bold text-foreground">
+                <th className="border-b px-1.5 py-2 font-bold text-foreground">
                   Trabalhado
                 </th>
-                <th className="border-b border-l px-5 py-3 font-bold text-emerald-700 dark:text-emerald-300">
+                <th className="border-b border-l px-1.5 py-2 font-bold text-emerald-700 dark:text-emerald-300">
                   Crédito
                 </th>
-                <th className="border-b px-5 py-3 font-bold text-red-700 dark:text-red-300">
+                <th className="border-b px-1.5 py-2 font-bold text-red-700 dark:text-red-300">
                   Débito
                 </th>
-                <th className="border-b px-5 py-3 font-bold text-foreground">
+                <th className="border-b px-1.5 py-2 font-bold text-foreground">
                   Saldo
                 </th>
-                <th className="border-b border-l px-5 py-3 font-bold text-foreground">
-                  Autorizada
+                <th className="border-b border-l px-1.5 py-2 font-bold text-foreground">
+                  AUT.
                 </th>
-                <th className="border-b px-5 py-3 font-bold text-foreground">
-                  Não autorizada
+                <th className="border-b px-1.5 py-2 font-bold text-foreground">
+                  Não Aut.
                 </th>
               </tr>
             </thead>
@@ -327,12 +333,10 @@ export function EspelhoPontoMensal({
                   exigeIntervalo,
                   quantidadeColunasMarcacoes,
                 );
-                const trabalhoRemoto = extrairTrabalhoRemoto(item.metadados);
                 const classificacao = classificarDiaEspelho(item);
                 const diaInstitucional = extrairDiaInstitucional(
                   item.metadados,
                 );
-                const dispensaPonto = classificacao.dispensaPonto;
                 const solicitacoesAplicadas =
                   classificacao.solicitacoesAplicadas;
                 const justificativaAusenciaMesclada =
@@ -340,9 +344,6 @@ export function EspelhoPontoMensal({
                 const conferencia = conferenciaEspelho(item.status, item);
                 const possuiMarcacaoAjustada =
                   marcacoesDoDia.some(marcacaoPossuiAjuste);
-                const possuiAfastamento = (item.ocorrencias ?? []).some(
-                  (ocorrencia) => ocorrencia.tipo === "AFASTAMENTO",
-                );
                 const afastamentoPrincipal = encontrarAfastamentoPrincipal(
                   item.ocorrencias,
                 );
@@ -373,9 +374,6 @@ export function EspelhoPontoMensal({
                   possuiMarcacaoAjustada,
                   solicitacoesAplicadas,
                 });
-                const mesclarMarcacoesOcorrencias = Boolean(
-                  resumoMarcacoesMescladas,
-                );
                 const diaDestacado = itemEhDestaque(item, destaque);
                 const idDia = `espelho-dia-${chaveReferencia}`;
 
@@ -385,7 +383,7 @@ export function EspelhoPontoMensal({
                     id={idDia}
                     className={classeLinhaEspelho(diaDestacado)}
                   >
-                    <td className="px-5 py-4 text-center">
+                    <td className="px-1.5 py-3 text-center">
                       <IconeSemaforo
                         tom={conferencia.tom}
                         title={dicaSemaforo}
@@ -393,14 +391,14 @@ export function EspelhoPontoMensal({
                       />
                     </td>
 
-                    <td className="whitespace-nowrap px-5 py-4 font-medium">
-                      {formatarDataReferenciaUtc(item.dataReferencia)}
+                    <td className="whitespace-nowrap border-r px-1.5 py-3 font-medium">
+                      {formatarDiaSemanaReferenciaUtc(item.dataReferencia)}
                     </td>
 
                     {resumoAfastamento ? (
                       <td
                         colSpan={quantidadeColunasMarcacoes}
-                        className="px-5 py-4"
+                        className="px-2 py-3"
                       >
                         <BadgeAfastamentoResumo resumo={resumoAfastamento} />
                       </td>
@@ -409,9 +407,9 @@ export function EspelhoPontoMensal({
                         (_, indice) => (
                           <td
                             key={`${item.id}-resumo-horario-${indice}`}
-                            className="px-5 py-4"
+                            className="px-1.5 py-3"
                           >
-                            <span className="inline-flex rounded-full border border-slate-200 bg-[var(--muted)] px-3 py-1 text-xs font-bold text-[var(--muted-foreground)]">
+                            <span className="inline-flex rounded-full border border-slate-200 bg-[var(--muted)] px-2 py-1 text-[11px] font-bold text-[var(--muted-foreground)]">
                               {textoResumoHorario}
                             </span>
                           </td>
@@ -420,7 +418,7 @@ export function EspelhoPontoMensal({
                     ) : resumoMarcacoesMescladas ? (
                       <td
                         colSpan={quantidadeColunasMarcacoes}
-                        className="px-5 py-4"
+                        className="px-2 py-3"
                       >
                         <BadgeResumoMarcacoesMescladas
                           resumo={resumoMarcacoesMescladas}
@@ -430,11 +428,11 @@ export function EspelhoPontoMensal({
                       horarios.map((horario, indice) => (
                         <td
                           key={`${item.id}-horario-${indice}`}
-                          className="whitespace-nowrap px-5 py-4 font-mono"
+                          className="whitespace-nowrap px-1.5 py-3 font-mono"
                         >
                           {horario ? (
                             <span
-                              className={`rounded-full border px-2 py-1 text-xs ${
+                              className={`rounded-full border px-1.5 py-1 text-[11px] ${
                                 horario.ajustada
                                   ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
                                   : "bg-[var(--muted)]"
@@ -453,80 +451,15 @@ export function EspelhoPontoMensal({
                       ))
                     )}
 
-                    <td className="px-5 py-4">
-                      {resumoAfastamento ? (
-                        <BadgeAfastamentoTipo resumo={resumoAfastamento} />
-                      ) : mesclarMarcacoesOcorrencias &&
-                        previsaoJornada?.tipoDia === "HOME_OFFICE" ? (
-                        <span
-                          className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300"
-                          title="Dia previsto como home office em horário híbrido."
-                        >
-                          Híbrido
-                        </span>
-                      ) : mesclarMarcacoesOcorrencias &&
-                        resumoMarcacoesMescladas &&
-                        resumoMarcacoesMescladas.classe !== "neutro" ? (
-                        <BadgeTipoMarcacoesMescladas
-                          resumo={resumoMarcacoesMescladas}
-                        />
-                      ) : mesclarMarcacoesOcorrencias ? (
-                        <span className="text-xs font-medium text-[var(--muted-foreground)]">
-                          -
-                        </span>
-                      ) : dispensaPonto ? (
-                        <span
-                          className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
-                          title="Marcações preservadas internamente para rastreio, mas desconsideradas visualmente pela dispensa de ponto."
-                        >
-                          Dispensa de ponto
-                        </span>
-                      ) : trabalhoRemoto ? (
-                        <span
-                          className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300"
-                          title={trabalhoRemoto.descricao}
-                        >
-                          {trabalhoRemoto.regime === "TOTAL"
-                            ? "Teletrabalho"
-                            : "Trabalho remoto"}
-                        </span>
-                      ) : marcacoesDoDia.length > 0 ? (
-                        <StatusResultado item={item} />
-                      ) : diaInstitucional &&
-                        !ehFimDeSemanaInstitucional(diaInstitucional) ? (
-                        <BadgeDiaInstitucional dia={diaInstitucional} />
-                      ) : possuiAfastamento ? null : (
-                        <StatusResultado item={item} />
-                      )}
-
-                      {!resumoAfastamento && !mesclarMarcacoesOcorrencias && (
-                        <div className={possuiAfastamento ? undefined : "mt-2"}>
-                          <OcorrenciasDia
-                            ocultarVazio
-                            ocultarDispensaPonto={dispensaPonto}
-                            dispensaPonto={classificacao.dispensaPonto}
-                            diaInstitucional={diaInstitucional}
-                            ocorrencias={item.ocorrencias ?? []}
-                            solicitacoes={solicitacoesAplicadas}
-                            destaqueOcorrenciaId={destaque?.ocorrenciaId}
-                          />
-                        </div>
-                      )}
-                    </td>
-
-                    <td className="px-5 py-4">
-                      {minutosParaTexto(item.cargaPrevistaMinutos)}
-                    </td>
-
-                    <td className="px-5 py-4">
+                    <td className="px-1.5 py-3">
                       {minutosParaTexto(item.minutosIntervalo ?? 0)}
                     </td>
 
-                    <td className="px-5 py-4">
+                    <td className="px-1.5 py-3">
                       {minutosParaTexto(item.minutosTrabalhados)}
                     </td>
 
-                    <td className="px-5 py-4">
+                    <td className="px-1.5 py-3">
                       <ValorTempo
                         tipo="credito"
                         minutos={item.minutosCredito}
@@ -547,7 +480,7 @@ export function EspelhoPontoMensal({
                       />
                     </td>
 
-                    <td className="px-5 py-4">
+                    <td className="px-1.5 py-3">
                       <ValorTempo
                         tipo="debito"
                         minutos={item.minutosDebito}
@@ -564,20 +497,20 @@ export function EspelhoPontoMensal({
                       />
                     </td>
 
-                    <td className="px-5 py-4">
+                    <td className="px-1.5 py-3">
                       <ValorSaldoBancoHoras
                         minutos={item.minutosBancoHoras ?? 0}
                       />
                     </td>
 
-                    <td className="px-5 py-4">
+                    <td className="px-1.5 py-3">
                       <ValorTempo
                         tipo="credito"
                         minutos={item.minutosHoraExtraAutorizada ?? 0}
                       />
                     </td>
 
-                    <td className="px-5 py-4">
+                    <td className="px-1.5 py-3">
                       <ValorTempo
                         tipo="debito"
                         minutos={item.minutosHoraExtraNaoAutorizada ?? 0}
@@ -591,7 +524,7 @@ export function EspelhoPontoMensal({
 
                     {acoesBancoHoras?.habilitadas &&
                     acoesBancoHoras.bancoHorasAtivo !== false ? (
-                      <td className="px-5 py-4">
+                      <td className="px-1.5 py-3">
                         <AcoesBancoHorasDia
                           servidorId={acoesBancoHoras.servidorId}
                           anoReferencia={acoesBancoHoras.anoReferencia}
@@ -610,7 +543,10 @@ export function EspelhoPontoMensal({
               {apuracoes.length === 0 && (
                 <tr>
                   <td
-                    colSpan={acoesBancoHoras?.habilitadas ? 16 : 15}
+                    colSpan={
+                      quantidadeColunasMarcacoes +
+                      (acoesBancoHoras?.habilitadas ? 10 : 9)
+                    }
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
                     Nenhuma apuração calculada para o mês.
@@ -674,19 +610,28 @@ function EspelhoPontoMensalCompacto({
   const marcacoesPorDia = agruparMarcacoesPorDia(marcacoes);
 
   return (
-    <div className="max-w-full overflow-x-clip">
-      <table className="w-full min-w-[920px] text-left text-sm">
+    <div className="max-w-full overflow-x-auto xl:overflow-x-clip">
+      <table className="w-full min-w-[560px] table-fixed text-left text-[11px] xl:min-w-0 xl:text-xs">
+        <colgroup>
+          <col className="w-[4rem]" />
+          <col className="w-[3.15rem]" />
+          <col className="w-[3.15rem]" />
+          <col className="w-[3.15rem]" />
+          <col className="w-[3.15rem]" />
+          <col className="w-[4.35rem]" />
+          <col className="w-[4.75rem]" />
+          <col className="w-[4rem]" />
+        </colgroup>
         <thead className="sticky top-[calc(4.5rem+51.5rem)] z-20 border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)] shadow-sm md:top-[calc(4.5rem+18.5rem)] xl:top-[calc(4.5rem+9.35rem)]">
           <tr>
-            <th className="px-5 py-3">DIA</th>
-            <th className="px-5 py-3">1ª ENTRADA</th>
-            <th className="px-5 py-3">1ª SAÍDA</th>
-            <th className="px-5 py-3">2ª ENTRADA</th>
-            <th className="px-5 py-3">2ª SAÍDA</th>
-            <th className="px-5 py-3">HORAS NORMAIS</th>
-            <th className="px-5 py-3">HORAS ALMOÇO</th>
-            <th className="px-5 py-3">HORAS TRAB.</th>
-            <th className="px-5 py-3">STATUS</th>
+            <th className="border-r px-1.5 py-2">DIA</th>
+            <th className="px-1.5 py-2">1ª ENT.</th>
+            <th className="px-1.5 py-2">1ª SAI.</th>
+            <th className="px-1.5 py-2">2ª ENT.</th>
+            <th className="px-1.5 py-2">2ª SAI.</th>
+            <th className="px-1.5 py-2">INTERVALO</th>
+            <th className="px-1.5 py-2">TRABALHADO</th>
+            <th className="px-1.5 py-2">STATUS</th>
           </tr>
         </thead>
 
@@ -708,18 +653,18 @@ function EspelhoPontoMensalCompacto({
                 id={idDia}
                 className={classeLinhaEspelho(diaDestacado)}
               >
-                <td className="whitespace-nowrap px-5 py-4 font-medium">
-                  {formatarDataReferenciaUtc(item.dataReferencia)}
+                <td className="whitespace-nowrap border-r px-1.5 py-3 font-medium">
+                  {formatarDiaSemanaReferenciaUtc(item.dataReferencia)}
                 </td>
 
                 {horarios.map((horario, indice) => (
                   <td
                     key={`${item.id}-horario-compacto-${indice}`}
-                    className="whitespace-nowrap px-5 py-4 font-mono"
+                    className="whitespace-nowrap px-1.5 py-3 font-mono"
                   >
                     {horario ? (
                       <span
-                        className={`rounded-full border px-2 py-1 text-xs ${
+                        className={`rounded-full border px-1.5 py-1 text-[11px] ${
                           horario.ajustada
                             ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
                             : "bg-[var(--muted)]"
@@ -735,16 +680,13 @@ function EspelhoPontoMensalCompacto({
                   </td>
                 ))}
 
-                <td className="px-5 py-4">
-                  {minutosParaTexto(item.cargaPrevistaMinutos)}
-                </td>
-                <td className="px-5 py-4">
+                <td className="px-1.5 py-3">
                   {minutosParaTexto(item.minutosIntervalo ?? 0)}
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-1.5 py-3">
                   {minutosParaTexto(item.minutosTrabalhados)}
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-1.5 py-3">
                   <StatusResultado item={item} />
                 </td>
               </tr>
@@ -754,7 +696,7 @@ function EspelhoPontoMensalCompacto({
           {apuracoes.length === 0 && (
             <tr>
               <td
-                colSpan={9}
+                colSpan={8}
                 className="px-5 py-10 text-center text-[var(--muted-foreground)]"
               >
                 Nenhuma apuração calculada para o mês.
@@ -927,7 +869,7 @@ function BadgeAfastamentoResumo({
 }) {
   return (
     <span
-      className={`inline-flex rounded-md border px-3 py-2 text-sm font-semibold ${classesBadgeResumoAfastamento(
+      className={`inline-flex max-w-full items-start rounded-md border px-2 py-1.5 text-[11px] font-semibold leading-tight ${classesBadgeResumoAfastamento(
         resumo.classe,
       )}`}
       title={resumo.title}
@@ -948,7 +890,7 @@ function BadgeAfastamentoTipo({
 }) {
   return (
     <span
-      className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${classesBadgeResumoAfastamento(
+      className={`inline-flex max-w-full rounded-full border px-1.5 py-1 text-[11px] font-semibold ${classesBadgeResumoAfastamento(
         resumo.classe,
       )}`}
       title={resumo.rotuloCompleto}
@@ -965,7 +907,7 @@ function BadgeResumoMarcacoesMescladas({
 }) {
   return (
     <span
-      className={`inline-flex rounded-md border px-3 py-2 text-sm font-semibold ${classesBadgeResumo(
+      className={`inline-flex max-w-full items-start rounded-md border px-2 py-1.5 text-[11px] font-semibold leading-tight ${classesBadgeResumo(
         resumo.classe,
       )}`}
       title={resumo.title}
@@ -994,7 +936,7 @@ function BadgeTipoMarcacoesMescladas({
 }) {
   return (
     <span
-      className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${classesBadgeResumo(
+      className={`inline-flex max-w-full rounded-full border px-1.5 py-1 text-[11px] font-semibold ${classesBadgeResumo(
         resumo.classe,
       )}`}
       title={resumo.rotuloDescricao}
@@ -1007,7 +949,7 @@ function BadgeTipoMarcacoesMescladas({
 function BadgeDiaInstitucional({ dia }: { dia: DiaInstitucionalEspelho }) {
   return (
     <span
-      className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300"
+      className="inline-flex max-w-full rounded-full border border-blue-200 bg-blue-50 px-1.5 py-1 text-[11px] font-semibold text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300"
       title={dia.descricao}
     >
       {ehDiaInstitucionalLazer(dia) && (
@@ -1045,7 +987,7 @@ function StatusResultado({ item }: { item: ApuracaoMensalItem }) {
 
   return (
     <span
-      className={`inline-flex rounded-full border px-2 py-1 text-xs font-semibold ${
+      className={`inline-flex max-w-full rounded-full border px-1.5 py-1 text-[11px] font-semibold ${
         tipo === "ok"
           ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
           : tipo === "alerta"
@@ -1766,7 +1708,7 @@ function ValorTempo({
 
   return (
     <span
-      className={`inline-flex rounded-full px-2 py-1 text-xs font-bold ${
+      className={`inline-flex rounded-full px-1.5 py-1 text-[11px] font-bold ${
         !temValor
           ? "bg-[var(--muted)] text-[var(--muted-foreground)]"
           : estado === "pendente"
@@ -1791,7 +1733,7 @@ function ValorSaldoBancoHoras({ minutos }: { minutos: number }) {
 
   return (
     <span
-      className={`inline-flex rounded-full px-2 py-1 text-xs font-bold ${
+      className={`inline-flex rounded-full px-1.5 py-1 text-[11px] font-bold ${
         minutos === 0
           ? "bg-[var(--muted)] text-[var(--muted-foreground)]"
           : tipo === "credito"
@@ -1929,12 +1871,12 @@ function distribuirMarcacoesNasColunas(
 
 function rotulosColunasTempo(quantidadeColunas: number) {
   const rotulos = [
-    "1ª Entrada",
-    "1ª Saída",
-    "2ª Entrada",
-    "2ª Saída",
-    "3ª Entrada",
-    "3ª Saída",
+    "1ª Ent.",
+    "1ª Sai.",
+    "2ª Ent.",
+    "2ª Sai.",
+    "3ª Ent.",
+    "3ª Sai.",
   ];
 
   return rotulos.slice(0, Math.max(2, Math.min(6, quantidadeColunas)));
@@ -2037,6 +1979,28 @@ function formatarDataReferenciaUtc(valor: Date | string) {
     .slice(0, 3);
 
   return `${dataFormatada} - ${diaSemana}`;
+}
+
+function formatarDiaSemanaReferenciaUtc(valor: Date | string) {
+  const data = valor instanceof Date ? valor : new Date(valor);
+
+  if (Number.isNaN(data.getTime())) {
+    return "-";
+  }
+
+  const dia = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    timeZone: "UTC",
+  }).format(data);
+  const diaSemana = new Intl.DateTimeFormat("pt-BR", {
+    weekday: "short",
+    timeZone: "UTC",
+  })
+    .format(data)
+    .replace(".", "")
+    .slice(0, 3);
+
+  return `${dia} - ${diaSemana}`;
 }
 
 function formatarHoraLocal(valor: Date | string, fusoHorario?: string | null) {

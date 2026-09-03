@@ -29,11 +29,16 @@ export type RegerarBancoHorasMesParams = {
 type AutorizacaoDisponivel = {
   id: string;
   tipo: "CREDITO" | "COMPENSACAO_CREDITO" | "COMPENSACAO_DEBITO";
+  origem: "BANCO_HORAS" | "HORAS_EXTRAS";
   dataInicio: Date;
   dataFim: Date;
   minutosAutorizados: number;
-  autorizadoPorUsuarioId: string;
+  autorizadoPorUsuarioId?: string | null;
   autorizadoEm: Date;
+  autorizacaoBancoHorasId?: string | null;
+  autorizacaoHoraExtraId?: string | null;
+  autorizacaoHoraExtraDiaId?: string | null;
+  solicitacaoHoraExtraId?: string | null;
   movimentos: Array<{
     minutos: number;
   }>;
@@ -359,7 +364,69 @@ export async function regerarBancoHorasMesService({
           autorizadoEm: "asc",
         },
       ],
-    })) as AutorizacaoDisponivel[];
+    })).map(
+      (autorizacao): AutorizacaoDisponivel => ({
+        ...autorizacao,
+        origem: "BANCO_HORAS",
+        autorizacaoBancoHorasId: autorizacao.id,
+      }),
+    );
+    const autorizacoesHorasExtras = (
+      await tx.overtimeAuthorization.findMany({
+        where: {
+          employeeId: servidorId,
+          status: "ACTIVE",
+          validFrom: {
+            lt: fim,
+          },
+          validUntil: {
+            gte: inicio,
+          },
+        },
+        include: {
+          days: {
+            where: {
+              date: {
+                gte: inicio,
+                lt: fim,
+              },
+            },
+            orderBy: {
+              date: "asc",
+            },
+          },
+        },
+        orderBy: [
+          {
+            validFrom: "asc",
+          },
+          {
+            createdAt: "asc",
+          },
+        ],
+      })
+    ).flatMap((autorizacao) =>
+      autorizacao.days.map(
+        (dia): AutorizacaoDisponivel => ({
+          id: dia.id,
+          tipo: "CREDITO",
+          origem: "HORAS_EXTRAS",
+          dataInicio: dia.date,
+          dataFim: dia.date,
+          minutosAutorizados: dia.approvedMinutes,
+          autorizadoPorUsuarioId: null,
+          autorizadoEm: autorizacao.createdAt,
+          autorizacaoHoraExtraId: autorizacao.id,
+          autorizacaoHoraExtraDiaId: dia.id,
+          solicitacaoHoraExtraId: autorizacao.requestId,
+          movimentos: [],
+        }),
+      ),
+    );
+    const autorizacoesDisponiveis = [
+      ...autorizacoes,
+      ...autorizacoesHorasExtras,
+    ];
 
     const movimentosValidados = await tx.movimentoBancoHoras.findMany({
       where: {
@@ -577,7 +644,7 @@ export async function regerarBancoHorasMesService({
         }
 
         const credito = alocarAutorizacoes({
-          autorizacoes,
+          autorizacoes: autorizacoesDisponiveis,
           tipos: ["COMPENSACAO_DEBITO", "CREDITO"],
           dataReferencia: apuracao.dataReferencia,
           minutos: minutosCreditoPendentes,
@@ -604,7 +671,8 @@ export async function regerarBancoHorasMesService({
               data: {
                 servidorId,
                 apuracaoDiariaId: apuracao.id,
-                autorizacaoBancoHorasId: alocacao.autorizacao.id,
+                autorizacaoBancoHorasId:
+                  alocacao.autorizacao.autorizacaoBancoHorasId ?? null,
                 tipo: "HORAS_NAO_AUTORIZADAS",
                 origem: "APURACAO_DIARIA",
                 status: "DESCONSIDERADO",
@@ -622,7 +690,7 @@ export async function regerarBancoHorasMesService({
                   classificacaoDia,
                   classificacaoBancoHoras,
                   regulamentacao,
-                  autorizacaoBancoHorasId: alocacao.autorizacao.id,
+                  autorizacao: alocacao.autorizacao,
                 }),
               },
             });
@@ -652,7 +720,8 @@ export async function regerarBancoHorasMesService({
               data: {
                 servidorId,
                 apuracaoDiariaId: apuracao.id,
-                autorizacaoBancoHorasId: alocacao.autorizacao.id,
+                autorizacaoBancoHorasId:
+                  alocacao.autorizacao.autorizacaoBancoHorasId ?? null,
                 tipo:
                   alocacao.autorizacao.tipo === "COMPENSACAO_DEBITO"
                     ? "COMPENSACAO_DEBITO"
@@ -677,7 +746,7 @@ export async function regerarBancoHorasMesService({
                   classificacaoDia,
                   classificacaoBancoHoras,
                   regulamentacao,
-                  autorizacaoBancoHorasId: alocacao.autorizacao.id,
+                  autorizacao: alocacao.autorizacao,
                 }),
               },
             });
@@ -698,7 +767,8 @@ export async function regerarBancoHorasMesService({
               data: {
                 servidorId,
                 apuracaoDiariaId: apuracao.id,
-                autorizacaoBancoHorasId: alocacao.autorizacao.id,
+                autorizacaoBancoHorasId:
+                  alocacao.autorizacao.autorizacaoBancoHorasId ?? null,
                 tipo: "HORAS_ACIMA_LIMITE",
                 origem: "APURACAO_DIARIA",
                 status: "DESCONSIDERADO",
@@ -718,7 +788,7 @@ export async function regerarBancoHorasMesService({
                     classificacaoDia,
                     classificacaoBancoHoras,
                     regulamentacao,
-                    autorizacaoBancoHorasId: alocacao.autorizacao.id,
+                    autorizacao: alocacao.autorizacao,
                   }),
                   limiteMensalMinutos:
                     regulamentacao.limiteCreditoMensalMinutos,
@@ -916,7 +986,7 @@ export async function regerarBancoHorasMesService({
             anoReferencia,
             mesReferencia,
             apuracoesProcessadas: apuracoes.length,
-            autorizacoesConsideradas: autorizacoes.length,
+            autorizacoesConsideradas: autorizacoesDisponiveis.length,
             movimentosCriados,
             saldo,
             origem,
@@ -928,7 +998,7 @@ export async function regerarBancoHorasMesService({
 
     return {
       apuracoesProcessadas: apuracoes.length,
-      autorizacoesConsideradas: autorizacoes.length,
+      autorizacoesConsideradas: autorizacoesDisponiveis.length,
       movimentosCriados,
       saldo,
     };
@@ -942,10 +1012,21 @@ function metadadosClassificacaoBancoHoras(params: {
   classificacaoBancoHoras: ReturnType<typeof classificarHorasCreditoBancoHoras>;
   regulamentacao: unknown;
   autorizacaoBancoHorasId?: string;
+  autorizacao?: AutorizacaoDisponivel;
 }): Prisma.InputJsonObject {
+  const autorizacaoBancoHorasId =
+    params.autorizacao?.autorizacaoBancoHorasId ??
+    params.autorizacaoBancoHorasId ??
+    null;
+
   return {
     origem: params.origem,
-    autorizacaoBancoHorasId: params.autorizacaoBancoHorasId ?? null,
+    autorizacaoBancoHorasId,
+    autorizacaoHoraExtraId: params.autorizacao?.autorizacaoHoraExtraId ?? null,
+    autorizacaoHoraExtraDiaId:
+      params.autorizacao?.autorizacaoHoraExtraDiaId ?? null,
+    solicitacaoHoraExtraId: params.autorizacao?.solicitacaoHoraExtraId ?? null,
+    origemAutorizacao: params.autorizacao?.origem ?? null,
     resultadoApuracao: params.apuracao.resultado,
     statusApuracao: params.apuracao.status,
     classificacaoDia: {

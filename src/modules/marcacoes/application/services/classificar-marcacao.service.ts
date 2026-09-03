@@ -4,7 +4,7 @@ type MarcacaoExistente = {
 };
 
 export type ResultadoClassificacaoMarcacao = {
-  tipo: "ENTRADA" | "SAIDA_INTERVALO" | "RETORNO_INTERVALO" | "SAIDA";
+  tipo: "ENTRADA" | "SAIDA_INTERVALO" | "RETORNO_INTERVALO" | "SAIDA" | "MANUAL";
   ordem: number;
   descricao: string;
   exigeReconhecimentoFacial: boolean;
@@ -15,19 +15,57 @@ type ClassificarProximaMarcacaoParams = {
   exigeIntervalo: boolean;
 };
 
+export const LIMITE_MARCACOES_DIARIAS = 6;
+
+export const TIPOS_CONTABILIZADOS_LIMITE_DIARIO = [
+  "ENTRADA",
+  "SAIDA_INTERVALO",
+  "RETORNO_INTERVALO",
+  "SAIDA",
+  "MANUAL",
+] as const;
+
+export function contarMarcacoesDiarias(marcacoesDoDia: MarcacaoExistente[]) {
+  return marcacoesDoDia.filter((marcacao) =>
+    TIPOS_CONTABILIZADOS_LIMITE_DIARIO.includes(
+      marcacao.tipo as (typeof TIPOS_CONTABILIZADOS_LIMITE_DIARIO)[number],
+    ),
+  ).length;
+}
+
+function classificacaoMarcacaoAdicional(
+  quantidade: number,
+): ResultadoClassificacaoMarcacao {
+  const ordem = quantidade + 1;
+  const direcao = ordem % 2 === 1 ? "Entrada" : "Saida";
+
+  return {
+    tipo: "MANUAL",
+    ordem,
+    descricao: `${direcao} adicional`,
+    exigeReconhecimentoFacial: false,
+  };
+}
+
 export function classificarProximaMarcacao({
   marcacoesDoDia,
   exigeIntervalo,
 }: ClassificarProximaMarcacaoParams): ResultadoClassificacaoMarcacao {
   const marcacoesValidas = marcacoesDoDia
     .filter((marcacao) =>
-      ["ENTRADA", "SAIDA_INTERVALO", "RETORNO_INTERVALO", "SAIDA"].includes(
-        marcacao.tipo,
+      TIPOS_CONTABILIZADOS_LIMITE_DIARIO.includes(
+        marcacao.tipo as (typeof TIPOS_CONTABILIZADOS_LIMITE_DIARIO)[number],
       ),
     )
     .sort((a, b) => a.dataHora.getTime() - b.dataHora.getTime());
 
   const quantidade = marcacoesValidas.length;
+
+  if (quantidade >= LIMITE_MARCACOES_DIARIAS) {
+    throw new Error(
+      "Limite diario de 6 marcacoes atingido para este servidor.",
+    );
+  }
 
   if (!exigeIntervalo) {
     if (quantidade === 0) {
@@ -43,14 +81,12 @@ export function classificarProximaMarcacao({
       return {
         tipo: "SAIDA",
         ordem: 2,
-        descricao: "Saída",
+        descricao: "Saida",
         exigeReconhecimentoFacial: false,
       };
     }
 
-    throw new Error(
-      "As marcações ordinárias do dia já foram registradas para jornada sem intervalo.",
-    );
+    return classificacaoMarcacaoAdicional(quantidade);
   }
 
   if (quantidade === 0) {
@@ -66,7 +102,7 @@ export function classificarProximaMarcacao({
     return {
       tipo: "SAIDA_INTERVALO",
       ordem: 2,
-      descricao: "Saída para intervalo",
+      descricao: "Saida para intervalo",
       exigeReconhecimentoFacial: false,
     };
   }
@@ -84,22 +120,20 @@ export function classificarProximaMarcacao({
     return {
       tipo: "SAIDA",
       ordem: 4,
-      descricao: "Saída",
+      descricao: "Saida",
       exigeReconhecimentoFacial: false,
     };
   }
 
-  throw new Error(
-    "As quatro marcações ordinárias do dia já foram registradas. Novos registros dependerão de solicitação ou autorização.",
-  );
+  return classificacaoMarcacaoAdicional(quantidade);
 }
 
 export function obterRotuloTipoMarcacao(tipo: string) {
   const rotulos: Record<string, string> = {
     ENTRADA: "Entrada",
-    SAIDA_INTERVALO: "Saída para intervalo",
+    SAIDA_INTERVALO: "Saida para intervalo",
     RETORNO_INTERVALO: "Retorno do intervalo",
-    SAIDA: "Saída",
+    SAIDA: "Saida",
     MANUAL: "Manual",
     AJUSTE: "Ajuste",
   };

@@ -3,6 +3,7 @@ import { CalendarRange } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { resolverEscopoServidoresRecesso } from "@/modules/recesso-forense/application/services/escopo-recesso-forense.service";
 import { buscarRecessoForensePorId } from "@/modules/recesso-forense/infrastructure/repositories/recesso-forense.repository";
@@ -19,12 +20,20 @@ export default async function RecessoHomologacaoPage({
     "recesso:homologar:chefia",
     "recesso:aceitar:seccional",
     "recesso:gerenciar:global",
+    "recesso:gerenciar:seccional",
   ]);
 
   const { id } = await params;
   const escopoRecesso = await resolverEscopoServidoresRecesso(permissao);
+  const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const orgaoIdsPermitidos = escopoRecesso.restrito
+    ? escopoRecesso.orgaoIdsPermitidos
+    : escopoOrgao.global
+      ? undefined
+      : escopoOrgao.orgaoIds;
   const recesso = await buscarRecessoForensePorId(id, {
     servidorIdsPermitidos: escopoRecesso.servidorIdsPermitidos,
+    orgaoIdsPermitidos,
   });
 
   if (!recesso) {
@@ -36,7 +45,10 @@ export default async function RecessoHomologacaoPage({
       <Breadcrumb
         items={[
           { label: "Recesso forense", href: "/recesso-forense" },
-          { label: String(recesso.ano), href: `/recesso-forense/${recesso.id}` },
+          {
+            label: String(recesso.ano),
+            href: `/recesso-forense/${recesso.id}`,
+          },
           { label: "Homologação" },
         ]}
       />
@@ -52,7 +64,9 @@ export default async function RecessoHomologacaoPage({
 
       <HomologacaoRecessoPanel
         homologacoes={recesso.homologacoes}
-        podeHomologar={permissao.permissoes.includes("recesso:homologar:chefia")}
+        podeHomologar={permissao.permissoes.includes(
+          "recesso:homologar:chefia",
+        )}
         podeAceitarSecad={
           permissao.permissoes.includes("recesso:aceitar:seccional") ||
           permissao.permissoes.includes("recesso:gerenciar:global")

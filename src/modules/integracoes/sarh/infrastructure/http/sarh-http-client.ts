@@ -58,7 +58,9 @@ export class SarhHttpClient {
     return this.getJson<SarhTipoAfastamentoDto[]>("/tipo-afastamento/");
   }
 
-  async buscarAfastamentos(): Promise<SarhAfastamentoDto[]> {
+  async buscarAfastamentos(_filtro?: {
+    matricula?: string | null;
+  }): Promise<SarhAfastamentoDto[]> {
     return this.getJson<SarhAfastamentoDto[]>("/afastamentos/");
   }
 

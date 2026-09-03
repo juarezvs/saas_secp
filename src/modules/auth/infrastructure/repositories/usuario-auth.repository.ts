@@ -21,6 +21,7 @@ export async function buscarUsuarioParaLoginPorMatricula(
   | (UsuarioAutenticado & {
       senhaHash: string | null;
       orgaoId: string | null;
+      orgaoIdsAutenticacao: string[];
     })
   | null
 > {
@@ -230,6 +231,14 @@ export async function buscarUsuarioParaLoginPorMatricula(
     perfis,
   });
 
+  const orgaoIdsAutenticacao = Array.from(
+    new Set(
+      [usuario.servidor?.orgaoId, ...orgaoIdsVinculados].filter(
+        (orgaoId): orgaoId is string => Boolean(orgaoId),
+      ),
+    ),
+  );
+
   const resultado = {
     id: usuario.id,
     matricula: usuario.matricula,
@@ -241,6 +250,7 @@ export async function buscarUsuarioParaLoginPorMatricula(
     ),
     senhaHash: usuario.senhaHash,
     orgaoId: usuario.servidor?.orgaoId ?? null,
+    orgaoIdsAutenticacao,
     perfis,
     perfilAtivo,
   };

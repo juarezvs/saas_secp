@@ -12,8 +12,10 @@ import {
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 const atribuirPessoaPerfilSchema = z.object({
-  perfilId: z.string().uuid("Perfil inválido."),
-  usuarioId: z.string().uuid("Pessoa inválida."),
+  perfilId: z.string().uuid("Perfil invalido."),
+  usuarioIds: z
+    .array(z.string().uuid("Pessoa invalida."))
+    .min(1, "Selecione ao menos uma pessoa."),
 });
 
 export type AtribuirPessoaPerfilState = {
@@ -23,13 +25,21 @@ export type AtribuirPessoaPerfilState = {
   campos?: {
     perfilId?: string;
     usuarioId?: string;
+    usuarioIds?: string[];
   };
 };
 
 function extrairDados(formData: FormData) {
+  const usuarioIds = formData
+    .getAll("usuarioIds")
+    .map((valor) => String(valor))
+    .filter(Boolean);
+  const usuarioId = String(formData.get("usuarioId") ?? "");
+
   return {
     perfilId: String(formData.get("perfilId") ?? ""),
-    usuarioId: String(formData.get("usuarioId") ?? ""),
+    usuarioId,
+    usuarioIds: usuarioIds.length ? usuarioIds : usuarioId ? [usuarioId] : [],
   };
 }
 
@@ -48,7 +58,7 @@ export async function atribuirPessoaPerfilAction(
   if (!parsed.success) {
     return {
       sucesso: false,
-      mensagem: "Selecione uma pessoa válida.",
+      mensagem: "Selecione uma ou mais pessoas validas.",
       erros: parsed.error.flatten().fieldErrors,
       campos: dados,
     };
@@ -56,7 +66,7 @@ export async function atribuirPessoaPerfilAction(
 
   const escopo = await resolverEscopoGestaoUsuarios(permissao);
 
-  const [perfil, usuario] = await Promise.all([
+  const [perfil, usuarios] = await Promise.all([
     prisma.perfil.findUnique({
       where: { id: parsed.data.perfilId },
       select: {
@@ -73,8 +83,8 @@ export async function atribuirPessoaPerfilAction(
         },
       },
     }),
-    prisma.usuario.findUnique({
-      where: { id: parsed.data.usuarioId },
+    prisma.usuario.findMany({
+      where: { id: { in: parsed.data.usuarioIds } },
       select: {
         id: true,
         nome: true,
@@ -92,20 +102,27 @@ export async function atribuirPessoaPerfilAction(
   if (!perfil?.ativo) {
     return {
       sucesso: false,
-      mensagem: "Perfil não encontrado ou inativo.",
+      mensagem: "Perfil nao encontrado ou inativo.",
       campos: dados,
     };
   }
 
-  if (!usuario?.ativo || !usuario.servidor?.orgaoId) {
+  const usuariosValidos = usuarios.filter(
+    (usuario) => usuario.ativo && usuario.servidor?.orgaoId,
+  );
+
+  if (usuariosValidos.length !== parsed.data.usuarioIds.length) {
     return {
       sucesso: false,
-      mensagem: "Pessoa não encontrada ou inativa.",
+      mensagem: "Uma ou mais pessoas nao foram encontradas ou estao inativas.",
       campos: dados,
     };
   }
 
-  if (perfil.codigo.toUpperCase() === "MASTER" && !escopo.permitirEscopoGlobal) {
+  if (
+    perfil.codigo.toUpperCase() === "MASTER" &&
+    !escopo.permitirEscopoGlobal
+  ) {
     return {
       sucesso: false,
       mensagem: "Apenas o perfil ativo MASTER pode atribuir o perfil MASTER.",
@@ -115,11 +132,15 @@ export async function atribuirPessoaPerfilAction(
 
   if (
     !escopo.permitirEscopoGlobal &&
-    !orgaoEstaNoEscopoGestaoUsuarios(usuario.servidor.orgaoId, escopo)
+    usuariosValidos.some(
+      (usuario) =>
+        !usuario.servidor?.orgaoId ||
+        !orgaoEstaNoEscopoGestaoUsuarios(usuario.servidor.orgaoId, escopo),
+    )
   ) {
     return {
       sucesso: false,
-      mensagem: "Pessoa fora do escopo do seu perfil ativo.",
+      mensagem: "Uma ou mais pessoas estao fora do escopo do seu perfil ativo.",
       campos: dados,
     };
   }
@@ -137,68 +158,80 @@ export async function atribuirPessoaPerfilAction(
     };
   }
 
-  if (perfil.orgaoId && perfil.orgaoId !== usuario.servidor.orgaoId) {
+  if (
+    perfil.orgaoId &&
+    usuariosValidos.some(
+      (usuario) => perfil.orgaoId !== usuario.servidor?.orgaoId,
+    )
+  ) {
     return {
       sucesso: false,
-      mensagem: `Este perfil pertence à seccional ${perfil.orgao?.sigla ?? "informada"}. Selecione uma pessoa dessa seccional.`,
+      mensagem: `Este perfil pertence a seccional ${perfil.orgao?.sigla ?? "informada"}. Selecione apenas pessoas dessa seccional.`,
       campos: dados,
     };
   }
 
-  const orgaoId =
-    perfil.codigo.toUpperCase() === "MASTER"
-      ? null
-      : (perfil.orgaoId ?? usuario.servidor.orgaoId);
-
-  const vinculoExistente = await prisma.usuarioPerfil.findFirst({
-    where: {
-      usuarioId: usuario.id,
-      perfilId: perfil.id,
-      orgaoId,
-    },
-    select: { id: true, ativo: true },
-  });
-
   await prisma.$transaction(async (tx) => {
-    if (vinculoExistente) {
-      await tx.usuarioPerfil.update({
-        where: { id: vinculoExistente.id },
-        data: { ativo: true },
-      });
-    } else {
-      await tx.usuarioPerfil.create({
-        data: {
+    for (const usuario of usuariosValidos) {
+      const orgaoId =
+        perfil.codigo.toUpperCase() === "MASTER"
+          ? null
+          : (perfil.orgaoId ?? usuario.servidor?.orgaoId ?? null);
+      const vinculoExistente = await tx.usuarioPerfil.findFirst({
+        where: {
           usuarioId: usuario.id,
           perfilId: perfil.id,
           orgaoId,
-          ativo: true,
+        },
+        select: { id: true },
+      });
+
+      if (vinculoExistente) {
+        await tx.usuarioPerfil.update({
+          where: { id: vinculoExistente.id },
+          data: { ativo: true },
+        });
+      } else {
+        await tx.usuarioPerfil.create({
+          data: {
+            usuarioId: usuario.id,
+            perfilId: perfil.id,
+            orgaoId,
+            ativo: true,
+          },
+        });
+      }
+
+      await tx.auditoriaEvento.create({
+        data: {
+          usuarioId: permissao.usuarioId,
+          entidade: "UsuarioPerfil",
+          entidadeId: usuario.id,
+          acao: "PERFIL_ATRIBUIDO_A_PESSOA",
+          dadosDepois: {
+            usuarioId: usuario.id,
+            perfilId: perfil.id,
+            orgaoId,
+          },
         },
       });
     }
-
-    await tx.auditoriaEvento.create({
-      data: {
-        usuarioId: permissao.usuarioId,
-        entidade: "UsuarioPerfil",
-        entidadeId: usuario.id,
-        acao: "PERFIL_ATRIBUIDO_A_PESSOA",
-        dadosDepois: {
-          usuarioId: usuario.id,
-          perfilId: perfil.id,
-          orgaoId,
-        },
-      },
-    });
   });
 
   revalidatePath(`/perfis/${perfil.id}`);
-  revalidatePath(`/usuarios/${usuario.id}`);
+  for (const usuario of usuariosValidos) {
+    revalidatePath(`/usuarios/${usuario.id}`);
+  }
   revalidatePath("/usuarios");
   revalidatePath("/", "layout");
-  await invalidarCacheUsuarioAuthPorId(usuario.id);
+  await Promise.all(
+    usuariosValidos.map((usuario) =>
+      invalidarCacheUsuarioAuthPorId(usuario.id),
+    ),
+  );
 
   return {
     sucesso: true,
-    mensagem: `Perfil atribuído a ${usuario.nome} com sucesso.`,
+    mensagem: `Perfil atribuido a ${usuariosValidos.length} pessoa(s) com sucesso.`,
   };
 }

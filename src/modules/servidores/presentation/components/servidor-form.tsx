@@ -352,13 +352,13 @@ export function ServidorForm({
               options={[
                 { value: "PADRAO", label: "Seguir padrão do órgão" },
                 { value: "NAO_SINALIZAR", label: "Não sinalizar" },
-                { value: "SINALIZAR", label: "Sinalizar como inconsistência" },
+                { value: "SINALIZAR", label: "Sinalizar no espelho" },
               ]}
             />
 
             <p className="text-xs leading-5 text-[var(--muted-foreground)]">
-              Use a opção individual apenas para casos excepcionais; o padrão do
-              SECP é não sinalizar marcações fora do expediente.
+              O horário associado ao servidor serve como referência de
+              apuração, sem impedir ou invalidar marcações.
             </p>
 
             {obterErro(estado.erros, "sinalizacaoForaExpediente") && (

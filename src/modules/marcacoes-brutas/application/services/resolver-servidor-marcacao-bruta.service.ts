@@ -139,7 +139,7 @@ export async function resolverServidorMarcacaoBrutaService(params: {
   );
   const identificadoresRecebidos = Array.from(
     new Set(
-      [params.matricula, params.cpf, params.pis]
+      [params.matricula, matriculaNoOrgao, params.cpf, params.pis]
         .map((valor) => normalizarIdentificadorPonto(valor))
         .filter((valor): valor is string => Boolean(valor)),
     ),

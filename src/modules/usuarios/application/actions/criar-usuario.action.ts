@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { invalidarCacheUsuarioAuthPorMatricula } from "@/modules/auth/infrastructure/repositories/usuario-auth.repository";
 import type { EscopoGestaoUsuarios } from "../services/escopo-gestao-usuarios.service";
 import {
   orgaoPodeSerVinculadoNoEscopoGestaoUsuarios,
@@ -203,5 +204,6 @@ export async function criarUsuarioAction(
   });
 
   revalidatePath("/usuarios");
+  await invalidarCacheUsuarioAuthPorMatricula(usuario.matricula);
   redirect(`/usuarios/${usuario.id}`);
 }

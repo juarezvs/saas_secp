@@ -613,9 +613,7 @@ export function calcularApuracaoDiaria(params: {
     (o) =>
       TIPOS_OCORRENCIA_INCONSISTENTE.includes(
         o.tipo as (typeof TIPOS_OCORRENCIA_INCONSISTENTE)[number],
-      ) ||
-      (o.tipo === "HORA_NAO_AUTORIZADA" &&
-        regras.horasForaExpedienteInconsistente),
+      ),
   )
     ? "INCONSISTENTE"
     : "CALCULADA";

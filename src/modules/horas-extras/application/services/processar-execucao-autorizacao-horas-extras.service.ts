@@ -141,7 +141,7 @@ export async function processarExecucaoAutorizacaoHorasExtras(params: {
     };
 
     for (const servidor of autorizacao.servidores) {
-      const [marcacoes, saldoBancoHoras] = await Promise.all([
+      const [marcacoes, saldoBancoHoras, apuracoes] = await Promise.all([
         tx.marcacao.findMany({
           where: {
             servidorId: servidor.servidorId,
@@ -167,7 +167,26 @@ export async function processarExecucaoAutorizacaoHorasExtras(params: {
             saldoMinutos: true,
           },
         }),
+        tx.apuracaoDiaria.findMany({
+          where: {
+            servidorId: servidor.servidorId,
+            dataReferencia: {
+              gte: servidor.periodoInicio,
+              lte: servidor.periodoFim,
+            },
+          },
+          select: {
+            id: true,
+            dataReferencia: true,
+          },
+        }),
       ]);
+      const apuracoesPorData = new Map(
+        apuracoes.map((apuracao) => [
+          dataIso(apuracao.dataReferencia),
+          apuracao,
+        ]),
+      );
       const { intervalos, marcacaoIncompleta } = construirIntervalos(marcacoes);
       const debitoInicialMinutos = Math.max(
         0,
@@ -230,6 +249,48 @@ export async function processarExecucaoAutorizacaoHorasExtras(params: {
             },
           })),
         });
+
+        const excedentesPorData = new Map<string, number>();
+
+        for (const segmento of resultado.segmentos) {
+          if (segmento.categoria !== "EXCEDENTE_A_AUTORIZACAO") {
+            continue;
+          }
+
+          excedentesPorData.set(
+            segmento.data,
+            (excedentesPorData.get(segmento.data) ?? 0) + segmento.minutos,
+          );
+        }
+
+        for (const [data, minutos] of excedentesPorData) {
+          const apuracao = apuracoesPorData.get(data);
+
+          if (!apuracao || minutos <= 0) {
+            continue;
+          }
+
+          await tx.movimentoBancoHoras.create({
+            data: {
+              servidorId: servidor.servidorId,
+              apuracaoDiariaId: apuracao.id,
+              tipo: "CREDITO",
+              origem: "AJUSTE_ADMINISTRATIVO",
+              status: "PENDENTE",
+              dataReferencia: apuracao.dataReferencia,
+              mesReferencia: apuracao.dataReferencia.getUTCMonth() + 1,
+              anoReferencia: apuracao.dataReferencia.getUTCFullYear(),
+              minutos,
+              descricao:
+                "Credito de banco de horas gerado pelo excedente acima do limite diario legal de horas extras.",
+              metadados: {
+                origem: "HORAS_EXTRAS_EXCEDENTE_LIMITE_DIARIO",
+                autorizacaoHoraExtraId: autorizacao.id,
+                servidorAutorizadoId: servidor.id,
+              },
+            },
+          });
+        }
       }
 
       await tx.autorizacaoHoraExtraServidor.update({
@@ -277,10 +338,7 @@ export async function processarExecucaoAutorizacaoHorasExtras(params: {
         id: autorizacao.id,
       },
       data: {
-        status:
-          totais.intervalos > 0
-            ? "AGUARDANDO_CONFERENCIA"
-            : "VIGENTE",
+        status: totais.intervalos > 0 ? "AGUARDANDO_CONFERENCIA" : "VIGENTE",
       },
     });
 

@@ -568,6 +568,25 @@ export default async function EspelhoPontoPage({
         </Card>
       )}
 
+      {perfilPessoaExternaAtivo && servidorSelecionado && (
+        <Card className="p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <EspelhoPontoFiltrosAuto
+              competencia={competenciaInput}
+              className="w-full sm:w-56"
+            />
+            <RelatorioExportacaoButton
+              href={montarHrefExportacaoEspelho({
+                servidorId: servidorSelecionado.id,
+                anoReferencia,
+                mesReferencia,
+              })}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold hover:bg-[var(--muted)]"
+            />
+          </div>
+        </Card>
+      )}
+
       {servidorSelecionado ? (
         <EspelhoPontoMensal
           key={`${servidorSelecionado.id}-${competenciaInput}`}

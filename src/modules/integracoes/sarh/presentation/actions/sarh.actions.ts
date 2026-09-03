@@ -6,20 +6,41 @@ import {
   obterPermissoesDaSessao,
   usuarioPossuiAlgumaPermissaoNoPerfil,
 } from "@/modules/auth/application/services/permissao.service";
-import { prisma } from "@/shared/infrastructure/database/prisma";
 import {
   SarhEscopoSincronizacaoError,
   resolverEscopoSincronizacaoSarh,
 } from "../../application/services/sarh-escopo-sync.service";
-import { SincronizarSarhUseCase } from "../../application/use-cases/sincronizar-sarh.use-case";
+import {
+  enfileirarSincronizacaoSarh,
+  progressoSarhAgendado,
+} from "../../application/queues/sarh-sync-queue";
+import { ENDPOINTS_PADRAO_SARH_MATRICULA } from "../../application/sarh-sync.dto";
+import { garantirSarhSyncWorkerAutomatico } from "../../application/workers/sarh-sync-worker-runtime";
 import type { SarhEndpointKey } from "../../domain/sarh.types";
 
 export type SincronizarSarhActionState = {
   ok: boolean | null;
   mensagem: string;
+  jobId?: string;
   execucaoId?: string;
   detalhes?: Record<string, unknown>;
 };
+
+type SarhEndpointOpcao = SarhEndpointKey | "pessoas";
+
+const ENDPOINTS_PESSOAS: SarhEndpointKey[] = [
+  "servidores",
+  "estagiarios",
+  "prestadores",
+  "voluntarios",
+  "lotacoesServidores",
+  "tiposAfastamento",
+  "afastamentos",
+  "ferias",
+  "chefias",
+  "substituicoes",
+  "calendarios",
+];
 
 const PERMISSOES_SINCRONIZAR_SARH = [
   "integracoes-sarh:executar:global",
@@ -36,33 +57,35 @@ const ENDPOINTS_COMPATIVEIS_MATRICULA = new Set<SarhEndpointKey>([
   "prestadores",
   "voluntarios",
   "lotacoesServidores",
+  "tiposAfastamento",
   "afastamentos",
   "ferias",
   "chefias",
   "substituicoes",
+  "calendarios",
 ]);
 
 const ENDPOINTS_PADRAO_MATRICULA: SarhEndpointKey[] = [
-  "servidores",
-  "estagiarios",
-  "prestadores",
-  "voluntarios",
-  "lotacoesServidores",
-  "afastamentos",
-  "ferias",
-  "chefias",
-  "substituicoes",
+  ...ENDPOINTS_PADRAO_SARH_MATRICULA,
 ];
 
 function normalizarEndpointsPorMatricula(
-  endpoints: SarhEndpointKey[],
+  endpoints: SarhEndpointOpcao[],
   matricula?: string,
 ) {
+  const endpointsExpandidos = Array.from(
+    new Set(
+      endpoints.flatMap((endpoint) =>
+        endpoint === "pessoas" ? ENDPOINTS_PESSOAS : [endpoint],
+      ),
+    ),
+  );
+
   if (!matricula) {
-    return endpoints.length ? endpoints : undefined;
+    return endpointsExpandidos.length ? endpointsExpandidos : undefined;
   }
 
-  const compativeis = endpoints.filter((endpoint) =>
+  const compativeis = endpointsExpandidos.filter((endpoint) =>
     ENDPOINTS_COMPATIVEIS_MATRICULA.has(endpoint),
   );
 
@@ -101,7 +124,7 @@ export async function sincronizarSarhAction(
   const orgaoId = String(formData.get("orgaoId") ?? "").trim() || null;
   const endpoints = formData
     .getAll("endpoints")
-    .map(String) as SarhEndpointKey[];
+    .map(String) as SarhEndpointOpcao[];
   const endpointsNormalizados = normalizarEndpointsPorMatricula(
     endpoints,
     matricula,
@@ -126,10 +149,10 @@ export async function sincronizarSarhAction(
     throw error;
   }
 
-  const useCase = new SincronizarSarhUseCase(prisma);
-
   try {
-    const resultado = await useCase.execute({
+    await garantirSarhSyncWorkerAutomatico();
+
+    const job = await enfileirarSincronizacaoSarh({
       tipo: modo === "aplicar" ? "SINCRONIZACAO_COMPLETA" : "SIMULACAO",
       modoSimulacao: modo !== "aplicar",
       orgaoId: escopoSincronizacao.orgaoIds[0] ?? null,
@@ -139,18 +162,27 @@ export async function sincronizarSarhAction(
       codigosUnidadesSarhPermitidos:
         escopoSincronizacao.codigosUnidadesSarhPermitidos,
       iniciadoPorUsuarioId: permissao.usuarioId ?? null,
+      escopoSincronizacao: {
+        global: escopoSincronizacao.global,
+        orgaoIds: escopoSincronizacao.orgaoIds,
+      },
     });
+    const progresso = progressoSarhAgendado();
 
     revalidatePath("/integracoes");
     revalidatePath("/administracao/integracoes/sarh");
 
     return {
       ok: true,
-      mensagem: resultado.modoSimulacao
-        ? "Simulação SARH concluída. Nenhum dado de domínio foi alterado."
-        : "Sincronização SARH aplicada com sucesso.",
-      execucaoId: resultado.execucaoId,
-      detalhes: resultado,
+      mensagem:
+        "Sincronizacao SARH enviada para a fila. Acompanhe o andamento pelo status da tela.",
+      execucaoId: progresso.execucaoId,
+      jobId: String(job.id),
+      detalhes: {
+        jobId: job.id,
+        estado: await job.getState(),
+        progresso,
+      },
     };
   } catch (error) {
     return {

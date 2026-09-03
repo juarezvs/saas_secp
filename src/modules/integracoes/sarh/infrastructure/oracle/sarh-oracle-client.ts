@@ -43,7 +43,17 @@ const TIPOS_LOTACAO_SERVIDOR_FORA = [11, 12, 13];
 const FILTRO_MATRICULA_PESSOA_PONTO_SARH =
   "(regexp_like({coluna}, '[0-9]$') or upper({coluna}) like '%ES' or upper({coluna}) like '%VO' or upper({coluna}) like '%PS')";
 
+type SarhFiltroMatricula = {
+  matricula?: string | null;
+};
+
 let oracleClientInicializado = false;
+
+function oracleCallTimeoutMs() {
+  const timeout = Number(process.env.SARH_ORACLE_CALL_TIMEOUT_MS ?? "120000");
+
+  return Number.isFinite(timeout) && timeout > 0 ? timeout : 120000;
+}
 
 function isReadableBlob(value: unknown): value is ReadableBlob {
   return (
@@ -120,7 +130,10 @@ export class SarhOracleClient {
     return rows;
   }
 
-  async buscarServidores(): Promise<SarhServidorDto[]> {
+  async buscarServidores(
+    filtros: SarhFiltroMatricula = {},
+  ): Promise<SarhServidorDto[]> {
+    const matricula = filtros.matricula?.trim().toUpperCase() || null;
     const rows = await this.query<OracleRow>(
       `
       with funcao_vigente as (
@@ -267,6 +280,7 @@ export class SarhOracleClient {
         on fv.mvfu_matricula_folha = s.nu_matr_servidor
       where s.flag_ativo = 1
         and upper(s.nu_matr_servidor) like upper(:siglaLocalidade) || '%'
+        and (:matricula is null or upper(s.nu_matr_servidor) = :matricula)
         and ${this.filtroMatriculaPessoaPontoSarh("s.nu_matr_servidor")}
         and (
           l.lota_tipo_lotacao is null
@@ -274,7 +288,7 @@ export class SarhOracleClient {
         )
       order by s.no_servidor
       `,
-      { siglaLocalidade: this.siglaLocalidade },
+      { siglaLocalidade: this.siglaLocalidade, matricula },
     );
 
     return rows.map((row) => ({
@@ -307,9 +321,14 @@ export class SarhOracleClient {
     }));
   }
 
-  async buscarLotacoesServidores(): Promise<SarhLotacaoServidorDto[]> {
+  async buscarLotacoesServidores(
+    filtros: SarhFiltroMatricula = {},
+  ): Promise<SarhLotacaoServidorDto[]> {
+    const matricula = filtros.matricula?.trim().toUpperCase() || null;
     const rows = await this.query<OracleRow>(
       `
+      select *
+      from (
       select
         cf.cafu_matricula_folha as "matricula",
         cf.cafu_cod_lotacao as "lotacaoId",
@@ -445,9 +464,11 @@ export class SarhOracleClient {
           where upper(c_ps2.cont_sesb_sigla_secao_subsecao || c_ps2.cont_matricula || 'PS') =
                 upper(c_ceco.ceco_sesb_sigla_secao_subsecao || c_ceco.ceco_matricula || 'PS')
         )
+      )
+      where (:matricula is null or upper("matricula") = :matricula)
       order by 1
       `,
-      { siglaLocalidade: this.siglaLocalidade },
+      { siglaLocalidade: this.siglaLocalidade, matricula },
     );
 
     return rows.map((row) => ({
@@ -507,11 +528,17 @@ export class SarhOracleClient {
     }));
   }
 
-  async buscarAfastamentos(): Promise<SarhAfastamentoDto[]> {
+  async buscarAfastamentos(
+    filtro: SarhFiltroMatricula = {},
+  ): Promise<SarhAfastamentoDto[]> {
+    const matricula = filtro.matricula?.trim().toUpperCase() || null;
     const rows = await this.query<OracleRow>(
       `
       with filtros as (
-        select :siglaLocalidade as sigla_localidade from dual
+        select
+          :siglaLocalidade as sigla_localidade,
+          :matricula as matricula
+        from dual
       ),
       servidor_base as (
         select
@@ -525,6 +552,7 @@ export class SarhOracleClient {
           on s.nu_matr_servidor = f.func_matricula_folha
         cross join filtros flt
         where upper(f.func_matricula_folha) like upper(flt.sigla_localidade) || '%'
+          and (flt.matricula is null or upper(f.func_matricula_folha) = upper(flt.matricula))
           and s.flag_ativo = 1
           and ${this.filtroMatriculaPessoaPontoSarh("f.func_matricula_folha")}
       ),
@@ -673,7 +701,7 @@ export class SarhOracleClient {
       from eventos
       order by data_inicio_ordem desc nulls last, categoria, matricula
       `,
-      { siglaLocalidade: this.siglaLocalidade },
+      { siglaLocalidade: this.siglaLocalidade, matricula },
     );
 
     return rows.map((row) => ({
@@ -985,7 +1013,9 @@ export class SarhOracleClient {
 
     return rows.map((row) => ({
       id: String(row.id ?? ""),
-      tipo: String(row.tipo ?? "AUTOMATICA") as SarhSubstituicaoFuncaoDto["tipo"],
+      tipo: String(
+        row.tipo ?? "AUTOMATICA",
+      ) as SarhSubstituicaoFuncaoDto["tipo"],
       titularMatricula: this.toStringOrNull(row.titularMatricula),
       titularNome: this.toStringOrNull(row.titularNome),
       substitutoMatricula: this.toStringOrNull(row.substitutoMatricula),
@@ -1000,9 +1030,13 @@ export class SarhOracleClient {
       funcaoTitularDescricao: this.toStringOrNull(row.funcaoTitularDescricao),
       funcaoSubstitutoId: this.toNumberOrNull(row.funcaoSubstitutoId),
       funcaoSubstitutoGrupo: this.toStringOrNull(row.funcaoSubstitutoGrupo),
-      funcaoSubstitutoCategoria: this.toStringOrNull(row.funcaoSubstitutoCategoria),
+      funcaoSubstitutoCategoria: this.toStringOrNull(
+        row.funcaoSubstitutoCategoria,
+      ),
       funcaoSubstitutoCodigo: this.toStringOrNull(row.funcaoSubstitutoCodigo),
-      funcaoSubstitutoDescricao: this.toStringOrNull(row.funcaoSubstitutoDescricao),
+      funcaoSubstitutoDescricao: this.toStringOrNull(
+        row.funcaoSubstitutoDescricao,
+      ),
       dataInicio: this.toStringOrNull(row.dataInicio),
       dataFim: this.toStringOrNull(row.dataFim),
       ato: this.toStringOrNull(row.ato),
@@ -1241,7 +1275,7 @@ export class SarhOracleClient {
   }
 
   async testarConexao(): Promise<void> {
-    await this.query("select 1 as \"ok\" from dual");
+    await this.query('select 1 as "ok" from dual');
   }
 
   private async buscarLotacoesPorWhere(where: string) {
@@ -1304,6 +1338,9 @@ export class SarhOracleClient {
 
     const imported = (await import("oracledb")) as OracleDbImport;
     const oracledb = imported.default ?? imported;
+
+    (oracledb as OracleDbModule & { callTimeout?: number }).callTimeout =
+      oracleCallTimeoutMs();
 
     if (!oracleClientInicializado && this.oracleHome) {
       oracledb.initOracleClient({ libDir: this.oracleHome });

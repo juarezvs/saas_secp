@@ -316,29 +316,70 @@ function mesmaOrigemAutenticacao(
   );
 }
 
+function normalizarOrgaosAutenticacao(
+  orgaoId?: string | string[] | null,
+): string[] {
+  const orgaos = Array.isArray(orgaoId) ? orgaoId : [orgaoId];
+
+  return Array.from(
+    new Set(
+      orgaos
+        .map((valor) => valor?.trim())
+        .filter((valor): valor is string => Boolean(valor)),
+    ),
+  );
+}
+
 export async function autenticarNoActiveDirectory(
   matricula: string,
   senha: string,
-  orgaoId?: string | null,
+  orgaoId?: string | string[] | null,
 ): Promise<boolean> {
   if (!matricula || !senha) {
     return false;
   }
 
-  const configuracao = await obterConfiguracaoLdapActiveDirectory(orgaoId);
-  const autenticado = await autenticarComConfiguracao({
-    configuracao,
-    matricula,
-    senha,
-  });
+  const ambiente = obterConfiguracaoLdapActiveDirectoryAmbiente();
+  const orgaoIds = normalizarOrgaosAutenticacao(orgaoId);
+  const configuracoesTestadas: LdapActiveDirectoryConfig[] = [];
 
-  if (autenticado) {
-    return true;
+  for (const orgaoIdCandidato of orgaoIds) {
+    const configuracao = await obterConfiguracaoLdapActiveDirectory(
+      orgaoIdCandidato,
+    );
+    configuracoesTestadas.push(configuracao);
+
+    const autenticado = await autenticarComConfiguracao({
+      configuracao,
+      matricula,
+      senha,
+    });
+
+    if (autenticado) {
+      return true;
+    }
   }
 
-  const ambiente = obterConfiguracaoLdapActiveDirectoryAmbiente();
+  if (orgaoIds.length === 0) {
+    const configuracao = await obterConfiguracaoLdapActiveDirectory(null);
+    configuracoesTestadas.push(configuracao);
 
-  if (mesmaOrigemAutenticacao(configuracao, ambiente)) {
+    const autenticado = await autenticarComConfiguracao({
+      configuracao,
+      matricula,
+      senha,
+    });
+
+    if (autenticado) {
+      return true;
+    }
+  }
+
+  if (
+    configuracoesTestadas.some((configuracao) =>
+      mesmaOrigemAutenticacao(configuracao, ambiente),
+    )
+  ) {
     return false;
   }
 

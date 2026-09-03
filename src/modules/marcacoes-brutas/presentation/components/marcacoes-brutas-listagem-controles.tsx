@@ -1,7 +1,4 @@
-import {
-  DataTableToolbar,
-  type DataTableFiltro,
-} from "@/components/listagens";
+import { DataTableToolbar, type DataTableFiltro } from "@/components/listagens";
 
 type FiltroOption = {
   value: string;
@@ -101,6 +98,7 @@ export function MarcacoesBrutasListagemControles({
         { value: "", label: "Todas" },
         ...orgaos.map((orgao) => ({ value: orgao.id, label: orgao.sigla })),
       ],
+      limparAoAlterar: ["servidorId", "equipamentoCodigo"],
     },
   ];
 

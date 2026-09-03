@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import {
+  resolverChefiaResponsavelDaUnidade,
+  resolverGestorUnidadePorUsuarioNaHierarquia,
+} from "@/modules/chefias/application/services/resolver-chefia.service";
+import { Prisma } from "@/generated/prisma/client";
 import { dataHoraLocalParaUtc } from "@/modules/marcacoes/application/services/data-marcacao.service";
 import { resolverFusoHorarioServidor } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
@@ -154,6 +159,11 @@ export async function atualizarSolicitacaoAction(
           },
         },
       },
+      chefiaResponsavel: {
+        select: {
+          servidorId: true,
+        },
+      },
     },
   });
 
@@ -177,17 +187,77 @@ export async function atualizarSolicitacaoAction(
   const dataReferencia = valorOpcionalData(parsed.data.dataReferencia);
   const dataInicio = valorOpcionalDateTime(parsed.data.dataInicio, fusoHorario);
   const dataFim = valorOpcionalFimPeriodo(parsed.data.dataFim, fusoHorario);
+  const lotacaoAtual = solicitacao.servidor.lotacoes[0];
+  const unidadeReferenciaId = lotacaoAtual?.unidadeId ?? solicitacao.unidadeId;
+  const eventoDevolucao = await prisma.solicitacaoEvento.findFirst({
+    where: {
+      solicitacaoId: solicitacao.id,
+      descricao: {
+        contains: "devolvida para ajustes",
+        mode: "insensitive",
+      },
+    },
+    orderBy: {
+      criadoEm: "desc",
+    },
+    select: {
+      usuarioId: true,
+    },
+  });
+  const chefiaAtualEhSolicitante =
+    solicitacao.chefiaResponsavel?.servidorId === solicitacao.servidorId;
+  let chefiaResponsavelId = solicitacao.chefiaResponsavelId;
+  let chefiaReenvio: Awaited<
+    ReturnType<typeof resolverChefiaResponsavelDaUnidade>
+  > | null = null;
+  let reatribuidaParaChefiaQueDevolveu = false;
+
+  if (unidadeReferenciaId) {
+    if (eventoDevolucao?.usuarioId) {
+      const gestorQueDevolveu =
+        await resolverGestorUnidadePorUsuarioNaHierarquia(
+          unidadeReferenciaId,
+          eventoDevolucao.usuarioId,
+        );
+
+      if (
+        gestorQueDevolveu &&
+        gestorQueDevolveu.servidorId !== solicitacao.servidorId
+      ) {
+        chefiaResponsavelId = gestorQueDevolveu.id;
+        reatribuidaParaChefiaQueDevolveu = true;
+      }
+    }
+
+    if (
+      !reatribuidaParaChefiaQueDevolveu &&
+      (!chefiaResponsavelId || chefiaAtualEhSolicitante)
+    ) {
+      chefiaReenvio = await resolverChefiaResponsavelDaUnidade(
+        unidadeReferenciaId,
+        { ignorarServidorId: solicitacao.servidorId },
+      );
+      chefiaResponsavelId = chefiaReenvio?.gestorUnidadeId ?? null;
+    }
+  }
 
   await prisma.$transaction(async (tx) => {
     await tx.solicitacao.update({
       where: { id: solicitacao.id },
       data: {
+        status: "ENVIADA",
         tipo: parsed.data.tipo,
         titulo: parsed.data.titulo,
         descricao: parsed.data.descricao,
         dataReferencia,
         dataInicio,
         dataFim,
+        unidadeId: unidadeReferenciaId,
+        chefiaResponsavelId,
+        analisadaPorUsuarioId: null,
+        analisadaEm: null,
+        justificativaAnalise: null,
+        dadosResultado: Prisma.JsonNull,
         dadosSolicitados: {
           tipoMarcacao: parsed.data.tipoMarcacao || null,
           horaAjuste: parsed.data.horaAjuste || null,
@@ -211,6 +281,13 @@ export async function atualizarSolicitacaoAction(
                       : parsed.data.diasRemotos,
                 }
               : null,
+          lotacaoAtual: lotacaoAtual
+            ? {
+                unidadeId: lotacaoAtual.unidadeId,
+                unidadeSigla: lotacaoAtual.unidade.sigla,
+              }
+            : null,
+          chefiaResolvida: chefiaReenvio,
         },
       },
     });
@@ -220,7 +297,11 @@ export async function atualizarSolicitacaoAction(
         solicitacaoId: solicitacao.id,
         usuarioId: session.user.id,
         tipo: "COMENTARIO",
-        descricao: "Solicitacao editada pelo solicitante.",
+        descricao: "Solicitacao ajustada e reenviada pelo solicitante.",
+        metadados: {
+          status: "ENVIADA",
+          chefiaResponsavelId,
+        },
       },
     });
   });

@@ -23,7 +23,11 @@ services:
       - secp-network
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h localhost"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h localhost",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -68,7 +72,11 @@ services:
       - secp-network
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h 127.0.0.1 -p 6432 -U ${POSTGRES_USER} -d ${POSTGRES_DB}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -186,7 +194,11 @@ services:
       - secp-network
 
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "fetch(''http://127.0.0.1:3000'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -255,7 +267,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL_POOLED:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB}?schema=public}
       SECP_AUTO_WORKERS: "false"
-      SARH_SYNC_CONCURRENCY: ${SARH_SYNC_CONCURRENCY:-1}
+      SARH_SYNC_CONCURRENCY: ${SARH_SYNC_CONCURRENCY:-4}
       SARH_AFASTAMENTOS_SYNC_CONCURRENCY: ${SARH_AFASTAMENTOS_SYNC_CONCURRENCY:-2}
       LOG_LEVEL: ${LOG_LEVEL:-info}
 

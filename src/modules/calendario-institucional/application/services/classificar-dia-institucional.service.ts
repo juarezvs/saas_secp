@@ -61,7 +61,8 @@ export type ClassificacaoDiaInstitucional = {
 export type CalendarioInstitucionalPrecarregado = {
   eventosPorData: Map<
     string,
-    EventoCalendarioInstitucionalPeriodo | EventoCalendarioInstitucionalPeriodo[]
+    | EventoCalendarioInstitucionalPeriodo
+    | EventoCalendarioInstitucionalPeriodo[]
   >;
   recessos: RecessoForenseLite[];
 };
@@ -133,7 +134,9 @@ function classificarPorDiaSemana(
 
 function classificarPorEvento(
   dataReferencia: Date,
-  evento: NonNullable<EventoCalendarioInstitucionalLite> | EventoCalendarioInstitucionalPeriodo,
+  evento:
+    | NonNullable<EventoCalendarioInstitucionalLite>
+    | EventoCalendarioInstitucionalPeriodo,
 ): ClassificacaoDiaInstitucional {
   return {
     dataReferencia: normalizarDataReferencia(dataReferencia),
@@ -152,11 +155,13 @@ function classificarPorEvento(
 }
 
 function normalizarTextoLocalidade(valor?: string | null) {
-  return valor
-    ?.normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .trim()
-    .toUpperCase() || null;
+  return (
+    valor
+      ?.normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .trim()
+      .toUpperCase() || null
+  );
 }
 
 function resolverLocalidadeUnidade(unidade?: UnidadeComLocalidade | null) {
@@ -291,7 +296,9 @@ function eventoAplicavelAoServidor(
   }
 
   if (abrangencia === "ESTADUAL") {
-    return Boolean(evento.uf && localidade.uf === evento.uf.trim().toUpperCase());
+    return Boolean(
+      evento.uf && localidade.uf === evento.uf.trim().toUpperCase(),
+    );
   }
 
   if (abrangencia === "MUNICIPAL") {
@@ -349,11 +356,15 @@ function classificarPorRecesso(
 function encontrarRecesso(
   dataReferencia: Date,
   recessos: RecessoForenseLite[],
+  localidade?: LocalidadeServidor | null,
 ) {
   const dataNormalizada = normalizarDataReferencia(dataReferencia);
 
   return recessos.find(
     (recesso) =>
+      (localidade?.orgaoId
+        ? recesso.orgaoId === localidade.orgaoId
+        : recesso.orgaoId === null) &&
       normalizarDataReferencia(recesso.dataInicio) <= dataNormalizada &&
       normalizarDataReferencia(recesso.dataFim) >= dataNormalizada,
   );
@@ -384,9 +395,8 @@ async function carregarEventoDoDia(
     if (Array.isArray(eventosDoDia)) {
       eventos = eventosDoDia;
     } else {
-      const eventoNacional = await buscarEventoCalendarioInstitucionalPorData(
-        dataReferencia,
-      );
+      const eventoNacional =
+        await buscarEventoCalendarioInstitucionalPorData(dataReferencia);
       eventos = eventoNacional ? [eventoNacional] : [];
     }
   }
@@ -405,8 +415,10 @@ async function carregarEventoDoDia(
     ativos
       .filter((evento) => eventoAplicavelAoServidor(evento, localidade))
       .sort((a, b) => {
-        const prioridadeA = prioridadeAbrangencia[a.abrangencia ?? "NACIONAL"] ?? 0;
-        const prioridadeB = prioridadeAbrangencia[b.abrangencia ?? "NACIONAL"] ?? 0;
+        const prioridadeA =
+          prioridadeAbrangencia[a.abrangencia ?? "NACIONAL"] ?? 0;
+        const prioridadeB =
+          prioridadeAbrangencia[b.abrangencia ?? "NACIONAL"] ?? 0;
 
         return prioridadeB - prioridadeA;
       })[0] ?? null
@@ -416,17 +428,22 @@ async function carregarEventoDoDia(
 async function carregarRecessoDoDia(
   dataReferencia: Date,
   precarregado?: CalendarioInstitucionalPrecarregado,
+  localidade?: LocalidadeServidor | null,
 ) {
   if (precarregado) {
-    return encontrarRecesso(dataReferencia, precarregado.recessos) ?? null;
+    return (
+      encontrarRecesso(dataReferencia, precarregado.recessos, localidade) ??
+      null
+    );
   }
 
   const recessos = await listarRecessosForensesNoPeriodo(
     dataReferencia,
     fimExclusivo(dataReferencia),
+    localidade?.orgaoId ? { orgaoIdsPermitidos: [localidade.orgaoId] } : {},
   );
 
-  return encontrarRecesso(dataReferencia, recessos) ?? null;
+  return encontrarRecesso(dataReferencia, recessos, localidade) ?? null;
 }
 
 export async function carregarCalendarioInstitucionalPeriodo(params: {
@@ -458,13 +475,25 @@ export async function classificarDiaInstitucional(
   precarregado?: CalendarioInstitucionalPrecarregado,
   servidorId?: string | null,
 ): Promise<ClassificacaoDiaInstitucional> {
-  const recesso = await carregarRecessoDoDia(dataReferencia, precarregado);
+  const localidade = await resolverLocalidadeServidor({
+    servidorId,
+    dataReferencia,
+  });
+  const recesso = await carregarRecessoDoDia(
+    dataReferencia,
+    precarregado,
+    localidade,
+  );
 
   if (recesso) {
     return classificarPorRecesso(dataReferencia, recesso);
   }
 
-  const evento = await carregarEventoDoDia(dataReferencia, precarregado, servidorId);
+  const evento = await carregarEventoDoDia(
+    dataReferencia,
+    precarregado,
+    servidorId,
+  );
 
   if (evento) {
     return classificarPorEvento(dataReferencia, evento);

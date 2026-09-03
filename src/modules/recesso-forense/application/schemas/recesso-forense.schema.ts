@@ -15,6 +15,7 @@ export type RecessoFormState = {
 
 export const recessoForenseSchema = z
   .object({
+    orgaoId: z.string().uuid("Informe a seccional do recesso."),
     ano: z.coerce
       .number()
       .int("Informe um ano valido.")
@@ -45,10 +46,9 @@ export const convocacaoRecessoSchema = z.object({
   descricao: z.string().trim().max(2000).optional().or(z.literal("")),
 });
 
-export const atualizarConvocacaoRecessoSchema =
-  convocacaoRecessoSchema.extend({
-    convocacaoId: z.string().uuid("Convocação inválida."),
-  });
+export const atualizarConvocacaoRecessoSchema = convocacaoRecessoSchema.extend({
+  convocacaoId: z.string().uuid("Convocação inválida."),
+});
 
 export const convocadoRecessoSchema = z
   .object({
@@ -123,9 +123,12 @@ export const escolhaRecessoSchema = z.object({
 export const fecharRecessoSchema = z.object({
   recessoId: z.string().uuid("Recesso inválido."),
   servidorId: z.string().uuid("Servidor inválido."),
-  mesReferencia: z.coerce.number().int().refine((mes) => mes === 12 || mes === 1, {
-    message: "Fechamento permitido apenas para dezembro ou janeiro.",
-  }),
+  mesReferencia: z.coerce
+    .number()
+    .int()
+    .refine((mes) => mes === 12 || mes === 1, {
+      message: "Fechamento permitido apenas para dezembro ou janeiro.",
+    }),
   observacaoServidor: z.string().trim().max(2000).optional().or(z.literal("")),
 });
 

@@ -25,6 +25,7 @@ export async function resolverEscopoServidoresRecesso(
       perfilServidor,
       perfilChefiaAtivo,
       servidorIdsPermitidos: undefined,
+      orgaoIdsPermitidos: undefined,
     };
   }
 
@@ -38,15 +39,24 @@ export async function resolverEscopoServidoresRecesso(
       : Promise.resolve([]),
   ]);
 
+  const servidoresPermitidos = [
+    ...(servidorProprio ? [servidorProprio] : []),
+    ...servidoresChefia,
+  ];
+
   return {
     restrito: true,
     perfilServidor,
     perfilChefiaAtivo,
     servidorIdsPermitidos: Array.from(
-      new Set([
-        ...(servidorProprio ? [servidorProprio.id] : []),
-        ...servidoresChefia.map((servidor) => servidor.id),
-      ]),
+      new Set(servidoresPermitidos.map((servidor) => servidor.id)),
+    ),
+    orgaoIdsPermitidos: Array.from(
+      new Set(
+        servidoresPermitidos
+          .map((servidor) => servidor.orgaoId)
+          .filter((orgaoId): orgaoId is string => Boolean(orgaoId)),
+      ),
     ),
   };
 }
