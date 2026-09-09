@@ -76,12 +76,18 @@ type UnidadeComLocalidade = {
   unidadePai?: UnidadeComLocalidade | null;
 };
 
-type LocalidadeServidor = {
+export type LocalidadeServidor = {
   orgaoId: string | null;
   unidadeIds: string[];
   uf: string | null;
   municipio: string | null;
   municipioIbge: string | null;
+};
+
+type LotacaoComLocalidade = {
+  dataInicio: Date;
+  dataFim: Date | null;
+  unidade: UnidadeComLocalidade;
 };
 
 function chaveData(data: Date) {
@@ -281,6 +287,134 @@ async function resolverLocalidadeServidor(params: {
   };
 }
 
+function localidadeServidorNoDia(params: {
+  orgaoId: string | null;
+  lotacoes: LotacaoComLocalidade[];
+  dataReferencia: Date;
+}): LocalidadeServidor {
+  const dataReferencia = normalizarDataReferencia(params.dataReferencia);
+  const lotacao = params.lotacoes.find((item) => {
+    const inicio = normalizarDataReferencia(item.dataInicio);
+    const fim = item.dataFim ? normalizarDataReferencia(item.dataFim) : null;
+
+    return inicio <= dataReferencia && (!fim || fim >= dataReferencia);
+  });
+  const localidade = resolverLocalidadeUnidade(lotacao?.unidade ?? null);
+
+  return {
+    orgaoId: params.orgaoId ?? lotacao?.unidade.orgaoId ?? null,
+    ...localidade,
+  };
+}
+
+export async function carregarLocalidadesServidorPeriodo(params: {
+  servidorId?: string | null;
+  inicio: Date;
+  fimExclusivo: Date;
+}) {
+  const localidadesPorData = new Map<string, LocalidadeServidor | null>();
+
+  if (!params.servidorId) {
+    return localidadesPorData;
+  }
+
+  const [servidor, lotacoes] = await Promise.all([
+    prisma.servidor.findUnique({
+      where: {
+        id: params.servidorId,
+      },
+      select: {
+        orgaoId: true,
+      },
+    }),
+    prisma.lotacao.findMany({
+      where: {
+        servidorId: params.servidorId,
+        status: "ATIVO",
+        dataInicio: {
+          lt: params.fimExclusivo,
+        },
+        OR: [
+          { dataFim: null },
+          {
+            dataFim: {
+              gte: params.inicio,
+            },
+          },
+        ],
+      },
+      select: {
+        dataInicio: true,
+        dataFim: true,
+        unidade: {
+          select: {
+            id: true,
+            orgaoId: true,
+            uf: true,
+            municipio: true,
+            municipioIbge: true,
+            unidadePai: {
+              select: {
+                id: true,
+                orgaoId: true,
+                uf: true,
+                municipio: true,
+                municipioIbge: true,
+                unidadePai: {
+                  select: {
+                    id: true,
+                    orgaoId: true,
+                    uf: true,
+                    municipio: true,
+                    municipioIbge: true,
+                    unidadePai: {
+                      select: {
+                        id: true,
+                        orgaoId: true,
+                        uf: true,
+                        municipio: true,
+                        municipioIbge: true,
+                        unidadePai: {
+                          select: {
+                            id: true,
+                            orgaoId: true,
+                            uf: true,
+                            municipio: true,
+                            municipioIbge: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        dataInicio: "desc",
+      },
+    }),
+  ]);
+  const cursor = normalizarDataReferencia(params.inicio);
+  const fim = normalizarDataReferencia(params.fimExclusivo);
+
+  while (cursor < fim) {
+    localidadesPorData.set(
+      chaveData(cursor),
+      localidadeServidorNoDia({
+        orgaoId: servidor?.orgaoId ?? null,
+        lotacoes,
+        dataReferencia: cursor,
+      }),
+    );
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return localidadesPorData;
+}
+
 function eventoAplicavelAoServidor(
   evento: EventoCalendarioInstitucionalPeriodo,
   localidade: LocalidadeServidor | null,
@@ -374,6 +508,7 @@ async function carregarEventoDoDia(
   dataReferencia: Date,
   precarregado?: CalendarioInstitucionalPrecarregado,
   servidorId?: string | null,
+  localidadePrecarregada?: LocalidadeServidor | null,
 ) {
   const eventosPrecarregados = precarregado?.eventosPorData.get(
     chaveData(dataReferencia),
@@ -406,10 +541,13 @@ async function carregarEventoDoDia(
     return null;
   }
 
-  const localidade = await resolverLocalidadeServidor({
-    servidorId,
-    dataReferencia,
-  });
+  const localidade =
+    localidadePrecarregada === undefined
+      ? await resolverLocalidadeServidor({
+          servidorId,
+          dataReferencia,
+        })
+      : localidadePrecarregada;
 
   return (
     ativos
@@ -474,11 +612,15 @@ export async function classificarDiaInstitucional(
   dataReferencia: Date,
   precarregado?: CalendarioInstitucionalPrecarregado,
   servidorId?: string | null,
+  localidadePrecarregada?: LocalidadeServidor | null,
 ): Promise<ClassificacaoDiaInstitucional> {
-  const localidade = await resolverLocalidadeServidor({
-    servidorId,
-    dataReferencia,
-  });
+  const localidade =
+    localidadePrecarregada === undefined
+      ? await resolverLocalidadeServidor({
+          servidorId,
+          dataReferencia,
+        })
+      : localidadePrecarregada;
   const recesso = await carregarRecessoDoDia(
     dataReferencia,
     precarregado,
@@ -493,6 +635,7 @@ export async function classificarDiaInstitucional(
     dataReferencia,
     precarregado,
     servidorId,
+    localidade,
   );
 
   if (evento) {

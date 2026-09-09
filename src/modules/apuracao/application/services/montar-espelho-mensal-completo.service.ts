@@ -1,5 +1,6 @@
 import {
   carregarCalendarioInstitucionalPeriodo,
+  carregarLocalidadesServidorPeriodo,
   classificarDiaInstitucional,
   type CalendarioInstitucionalPrecarregado,
 } from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
@@ -591,13 +592,20 @@ async function preencherDiasDaCompetencia(params: {
     geraApuracaoRegular: boolean;
   }> = [];
   const cursor = new Date(inicio);
+  const localidadesPorData = await carregarLocalidadesServidorPeriodo({
+    servidorId: params.servidorId,
+    inicio,
+    fimExclusivo: fim,
+  });
 
   while (cursor < fim) {
     const dataReferencia = normalizarDataReferencia(cursor);
+    const chave = chaveData(dataReferencia);
     const classificacao = await classificarDiaInstitucional(
       dataReferencia,
       params.calendario,
       params.servidorId,
+      localidadesPorData.get(chave) ?? null,
     );
     const jornada =
       classificacao.contaComoDiaUtil && classificacao.geraApuracaoRegular
