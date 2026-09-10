@@ -11,13 +11,14 @@ import {
   ChevronDown,
   LogOut,
   Menu,
-  PanelLeftClose,
-  PanelLeftOpen,
   ShieldCheck,
   UserRound,
   WandSparkles,
 } from "lucide-react";
 import { AccessibilityToolbar } from "@/components/accessibility/accessibility-toolbar";
+import { VlibrasBreadcrumbButton } from "@/components/accessibility/vlibras-breadcrumb-button";
+import { SecpLogo } from "@/components/brand/secp-logo";
+import { ChatInternoWidget } from "@/components/layout/chat-interno-widget";
 import type { PerfilNavegacao } from "@/components/layout/sidebar";
 import type { PreferenciasAcessibilidade } from "@/modules/auth/application/services/preferencias-acessibilidade.service";
 
@@ -27,6 +28,7 @@ type HeaderProps = {
   funcaoOuCargo?: string | null;
   fotoUrl?: string | null;
   unidadeAtual: string;
+  instituicaoLabel: string;
   perfis: PerfilNavegacao[];
   perfilAtivo: PerfilNavegacao;
   onToggleSidebar: () => void;
@@ -46,6 +48,7 @@ export function Header({
   funcaoOuCargo,
   fotoUrl,
   unidadeAtual,
+  instituicaoLabel,
   perfis,
   perfilAtivo,
   onToggleSidebar,
@@ -168,49 +171,60 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/15 secp-institutional-gradient text-white shadow-lg shadow-slate-950/20 backdrop-blur">
-      <div className="flex min-h-[4.5rem] items-center justify-between gap-3 px-4 ring-1 ring-white/5 lg:px-6">
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={onOpenMobileMenu}
-            className="inline-flex size-10 items-center justify-center rounded-md border border-white/20 bg-white/10 shadow-sm backdrop-blur transition hover:border-white/35 hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:hidden"
-            aria-label="Abrir menu principal"
-            aria-controls="secp-sidebar-mobile"
-            aria-expanded={drawerAberto}
-          >
-            <Menu className="size-5" aria-hidden="true" />
-          </button>
+      <div className="flex min-h-[4.5rem] items-stretch ring-1 ring-white/5">
+        <div className="secp-sidebar secp-sidebar-header flex w-72 shrink-0 flex-col justify-center border-r border-border bg-card px-4 py-2 text-card-foreground">
+          <p className="w-full truncate text-left text-[11px] font-black uppercase leading-4 text-secp-blue-800 dark:text-blue-200">
+            {instituicaoLabel}
+          </p>
 
-          <button
-            type="button"
-            onClick={onToggleSidebar}
-            className="hidden size-10 items-center justify-center rounded-md border border-white/20 bg-white/10 shadow-sm backdrop-blur transition hover:border-white/35 hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:inline-flex"
-            aria-label={
-              sidebarRecolhida
-                ? "Expandir menu lateral"
-                : "Recolher menu lateral"
-            }
-            title={
-              sidebarRecolhida
-                ? "Expandir menu lateral"
-                : "Recolher menu lateral"
-            }
-            aria-controls="secp-sidebar-desktop"
-            aria-expanded={!sidebarRecolhida}
-          >
-            {sidebarRecolhida ? (
-              <PanelLeftOpen className="size-5" aria-hidden="true" />
-            ) : (
-              <PanelLeftClose className="size-5" aria-hidden="true" />
-            )}
-          </button>
+          <div className="mt-0.5 flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={onOpenMobileMenu}
+              className="secp-brand-menu-button secp-theme-action inline-flex size-10 shrink-0 items-center justify-center rounded-md border p-0 shadow-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:hidden"
+              aria-label="Abrir menu principal"
+              aria-controls="secp-sidebar-mobile"
+              aria-expanded={drawerAberto}
+            >
+              <Menu className="size-5" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              className="secp-brand-menu-button secp-theme-action hidden size-10 shrink-0 items-center justify-center rounded-md border p-0 shadow-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:inline-flex"
+              aria-label={
+                sidebarRecolhida ? "Exibir menu lateral" : "Ocultar menu lateral"
+              }
+              aria-controls="secp-sidebar-desktop"
+              aria-expanded={!sidebarRecolhida}
+              title={
+                sidebarRecolhida ? "Exibir menu lateral" : "Ocultar menu lateral"
+              }
+            >
+              <Menu className="size-5" aria-hidden="true" />
+            </button>
+
+            <SecpLogo
+              variant="mark"
+              className="size-11 shrink-0 rounded-md bg-white p-1 shadow-sm ring-1 ring-secp-blue-900/10"
+            />
+
+            <div className="min-w-0">
+              <p className="truncate text-xl font-black leading-6 tracking-normal text-foreground">
+                SECP
+              </p>
+              <span className="mt-1 inline-flex max-w-full rounded bg-secp-blue-900/10 px-2 py-0.5 text-[11px] font-semibold text-secp-blue-900 dark:bg-white/10 dark:text-blue-200">
+                <span className="truncate">{perfilAtivo.nome}</span>
+              </span>
+            </div>
+          </div>
 
           <Link href="/dashboard" className="sr-only">
             Ir para a dashboard
           </Link>
         </div>
 
-        <div className="flex min-w-0 flex-1 items-center justify-end gap-2 py-2">
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2 px-4 py-2 lg:px-6">
           {unidadeAtual && (
             <div className="mr-auto hidden min-w-0 items-center gap-2 rounded-md border border-white/15 bg-white/10 px-3 py-2 text-sm shadow-sm backdrop-blur xl:flex">
               <Building2
@@ -222,6 +236,15 @@ export function Header({
               </span>
             </div>
           )}
+
+          <div className="hidden shrink-0 items-center gap-3 lg:flex">
+            <VlibrasBreadcrumbButton variant="header" />
+            <ChatInternoWidget
+              perfilAtivoCodigo={perfilAtivo.codigo}
+              totalInicial={totalNotificacoesAtual}
+              variant="header"
+            />
+          </div>
 
           <div
             ref={seletorPerfilRef}

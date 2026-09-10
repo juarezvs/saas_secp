@@ -171,6 +171,28 @@ button:disabled,
   color: currentColor;
 }
 
+.secp-brand-menu-button:hover {
+  border-color: color-mix(in srgb, var(--secp-theme-accent) 72%, transparent);
+  background: var(--secp-theme-accent);
+  color: var(--secp-theme-accent-contrast);
+}
+
+html[data-secp-color-theme="azul"] .secp-brand-menu-button,
+html[data-secp-color-theme="verde"] .secp-brand-menu-button,
+html[data-secp-color-theme="cinza"] .secp-brand-menu-button {
+  border-color: color-mix(in srgb, white 34%, transparent);
+  background: color-mix(in srgb, white 14%, transparent);
+  color: #ffffff;
+}
+
+html[data-secp-color-theme="azul"] .secp-brand-menu-button:hover,
+html[data-secp-color-theme="verde"] .secp-brand-menu-button:hover,
+html[data-secp-color-theme="cinza"] .secp-brand-menu-button:hover {
+  border-color: #ffffff;
+  background: #ffffff;
+  color: var(--secp-theme-accent-strong);
+}
+
 .secp-theme-primary-action {
   border-color: color-mix(in srgb, var(--secp-theme-accent) 68%, transparent);
   background: var(--secp-theme-accent);

@@ -1,16 +1,96 @@
-import Link from "next/link";
 import {
   Activity,
+  ClipboardCheck,
   DatabaseZap,
   FileUp,
+  Gauge,
+  GitBranch,
   ShieldAlert,
+  ShieldCheck,
   Users,
   UserCog,
+  type LucideIcon,
 } from "lucide-react";
 
+import { PageHeader } from "@/components/layout/page-header";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 import { DashboardCard } from "./dashboard-card";
+import { DashboardFeatureCard } from "./dashboard-feature-card";
+import type { DashboardFeatureCardColor } from "./dashboard-feature-card";
+
+const atalhosAdministracao: Array<{
+  href: string;
+  titulo: string;
+  descricao: string;
+  icon: LucideIcon;
+  cor: DashboardFeatureCardColor;
+}> = [
+  {
+    href: "/usuarios",
+    titulo: "Gerenciar usuários",
+    descricao:
+      "Cadastre usuários, perfis de acesso e vínculos administrativos do SECP.",
+    icon: Users,
+    cor: "azul",
+  },
+  {
+    href: "/servidores",
+    titulo: "Gerenciar servidores",
+    descricao:
+      "Consulte pessoas, vínculos funcionais, identificadores e dados cadastrais.",
+    icon: UserCog,
+    cor: "verde",
+  },
+  {
+    href: "/afd",
+    titulo: "Importar AFD",
+    descricao:
+      "Acompanhe importações de arquivos de ponto e respectivos processamentos.",
+    icon: FileUp,
+    cor: "dourado",
+  },
+  {
+    href: "/marcacoes-brutas",
+    titulo: "Marcações brutas",
+    descricao:
+      "Pesquise registros capturados por equipamento, web, facial e integrações.",
+    icon: DatabaseZap,
+    cor: "azul-claro",
+  },
+  {
+    href: "/auditoria",
+    titulo: "Auditoria",
+    descricao:
+      "Consulte eventos auditáveis e rastreie ações relevantes no sistema.",
+    icon: Activity,
+    cor: "cinza",
+  },
+  {
+    href: "/administracao/integracoes",
+    titulo: "Integrações",
+    descricao:
+      "Configure conectores institucionais, sincronizações e parâmetros técnicos.",
+    icon: GitBranch,
+    cor: "verde-escuro",
+  },
+  {
+    href: "/jornadas",
+    titulo: "Jornadas",
+    descricao:
+      "Mantenha cadastros de horários, regras de jornada e referências de apuração.",
+    icon: Gauge,
+    cor: "azul",
+  },
+  {
+    href: "/homologacao",
+    titulo: "Homologação",
+    descricao:
+      "Acompanhe competências, conferências mensais e pendências de frequência.",
+    icon: ClipboardCheck,
+    cor: "dourado",
+  },
+];
 
 export async function DashboardAdmin({ usuarioId }: { usuarioId: string }) {
   const [
@@ -62,20 +142,11 @@ export async function DashboardAdmin({ usuarioId }: { usuarioId: string }) {
 
   return (
     <div className="space-y-6">
-      <section>
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Dashboard administrativo
-        </p>
-
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">
-          Visão geral do SECP
-        </h1>
-
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
-          Monitore cadastros, importações AFD, marcações brutas, auditoria e
-          pendências operacionais do sistema.
-        </p>
-      </section>
+      <PageHeader
+        icon={ShieldCheck}
+        titulo="Visão geral do SECP"
+        descricao="Dashboard administrativo. Monitore cadastros, importações AFD, marcações brutas, auditoria e pendências operacionais do sistema."
+      />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <DashboardCard
@@ -83,6 +154,7 @@ export async function DashboardAdmin({ usuarioId }: { usuarioId: string }) {
           valor={totalUsuarios}
           descricao="Total de usuários cadastrados no SECP."
           icon={Users}
+          cor="azul"
         />
 
         <DashboardCard
@@ -90,6 +162,7 @@ export async function DashboardAdmin({ usuarioId }: { usuarioId: string }) {
           valor={totalServidores}
           descricao="Servidores ativos vinculados ao sistema."
           icon={UserCog}
+          cor="verde"
         />
 
         <DashboardCard
@@ -97,6 +170,7 @@ export async function DashboardAdmin({ usuarioId }: { usuarioId: string }) {
           valor={marcacoesBrutasPendentes}
           descricao="Registros brutos ainda não processados."
           icon={DatabaseZap}
+          cor="dourado"
         />
 
         <DashboardCard
@@ -104,6 +178,7 @@ export async function DashboardAdmin({ usuarioId }: { usuarioId: string }) {
           valor={importacoesAfdPendentes}
           descricao="Arquivos AFD recebidos, em processamento ou com erro."
           icon={FileUp}
+          cor="azul-claro"
         />
 
         <DashboardCard
@@ -111,6 +186,7 @@ export async function DashboardAdmin({ usuarioId }: { usuarioId: string }) {
           valor={eventosAuditoria}
           descricao="Eventos registrados na trilha de auditoria."
           icon={Activity}
+          cor="cinza"
         />
 
         <DashboardCard
@@ -118,6 +194,7 @@ export async function DashboardAdmin({ usuarioId }: { usuarioId: string }) {
           valor={eventosAuditoriaUsuario}
           descricao="Eventos de auditoria vinculados ao administrador logado."
           icon={Activity}
+          cor="verde-escuro"
         />
 
         <DashboardCard
@@ -125,30 +202,22 @@ export async function DashboardAdmin({ usuarioId }: { usuarioId: string }) {
           valor={servidoresSemCpf}
           descricao="Pendência que pode impedir vínculo de marcações AFD."
           icon={ShieldAlert}
+          cor="dourado"
         />
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Atalho href="/usuarios" titulo="Gerenciar usuários" />
-        <Atalho href="/servidores" titulo="Gerenciar servidores" />
-        <Atalho href="/afd" titulo="Importar AFD" />
-        <Atalho href="/marcacoes-brutas" titulo="Marcações brutas" />
-        <Atalho href="/auditoria" titulo="Auditoria" />
-        <Atalho href="/administracao/integracoes" titulo="Integrações" />
-        <Atalho href="/jornadas" titulo="Jornadas" />
-        <Atalho href="/homologacao" titulo="Homologação" />
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {atalhosAdministracao.map((atalho) => (
+          <DashboardFeatureCard
+            key={atalho.href}
+            href={atalho.href}
+            titulo={atalho.titulo}
+            descricao={atalho.descricao}
+            icon={atalho.icon}
+            cor={atalho.cor}
+          />
+        ))}
       </section>
     </div>
-  );
-}
-
-function Atalho({ href, titulo }: { href: string; titulo: string }) {
-  return (
-    <Link
-      href={href}
-      className="rounded-xl border bg-[var(--card)] p-5 text-sm font-semibold text-[var(--card-foreground)] shadow-sm transition hover:bg-[var(--muted)]"
-    >
-      {titulo}
-    </Link>
   );
 }

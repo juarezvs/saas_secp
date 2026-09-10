@@ -1,6 +1,7 @@
-import { Bell } from "lucide-react";
+import { Bell, LayoutDashboard } from "lucide-react";
 
 import { Badge } from "@/components/ui";
+import { FavoritoPaginaButton } from "@/modules/favoritos/presentation/favorito-pagina-button";
 import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao-utils";
 import { PERMISSOES_ACESSO_REGISTRO_PONTO_SECP } from "@/modules/auth/domain/constants/perfis-sistema";
 import { AcessoRapidoGrid } from "./acesso-rapido-grid";
@@ -109,12 +110,21 @@ export function DashboardServidor({
 
   return (
     <div className="space-y-5">
-      <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
-        <div>
+      <section className="relative overflow-hidden rounded-lg border border-border bg-gradient-to-br from-[#004b93]/8 via-card to-card shadow-sm">
+        <span
+          className="absolute inset-x-0 top-0 h-1 bg-[#004b93]"
+          aria-hidden="true"
+        />
+        <div className="flex flex-col justify-between gap-4 px-4 pb-4 pt-5 lg:flex-row lg:items-center">
+          <div className="grid min-w-0 flex-1 grid-cols-[2.75rem_minmax(0,1fr)] items-center gap-x-3">
+            <div className="secp-theme-icon relative flex size-11 shrink-0 items-center justify-center rounded-lg ring-1 ring-[var(--border)]/70 shadow-sm">
+              <LayoutDashboard className="size-5" aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
           <Badge className="bg-secp-blue-900 text-white">
             Perfil {dados.servidor.perfil}
           </Badge>
-          <h1 className="mt-3 text-2xl font-bold text-foreground md:text-3xl">
+          <h1 className="mt-2 min-w-0 text-xl font-black tracking-normal text-foreground md:text-2xl">
             <SaudacaoServidor
               primeiroNome={primeiroNome}
               fusoHorario={dados.servidor.fusoHorario}
@@ -126,11 +136,14 @@ export function DashboardServidor({
             fusoHorario={dados.servidor.fusoHorario}
             unidade={dados.servidor.unidade}
           />
-        </div>
+            </div>
+          </div>
 
+          <div className="flex shrink-0 flex-wrap gap-2 lg:justify-end">
+            <FavoritoPaginaButton />
         <a
           href="/notificacoes"
-          className="inline-flex items-center gap-3 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-semibold shadow-sm transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          className="inline-flex shrink-0 items-center gap-3 rounded-md border border-border bg-card px-4 py-2.5 text-sm font-semibold shadow-sm transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <Bell className="size-5 text-secp-blue-700" aria-hidden="true" />
           Ver notificações
@@ -140,6 +153,8 @@ export function DashboardServidor({
             </Badge>
           )}
         </a>
+          </div>
+        </div>
       </section>
 
       <section

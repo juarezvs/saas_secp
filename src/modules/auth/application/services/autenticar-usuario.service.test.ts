@@ -62,7 +62,28 @@ describe("autenticarUsuarioPorCredenciais", () => {
     expect(mocks.autenticarNoActiveDirectory).toHaveBeenCalledWith(
       "AM123",
       "senha",
-      "orgao-am",
+      ["orgao-am"],
+    );
+  });
+
+  it("autentica usuario comum nos ADs dos orgaos vinculados quando nao ha orgao principal", async () => {
+    mocks.buscarUsuarioParaLoginPorMatricula.mockResolvedValue(
+      usuarioBase({
+        orgaoId: null,
+        orgaoIdsAutenticacao: ["orgao-go"],
+      }),
+    );
+
+    const usuario = await autenticarUsuarioPorCredenciais({
+      matricula: "go123",
+      senha: "senha",
+    });
+
+    expect(usuario?.matricula).toBe("AM123");
+    expect(mocks.autenticarNoActiveDirectory).toHaveBeenCalledWith(
+      "AM123",
+      "senha",
+      ["orgao-go"],
     );
   });
 

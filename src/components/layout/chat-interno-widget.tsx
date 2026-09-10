@@ -164,7 +164,6 @@ function obterPosicaoPadraoChat(
   }
 
   const largura = elemento?.offsetWidth || CHAT_BUTTON_WIDTH_ESTIMADO;
-  const altura = elemento?.offsetHeight || CHAT_BUTTON_HEIGHT_ESTIMADO;
 
   return limitarPosicaoChat(
     {
@@ -241,9 +240,11 @@ async function salvarPosicaoChatInterno(
 export function ChatInternoWidget({
   perfilAtivoCodigo,
   totalInicial,
+  variant = "floating",
 }: {
   perfilAtivoCodigo: string;
   totalInicial: number;
+  variant?: "floating" | "header";
 }) {
   const botaoRef = useRef<HTMLButtonElement>(null);
   const painelRef = useRef<HTMLDivElement>(null);
@@ -348,16 +349,24 @@ export function ChatInternoWidget({
   }, [totalInicial]);
 
   useEffect(() => {
-    setNotificacoes([]);
-    setConversaAtivaId(null);
-    setTotalContador(totalInicial);
-    void carregarContador();
+    const timer = window.setTimeout(() => {
+      setNotificacoes([]);
+      setConversaAtivaId(null);
+      setTotalContador(totalInicial);
+      void carregarContador();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [perfilAtivoCodigo, totalInicial, carregarContador]);
 
   useEffect(() => {
-    if (aberto) {
-      void carregar();
-    }
+    const timer = window.setTimeout(() => {
+      if (aberto) {
+        void carregar();
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [aberto, carregar]);
 
   useEffect(() => {
@@ -581,6 +590,26 @@ export function ChatInternoWidget({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ notificacaoId: notificacao.id }),
     });
+  }
+
+  if (!aberto && variant === "header") {
+    return (
+      <button
+        type="button"
+        onClick={() => setAberto(true)}
+        className="inline-flex h-12 shrink-0 items-center gap-3 rounded-2xl border border-white/15 bg-white px-4 font-black text-slate-950 shadow-sm transition hover:bg-white/95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        aria-label="Abrir mensagens"
+        title="Mensagens"
+      >
+        <MessageCircle className="size-5 text-[#5135f5]" aria-hidden="true" />
+        <span className="hidden xl:inline">Mensagens</span>
+        {totalNaoLidas > 0 ? (
+          <span className="rounded-full bg-red-500 px-2 py-1 text-xs text-white">
+            {totalNaoLidas > 99 ? "99+" : totalNaoLidas}
+          </span>
+        ) : null}
+      </button>
+    );
   }
 
   if (!aberto) {

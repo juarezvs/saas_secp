@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { resolverDashboardPerfil } from "@/modules/dashboard/application/resolver-dashboard-perfil";
 import { DashboardAdmin } from "@/modules/dashboard/presentation/dashboard-admin/dashboard-admin";
 import { DashboardAuditor } from "@/modules/dashboard/presentation/dashboard-auditor/dashboard-auditor";
@@ -11,15 +10,40 @@ import { DashboardMaster } from "@/modules/dashboard/presentation/dashboard-mast
 import { DashboardSecap } from "@/modules/dashboard/presentation/dashboard-secap/dashboard-secap";
 import { DashboardServidor } from "@/modules/dashboard/presentation/dashboard-servidor/dashboard-servidor";
 import { DashboardSuporte } from "@/modules/dashboard/presentation/dashboard-suporte/dashboard-suporte";
+import { listarFavoritosUsuarioPerfil } from "@/modules/favoritos/application/favoritos-usuario-perfil.service";
 
-export default async function DashboardPage() {
+type DashboardPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const session = await auth();
 
   if (!session?.user) {
     redirect("/login");
   }
 
-  await exigirPermissaoOuRedirecionar("dashboard:visualizar:proprio");
+  const params = searchParams ? await searchParams : {};
+  const secao = Array.isArray(params.secao) ? params.secao[0] : params.secao;
+  const favoritosPerfil = await listarFavoritosUsuarioPerfil({
+    usuarioId: session.user.id,
+    perfil: {
+      id: session.user.perfilAtivo?.id,
+      permissoes: session.user.perfilAtivo?.permissoes ?? [],
+    },
+  });
+
+  if (secao === "favoritos") {
+    return (
+      <DashboardGenerico
+        nome={session.user.nome || session.user.name || "Usuario"}
+        perfilNome={session.user.perfilAtivo?.nome}
+        permissoes={session.user.perfilAtivo?.permissoes ?? []}
+        favoritos={favoritosPerfil}
+        somenteFavoritos
+      />
+    );
+  }
 
   const dashboardPerfil = resolverDashboardPerfil(session.user.perfilAtivo);
 
@@ -44,6 +68,7 @@ export default async function DashboardPage() {
           nome={session.user.nome || session.user.name || "Usuário"}
           perfilNome={session.user.perfilAtivo?.nome}
           permissoes={session.user.perfilAtivo?.permissoes ?? []}
+          favoritos={favoritosPerfil}
         />
       );
     case "SERVIDOR":

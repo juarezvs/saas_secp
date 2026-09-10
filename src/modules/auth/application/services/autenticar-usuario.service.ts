@@ -12,6 +12,12 @@ function matriculaEhJuiz(matricula: string) {
   return matricula.trim().toUpperCase().startsWith("JU");
 }
 
+function valoresUnicos<T>(valores: Array<T | null | undefined>) {
+  return Array.from(
+    new Set(valores.filter((valor): valor is T => Boolean(valor))),
+  );
+}
+
 function resolverOrgaosAutenticacao(usuario: Awaited<
   ReturnType<typeof buscarUsuarioParaLoginPorMatricula>
 >) {
@@ -25,7 +31,12 @@ function resolverOrgaosAutenticacao(usuario: Awaited<
       : usuario.orgaoId;
   }
 
-  return usuario.orgaoId;
+  const orgaos = valoresUnicos([
+    usuario.orgaoId,
+    ...usuario.orgaoIdsAutenticacao,
+  ]);
+
+  return orgaos.length > 0 ? orgaos : usuario.orgaoId;
 }
 
 export async function autenticarUsuarioPorCredenciais({

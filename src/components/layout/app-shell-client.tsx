@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Header } from "@/components/layout/header";
-import { ChatInternoWidget } from "@/components/layout/chat-interno-widget";
 import { AlertaSaidaEstimada } from "@/components/layout/alerta-saida-estimada";
 import { PageTitlePersonalizadoProvider } from "@/components/layout/page-title-personalizado";
 import { SecpTourServidor } from "@/components/layout/secp-tour";
@@ -16,6 +15,10 @@ import type {
   IconesItensCatalogoMenu,
   MenusPersonalizadosPorPerfil,
 } from "@/modules/menus/domain/menu-personalizado";
+import {
+  FavoritosProvider,
+} from "@/modules/favoritos/presentation/favoritos-provider";
+import type { FavoritoUsuarioPerfilDto } from "@/modules/favoritos/application/favoritos-usuario-perfil.service";
 
 type UsuarioNavegacao = {
   nome: string;
@@ -35,6 +38,7 @@ type AppShellClientProps = {
   usuario: UsuarioNavegacao;
   menusPersonalizados?: MenusPersonalizadosPorPerfil;
   iconesItensCatalogo?: IconesItensCatalogoMenu;
+  favoritosPerfil: FavoritoUsuarioPerfilDto[];
   totalNotificacoes: number;
   onLogout: () => Promise<void>;
 };
@@ -44,10 +48,11 @@ export function AppShellClient({
   usuario,
   menusPersonalizados,
   iconesItensCatalogo,
+  favoritosPerfil,
   totalNotificacoes,
   onLogout,
 }: AppShellClientProps) {
-  const [sidebarRecolhida, setSidebarRecolhida] = useState(false);
+  const [sidebarRecolhida, setSidebarRecolhida] = useState(true);
   const [drawerAberto, setDrawerAberto] = useState(false);
   const [perfilAtivo, setPerfilAtivo] = useState(usuario.perfilAtivo);
   const [tourServidorAberto, setTourServidorAberto] = useState(false);
@@ -57,14 +62,39 @@ export function AppShellClient({
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
       <a
         href="#conteudo-principal"
         className="sr-only z-[100] rounded-md bg-card px-4 py-2 font-semibold text-foreground shadow-floating focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:outline-2 focus:outline-offset-2 focus:outline-ring"
       >
         Ir para o conteudo principal
       </a>
-      <div className="flex min-h-screen">
+      <FavoritosProvider favoritosIniciais={favoritosPerfil}>
+      <Header
+        nomeUsuario={usuario.nome}
+        matricula={usuario.matricula}
+        funcaoOuCargo={usuario.funcaoOuCargo}
+        fotoUrl={usuario.fotoUrl}
+        unidadeAtual={usuario.unidade}
+        instituicaoLabel={usuario.instituicaoLabel}
+        perfis={usuario.perfis}
+        perfilAtivo={perfilAtivo}
+        onPerfilAtivoChange={setPerfilAtivo}
+        onLogout={onLogout}
+        onToggleSidebar={alternarSidebar}
+        onOpenMobileMenu={() => setDrawerAberto(true)}
+        sidebarRecolhida={sidebarRecolhida}
+        drawerAberto={drawerAberto}
+        totalNotificacoes={totalNotificacoes}
+        preferenciasAcessibilidade={usuario.preferenciasAcessibilidade}
+        onStartTour={
+          perfilAtivo.codigo.toUpperCase() === "SERVIDOR"
+            ? () => setTourServidorAberto(true)
+            : undefined
+        }
+      />
+
+      <div className="flex min-h-0 flex-1">
         <Sidebar
           recolhida={sidebarRecolhida}
           drawerAberto={drawerAberto}
@@ -73,34 +103,11 @@ export function AppShellClient({
           iconesItensCatalogo={iconesItensCatalogo}
           preferenciasAcessibilidade={usuario.preferenciasAcessibilidade}
           rotinasSeccional={usuario.rotinasSeccional}
-          instituicaoLabel={usuario.instituicaoLabel}
+          onDesktopOpenChange={(aberto) => setSidebarRecolhida(!aberto)}
           onFecharDrawer={() => setDrawerAberto(false)}
         />
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <Header
-            nomeUsuario={usuario.nome}
-            matricula={usuario.matricula}
-            funcaoOuCargo={usuario.funcaoOuCargo}
-            fotoUrl={usuario.fotoUrl}
-            unidadeAtual={usuario.unidade}
-            perfis={usuario.perfis}
-            perfilAtivo={perfilAtivo}
-            onPerfilAtivoChange={setPerfilAtivo}
-            onLogout={onLogout}
-            onToggleSidebar={alternarSidebar}
-            onOpenMobileMenu={() => setDrawerAberto(true)}
-            sidebarRecolhida={sidebarRecolhida}
-            drawerAberto={drawerAberto}
-            totalNotificacoes={totalNotificacoes}
-            preferenciasAcessibilidade={usuario.preferenciasAcessibilidade}
-            onStartTour={
-              perfilAtivo.codigo.toUpperCase() === "SERVIDOR"
-                ? () => setTourServidorAberto(true)
-                : undefined
-            }
-          />
-
           <main
             id="conteudo-principal"
             tabIndex={-1}
@@ -122,11 +129,7 @@ export function AppShellClient({
         />
       )}
       <AlertaSaidaEstimada />
-      <ChatInternoWidget
-        key={perfilAtivo.codigo}
-        perfilAtivoCodigo={perfilAtivo.codigo}
-        totalInicial={totalNotificacoes}
-      />
+      </FavoritosProvider>
     </div>
   );
 }

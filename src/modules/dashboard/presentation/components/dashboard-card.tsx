@@ -1,35 +1,28 @@
 import type { LucideIcon } from "lucide-react";
 
+import { DashboardRoleCard } from "./dashboard-role-card";
+import type { DashboardRoleCardColor } from "./dashboard-role-card";
+
 export function DashboardCard({
   titulo,
   valor,
   descricao,
   icon: Icon,
+  cor,
 }: {
   titulo: string;
   valor: string | number;
   descricao: string;
   icon: LucideIcon;
+  cor?: DashboardRoleCardColor;
 }) {
   return (
-    <article className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold text-[var(--muted-foreground)]">
-            {titulo}
-          </p>
-
-          <p className="mt-2 text-3xl font-bold">{valor}</p>
-
-          <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-            {descricao}
-          </p>
-        </div>
-
-        <div className="secp-theme-icon rounded-lg p-3">
-          <Icon className="size-5" aria-hidden="true" />
-        </div>
-      </div>
-    </article>
+    <DashboardRoleCard
+      titulo={titulo}
+      valor={valor}
+      descricao={descricao}
+      icon={Icon}
+      cor={cor}
+    />
   );
 }

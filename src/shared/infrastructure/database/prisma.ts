@@ -45,7 +45,11 @@ function prismaClientEstaAtualizado(client?: PrismaClient): client is PrismaClie
     return false;
   }
 
-  return "notificacaoLeitura" in client && "documentoAutenticacao" in client;
+  return (
+    "notificacaoLeitura" in client &&
+    "documentoAutenticacao" in client &&
+    "usuarioPerfilFavorito" in client
+  );
 }
 
 export const prisma: PrismaClient =

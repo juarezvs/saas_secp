@@ -531,7 +531,7 @@ export function VlibrasGlobal() {
         onPointerUp={aoPointerUp}
         onPointerCancel={aoPointerCancel}
         onKeyDown={aoTeclar}
-        className="fixed z-[60] inline-flex h-11 touch-none select-none items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-semibold text-foreground shadow-lg transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring print:hidden"
+        className="hidden"
         style={
           posicao
             ? {

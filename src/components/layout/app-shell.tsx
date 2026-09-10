@@ -10,6 +10,7 @@ import {
   buscarIconesItensCatalogoMenu,
   buscarMenusPersonalizadosPorPerfil,
 } from "@/modules/menus/infrastructure/repositories/menu-personalizado.repository";
+import { listarFavoritosUsuarioPerfil } from "@/modules/favoritos/application/favoritos-usuario-perfil.service";
 import { buscarFotoServidorDataUrl } from "@/modules/servidores/application/services/foto-servidor.service";
 import { descricaoFuncaoOuCargoServidor } from "@/modules/servidores/application/services/funcao-cargo-servidor.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
@@ -115,9 +116,18 @@ export async function AppShell({ children }: AppShellProps) {
     redirect("/acesso-negado?motivo=sem-perfil");
   }
 
-  const totalNotificacoes = await contarNotificacoesUsuario(session.user.id, {
-    perfilAtivo,
-  });
+  const [totalNotificacoes, favoritosPerfil] = await Promise.all([
+    contarNotificacoesUsuario(session.user.id, {
+      perfilAtivo,
+    }),
+    listarFavoritosUsuarioPerfil({
+      usuarioId: session.user.id,
+      perfil: {
+        id: perfilAtivo.id,
+        permissoes: perfilAtivo.permissoes,
+      },
+    }),
+  ]);
 
   const fotoCpf = servidor?.cpf;
   const [fotoUrl, menusPersonalizados, iconesItensCatalogo] = await Promise.all([
@@ -179,6 +189,7 @@ export async function AppShell({ children }: AppShellProps) {
       usuario={usuario}
       menusPersonalizados={menusPersonalizados}
       iconesItensCatalogo={iconesItensCatalogo}
+      favoritosPerfil={favoritosPerfil}
       totalNotificacoes={totalNotificacoes}
       onLogout={logoutAction}
     >

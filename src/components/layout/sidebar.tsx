@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as LucideIcons from "lucide-react";
 import {
   Activity,
@@ -49,6 +49,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   SlidersHorizontal,
+  Star,
   TimerReset,
   ToggleLeft,
   TreePalm,
@@ -57,11 +58,15 @@ import {
   UsersRound,
   UserCog,
   Wrench,
-  X,
   type LucideIcon,
 } from "lucide-react";
 
-import { SecpLogo } from "@/components/brand/secp-logo";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { possuiAlgumaPermissaoNaLista } from "@/modules/auth/application/services/permissao-utils";
 import type {
   IconesItensCatalogoMenu,
@@ -83,6 +88,7 @@ import type {
   PreferenciasAcessibilidade,
   TemaVisualAcessibilidade,
 } from "@/modules/auth/application/services/preferencias-acessibilidade.service";
+import { useFavoritosPerfil } from "@/modules/favoritos/presentation/favoritos-provider";
 
 export type PerfilNavegacao = {
   id?: string;
@@ -942,7 +948,7 @@ type SidebarProps = {
   iconesItensCatalogo?: IconesItensCatalogoMenu;
   preferenciasAcessibilidade: PreferenciasAcessibilidade;
   rotinasSeccional?: RotinasSeccionalAtivas;
-  instituicaoLabel: string;
+  onDesktopOpenChange: (open: boolean) => void;
   onFecharDrawer: () => void;
 };
 
@@ -1389,6 +1395,7 @@ function MenuPrincipal({
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { favoritos } = useFavoritosPerfil();
   const itensPadraoComIcones = useMemo(
     () => aplicarIconesItensCatalogo(MENU_ITEMS, iconesItensCatalogo),
     [iconesItensCatalogo],
@@ -1412,6 +1419,17 @@ function MenuPrincipal({
     [pathname, searchParams, itensVisiveis],
   );
   const hrefAtivo = itemAtivo?.href;
+  const favoritosAtivo =
+    pathname === "/dashboard" && searchParams.get("secao") === "favoritos";
+  const itemFavoritosClassName = [
+    "secp-sidebar-item",
+    "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-semibold transition",
+    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+    favoritosAtivo
+      ? "bg-secp-blue-900 text-white shadow-sm"
+      : "bg-white text-slate-700 hover:bg-secp-blue-900/10 hover:text-secp-blue-900 dark:bg-transparent dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white",
+    recolhida ? "justify-center" : "",
+  ].join(" ");
   const [gruposAlternados, setGruposAlternados] = useState<
     Record<string, boolean>
   >({});
@@ -1430,6 +1448,32 @@ function MenuPrincipal({
       data-tour="menu-lateral"
     >
       <ul className="space-y-1">
+        {favoritos.length > 0 && (
+          <li className="border-b border-border/80 pb-3">
+            <a
+              href="/dashboard?secao=favoritos"
+              onClick={onNavigate}
+              aria-current={favoritosAtivo ? "page" : undefined}
+              aria-label={recolhida ? "Meus Favoritos" : undefined}
+              title={recolhida ? "Meus Favoritos" : undefined}
+              className={itemFavoritosClassName}
+              data-tour="menu-favoritos"
+            >
+              <Star
+                className={[
+                  "size-5 shrink-0",
+                  favoritosAtivo ? "fill-current" : "",
+                ].join(" ")}
+                aria-hidden="true"
+              />
+              {!recolhida && (
+                <span className="min-w-0 flex-1 truncate">
+                  Meus Favoritos
+                </span>
+              )}
+            </a>
+          </li>
+        )}
         {itensVisiveis.map((item) => {
           const Icon = item.icon;
           const filhos = item.children ?? [];
@@ -1551,124 +1595,62 @@ export function Sidebar({
   iconesItensCatalogo,
   preferenciasAcessibilidade,
   rotinasSeccional,
-  instituicaoLabel,
+  onDesktopOpenChange,
   onFecharDrawer,
 }: SidebarProps) {
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!drawerAberto) {
-      return;
-    }
-
-    closeButtonRef.current?.focus();
-
-    function fecharComEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onFecharDrawer();
-      }
-    }
-
-    window.addEventListener("keydown", fecharComEscape);
-
-    return () => window.removeEventListener("keydown", fecharComEscape);
-  }, [drawerAberto, onFecharDrawer]);
-
   return (
     <>
-      <aside
-        id="secp-sidebar-desktop"
-        className={[
-          "secp-sidebar",
-          "sticky top-0 hidden h-screen shrink-0 border-r border-border bg-card text-card-foreground shadow-card transition-[width] duration-300 lg:flex",
-          recolhida ? "w-20" : "w-72",
-        ].join(" ")}
-        aria-label="Menu principal"
-      >
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div
-            className={[
-              "secp-sidebar-header",
-              "flex h-[4.5rem] items-center border-b border-border/80 bg-gradient-to-b from-card to-muted/30 px-4",
-              recolhida ? "justify-center" : "gap-3",
-            ].join(" ")}
-          >
-            <SecpLogo
-              variant="mark"
-              className="size-11 shrink-0 rounded-md bg-white p-1 shadow-sm ring-1 ring-secp-blue-900/10"
-            />
-            {!recolhida && (
-              <div className="min-w-0">
-                <p className="truncate text-[11px] font-black uppercase text-secp-blue-800 dark:text-blue-200">
-                  {instituicaoLabel}
-                </p>
-                <p className="truncate text-xl font-black leading-6 tracking-normal text-foreground">
-                  SECP
-                </p>
-                <span className="mt-1 inline-flex max-w-full rounded bg-secp-blue-900/10 px-2 py-0.5 text-[11px] font-semibold text-secp-blue-900 dark:bg-white/10 dark:text-blue-200">
-                  <span className="truncate">{perfilAtivo.nome}</span>
-                </span>
-              </div>
-            )}
-          </div>
-          <MenuPrincipal
-            recolhida={recolhida}
-            perfilAtivo={perfilAtivo}
-            menusPersonalizados={menusPersonalizados}
-            iconesItensCatalogo={iconesItensCatalogo}
-            rotinasSeccional={rotinasSeccional}
-          />
-          <ThemeSelector
-            recolhida={recolhida}
-            preferenciasAcessibilidade={preferenciasAcessibilidade}
-          />
-        </div>
-      </aside>
-
-      {drawerAberto && (
-        <div
-          id="secp-sidebar-mobile"
-          className="fixed inset-0 z-50 lg:hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Menu principal"
+      <Sheet open={!recolhida} onOpenChange={onDesktopOpenChange}>
+        <SheetContent
+          id="secp-sidebar-desktop"
+          className="secp-sidebar hidden w-72 p-0 lg:flex"
+          exibirFechar={false}
+          overlayClassName="hidden lg:block"
+          aria-describedby="secp-sidebar-desktop-description"
         >
-          <button
-            type="button"
-            className="absolute inset-0 bg-slate-950/55"
-            aria-label="Fechar menu principal"
-            tabIndex={-1}
-            onClick={onFecharDrawer}
-          />
-          <aside className="secp-sidebar relative flex h-full w-[min(20rem,88vw)] flex-col bg-card text-card-foreground shadow-floating">
-            <div className="secp-sidebar-header flex h-[4.5rem] items-center justify-between border-b border-border/80 bg-gradient-to-b from-card to-muted/30 px-4">
-              <div className="flex items-center gap-3">
-                <SecpLogo
-                  variant="mark"
-                  className="size-11 shrink-0 rounded-md bg-white p-1 shadow-sm ring-1 ring-secp-blue-900/10"
-                />
-                <div className="min-w-0">
-                  <p className="truncate text-[11px] font-black uppercase text-secp-blue-800 dark:text-blue-200">
-                    {instituicaoLabel}
-                  </p>
-                  <p className="text-xl font-black leading-6 tracking-normal">
-                    SECP
-                  </p>
-                  <span className="mt-1 inline-flex max-w-44 rounded bg-secp-blue-900/10 px-2 py-0.5 text-[11px] font-semibold text-secp-blue-900 dark:bg-white/10 dark:text-blue-200">
-                    <span className="truncate">{perfilAtivo.nome}</span>
-                  </span>
-                </div>
-              </div>
-              <button
-                ref={closeButtonRef}
-                type="button"
-                onClick={onFecharDrawer}
-                className="inline-flex size-10 items-center justify-center rounded-md border border-border hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                aria-label="Fechar menu principal"
-              >
-                <X className="size-5" aria-hidden="true" />
-              </button>
-            </div>
+          <SheetTitle className="sr-only">Menu principal</SheetTitle>
+          <SheetDescription
+            id="secp-sidebar-desktop-description"
+            className="sr-only"
+          >
+            Menu lateral do perfil {perfilAtivo.nome}.
+          </SheetDescription>
+          <div className="flex min-h-0 flex-1 flex-col">
+            <MenuPrincipal
+              recolhida={false}
+              perfilAtivo={perfilAtivo}
+              menusPersonalizados={menusPersonalizados}
+              iconesItensCatalogo={iconesItensCatalogo}
+              rotinasSeccional={rotinasSeccional}
+              onNavigate={() => onDesktopOpenChange(false)}
+            />
+            <ThemeSelector
+              recolhida={false}
+              preferenciasAcessibilidade={preferenciasAcessibilidade}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet
+        open={drawerAberto}
+        onOpenChange={(open) => !open && onFecharDrawer()}
+      >
+        <SheetContent
+          id="secp-sidebar-mobile"
+          className="secp-sidebar w-[min(20rem,88vw)] p-0 lg:hidden"
+          exibirFechar={false}
+          overlayClassName="lg:hidden"
+          aria-describedby="secp-sidebar-mobile-description"
+        >
+          <SheetTitle className="sr-only">Menu principal</SheetTitle>
+          <SheetDescription
+            id="secp-sidebar-mobile-description"
+            className="sr-only"
+          >
+            Menu lateral do perfil {perfilAtivo.nome}.
+          </SheetDescription>
+          <div className="flex min-h-0 flex-1 flex-col">
             <MenuPrincipal
               recolhida={false}
               perfilAtivo={perfilAtivo}
@@ -1681,9 +1663,9 @@ export function Sidebar({
               recolhida={false}
               preferenciasAcessibilidade={preferenciasAcessibilidade}
             />
-          </aside>
-        </div>
-      )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 }

@@ -9,6 +9,7 @@ export * from "./modal";
 export * from "./page-header";
 export * from "./section-title";
 export * from "./searchable-select";
+export * from "./sheet";
 export * from "./skeleton";
 export * from "./stepper";
 export * from "./utils";
