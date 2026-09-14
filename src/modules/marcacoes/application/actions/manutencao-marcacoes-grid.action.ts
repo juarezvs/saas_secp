@@ -82,9 +82,10 @@ async function exigirAcessoAoServidor(servidorId: string) {
 
   const podeGlobal = permissao.permissoes.includes(
     "marcacao:manutencao:global",
-  );
+  ) && permissao.perfilAtivoEscopoGlobal;
   const podeSeccional =
-    permissao.permissoes.includes("marcacao:manutencao:seccional") &&
+    (permissao.permissoes.includes("marcacao:manutencao:seccional") ||
+      permissao.permissoes.includes("marcacao:manutencao:global")) &&
     (permissao.orgaoIds ?? []).includes(servidor.orgaoId);
 
   if (!podeGlobal && !podeSeccional) {

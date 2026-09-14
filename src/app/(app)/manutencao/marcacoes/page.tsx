@@ -56,7 +56,7 @@ export default async function ManutencaoMarcacoesPage({
   const servidorId = params?.servidorId?.trim() ?? "";
   const podeGlobal = permissao.permissoes.includes(
     "marcacao:manutencao:global",
-  );
+  ) && permissao.perfilAtivoEscopoGlobal;
   const orgaoIdsPermitidos = podeGlobal ? null : (permissao.orgaoIds ?? []);
   const [pessoas, pessoaSelecionada] = await Promise.all([
     pesquisarPessoasParaManutencaoMarcacoes({
