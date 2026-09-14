@@ -884,6 +884,21 @@ const permissoesIniciais = [
     descricao: "Excluir/cancelar marcacoes de ponto.",
   },
 
+  {
+    recurso: "marcacao",
+    acao: "manutencao",
+    escopo: "seccional",
+    descricao:
+      "Incluir, alterar e excluir marcacoes de ponto de servidores da propria seccional pela tela de manutencao.",
+  },
+  {
+    recurso: "marcacao",
+    acao: "manutencao",
+    escopo: "global",
+    descricao:
+      "Incluir, alterar e excluir marcacoes de ponto de servidores de qualquer seccional pela tela de manutencao.",
+  },
+
   // Apuração / espelho
   {
     recurso: "apuracao",
