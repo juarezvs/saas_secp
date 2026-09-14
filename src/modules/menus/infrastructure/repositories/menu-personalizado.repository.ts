@@ -26,6 +26,7 @@ const GRUPOS_PADRAO_MENU: Record<
   gestaoPessoas: { label: "Gestão de Pessoas", icone: "users", ordem: 65 },
   painel: { label: "Painel executivo", icone: "relatorios", ordem: 70 },
   biometria: { label: "Biometria facial", icone: "settings", ordem: 80 },
+  manutencao: { label: "Manutenção", icone: "settings", ordem: 85 },
   administracao: { label: "Administração", icone: "administracao", ordem: 90 },
   integracoesAuditoria: {
     label: "Integrações e Auditoria",
@@ -92,6 +93,10 @@ function grupoPadraoItemMenu(href: string) {
 
   if (href.startsWith("/biometria")) {
     return "biometria";
+  }
+
+  if (href.startsWith("/manutencao")) {
+    return "manutencao";
   }
 
   if (["/servidores", "/chefias", "/jornadas"].includes(href)) {
@@ -265,6 +270,71 @@ async function sincronizarNovosItensCatalogoPerfil(perfilId: string) {
   });
 }
 
+async function garantirGrupoManutencaoPerfil(perfilId: string) {
+  const itemManutencao = await prisma.menuItemPerfil.findFirst({
+    where: {
+      perfilId,
+      itemCatalogo: "/manutencao/marcacoes",
+    },
+    include: {
+      grupo: {
+        select: {
+          label: true,
+        },
+      },
+    },
+  });
+
+  if (!itemManutencao || itemManutencao.grupo?.label === "Manutenção") {
+    return;
+  }
+
+  const grupoPadrao = GRUPOS_PADRAO_MENU.manutencao;
+  const grupo =
+    (await prisma.menuGrupoPerfil.findFirst({
+      where: {
+        perfilId,
+        label: grupoPadrao.label,
+      },
+      select: {
+        id: true,
+      },
+    })) ??
+    (await prisma.menuGrupoPerfil.create({
+      data: {
+        perfilId,
+        label: grupoPadrao.label,
+        icone: grupoPadrao.icone,
+        ordem: grupoPadrao.ordem,
+      },
+      select: {
+        id: true,
+      },
+    }));
+  const ultimoItem = await prisma.menuItemPerfil.findFirst({
+    where: {
+      perfilId,
+      grupoId: grupo.id,
+    },
+    orderBy: {
+      ordem: "desc",
+    },
+    select: {
+      ordem: true,
+    },
+  });
+
+  await prisma.menuItemPerfil.update({
+    where: {
+      id: itemManutencao.id,
+    },
+    data: {
+      grupoId: grupo.id,
+      ordem: (ultimoItem?.ordem ?? 0) + 10,
+    },
+  });
+}
+
 async function removerItensForaDoCatalogoPerfil(perfilId: string) {
   const itensCatalogo = MENU_CATALOGO.map((item) => item.id);
 
@@ -304,6 +374,7 @@ export async function buscarMenuPersonalizadoPerfil(
   await removerGrupoMeuPontoPadraoPerfil(perfilId);
   await removerItensForaDoCatalogoPerfil(perfilId);
   await sincronizarNovosItensCatalogoPerfil(perfilId);
+  await garantirGrupoManutencaoPerfil(perfilId);
 
   const [grupos, itensRaiz] = await Promise.all([
     prisma.menuGrupoPerfil.findMany({

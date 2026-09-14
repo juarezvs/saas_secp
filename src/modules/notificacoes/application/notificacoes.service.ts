@@ -7,7 +7,12 @@ const ORGAO_ID_SEM_ACESSO = "00000000-0000-4000-8000-000000000000";
 
 export type NotificacaoPrioridade = "alta" | "media" | "baixa";
 export type NotificacaoCategoria =
-  "solicitacao" | "frequencia" | "banco_horas" | "homologacao" | "marcacao";
+  | "solicitacao"
+  | "frequencia"
+  | "banco_horas"
+  | "homologacao"
+  | "marcacao"
+  | "ferias";
 
 export type NotificacaoUsuario = {
   id: string;
@@ -93,6 +98,37 @@ function formatarHorarioNotificacao(data: Date) {
     second: "2-digit",
     timeZone: "America/Manaus",
   }).format(data);
+}
+
+function formatarDataNotificacao(data: Date) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(data);
+}
+
+function rotuloStatusFerias(status: string) {
+  const rotulos: Record<string, string> = {
+    ENVIADA: "enviada",
+    EM_ANALISE: "em análise",
+    DEVOLVIDA: "devolvida para ajuste",
+    APROVADA_CHEFIA: "aprovada pela chefia",
+    REPROVADA_CHEFIA: "reprovada pela chefia",
+    AGUARDANDO_ENVIO_SARH: "aguardando envio ao SARH",
+    ENVIANDO_SARH: "em envio ao SARH",
+    ENVIADA_SARH: "enviada ao SARH",
+    CONFIRMADA_SARH: "confirmada no SARH",
+    ERRO_ENVIO_SARH: "com erro no envio ao SARH",
+    CANCELADA: "cancelada",
+  };
+
+  return rotulos[status] ?? status.replaceAll("_", " ").toLocaleLowerCase("pt-BR");
+}
+
+function descricaoPeriodoFerias(dataInicio: Date, dataFim: Date) {
+  return `${formatarDataNotificacao(dataInicio)} a ${formatarDataNotificacao(dataFim)}`;
 }
 
 function rotuloTipoMarcacao(tipo: string) {
@@ -187,6 +223,13 @@ export async function listarNotificacoesUsuario(
   const podeVerHomologacaoPropria = possuiPermissao(contexto, [
     "homologacao:consultar:proprio",
   ]);
+  const podeVerFeriasProprias = possuiPermissao(contexto, [
+    "programacao-ferias:consultar:proprio",
+    "afastamentos:consultar:proprio",
+  ]);
+  const podeAnalisarFeriasChefia = possuiPermissao(contexto, [
+    "programacao-ferias:analisar:subordinados",
+  ]);
   const servidor = await prisma.servidor.findFirst({
     where: {
       usuarioId,
@@ -211,6 +254,8 @@ export async function listarNotificacoesUsuario(
     ocorrenciasFrequencia,
     homologacoesPendentes,
     marcacoesTotemRecentes,
+    programacoesFeriasParaChefia,
+    programacoesFeriasDoUsuario,
   ] = await Promise.all([
     listarIdsNotificacoesLidas(usuarioId),
     podeAnalisarSolicitacoesChefia
@@ -351,6 +396,81 @@ export async function listarNotificacoesUsuario(
           take: 20,
         })
       : Promise.resolve([]),
+    podeAnalisarFeriasChefia
+      ? prisma.programacaoFerias.findMany({
+          where: {
+            status: {
+              in: ["ENVIADA", "EM_ANALISE"],
+            },
+            unidade: {
+              orgao: whereOrgaoPerfil(contexto),
+              gestores: {
+                some: {
+                  servidor: {
+                    usuarioId,
+                  },
+                  ativo: true,
+                  dataFim: null,
+                  papel: {
+                    in: [
+                      "GESTOR_TITULAR",
+                      "GESTOR_SUBSTITUTO",
+                      "DELEGADO_CHEFIA",
+                    ],
+                  },
+                },
+              },
+            },
+          },
+          include: {
+            servidor: {
+              include: {
+                usuario: true,
+              },
+            },
+            unidade: true,
+          },
+          orderBy: {
+            solicitadoEm: "desc",
+          },
+          take: 20,
+        })
+      : Promise.resolve([]),
+    servidor && podeVerFeriasProprias
+      ? prisma.programacaoFerias.findMany({
+          where: {
+            servidorId: servidor.id,
+            OR: [
+              {
+                status: {
+                  in: ["DEVOLVIDA"],
+                },
+              },
+              {
+                status: {
+                  in: [
+                    "APROVADA_CHEFIA",
+                    "REPROVADA_CHEFIA",
+                    "ENVIADA_SARH",
+                    "CONFIRMADA_SARH",
+                    "ERRO_ENVIO_SARH",
+                  ],
+                },
+                atualizadoEm: {
+                  gte: dataLimiteRetornoSolicitacao(),
+                },
+              },
+            ],
+          },
+          include: {
+            unidade: true,
+          },
+          orderBy: {
+            atualizadoEm: "desc",
+          },
+          take: 20,
+        })
+      : Promise.resolve([]),
   ]);
 
   const notificacoes: NotificacaoUsuario[] = [];
@@ -388,6 +508,45 @@ export async function listarNotificacoesUsuario(
       origem: "Solicitações",
       lida: false,
       pendente: !foiAnalisada,
+    });
+  }
+
+  for (const programacao of programacoesFeriasParaChefia) {
+    notificacoes.push({
+      id: `ferias-chefia-${programacao.id}`,
+      categoria: "ferias",
+      prioridade: "alta",
+      titulo: "Férias aguardando análise",
+      descricao: `${nomeServidor(programacao.servidor)} enviou programação de férias para ${descricaoPeriodoFerias(
+        programacao.dataInicio,
+        programacao.dataFim,
+      )} em ${programacao.unidade?.sigla ?? "sua unidade"}.`,
+      href: `/minha-equipe/ferias/solicitacoes/${programacao.id}`,
+      criadoEm: programacao.solicitadoEm,
+      origem: "Férias",
+      lida: false,
+      pendente: true,
+    });
+  }
+
+  for (const programacao of programacoesFeriasDoUsuario) {
+    const devolvida = programacao.status === "DEVOLVIDA";
+    notificacoes.push({
+      id: `ferias-servidor-${programacao.id}-${programacao.status}`,
+      categoria: "ferias",
+      prioridade: devolvida || programacao.status === "ERRO_ENVIO_SARH" ? "alta" : "media",
+      titulo: devolvida
+        ? "Férias devolvidas para ajuste"
+        : `Férias ${rotuloStatusFerias(programacao.status)}`,
+      descricao: `Sua programação de férias de ${descricaoPeriodoFerias(
+        programacao.dataInicio,
+        programacao.dataFim,
+      )} está ${rotuloStatusFerias(programacao.status)}.`,
+      href: `/minhas-ferias/${programacao.id}`,
+      criadoEm: programacao.atualizadoEm,
+      origem: "Férias",
+      lida: false,
+      pendente: true,
     });
   }
 

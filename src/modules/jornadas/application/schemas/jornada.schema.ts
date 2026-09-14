@@ -123,7 +123,7 @@ export const jornadaSchema = z
       .number()
       .int()
       .min(0, "Carga mínima inválida.")
-      .max(720, "Carga diária máxima inválida."),
+      .max(1440, "Carga diária máxima inválida."),
     cargaSemanalMinutos: z.coerce.number().int().optional().nullable(),
     cargaMensalMinutos: z.coerce.number().int().optional().nullable(),
     cargaMinimaDiariaMinutos: z.coerce.number().int().optional().nullable(),

@@ -5,6 +5,7 @@ import {
   CalendarDays,
   Clock3,
   Cpu,
+  DatabaseZap,
   FileCheck2,
   FileText,
   KeyRound,
@@ -41,6 +42,8 @@ const PERMISSOES_ADMINISTRACAO = [
   "menus:personalizar:global",
   "procedimentos-frequencia:consultar:seccional",
   "procedimentos-frequencia:consultar:global",
+  "programacao-ferias:executar-sarh:seccional",
+  "programacao-ferias:executar-sarh:global",
   "substituicoes-funcao:consultar:seccional",
   "substituicoes-funcao:consultar:global",
 ];
@@ -206,6 +209,16 @@ export default async function AdministracaoPage() {
       href: "/administracao/fusos-horarios",
       icon: Clock3,
       permissoes: ["fusos-horarios:gerenciar:global"],
+    },
+    {
+      titulo: "Férias SARH",
+      descricao: "Envie programações aprovadas pela chefia ao SARH e confirme o retorno sincronizado.",
+      href: "/administracao/ferias/integracao-sarh",
+      icon: DatabaseZap,
+      permissoes: [
+        "programacao-ferias:executar-sarh:seccional",
+        "programacao-ferias:executar-sarh:global",
+      ],
     },
     {
       titulo: "Credenciais e integrações",

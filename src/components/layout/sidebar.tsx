@@ -474,6 +474,12 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
+        label: "Solicitações de Férias",
+        href: "/minha-equipe/ferias/solicitacoes",
+        icon: ClipboardCheck,
+        permissoes: ["programacao-ferias:analisar:subordinados"],
+      },
+      {
         label: "Presentes/Ausentes/Licenças",
         href: "/minha-equipe/presencas",
         icon: UsersRound,
@@ -564,6 +570,12 @@ export const MENU_ITEMS: MenuItem[] = [
           "programacao-ferias:consultar:seccional",
           "programacao-ferias:consultar:global",
         ],
+      },
+      {
+        label: "Solicitações de Férias",
+        href: "/minha-equipe/ferias/solicitacoes",
+        icon: ClipboardCheck,
+        permissoes: ["programacao-ferias:analisar:subordinados"],
       },
       {
         label: "Presentes/Ausentes/Licenças",
@@ -694,6 +706,26 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
+    label: "Manutenção",
+    href: "/manutencao/marcacoes",
+    icon: Wrench,
+    permissoes: [
+      "marcacao:manutencao:seccional",
+      "marcacao:manutencao:global",
+    ],
+    children: [
+      {
+        label: "Marcações",
+        href: "/manutencao/marcacoes",
+        icon: Fingerprint,
+        permissoes: [
+          "marcacao:manutencao:seccional",
+          "marcacao:manutencao:global",
+        ],
+      },
+    ],
+  },
+  {
     label: "Administração",
     href: "/administracao",
     icon: Settings,
@@ -744,6 +776,8 @@ export const MENU_ITEMS: MenuItem[] = [
       "auditoria:consultar:global",
       "auditoria:detalhar:global",
       "menus:personalizar:global",
+      "programacao-ferias:executar-sarh:seccional",
+      "programacao-ferias:executar-sarh:global",
       ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
     ],
     children: [
@@ -890,6 +924,15 @@ export const MENU_ITEMS: MenuItem[] = [
         permissoes: [
           "configuracoes:gerenciar:seccional",
           "configuracoes:gerenciar:global",
+        ],
+      },
+      {
+        label: "Férias SARH",
+        href: "/administracao/ferias/integracao-sarh",
+        icon: DatabaseZap,
+        permissoes: [
+          "programacao-ferias:executar-sarh:seccional",
+          "programacao-ferias:executar-sarh:global",
         ],
       },
       {

@@ -9,6 +9,7 @@ import {
   Hourglass,
   Inbox,
   ShieldCheck,
+  TreePalm,
 } from "lucide-react";
 
 import { Badge, Button, Card, CardContent } from "@/components/ui";
@@ -29,6 +30,7 @@ const rotulosCategoria: Record<NotificacaoCategoria, string> = {
   banco_horas: "Banco de horas",
   homologacao: "Homologação",
   marcacao: "Marcação",
+  ferias: "Férias",
 };
 
 const rotulosPrioridade: Record<NotificacaoPrioridade, string> = {
@@ -52,6 +54,7 @@ const iconesCategoria = {
   banco_horas: Hourglass,
   homologacao: ShieldCheck,
   marcacao: Fingerprint,
+  ferias: TreePalm,
 } satisfies Record<NotificacaoCategoria, typeof Bell>;
 
 function formatarDataHora(data: string) {

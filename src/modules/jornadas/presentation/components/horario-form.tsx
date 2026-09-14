@@ -183,6 +183,7 @@ function minutosIntervalo(inicio: string, fim: string) {
   const inicioMinutos = horaParaMinutos(inicio);
   const fimMinutos = horaParaMinutos(fim);
   if (inicioMinutos === null || fimMinutos === null) return 0;
+  if (fimMinutos === inicioMinutos) return 1440;
   return fimMinutos >= inicioMinutos
     ? fimMinutos - inicioMinutos
     : 1440 - inicioMinutos + fimMinutos;
@@ -201,11 +202,11 @@ function cargaLinha(linha: LinhaHorario) {
 function linhaCruzaMeiaNoite(linha: LinhaHorario) {
   return (
     (minutosIntervalo(linha.entrada1, linha.saida1) > 0 &&
-      linha.saida1 < linha.entrada1) ||
+      linha.saida1 <= linha.entrada1) ||
     (minutosIntervalo(linha.entrada2, linha.saida2) > 0 &&
-      linha.saida2 < linha.entrada2) ||
+      linha.saida2 <= linha.entrada2) ||
     (minutosIntervalo(linha.entrada3, linha.saida3) > 0 &&
-      linha.saida3 < linha.entrada3)
+      linha.saida3 <= linha.entrada3)
   );
 }
 

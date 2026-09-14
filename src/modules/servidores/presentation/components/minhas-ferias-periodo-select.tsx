@@ -15,6 +15,7 @@ type PeriodoFeriasOption = {
 type MinhasFeriasPeriodoSelectProps = {
   periodos: PeriodoFeriasOption[];
   exercicioSelecionado: number | null;
+  aba?: "consulta" | "marcacao";
 };
 
 function rotuloStatus(status: PeriodoFeriasOption["status"]) {
@@ -43,6 +44,7 @@ function classeStatus(status: PeriodoFeriasOption["status"]) {
 export function MinhasFeriasPeriodoSelect({
   periodos,
   exercicioSelecionado,
+  aba = "consulta",
 }: MinhasFeriasPeriodoSelectProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -53,13 +55,19 @@ export function MinhasFeriasPeriodoSelect({
 
   function selecionarPeriodo(valor: string) {
     startTransition(() => {
-      router.push(
-        valor
-          ? `/minhas-ferias?${new URLSearchParams({
-              exercicio: valor,
-            }).toString()}`
-          : "/minhas-ferias",
-      );
+      const params = new URLSearchParams();
+
+      if (aba !== "consulta") {
+        params.set("aba", aba);
+      }
+
+      if (valor) {
+        params.set("exercicio", valor);
+      }
+
+      const query = params.toString();
+
+      router.push(query ? `/minhas-ferias?${query}` : "/minhas-ferias");
     });
   }
 

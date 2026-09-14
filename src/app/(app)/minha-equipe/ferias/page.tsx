@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CalendarDays } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
@@ -65,9 +66,13 @@ export default async function MinhaEquipeFeriasPage({
   ]);
   const permissoes = new Set(permissao.permissoes);
   const perfilAtivoCodigo = permissao.perfilAtivoCodigo?.toUpperCase() ?? "";
+  const podeConsultarGlobal = permissoes.has("programacao-ferias:consultar:global");
+  const podeConsultarSeccional = permissoes.has(
+    "programacao-ferias:consultar:seccional",
+  );
   const visualizarTodasEquipes =
-    permissoes.has("programacao-ferias:consultar:seccional") ||
-    permissoes.has("programacao-ferias:consultar:global") ||
+    podeConsultarSeccional ||
+    podeConsultarGlobal ||
     (perfilAtivoCodigo !== "CHEFIA" &&
       !permissoes.has("programacao-ferias:consultar:subordinados"));
   const params = searchParams ? await searchParams : {};
@@ -78,6 +83,8 @@ export default async function MinhaEquipeFeriasPage({
   const feriasVazias: FeriasEquipeCalendarioDados = {
     ano: anoFerias,
     escopo: visualizarTodasEquipes ? "global" : "chefia",
+    unidades: [],
+    unidadesSelecionadas: [],
     itens: [],
     resumo: {
       periodos: 0,
@@ -101,6 +108,10 @@ export default async function MinhaEquipeFeriasPage({
         unidadeIds,
         visualizarTodasEquipes,
         idsSubordinados,
+        orgaoIds:
+          visualizarTodasEquipes && !podeConsultarGlobal
+            ? (permissao.orgaoIds ?? [])
+            : undefined,
       })
     : feriasVazias;
   const montarHrefAnoFerias = (ano: number) => {
@@ -115,6 +126,7 @@ export default async function MinhaEquipeFeriasPage({
 
     return `/minha-equipe/ferias?${query.toString()}`;
   };
+  const anoAtual = new Date().getFullYear();
 
   return (
     <div className="space-y-6">
@@ -133,13 +145,25 @@ export default async function MinhaEquipeFeriasPage({
             ? "Acompanhe a programação anual de férias de todas as equipes."
             : "Acompanhe a programação anual de férias da equipe subordinada à sua chefia."
         }
+        actions={
+          permissoes.has("programacao-ferias:analisar:subordinados") ? (
+            <Link
+              href="/minha-equipe/ferias/solicitacoes"
+              className="inline-flex h-10 items-center justify-center rounded-md bg-blue-900 px-4 text-sm font-bold text-white transition hover:bg-blue-950"
+            >
+              Solicitações
+            </Link>
+          ) : null
+        }
       />
 
       <FeriasEquipeCalendario
         dados={feriasEquipe}
         dataReferencia={data}
         unidadesSelecionadas={unidadeIds}
-        montarHrefAno={montarHrefAnoFerias}
+        hrefAnoAnterior={montarHrefAnoFerias(anoFerias - 1)}
+        hrefAnoAtual={montarHrefAnoFerias(anoAtual)}
+        hrefAnoSeguinte={montarHrefAnoFerias(anoFerias + 1)}
         actionPath="/minha-equipe/ferias"
       />
     </div>

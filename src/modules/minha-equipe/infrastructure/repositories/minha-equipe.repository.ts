@@ -71,6 +71,8 @@ export type FeriasEquipeResumo = {
 export type FeriasEquipeCalendarioDados = {
   ano: number;
   escopo: "chefia" | "global";
+  unidades: UnidadeMinhaEquipe[];
+  unidadesSelecionadas: string[];
   itens: FeriasEquipeItem[];
   resumo: FeriasEquipeResumo;
 };
@@ -496,6 +498,7 @@ export async function buscarCalendarioFeriasEquipe(params: {
   unidadeIds?: string[];
   visualizarTodasEquipes?: boolean;
   idsSubordinados?: string[];
+  orgaoIds?: string[];
 }): Promise<FeriasEquipeCalendarioDados> {
   const escopo = params.visualizarTodasEquipes ? "global" : "chefia";
   const inicioAno = inicioAnoUtc(params.ano);
@@ -513,6 +516,8 @@ export async function buscarCalendarioFeriasEquipe(params: {
     return {
       ano: params.ano,
       escopo,
+      unidades: [],
+      unidadesSelecionadas: [],
       itens: [],
       resumo: {
         periodos: 0,
@@ -525,13 +530,29 @@ export async function buscarCalendarioFeriasEquipe(params: {
 
   const unidadesBase = await prisma.unidadeOrganizacional.findMany({
     where: params.visualizarTodasEquipes
-      ? { ativo: true }
+      ? {
+          ativo: true,
+          ...(params.orgaoIds !== undefined
+            ? { orgaoId: { in: params.orgaoIds } }
+            : {}),
+        }
       : {
           id: { in: idsSubordinados },
           ativo: true,
-        },
-    select: { id: true },
+    },
+    select: {
+      id: true,
+      sigla: true,
+      nome: true,
+      unidadePaiId: true,
+    },
+    orderBy: [{ sigla: "asc" }, { nome: "asc" }],
   });
+  const niveis = calcularNiveisUnidades(unidadesBase);
+  const unidades = unidadesBase.map((unidade) => ({
+    ...unidade,
+    nivel: niveis.get(unidade.id) ?? 0,
+  }));
   const idsValidos = new Set(unidadesBase.map((unidade) => unidade.id));
   const unidadesSelecionadas = (params.unidadeIds ?? []).filter((id) =>
     idsValidos.has(id),
@@ -544,6 +565,8 @@ export async function buscarCalendarioFeriasEquipe(params: {
     return {
       ano: params.ano,
       escopo,
+      unidades,
+      unidadesSelecionadas,
       itens: [],
       resumo: {
         periodos: 0,
@@ -637,6 +660,8 @@ export async function buscarCalendarioFeriasEquipe(params: {
   return {
     ano: params.ano,
     escopo,
+    unidades,
+    unidadesSelecionadas,
     itens,
     resumo: {
       periodos: itens.length,

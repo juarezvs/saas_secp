@@ -146,7 +146,7 @@ function extrairFaixas(
         cruzaMeiaNoite:
           formData.get(`${prefixo}.cruzaMeiaNoite`) === "on" ||
           formData.get(`${prefixo}.cruzaMeiaNoite`) === "true" ||
-          (Boolean(inicio) && Boolean(fim) && fim < inicio),
+          (Boolean(inicio) && Boolean(fim) && fim <= inicio),
         ordem,
       };
     })

@@ -47,9 +47,9 @@ describe("jornadaSchema", () => {
 
     expect(resultado.success).toBe(false);
     if (!resultado.success) {
-      expect(resultado.error.flatten().fieldErrors.descricao?.[0]).toContain(
-        "fundamento legal/normativo",
-      );
+      expect(
+        resultado.error.flatten().fieldErrors.fundamentoNormativo?.[0],
+      ).toContain("fundamento legal/normativo");
     }
   });
 
@@ -69,5 +69,57 @@ describe("jornadaSchema", () => {
         "Jornada de 8 horas deve exigir intervalo.",
       );
     }
+  });
+
+  it("aceita escala ciclica de 24 horas com entrada e saida no mesmo horario", () => {
+    const resultado = jornadaSchema.safeParse({
+      ...jornadaBase,
+      codigo: "ESCALA_24X72",
+      nome: "Escala 24x72",
+      tipo: "ESCALA_CICLICA",
+      cargaDiariaMinutos: 1440,
+      cargaSemanalMinutos: 1440,
+      cargaMensalMinutos: 10800,
+      horarioEntradaPadrao: "08:00",
+      horarioSaidaPadrao: "08:00",
+      cruzaMeiaNoite: true,
+      dias: [
+        {
+          ordemNoCiclo: 1,
+          tipoDia: "TRABALHO",
+          cargaPrevistaMinutos: 1440,
+          faixas: [
+            {
+              tipo: "TRABALHO",
+              horaInicio: "08:00",
+              horaFim: "08:00",
+              obrigatoria: true,
+              cruzaMeiaNoite: true,
+              ordem: 1,
+            },
+          ],
+        },
+        {
+          ordemNoCiclo: 2,
+          tipoDia: "FOLGA",
+          cargaPrevistaMinutos: 0,
+          faixas: [],
+        },
+        {
+          ordemNoCiclo: 3,
+          tipoDia: "FOLGA",
+          cargaPrevistaMinutos: 0,
+          faixas: [],
+        },
+        {
+          ordemNoCiclo: 4,
+          tipoDia: "FOLGA",
+          cargaPrevistaMinutos: 0,
+          faixas: [],
+        },
+      ],
+    });
+
+    expect(resultado.success).toBe(true);
   });
 });

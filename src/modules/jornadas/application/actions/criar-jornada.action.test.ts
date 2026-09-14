@@ -72,6 +72,12 @@ function formDataJornadaEscalaCiclica() {
   formData.set("permiteFlexibilidade", "on");
   formData.set("permiteBancoHoras", "on");
   formData.set("ativo", "on");
+  formData.set("ciclos.quantidade", "1");
+  formData.set("ciclos.0.tipoDia", "TRABALHO");
+  formData.set("ciclos.0.cargaPrevistaMinutos", "420");
+  formData.set("ciclos.0.entrada1", "08:00");
+  formData.set("ciclos.0.saida1", "15:00");
+  formData.set("ciclos.0.duracaoDias", "1");
 
   for (const dia of diasSemana) {
     const trabalha = !["DOMINGO", "SABADO"].includes(dia);
@@ -132,13 +138,13 @@ describe("criarJornadaAction", () => {
       ativo: true,
     });
     mocks.tx.jornadaDia.createMany.mockResolvedValue({ count: 7 });
-    mocks.tx.jornadaDia.findMany.mockResolvedValue(
-      diasSemana.map((diaSemana) => ({
-        id: `dia-${diaSemana}`,
-        diaSemana,
-        ordemNoCiclo: null,
-      })),
-    );
+    mocks.tx.jornadaDia.findMany.mockResolvedValue([
+      {
+        id: "dia-ciclo-1",
+        diaSemana: null,
+        ordemNoCiclo: 1,
+      },
+    ]);
     mocks.tx.jornadaFaixaHorario.createMany.mockResolvedValue({ count: 5 });
     mocks.tx.jornada.findUniqueOrThrow.mockResolvedValue({
       id: "jornada-1",
@@ -214,7 +220,8 @@ describe("criarJornadaAction", () => {
         data: expect.arrayContaining([
           expect.objectContaining({
             jornadaId: "jornada-1",
-            diaSemana: "SEGUNDA",
+            diaSemana: null,
+            ordemNoCiclo: 1,
           }),
         ]),
       }),
@@ -224,7 +231,7 @@ describe("criarJornadaAction", () => {
         data: expect.arrayContaining([
           expect.objectContaining({
             jornadaId: "jornada-1",
-            jornadaDiaId: "dia-SEGUNDA",
+            jornadaDiaId: "dia-ciclo-1",
             tipo: "TRABALHO",
             horaInicio: "08:00",
             horaFim: "15:00",

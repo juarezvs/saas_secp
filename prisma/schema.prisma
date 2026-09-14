@@ -692,6 +692,29 @@ enum CategoriaClassificacaoHoraExtra {
   NAO_AUTORIZADA
 }
 
+enum StatusProgramacaoFerias {
+  ENVIADA
+  EM_ANALISE
+  DEVOLVIDA
+  APROVADA_CHEFIA
+  REPROVADA_CHEFIA
+  AGUARDANDO_ENVIO_SARH
+  ENVIANDO_SARH
+  ENVIADA_SARH
+  CONFIRMADA_SARH
+  ERRO_ENVIO_SARH
+  CANCELADA
+}
+
+enum StatusIntegracaoProgramacaoFerias {
+  NAO_APLICAVEL
+  PENDENTE
+  EM_PROCESSAMENTO
+  ENVIADA
+  CONFIRMADA
+  ERRO
+}
+
 model Usuario {
   id                         String      @id @default(uuid()) @db.Uuid
   matricula                  String      @unique @db.VarChar(50)
@@ -747,6 +770,11 @@ model Usuario {
   teamsLogs                          TeamsLog[]
   teamsNotificacoes                  TeamsNotificacao[]
   favoritosPerfil                    UsuarioPerfilFavorito[]
+  programacoesFeriasSolicitadas      ProgramacaoFerias[]                            @relation("ProgramacoesFeriasSolicitadasPor")
+  programacoesFeriasAtualizadas      ProgramacaoFerias[]                            @relation("ProgramacoesFeriasAtualizadasPor")
+  programacoesFeriasAnalisadas       ProgramacaoFerias[]                            @relation("ProgramacoesFeriasAnalisadasPor")
+  programacoesFeriasEnviadasSarh     ProgramacaoFerias[]                            @relation("ProgramacoesFeriasEnviadasSarhPor")
+  programacoesFeriasEventos          ProgramacaoFeriasEvento[]                      @relation("ProgramacoesFeriasEventosPorUsuario")
 
   @@map("usuarios")
 }
@@ -822,9 +850,9 @@ model Perfil {
   menusGrupos          MenuGrupoPerfil[]
   menusItens           MenuItemPerfil[]
   favoritosUsuarios    UsuarioPerfilFavorito[]
-  orgao                Orgao?            @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
-  perfilDestinoExcecao Perfil?           @relation("PerfilExcecaoDestino", fields: [perfilDestinoExcecaoId], references: [id], onDelete: SetNull)
-  excecoesRecebidas    Perfil[]          @relation("PerfilExcecaoDestino")
+  orgao                Orgao?                  @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+  perfilDestinoExcecao Perfil?                 @relation("PerfilExcecaoDestino", fields: [perfilDestinoExcecaoId], references: [id], onDelete: SetNull)
+  excecoesRecebidas    Perfil[]                @relation("PerfilExcecaoDestino")
 
   @@index([orgaoId])
   @@index([perfilDestinoExcecaoId])
@@ -834,12 +862,12 @@ model Perfil {
 model UsuarioPerfilFavorito {
   id String @id @default(uuid()) @db.Uuid
 
-  usuarioId     String @map("usuario_id") @db.Uuid
-  perfilId      String @map("perfil_id") @db.Uuid
-  itemCatalogo  String @map("item_catalogo") @db.VarChar(160)
-  titulo        String? @db.VarChar(120)
-  descricao     String? @db.Text
-  ordem         Int    @default(0)
+  usuarioId    String  @map("usuario_id") @db.Uuid
+  perfilId     String  @map("perfil_id") @db.Uuid
+  itemCatalogo String  @map("item_catalogo") @db.VarChar(160)
+  titulo       String? @db.VarChar(120)
+  descricao    String? @db.Text
+  ordem        Int     @default(0)
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
@@ -1014,6 +1042,7 @@ model Orgao {
   pagamentosSubstituicaoFuncao     PagamentoSubstituicaoFuncao[]
   autorizacoesHoraExtra            AutorizacaoHoraExtraAdministrativa[]
   perfis                           Perfil[]
+  programacoesFerias               ProgramacaoFerias[]
 
   @@index([uf])
   @@index([municipioIbge])
@@ -1224,6 +1253,7 @@ model UnidadeOrganizacional {
   pagamentosSubstituicaoFuncao      PagamentoSubstituicaoFuncao[]
   autorizacoesHoraExtra             AutorizacaoHoraExtraAdministrativa[]
   servidoresAutorizadosHoraExtra    AutorizacaoHoraExtraServidor[]
+  programacoesFerias                ProgramacaoFerias[]
 
   @@unique([orgaoId, codigo])
   @@unique([orgaoId, codigoExternoSarh])
@@ -1335,6 +1365,7 @@ model Servidor {
   sessoesCadastroFacial                SessaoCadastroFacial[]
   teamsVinculos                        TeamsUsuarioVinculado[]
   autorizacoesHoraExtra                AutorizacaoHoraExtraServidor[]
+  programacoesFerias                   ProgramacaoFerias[]
 
   @@index([orgaoId])
   @@index([categoriaPessoaId])
@@ -1505,9 +1536,10 @@ model AfastamentoSarh {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  servidor         Servidor?                        @relation(fields: [servidorId], references: [id], onDelete: SetNull)
-  tipoAfastamento  TipoAfastamentoSarh?             @relation(fields: [tipoAfastamentoId], references: [id], onDelete: SetNull)
-  diasSubstituicao PagamentoSubstituicaoFuncaoDia[]
+  servidor          Servidor?                        @relation(fields: [servidorId], references: [id], onDelete: SetNull)
+  tipoAfastamento   TipoAfastamentoSarh?             @relation(fields: [tipoAfastamentoId], references: [id], onDelete: SetNull)
+  diasSubstituicao  PagamentoSubstituicaoFuncaoDia[]
+  programacaoFerias ProgramacaoFerias?
 
   @@index([servidorId])
   @@index([tipoAfastamentoId])
@@ -1518,6 +1550,82 @@ model AfastamentoSarh {
   @@index([servidorId, ativo, dataInicio, dataFim])
   @@index([ativo, dataInicio, dataFim])
   @@map("afastamentos_sarh")
+}
+
+model ProgramacaoFerias {
+  id         String  @id @default(uuid()) @db.Uuid
+  servidorId String  @map("servidor_id") @db.Uuid
+  orgaoId    String  @map("orgao_id") @db.Uuid
+  unidadeId  String? @map("unidade_id") @db.Uuid
+
+  exercicio  Int
+  dataInicio DateTime @map("data_inicio") @db.Date
+  dataFim    DateTime @map("data_fim") @db.Date
+  dias       Int
+
+  status           StatusProgramacaoFerias           @default(ENVIADA)
+  integracaoStatus StatusIntegracaoProgramacaoFerias @default(NAO_APLICAVEL) @map("integracao_status")
+
+  observacaoServidor String? @map("observacao_servidor") @db.Text
+  observacaoChefia   String? @map("observacao_chefia") @db.Text
+  observacaoSecap    String? @map("observacao_secap") @db.Text
+
+  solicitadoPorUsuarioId  String    @map("solicitado_por_usuario_id") @db.Uuid
+  solicitadoEm            DateTime  @default(now()) @map("solicitado_em")
+  atualizadoPorUsuarioId  String?   @map("atualizado_por_usuario_id") @db.Uuid
+  analisadoPorUsuarioId   String?   @map("analisado_por_usuario_id") @db.Uuid
+  analisadoEm             DateTime? @map("analisado_em")
+  enviadoSarhPorUsuarioId String?   @map("enviado_sarh_por_usuario_id") @db.Uuid
+  enviadoSarhEm           DateTime? @map("enviado_sarh_em")
+  confirmadoSarhEm        DateTime? @map("confirmado_sarh_em")
+
+  integracaoProtocolo String? @map("integracao_protocolo") @db.VarChar(120)
+  integracaoPayload   Json?   @map("integracao_payload")
+  integracaoRetorno   Json?   @map("integracao_retorno")
+  integracaoErro      String? @map("integracao_erro") @db.Text
+
+  afastamentoSarhId String? @unique @map("afastamento_sarh_id") @db.Uuid
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  servidor        Servidor                  @relation(fields: [servidorId], references: [id], onDelete: Restrict)
+  orgao           Orgao                     @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+  unidade         UnidadeOrganizacional?    @relation(fields: [unidadeId], references: [id], onDelete: SetNull)
+  solicitadoPor   Usuario                   @relation("ProgramacoesFeriasSolicitadasPor", fields: [solicitadoPorUsuarioId], references: [id], onDelete: Restrict)
+  atualizadoPor   Usuario?                  @relation("ProgramacoesFeriasAtualizadasPor", fields: [atualizadoPorUsuarioId], references: [id], onDelete: SetNull)
+  analisadoPor    Usuario?                  @relation("ProgramacoesFeriasAnalisadasPor", fields: [analisadoPorUsuarioId], references: [id], onDelete: SetNull)
+  enviadoSarhPor  Usuario?                  @relation("ProgramacoesFeriasEnviadasSarhPor", fields: [enviadoSarhPorUsuarioId], references: [id], onDelete: SetNull)
+  afastamentoSarh AfastamentoSarh?          @relation(fields: [afastamentoSarhId], references: [id], onDelete: SetNull)
+  eventos         ProgramacaoFeriasEvento[]
+
+  @@index([servidorId, status])
+  @@index([orgaoId, status])
+  @@index([unidadeId, status])
+  @@index([exercicio])
+  @@index([dataInicio, dataFim])
+  @@index([integracaoStatus])
+  @@map("programacoes_ferias")
+}
+
+model ProgramacaoFeriasEvento {
+  id            String  @id @default(uuid()) @db.Uuid
+  programacaoId String  @map("programacao_id") @db.Uuid
+  usuarioId     String? @map("usuario_id") @db.Uuid
+
+  statusAnterior StatusProgramacaoFerias? @map("status_anterior")
+  statusNovo     StatusProgramacaoFerias  @map("status_novo")
+  descricao      String                   @db.Text
+  metadados      Json?
+  criadoEm       DateTime                 @default(now()) @map("criado_em")
+
+  programacao ProgramacaoFerias @relation(fields: [programacaoId], references: [id], onDelete: Cascade)
+  usuario     Usuario?          @relation("ProgramacoesFeriasEventosPorUsuario", fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([programacaoId, criadoEm])
+  @@index([usuarioId])
+  @@index([statusNovo])
+  @@map("programacoes_ferias_eventos")
 }
 
 model GestorUnidade {

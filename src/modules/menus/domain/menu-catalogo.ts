@@ -321,12 +321,23 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
     ],
   },
   {
+    id: "/manutencao/marcacoes",
+    label: "Marcações",
+    href: "/manutencao/marcacoes",
+    permissoes: [
+      "marcacao:manutencao:seccional",
+      "marcacao:manutencao:global",
+    ],
+  },
+  {
     id: "/administracao",
     label: "Administração",
     href: "/administracao",
     permissoes: [
       "configuracoes:gerenciar:seccional",
       "configuracoes:gerenciar:global",
+      "programacao-ferias:executar-sarh:seccional",
+      "programacao-ferias:executar-sarh:global",
     ],
   },
   {
@@ -494,6 +505,15 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
     label: "Fusos horários",
     href: "/administracao/fusos-horarios",
     permissoes: ["fusos-horarios:gerenciar:global"],
+  },
+  {
+    id: "/administracao/ferias/integracao-sarh",
+    label: "Férias SARH",
+    href: "/administracao/ferias/integracao-sarh",
+    permissoes: [
+      "programacao-ferias:executar-sarh:seccional",
+      "programacao-ferias:executar-sarh:global",
+    ],
   },
   {
     id: "/administracao/integracoes",

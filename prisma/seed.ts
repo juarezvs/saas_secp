@@ -426,6 +426,8 @@ const CODIGOS_PERMISSOES_USUARIO_COM_USO_PRATICO = [
   "marcacoes:registrar-web:proprio",
   "marcacoes:registrar:proprio",
   "marcacoes:visualizar:proprio",
+  "marcacao:manutencao:global",
+  "marcacao:manutencao:seccional",
   "menus:personalizar:global",
   "menus:personalizar:seccional",
   "minha-equipe:consultar:chefia",
@@ -466,6 +468,10 @@ const CODIGOS_PERMISSOES_USUARIO_COM_USO_PRATICO = [
   "programacao-ferias:consultar:proprio",
   "programacao-ferias:consultar:seccional",
   "programacao-ferias:consultar:subordinados",
+  "programacao-ferias:solicitar:proprio",
+  "programacao-ferias:analisar:subordinados",
+  "programacao-ferias:executar-sarh:seccional",
+  "programacao-ferias:executar-sarh:global",
   "recesso:aceitar:seccional",
   "recesso:consultar:global",
   "recesso:consultar:proprio",
@@ -561,6 +567,30 @@ const permissoesProgramacaoFeriasSeed = [
     acao: "consultar",
     escopo: "global",
     descricao: "Consultar a programacao de ferias de todas as pessoas do SECP.",
+  },
+  {
+    recurso: "programacao-ferias",
+    acao: "solicitar",
+    escopo: "proprio",
+    descricao: "Marcar, alterar ou excluir a propria programacao de ferias antes da deliberacao da chefia.",
+  },
+  {
+    recurso: "programacao-ferias",
+    acao: "analisar",
+    escopo: "subordinados",
+    descricao: "Aprovar, devolver ou reprovar programacoes de ferias de subordinados.",
+  },
+  {
+    recurso: "programacao-ferias",
+    acao: "executar-sarh",
+    escopo: "seccional",
+    descricao: "Executar o envio de programacoes de ferias aprovadas para o SARH no escopo da seccional.",
+  },
+  {
+    recurso: "programacao-ferias",
+    acao: "executar-sarh",
+    escopo: "global",
+    descricao: "Executar o envio de programacoes de ferias aprovadas para o SARH em qualquer seccional.",
   },
 ] as const;
 
@@ -1557,6 +1587,7 @@ const codigosPermissoesServidor = [
   "biometriafacial:cadastrar:proprio",
   "biometriafacial:recadastrar:proprio",
   "afastamentos:consultar:proprio",
+  "programacao-ferias:solicitar:proprio",
   "recesso:consultar:proprio",
   "recesso:fechar:proprio",
   "teams-bot:usar:proprio",
@@ -1597,6 +1628,7 @@ const codigosPermissoesChefia = [
   "relatorios-gerenciais:exportar:chefia",
   "substituicoes-funcao:relatorio:subordinados",
   "afastamentos:consultar:chefia",
+  "programacao-ferias:analisar:subordinados",
   "recesso:homologar:chefia",
   "recesso:consultar:global",
   "teams-bot:usar:proprio",
@@ -1640,6 +1672,7 @@ const codigosPermissoesAdministrador = [
   "marcacoes:gerenciar:global",
   "marcacoes:excluir:global",
   "marcacoes:registrar-totem:global",
+  "marcacao:manutencao:global",
   "apuracao:consultar:global",
   "apuracao:recalcular:global",
   "banco-horas:consultar:global",
@@ -1656,6 +1689,8 @@ const codigosPermissoesAdministrador = [
   "relatorios-gerenciais:exportar:global",
   "substituicoes-funcao:relatorio:global",
   "afastamentos:consultar:global",
+  "programacao-ferias:consultar:seccional",
+  "programacao-ferias:executar-sarh:seccional",
   "recesso:consultar:global",
   "recesso:gerenciar:global",
   "recesso:excluir:global",
@@ -1711,6 +1746,8 @@ const codigosPermissoesSecap = [
   "relatorios-gerenciais:exportar:global",
   "substituicoes-funcao:relatorio:global",
   "afastamentos:consultar:global",
+  "programacao-ferias:consultar:seccional",
+  "programacao-ferias:executar-sarh:seccional",
   "recesso:consultar:global",
   "recesso:relatorio:seccional",
 ];
@@ -1732,6 +1769,8 @@ const codigosPermissoesSecad = [
   "relatorios-gerenciais:exportar:global",
   "substituicoes-funcao:relatorio:global",
   "afastamentos:consultar:global",
+  "programacao-ferias:consultar:seccional",
+  "programacao-ferias:executar-sarh:seccional",
   "boletim-frequencia:consultar:global",
 ];
 
@@ -1780,6 +1819,7 @@ const codigosPermissoesSuporte = [
   "integracoes-sarh:visualizar-payload:global",
   "afd:importar:global",
   "marcacoes:consultar:global",
+  "marcacao:manutencao:global",
   "biometria:gerenciar:global",
   "biometriafacial:cadastrar:seccional",
   "biometriafacial:recadastrar:seccional",
@@ -3415,7 +3455,11 @@ async function main() {
   await sincronizarPermissoesPorCodigoAoPerfil(
     perfilServidor.id,
     normalizarCodigosPermissoesPerfil(
-      [...codigosPermissoesServidor, "programacao-ferias:consultar:proprio"],
+      [
+        ...codigosPermissoesServidor,
+        "programacao-ferias:consultar:proprio",
+        "programacao-ferias:solicitar:proprio",
+      ],
       "proprio",
     ),
   );
@@ -3426,6 +3470,7 @@ async function main() {
         ...codigosPermissoesPessoaExterna,
         "afastamentos:consultar:proprio",
         "programacao-ferias:consultar:proprio",
+        "programacao-ferias:solicitar:proprio",
         "substituicoes-funcao:relatorio:proprio",
       ],
       "proprio",
@@ -3437,6 +3482,7 @@ async function main() {
       [
         ...codigosPermissoesPessoaExterna,
         "programacao-ferias:consultar:proprio",
+        "programacao-ferias:solicitar:proprio",
       ],
       "proprio",
     ),
@@ -3447,6 +3493,7 @@ async function main() {
       [
         ...codigosPermissoesPessoaExterna,
         "programacao-ferias:consultar:proprio",
+        "programacao-ferias:solicitar:proprio",
       ],
       "proprio",
     ),
@@ -3454,7 +3501,11 @@ async function main() {
   await sincronizarPermissoesPorCodigoAoPerfil(
     perfilMagistrado.id,
     normalizarCodigosPermissoesPerfil(
-      [...codigosPermissoesServidor, "programacao-ferias:consultar:proprio"],
+      [
+        ...codigosPermissoesServidor,
+        "programacao-ferias:consultar:proprio",
+        "programacao-ferias:solicitar:proprio",
+      ],
       "proprio",
     ),
   );
@@ -3465,6 +3516,7 @@ async function main() {
       "subordinados",
     ),
     "programacao-ferias:consultar:subordinados",
+    "programacao-ferias:analisar:subordinados",
   ]);
   await sincronizarPermissoesPorCodigoAoPerfil(
     perfilSecap.id,

@@ -1,5 +1,11 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarRange, TreePalm } from "lucide-react";
+import {
+  CalendarRange,
+  ClipboardList,
+  PencilLine,
+  TreePalm,
+} from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
@@ -10,12 +16,28 @@ import {
   listarPeriodosAquisitivosFerias,
 } from "@/modules/servidores/infrastructure/repositories/ferias.repository";
 import { MinhasFeriasPeriodoSelect } from "@/modules/servidores/presentation/components/minhas-ferias-periodo-select";
+import {
+  buscarServidorFeriasPorUsuarioId,
+  listarProgramacoesFeriasServidor,
+  listarSaldosFeriasServidor,
+} from "@/modules/programacao-ferias/infrastructure/repositories/programacao-ferias.repository";
+import {
+  MensagemFerias,
+  NovaProgramacaoFeriasCard,
+  ProgramacoesFeriasTable,
+  SaldosFeriasCard,
+} from "@/modules/programacao-ferias/presentation/components/programacao-ferias-ui";
 
 type MinhasFeriasPageProps = {
   searchParams?: Promise<{
+    aba?: string;
     exercicio?: string;
+    ok?: string;
+    erro?: string;
   }>;
 };
+
+type AbaMinhasFerias = "consulta" | "marcacao";
 
 type FeriasItem = Awaited<
   ReturnType<typeof listarFeriasPorPeriodoAquisitivo>
@@ -27,6 +49,102 @@ function formatarData(data: Date | null) {
   return new Intl.DateTimeFormat("pt-BR", {
     timeZone: "UTC",
   }).format(data);
+}
+
+function normalizarAbaMinhasFerias(aba?: string): AbaMinhasFerias {
+  return aba === "marcacao" ? "marcacao" : "consulta";
+}
+
+function montarHrefMinhasFeriasAba({
+  aba,
+  exercicioSelecionado,
+}: {
+  aba: AbaMinhasFerias;
+  exercicioSelecionado: number | null;
+}) {
+  const params = new URLSearchParams();
+
+  if (aba !== "consulta") {
+    params.set("aba", aba);
+  }
+
+  if (exercicioSelecionado) {
+    params.set("exercicio", String(exercicioSelecionado));
+  }
+
+  const query = params.toString();
+
+  return query ? `/minhas-ferias?${query}` : "/minhas-ferias";
+}
+
+function AbasMinhasFerias({
+  abaAtiva,
+  exercicioSelecionado,
+}: {
+  abaAtiva: AbaMinhasFerias;
+  exercicioSelecionado: number | null;
+}) {
+  const abas = [
+    {
+      id: "consulta" as const,
+      titulo: "Consultar férias",
+      descricao: "Programações e períodos importados",
+      Icone: ClipboardList,
+    },
+    {
+      id: "marcacao" as const,
+      titulo: "Marcar férias",
+      descricao: "Nova solicitação para a chefia",
+      Icone: PencilLine,
+    },
+  ];
+
+  return (
+    <nav
+      aria-label="Áreas de minhas férias"
+      className="grid gap-3 rounded-xl border bg-[var(--card)] p-2 shadow-sm md:grid-cols-2"
+    >
+      {abas.map(({ id, titulo, descricao, Icone }) => {
+        const ativa = abaAtiva === id;
+
+        return (
+          <Link
+            key={id}
+            href={montarHrefMinhasFeriasAba({
+              aba: id,
+              exercicioSelecionado,
+            })}
+            aria-current={ativa ? "page" : undefined}
+            className={`group flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition ${
+              ativa
+                ? "border-blue-900 bg-blue-900 text-white shadow-sm"
+                : "border-transparent bg-[var(--muted)] text-[var(--foreground)] hover:border-blue-200 hover:bg-blue-50 dark:hover:border-blue-900 dark:hover:bg-blue-950"
+            }`}
+          >
+            <span
+              className={`flex size-10 shrink-0 items-center justify-center rounded-lg border ${
+                ativa
+                  ? "border-white/25 bg-white/15"
+                  : "border-[var(--border)] bg-[var(--card)] text-blue-900"
+              }`}
+            >
+              <Icone className="size-5" aria-hidden="true" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-bold">{titulo}</span>
+              <span
+                className={`mt-0.5 block text-xs ${
+                  ativa ? "text-blue-50" : "text-[var(--muted-foreground)]"
+                }`}
+              >
+                {descricao}
+              </span>
+            </span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
 }
 
 function classeStatus(status: string) {
@@ -201,7 +319,10 @@ export default async function MinhasFeriasPage({
   searchParams,
 }: MinhasFeriasPageProps) {
   const [permissao, query] = await Promise.all([
-    exigirUmaDasPermissoesOuRedirecionar(["afastamentos:consultar:proprio"]),
+    exigirUmaDasPermissoesOuRedirecionar([
+      "programacao-ferias:consultar:proprio",
+      "afastamentos:consultar:proprio",
+    ]),
     searchParams,
   ]);
 
@@ -209,13 +330,16 @@ export default async function MinhasFeriasPage({
     redirect("/login");
   }
 
-  const servidor = await buscarServidorPorUsuarioId(permissao.usuarioId);
+  const servidor =
+    (await buscarServidorFeriasPorUsuarioId(permissao.usuarioId)) ??
+    (await buscarServidorPorUsuarioId(permissao.usuarioId));
 
   if (!servidor) {
-    redirect("/acesso-negado?motivo=servidor-nao-localizado");
+    redirect("/acesso-negado?motivo=servidor-não-localizado");
   }
 
   const periodos = await listarPeriodosAquisitivosFerias(servidor.id);
+  const abaAtiva = normalizarAbaMinhasFerias(query?.aba);
   const exercicioParam =
     query?.exercicio && query.exercicio.trim()
       ? Number(query.exercicio)
@@ -223,10 +347,14 @@ export default async function MinhasFeriasPage({
   const exercicioSelecionado = Number.isInteger(exercicioParam)
     ? exercicioParam
     : periodos[0]?.exercicio ?? null;
-  const ferias = await listarFeriasPorPeriodoAquisitivo({
-    servidorId: servidor.id,
-    exercicio: exercicioSelecionado,
-  });
+  const [ferias, saldos, programacoesSecp] = await Promise.all([
+    listarFeriasPorPeriodoAquisitivo({
+      servidorId: servidor.id,
+      exercicio: exercicioSelecionado,
+    }),
+    listarSaldosFeriasServidor(servidor.id),
+    listarProgramacoesFeriasServidor(servidor.id),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -240,40 +368,63 @@ export default async function MinhasFeriasPage({
       <PageHeader
         icon={TreePalm}
         titulo="Minhas férias"
-        descricao="Consulte sua programação de férias por período aquisitivo sincronizado do SARH."
+        descricao="Consulte suas férias marcadas ou registre uma nova programação para análise da chefia."
       />
 
-      <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
-        <div className="flex items-center gap-3 border-b p-5">
-          <span className="secp-theme-icon flex size-11 shrink-0 items-center justify-center rounded-lg">
-            <CalendarRange className="size-5" aria-hidden="true" />
-          </span>
-          <div>
-            <h2 className="text-lg font-bold">Períodos aquisitivos</h2>
-            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-              Escolha o exercício para consultar as férias correspondentes.
-            </p>
-          </div>
-        </div>
+      <MensagemFerias ok={query?.ok} erro={query?.erro} />
 
-        {periodos.length === 0 ? (
-          <div className="p-8 text-center text-sm text-[var(--muted-foreground)]">
-            Nenhum período de férias sincronizado do SARH para sua matrícula.
-          </div>
-        ) : (
-          <div className="p-5">
-            <MinhasFeriasPeriodoSelect
-              periodos={periodos}
-              exercicioSelecionado={exercicioSelecionado}
-            />
-          </div>
-        )}
-      </section>
-
-      <TabelaFeriasExercicio
-        ferias={ferias}
+      <AbasMinhasFerias
+        abaAtiva={abaAtiva}
         exercicioSelecionado={exercicioSelecionado}
       />
+
+      {abaAtiva === "marcacao" ? (
+        <>
+          <SaldosFeriasCard saldos={saldos} />
+
+          <NovaProgramacaoFeriasCard
+            saldos={saldos}
+            exercicioSelecionado={exercicioSelecionado}
+          />
+        </>
+      ) : (
+        <>
+          <ProgramacoesFeriasTable programacoes={programacoesSecp} />
+
+          <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
+            <div className="flex items-center gap-3 border-b p-5">
+              <span className="secp-theme-icon flex size-11 shrink-0 items-center justify-center rounded-lg">
+                <CalendarRange className="size-5" aria-hidden="true" />
+              </span>
+              <div>
+                <h2 className="text-lg font-bold">Períodos aquisitivos</h2>
+                <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                  Escolha o exercício para consultar as férias correspondentes.
+                </p>
+              </div>
+            </div>
+
+            {periodos.length === 0 ? (
+              <div className="p-8 text-center text-sm text-[var(--muted-foreground)]">
+                Nenhum período de férias sincronizado do SARH para sua matrícula.
+              </div>
+            ) : (
+              <div className="p-5">
+                <MinhasFeriasPeriodoSelect
+                  periodos={periodos}
+                  exercicioSelecionado={exercicioSelecionado}
+                  aba={abaAtiva}
+                />
+              </div>
+            )}
+          </section>
+
+          <TabelaFeriasExercicio
+            ferias={ferias}
+            exercicioSelecionado={exercicioSelecionado}
+          />
+        </>
+      )}
     </div>
   );
 }
