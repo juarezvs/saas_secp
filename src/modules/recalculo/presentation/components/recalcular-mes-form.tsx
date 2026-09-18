@@ -1,131 +1,112 @@
 "use client";
 
+import { CheckCircle2, LoaderCircle, RefreshCw, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
-import { recalcularMesServidorAction } from "../../application/actions/recalcular-mes-servidor.action";
+import {
+  consultarProcessamentoEspelhoAction,
+  recalcularMesServidorAction,
+  type EstadoProcessamentoEspelho,
+} from "../../application/actions/recalcular-mes-servidor.action";
 
 type RecalcularMesFormProps = {
   servidorId: string;
   anoReferencia: number;
   mesReferencia: number;
+  podeRecalcular: boolean;
+  estadoInicial: EstadoProcessamentoEspelho;
 };
+
+function formatarAtualizacao(valor: string | null) {
+  if (!valor) return "Ainda não calculado";
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(valor));
+}
 
 export function RecalcularMesForm({
   servidorId,
   anoReferencia,
   mesReferencia,
+  podeRecalcular,
+  estadoInicial,
 }: RecalcularMesFormProps) {
   const router = useRouter();
   const [pendente, iniciarTransicao] = useTransition();
-  const [iniciado, setIniciado] = useState(false);
-  const [concluido, setConcluido] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-  const [progresso, setProgresso] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [estado, setEstado] = useState(estadoInicial);
+  const processando = ["PENDENTE", "PROCESSANDO"].includes(estado.status);
 
   useEffect(() => {
-    if (!pendente) return;
+    if (!processando) return;
 
-    intervalRef.current = setInterval(() => {
-      setProgresso((atual) => {
-        const incremento = atual < 35 ? 5 : atual < 70 ? 3 : 1;
-        return Math.min(atual + incremento, 94);
-      });
-    }, 500);
+    const interval = window.setInterval(async () => {
+      const formData = new FormData();
+      formData.set("servidorId", servidorId);
+      formData.set("anoReferencia", String(anoReferencia));
+      formData.set("mesReferencia", String(mesReferencia));
+      const proximo = await consultarProcessamentoEspelhoAction(formData);
 
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [pendente]);
+      if (proximo) {
+        setEstado(proximo);
+        if (proximo.status === "ATUALIZADO") router.refresh();
+      }
+    }, 2500);
+
+    return () => window.clearInterval(interval);
+  }, [anoReferencia, mesReferencia, processando, router, servidorId]);
 
   function recalcular() {
-    setIniciado(true);
-    setConcluido(false);
-    setErro(null);
-    setProgresso(5);
-
-    const formData = new FormData();
-    formData.set("servidorId", servidorId);
-    formData.set("anoReferencia", String(anoReferencia));
-    formData.set("mesReferencia", String(mesReferencia));
-
     iniciarTransicao(async () => {
-      try {
-        const resultado = await recalcularMesServidorAction(formData);
+      const formData = new FormData();
+      formData.set("servidorId", servidorId);
+      formData.set("anoReferencia", String(anoReferencia));
+      formData.set("mesReferencia", String(mesReferencia));
+      const resultado = await recalcularMesServidorAction(formData);
 
-        if (!resultado.sucesso) {
-          setErro(resultado.mensagem);
-          setConcluido(false);
-          return;
-        }
-
-        setProgresso(100);
-        setConcluido(true);
-        router.refresh();
-      } catch (error) {
-        setErro(
-          error instanceof Error
-            ? error.message
-            : "Não foi possível concluir o recálculo.",
-        );
-        setConcluido(false);
+      if (resultado.sucesso) {
+        setEstado({ status: "PENDENTE", atualizadoEm: estado.atualizadoEm, erro: null });
+      } else {
+        setEstado({ ...estado, status: "FALHA", erro: resultado.mensagem });
       }
     });
   }
 
-  const progressoVisual = concluido ? 100 : progresso;
-
   return (
-    <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center">
-      <button
-        type="button"
-        disabled={pendente}
-        onClick={recalcular}
-        className="shrink-0 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {pendente
-          ? "Recalculando mês e banco de horas..."
-          : "Recalcular mês e banco de horas"}
-      </button>
-
-      <div className="w-full max-w-xl" aria-live="polite">
-        <div className="mb-1 flex items-center justify-between gap-3 text-sm">
-          <span className="text-[var(--muted-foreground)]">
-            {pendente
-              ? "Recalculando apurações e movimentos do banco de horas"
-              : concluido
-                ? "Recálculo concluído"
-                : "Aguardando recálculo"}
-          </span>
-          <span className="font-semibold tabular-nums">
-            {progressoVisual}%
-          </span>
-        </div>
-
-        <div
-          className="h-3 overflow-hidden rounded-full bg-[var(--muted)]"
-          role="progressbar"
-          aria-label="Progresso visual do recálculo mensal"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={progressoVisual}
-        >
-          <div
-            className={`h-full rounded-full transition-all duration-500 ease-out ${
-              concluido ? "bg-green-600" : "bg-blue-700"
-            }`}
-            style={{ width: `${progressoVisual}%` }}
-          />
-        </div>
-
-        {iniciado && concluido && (
-          <p className="mt-2 text-xs text-[var(--muted-foreground)]">
-            As horas trabalhadas, os créditos e os débitos foram atualizados.
-          </p>
+    <div className="flex flex-col gap-3 border-y py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-center gap-2 text-sm" aria-live="polite">
+        {processando ? (
+          <LoaderCircle className="size-4 shrink-0 animate-spin text-blue-700" />
+        ) : estado.status === "FALHA" ? (
+          <TriangleAlert className="size-4 shrink-0 text-red-700" />
+        ) : (
+          <CheckCircle2 className="size-4 shrink-0 text-green-700" />
         )}
-        {erro && <p className="mt-2 text-xs font-semibold text-red-600">{erro}</p>}
+        <div className="min-w-0">
+          <p className="font-medium">
+            {processando
+              ? "Atualizando espelho em segundo plano"
+              : estado.status === "FALHA"
+                ? "Falha na última atualização"
+                : `Atualizado em ${formatarAtualizacao(estado.atualizadoEm)}`}
+          </p>
+          {estado.erro && <p className="truncate text-xs text-red-700">{estado.erro}</p>}
+        </div>
       </div>
+
+      {podeRecalcular && (
+        <button
+          type="button"
+          disabled={pendente || processando}
+          onClick={recalcular}
+          title="Recalcular mês e banco de horas"
+          className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-blue-900 px-3 text-sm font-semibold text-white hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <RefreshCw className={`size-4 ${pendente ? "animate-spin" : ""}`} />
+          Recalcular
+        </button>
+      )}
     </div>
   );
 }

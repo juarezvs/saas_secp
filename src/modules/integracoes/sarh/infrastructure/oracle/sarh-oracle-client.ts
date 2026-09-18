@@ -45,7 +45,35 @@ const FILTRO_MATRICULA_PESSOA_PONTO_SARH =
 
 type SarhFiltroMatricula = {
   matricula?: string | null;
+  matriculas?: string[];
 };
+
+function filtroOracleMatriculas(matriculas: string[]) {
+  const normalizadas = Array.from(
+    new Set(matriculas.map((item) => item.trim().toUpperCase()).filter(Boolean)),
+  );
+
+  if (normalizadas.length === 0) {
+    return { sql: "1 = 0", binds: {} };
+  }
+
+  const binds: Record<string, string> = {};
+  const grupos: string[] = [];
+
+  for (let inicio = 0; inicio < normalizadas.length; inicio += 900) {
+    const nomes = normalizadas
+      .slice(inicio, inicio + 900)
+      .map((matricula, indice) => {
+        const nome = `matriculaEscopo${inicio + indice}`;
+        binds[nome] = matricula;
+        return `:${nome}`;
+      });
+
+    grupos.push(`upper(f.func_matricula_folha) in (${nomes.join(", ")})`);
+  }
+
+  return { sql: `(${grupos.join(" or ")})`, binds };
+}
 
 let oracleClientInicializado = false;
 
@@ -532,6 +560,9 @@ export class SarhOracleClient {
     filtro: SarhFiltroMatricula = {},
   ): Promise<SarhAfastamentoDto[]> {
     const matricula = filtro.matricula?.trim().toUpperCase() || null;
+    const filtroMatriculas = filtro.matriculas
+      ? filtroOracleMatriculas(filtro.matriculas)
+      : { sql: "1 = 1", binds: {} };
     const rows = await this.query<OracleRow>(
       `
       with filtros as (
@@ -553,6 +584,7 @@ export class SarhOracleClient {
         cross join filtros flt
         where upper(f.func_matricula_folha) like upper(flt.sigla_localidade) || '%'
           and (flt.matricula is null or upper(f.func_matricula_folha) = upper(flt.matricula))
+          and ${filtroMatriculas.sql}
           and s.flag_ativo = 1
           and ${this.filtroMatriculaPessoaPontoSarh("f.func_matricula_folha")}
       ),
@@ -701,7 +733,11 @@ export class SarhOracleClient {
       from eventos
       order by data_inicio_ordem desc nulls last, categoria, matricula
       `,
-      { siglaLocalidade: this.siglaLocalidade, matricula },
+      {
+        siglaLocalidade: this.siglaLocalidade,
+        matricula,
+        ...filtroMatriculas.binds,
+      },
     );
 
     return rows.map((row) => ({

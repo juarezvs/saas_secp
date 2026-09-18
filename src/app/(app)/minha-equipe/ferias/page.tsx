@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   buscarCalendarioFeriasEquipe,
+  buscarSincronizacaoFeriasSarhEquipe,
   listarIdsUnidadesSubordinadasNaData,
   type FeriasEquipeCalendarioDados,
 } from "@/modules/minha-equipe/infrastructure/repositories/minha-equipe.repository";
@@ -16,6 +17,8 @@ type MinhaEquipeFeriasPageProps = {
     data?: string;
     unidadeId?: string | string[];
     anoFerias?: string;
+    feriasSync?: string;
+    feriasJob?: string;
   }>;
 };
 
@@ -100,20 +103,26 @@ export default async function MinhaEquipeFeriasPage({
           data: dataReferencia,
         })
       : [];
-  const feriasEquipe = permissao.usuarioId
-    ? await buscarCalendarioFeriasEquipe({
-        usuarioId: permissao.usuarioId,
-        ano: anoFerias,
-        dataReferencia,
-        unidadeIds,
-        visualizarTodasEquipes,
-        idsSubordinados,
-        orgaoIds:
-          visualizarTodasEquipes && !podeConsultarGlobal
-            ? (permissao.orgaoIds ?? [])
-            : undefined,
-      })
-    : feriasVazias;
+  const perfilPossuiEscopoGlobal = Boolean(permissao.perfilAtivoEscopoGlobal);
+  const orgaoIdsFiltro = perfilPossuiEscopoGlobal
+    ? undefined
+    : (permissao.orgaoIds ?? []);
+  const [feriasEquipe, sincronizacaoSarh] = await Promise.all([
+    permissao.usuarioId
+      ? buscarCalendarioFeriasEquipe({
+          usuarioId: permissao.usuarioId,
+          ano: anoFerias,
+          dataReferencia,
+          unidadeIds,
+          visualizarTodasEquipes,
+          idsSubordinados,
+          orgaoIds: orgaoIdsFiltro,
+        })
+      : Promise.resolve(feriasVazias),
+    buscarSincronizacaoFeriasSarhEquipe({
+      orgaoIds: orgaoIdsFiltro,
+    }),
+  ]);
   const montarHrefAnoFerias = (ano: number) => {
     const query = new URLSearchParams();
 
@@ -127,6 +136,14 @@ export default async function MinhaEquipeFeriasPage({
     return `/minha-equipe/ferias?${query.toString()}`;
   };
   const anoAtual = new Date().getFullYear();
+  const queryAtual = new URLSearchParams();
+
+  queryAtual.set("data", data);
+  queryAtual.set("anoFerias", String(anoFerias));
+
+  for (const unidadeId of unidadeIds) {
+    queryAtual.append("unidadeId", unidadeId);
+  }
 
   return (
     <div className="space-y-6">
@@ -165,6 +182,11 @@ export default async function MinhaEquipeFeriasPage({
         hrefAnoAtual={montarHrefAnoFerias(anoAtual)}
         hrefAnoSeguinte={montarHrefAnoFerias(anoFerias + 1)}
         actionPath="/minha-equipe/ferias"
+        sincronizacaoSarh={sincronizacaoSarh}
+        sincronizacaoSolicitada={params.feriasSync}
+        jobSincronizacaoInicial={params.feriasJob}
+        sincronizacaoAutomatica={!visualizarTodasEquipes}
+        redirectTo={`/minha-equipe/ferias?${queryAtual.toString()}`}
       />
     </div>
   );

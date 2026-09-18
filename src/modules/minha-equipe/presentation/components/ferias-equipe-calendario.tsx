@@ -1,14 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays,
   CheckSquare,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Clock3,
   Filter,
+  RefreshCw,
   Search,
   Square,
   Umbrella,
@@ -16,9 +19,15 @@ import {
   X,
 } from "lucide-react";
 
+import {
+  consultarJobSincronizacaoFeriasSarhAction,
+  sincronizarFeriasSarhEquipeAction,
+  sincronizarFeriasSarhEquipeAutomaticamenteAction,
+} from "../../application/actions/sincronizar-ferias-sarh.action";
 import type {
   FeriasEquipeCalendarioDados,
   FeriasEquipeItem,
+  FeriasEquipeSincronizacaoSarh,
   StatusFeriasEquipe,
   UnidadeMinhaEquipe,
 } from "../../infrastructure/repositories/minha-equipe.repository";
@@ -31,6 +40,11 @@ type FeriasEquipeCalendarioProps = {
   hrefAnoAtual: string;
   hrefAnoSeguinte: string;
   actionPath?: string;
+  sincronizacaoSarh: FeriasEquipeSincronizacaoSarh;
+  sincronizacaoSolicitada?: string;
+  jobSincronizacaoInicial?: string;
+  sincronizacaoAutomatica: boolean;
+  redirectTo: string;
 };
 
 const meses = [
@@ -107,6 +121,32 @@ function formatarData(data: Date | string) {
     month: "2-digit",
     timeZone: "UTC",
   }).format(dataNormalizada(data));
+}
+
+function formatarDataHoraManaus(data: Date | string | null) {
+  if (!data) return "Sem registro";
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Manaus",
+  }).format(dataNormalizada(data));
+}
+
+function rotuloStatusExecucao(status: string | null) {
+  const rotulos: Record<string, string> = {
+    AGENDADA: "agendada",
+    EM_EXECUCAO: "em execução",
+    CONCLUIDA: "concluída",
+    CONCLUIDA_COM_ERROS: "concluída com erros",
+    FALHOU: "falhou",
+    CANCELADA: "cancelada",
+  };
+
+  return status ? (rotulos[status] ?? status.toLowerCase()) : "sem execução";
 }
 
 function formatarPeriodo(item: FeriasEquipeItem) {
@@ -239,7 +279,17 @@ export function FeriasEquipeCalendario({
   hrefAnoAtual,
   hrefAnoSeguinte,
   actionPath = "/minha-equipe/ferias",
+  sincronizacaoSarh,
+  sincronizacaoSolicitada,
+  jobSincronizacaoInicial,
+  sincronizacaoAutomatica,
+  redirectTo,
 }: FeriasEquipeCalendarioProps) {
+  const router = useRouter();
+  const iniciouSincronizacao = useRef(false);
+  const [estadoAtualizacao, setEstadoAtualizacao] = useState<
+    "ocioso" | "atualizando" | "concluida" | "erro"
+  >(sincronizacaoSolicitada === "erro" ? "erro" : "ocioso");
   const todosIdsUnidades = useMemo(
     () => dados.unidades.map((unidade) => unidade.id),
     [dados.unidades],
@@ -252,6 +302,76 @@ export function FeriasEquipeCalendario({
   const [unidadesFiltro, setUnidadesFiltro] = useState<string[]>(
     idsSelecionadosIniciais,
   );
+
+  useEffect(() => {
+    if (
+      (!sincronizacaoAutomatica && !jobSincronizacaoInicial) ||
+      iniciouSincronizacao.current
+    ) {
+      return;
+    }
+
+    iniciouSincronizacao.current = true;
+    let cancelado = false;
+    let timer: number | undefined;
+
+    const acompanhar = async (jobId: string) => {
+      if (cancelado) return;
+
+      const resultado = await consultarJobSincronizacaoFeriasSarhAction(jobId);
+      if (cancelado) return;
+
+      if (resultado.estado === "completed" || resultado.estado === "concluido") {
+        setEstadoAtualizacao("concluida");
+        router.refresh();
+        return;
+      }
+
+      if (!resultado.ok || resultado.falhou) {
+        setEstadoAtualizacao("erro");
+        return;
+      }
+
+      setEstadoAtualizacao("atualizando");
+      timer = window.setTimeout(() => void acompanhar(jobId), 3_000);
+    };
+
+    const iniciar = async () => {
+      if (jobSincronizacaoInicial) {
+        setEstadoAtualizacao("atualizando");
+        await acompanhar(jobSincronizacaoInicial);
+        return;
+      }
+
+      const resultado =
+        await sincronizarFeriasSarhEquipeAutomaticamenteAction({
+          dataReferencia,
+        });
+
+      if (cancelado) return;
+      if (!resultado.ok) {
+        setEstadoAtualizacao("erro");
+        return;
+      }
+
+      if (resultado.jobId) {
+        setEstadoAtualizacao("atualizando");
+        await acompanhar(resultado.jobId);
+      }
+    };
+
+    void iniciar();
+
+    return () => {
+      cancelado = true;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [
+    dataReferencia,
+    jobSincronizacaoInicial,
+    router,
+    sincronizacaoAutomatica,
+  ]);
   const unidadesSelecionadasFiltro = new Set(unidadesFiltro);
   const unidadesOrdenadas = useMemo(
     () => ordenarUnidadesParaArvore(dados.unidades),
@@ -325,6 +445,23 @@ export function FeriasEquipeCalendario({
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <form action={sincronizarFeriasSarhEquipeAction}>
+            <input type="hidden" name="redirectTo" value={redirectTo} />
+            <input
+              type="hidden"
+              name="dataReferencia"
+              value={dataReferencia}
+            />
+            <button
+              type="submit"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-border bg-background px-4 text-sm font-semibold transition hover:bg-muted"
+              title="Solicitar atualização das férias importadas do SARH"
+            >
+              <RefreshCw className="size-4" aria-hidden="true" />
+              Atualizar SARH
+            </button>
+          </form>
+
           <div className="flex items-center gap-2">
             <Link
               href={hrefAnoAnterior}
@@ -386,6 +523,61 @@ export function FeriasEquipeCalendario({
             <Filter className="size-4" aria-hidden="true" />
             Filtrar
           </button>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-md border border-border bg-background p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-900 dark:bg-blue-950 dark:text-blue-200">
+              <Clock3 className="size-4" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-sm font-bold">Sincronização SARH de férias</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Última gravação de férias no SECP:{" "}
+                <span className="font-semibold text-foreground">
+                  {formatarDataHoraManaus(
+                    sincronizacaoSarh.ultimaGravacaoFeriasEm,
+                  )}
+                </span>
+                {" · "}última execução:{" "}
+                <span className="font-semibold text-foreground">
+                  {formatarDataHoraManaus(sincronizacaoSarh.ultimaExecucaoEm)}
+                </span>
+                {" · "}
+                {rotuloStatusExecucao(sincronizacaoSarh.ultimoStatus)}
+              </p>
+              {sincronizacaoSarh.ultimoErro && (
+                <p className="mt-1 max-w-4xl truncate text-xs text-red-700 dark:text-red-200">
+                  {sincronizacaoSarh.ultimoErro}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {estadoAtualizacao === "atualizando" && (
+            <span className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-900 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100">
+              <RefreshCw className="size-3 animate-spin" aria-hidden="true" />
+              Atualizando pelo SARH
+            </span>
+          )}
+          {estadoAtualizacao === "concluida" && (
+            <span className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-bold text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-100">
+              Mapa atualizado
+            </span>
+          )}
+          {estadoAtualizacao === "ocioso" && sincronizacaoSolicitada === "ok" && (
+            <span className="rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-bold text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-100">
+              Sincronização solicitada
+            </span>
+          )}
+          {(estadoAtualizacao === "erro" ||
+            sincronizacaoSolicitada === "erro") && (
+            <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-100">
+              Falha ao solicitar sincronização
+            </span>
+          )}
         </div>
       </div>
 
@@ -723,43 +915,80 @@ function FiltroUnidadesModal({
   const [expandidos, setExpandidos] = useState<Set<string>>(
     () => new Set(filhosPorPai.get(null)?.map((unidade) => unidade.id) ?? []),
   );
+  const [recolhidosNaBusca, setRecolhidosNaBusca] = useState<Set<string>>(
+    () => new Set(),
+  );
   const unidadesPorId = useMemo(
     () => new Map(unidades.map((unidade) => [unidade.id, unidade])),
     [unidades],
   );
   const buscaNormalizada = normalizarBusca(buscaUnidade);
-  const unidadesVisiveis = useMemo(() => {
-    if (buscaNormalizada) {
-      const idsVisiveis = new Set<string>();
+  const contextoBusca = useMemo(() => {
+    if (!buscaNormalizada) return null;
 
-      for (const unidade of unidades) {
-        const texto = normalizarBusca(`${unidade.sigla} ${unidade.nome}`);
-        if (!texto.includes(buscaNormalizada)) continue;
+    const idsVisiveis = new Set<string>();
+    const idsExpandidosObrigatorios = new Set<string>();
+    const correspondencias = unidades.filter((unidade) =>
+      normalizarBusca(`${unidade.sigla} ${unidade.nome}`).includes(
+        buscaNormalizada,
+      ),
+    );
 
-        let atual: UnidadeMinhaEquipe | undefined = unidade;
-        while (atual) {
-          idsVisiveis.add(atual.id);
-          atual = atual.unidadePaiId
-            ? unidadesPorId.get(atual.unidadePaiId)
-            : undefined;
-        }
+    const incluirDescendentes = (unidadeId: string) => {
+      idsVisiveis.add(unidadeId);
+      for (const filha of filhosPorPai.get(unidadeId) ?? []) {
+        incluirDescendentes(filha.id);
       }
+    };
 
-      return unidades.filter((unidade) => idsVisiveis.has(unidade.id));
-    }
+    for (const unidade of correspondencias) {
+      incluirDescendentes(unidade.id);
 
-    return unidades.filter((unidade) => {
       let paiId = unidade.unidadePaiId;
       while (paiId) {
-        if (!expandidos.has(paiId)) return false;
+        idsVisiveis.add(paiId);
+        idsExpandidosObrigatorios.add(paiId);
+        paiId = unidadesPorId.get(paiId)?.unidadePaiId ?? null;
+      }
+    }
+
+    return { idsVisiveis, idsExpandidosObrigatorios };
+  }, [buscaNormalizada, filhosPorPai, unidades, unidadesPorId]);
+  const unidadesVisiveis = useMemo(() => {
+    return unidades.filter((unidade) => {
+      if (contextoBusca && !contextoBusca.idsVisiveis.has(unidade.id)) {
+        return false;
+      }
+
+      let paiId = unidade.unidadePaiId;
+      while (paiId) {
+        if (
+          !expandidos.has(paiId) &&
+          !(
+            contextoBusca?.idsExpandidosObrigatorios.has(paiId) &&
+            !recolhidosNaBusca.has(paiId)
+          )
+        ) {
+          return false;
+        }
         paiId = unidadesPorId.get(paiId)?.unidadePaiId ?? null;
       }
 
       return true;
     });
-  }, [buscaNormalizada, expandidos, unidades, unidadesPorId]);
+  }, [contextoBusca, expandidos, recolhidosNaBusca, unidades, unidadesPorId]);
 
   function alternarExpansao(unidadeId: string) {
+    if (contextoBusca?.idsExpandidosObrigatorios.has(unidadeId)) {
+      setRecolhidosNaBusca((atuais) => {
+        const proximo = new Set(atuais);
+        if (proximo.has(unidadeId)) proximo.delete(unidadeId);
+        else proximo.add(unidadeId);
+        return proximo;
+      });
+      return;
+    }
+
     setExpandidos((atuais) => {
       const proximo = new Set(atuais);
       if (proximo.has(unidadeId)) proximo.delete(unidadeId);
@@ -792,7 +1021,10 @@ function FiltroUnidadesModal({
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <input
               value={buscaUnidade}
-              onChange={(event) => setBuscaUnidade(event.target.value)}
+              onChange={(event) => {
+                setBuscaUnidade(event.target.value);
+                setRecolhidosNaBusca(new Set());
+              }}
               placeholder="Pesquisar departamento por sigla ou nome"
               className="h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 text-sm outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/25"
             />
@@ -839,7 +1071,12 @@ function FiltroUnidadesModal({
             {unidadesVisiveis.map((unidade) => {
               const selecionado = selecionadas.has(unidade.id);
               const possuiFilhos = idsComFilhos.has(unidade.id);
-              const expandido = expandidos.has(unidade.id) || Boolean(buscaNormalizada);
+              const expandido =
+                expandidos.has(unidade.id) ||
+                Boolean(
+                  contextoBusca?.idsExpandidosObrigatorios.has(unidade.id) &&
+                    !recolhidosNaBusca.has(unidade.id),
+                );
 
               return (
                 <div
@@ -850,7 +1087,7 @@ function FiltroUnidadesModal({
                   <button
                     type="button"
                     onClick={() => alternarExpansao(unidade.id)}
-                    disabled={!possuiFilhos || Boolean(buscaNormalizada)}
+                    disabled={!possuiFilhos}
                     className="inline-flex size-5 items-center justify-center rounded text-muted-foreground transition hover:bg-background disabled:opacity-30"
                     aria-label={
                       expandido

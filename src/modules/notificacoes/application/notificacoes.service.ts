@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { perfilAtivoEhChefia } from "@/modules/auth/application/services/perfil-chefia.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import type { PerfilSessao } from "@/modules/auth/domain/entities/usuario-autenticado";
 
@@ -196,6 +197,10 @@ export async function listarNotificacoesUsuario(
   usuarioId: string,
   contexto?: ContextoNotificacoes,
 ): Promise<NotificacaoUsuario[]> {
+  const perfilChefiaAtivo = perfilAtivoEhChefia({
+    perfilAtivoCodigo: contexto?.perfilAtivo?.codigo,
+    permissoes: contexto?.perfilAtivo?.permissoes,
+  });
   const podeVerPropriasSolicitacoes = possuiPermissao(contexto, [
     "solicitacoes:criar:proprio",
     "solicitacoes:consultar:proprio",
@@ -312,7 +317,7 @@ export async function listarNotificacoesUsuario(
           take: 20,
         })
       : Promise.resolve([]),
-    podeVerPropriasSolicitacoes
+    podeVerPropriasSolicitacoes && !perfilChefiaAtivo
       ? prisma.solicitacao.findMany({
           where: {
             usuarioSolicitanteId: usuarioId,
@@ -341,7 +346,7 @@ export async function listarNotificacoesUsuario(
           take: 20,
         })
       : Promise.resolve([]),
-    servidor && podeVerFrequenciaPropria
+    servidor && podeVerFrequenciaPropria && !perfilChefiaAtivo
       ? prisma.ocorrenciaFrequencia.findMany({
           where: {
             servidorId: servidor.id,
@@ -356,7 +361,7 @@ export async function listarNotificacoesUsuario(
           take: 10,
         })
       : Promise.resolve([]),
-    servidor && podeVerHomologacaoPropria
+    servidor && podeVerHomologacaoPropria && !perfilChefiaAtivo
       ? prisma.homologacaoServidorMes.findMany({
           where: {
             servidorId: servidor.id,
@@ -377,7 +382,7 @@ export async function listarNotificacoesUsuario(
           take: 5,
         })
       : Promise.resolve([]),
-    servidor && podeVerFrequenciaPropria
+    servidor && podeVerFrequenciaPropria && !perfilChefiaAtivo
       ? prisma.marcacao.findMany({
           where: {
             servidorId: servidor.id,
@@ -436,7 +441,7 @@ export async function listarNotificacoesUsuario(
           take: 20,
         })
       : Promise.resolve([]),
-    servidor && podeVerFeriasProprias
+    servidor && podeVerFeriasProprias && !perfilChefiaAtivo
       ? prisma.programacaoFerias.findMany({
           where: {
             servidorId: servidor.id,
@@ -569,7 +574,11 @@ export async function listarNotificacoesUsuario(
     });
   }
 
-  if (servidor?.bancoHorasSaldo && podeVerBancoHorasProprio) {
+  if (
+    servidor?.bancoHorasSaldo &&
+    podeVerBancoHorasProprio &&
+    !perfilChefiaAtivo
+  ) {
     const pendenteCredito = servidor.bancoHorasSaldo.creditosPendentesMinutos;
     const pendenteDebito = servidor.bancoHorasSaldo.debitosPendentesMinutos;
 
@@ -665,6 +674,51 @@ export async function contarNotificacoesUsuario(
     contexto,
   );
   return notificacoes.length;
+}
+
+export function selecionarPerfilChefiaNotificavel(
+  perfis: PerfilSessao[] | undefined | null,
+  perfilAtivo?: PerfilSessao | null,
+) {
+  const codigoAtivo = perfilAtivo?.codigo?.toUpperCase();
+
+  return (
+    perfis?.find(
+      (perfil) =>
+        perfil.codigo.toUpperCase() !== codigoAtivo &&
+        perfilAtivoEhChefia({
+          perfilAtivoCodigo: perfil.codigo,
+          permissoes: perfil.permissoes,
+        }),
+    ) ?? null
+  );
+}
+
+export async function contarNotificacoesPerfilChefiaUsuario(params: {
+  usuarioId: string;
+  perfis?: PerfilSessao[] | null;
+  perfilAtivo?: PerfilSessao | null;
+}) {
+  const perfilChefia = selecionarPerfilChefiaNotificavel(
+    params.perfis,
+    params.perfilAtivo,
+  );
+
+  if (!perfilChefia) {
+    return {
+      total: 0,
+      perfilChefia: null,
+    };
+  }
+
+  const total = await contarNotificacoesUsuario(params.usuarioId, {
+    perfilAtivo: perfilChefia,
+  });
+
+  return {
+    total,
+    perfilChefia,
+  };
 }
 
 export async function listarNotificacoesPendentesUsuario(

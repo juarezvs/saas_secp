@@ -9,6 +9,7 @@ import {
   Building2,
   Check,
   ChevronDown,
+  Gavel,
   LogOut,
   Menu,
   ShieldCheck,
@@ -16,7 +17,6 @@ import {
   WandSparkles,
 } from "lucide-react";
 import { AccessibilityToolbar } from "@/components/accessibility/accessibility-toolbar";
-import { VlibrasBreadcrumbButton } from "@/components/accessibility/vlibras-breadcrumb-button";
 import { SecpLogo } from "@/components/brand/secp-logo";
 import { ChatInternoWidget } from "@/components/layout/chat-interno-widget";
 import type { PerfilNavegacao } from "@/components/layout/sidebar";
@@ -38,6 +38,11 @@ type HeaderProps = {
   sidebarRecolhida: boolean;
   drawerAberto: boolean;
   totalNotificacoes: number;
+  alertaChefiaInicial?: {
+    total: number;
+    perfilCodigo: string;
+    perfilNome: string;
+  } | null;
   preferenciasAcessibilidade: PreferenciasAcessibilidade;
   onStartTour?: () => void;
 };
@@ -58,6 +63,7 @@ export function Header({
   sidebarRecolhida,
   drawerAberto,
   totalNotificacoes,
+  alertaChefiaInicial,
   preferenciasAcessibilidade,
   onStartTour,
 }: HeaderProps) {
@@ -65,6 +71,7 @@ export function Header({
   const pathname = usePathname();
   const [totalNotificacoesAtual, setTotalNotificacoesAtual] =
     useState(totalNotificacoes);
+  const [alertaChefia, setAlertaChefia] = useState(alertaChefiaInicial ?? null);
   const [seletorPerfilAberto, setSeletorPerfilAberto] = useState(false);
   const [perfilPendente, startTransition] = useTransition();
   const seletorPerfilRef = useRef<HTMLDivElement | null>(null);
@@ -86,6 +93,41 @@ export function Header({
     }
   }, [totalNotificacoes]);
 
+  const buscarAlertaChefia = useCallback(async () => {
+    if (perfilAtivo.codigo.toUpperCase() !== "SERVIDOR") {
+      return null;
+    }
+
+    try {
+      const response = await fetch("/api/notificacoes/chefia-contador", {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        return alertaChefiaInicial ?? null;
+      }
+
+      const payload = (await response.json()) as {
+        total?: number;
+        perfilCodigo?: string | null;
+        perfilNome?: string | null;
+      };
+      const total = Number(payload.total ?? 0);
+
+      if (total <= 0 || !payload.perfilCodigo) {
+        return null;
+      }
+
+      return {
+        total,
+        perfilCodigo: payload.perfilCodigo,
+        perfilNome: payload.perfilNome ?? "Chefia",
+      };
+    } catch {
+      return alertaChefiaInicial ?? null;
+    }
+  }, [alertaChefiaInicial, perfilAtivo.codigo]);
+
   useEffect(() => {
     let ativo = true;
 
@@ -94,15 +136,21 @@ export function Header({
         setTotalNotificacoesAtual(total);
       }
     });
+    buscarAlertaChefia().then((alerta) => {
+      if (ativo) {
+        setAlertaChefia(alerta);
+      }
+    });
 
     return () => {
       ativo = false;
     };
-  }, [pathname, perfilAtivo.codigo, buscarTotalNotificacoes]);
+  }, [pathname, perfilAtivo.codigo, buscarAlertaChefia, buscarTotalNotificacoes]);
 
   useEffect(() => {
     function atualizarAoFocar() {
       buscarTotalNotificacoes().then(setTotalNotificacoesAtual);
+      buscarAlertaChefia().then(setAlertaChefia);
     }
 
     window.addEventListener("focus", atualizarAoFocar);
@@ -112,7 +160,7 @@ export function Header({
       window.removeEventListener("focus", atualizarAoFocar);
       document.removeEventListener("visibilitychange", atualizarAoFocar);
     };
-  }, [buscarTotalNotificacoes]);
+  }, [buscarAlertaChefia, buscarTotalNotificacoes]);
 
   useEffect(() => {
     if (!seletorPerfilAberto) {
@@ -140,7 +188,7 @@ export function Header({
     };
   }, [seletorPerfilAberto]);
 
-  function selecionarPerfil(codigo: string) {
+  function selecionarPerfil(codigo: string, destino = "/dashboard") {
     const novoPerfil = perfis.find((perfil) => perfil.codigo === codigo);
 
     if (novoPerfil) {
@@ -161,12 +209,22 @@ export function Header({
             perfilAtivo?: PerfilNavegacao;
           };
           onPerfilAtivoChange(payload.perfilAtivo ?? novoPerfil);
-          router.push("/dashboard");
+          router.push(destino);
           router.refresh();
           buscarTotalNotificacoes().then(setTotalNotificacoesAtual);
+          buscarAlertaChefia().then(setAlertaChefia);
         }
       });
     }
+  }
+
+  function abrirCaixaChefia() {
+    if (!alertaChefia) {
+      return;
+    }
+
+    window.sessionStorage.setItem("secp:abrir-caixa-mensagens", "1");
+    selecionarPerfil(alertaChefia.perfilCodigo, "/notificacoes");
   }
 
   return (
@@ -238,12 +296,26 @@ export function Header({
           )}
 
           <div className="hidden shrink-0 items-center gap-3 lg:flex">
-            <VlibrasBreadcrumbButton variant="header" />
             <ChatInternoWidget
               perfilAtivoCodigo={perfilAtivo.codigo}
               totalInicial={totalNotificacoesAtual}
               variant="header"
             />
+            {perfilAtivo.codigo.toUpperCase() === "SERVIDOR" && alertaChefia ? (
+              <button
+                type="button"
+                onClick={abrirCaixaChefia}
+                disabled={perfilPendente}
+                className="secp-theme-action relative inline-flex size-12 shrink-0 animate-pulse items-center justify-center rounded-md border shadow-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:cursor-wait disabled:opacity-70"
+                aria-label={`${alertaChefia.total} pendência(s) no perfil ${alertaChefia.perfilNome}`}
+                title={`${alertaChefia.total} pendência(s) no perfil ${alertaChefia.perfilNome}`}
+              >
+                <Gavel className="size-5" aria-hidden="true" />
+                <span className="absolute -right-1 -top-1 flex min-w-5 items-center justify-center rounded-full bg-[var(--secp-theme-accent)] px-1.5 py-0.5 text-[10px] font-bold leading-none text-[var(--secp-theme-accent-contrast)] ring-2 ring-white/90">
+                  {alertaChefia.total > 99 ? "99+" : alertaChefia.total}
+                </span>
+              </button>
+            ) : null}
           </div>
 
           <div

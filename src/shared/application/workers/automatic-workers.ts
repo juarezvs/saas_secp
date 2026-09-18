@@ -61,6 +61,11 @@ export async function iniciarWorkersAutomaticos() {
     ).then(({ garantirSarhSyncWorkerAutomatico }) =>
       garantirSarhSyncWorkerAutomatico(),
     ),
+    import(
+      "@/modules/recalculo/application/workers/recalcular-espelho-ponto-worker-runtime"
+    ).then(({ criarRecalcularEspelhoPontoWorker }) =>
+      criarRecalcularEspelhoPontoWorker(),
+    ),
   ]);
 
   resultados.forEach((resultado) => {

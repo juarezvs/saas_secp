@@ -4,6 +4,7 @@ import {
   type RecalcularDiaServidorParams,
 } from "./recalcular-dia-servidor.service";
 import { regerarBancoHorasMesService } from "./regerar-banco-horas-mes.service";
+import { registrarCompetenciaEspelhoAtualizada } from "./processamento-espelho-ponto.service";
 
 export type RecalcularDiaEBancoHorasServidorParams =
   RecalcularDiaServidorParams;
@@ -27,6 +28,12 @@ export async function recalcularDiaEBancoHorasServidorService(
     ...competencia,
     usuarioIdAuditoria: params.usuarioIdAuditoria,
     origem: params.origem,
+  });
+  await registrarCompetenciaEspelhoAtualizada({
+    servidorId: params.servidorId,
+    ...competencia,
+    motivo: params.origem ?? "RECALCULO_DIA_E_BANCO_HORAS",
+    solicitadoPorId: params.usuarioIdAuditoria,
   });
 
   return {

@@ -16,6 +16,7 @@
     "worker:calendario-institucional": "tsx workers/calendario-institucional.worker.ts",
     "worker:sarh-sync": "tsx workers/sarh-sync.worker.ts",
     "worker:sarh-login-sync": "tsx workers/sarh-login-sync.worker.ts",
+    "worker:recalcular-espelho-ponto": "tsx workers/recalcular-espelho-ponto.worker.ts",
     "worker:coleta-relogio-progressiva": "tsx workers/coleta-relogio-progressiva.worker.ts",
     "worker:relatorio-exportacao": "tsx workers/relatorio-exportacao.worker.ts",
     "coletar:marcacoes-servidor": "tsx scripts/coletar-marcacoes-servidor-seccional.ts",

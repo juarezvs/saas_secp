@@ -27,6 +27,11 @@ type UsuarioNavegacao = {
   fotoUrl?: string | null;
   unidade: string;
   instituicaoLabel: string;
+  alertaChefia?: {
+    total: number;
+    perfilCodigo: string;
+    perfilNome: string;
+  } | null;
   perfis: PerfilNavegacao[];
   perfilAtivo: PerfilNavegacao;
   preferenciasAcessibilidade: PreferenciasAcessibilidade;
@@ -86,6 +91,7 @@ export function AppShellClient({
         sidebarRecolhida={sidebarRecolhida}
         drawerAberto={drawerAberto}
         totalNotificacoes={totalNotificacoes}
+        alertaChefiaInicial={usuario.alertaChefia}
         preferenciasAcessibilidade={usuario.preferenciasAcessibilidade}
         onStartTour={
           perfilAtivo.codigo.toUpperCase() === "SERVIDOR"

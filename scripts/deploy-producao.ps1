@@ -221,6 +221,17 @@ else
   exit 2
 fi
 
+mkdir -p "${RELEASE_DIR}/docker/pgbouncer"
+if [[ -f "${CURRENT_LINK}/docker/pgbouncer/userlist.txt" ]]; then
+  cp "${CURRENT_LINK}/docker/pgbouncer/userlist.txt" "${RELEASE_DIR}/docker/pgbouncer/userlist.txt"
+elif [[ -f "${REMOTE_ROOT}/docker/pgbouncer/userlist.txt" ]]; then
+  cp "${REMOTE_ROOT}/docker/pgbouncer/userlist.txt" "${RELEASE_DIR}/docker/pgbouncer/userlist.txt"
+else
+  echo "Credencial do PgBouncer nao encontrada na release atual nem em ${REMOTE_ROOT}" >&2
+  exit 2
+fi
+chmod 0644 "${RELEASE_DIR}/docker/pgbouncer/userlist.txt"
+
 if [[ -d "${CURRENT_LINK}/observability/secrets" ]]; then
   mkdir -p "${RELEASE_DIR}/observability"
   cp -a "${CURRENT_LINK}/observability/secrets" "${RELEASE_DIR}/observability/"

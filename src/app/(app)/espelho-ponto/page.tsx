@@ -15,7 +15,11 @@ import {
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { perfilAtivoEhChefia } from "@/modules/auth/application/services/perfil-chefia.service";
 import { RecalcularMesForm } from "@/modules/recalculo/presentation/components/recalcular-mes-form";
-import { recalcularMesServidorService } from "@/modules/recalculo/application/services/recalcular-mes-servidor.service";
+import { enfileirarRecalculoEspelhoPonto } from "@/modules/recalculo/application/queues/recalcular-espelho-ponto-queue";
+import {
+  obterProcessamentoEspelhoPonto,
+  processamentoAtualizadoHoje,
+} from "@/modules/recalculo/application/services/processamento-espelho-ponto.service";
 import {
   montarOpcoesCargoFuncaoAssinatura,
   resolverSeccionalAssinatura,
@@ -45,7 +49,6 @@ import {
   buscarRegulamentacaoPontoOrgao,
 } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 import { logger } from "@/lib/observability/logger";
-import { prisma } from "@/shared/infrastructure/database/prisma";
 
 type EspelhoPontoPageProps = {
   searchParams: Promise<{
@@ -151,115 +154,6 @@ function obterCompetenciaAtual(fusoHorario: string) {
 
 function inicioCompetencia(anoReferencia: number, mesReferencia: number) {
   return new Date(Date.UTC(anoReferencia, mesReferencia - 1, 1));
-}
-
-function fimCompetencia(anoReferencia: number, mesReferencia: number) {
-  return new Date(Date.UTC(anoReferencia, mesReferencia, 1));
-}
-
-function hojeNoFuso(fusoHorario: string) {
-  const partes = new Intl.DateTimeFormat("en-CA", {
-    timeZone: fusoHorario,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-  const ano = Number(partes.find((parte) => parte.type === "year")?.value);
-  const mes = Number(partes.find((parte) => parte.type === "month")?.value);
-  const dia = Number(partes.find((parte) => parte.type === "day")?.value);
-
-  return new Date(Date.UTC(ano, mes - 1, dia));
-}
-
-function fimExclusivoCalculavel(params: {
-  anoReferencia: number;
-  mesReferencia: number;
-  fusoHorario: string;
-}) {
-  const inicio = inicioCompetencia(params.anoReferencia, params.mesReferencia);
-  const fim = fimCompetencia(params.anoReferencia, params.mesReferencia);
-  const hoje = hojeNoFuso(params.fusoHorario);
-
-  if (hoje < inicio) {
-    return inicio;
-  }
-
-  if (hoje >= fim) {
-    return fim;
-  }
-
-  const fimHoje = new Date(hoje);
-  fimHoje.setUTCDate(fimHoje.getUTCDate() + 1);
-  return fimHoje;
-}
-
-function quantidadeDiasEntre(inicio: Date, fimExclusivo: Date) {
-  return Math.max(
-    0,
-    Math.round((fimExclusivo.getTime() - inicio.getTime()) / 86_400_000),
-  );
-}
-
-async function garantirEspelhoMensalCalculado(params: {
-  servidorId: string;
-  anoReferencia: number;
-  mesReferencia: number;
-  fusoHorario: string;
-}) {
-  const inicio = inicioCompetencia(params.anoReferencia, params.mesReferencia);
-  const fimCalculavel = fimExclusivoCalculavel(params);
-
-  if (fimCalculavel <= inicio) {
-    return {
-      recalculoExecutado: false,
-      diasCalculaveis: 0,
-      diasComApuracao: 0,
-    };
-  }
-
-  const diasCalculaveis = quantidadeDiasEntre(inicio, fimCalculavel);
-  const diasComApuracao = await prisma.apuracaoDiaria.count({
-    where: {
-      servidorId: params.servidorId,
-      dataReferencia: {
-        gte: inicio,
-        lt: fimCalculavel,
-      },
-    },
-  });
-
-  if (diasComApuracao >= diasCalculaveis) {
-    return {
-      recalculoExecutado: false,
-      diasCalculaveis,
-      diasComApuracao,
-    };
-  }
-
-  const inicioRecalculo = performance.now();
-  let recalculoExecutado = true;
-
-  await recalcularMesServidorService({
-    servidorId: params.servidorId,
-    anoReferencia: params.anoReferencia,
-    mesReferencia: params.mesReferencia,
-    origem: "ESPELHO_PONTO_AUTO",
-  }).catch((error: unknown) => {
-    recalculoExecutado = false;
-    logger.warn("[ESPELHO_PONTO_AUTO] Nao foi possivel recalcular o mes", {
-      servidorId: params.servidorId,
-      anoReferencia: params.anoReferencia,
-      mesReferencia: params.mesReferencia,
-      erro: error instanceof Error ? error.message : String(error),
-    });
-  });
-
-  return {
-    recalculoExecutado,
-    diasCalculaveis,
-    diasComApuracao,
-    recalculoDurationMs: Math.round(performance.now() - inicioRecalculo),
-  };
 }
 
 function paramsPossuemCompetencia(params: {
@@ -417,9 +311,9 @@ export default async function EspelhoPontoPage({
     redirect(`/espelho-ponto?${query.toString()}`);
   }
 
-  let recalculoAutomatico:
-    | Awaited<ReturnType<typeof garantirEspelhoMensalCalculado>>
-    | null = null;
+  let processamentoEspelho: Awaited<
+    ReturnType<typeof obterProcessamentoEspelhoPonto>
+  > = null;
 
   if (servidorSelecionado) {
     const fusoHorario = await medidor.medir("fuso_horario_servidor", () =>
@@ -429,14 +323,54 @@ export default async function EspelhoPontoPage({
       }),
     );
 
-    recalculoAutomatico = await medidor.medir("garantir_espelho_calculado", () =>
-      garantirEspelhoMensalCalculado({
+    processamentoEspelho = await medidor.medir("estado_processamento_espelho", () =>
+      obterProcessamentoEspelhoPonto({
         servidorId: servidorSelecionado.id,
         anoReferencia,
         mesReferencia,
-        fusoHorario,
       }),
     );
+
+    const competenciaSelecionada = competenciaParaInput(
+      anoReferencia,
+      mesReferencia,
+    );
+    const podeCalcularCompetencia =
+      competenciaSelecionada <= obterCompetenciaAtual(fusoHorario);
+    const processamentoEmAndamento = ["PENDENTE", "PROCESSANDO"].includes(
+      processamentoEspelho?.status ?? "",
+    );
+
+    if (
+      podeCalcularCompetencia &&
+      !processamentoEmAndamento &&
+      !processamentoAtualizadoHoje(processamentoEspelho, fusoHorario)
+    ) {
+      await medidor
+        .medir("enfileirar_espelho_desatualizado", () =>
+          enfileirarRecalculoEspelhoPonto({
+            servidorId: servidorSelecionado.id,
+            anoReferencia,
+            mesReferencia,
+            motivo: "ACESSO_ESPELHO_DESATUALIZADO",
+            solicitadoPorId: permissao.usuarioId,
+            fusoHorario,
+          }),
+        )
+        .catch((error: unknown) => {
+          logger.warn("Falha ao enfileirar atualizacao do espelho", {
+            servidorId: servidorSelecionado.id,
+            anoReferencia,
+            mesReferencia,
+            erro: error instanceof Error ? error.message : String(error),
+          });
+        });
+      processamentoEspelho = await obterProcessamentoEspelhoPonto({
+        servidorId: servidorSelecionado.id,
+        anoReferencia,
+        mesReferencia,
+      });
+    }
   }
 
   const [apuracoes, marcacoes, homologacaoServidor] =
@@ -496,10 +430,7 @@ export default async function EspelhoPontoPage({
     : true;
   const medicao = medidor.finalizar();
 
-  if (
-    medicao.totalMs >= limiteLogLentoEspelhoPonto() ||
-    recalculoAutomatico?.recalculoExecutado
-  ) {
+  if (medicao.totalMs >= limiteLogLentoEspelhoPonto()) {
     logger.info("Tempo de carregamento do espelho de ponto", {
       rota: "/espelho-ponto",
       totalMs: medicao.totalMs,
@@ -517,7 +448,7 @@ export default async function EspelhoPontoPage({
       servidoresRenderizados: servidores.length,
       apuracoes: apuracoes.length,
       marcacoes: marcacoes.length,
-      recalculoAutomatico,
+      processamentoEspelho: processamentoEspelho?.status ?? "AUSENTE",
     });
   }
 
@@ -544,14 +475,6 @@ export default async function EspelhoPontoPage({
             pessoasSearchUrl={`/api/espelho-ponto/pessoas?${queryBuscaPessoa.toString()}`}
             mostrarServidor
           />
-
-          {podeRecalcular && servidorSelecionado && (
-            <RecalcularMesForm
-              servidorId={servidorSelecionado.id}
-              anoReferencia={anoReferencia}
-              mesReferencia={mesReferencia}
-            />
-          )}
 
           {servidorSelecionado && (
             <div className="mt-4 flex justify-end border-t pt-4">
@@ -585,6 +508,22 @@ export default async function EspelhoPontoPage({
             />
           </div>
         </Card>
+      )}
+
+      {servidorSelecionado && (
+        <RecalcularMesForm
+          key={`${servidorSelecionado.id}-${competenciaInput}-${processamentoEspelho?.status}-${processamentoEspelho?.concluidoEm?.toISOString()}`}
+          servidorId={servidorSelecionado.id}
+          anoReferencia={anoReferencia}
+          mesReferencia={mesReferencia}
+          podeRecalcular={podeRecalcular}
+          estadoInicial={{
+            status: processamentoEspelho?.status ?? "AUSENTE",
+            atualizadoEm:
+              processamentoEspelho?.concluidoEm?.toISOString() ?? null,
+            erro: processamentoEspelho?.erro ?? null,
+          }}
+        />
       )}
 
       {servidorSelecionado ? (

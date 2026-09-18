@@ -77,6 +77,13 @@ export type FeriasEquipeCalendarioDados = {
   resumo: FeriasEquipeResumo;
 };
 
+export type FeriasEquipeSincronizacaoSarh = {
+  ultimaGravacaoFeriasEm: Date | null;
+  ultimaExecucaoEm: Date | null;
+  ultimoStatus: string | null;
+  ultimoErro: string | null;
+};
+
 export async function listarIdsUnidadesSubordinadasNaData(params: {
   usuarioId: string;
   data: Date;
@@ -154,6 +161,78 @@ function calcularNiveisUnidades(
   return new Map(unidades.map((unidade) => [unidade.id, nivel(unidade.id)]));
 }
 
+type UnidadeComOrgao = {
+  id: string;
+  sigla: string;
+  nome: string;
+  unidadePaiId: string | null;
+  orgaoId: string;
+  orgao: { sigla: string };
+};
+
+function normalizarSigla(valor: string) {
+  return valor.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+export function recortarHierarquiasPorSeccional(
+  unidades: UnidadeComOrgao[],
+) {
+  const porOrgao = new Map<string, UnidadeComOrgao[]>();
+
+  for (const unidade of unidades) {
+    const lista = porOrgao.get(unidade.orgaoId) ?? [];
+    lista.push(unidade);
+    porOrgao.set(unidade.orgaoId, lista);
+  }
+
+  const resultado: Array<{
+    id: string;
+    sigla: string;
+    nome: string;
+    unidadePaiId: string | null;
+  }> = [];
+
+  for (const unidadesOrgao of porOrgao.values()) {
+    const siglaOrgao = normalizarSigla(unidadesOrgao[0]?.orgao.sigla ?? "");
+    const raizesSeccional = unidadesOrgao.filter(
+      (unidade) => normalizarSigla(unidade.sigla) === siglaOrgao,
+    );
+
+    if (raizesSeccional.length === 0) continue;
+
+    const filhosPorPai = new Map<string, UnidadeComOrgao[]>();
+    for (const unidade of unidadesOrgao) {
+      if (!unidade.unidadePaiId) continue;
+      const filhos = filhosPorPai.get(unidade.unidadePaiId) ?? [];
+      filhos.push(unidade);
+      filhosPorPai.set(unidade.unidadePaiId, filhos);
+    }
+
+    const incluidos = new Set<string>();
+    const visitar = (unidadeId: string) => {
+      if (incluidos.has(unidadeId)) return;
+      incluidos.add(unidadeId);
+      for (const filha of filhosPorPai.get(unidadeId) ?? []) visitar(filha.id);
+    };
+    for (const raiz of raizesSeccional) visitar(raiz.id);
+
+    for (const unidade of unidadesOrgao) {
+      if (!incluidos.has(unidade.id)) continue;
+      resultado.push({
+        id: unidade.id,
+        sigla: unidade.sigla,
+        nome: unidade.nome,
+        unidadePaiId:
+          unidade.unidadePaiId && incluidos.has(unidade.unidadePaiId)
+            ? unidade.unidadePaiId
+            : null,
+      });
+    }
+  }
+
+  return resultado;
+}
+
 function formatarHora(data: Date | null) {
   if (!data) return null;
 
@@ -183,6 +262,56 @@ function filtroFeriasSarh() {
         },
       },
     ],
+  };
+}
+
+export async function buscarSincronizacaoFeriasSarhEquipe(params: {
+  orgaoIds?: string[];
+}): Promise<FeriasEquipeSincronizacaoSarh> {
+  const filtroOrgao =
+    params.orgaoIds !== undefined ? { orgaoId: { in: params.orgaoIds } } : {};
+  const [ultimoAfastamento, ultimaExecucao] = await Promise.all([
+    prisma.afastamentoSarh.findFirst({
+      where: {
+        ultimaSincronizacaoSarh: { not: null },
+        AND: [
+          filtroFeriasSarh(),
+          params.orgaoIds !== undefined
+            ? {
+                servidor: {
+                  orgaoId: { in: params.orgaoIds },
+                },
+              }
+            : {},
+        ],
+      },
+      select: { ultimaSincronizacaoSarh: true },
+      orderBy: { ultimaSincronizacaoSarh: "desc" },
+    }),
+    prisma.integracaoSarhExecucao.findFirst({
+      where: {
+        modoSimulacao: false,
+        integracao: {
+          tipo: "SARH",
+          ...filtroOrgao,
+        },
+      },
+      select: {
+        status: true,
+        finalizadoEm: true,
+        iniciadoEm: true,
+        mensagemErro: true,
+      },
+      orderBy: { iniciadoEm: "desc" },
+    }),
+  ]);
+
+  return {
+    ultimaGravacaoFeriasEm: ultimoAfastamento?.ultimaSincronizacaoSarh ?? null,
+    ultimaExecucaoEm:
+      ultimaExecucao?.finalizadoEm ?? ultimaExecucao?.iniciadoEm ?? null,
+    ultimoStatus: ultimaExecucao?.status ?? null,
+    ultimoErro: ultimaExecucao?.mensagemErro ?? null,
   };
 }
 
@@ -528,7 +657,7 @@ export async function buscarCalendarioFeriasEquipe(params: {
     };
   }
 
-  const unidadesBase = await prisma.unidadeOrganizacional.findMany({
+  const unidadesConsultadas = await prisma.unidadeOrganizacional.findMany({
     where: params.visualizarTodasEquipes
       ? {
           ativo: true,
@@ -545,9 +674,19 @@ export async function buscarCalendarioFeriasEquipe(params: {
       sigla: true,
       nome: true,
       unidadePaiId: true,
+      orgaoId: true,
+      orgao: { select: { sigla: true } },
     },
     orderBy: [{ sigla: "asc" }, { nome: "asc" }],
   });
+  const unidadesBase = params.visualizarTodasEquipes
+    ? recortarHierarquiasPorSeccional(unidadesConsultadas)
+    : unidadesConsultadas.map((unidade) => ({
+        id: unidade.id,
+        sigla: unidade.sigla,
+        nome: unidade.nome,
+        unidadePaiId: unidade.unidadePaiId,
+      }));
   const niveis = calcularNiveisUnidades(unidadesBase);
   const unidades = unidadesBase.map((unidade) => ({
     ...unidade,

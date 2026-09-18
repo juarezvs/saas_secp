@@ -1,6 +1,7 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { recalcularDiaServidorService } from "./recalcular-dia-servidor.service";
 import { regerarBancoHorasMesService } from "./regerar-banco-horas-mes.service";
+import { registrarCompetenciaEspelhoAtualizada } from "./processamento-espelho-ponto.service";
 import { carregarCalendarioInstitucionalPeriodo } from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
 import {
   normalizarFusoHorario,
@@ -484,6 +485,13 @@ export async function recalcularMesServidorService({
       usuarioIdAuditoria,
       origem,
     });
+    await registrarCompetenciaEspelhoAtualizada({
+      servidorId,
+      anoReferencia,
+      mesReferencia,
+      motivo: origem,
+      solicitadoPorId: usuarioIdAuditoria,
+    });
 
     return {
       diasRecalculados: 0,
@@ -521,6 +529,14 @@ export async function recalcularMesServidorService({
       inicioExclusivo: fimRecalculo,
       fim,
     });
+
+  await registrarCompetenciaEspelhoAtualizada({
+    servidorId,
+    anoReferencia,
+    mesReferencia,
+    motivo: origem,
+    solicitadoPorId: usuarioIdAuditoria,
+  });
 
   return {
     diasRecalculados: resultadosDias.length,

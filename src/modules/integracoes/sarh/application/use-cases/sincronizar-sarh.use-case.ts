@@ -142,6 +142,9 @@ export class SincronizarSarhUseCase {
           codigoUnidadeSarh: input.codigoUnidadeSarh,
           codigosUnidadesSarhPermitidos: input.codigosUnidadesSarhPermitidos,
           codigoCargoSarh: input.codigoCargoSarh,
+          escopoChave: input.escopoChave,
+          unidadeIdsEscopo: input.unidadeIdsEscopo,
+          origemSolicitacao: input.origemSolicitacao,
         },
       },
     });
@@ -582,11 +585,14 @@ export class SincronizarSarhUseCase {
           1,
           somenteFerias ? "Buscando férias" : "Buscando afastamentos",
         );
+        const matriculasPermitidas = await resolverMatriculasPermitidas();
         const afastamentos = await sarhClient.buscarAfastamentos({
           matricula: input.matricula,
+          matriculas: matriculasPermitidas
+            ? Array.from(matriculasPermitidas)
+            : undefined,
         });
         const matriculaFiltro = input.matricula?.toUpperCase();
-        const matriculasPermitidas = await resolverMatriculasPermitidas();
         const filtrados = afastamentos.filter((afastamento) => {
           const ehFerias = afastamentoSarhEhFerias(afastamento);
 

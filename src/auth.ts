@@ -12,6 +12,7 @@ import { autenticarUsuarioPorCredenciais } from "@/modules/auth/application/serv
 import { escolherPerfilInicial } from "@/modules/auth/application/services/perfil-servidor-prioritario.service";
 import { buscarUsuarioParaLoginPorMatricula } from "@/modules/auth/infrastructure/repositories/usuario-auth.repository";
 import { enfileirarAtualizacaoSarhLogin } from "@/modules/integracoes/sarh/application/queues/sarh-login-sync-queue";
+import { enfileirarRecalculoEspelhoNoLogin } from "@/modules/recalculo/application/queues/recalcular-espelho-ponto-queue";
 import type { UsuarioAutenticado } from "@/modules/auth/domain/entities/usuario-autenticado";
 
 async function obterCodigoPerfilAtivoCookie() {
@@ -73,6 +74,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             matricula: usuario.matricula,
             usuarioId: usuario.id,
           }),
+          enfileirarRecalculoEspelhoNoLogin({ usuarioId: usuario.id }),
         ];
 
         if (deveIniciarSarhLoginWorkerAutomatico()) {

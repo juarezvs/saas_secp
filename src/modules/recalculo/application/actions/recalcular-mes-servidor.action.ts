@@ -1,87 +1,88 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import { PeriodoHomologadoError } from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
-import { recalcularMesServidorService } from "../services/recalcular-mes-servidor.service";
+import { enfileirarRecalculoEspelhoPonto } from "../queues/recalcular-espelho-ponto-queue";
+import { obterProcessamentoEspelhoPonto } from "../services/processamento-espelho-ponto.service";
 
-type RecalcularMesServidorActionResult = {
-  sucesso: boolean;
-  mensagem: string;
+export type EstadoProcessamentoEspelho = {
+  status: "PENDENTE" | "PROCESSANDO" | "ATUALIZADO" | "FALHA" | "AUSENTE";
+  atualizadoEm: string | null;
+  erro: string | null;
 };
+
+function podeRecalcular(permissoes: string[]) {
+  return (
+    permissoes.includes("apuracao:recalcular:global") ||
+    permissoes.includes("banco-horas:gerenciar:global")
+  );
+}
+
+function lerParametros(formData: FormData) {
+  return {
+    servidorId: String(formData.get("servidorId") ?? ""),
+    anoReferencia: Number(formData.get("anoReferencia") ?? 0),
+    mesReferencia: Number(formData.get("mesReferencia") ?? 0),
+  };
+}
 
 export async function recalcularMesServidorAction(formData: FormData) {
   const session = await auth();
 
   if (!session?.user) {
-    return {
-      sucesso: false,
-      mensagem: "Sua sessao expirou. Acesse novamente para recalcular o mes.",
-    } satisfies RecalcularMesServidorActionResult;
+    return { sucesso: false, mensagem: "Sua sessao expirou." };
   }
 
-  const permissoes = session.user.perfilAtivo?.permissoes ?? [];
-
-  const podeRecalcular =
-    permissoes.includes("apuracao:recalcular:global") ||
-    permissoes.includes("banco-horas:gerenciar:global");
-
-  if (!podeRecalcular) {
+  if (!podeRecalcular(session.user.perfilAtivo?.permissoes ?? [])) {
     return {
       sucesso: false,
       mensagem: "Voce nao tem permissao para recalcular este mes.",
-    } satisfies RecalcularMesServidorActionResult;
+    };
   }
 
-  const servidorId = String(formData.get("servidorId") ?? "");
-  const anoReferencia = Number(formData.get("anoReferencia") ?? 0);
-  const mesReferencia = Number(formData.get("mesReferencia") ?? 0);
-
-  if (!servidorId || !anoReferencia || !mesReferencia) {
-    return {
-      sucesso: false,
-      mensagem: "Nao foi possivel identificar o servidor ou a competencia.",
-    } satisfies RecalcularMesServidorActionResult;
+  const params = lerParametros(formData);
+  if (!params.servidorId || !params.anoReferencia || !params.mesReferencia) {
+    return { sucesso: false, mensagem: "Servidor ou competencia invalida." };
   }
 
   try {
-    await recalcularMesServidorService({
-      servidorId,
-      anoReferencia,
-      mesReferencia,
-      usuarioIdAuditoria: session.user.id,
-      origem: "RECALCULO_MANUAL_MES",
+    await enfileirarRecalculoEspelhoPonto({
+      ...params,
+      motivo: "RECALCULO_MANUAL_MES",
+      solicitadoPorId: session.user.id,
+      forcar: true,
     });
   } catch (error) {
-    if (error instanceof PeriodoHomologadoError) {
-      const competencia = `${String(error.mesReferencia).padStart(2, "0")}/${error.anoReferencia}`;
-
-      return {
-        sucesso: false,
-        mensagem: `A competencia ${competencia} ja foi homologada para este servidor. Para recalcular, reabra a homologacao antes de executar o processamento.`,
-      } satisfies RecalcularMesServidorActionResult;
-    }
-
-    console.error("[RECALCULO MES] Falha ao recalcular mes do servidor", {
-      servidorId,
-      anoReferencia,
-      mesReferencia,
-      error,
-    });
-
+    console.error("[ESPELHO PONTO] Falha ao enfileirar recalculo manual", error);
     return {
       sucesso: false,
-      mensagem:
-        "Nao foi possivel recalcular o mes agora. Verifique os logs do servidor e tente novamente.",
-    } satisfies RecalcularMesServidorActionResult;
+      mensagem: "Nao foi possivel iniciar o recalculo agora.",
+    };
   }
 
-  revalidatePath("/apuracao");
-  revalidatePath("/espelho-ponto");
-  revalidatePath("/banco-horas");
+  return { sucesso: true, mensagem: "Recalculo enviado para processamento." };
+}
+
+export async function consultarProcessamentoEspelhoAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) return null;
+
+  const params = lerParametros(formData);
+  if (!params.servidorId || !params.anoReferencia || !params.mesReferencia) {
+    return null;
+  }
+
+  const processamento = await obterProcessamentoEspelhoPonto(params);
+  if (!processamento) {
+    return {
+      status: "AUSENTE",
+      atualizadoEm: null,
+      erro: null,
+    } satisfies EstadoProcessamentoEspelho;
+  }
 
   return {
-    sucesso: true,
-    mensagem: "Mes e banco de horas recalculados com sucesso.",
-  } satisfies RecalcularMesServidorActionResult;
+    status: processamento.status,
+    atualizadoEm: processamento.concluidoEm?.toISOString() ?? null,
+    erro: processamento.erro,
+  } satisfies EstadoProcessamentoEspelho;
 }

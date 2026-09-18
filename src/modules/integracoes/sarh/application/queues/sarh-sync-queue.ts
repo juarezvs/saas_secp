@@ -18,6 +18,9 @@ export type SarhSyncJob = {
   codigosUnidadesSarhPermitidos?: number[];
   codigoCargoSarh?: number;
   iniciadoPorUsuarioId?: string | null;
+  escopoChave?: string;
+  unidadeIdsEscopo?: string[];
+  origemSolicitacao?: "AUTOMATICA_TELA_FERIAS" | "MANUAL_TELA_FERIAS";
   escopoSincronizacao?: {
     global: boolean;
     orgaoIds: string[];
@@ -106,6 +109,13 @@ function mesmoEscopoOperacional(
   jobExistente: SarhSyncJob,
   novoJob: SarhSyncJob,
 ) {
+  if (jobExistente.escopoChave || novoJob.escopoChave) {
+    return (
+      Boolean(jobExistente.escopoChave) &&
+      jobExistente.escopoChave === novoJob.escopoChave
+    );
+  }
+
   if ((jobExistente.orgaoId ?? null) !== (novoJob.orgaoId ?? null)) {
     return false;
   }
@@ -127,6 +137,32 @@ function mesmoEscopoOperacional(
   return (
     JSON.stringify(jobExistente.escopoSincronizacao ?? null) ===
     JSON.stringify(novoJob.escopoSincronizacao ?? null)
+  );
+}
+
+function chaveAtualizacaoAutomatica(escopoChave: string) {
+  return `sarh:ferias:auto:${escopoChave}`;
+}
+
+export async function obterJobAtualizacaoAutomaticaSarh(
+  escopoChave: string,
+) {
+  const redis = await obterSarhSyncQueue().client;
+  return redis.get(chaveAtualizacaoAutomatica(escopoChave));
+}
+
+export async function registrarJobAtualizacaoAutomaticaSarh(params: {
+  escopoChave: string;
+  jobId: string;
+}) {
+  const redis = await obterSarhSyncQueue().client;
+  const minutos = Number(process.env.SARH_FERIAS_AUTO_INTERVAL_MINUTES ?? "30");
+  const ttlSegundos = Math.max(Number.isFinite(minutos) ? minutos : 30, 1) * 60;
+
+  await redis.set(
+    chaveAtualizacaoAutomatica(params.escopoChave),
+    params.jobId,
+    { EX: ttlSegundos },
   );
 }
 

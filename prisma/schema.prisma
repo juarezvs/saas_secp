@@ -189,6 +189,13 @@ enum StatusApuracaoDiaria {
   HOMOLOGADA
 }
 
+enum StatusProcessamentoEspelhoPonto {
+  PENDENTE
+  PROCESSANDO
+  ATUALIZADO
+  FALHA
+}
+
 enum ResultadoApuracaoDia {
   REGULAR
   CREDITO
@@ -1339,6 +1346,7 @@ model Servidor {
   jornadas                             JornadaServidor[]
   marcacoes                            Marcacao[]
   apuracaoDiarias                      ApuracaoDiaria[]
+  processamentosEspelhoPonto           ProcessamentoEspelhoPonto[]
   ocorrenciaFrequencias                OcorrenciaFrequencia[]
   bancoHorasSaldo                      BancoHorasSaldo?
   movimentoBancoHoras                  MovimentoBancoHoras[]
@@ -2170,6 +2178,30 @@ model ApuracaoDiaria {
   @@index([status])
   @@index([dataReferencia, servidorId])
   @@map("apuracoes_diarias")
+}
+
+model ProcessamentoEspelhoPonto {
+  id              String                          @id @default(uuid()) @db.Uuid
+  servidorId      String                          @map("servidor_id") @db.Uuid
+  anoReferencia   Int                             @map("ano_referencia")
+  mesReferencia   Int                             @map("mes_referencia")
+  status          StatusProcessamentoEspelhoPonto @default(PENDENTE)
+  motivo          String                          @db.VarChar(120)
+  jobId           String?                         @map("job_id") @db.VarChar(180)
+  solicitadoPorId String?                         @map("solicitado_por_id") @db.Uuid
+  solicitadoEm    DateTime                        @default(now()) @map("solicitado_em")
+  iniciadoEm      DateTime?                       @map("iniciado_em")
+  concluidoEm     DateTime?                       @map("concluido_em")
+  erro            String?                         @db.Text
+  criadoEm        DateTime                        @default(now()) @map("criado_em")
+  atualizadoEm    DateTime                        @updatedAt @map("atualizado_em")
+
+  servidor Servidor @relation(fields: [servidorId], references: [id], onDelete: Cascade)
+
+  @@unique([servidorId, anoReferencia, mesReferencia])
+  @@index([status, solicitadoEm])
+  @@index([jobId])
+  @@map("processamentos_espelho_ponto")
 }
 
 model OcorrenciaFrequencia {

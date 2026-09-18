@@ -14,6 +14,9 @@ export type SincronizarSarhInput = {
   codigoUnidadeSarh?: number;
   codigosUnidadesSarhPermitidos?: number[];
   codigoCargoSarh?: number;
+  escopoChave?: string;
+  unidadeIdsEscopo?: string[];
+  origemSolicitacao?: "AUTOMATICA_TELA_FERIAS" | "MANUAL_TELA_FERIAS";
   atualizarProgresso?: (progresso: SarhSyncProgress) => Promise<void> | void;
   verificarCancelamento?: (execucaoId: string) => Promise<boolean> | boolean;
 };

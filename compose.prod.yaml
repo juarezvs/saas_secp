@@ -357,6 +357,41 @@ services:
     cpus: "${SECP_WORKER_REPROCESSAMENTO_CPUS:-0.75}"
     mem_limit: ${SECP_WORKER_REPROCESSAMENTO_MEM_LIMIT:-1g}
 
+  worker-espelho-ponto:
+    build:
+      context: .
+      target: worker
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+
+    image: secp-worker:${APP_VERSION}
+    container_name: secp-worker-espelho-ponto
+    restart: unless-stopped
+    command: ["npm", "run", "worker:recalcular-espelho-ponto"]
+
+    profiles: ["workers"]
+
+    env_file:
+      - .env.production
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL_POOLED:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB}?schema=public}
+      SECP_AUTO_WORKERS: "false"
+      ESPELHO_PONTO_WORKER_CONCURRENCY: ${ESPELHO_PONTO_WORKER_CONCURRENCY:-2}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    networks:
+      - secp-network
+
+    cpus: "${SECP_WORKER_ESPELHO_CPUS:-1.0}"
+    mem_limit: ${SECP_WORKER_ESPELHO_MEM_LIMIT:-1g}
+
   worker-calendario:
     build:
       context: .

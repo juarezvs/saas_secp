@@ -5,14 +5,17 @@ import { logoutAction } from "@/modules/auth/application/actions/logout.action";
 import { escolherPerfilInicial } from "@/modules/auth/application/services/perfil-servidor-prioritario.service";
 import { buscarUsuarioParaLoginPorMatricula } from "@/modules/auth/infrastructure/repositories/usuario-auth.repository";
 import { buscarServidorPorUsuarioId } from "@/modules/marcacoes/infrastructure/repositories/marcacao.repository";
-import { contarNotificacoesUsuario } from "@/modules/notificacoes/application/notificacoes.service";
+import {
+  contarNotificacoesPerfilChefiaUsuario,
+  contarNotificacoesUsuario,
+} from "@/modules/notificacoes/application/notificacoes.service";
 import {
   buscarIconesItensCatalogoMenu,
   buscarMenusPersonalizadosPorPerfil,
 } from "@/modules/menus/infrastructure/repositories/menu-personalizado.repository";
 import { listarFavoritosUsuarioPerfil } from "@/modules/favoritos/application/favoritos-usuario-perfil.service";
 import { buscarFotoServidorDataUrl } from "@/modules/servidores/application/services/foto-servidor.service";
-import { descricaoFuncaoOuCargoServidor } from "@/modules/servidores/application/services/funcao-cargo-servidor.service";
+import { descricaoNomeFuncaoServidor } from "@/modules/servidores/application/services/funcao-cargo-servidor.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { buscarRegulamentacaoPontoOrgao } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 import { AppShellClient } from "./app-shell-client";
@@ -83,6 +86,47 @@ function montarRotuloInstituicao(orgao?: OrgaoInstitucional | null) {
   return rotuloUf ? `Justiça Federal ${rotuloUf}` : "Justiça Federal";
 }
 
+function montarSiglaLotacao(params: {
+  orgaoSigla?: string | null;
+  unidadeSigla?: string | null;
+}) {
+  const orgaoSigla = params.orgaoSigla?.trim().toUpperCase();
+  const unidadeSigla = params.unidadeSigla?.trim().toUpperCase();
+
+  if (!unidadeSigla) return orgaoSigla ?? "";
+  if (!orgaoSigla || unidadeSigla.startsWith(`${orgaoSigla}-`)) {
+    return unidadeSigla;
+  }
+
+  return `${orgaoSigla}-${unidadeSigla}`;
+}
+
+function compactarNomeFuncao(funcao?: string | null) {
+  const funcaoLimpa = funcao?.trim();
+
+  if (!funcaoLimpa) return "";
+
+  return (
+    funcaoLimpa
+      .split(/\s+(?:DE|DA|DO|DAS|DOS)\s+/i)[0]
+      ?.trim()
+      .toUpperCase() ?? funcaoLimpa.toUpperCase()
+  );
+}
+
+function montarRotuloFuncaoLotacao(params: {
+  funcao?: string | null;
+  siglaLotacao: string;
+}) {
+  const funcaoCompacta = compactarNomeFuncao(params.funcao);
+
+  if (funcaoCompacta && params.siglaLotacao) {
+    return `${funcaoCompacta} - ${params.siglaLotacao}`;
+  }
+
+  return funcaoCompacta || params.siglaLotacao;
+}
+
 export async function AppShell({ children }: AppShellProps) {
   const session = await auth();
 
@@ -116,7 +160,7 @@ export async function AppShell({ children }: AppShellProps) {
     redirect("/acesso-negado?motivo=sem-perfil");
   }
 
-  const [totalNotificacoes, favoritosPerfil] = await Promise.all([
+  const [totalNotificacoes, favoritosPerfil, alertaChefia] = await Promise.all([
     contarNotificacoesUsuario(session.user.id, {
       perfilAtivo,
     }),
@@ -127,6 +171,13 @@ export async function AppShell({ children }: AppShellProps) {
         permissoes: perfilAtivo.permissoes,
       },
     }),
+    perfilAtivo.codigo.toUpperCase() === "SERVIDOR"
+      ? contarNotificacoesPerfilChefiaUsuario({
+          usuarioId: session.user.id,
+          perfis: perfisNavegacao,
+          perfilAtivo,
+        })
+      : Promise.resolve({ total: 0, perfilChefia: null }),
   ]);
 
   const fotoCpf = servidor?.cpf;
@@ -142,6 +193,14 @@ export async function AppShell({ children }: AppShellProps) {
   const regulamentacaoSeccional = await buscarRegulamentacaoPontoOrgao(
     orgaoIdInstitucional,
   );
+  const siglaLotacao = montarSiglaLotacao({
+    orgaoSigla: orgaoInstitucional?.sigla,
+    unidadeSigla: lotacaoAtual?.unidade.sigla,
+  });
+  const funcaoLotacao = montarRotuloFuncaoLotacao({
+    funcao: descricaoNomeFuncaoServidor(servidor),
+    siglaLotacao,
+  });
   const usuario = {
     nome:
       nomeServidor(servidor) ||
@@ -149,11 +208,19 @@ export async function AppShell({ children }: AppShellProps) {
       session.user.name ||
       "Usuário SECP",
     matricula: session.user.matricula,
-    funcaoOuCargo: descricaoFuncaoOuCargoServidor(servidor),
+    funcaoOuCargo: funcaoLotacao,
     fotoUrl,
     preferenciasAcessibilidade: session.user.preferenciasAcessibilidade,
-    unidade: lotacaoAtual?.unidade.nome ?? lotacaoAtual?.unidade.sigla ?? "",
+    unidade: "",
     instituicaoLabel: montarRotuloInstituicao(orgaoInstitucional),
+    alertaChefia:
+      alertaChefia.total > 0 && alertaChefia.perfilChefia
+        ? {
+            total: alertaChefia.total,
+            perfilCodigo: alertaChefia.perfilChefia.codigo,
+            perfilNome: alertaChefia.perfilChefia.nome,
+          }
+        : null,
     rotinasSeccional: {
       bancoHorasAtivo: regulamentacaoSeccional.bancoHorasAtivo,
       horasExtrasAtivo: regulamentacaoSeccional.horasExtrasAtivo,

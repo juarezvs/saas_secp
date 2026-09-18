@@ -5,11 +5,10 @@ import type { PointerEvent } from "react";
 import Link from "next/link";
 import {
   Bell,
-  CheckCircle2,
-  ChevronDown,
+  Inbox,
+  MailOpen,
   MessageCircle,
   Search,
-  Send,
   X,
 } from "lucide-react";
 import type { PosicaoChatInternoAcessibilidade } from "@/modules/auth/application/services/preferencias-acessibilidade.service";
@@ -24,16 +23,6 @@ type NotificacaoChat = {
   criadoEm: string;
   origem: string;
   lida: boolean;
-};
-
-type ConversaChat = {
-  id: string;
-  nome: string;
-  detalhe: string;
-  avatar: string;
-  totalNaoLidas: number;
-  ultimaData: string;
-  mensagens: NotificacaoChat[];
 };
 
 type EstadoArrastoChat = {
@@ -52,15 +41,6 @@ const CHAT_PANEL_WIDTH_ESTIMADO = 760;
 const CHAT_PANEL_HEIGHT_RATIO = 0.76;
 const CHAT_DRAG_THRESHOLD = 4;
 const CHAT_BREADCRUMB_Y = 74;
-
-function iniciais(nome: string) {
-  return nome
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((parte) => parte[0]?.toUpperCase())
-    .join("");
-}
 
 function origemConversa(notificacao: NotificacaoChat) {
   const match = notificacao.descricao.match(
@@ -82,44 +62,12 @@ function formatarHora(data: string) {
   }).format(new Date(data));
 }
 
-function agruparConversas(notificacoes: NotificacaoChat[]) {
-  const mapa = new Map<string, ConversaChat>();
-
-  for (const notificacao of notificacoes) {
-    const origem = origemConversa(notificacao);
-    const id = `${origem.nome}-${origem.detalhe}`;
-    const conversa =
-      mapa.get(id) ??
-      ({
-        id,
-        nome: origem.nome,
-        detalhe: origem.detalhe,
-        avatar: iniciais(origem.nome || "SE"),
-        totalNaoLidas: 0,
-        ultimaData: notificacao.criadoEm,
-        mensagens: [],
-      } satisfies ConversaChat);
-
-    conversa.mensagens.push(notificacao);
-    conversa.totalNaoLidas += notificacao.lida ? 0 : 1;
-    if (new Date(notificacao.criadoEm) > new Date(conversa.ultimaData)) {
-      conversa.ultimaData = notificacao.criadoEm;
-    }
-    mapa.set(id, conversa);
-  }
-
-  return Array.from(mapa.values())
-    .map((conversa) => ({
-      ...conversa,
-      mensagens: conversa.mensagens.sort(
-        (a, b) =>
-          new Date(a.criadoEm).getTime() - new Date(b.criadoEm).getTime(),
-      ),
-    }))
-    .sort(
-      (a, b) =>
-        new Date(b.ultimaData).getTime() - new Date(a.ultimaData).getTime(),
-    );
+function formatarData(data: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "America/Manaus",
+  }).format(new Date(data));
 }
 
 function isPosicaoChatInterno(
@@ -258,37 +206,31 @@ export function ChatInternoWidget({
     moveu: false,
   });
   const [aberto, setAberto] = useState(false);
-  const [minimizado, setMinimizado] = useState(false);
   const [busca, setBusca] = useState("");
   const [notificacoes, setNotificacoes] = useState<NotificacaoChat[]>([]);
   const [totalContador, setTotalContador] = useState(totalInicial);
   const [carregando, setCarregando] = useState(false);
   const [posicao, setPosicao] =
     useState<PosicaoChatInternoAcessibilidade | null>(null);
-  const conversas = useMemo(
-    () => agruparConversas(notificacoes),
-    [notificacoes],
-  );
-  const conversasFiltradas = useMemo(() => {
+  const notificacoesFiltradas = useMemo(() => {
     const termo = busca.trim().toLocaleLowerCase("pt-BR");
 
-    if (!termo) return conversas;
+    if (!termo) return notificacoes;
 
-    return conversas.filter(
-      (conversa) =>
-        conversa.nome.toLocaleLowerCase("pt-BR").includes(termo) ||
-        conversa.mensagens.some((mensagem) =>
-          `${mensagem.titulo} ${mensagem.descricao}`
-            .toLocaleLowerCase("pt-BR")
-            .includes(termo),
-        ),
-    );
-  }, [busca, conversas]);
-  const [conversaAtivaId, setConversaAtivaId] = useState<string | null>(null);
-  const conversaAtiva =
-    conversas.find((conversa) => conversa.id === conversaAtivaId) ??
-    conversasFiltradas[0] ??
-    null;
+    return notificacoes.filter((notificacao) => {
+      const origem = origemConversa(notificacao);
+
+      return (
+        origem.nome.toLocaleLowerCase("pt-BR").includes(termo) ||
+        `${notificacao.titulo} ${notificacao.descricao} ${notificacao.origem}`
+          .toLocaleLowerCase("pt-BR")
+          .includes(termo)
+      );
+    });
+  }, [busca, notificacoes]);
+  const totalFiltradoNaoLidas = notificacoesFiltradas.filter(
+    (notificacao) => !notificacao.lida,
+  ).length;
   const totalNaoLidas = notificacoes.length
     ? notificacoes.filter((notificacao) => !notificacao.lida).length
     : totalContador;
@@ -314,7 +256,7 @@ export function ChatInternoWidget({
   const carregar = useCallback(async () => {
     setCarregando(true);
     try {
-      const response = await fetch("/api/notificacoes?chat=1", {
+      const response = await fetch("/api/notificacoes", {
         cache: "no-store",
       });
       if (!response.ok) return;
@@ -351,7 +293,6 @@ export function ChatInternoWidget({
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setNotificacoes([]);
-      setConversaAtivaId(null);
       setTotalContador(totalInicial);
       void carregarContador();
     }, 0);
@@ -368,6 +309,20 @@ export function ChatInternoWidget({
 
     return () => window.clearTimeout(timer);
   }, [aberto, carregar]);
+
+  useEffect(() => {
+    if (window.sessionStorage.getItem("secp:abrir-caixa-mensagens") !== "1") {
+      return;
+    }
+
+    window.sessionStorage.removeItem("secp:abrir-caixa-mensagens");
+    const timer = window.setTimeout(() => {
+      setAberto(true);
+      posicionar(obterPosicaoPadraoPainelChat(painelRef.current));
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [posicionar]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -666,156 +621,111 @@ export function ChatInternoWidget({
             }
       }
     >
-      <section className="w-full border-r border-slate-200 md:w-80">
+      <section className="flex min-w-0 flex-1 flex-col">
         <header
-          className="flex h-14 touch-none select-none items-center justify-between border-b border-slate-200 px-4"
+          className="flex h-14 touch-none select-none items-center justify-between border-b border-slate-200 bg-slate-50 px-4"
           onPointerDown={aoPointerDownPainel}
           onPointerMove={aoPointerMovePainel}
           onPointerUp={aoPointerUpPainel}
           onPointerCancel={aoPointerCancelPainel}
-          title="Arraste para mover o chat."
+          title="Arraste para mover a caixa de mensagens."
         >
-          <div className="flex items-center gap-2 font-black">
-            <MessageCircle className="size-5 text-[#5135f5]" />
-            Mensagens
+          <div className="flex min-w-0 items-center gap-2 font-black">
+            <Inbox className="size-5 text-[#5135f5]" aria-hidden="true" />
+            <span className="truncate">Caixa de entrada</span>
             {totalNaoLidas > 0 ? (
               <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs text-white">
                 {totalNaoLidas} novas
               </span>
             ) : null}
           </div>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              className="inline-flex size-8 items-center justify-center rounded-lg hover:bg-slate-100"
-              onClick={() => setMinimizado((valor) => !valor)}
-              aria-label="Minimizar mensagens"
-            >
-              <ChevronDown className="size-4" />
-            </button>
-            <button
-              type="button"
-              className="inline-flex size-8 items-center justify-center rounded-lg hover:bg-slate-100"
-              onClick={() => setAberto(false)}
-              aria-label="Fechar mensagens"
-            >
-              <X className="size-4" />
-            </button>
-          </div>
+          <button
+            type="button"
+            className="inline-flex size-8 items-center justify-center rounded-lg hover:bg-slate-200"
+            onClick={() => setAberto(false)}
+            aria-label="Fechar mensagens"
+          >
+            <X className="size-4" aria-hidden="true" />
+          </button>
         </header>
 
-        {!minimizado ? (
-          <>
-            <div className="p-3">
-              <label className="flex h-10 items-center gap-2 rounded-xl bg-slate-100 px-3 text-sm text-slate-500">
-                <Search className="size-4" />
-                <input
-                  value={busca}
-                  onChange={(event) => setBusca(event.target.value)}
-                  className="min-w-0 flex-1 bg-transparent outline-none"
-                  placeholder="Pesquisar mensagens"
-                />
-              </label>
-            </div>
+        <div className="border-b border-slate-200 p-3">
+          <label className="flex h-10 items-center gap-2 rounded-md bg-slate-100 px-3 text-sm text-slate-500">
+            <Search className="size-4" aria-hidden="true" />
+            <input
+              value={busca}
+              onChange={(event) => setBusca(event.target.value)}
+              className="min-w-0 flex-1 bg-transparent outline-none"
+              placeholder="Pesquisar na caixa de entrada"
+            />
+          </label>
+        </div>
 
-            <div className="max-h-[calc(76vh-7rem)] overflow-y-auto px-2 pb-2">
-              {conversasFiltradas.map((conversa) => (
-                <button
-                  key={conversa.id}
-                  type="button"
-                  onClick={() => setConversaAtivaId(conversa.id)}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${
-                    conversaAtiva?.id === conversa.id
-                      ? "bg-[#5135f5]/10"
-                      : "hover:bg-slate-100"
-                  }`}
-                >
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-800 text-sm font-black text-white">
-                    {conversa.avatar}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="truncate font-bold">
-                        {conversa.nome}
-                      </span>
-                      <span className="text-xs text-slate-500">
-                        {formatarHora(conversa.ultimaData)}
-                      </span>
-                    </span>
-                    <span className="mt-0.5 block truncate text-xs text-slate-500">
-                      {conversa.mensagens.at(-1)?.descricao}
-                    </span>
-                  </span>
-                  {conversa.totalNaoLidas > 0 ? (
-                    <span className="rounded-full bg-[#5135f5] px-2 py-1 text-xs font-black text-white">
-                      {conversa.totalNaoLidas}
-                    </span>
-                  ) : null}
-                </button>
-              ))}
+        <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-2 text-xs font-semibold uppercase text-slate-500">
+          <span>{notificacoesFiltradas.length} mensagens</span>
+          <span>{totalFiltradoNaoLidas} não lidas</span>
+        </div>
 
-              {conversasFiltradas.length === 0 ? (
-                <div className="px-4 py-10 text-center text-sm text-slate-500">
-                  {carregando ? "Carregando mensagens..." : "Nenhuma mensagem."}
-                </div>
-              ) : null}
-            </div>
-          </>
-        ) : null}
-      </section>
+        <div className="max-h-[calc(76vh-8.5rem)] overflow-y-auto bg-white">
+          {notificacoesFiltradas.map((notificacao) => {
+            const origem = origemConversa(notificacao);
 
-      {!minimizado && conversaAtiva ? (
-        <section className="hidden min-w-0 flex-1 flex-col md:flex">
-          <header className="flex h-14 items-center justify-between border-b border-slate-200 px-4">
-            <div className="min-w-0">
-              <p className="truncate font-black">{conversaAtiva.nome}</p>
-              <p className="truncate text-xs text-slate-500">
-                {conversaAtiva.detalhe}
-              </p>
-            </div>
-          </header>
-
-          <div className="flex max-h-[calc(76vh-7rem)] flex-1 flex-col gap-3 overflow-y-auto bg-slate-50 p-4">
-            {conversaAtiva.mensagens.map((mensagem) => (
-              <div
-                key={mensagem.id}
-                className={`rounded-2xl border p-4 shadow-sm ${
-                  mensagem.prioridade === "alta"
-                    ? "border-amber-200 bg-amber-50 text-amber-950"
-                    : "border-slate-200 bg-white text-slate-950"
+            return (
+              <Link
+                key={notificacao.id}
+                href={notificacao.href}
+                onClick={() => void marcarComoLida(notificacao)}
+                className={`grid min-h-16 grid-cols-[auto_minmax(8rem,13rem)_minmax(0,1fr)_auto] items-center gap-3 border-b border-slate-100 px-4 py-3 text-left transition hover:bg-slate-50 ${
+                  notificacao.lida ? "bg-white text-slate-600" : "bg-[#f6f8fc] text-slate-950"
                 }`}
               >
-                <div className="flex items-start gap-2">
-                  {mensagem.lida ? (
-                    <CheckCircle2 className="mt-0.5 size-4 text-emerald-600" />
+                <span className="flex size-8 items-center justify-center rounded-full bg-white text-[#5135f5] ring-1 ring-slate-200">
+                  {notificacao.lida ? (
+                    <MailOpen className="size-4" aria-hidden="true" />
                   ) : (
-                    <Bell className="mt-0.5 size-4 text-[#5135f5]" />
+                    <Bell className="size-4" aria-hidden="true" />
                   )}
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold">{mensagem.titulo}</p>
-                    <p className="mt-1 text-sm leading-6">
-                      {mensagem.descricao}
-                    </p>
-                    <div className="mt-3 flex items-center justify-between gap-3">
-                      <span className="text-xs text-slate-500">
-                        {formatarHora(mensagem.criadoEm)}
-                      </span>
-                      <Link
-                        href={mensagem.href}
-                        onClick={() => void marcarComoLida(mensagem)}
-                        className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#5135f5] px-3 text-sm font-black text-white hover:bg-[#452add]"
-                      >
-                        Analisar
-                        <Send className="size-4" />
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
+                </span>
+                <span className="min-w-0">
+                  <span
+                    className={`block truncate text-sm ${
+                      notificacao.lida ? "font-medium" : "font-black"
+                    }`}
+                  >
+                    {origem.nome}
+                  </span>
+                  <span className="block truncate text-xs text-slate-500">
+                    {origem.detalhe}
+                  </span>
+                </span>
+                <span className="min-w-0">
+                  <span
+                    className={`block truncate text-sm ${
+                      notificacao.lida ? "font-medium" : "font-black"
+                    }`}
+                  >
+                    {notificacao.titulo}
+                  </span>
+                  <span className="block truncate text-sm text-slate-500">
+                    {notificacao.descricao}
+                  </span>
+                </span>
+                <span className="shrink-0 text-right text-xs font-semibold text-slate-500">
+                  <span className="block">{formatarData(notificacao.criadoEm)}</span>
+                  <span className="mt-0.5 block">{formatarHora(notificacao.criadoEm)}</span>
+                </span>
+              </Link>
+            );
+          })}
+
+          {notificacoesFiltradas.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center text-sm text-slate-500">
+              <Inbox className="size-8" aria-hidden="true" />
+              {carregando ? "Carregando mensagens..." : "Nenhuma mensagem na caixa de entrada."}
+            </div>
+          ) : null}
+        </div>
+      </section>
     </div>
   );
 }
