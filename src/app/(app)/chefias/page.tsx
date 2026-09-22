@@ -34,10 +34,10 @@ function normalizarBusca(valor?: string | null) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-function obterTitular(
+function obterChefiaTitular(
   unidade: Awaited<ReturnType<typeof listarUnidadesComGestores>>[number],
 ) {
-  return unidade.gestores.find((gestor) => gestor.papel === "GESTOR_TITULAR");
+  return unidade.chefiaResolvida;
 }
 
 export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
@@ -54,15 +54,15 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
   const buscaNormalizada = normalizarBusca(params.busca);
   const apenasComChefia = params.apenasComChefia === "1";
   const unidadesFiltradas = unidadesComGestores.filter((unidade) => {
-    const titular = obterTitular(unidade);
+    const chefiaTitular = obterChefiaTitular(unidade);
     const textoBusca = normalizarBusca(
       [
         unidade.sigla,
         unidade.nome,
         unidade.orgao.sigla,
         unidade.unidadePai?.sigla,
-        titular?.servidor.matricula,
-        titular?.servidor.usuario.nome,
+        chefiaTitular?.matricula,
+        chefiaTitular?.nome,
       ]
         .filter(Boolean)
         .join(" "),
@@ -80,15 +80,15 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
       return false;
     }
 
-    if (params.chefia === "com" && !titular) {
+    if (params.chefia === "com" && !chefiaTitular) {
       return false;
     }
 
-    if (params.chefia === "sem" && titular) {
+    if (params.chefia === "sem" && chefiaTitular) {
       return false;
     }
 
-    if (apenasComChefia && unidade.gestores.length === 0) {
+    if (apenasComChefia && !chefiaTitular) {
       return false;
     }
 
@@ -222,7 +222,7 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
 
             <tbody>
               {unidadesFiltradas.map((unidade) => {
-                const titular = obterTitular(unidade);
+                const chefiaTitular = obterChefiaTitular(unidade);
 
                 return (
                   <tr key={unidade.id} className="border-b last:border-b-0">
@@ -234,13 +234,16 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
                     </td>
 
                     <td className="px-5 py-4">
-                      {titular ? (
+                      {chefiaTitular ? (
                         <div>
                           <div className="font-semibold">
-                            {titular.servidor.matricula}
+                            {chefiaTitular.matricula}
                           </div>
                           <div className="mt-1 text-xs text-[var(--muted-foreground)]">
-                            {titular.servidor.usuario.nome}
+                            {chefiaTitular.nome}
+                            {chefiaTitular.herdada
+                              ? " (herdada da superior)"
+                              : ""}
                           </div>
                         </div>
                       ) : (

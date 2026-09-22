@@ -438,7 +438,7 @@ function obterResumoContinuo(worker: WorkerMetadata): WorkerResumoInterno {
               data: status.iniciadoEm,
               estado: status.ativo ? "online" : "parado",
               mensagem: status.ativo
-                ? `Coleta ativa. Intervalo=${status.intervaloMs}ms, quantidade=${status.quantidade}.`
+                ? `Coleta ativa. Intervalo=${status.intervaloMs}ms, quantidade=${status.quantidade}, concorrencia=${status.concorrencia}, seccionais=${status.seccionais.length}.`
                 : "Coleta periódica não iniciada.",
             },
           ],

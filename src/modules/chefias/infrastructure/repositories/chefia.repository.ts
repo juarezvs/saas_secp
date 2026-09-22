@@ -1,4 +1,77 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
+
+const papeisResponsaveis = [
+  "GESTOR_TITULAR",
+  "GESTOR_SUBSTITUTO",
+  "DELEGADO_CHEFIA",
+] as const;
+
+const prioridadePapel = new Map<string, number>(
+  papeisResponsaveis.map((papel, index) => [papel, index]),
+);
+
+type GestorResponsavelListagem = {
+  id: string;
+  unidadeId: string;
+  servidorId: string;
+  papel: string;
+  dataInicio: Date;
+  servidor: {
+    usuarioId: string;
+    matricula: string;
+    nomeFuncional: string | null;
+    usuario: {
+      nome: string;
+    };
+  };
+};
+
+type ChefiaResolvidaListagem = {
+  unidadeOrigemId: string;
+  unidadeResponsavelId: string;
+  gestorUnidadeId: string;
+  servidorId: string;
+  usuarioId: string;
+  matricula: string;
+  nome: string;
+  papel: string;
+  herdada: boolean;
+};
+
+function ordenarGestoresPorPrioridade<T extends { papel: string; dataInicio: Date }>(
+  gestores: T[],
+) {
+  return [...gestores].sort((a, b) => {
+    const prioridadeA = prioridadePapel.get(a.papel) ?? 99;
+    const prioridadeB = prioridadePapel.get(b.papel) ?? 99;
+
+    if (prioridadeA !== prioridadeB) {
+      return prioridadeA - prioridadeB;
+    }
+
+    return b.dataInicio.getTime() - a.dataInicio.getTime();
+  });
+}
+
+function montarChefiaResolvidaListagem(params: {
+  unidadeOrigemId: string;
+  unidadeResponsavelId: string;
+  gestor: GestorResponsavelListagem;
+  herdada: boolean;
+}): ChefiaResolvidaListagem {
+  return {
+    unidadeOrigemId: params.unidadeOrigemId,
+    unidadeResponsavelId: params.unidadeResponsavelId,
+    gestorUnidadeId: params.gestor.id,
+    servidorId: params.gestor.servidorId,
+    usuarioId: params.gestor.servidor.usuarioId,
+    matricula: params.gestor.servidor.matricula,
+    nome: nomeServidor(params.gestor.servidor),
+    papel: params.gestor.papel,
+    herdada: params.herdada,
+  };
+}
 
 export async function listarServidoresAtivosParaGestao(params?: {
   orgaoIdsPermitidos?: string[];
@@ -104,7 +177,8 @@ export async function buscarUnidadeComGestores(unidadeId: string) {
 export async function listarUnidadesComGestores(params?: {
   orgaoIdsPermitidos?: string[];
 }) {
-  return prisma.unidadeOrganizacional.findMany({
+  const hoje = new Date();
+  const unidades = await prisma.unidadeOrganizacional.findMany({
     where: {
       ...(params?.orgaoIdsPermitidos
         ? { orgaoId: { in: params.orgaoIdsPermitidos } }
@@ -124,6 +198,16 @@ export async function listarUnidadesComGestores(params?: {
       gestores: {
         where: {
           ativo: true,
+          dataInicio: {
+            lte: hoje,
+          },
+          OR: [{ dataFim: null }, { dataFim: { gte: hoje } }],
+          papel: {
+            in: [...papeisResponsaveis],
+          },
+          servidor: {
+            ativo: true,
+          },
         },
         include: {
           servidor: {
@@ -148,6 +232,73 @@ export async function listarUnidadesComGestores(params?: {
       },
     },
   });
+
+  const unidadesPorId = new Map(
+    unidades.map((unidade) => [unidade.id, unidade]),
+  );
+  const chefiasResolvidasPorUnidade = new Map<
+    string,
+    ChefiaResolvidaListagem | null
+  >();
+
+  function resolverChefiaBase(
+    unidadeId: string,
+    visitadas = new Set<string>(),
+  ): ChefiaResolvidaListagem | null {
+    if (chefiasResolvidasPorUnidade.has(unidadeId)) {
+      return chefiasResolvidasPorUnidade.get(unidadeId) ?? null;
+    }
+
+    if (visitadas.has(unidadeId)) {
+      return null;
+    }
+
+    const unidade = unidadesPorId.get(unidadeId);
+
+    if (!unidade) {
+      return null;
+    }
+
+    visitadas.add(unidadeId);
+
+    const [gestorResponsavel] = ordenarGestoresPorPrioridade(
+      unidade.gestores as GestorResponsavelListagem[],
+    );
+
+    if (gestorResponsavel) {
+      const chefia = montarChefiaResolvidaListagem({
+        unidadeOrigemId: unidadeId,
+        unidadeResponsavelId: unidadeId,
+        gestor: gestorResponsavel,
+        herdada: false,
+      });
+
+      chefiasResolvidasPorUnidade.set(unidadeId, chefia);
+
+      return chefia;
+    }
+
+    const chefiaSuperior = unidade.unidadePaiId
+      ? resolverChefiaBase(unidade.unidadePaiId, visitadas)
+      : null;
+
+    const chefia = chefiaSuperior
+      ? {
+          ...chefiaSuperior,
+          unidadeOrigemId: unidadeId,
+          herdada: true,
+        }
+      : null;
+
+    chefiasResolvidasPorUnidade.set(unidadeId, chefia);
+
+    return chefia;
+  }
+
+  return unidades.map((unidade) => ({
+    ...unidade,
+    chefiaResolvida: resolverChefiaBase(unidade.id),
+  }));
 }
 
 export async function buscarGestorUnidadePorId(gestorUnidadeId: string) {

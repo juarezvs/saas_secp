@@ -169,6 +169,7 @@ RELEASE_DIR="${REMOTE_ROOT}/releases/${RELEASE_NAME}"
 CURRENT_LINK="${REMOTE_ROOT}/secp-app"
 BACKUP_DIR="${REMOTE_ROOT}/backups"
 DEPLOY_DIR="${REMOTE_ROOT}/deploys"
+WORKER_SERVICES="worker-afd worker-sarh worker-sarh-login worker-reprocessamento worker-espelho-ponto worker-calendario worker-henry-coleta worker-henry-online worker-coleta-relogio worker-relatorio-exportacao"
 
 log() {
   printf '\n==> %s\n' "$*"
@@ -253,8 +254,8 @@ fi
 cd "$RELEASE_DIR"
 export APP_VERSION
 
-log "Construindo imagens web/migrate/seed"
-docker compose --env-file .env.production -f compose.prod.yaml build web migrate seed
+log "Construindo imagens web, ferramentas e workers"
+docker compose --env-file .env.production -f compose.prod.yaml build web migrate seed worker-henry-coleta
 
 log "Aplicando migrations sem resetar o banco"
 docker compose --env-file .env.production -f compose.prod.yaml run --rm migrate
@@ -272,8 +273,8 @@ ln -sfn "$RELEASE_DIR" "$CURRENT_LINK"
 cd "$CURRENT_LINK"
 export APP_VERSION
 
-log "Subindo somente o secp-web"
-docker compose --env-file .env.production -f compose.prod.yaml up -d --no-deps web
+log "Subindo web e workers"
+docker compose --env-file .env.production -f compose.prod.yaml up -d --no-deps web $WORKER_SERVICES
 
 log "Aguardando prontidao"
 for attempt in $(seq 1 30); do

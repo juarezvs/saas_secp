@@ -9,6 +9,7 @@ import type {
   MarcacaoRelogioPonto,
 } from "@/modules/integracoes/domain/relogio-ponto.types";
 import { criarRelogioPontoProvider } from "./relogio-ponto-provider.service";
+import { executarComLockDistribuidoEquipamento } from "./relogio-ponto-distributed-lock";
 
 type ConfiguracaoEquipamento = {
   usuario?: unknown;
@@ -94,7 +95,10 @@ async function executarComLockEquipamento<T>(
   await lockAnterior.catch(() => undefined);
 
   try {
-    return await operacao();
+    return await executarComLockDistribuidoEquipamento(
+      equipamentoId,
+      operacao,
+    );
   } finally {
     liberar();
     if (locks.get(equipamentoId) === lockEncadeado) {
