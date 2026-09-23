@@ -21,7 +21,10 @@ export function limparTexto(valor: string | null | undefined): string | null {
 }
 
 export function normalizarMatricula(matricula: string): string {
-  return limparTexto(matricula)?.toUpperCase() ?? "";
+  const valor = limparTexto(matricula)?.toUpperCase() ?? "";
+  const match = valor.match(/^([A-Z]{2})0+([1-9]\d*)$/);
+
+  return match ? `${match[1]}${match[2]}` : valor;
 }
 
 export function normalizarCpf(

@@ -10,6 +10,10 @@ import { escolherPerfilInicial } from "../../application/services/perfil-servido
 import { filtrarPermissoesLiberadas } from "@/modules/rotinas/application/services/liberacao-rotinas.service";
 import { expandirPermissoesCompatibilidade } from "../../application/services/permissao-utils";
 import { perfilEhAdministradorSistema } from "../../domain/constants/perfis-sistema";
+import {
+  aplicarPerfisHerdadosPorSubstituicaoAutomatica,
+  listarPerfisHerdadosPorSubstituicaoAutomatica,
+} from "@/modules/chefias/application/services/substituicoes-automaticas.service";
 import type {
   PerfilSessao,
   UsuarioAutenticado,
@@ -217,13 +221,28 @@ export async function buscarUsuarioParaLoginPorMatricula(
   const perfisComExcecoes = aplicarExcecoesRegistroPontoAoPerfilServidor(
     perfisComPermissoesExpandidas,
   );
-  const perfis = await Promise.all(
-    perfisComExcecoes.map(async (perfil) => ({
+  const [perfisFiltrados, perfisHerdadosRaw] = await Promise.all([
+    Promise.all(
+      perfisComExcecoes.map(async (perfil) => ({
+        ...perfil,
+        permissoes: expandirPermissoesCompatibilidade(
+          await filtrarPermissoesLiberadas(perfil.permissoes),
+        ),
+      })),
+    ),
+    listarPerfisHerdadosPorSubstituicaoAutomatica(usuario.id),
+  ]);
+  const perfisHerdados = await Promise.all(
+    perfisHerdadosRaw.map(async (perfil) => ({
       ...perfil,
       permissoes: expandirPermissoesCompatibilidade(
         await filtrarPermissoesLiberadas(perfil.permissoes),
       ),
     })),
+  );
+  const perfis = aplicarPerfisHerdadosPorSubstituicaoAutomatica(
+    perfisFiltrados,
+    perfisHerdados,
   );
 
   const perfilAtivo = escolherPerfilInicial({

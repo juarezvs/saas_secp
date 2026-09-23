@@ -69,14 +69,15 @@ export default async function MinhaEquipeFeriasPage({
   ]);
   const permissoes = new Set(permissao.permissoes);
   const perfilAtivoCodigo = permissao.perfilAtivoCodigo?.toUpperCase() ?? "";
+  const perfilChefiaAtivo = perfilAtivoCodigo === "CHEFIA";
   const podeConsultarGlobal = permissoes.has("programacao-ferias:consultar:global");
   const podeConsultarSeccional = permissoes.has(
     "programacao-ferias:consultar:seccional",
   );
   const visualizarTodasEquipes =
-    podeConsultarSeccional ||
-    podeConsultarGlobal ||
-    (perfilAtivoCodigo !== "CHEFIA" &&
+    !perfilChefiaAtivo &&
+    (podeConsultarSeccional ||
+      podeConsultarGlobal ||
       !permissoes.has("programacao-ferias:consultar:subordinados"));
   const params = searchParams ? await searchParams : {};
   const data = normalizarData(params.data);

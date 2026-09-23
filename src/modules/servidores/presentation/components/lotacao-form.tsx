@@ -5,14 +5,17 @@ import { Loader2, Plus } from "lucide-react";
 
 import { SearchableSelect } from "@/components/ui";
 import {
+  montarRotuloUnidadeComHierarquia,
+  montarTextoBuscaUnidade,
+  type UnidadeHierarquiaRotulo,
+} from "@/modules/unidades/application/services/rotulo-unidade.service";
+import {
   tiposLotacao,
   type LotacaoFormState,
 } from "../../application/schemas/lotacao.schema";
 
-type UnidadeItem = {
+type UnidadeItem = UnidadeHierarquiaRotulo & {
   id: string;
-  sigla: string;
-  nome: string;
   tipo: string;
 };
 
@@ -83,8 +86,8 @@ export function LotacaoForm({ action, unidades }: LotacaoFormProps) {
             emptyMessage="Nenhuma unidade encontrada."
             options={unidades.map((unidade) => ({
               value: unidade.id,
-              label: `${unidade.sigla} - ${unidade.nome}`,
-              searchText: `${unidade.sigla} ${unidade.nome} ${unidade.tipo}`,
+              label: montarRotuloUnidadeComHierarquia(unidade),
+              searchText: `${montarTextoBuscaUnidade(unidade)} ${unidade.tipo}`,
             }))}
             required
           />

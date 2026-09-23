@@ -1,8 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { normalizarCpf, normalizarPis } from "./sarh-normalizer";
+import {
+  normalizarCpf,
+  normalizarMatricula,
+  normalizarPis,
+} from "./sarh-normalizer";
 
 describe("normalizador SARH", () => {
+  it("remove zeros de preenchimento da matricula funcional", () => {
+    expect(normalizarMatricula("MA009203")).toBe("MA9203");
+    expect(normalizarMatricula("ma000123")).toBe("MA123");
+    expect(normalizarMatricula("MA52351")).toBe("MA52351");
+  });
+
   it("remove formatacao do CPF preservando zeros a esquerda", () => {
     expect(normalizarCpf("000.262.543-10")).toBe("00026254310");
     expect(normalizarCpf("227.598.163-20")).toBe("22759816320");

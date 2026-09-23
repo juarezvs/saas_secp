@@ -86,7 +86,8 @@ export function ServidoresListagemControles({
             nome: "tipoUsuario",
             label: "Tipo",
             options: [
-              { value: "", label: "Servidores" },
+              { value: "", label: "Todas as pessoas" },
+              { value: "SERVIDOR", label: "Servidores" },
               { value: "ESTAGIARIO", label: "Estagiários" },
               { value: "PRESTADOR", label: "Prestadores" },
               { value: "VOLUNTARIO", label: "Voluntários" },

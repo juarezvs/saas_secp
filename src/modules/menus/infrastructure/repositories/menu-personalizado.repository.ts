@@ -43,6 +43,7 @@ function grupoPadraoItemMenu(href: string) {
       "/marcacoes/registrar",
       "/historico-marcacoes",
       "/espelho-ponto",
+      "/acompanhamento-estagio",
       "/meu-contracheque",
       "/meus-afastamentos",
       "/minhas-ferias",

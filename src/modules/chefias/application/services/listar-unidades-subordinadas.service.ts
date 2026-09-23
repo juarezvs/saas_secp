@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { listarIdsUnidadesBasePorSubstituicaoAutomatica } from "./substituicoes-automaticas.service";
 
 export async function listarIdsUnidadesSubordinadasPorUsuario(
   usuarioId: string,
@@ -22,7 +23,12 @@ export async function listarIdsUnidadesSubordinadasPorUsuario(
     },
   });
 
-  const visitadas = new Set(gestores.map((gestor) => gestor.unidadeId));
+  const unidadesSubstituicao =
+    await listarIdsUnidadesBasePorSubstituicaoAutomatica(usuarioId, hoje);
+  const visitadas = new Set([
+    ...gestores.map((gestor) => gestor.unidadeId),
+    ...unidadesSubstituicao,
+  ]);
   let fronteira = Array.from(visitadas);
 
   while (fronteira.length > 0) {

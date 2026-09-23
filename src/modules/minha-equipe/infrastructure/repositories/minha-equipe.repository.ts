@@ -1,5 +1,6 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
+import { listarIdsUnidadesBasePorSubstituicaoAutomatica } from "@/modules/chefias/application/services/substituicoes-automaticas.service";
 
 export type StatusPresencaEquipe = "PRESENTE" | "AUSENTE" | "AFASTADO";
 
@@ -105,7 +106,15 @@ export async function listarIdsUnidadesSubordinadasNaData(params: {
     },
   });
 
-  const visitadas = new Set(gestores.map((gestor) => gestor.unidadeId));
+  const unidadesSubstituicao =
+    await listarIdsUnidadesBasePorSubstituicaoAutomatica(
+      params.usuarioId,
+      params.data,
+    );
+  const visitadas = new Set([
+    ...gestores.map((gestor) => gestor.unidadeId),
+    ...unidadesSubstituicao,
+  ]);
   let fronteira = Array.from(visitadas);
 
   while (fronteira.length > 0) {

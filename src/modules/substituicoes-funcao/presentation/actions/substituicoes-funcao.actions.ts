@@ -166,6 +166,7 @@ export async function salvarSubstituicaoFuncaoAction(
   });
 
   revalidatePath("/administracao/substituicoes-funcao");
+  revalidatePath("/administracao/substituicoes-funcao?tipo=AUTOMATICA");
   redirect(`/administracao/substituicoes-funcao/${substituicao.id}/editar`);
 }
 
@@ -191,6 +192,7 @@ export async function atualizarSubstituicaoFuncaoAction(
   });
 
   revalidatePath("/administracao/substituicoes-funcao");
+  revalidatePath("/administracao/substituicoes-funcao?tipo=AUTOMATICA");
   revalidatePath(`/administracao/substituicoes-funcao/${id}/editar`);
 
   return {

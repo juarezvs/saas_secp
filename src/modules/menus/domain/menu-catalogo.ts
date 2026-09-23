@@ -55,6 +55,27 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
     ],
   },
   {
+    id: "/acompanhamento-estagio",
+    label: "Acompanhamento mensal de estagio",
+    href: "/acompanhamento-estagio",
+    permissoes: [
+      "acompanhamento-estagio:consultar:proprio",
+      "acompanhamento-estagio:preencher:proprio",
+      "acompanhamento-estagio:supervisionar:subordinados",
+      "acompanhamento-estagio:consultar:seccional",
+      "acompanhamento-estagio:exportar:seccional",
+    ],
+  },
+  {
+    id: "/acompanhamento-estagio/consulta",
+    label: "Consulta de acompanhamento de estagio",
+    href: "/acompanhamento-estagio/consulta",
+    permissoes: [
+      "acompanhamento-estagio:consultar:seccional",
+      "acompanhamento-estagio:exportar:seccional",
+    ],
+  },
+  {
     id: "/meu-contracheque",
     label: "Meu contracheque",
     href: "/meu-contracheque",
@@ -394,6 +415,17 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
     label: "Chefias",
     href: "/chefias",
     permissoes: ["chefias:gerenciar:seccional", "chefias:gerenciar:global"],
+  },
+  {
+    id: "/administracao/substituicoes-automaticas",
+    label: "Cadastro de substituição automática",
+    href: "/administracao/substituicoes-funcao?tipo=AUTOMATICA",
+    permissoes: [
+      "substituicoes-funcao:consultar:seccional",
+      "substituicoes-funcao:gerenciar:seccional",
+      "substituicoes-funcao:consultar:global",
+      "substituicoes-funcao:gerenciar:global",
+    ],
   },
   {
     id: "/administracao/substituicoes-funcao",

@@ -699,6 +699,55 @@ export async function listarUnidadesAtivasParaLotacao(params?: {
       sigla: true,
       nome: true,
       tipo: true,
+      orgao: {
+        select: {
+          sigla: true,
+        },
+      },
+      unidadePai: {
+        select: {
+          sigla: true,
+          nome: true,
+          orgao: {
+            select: {
+              sigla: true,
+            },
+          },
+          unidadePai: {
+            select: {
+              sigla: true,
+              nome: true,
+              orgao: {
+                select: {
+                  sigla: true,
+                },
+              },
+              unidadePai: {
+                select: {
+                  sigla: true,
+                  nome: true,
+                  orgao: {
+                    select: {
+                      sigla: true,
+                    },
+                  },
+                  unidadePai: {
+                    select: {
+                      sigla: true,
+                      nome: true,
+                      orgao: {
+                        select: {
+                          sigla: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
 }

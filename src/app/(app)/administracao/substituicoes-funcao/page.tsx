@@ -21,6 +21,7 @@ type SubstituicoesFuncaoPageProps = {
     titularServidorId?: string;
     substitutoServidorId?: string;
     funcaoId?: string;
+    tipo?: string;
     dataInicio?: string;
     dataFim?: string;
     pagina?: string;
@@ -86,6 +87,7 @@ function montarWhereSubstituicoes({
   titularServidorId,
   substitutoServidorId,
   funcaoId,
+  modoCadastroAutomatico,
   dataInicio,
   dataFim,
 }: {
@@ -93,6 +95,7 @@ function montarWhereSubstituicoes({
   titularServidorId?: string;
   substitutoServidorId?: string;
   funcaoId?: string;
+  modoCadastroAutomatico: boolean;
   dataInicio?: string;
   dataFim?: string;
 }): Prisma.SubstituicaoFuncaoWhereInput {
@@ -113,6 +116,9 @@ function montarWhereSubstituicoes({
   }
 
   return {
+    tipo: modoCadastroAutomatico
+      ? "AUTOMATICA"
+      : { not: "AUTOMATICA" },
     ...(orgaoIdsFiltro ? { orgaoId: { in: orgaoIdsFiltro } } : {}),
     ...(titularServidorId ? { titularServidorId } : {}),
     ...(substitutoServidorId ? { substitutoServidorId } : {}),
@@ -154,11 +160,13 @@ export default async function SubstituicoesFuncaoPage({
   });
   const orgaoIdsParaOpcoes =
     orgaoIdsFiltro ?? (escopo.global ? undefined : escopo.orgaoIds);
+  const modoCadastroAutomatico = params.tipo === "AUTOMATICA";
   const where = montarWhereSubstituicoes({
     orgaoIdsFiltro,
     titularServidorId: params.titularServidorId,
     substitutoServidorId: params.substitutoServidorId,
     funcaoId: params.funcaoId,
+    modoCadastroAutomatico,
     dataInicio: params.dataInicio,
     dataFim: params.dataFim,
   });
@@ -260,6 +268,7 @@ export default async function SubstituicoesFuncaoPage({
     "titularServidorId",
     "substitutoServidorId",
     "funcaoId",
+    "tipo",
     "dataInicio",
     "dataFim",
   ] as const) {
@@ -275,16 +284,41 @@ export default async function SubstituicoesFuncaoPage({
       <Breadcrumb
         items={[
           { label: "Administracao", href: "/administracao" },
-          { label: "Substituicoes de funcao" },
+          {
+            label: modoCadastroAutomatico
+              ? "Cadastro de substituicao automatica"
+              : "Substituicoes de funcao",
+          },
         ]}
       />
 
       <PageHeader
         icon={UserRoundCheck}
-        titulo="Substituicoes de funcao"
-        descricao="Gerencie titulares, substitutos, atos e periodos para manter o SECP pronto para operar sem dependencia do SARH."
+        titulo={
+          modoCadastroAutomatico
+            ? "Cadastro de substituicao automatica"
+            : "Substituicoes de funcao"
+        }
+        descricao={
+          modoCadastroAutomatico
+            ? "Consulte titulares e substitutos automaticos ativos, vindos do SARH ou cadastrados no SECP."
+            : "Gerencie periodos efetivos de substituicao, atos e registros operacionais separados do cadastro automatico."
+        }
         actions={
           <div className="flex flex-wrap gap-2">
+            <Link
+              href={
+                modoCadastroAutomatico
+                  ? "/administracao/substituicoes-funcao"
+                  : "/administracao/substituicoes-funcao?tipo=AUTOMATICA"
+              }
+              className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold hover:bg-[var(--muted)]"
+            >
+              <ArrowRight className="size-4" aria-hidden="true" />
+              {modoCadastroAutomatico
+                ? "Ver periodos efetivos"
+                : "Cadastro automatico"}
+            </Link>
             <Link
               href="/administracao/integracoes/sarh"
               className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold hover:bg-[var(--muted)]"
@@ -293,11 +327,17 @@ export default async function SubstituicoesFuncaoPage({
               Sincronizar SARH
             </Link>
             <Link
-              href="/administracao/substituicoes-funcao/novo"
+              href={
+                modoCadastroAutomatico
+                  ? "/administracao/substituicoes-funcao/novo?tipo=AUTOMATICA"
+                  : "/administracao/substituicoes-funcao/novo"
+              }
               className="inline-flex items-center gap-2 rounded-md bg-blue-900 px-3 py-2 text-sm font-bold text-white hover:bg-blue-800"
             >
               <Plus className="size-4" aria-hidden="true" />
-              Nova substituicao
+              {modoCadastroAutomatico
+                ? "Novo cadastro automatico"
+                : "Nova substituicao"}
             </Link>
           </div>
         }
@@ -325,8 +365,16 @@ export default async function SubstituicoesFuncaoPage({
       </section>
 
       <DataTableShell
-        title="Substituicoes cadastradas"
-        description="Registros no escopo do perfil ativo, com filtros por seccional, titular, substituto, funcao e vigencia."
+        title={
+          modoCadastroAutomatico
+            ? "Cadastros automaticos"
+            : "Substituicoes efetivas"
+        }
+        description={
+          modoCadastroAutomatico
+            ? "Registros automaticos ativos ou historicos que indicam quem assume quando o titular estiver afastado."
+            : "Registros efetivamente lancados para periodos de substituicao."
+        }
         total={total}
         pagina={paginaAtual}
         totalPaginas={totalPaginas}

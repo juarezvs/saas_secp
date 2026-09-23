@@ -1,7 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { CalendarClock, Edit, ShieldCheck, UserRound } from "lucide-react";
+import {
+  CalendarClock,
+  Edit,
+  ShieldCheck,
+  UserRound,
+  UserRoundCheck,
+} from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import {
@@ -24,7 +30,7 @@ import {
   buscarServidorPorId,
   contarAfastamentosServidorSarhPorGrupo,
   listarAfastamentosServidorSarhPaginado,
-  listarUnidadesAtivasParaLotacao,
+  listarServidoresParaFiltro,
 } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import {
@@ -33,13 +39,14 @@ import {
 } from "@/modules/servidores/application/actions/dispensa-ponto-servidor.action";
 import { reprocessarIdentificadoresPontoServidorAction } from "@/modules/servidores/application/actions/reprocessar-identificadores-ponto-servidor.action";
 import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
-import { vincularLotacaoAction } from "@/modules/servidores/application/actions/vincular-lotacao.action";
 import { DispensaPontoServidorCard } from "@/modules/servidores/presentation/components/dispensa-ponto-servidor-card";
 import { AfastamentosServidorCard } from "@/modules/servidores/presentation/components/afastamentos-servidor-card";
-import { LotacaoForm } from "@/modules/servidores/presentation/components/lotacao-form";
 import { ReprocessarIdentificadoresPontoButton } from "@/modules/servidores/presentation/components/reprocessar-identificadores-ponto-button";
 import { ServidorLotacoesCard } from "@/modules/servidores/presentation/components/servidor-lotacoes-card";
 import { ServidorBiometriaFacialCard } from "@/modules/servidores/presentation/components/servidor-biometria-facial-card";
+import { registrarSupervisaoEstagioAction } from "@/modules/servidores/application/actions/estagio-supervisao.action";
+import { EstagioSupervisaoForm } from "@/modules/servidores/presentation/components/estagio-supervisao-form";
+import { prisma } from "@/shared/infrastructure/database/prisma";
 
 type ServidorDetalhePageProps = {
   params: Promise<{
@@ -59,6 +66,8 @@ type AbaServidor =
   | "perfis"
   | "jornadas"
   | "lotacoes"
+  | "supervisaoEstagio"
+  | "substituicoesAutomaticas"
   | "biometria"
   | "afastamentos"
   | "ponto";
@@ -69,6 +78,8 @@ const ABAS_SERVIDOR: Array<{ valor: AbaServidor; label: string }> = [
   { valor: "perfis", label: "Perfis" },
   { valor: "jornadas", label: "Jornadas" },
   { valor: "lotacoes", label: "Lotações" },
+  { valor: "supervisaoEstagio", label: "Supervisao de estagio" },
+  { valor: "substituicoesAutomaticas", label: "Substituicao automatica" },
   { valor: "biometria", label: "Biometria" },
   { valor: "afastamentos", label: "Afastamentos" },
   { valor: "ponto", label: "Ponto" },
@@ -166,9 +177,8 @@ export default async function ServidorDetalhePage({
       ? permissoesSessao.orgaoIds
       : ["00000000-0000-4000-8000-000000000000"];
 
-  const [servidor, unidades, resumoBiometria] = await Promise.all([
+  const [servidor, resumoBiometria] = await Promise.all([
     buscarServidorPorId(id),
-    listarUnidadesAtivasParaLotacao({ orgaoIdsPermitidos }),
     buscarResumoBiometriaFacialServidor(id),
   ]);
 
@@ -200,6 +210,77 @@ export default async function ServidorDetalhePage({
   if (!servidorPermitidoParaChefia) {
     return notFound();
   }
+
+  const servidorEhEstagiario =
+    servidor.usuario.tipo === "ESTAGIARIO" ||
+    servidor.categoriaPessoa?.codigo?.toUpperCase() === "ESTAGIARIO";
+  const [historicoSupervisaoEstagio, supervisoresEstagio] = servidorEhEstagiario
+    ? await Promise.all([
+        prisma.estagioSupervisao.findMany({
+          where: {
+            estagiarioServidorId: servidorId,
+          },
+          include: {
+            supervisorServidor: {
+              include: {
+                usuario: true,
+                lotacoes: {
+                  where: { status: "ATIVO" },
+                  include: { unidade: true },
+                  orderBy: { dataInicio: "desc" },
+                  take: 1,
+                },
+              },
+            },
+          },
+          orderBy: [{ dataInicio: "desc" }],
+        }),
+        listarServidoresParaFiltro({
+          orgaoIdsPermitidos,
+          tipoUsuario: "SERVIDOR",
+          semLimite: true,
+        }),
+      ])
+    : [[], []];
+
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const substituicoesAutomaticas = await prisma.substituicaoFuncao.findMany({
+    where: {
+      substitutoServidorId: servidorId,
+      tipo: "AUTOMATICA",
+      orgaoId: servidor.orgaoId,
+    },
+    include: {
+      orgao: { select: { sigla: true } },
+      unidade: { select: { sigla: true, nome: true } },
+      titularServidor: {
+        select: {
+          matricula: true,
+          nomeFuncional: true,
+          usuario: { select: { nome: true } },
+          afastamentosSarh: {
+            where: {
+              ativo: true,
+              dataInicio: { lte: hoje },
+              OR: [{ dataFim: null }, { dataFim: { gte: hoje } }],
+            },
+            select: {
+              dataInicio: true,
+              dataFim: true,
+              tipoDescricao: true,
+              categoria: true,
+            },
+            orderBy: [{ dataInicio: "desc" }],
+          },
+        },
+      },
+      funcaoTitular: {
+        select: { categoria: true, codigo: true, descricao: true },
+      },
+    },
+    orderBy: [{ status: "asc" }, { dataInicio: "desc" }],
+  });
 
   const [afastamentosResultado, totalOutraAba] = await Promise.all([
     listarAfastamentosServidorSarhPaginado(servidorId, {
@@ -248,7 +329,6 @@ export default async function ServidorDetalhePage({
       ["biometriafacial:visualizar:global"],
     ),
   };
-  const actionLotacao = vincularLotacaoAction.bind(null, servidorId);
   const fusoHorario = await resolverFusoHorarioServidorNoBanco({
     servidorId,
   });
@@ -317,9 +397,17 @@ export default async function ServidorDetalhePage({
     abaAfastamentos === "ferias"
       ? "Períodos de férias importados do SARH e vinculados à matrícula funcional do servidor."
       : "Licenças, afastamentos diversos e demais registros importados do SARH para este servidor.";
-  const abasServidorVisiveis = ABAS_SERVIDOR.filter(
-    (aba) => aba.valor !== "ponto" || podeGerenciarServidor,
-  );
+  const abasServidorVisiveis = ABAS_SERVIDOR.filter((aba) => {
+    if (aba.valor === "ponto") {
+      return podeGerenciarServidor;
+    }
+
+    if (aba.valor === "supervisaoEstagio") {
+      return servidorEhEstagiario;
+    }
+
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -648,6 +736,203 @@ export default async function ServidorDetalhePage({
         <ServidorLotacoesCard lotacoes={servidor.lotacoes} />
       )}
 
+      {abaServidor === "supervisaoEstagio" && servidorEhEstagiario && (
+        <div className="space-y-4">
+          {podeGerenciarServidor ? (
+            <EstagioSupervisaoForm
+              action={registrarSupervisaoEstagioAction.bind(null, servidorId)}
+              supervisores={supervisoresEstagio.map((supervisor) => {
+                const lotacao = supervisor.lotacoes[0]?.unidade;
+
+                return {
+                  id: supervisor.id,
+                  label: `${nomeServidor(supervisor) || supervisor.usuario.nome} - ${
+                    supervisor.matricula
+                  }${lotacao ? ` (${lotacao.sigla ?? lotacao.nome})` : ""}`,
+                };
+              })}
+            />
+          ) : null}
+
+          <section className="overflow-hidden rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
+            <div className="flex items-center gap-2 border-b p-5">
+              <UserRoundCheck className="size-5 text-blue-900 dark:text-blue-300" />
+              <h2 className="text-lg font-bold">Historico de supervisao</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[860px] text-left text-sm">
+                <thead className="border-b bg-[var(--muted)] text-xs uppercase text-[var(--muted-foreground)]">
+                  <tr>
+                    <th className="px-5 py-3">Supervisor</th>
+                    <th className="px-5 py-3">Lotacao</th>
+                    <th className="px-5 py-3">Curso</th>
+                    <th className="px-5 py-3">Vigencia</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historicoSupervisaoEstagio.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="px-5 py-10 text-center text-sm text-[var(--muted-foreground)]"
+                      >
+                        Nenhuma supervisao de estagio cadastrada.
+                      </td>
+                    </tr>
+                  ) : null}
+                  {historicoSupervisaoEstagio.map((supervisao) => {
+                    const lotacao =
+                      supervisao.supervisorServidor.lotacoes[0]?.unidade;
+
+                    return (
+                      <tr key={supervisao.id} className="border-b last:border-b-0">
+                        <td className="px-5 py-4">
+                          <div className="font-semibold">
+                            {nomeServidor(supervisao.supervisorServidor) ||
+                              supervisao.supervisorServidor.usuario.nome}
+                          </div>
+                          <div className="text-xs text-[var(--muted-foreground)]">
+                            {supervisao.supervisorServidor.matricula}
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          {lotacao ? `${lotacao.sigla} - ${lotacao.nome}` : "-"}
+                        </td>
+                        <td className="px-5 py-4">{supervisao.curso ?? "-"}</td>
+                        <td className="px-5 py-4">
+                          {formatarData(supervisao.dataInicio)} a{" "}
+                          {formatarData(supervisao.dataFim)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {abaServidor === "substituicoesAutomaticas" && (
+        <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
+          <div className="flex items-center gap-2 border-b p-5">
+            <UserRoundCheck className="size-5 text-blue-900 dark:text-blue-300" />
+            <h2 className="text-lg font-bold">
+              Cadastro de substituicao automatica
+            </h2>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[920px] text-left text-sm">
+              <thead className="border-b bg-[var(--muted)] text-xs uppercase text-[var(--muted-foreground)]">
+                <tr>
+                  <th className="px-5 py-3">Unidade</th>
+                  <th className="px-5 py-3">Titular</th>
+                  <th className="px-5 py-3">Funcao</th>
+                  <th className="px-5 py-3">Vigencia</th>
+                  <th className="px-5 py-3">Origem</th>
+                  <th className="px-5 py-3">Situacao</th>
+                </tr>
+              </thead>
+              <tbody>
+                {substituicoesAutomaticas.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-5 py-10 text-center text-sm text-[var(--muted-foreground)]"
+                    >
+                      Este servidor nao possui cadastro de substituicao
+                      automatica.
+                    </td>
+                  </tr>
+                )}
+
+                {substituicoesAutomaticas.map((substituicao) => {
+                  const afastamentoVigente =
+                    substituicao.titularServidor.afastamentosSarh[0] ?? null;
+                  const chefiaTemporariaAtiva =
+                    substituicao.status === "ATIVA" && Boolean(afastamentoVigente);
+
+                  return (
+                    <tr
+                      key={substituicao.id}
+                      className="border-b last:border-b-0"
+                    >
+                      <td className="px-5 py-4">
+                        <div className="font-semibold">
+                          {substituicao.unidade?.sigla ?? "-"}
+                        </div>
+                        <div className="text-xs text-[var(--muted-foreground)]">
+                          {substituicao.orgao.sigla}
+                          {substituicao.unidade?.nome
+                            ? ` / ${substituicao.unidade.nome}`
+                            : ""}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="font-semibold">
+                          {nomeServidor(substituicao.titularServidor)}
+                        </div>
+                        <div className="text-xs text-[var(--muted-foreground)]">
+                          {substituicao.titularServidor.matricula}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        {substituicao.funcaoTitular
+                          ? `${substituicao.funcaoTitular.categoria} ${substituicao.funcaoTitular.codigo}`
+                          : "-"}
+                        <div className="text-xs text-[var(--muted-foreground)]">
+                          {substituicao.funcaoTitular?.descricao ?? "-"}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        {formatarData(substituicao.dataInicio)} a{" "}
+                        {formatarData(substituicao.dataFim)}
+                      </td>
+                      <td className="px-5 py-4">{substituicao.origem}</td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col gap-2">
+                          <span
+                            className={[
+                              "w-fit rounded-full px-2 py-1 text-xs font-semibold",
+                              substituicao.status === "ATIVA"
+                                ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
+                                : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+                            ].join(" ")}
+                          >
+                            {substituicao.status}
+                          </span>
+                          <span
+                            className={[
+                              "w-fit rounded-full px-2 py-1 text-xs font-semibold",
+                              chefiaTemporariaAtiva
+                                ? "bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-300"
+                                : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+                            ].join(" ")}
+                          >
+                            {chefiaTemporariaAtiva
+                              ? "Chefia temporaria ativa"
+                              : "Sem afastamento vigente"}
+                          </span>
+                          {afastamentoVigente && (
+                            <span className="text-xs text-[var(--muted-foreground)]">
+                              {afastamentoVigente.tipoDescricao ??
+                                afastamentoVigente.categoria ??
+                                "Afastamento"}{" "}
+                              desde {formatarData(afastamentoVigente.dataInicio)}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       {abaServidor === "biometria" && (
         <ServidorBiometriaFacialCard
           servidorId={servidorId}
@@ -732,15 +1017,11 @@ export default async function ServidorDetalhePage({
       )}
 
       {abaServidor === "ponto" && podeGerenciarServidor && (
-        <div className="space-y-4">
-          <DispensaPontoServidorCard
-            dispensas={dispensasPonto}
-            fusoHorario={fusoHorario}
-            action={actionDispensaPonto}
-          />
-
-          <LotacaoForm action={actionLotacao} unidades={unidades} />
-        </div>
+        <DispensaPontoServidorCard
+          dispensas={dispensasPonto}
+          fusoHorario={fusoHorario}
+          action={actionDispensaPonto}
+        />
       )}
     </div>
   );

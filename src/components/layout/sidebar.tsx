@@ -238,6 +238,39 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
+    label: "Acompanhamento de Estagio",
+    href: "/acompanhamento-estagio",
+    icon: ClipboardList,
+    permissoes: [
+      "acompanhamento-estagio:consultar:proprio",
+      "acompanhamento-estagio:preencher:proprio",
+      "acompanhamento-estagio:supervisionar:subordinados",
+      "acompanhamento-estagio:consultar:seccional",
+      "acompanhamento-estagio:exportar:seccional",
+    ],
+    children: [
+      {
+        label: "Meu acompanhamento",
+        href: "/acompanhamento-estagio",
+        icon: ClipboardList,
+        permissoes: [
+          "acompanhamento-estagio:consultar:proprio",
+          "acompanhamento-estagio:preencher:proprio",
+          "acompanhamento-estagio:supervisionar:subordinados",
+        ],
+      },
+      {
+        label: "Consulta de estagio",
+        href: "/acompanhamento-estagio/consulta",
+        icon: Search,
+        permissoes: [
+          "acompanhamento-estagio:consultar:seccional",
+          "acompanhamento-estagio:exportar:seccional",
+        ],
+      },
+    ],
+  },
+  {
     label: "Meu contracheque",
     href: "/meu-contracheque",
     icon: ReceiptText,

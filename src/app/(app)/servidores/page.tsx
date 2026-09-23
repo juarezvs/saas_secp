@@ -55,9 +55,10 @@ type ServidoresPageProps = {
 };
 
 type TipoPessoaPonto = "SERVIDOR" | "ESTAGIARIO" | "PRESTADOR" | "VOLUNTARIO";
+type TipoPessoaContexto = TipoPessoaPonto | "TODOS";
 
 const CONTEXTOS_PESSOA: Record<
-  TipoPessoaPonto,
+  TipoPessoaContexto,
   {
     hrefBase: string;
     breadcrumb: string;
@@ -71,33 +72,47 @@ const CONTEXTOS_PESSOA: Record<
     colunaPessoa: string;
   }
 > = {
-  SERVIDOR: {
+  TODOS: {
     hrefBase: "/servidores",
     breadcrumb: "Pessoas",
     eyebrow: "Cadastro unificado",
     titulo: "Pessoas",
     descricao:
-      "Gerencie pessoas, categorias, vinculos funcionais, usuarios relacionados e lotacoes em unidades organizacionais.",
-    regraTitulo: "Pessoa, categoria, jornada e frequencia",
+      "Gerencie pessoas, categorias, vínculos funcionais, usuários relacionados e lotações em unidades organizacionais.",
+    regraTitulo: "Pessoa, categoria, jornada e frequência",
     regraDescricao:
-      "O cadastro unificado sustenta a jornada, a apuracao mensal, o banco de horas, a homologacao pela chefia e a coleta pelos identificadores de ponto.",
+      "O cadastro unificado sustenta a jornada, a apuração mensal, o banco de horas, a homologação pela chefia e a coleta pelos identificadores de ponto.",
     novoLabel: "Nova pessoa",
     tabelaTitulo: "Pessoas cadastradas",
     colunaPessoa: "Pessoa",
   },
+  SERVIDOR: {
+    hrefBase: "/servidores",
+    breadcrumb: "Servidores",
+    eyebrow: "Cadastro de servidores",
+    titulo: "Servidores",
+    descricao:
+      "Gerencie servidores, vínculos funcionais, usuários relacionados e lotações em unidades organizacionais.",
+    regraTitulo: "Servidor, categoria, jornada e frequência",
+    regraDescricao:
+      "O cadastro unificado sustenta a jornada, a apuração mensal, o banco de horas, a homologação pela chefia e a coleta pelos identificadores de ponto.",
+    novoLabel: "Novo servidor",
+    tabelaTitulo: "Servidores cadastrados",
+    colunaPessoa: "Servidor",
+  },
   ESTAGIARIO: {
     hrefBase: "/estagiarios",
-    breadcrumb: "Estagiarios",
-    eyebrow: "Cadastro de estagiarios",
-    titulo: "Estagiarios",
+    breadcrumb: "Estagiários",
+    eyebrow: "Cadastro de estagiários",
+    titulo: "Estagiários",
     descricao:
-      "Gerencie estagiarios controlados pelo ponto, com lotacao, jornada e usuario de acesso por seccional.",
-    regraTitulo: "Estagio, jornada e frequencia",
+      "Gerencie estagiários controlados pelo ponto, com lotação, jornada e usuário de acesso por seccional.",
+    regraTitulo: "Estágio, jornada e frequência",
     regraDescricao:
-      "Estagiarios podem registrar ponto e compor espelhos e homologacao; regras de banco de horas e creditos devem ser habilitadas apenas quando houver norma aplicavel.",
-    novoLabel: "Novo estagiario",
-    tabelaTitulo: "Estagiarios cadastrados",
-    colunaPessoa: "Estagiario",
+      "Estagiários podem registrar ponto e compor espelhos e homologação; regras de banco de horas e créditos devem ser habilitadas apenas quando houver norma aplicável.",
+    novoLabel: "Novo estagiário",
+    tabelaTitulo: "Estagiários cadastrados",
+    colunaPessoa: "Estagiário",
   },
   PRESTADOR: {
     hrefBase: "/prestadores",
@@ -105,40 +120,41 @@ const CONTEXTOS_PESSOA: Record<
     eyebrow: "Cadastro de prestadores",
     titulo: "Prestadores",
     descricao:
-      "Gerencie prestadores controlados pelo ponto, respeitando a seccional e a unidade de atuacao.",
-    regraTitulo: "Prestador, jornada e frequencia",
+      "Gerencie prestadores controlados pelo ponto, respeitando a seccional e a unidade de atuação.",
+    regraTitulo: "Prestador, jornada e frequência",
     regraDescricao:
-      "Prestadores podem ser acompanhados no ponto; regras de creditos, debitos e horas extras devem permanecer condicionadas a autorizacao normativa.",
+      "Prestadores podem ser acompanhados no ponto; regras de créditos, débitos e horas extras devem permanecer condicionadas a autorização normativa.",
     novoLabel: "Novo prestador",
     tabelaTitulo: "Prestadores cadastrados",
     colunaPessoa: "Prestador",
   },
   VOLUNTARIO: {
     hrefBase: "/voluntarios",
-    breadcrumb: "Voluntarios",
-    eyebrow: "Cadastro de voluntarios",
-    titulo: "Voluntarios",
+    breadcrumb: "Voluntários",
+    eyebrow: "Cadastro de voluntários",
+    titulo: "Voluntários",
     descricao:
-      "Gerencie voluntarios controlados pelo ponto, com vinculo operacional por seccional.",
-    regraTitulo: "Voluntario, jornada e frequencia",
+      "Gerencie voluntários controlados pelo ponto, com vínculo operacional por seccional.",
+    regraTitulo: "Voluntário, jornada e frequência",
     regraDescricao:
-      "Voluntarios podem registrar ponto e ter frequencia acompanhada; aplicacao de banco de horas e creditos deve ser explicitamente autorizada.",
-    novoLabel: "Novo voluntario",
-    tabelaTitulo: "Voluntarios cadastrados",
-    colunaPessoa: "Voluntario",
+      "Voluntários podem registrar ponto e ter frequência acompanhada; aplicação de banco de horas e créditos deve ser explicitamente autorizada.",
+    novoLabel: "Novo voluntário",
+    tabelaTitulo: "Voluntários cadastrados",
+    colunaPessoa: "Voluntário",
   },
 };
 
-function normalizarTipoUsuario(valor?: string | null): TipoPessoaPonto {
+function normalizarTipoUsuario(valor?: string | null): TipoPessoaPonto | "" {
   return valor === "ESTAGIARIO" ||
+    valor === "SERVIDOR" ||
     valor === "PRESTADOR" ||
     valor === "VOLUNTARIO"
     ? valor
-    : "SERVIDOR";
+    : "";
 }
 
-function obterContextoPessoa(tipoUsuario: TipoPessoaPonto) {
-  return CONTEXTOS_PESSOA[tipoUsuario];
+function obterContextoPessoa(tipoUsuario: TipoPessoaPonto | "") {
+  return CONTEXTOS_PESSOA[tipoUsuario || "TODOS"];
 }
 
 export default async function ServidoresPage({
@@ -206,7 +222,7 @@ export default async function ServidoresPage({
       cpf: params.cpf ?? "",
       pis: params.pis ?? "",
       nome: params.nome ?? "",
-      tipoUsuario,
+      tipoUsuario: tipoUsuario || "",
       orgaoId: params.orgaoId ?? "",
       vinculo: params.vinculo ?? "",
       lotacao: params.lotacao ?? "",
@@ -279,7 +295,9 @@ export default async function ServidoresPage({
     if (chave === "status") {
       exportParams.set(chave, statusFiltro);
     } else if (chave === "tipoUsuario") {
-      exportParams.set(chave, tipoUsuario);
+      if (tipoUsuario) {
+        exportParams.set(chave, tipoUsuario);
+      }
     } else if (params[chave]) {
       exportParams.set(chave, params[chave]!);
     }
@@ -350,7 +368,7 @@ export default async function ServidoresPage({
               label: categoria.nome,
               searchText: categoria.codigo,
             }))}
-            tipoUsuarioFixo={tipoUsuario}
+            tipoUsuarioFixo={tipoUsuario || undefined}
             exportCsvHref={
               podeExportarServidores
                 ? `/api/servidores/export?${exportParams.toString()}`
@@ -367,20 +385,20 @@ export default async function ServidoresPage({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1040px] text-left text-sm">
             <caption className="sr-only">
-              Listagem de pessoas ativas com matr?cula, CPF, PIS/PASEP, nome,
-              ?rg?o, lota??o atual, contadores e a??es.
+              Listagem de pessoas ativas com matrícula, CPF, PIS/PASEP, nome,
+              órgão, lotação atual, contadores e ações.
             </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
-                <th className="px-5 py-3">Matr?cula</th>
+                <th className="px-5 py-3">Matrícula</th>
                 <th className="px-5 py-3">CPF / PIS/PASEP</th>
                 <th className="px-5 py-3">Categoria</th>
                 <th className="px-5 py-3">{contextoPessoa.colunaPessoa}</th>
-                <th className="px-5 py-3">?rg?o</th>
-                <th className="px-5 py-3">Lota??o atual</th>
-                <th className="px-5 py-3">Lota??es</th>
+                <th className="px-5 py-3">Órgão</th>
+                <th className="px-5 py-3">Lotação atual</th>
+                <th className="px-5 py-3">Lotações</th>
                 <th className="px-5 py-3">Gestores</th>
-                <th className="px-5 py-3 text-right">A??es</th>
+                <th className="px-5 py-3 text-right">Ações</th>
               </tr>
             </thead>
 

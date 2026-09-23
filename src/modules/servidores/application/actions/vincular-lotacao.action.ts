@@ -102,6 +102,7 @@ export async function vincularLotacaoAction(
 
   revalidatePath("/servidores");
   revalidatePath(`/servidores/${servidorId}`);
+  revalidatePath(`/servidores/${servidorId}/editar`);
 
   return {
     sucesso: true,

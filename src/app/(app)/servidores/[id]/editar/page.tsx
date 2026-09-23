@@ -9,8 +9,12 @@ import {
   buscarServidorPorId,
   listarCategoriasPessoasAtivas,
   listarOrgaosAtivosParaServidor,
+  listarUnidadesAtivasParaLotacao,
 } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
+import { vincularLotacaoAction } from "@/modules/servidores/application/actions/vincular-lotacao.action";
 import { ServidorForm } from "@/modules/servidores/presentation/components/servidor-form";
+import { LotacaoForm } from "@/modules/servidores/presentation/components/lotacao-form";
+import { ServidorLotacoesCard } from "@/modules/servidores/presentation/components/servidor-lotacoes-card";
 import {
   descricaoCargoServidor,
   descricaoFuncaoServidor,
@@ -70,10 +74,11 @@ export default async function EditarServidorPage({
       ? escopoOrgao.orgaoIds
       : ["00000000-0000-4000-8000-000000000000"];
 
-  const [servidor, orgaos, categorias] = await Promise.all([
+  const [servidor, orgaos, categorias, unidades] = await Promise.all([
     buscarServidorPorId(id),
     listarOrgaosAtivosParaServidor({ orgaoIdsPermitidos }),
     listarCategoriasPessoasAtivas({ orgaoIdsPermitidos }),
+    listarUnidadesAtivasParaLotacao({ orgaoIdsPermitidos }),
   ]);
 
   if (!servidor) {
@@ -81,6 +86,7 @@ export default async function EditarServidorPage({
   }
 
   const action = atualizarServidorAction.bind(null, servidor.id);
+  const actionLotacao = vincularLotacaoAction.bind(null, servidor.id);
   const rotuloPessoa =
     ROTULOS_TIPO_PESSOA[servidor.usuario.tipo] ?? ROTULOS_TIPO_PESSOA.SERVIDOR;
   const fotoCpf = servidor.cpf ?? servidor.usuario.cpf;
@@ -160,37 +166,46 @@ export default async function EditarServidorPage({
         )}
       </section>
 
-      <ServidorForm
-        action={action}
-        orgaos={orgaos}
-        categorias={categorias}
-        modo="editar"
-        valoresIniciais={{
-          orgaoId: servidor.orgaoId,
-          categoriaPessoaId: servidor.categoriaPessoaId,
-          matricula: servidor.matricula,
-          cpf: servidor.cpf || "",
-          pis: servidor.pis || "",
-          nome: servidor.usuario.nome,
-          email: servidor.usuario.email,
-          nomeFuncional: servidor.nomeFuncional,
-          vinculo: servidor.vinculo,
-          cargoDescricao,
-          funcaoDescricao,
-          descricaoProvimentoSarh: servidor.descricaoProvimentoSarh,
-          descricaoSituacaoSarh: servidor.descricaoSituacaoSarh,
-          sinalizacaoForaExpediente:
-            servidor.horasForaExpedienteInconsistente === null
-              ? "PADRAO"
-              : servidor.horasForaExpedienteInconsistente
-                ? "SINALIZAR"
-                : "NAO_SINALIZAR",
-          ativo: servidor.ativo,
-          identificadoresPonto: servidor.identificadoresPonto.map(
-            (identificador) => identificador.valor,
-          ),
-        }}
-      />
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,28rem)]">
+        <div className="min-w-0">
+          <ServidorForm
+            action={action}
+            orgaos={orgaos}
+            categorias={categorias}
+            modo="editar"
+            valoresIniciais={{
+              orgaoId: servidor.orgaoId,
+              categoriaPessoaId: servidor.categoriaPessoaId,
+              matricula: servidor.matricula,
+              cpf: servidor.cpf || "",
+              pis: servidor.pis || "",
+              nome: servidor.usuario.nome,
+              email: servidor.usuario.email,
+              nomeFuncional: servidor.nomeFuncional,
+              vinculo: servidor.vinculo,
+              cargoDescricao,
+              funcaoDescricao,
+              descricaoProvimentoSarh: servidor.descricaoProvimentoSarh,
+              descricaoSituacaoSarh: servidor.descricaoSituacaoSarh,
+              sinalizacaoForaExpediente:
+                servidor.horasForaExpedienteInconsistente === null
+                  ? "PADRAO"
+                  : servidor.horasForaExpedienteInconsistente
+                    ? "SINALIZAR"
+                    : "NAO_SINALIZAR",
+              ativo: servidor.ativo,
+              identificadoresPonto: servidor.identificadoresPonto.map(
+                (identificador) => identificador.valor,
+              ),
+            }}
+          />
+        </div>
+
+        <aside className="space-y-6">
+          <LotacaoForm action={actionLotacao} unidades={unidades} />
+          <ServidorLotacoesCard lotacoes={servidor.lotacoes} />
+        </aside>
+      </section>
     </div>
   );
 }

@@ -196,6 +196,13 @@ enum StatusProcessamentoEspelhoPonto {
   FALHA
 }
 
+enum StatusAcompanhamentoEstagio {
+  ABERTO
+  AGUARDANDO_SUPERVISOR
+  DEVOLVIDO
+  FECHADO
+}
+
 enum ResultadoApuracaoDia {
   REGULAR
   CREDITO
@@ -782,6 +789,9 @@ model Usuario {
   programacoesFeriasAnalisadas       ProgramacaoFerias[]                            @relation("ProgramacoesFeriasAnalisadasPor")
   programacoesFeriasEnviadasSarh     ProgramacaoFerias[]                            @relation("ProgramacoesFeriasEnviadasSarhPor")
   programacoesFeriasEventos          ProgramacaoFeriasEvento[]                      @relation("ProgramacoesFeriasEventosPorUsuario")
+  acompanhamentosEstagioFechados     AcompanhamentoEstagioMensal[]                  @relation("AcompanhamentosEstagioFechadosPorUsuario")
+  acompanhamentosEstagioSupervisor   AcompanhamentoEstagioMensal[]                  @relation("AcompanhamentosEstagioAssinadosSupervisorPorUsuario")
+  estagioSupervisoesCriadas          EstagioSupervisao[]                            @relation("EstagioSupervisoesCriadasPorUsuario")
 
   @@map("usuarios")
 }
@@ -1374,6 +1384,9 @@ model Servidor {
   teamsVinculos                        TeamsUsuarioVinculado[]
   autorizacoesHoraExtra                AutorizacaoHoraExtraServidor[]
   programacoesFerias                   ProgramacaoFerias[]
+  acompanhamentosEstagio               AcompanhamentoEstagioMensal[]
+  estagiosComoEstagiario               EstagioSupervisao[]                          @relation("EstagioSupervisoesEstagiario")
+  estagiosComoSupervisor               EstagioSupervisao[]                          @relation("EstagioSupervisoesSupervisor")
 
   @@index([orgaoId])
   @@index([categoriaPessoaId])
@@ -1382,6 +1395,80 @@ model Servidor {
   @@index([codigoLotacaoSarh])
   @@index([origemSarh])
   @@map("servidores")
+}
+
+model AcompanhamentoEstagioMensal {
+  id             String                      @id @default(uuid()) @db.Uuid
+  servidorId     String                      @map("servidor_id") @db.Uuid
+  anoReferencia  Int                         @map("ano_referencia")
+  mesReferencia  Int                         @map("mes_referencia")
+  status         StatusAcompanhamentoEstagio @default(ABERTO)
+  curso          String?                     @db.VarChar(180)
+  supervisor     String?                     @db.VarChar(180)
+  observacao     String?                     @db.Text
+  fechadoPorId   String?                     @map("fechado_por_id") @db.Uuid
+  fechadoEm      DateTime?                   @map("fechado_em")
+  assinatura     Json?
+  supervisorAssinadoPorId String?            @map("supervisor_assinado_por_id") @db.Uuid
+  supervisorAssinadoEm    DateTime?          @map("supervisor_assinado_em")
+  assinaturaSupervisor    Json?              @map("assinatura_supervisor")
+  devolucaoJustificativa  String?            @map("devolucao_justificativa") @db.Text
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  servidor   Servidor                      @relation(fields: [servidorId], references: [id], onDelete: Cascade)
+  fechadoPor Usuario?                      @relation("AcompanhamentosEstagioFechadosPorUsuario", fields: [fechadoPorId], references: [id], onDelete: SetNull)
+  supervisorAssinadoPor Usuario?           @relation("AcompanhamentosEstagioAssinadosSupervisorPorUsuario", fields: [supervisorAssinadoPorId], references: [id], onDelete: SetNull)
+  dias       AcompanhamentoEstagioDia[]
+
+  @@unique([servidorId, anoReferencia, mesReferencia])
+  @@index([anoReferencia, mesReferencia])
+  @@index([status])
+  @@index([fechadoPorId])
+  @@index([supervisorAssinadoPorId])
+  @@map("acompanhamentos_estagio_mensais")
+}
+
+model AcompanhamentoEstagioDia {
+  id                  String   @id @default(uuid()) @db.Uuid
+  acompanhamentoId    String   @map("acompanhamento_id") @db.Uuid
+  dataReferencia      DateTime @map("data_referencia") @db.Date
+  atividades          String   @db.Text
+  minutosRegistrados  Int      @default(0) @map("minutos_registrados")
+  metadados           Json?
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  acompanhamento AcompanhamentoEstagioMensal @relation(fields: [acompanhamentoId], references: [id], onDelete: Cascade)
+
+  @@unique([acompanhamentoId, dataReferencia])
+  @@index([dataReferencia])
+  @@map("acompanhamentos_estagio_dias")
+}
+
+model EstagioSupervisao {
+  id                   String    @id @default(uuid()) @db.Uuid
+  estagiarioServidorId String    @map("estagiario_servidor_id") @db.Uuid
+  supervisorServidorId String    @map("supervisor_servidor_id") @db.Uuid
+  curso                String?   @db.VarChar(180)
+  dataInicio           DateTime  @map("data_inicio") @db.Date
+  dataFim              DateTime? @map("data_fim") @db.Date
+  observacao           String?   @db.Text
+  criadoPorUsuarioId   String?   @map("criado_por_usuario_id") @db.Uuid
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  estagiarioServidor Servidor @relation("EstagioSupervisoesEstagiario", fields: [estagiarioServidorId], references: [id], onDelete: Cascade)
+  supervisorServidor Servidor @relation("EstagioSupervisoesSupervisor", fields: [supervisorServidorId], references: [id], onDelete: Restrict)
+  criadoPorUsuario   Usuario? @relation("EstagioSupervisoesCriadasPorUsuario", fields: [criadoPorUsuarioId], references: [id], onDelete: SetNull)
+
+  @@index([estagiarioServidorId, dataInicio, dataFim])
+  @@index([supervisorServidorId])
+  @@index([criadoPorUsuarioId])
+  @@map("estagios_supervisoes")
 }
 
 model CategoriaPessoa {
