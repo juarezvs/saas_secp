@@ -43,19 +43,19 @@ export const diasSemanaRegimeHibrido = [
 export const criarSolicitacaoSchema = z
   .object({
     tipo: z.enum(tiposSolicitacao, {
-      error: "Informe o tipo da solicitacao.",
+      error: "Informe o tipo da solicitação.",
     }),
     titulo: z
       .string()
       .trim()
-      .max(180, "O titulo deve ter no maximo 180 caracteres.")
+      .max(180, "O título deve ter no máximo 180 caracteres.")
       .optional()
       .or(z.literal("")),
     descricao: z
       .string()
       .trim()
-      .min(10, "Descreva a solicitacao com mais detalhes.")
-      .max(3000, "A descricao deve ter no maximo 3000 caracteres."),
+      .min(10, "Descreva a solicitação com mais detalhes.")
+      .max(3000, "A descrição deve ter no máximo 3000 caracteres."),
     dataReferencia: z.string().optional().or(z.literal("")),
     dataInicio: z.string().optional().or(z.literal("")),
     dataFim: z.string().optional().or(z.literal("")),
@@ -69,7 +69,7 @@ export const criarSolicitacaoSchema = z
     horasSolicitadas: z.coerce
       .number()
       .positive("Informe uma quantidade de horas maior que zero.")
-      .max(16, "A autorizacao nao pode exceder 16 horas.")
+      .max(16, "A autorização não pode exceder 16 horas.")
       .optional(),
     regimeTrabalhoRemotoTipo: z
       .enum(tiposRegimeTrabalhoRemoto)
@@ -94,7 +94,7 @@ export const criarSolicitacaoSchema = z
         ctx.addIssue({
           code: "custom",
           path: ["tipoMarcacao"],
-          message: "Informe o tipo de marcacao a ajustar.",
+          message: "Informe o tipo de marcação a ajustar.",
         });
       }
 
@@ -102,7 +102,7 @@ export const criarSolicitacaoSchema = z
         ctx.addIssue({
           code: "custom",
           path: ["horaAjuste"],
-          message: "Informe o horario solicitado.",
+          message: "Informe o horário solicitado.",
         });
       }
     }
@@ -156,7 +156,7 @@ export const criarSolicitacaoSchema = z
         ctx.addIssue({
           code: "custom",
           path: ["horasSolicitadas"],
-          message: "Informe a quantidade de horas que depende de autorizacao.",
+          message: "Informe a quantidade de horas que depende de autorização.",
         });
       }
     }
@@ -165,7 +165,7 @@ export const criarSolicitacaoSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["tipoCompensacao"],
-        message: "Informe a modalidade da compensacao.",
+        message: "Informe a modalidade da compensação.",
       });
     }
 
@@ -173,7 +173,7 @@ export const criarSolicitacaoSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["modalidadeCapacitacao"],
-        message: "Informe se a capacitacao e interna ou externa.",
+        message: "Informe se a capacitação é interna ou externa.",
       });
     }
 
@@ -185,20 +185,20 @@ export const criarSolicitacaoSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["diasRemotos"],
-        message: "Informe pelo menos um dia remoto para o regime hibrido.",
+        message: "Informe pelo menos um dia remoto para o regime híbrido.",
       });
     }
   });
 
 export const analisarSolicitacaoSchema = z.object({
   resultado: z.enum(["DEFERIR", "INDEFERIR", "DEVOLVER_AJUSTES"], {
-    error: "Informe o resultado da analise.",
+    error: "Informe o resultado da análise.",
   }),
   justificativaAnalise: z
     .string()
     .trim()
-    .min(5, "Informe a justificativa da analise.")
-    .max(3000, "A justificativa deve ter no maximo 3000 caracteres."),
+    .min(5, "Informe a justificativa da análise.")
+    .max(3000, "A justificativa deve ter no máximo 3000 caracteres."),
 });
 
 export type CriarSolicitacaoInput = z.infer<typeof criarSolicitacaoSchema>;

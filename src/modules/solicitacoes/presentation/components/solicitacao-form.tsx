@@ -44,14 +44,14 @@ const etapas = [
   {
     id: "periodo",
     titulo: "Período",
-    descricao: "Data e horarios",
+    descricao: "Data e horários",
     icon: CalendarDays,
     campos: ["dataReferencia", "dataInicio", "dataFim"],
   },
   {
     id: "detalhes",
     titulo: "Detalhes",
-    descricao: "Dados especificos",
+    descricao: "Dados específicos",
     icon: Settings2,
     campos: [
       "tipoMarcacao",
@@ -155,19 +155,19 @@ function obterConfiguracaoTipo(tipo: string) {
   > = {
     AJUSTE_PONTO: {
       resumo:
-        "Use para corrigir uma entrada, saida ou retorno que nao foi capturado corretamente.",
+        "Use para corrigir uma entrada, saída ou retorno que não foi capturado corretamente.",
       periodo: "DATA_REFERENCIA",
       detalhes: "AJUSTE",
     },
     COMPENSACAO: {
       resumo:
-        "Use para solicitar autorizacao de compensacao vinculada ao banco de horas.",
+        "Use para solicitar autorização de compensação vinculada ao banco de horas.",
       periodo: "INTERVALO",
       detalhes: "BANCO_HORAS",
     },
     HORA_CREDITO_PREVIA: {
       resumo:
-        "Use para solicitar autorizacao previa de horas que poderao gerar credito.",
+        "Use para solicitar autorização prévia de horas que poderão gerar crédito.",
       periodo: "INTERVALO",
       detalhes: "BANCO_HORAS",
     },
@@ -179,13 +179,13 @@ function obterConfiguracaoTipo(tipo: string) {
     },
     DISPENSA_PONTO: {
       resumo:
-        "Use para registrar dispensa de ponto, teletrabalho integral ou regime hibrido.",
+        "Use para registrar dispensa de ponto, teletrabalho integral ou regime híbrido.",
       periodo: "INTERVALO",
       detalhes: "REMOTO",
     },
     CAPACITACAO: {
       resumo:
-        "Use para registrar capacitacao autorizada; capacitacao interna exige registro biometrico no dia.",
+        "Use para registrar capacitação autorizada; capacitação interna exige registro biométrico no dia.",
       periodo: "INTERVALO",
       detalhes: "CAPACITACAO",
     },
@@ -194,7 +194,7 @@ function obterConfiguracaoTipo(tipo: string) {
   return (
     configuracoes[tipo] ?? {
       resumo:
-        "Use para registrar evento autorizado que impacta a frequencia no periodo informado.",
+        "Use para registrar evento autorizado que impacta a frequência no período informado.",
       periodo: "INTERVALO",
       detalhes: "SIMPLES",
     }
@@ -206,7 +206,7 @@ function validarEtapaFormulario(etapa: number, formData: FormData) {
   const falhas: string[] = [];
 
   if (etapa === 0 && !tipo) {
-    falhas.push("Selecione o tipo da solicitacao.");
+    falhas.push("Selecione o tipo da solicitação.");
   }
 
   if (etapa === 1) {
@@ -216,11 +216,11 @@ function validarEtapaFormulario(etapa: number, formData: FormData) {
 
     if (isTipoPeriodo(tipo)) {
       if (!formData.get("dataInicio")) {
-        falhas.push("Informe o inicio do periodo.");
+        falhas.push("Informe o início do período.");
       }
 
       if (!formData.get("dataFim")) {
-        falhas.push("Informe o fim do periodo.");
+        falhas.push("Informe o fim do período.");
       }
     }
   }
@@ -228,11 +228,11 @@ function validarEtapaFormulario(etapa: number, formData: FormData) {
   if (etapa === 2) {
     if (tipo === "AJUSTE_PONTO") {
       if (!formData.get("tipoMarcacao")) {
-        falhas.push("Selecione a marcacao a ajustar.");
+        falhas.push("Selecione a marcação a ajustar.");
       }
 
       if (!formData.get("horaAjuste")) {
-        falhas.push("Informe o horario solicitado.");
+        falhas.push("Informe o horário solicitado.");
       }
     }
 
@@ -243,11 +243,11 @@ function validarEtapaFormulario(etapa: number, formData: FormData) {
     }
 
     if (tipo === "COMPENSACAO" && !formData.get("tipoCompensacao")) {
-      falhas.push("Informe a modalidade da compensacao.");
+      falhas.push("Informe a modalidade da compensação.");
     }
 
     if (tipo === "CAPACITACAO" && !formData.get("modalidadeCapacitacao")) {
-      falhas.push("Informe se a capacitacao e interna ou externa.");
+      falhas.push("Informe se a capacitação é interna ou externa.");
     }
 
     if (
@@ -271,7 +271,7 @@ function validarEtapaFormulario(etapa: number, formData: FormData) {
       .map((valor) => String(valor ?? "").trim());
 
     if (descricao.length < 10) {
-      falhas.push("Descreva a solicitacao com mais detalhes.");
+      falhas.push("Descreva a solicitação com mais detalhes.");
     }
 
     anexos.forEach((anexo, indice) => {
@@ -319,7 +319,7 @@ function formatarHorasSolicitadasPreview(valor: FormDataEntryValue | null) {
   const texto = String(valor ?? "").trim();
 
   if (!texto) {
-    return "Nao informado";
+    return "Não informado";
   }
 
   if (/^\d{1,2}:[0-5]\d$/.test(texto)) {
@@ -389,14 +389,14 @@ function rotuloModalidadeCapacitacao(modalidade: string) {
 
 function montarPeriodoPreview(formData: FormData, tipo: string) {
   if (tipo === "AJUSTE_PONTO") {
-    return `Data de referencia: ${formatarDataPreview(
+    return `Data de referência: ${formatarDataPreview(
       formData.get("dataReferencia"),
     )}`;
   }
 
   const inicio = formatarDataPreview(formData.get("dataInicio"));
   const fim = formatarDataPreview(formData.get("dataFim"));
-  return `${inicio} ate ${fim}`;
+  return `${inicio} até ${fim}`;
 }
 
 function montarDetalhePreview(formData: FormData, tipo: string) {
@@ -633,7 +633,7 @@ export function SolicitacaoForm({
   valoresIniciais,
   etapaInicial = 0,
   action = criarSolicitacaoAction,
-  submitLabel = "Enviar solicitacao",
+  submitLabel = "Enviar solicitação",
   hiddenFields,
 }: SolicitacaoFormProps = {}) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -929,8 +929,8 @@ export function SolicitacaoForm({
             <div className="hidden">
               <h2 className="text-lg font-bold">Período de incidência</h2>
               <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-                Para ajuste pontual, informe a data de referencia; para eventos
-                por periodo, informe inicio e fim.
+                Para ajuste pontual, informe a data de referência; para eventos
+                por período, informe início e fim.
               </p>
             </div>
 
@@ -941,7 +941,7 @@ export function SolicitacaoForm({
                     htmlFor="dataReferencia"
                     className="text-sm font-semibold"
                   >
-                    Data de referencia
+                    Data de referência
                   </label>
                   <CampoAjuda>
                     Dia em que a marcação deverá ser corrigida na frequência.
@@ -1051,7 +1051,7 @@ export function SolicitacaoForm({
                       htmlFor="tipoMarcacao"
                       className="text-sm font-semibold"
                     >
-                      Tipo de marcacao para ajuste
+                      Tipo de marcação para ajuste
                     </label>
                     <CampoAjuda>
                       Escolha qual batida será criada ou corrigida no espelho.
@@ -1114,7 +1114,7 @@ export function SolicitacaoForm({
                         htmlFor="tipoCompensacao"
                         className="text-sm font-semibold"
                       >
-                        Modalidade da compensacao
+                        Modalidade da compensação
                       </label>
                       <CampoAjuda>
                         Define se a compensação usa crédito existente ou
@@ -1135,8 +1135,8 @@ export function SolicitacaoForm({
                         {tiposCompensacaoBancoHoras.map((tipo) => (
                           <option key={tipo} value={tipo}>
                             {tipo === "UTILIZAR_CREDITO"
-                              ? "Utilizar credito para compensar debito"
-                              : "Trabalhar horas para compensar debito"}
+                              ? "Utilizar crédito para compensar débito"
+                              : "Trabalhar horas para compensar débito"}
                           </option>
                         ))}
                       </select>
@@ -1163,7 +1163,7 @@ export function SolicitacaoForm({
                         id="horasSolicitadas"
                         name="horasSolicitadas"
                         type="time"
-                        min="00:15"
+                        min="00:01"
                         max="16:00"
                         step={60}
                         inputMode="numeric"
@@ -1184,8 +1184,8 @@ export function SolicitacaoForm({
                     </div>
                   ) : (
                     <div className="rounded-lg border bg-[var(--muted)] p-4 text-sm leading-6 text-[var(--muted-foreground)] md:col-span-2">
-                      O sistema calculara os minutos aplicaveis a partir do
-                      periodo informado e das pendencias/reflexos da apuracao.
+                      O sistema calculará os minutos aplicáveis a partir do
+                      período informado e das pendências/reflexos da apuração.
                     </div>
                   )}
                 </>
@@ -1225,7 +1225,7 @@ export function SolicitacaoForm({
                           Dispensa sem teletrabalho
                         </option>
                         <option value="TOTAL">Teletrabalho 100%</option>
-                        <option value="HIBRIDO">Regime hibrido</option>
+                        <option value="HIBRIDO">Regime híbrido</option>
                       </select>
                     </div>
 
@@ -1282,7 +1282,7 @@ export function SolicitacaoForm({
                         htmlFor="modalidadeCapacitacao"
                         className="text-sm font-semibold"
                       >
-                        Modalidade da capacitacao
+                        Modalidade da capacitação
                       </label>
                       <CampoAjuda>
                         Define como a capacitação será interpretada na apuração
@@ -1303,8 +1303,8 @@ export function SolicitacaoForm({
                         {modalidadesCapacitacao.map((modalidade) => (
                           <option key={modalidade} value={modalidade}>
                             {modalidade === "EXTERNA"
-                              ? "Capacitacao externa"
-                              : "Capacitacao interna"}
+                              ? "Capacitação externa"
+                              : "Capacitação interna"}
                           </option>
                         ))}
                       </select>
@@ -1317,8 +1317,8 @@ export function SolicitacaoForm({
 
                     <div className="rounded-md border bg-[var(--card)] p-3 text-sm leading-6 text-[var(--muted-foreground)]">
                       {modalidadeCapacitacao === "INTERNA"
-                        ? "A capacitacao interna sera considerada apenas quando houver registro biometrico no dia."
-                        : "Capacitacao externa com quatro horas ou mais cobre a jornada; abaixo disso exige complementacao."}
+                        ? "A capacitação interna será considerada apenas quando houver registro biométrico no dia."
+                        : "Capacitação externa com quatro horas ou mais cobre a jornada; abaixo disso exige complementação."}
                     </div>
                   </div>
                 </div>
@@ -1326,7 +1326,7 @@ export function SolicitacaoForm({
 
               {configuracaoTipo.detalhes === "SIMPLES" && (
                 <div className="rounded-lg border bg-[var(--muted)] p-4 text-sm text-[var(--muted-foreground)] md:col-span-2">
-                  Este tipo usa apenas periodo, titulo e justificativa.
+                  Este tipo usa apenas período, título e justificativa.
                 </div>
               )}
             </div>
@@ -1483,7 +1483,7 @@ export function SolicitacaoForm({
                 disabled={pendente}
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                Avancar
+                Avançar
                 <ChevronRight className="size-4" aria-hidden="true" />
               </button>
             ) : (
