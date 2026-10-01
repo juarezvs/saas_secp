@@ -10,6 +10,7 @@ import {
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { enfileirarRecalculoEspelhoPonto } from "../queues/recalcular-espelho-ponto-queue";
 import { obterProcessamentoEspelhoPonto } from "../services/processamento-espelho-ponto.service";
+import { recalculoEspelhoPontoDisponivel } from "../services/recalculo-worker-env";
 
 export type EstadoProcessamentoEspelho = {
   status: "PENDENTE" | "PROCESSANDO" | "ATUALIZADO" | "FALHA" | "AUSENTE";
@@ -120,7 +121,7 @@ export async function recalcularMesServidorAction(formData: FormData) {
     };
   }
 
-  if (process.env.SECP_AUTO_WORKERS === "false") {
+  if (!recalculoEspelhoPontoDisponivel()) {
     return {
       sucesso: false,
       mensagem: "O worker de recalculo do espelho esta inativo neste ambiente.",

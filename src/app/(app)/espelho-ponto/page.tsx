@@ -22,6 +22,7 @@ import {
   obterProcessamentoEspelhoPonto,
   processamentoAtualizadoHoje,
 } from "@/modules/recalculo/application/services/processamento-espelho-ponto.service";
+import { recalculoEspelhoPontoDisponivel } from "@/modules/recalculo/application/services/recalculo-worker-env";
 import {
   montarOpcoesCargoFuncaoAssinatura,
   resolverSeccionalAssinatura,
@@ -330,7 +331,7 @@ export default async function EspelhoPontoPage({
     podeRecalcularSeccional ||
     podeRecalcularBancoHoras ||
     podeRecalcularChefia;
-  const workerEspelhoAtivo = process.env.SECP_AUTO_WORKERS !== "false";
+  const workerEspelhoAtivo = recalculoEspelhoPontoDisponivel();
   const podeGerenciarBancoHorasNoEspelho =
     perfilChefiaAtivo ||
     usuarioPossuiPermissaoNoPerfil(
