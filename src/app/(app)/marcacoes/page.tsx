@@ -22,6 +22,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { PERMISSOES_ACESSO_REGISTRO_PONTO_SECP } from "@/modules/auth/domain/constants/perfis-sistema";
 import { minutosParaTexto } from "@/modules/apuracao/application/services/calcular-tempo.service";
@@ -596,6 +597,7 @@ export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps
 
   return (
     <main className="space-y-3 text-slate-700">
+      <Breadcrumb items={[{ label: "Marcações" }]} />
       <section className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
         <div className="flex flex-col gap-4 border-t-4 border-blue-700 p-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 items-center gap-4">

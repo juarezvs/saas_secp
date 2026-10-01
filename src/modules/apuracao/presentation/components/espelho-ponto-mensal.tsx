@@ -99,6 +99,16 @@ type HomologacaoCompetenciaEspelho = {
   chefiaResponsavel?: string | null;
 };
 
+function permiteAcoesAjusteEspelho(
+  homologacao?: HomologacaoCompetenciaEspelho | null,
+) {
+  if (!homologacao) {
+    return true;
+  }
+
+  return homologacao.status === "DEVOLVIDO";
+}
+
 type TipoHoraResumo = {
   id: string;
   label: string;
@@ -830,6 +840,7 @@ export function EspelhoPontoMensal({
           Math.round((totaisSemana.trabalhado / totaisSemana.previsto) * 100),
         )
       : 0;
+  const podeSolicitarAjuste = permiteAcoesAjusteEspelho(homologacaoCompetencia);
 
   return (
     <section className="space-y-1.5 text-[var(--card-foreground)]">
@@ -1097,6 +1108,7 @@ export function EspelhoPontoMensal({
                     quantidadeColunasMarcações={quantidadeColunasMarcações}
                     rotulosColunasMarcações={rotulosColunasMarcações}
                     destaque={destaque}
+                    podeSolicitarAjuste={podeSolicitarAjuste}
                   />
                 ),
               };
@@ -1140,6 +1152,7 @@ export function EspelhoPontoMensal({
                 quantidadeColunasMarcações={quantidadeColunasMarcações}
                 rotulosColunasMarcações={rotulosColunasMarcações}
                 destaque={destaque}
+                podeSolicitarAjuste={podeSolicitarAjuste}
               />
             }
             totalRegistrosSemana={semanaSelecionada.length}
@@ -1414,28 +1427,46 @@ export function EspelhoPontoMensal({
                               key={`${item.id}-horario-${indice}`}
                               className="whitespace-nowrap px-1.5 py-0 text-center font-mono"
                             >
-                              <SolicitacaoAjusteDiaDropdown
-                                dataReferencia={chaveReferencia}
-                                className="px-0 font-mono hover:bg-transparent focus-visible:bg-transparent"
-                              >
-                                {horario ? (
-                                  <span
-                                    className={`text-[10px] font-bold ${
-                                      horario.ajustada
-                                        ? "text-amber-800 dark:text-amber-300"
-                                        : "text-blue-950 dark:text-slate-200"
-                                    }`}
-                                    title={horario.title}
-                                  >
-                                    {horario.valor}
-                                    {horario.ajustada ? "*" : ""}
-                                  </span>
-                                ) : (
-                                  <span className="text-[var(--muted-foreground)]">
-                                    -
-                                  </span>
-                                )}
-                              </SolicitacaoAjusteDiaDropdown>
+                              {podeSolicitarAjuste ? (
+                                <SolicitacaoAjusteDiaDropdown
+                                  dataReferencia={chaveReferencia}
+                                  className="px-0 font-mono hover:bg-transparent focus-visible:bg-transparent"
+                                >
+                                  {horario ? (
+                                    <span
+                                      className={`text-[10px] font-bold ${
+                                        horario.ajustada
+                                          ? "text-amber-800 dark:text-amber-300"
+                                          : "text-blue-950 dark:text-slate-200"
+                                      }`}
+                                      title={horario.title}
+                                    >
+                                      {horario.valor}
+                                      {horario.ajustada ? "*" : ""}
+                                    </span>
+                                  ) : (
+                                    <span className="text-[var(--muted-foreground)]">
+                                      -
+                                    </span>
+                                  )}
+                                </SolicitacaoAjusteDiaDropdown>
+                              ) : horario ? (
+                                <span
+                                  className={`text-[10px] font-bold ${
+                                    horario.ajustada
+                                      ? "text-amber-800 dark:text-amber-300"
+                                      : "text-blue-950 dark:text-slate-200"
+                                  }`}
+                                  title={horario.title}
+                                >
+                                  {horario.valor}
+                                  {horario.ajustada ? "*" : ""}
+                                </span>
+                              ) : (
+                                <span className="text-[var(--muted-foreground)]">
+                                  -
+                                </span>
+                              )}
                             </td>
                           ))
                         )}
@@ -1539,7 +1570,7 @@ export function EspelhoPontoMensal({
                                 item.minutosHoraExtraNaoAutorizada ?? 0
                               }
                             />
-                          ) : (
+                          ) : podeSolicitarAjuste ? (
                             <SolicitacaoAjusteDiaDropdown
                               dataReferencia={chaveReferencia}
                               className="ml-auto size-8 px-0"
@@ -1549,6 +1580,8 @@ export function EspelhoPontoMensal({
                                 aria-hidden="true"
                               />
                             </SolicitacaoAjusteDiaDropdown>
+                          ) : (
+                            <span className="block size-8" aria-hidden="true" />
                           )}
                         </td>
                       </tr>
@@ -2074,6 +2107,7 @@ function TabelaSemana({
   quantidadeColunasMarcações,
   rotulosColunasMarcações,
   destaque,
+  podeSolicitarAjuste,
 }: {
   apuracoes: ApuracaoMensalItem[];
   marcacoesPorDia: Map<string, MarcacaoItem[]>;
@@ -2083,6 +2117,7 @@ function TabelaSemana({
     dataReferencia?: string | null;
     ocorrenciaId?: string | null;
   };
+  podeSolicitarAjuste: boolean;
 }) {
   return (
     <div className="max-w-full overflow-x-auto">
@@ -2218,12 +2253,16 @@ function TabelaSemana({
                   />
                 </td>
                 <td className="border-b px-2 py-1 text-right">
-                  <SolicitacaoAjusteDiaDropdown
-                    dataReferencia={chaveReferencia}
-                    className="ml-auto size-8 px-0"
-                  >
-                    <MoreVertical className="size-4" aria-hidden="true" />
-                  </SolicitacaoAjusteDiaDropdown>
+                  {podeSolicitarAjuste ? (
+                    <SolicitacaoAjusteDiaDropdown
+                      dataReferencia={chaveReferencia}
+                      className="ml-auto size-8 px-0"
+                    >
+                      <MoreVertical className="size-4" aria-hidden="true" />
+                    </SolicitacaoAjusteDiaDropdown>
+                  ) : (
+                    <span className="block size-8" aria-hidden="true" />
+                  )}
                 </td>
               </tr>
             );

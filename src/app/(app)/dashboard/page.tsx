@@ -1,5 +1,8 @@
 import { redirect } from "next/navigation";
+import type { ReactNode } from "react";
+
 import { auth } from "@/auth";
+import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { resolverDashboardPerfil } from "@/modules/dashboard/application/resolver-dashboard-perfil";
 import { DashboardAdmin } from "@/modules/dashboard/presentation/dashboard-admin/dashboard-admin";
 import { DashboardAuditor } from "@/modules/dashboard/presentation/dashboard-auditor/dashboard-auditor";
@@ -15,6 +18,15 @@ import { listarFavoritosUsuarioPerfil } from "@/modules/favoritos/application/fa
 type DashboardPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
+
+function DashboardComBreadcrumb({ children }: { children: ReactNode }) {
+  return (
+    <div className="space-y-3">
+      <Breadcrumb items={[{ label: "Dashboard" }]} />
+      {children}
+    </div>
+  );
+}
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const session = await auth();
@@ -35,13 +47,15 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   if (secao === "favoritos") {
     return (
-      <DashboardGenerico
-        nome={session.user.nome || session.user.name || "Usuario"}
-        perfilNome={session.user.perfilAtivo?.nome}
-        permissoes={session.user.perfilAtivo?.permissoes ?? []}
-        favoritos={favoritosPerfil}
-        somenteFavoritos
-      />
+      <DashboardComBreadcrumb>
+        <DashboardGenerico
+          nome={session.user.nome || session.user.name || "Usuario"}
+          perfilNome={session.user.perfilAtivo?.nome}
+          permissoes={session.user.perfilAtivo?.permissoes ?? []}
+          favoritos={favoritosPerfil}
+          somenteFavoritos
+        />
+      </DashboardComBreadcrumb>
     );
   }
 
@@ -49,47 +63,77 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   switch (dashboardPerfil) {
     case "MASTER":
-      return <DashboardMaster />;
+      return (
+        <DashboardComBreadcrumb>
+          <DashboardMaster />
+        </DashboardComBreadcrumb>
+      );
     case "ADMIN":
       return (
-        <DashboardAdmin
-          usuarioId={session.user.id}
-          orgaoIds={session.user.perfilAtivo?.orgaos?.map((orgao) => orgao.id)}
-          escopoGlobal={
-            session.user.perfilAtivo?.permissoes?.some((permissao) =>
-              permissao.endsWith(":global"),
-            ) ?? false
-          }
-        />
+        <DashboardComBreadcrumb>
+          <DashboardAdmin
+            usuarioId={session.user.id}
+            orgaoIds={session.user.perfilAtivo?.orgaos?.map((orgao) => orgao.id)}
+            escopoGlobal={
+              session.user.perfilAtivo?.permissoes?.some((permissao) =>
+                permissao.endsWith(":global"),
+              ) ?? false
+            }
+          />
+        </DashboardComBreadcrumb>
       );
     case "GESTOR":
-      return <DashboardGestor />;
+      return (
+        <DashboardComBreadcrumb>
+          <DashboardGestor />
+        </DashboardComBreadcrumb>
+      );
     case "SECAP":
-      return <DashboardSecap />;
+      return (
+        <DashboardComBreadcrumb>
+          <DashboardSecap />
+        </DashboardComBreadcrumb>
+      );
     case "AUDITOR":
-      return <DashboardAuditor />;
+      return (
+        <DashboardComBreadcrumb>
+          <DashboardAuditor />
+        </DashboardComBreadcrumb>
+      );
     case "DIREF":
-      return <DashboardDiref />;
+      return (
+        <DashboardComBreadcrumb>
+          <DashboardDiref />
+        </DashboardComBreadcrumb>
+      );
     case "SUPORTE":
-      return <DashboardSuporte />;
+      return (
+        <DashboardComBreadcrumb>
+          <DashboardSuporte />
+        </DashboardComBreadcrumb>
+      );
     case "GENERICO":
       return (
-        <DashboardGenerico
-          nome={session.user.nome || session.user.name || "Usuário"}
-          perfilNome={session.user.perfilAtivo?.nome}
-          permissoes={session.user.perfilAtivo?.permissoes ?? []}
-          favoritos={favoritosPerfil}
-        />
+        <DashboardComBreadcrumb>
+          <DashboardGenerico
+            nome={session.user.nome || session.user.name || "Usuario"}
+            perfilNome={session.user.perfilAtivo?.nome}
+            permissoes={session.user.perfilAtivo?.permissoes ?? []}
+            favoritos={favoritosPerfil}
+          />
+        </DashboardComBreadcrumb>
       );
     case "SERVIDOR":
     default:
       return (
-        <DashboardServidor
-          usuarioId={session.user.id}
-          nomeFallback={session.user.nome || session.user.name || "Servidor"}
-          perfilAtivoCodigo={session.user.perfilAtivo?.codigo}
-          permissoesPerfil={session.user.perfilAtivo?.permissoes ?? []}
-        />
+        <DashboardComBreadcrumb>
+          <DashboardServidor
+            usuarioId={session.user.id}
+            nomeFallback={session.user.nome || session.user.name || "Servidor"}
+            perfilAtivoCodigo={session.user.perfilAtivo?.codigo}
+            permissoesPerfil={session.user.perfilAtivo?.permissoes ?? []}
+          />
+        </DashboardComBreadcrumb>
       );
   }
 }
