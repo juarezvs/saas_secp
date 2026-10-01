@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { Save } from "lucide-react";
 
+import { SearchableSelect } from "@/components/ui";
 import type { EstagioSupervisaoState } from "../../application/actions/estagio-supervisao.action";
 
 type SupervisorOption = {
@@ -34,19 +35,18 @@ export function EstagioSupervisaoForm({ action, supervisores }: Props) {
           <label htmlFor="supervisorServidorId" className="text-sm font-semibold">
             Supervisor
           </label>
-          <select
+          <SearchableSelect
             id="supervisorServidorId"
             name="supervisorServidorId"
-            required
-            className="h-10 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-          >
-            <option value="">Selecione</option>
-            {supervisores.map((supervisor) => (
-              <option key={supervisor.id} value={supervisor.id}>
-                {supervisor.label}
-              </option>
-            ))}
-          </select>
+            placeholder="Selecione"
+            searchPlaceholder="Pesquisar supervisor..."
+            emptyMessage="Nenhum supervisor encontrado."
+            options={supervisores.map((supervisor) => ({
+              value: supervisor.id,
+              label: supervisor.label,
+              searchText: supervisor.label,
+            }))}
+          />
         </div>
 
         <div className="space-y-2">

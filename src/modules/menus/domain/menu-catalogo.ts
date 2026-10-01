@@ -371,6 +371,15 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
     ],
   },
   {
+    id: "/administracao/suporte",
+    label: "Suporte do login",
+    href: "/administracao/suporte",
+    permissoes: [
+      "configuracoes:gerenciar:seccional",
+      "configuracoes:gerenciar:global",
+    ],
+  },
+  {
     id: "/perfis",
     label: "Perfis e permissões",
     href: "/perfis",

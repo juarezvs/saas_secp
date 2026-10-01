@@ -2,8 +2,20 @@ import { DashboardAdmin as DashboardAdminAtual } from "@/modules/dashboard/prese
 
 type DashboardAdminProps = {
   usuarioId: string;
+  orgaoIds?: string[];
+  escopoGlobal?: boolean;
 };
 
-export async function DashboardAdmin({ usuarioId }: DashboardAdminProps) {
-  return <DashboardAdminAtual usuarioId={usuarioId} />;
+export async function DashboardAdmin({
+  usuarioId,
+  orgaoIds,
+  escopoGlobal,
+}: DashboardAdminProps) {
+  return (
+    <DashboardAdminAtual
+      usuarioId={usuarioId}
+      orgaoIds={orgaoIds}
+      escopoGlobal={escopoGlobal}
+    />
+  );
 }

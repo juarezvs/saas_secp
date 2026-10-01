@@ -22,6 +22,26 @@ vi.mock(
         eventosPorData: new Map(),
         recessos: [],
       }),
+      classificarDiaInstitucional: vi
+        .fn()
+        .mockImplementation(async (dataReferencia: Date) => {
+          const dataNormalizada = new Date(dataReferencia);
+          const diaSemana = dataNormalizada.getUTCDay();
+
+          return {
+            dataReferencia: dataNormalizada,
+            tipo: diaSemana === 0 ? "DOMINGO" : diaSemana === 6 ? "SABADO" : "UTIL",
+            descricao:
+              diaSemana === 0
+                ? "Domingo"
+                : diaSemana === 6
+                  ? "Sabado"
+                  : "Dia util regular",
+            fonte: "PADRAO",
+            contaComoDiaUtil: diaSemana !== 0 && diaSemana !== 6,
+            geraApuracaoRegular: diaSemana !== 0 && diaSemana !== 6,
+          };
+        }),
     };
   },
 );

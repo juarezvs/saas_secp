@@ -1,10 +1,10 @@
 "use server";
 
-import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { gerarHashSenha } from "@/modules/auth/application/services/senha-hash.service";
 import {
   invalidarCacheUsuarioAuthPorId,
   invalidarCacheUsuarioAuthPorMatricula,
@@ -171,7 +171,7 @@ export async function atualizarUsuarioAction(
   }
 
   const senhaHash = parsed.data.senha
-    ? await bcrypt.hash(parsed.data.senha, 12)
+    ? await gerarHashSenha(parsed.data.senha, 12)
     : undefined;
 
   await prisma.$transaction(async (tx) => {

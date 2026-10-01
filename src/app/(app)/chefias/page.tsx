@@ -4,7 +4,9 @@ import { Building2, Filter, Network, Plus, UserCheck } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
-import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { perfilAtivoEhChefia } from "@/modules/auth/application/services/perfil-chefia.service";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 import { listarUnidadesComGestores } from "@/modules/chefias/infrastructure/repositories/chefia.repository";
 
 function contarGestoresPorPapel(
@@ -41,16 +43,32 @@ function obterChefiaTitular(
 }
 
 export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
-  await exigirPermissaoOuRedirecionar("chefias:gerenciar:global");
+  const permissao = await exigirUmaDasPermissoesOuRedirecionar([
+    "chefias:gerenciar:global",
+    "chefias:gerenciar:seccional",
+    "homologacao:gerenciar:chefia",
+    "minha-equipe:consultar:chefia",
+  ]);
 
   const params = searchParams ? await searchParams : {};
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const perfilChefiaAtivo = perfilAtivoEhChefia({
+    perfilAtivoCodigo: permissao.perfilAtivoCodigo,
+    permissoes: permissao.permissoes,
+  });
+  const unidadeIdsPermitidos = perfilChefiaAtivo
+    ? await listarIdsUnidadesSubordinadasPorUsuario(permissao.usuarioId ?? "")
+    : undefined;
   const orgaoIdsPermitidos = escopoOrgao.global
     ? undefined
     : escopoOrgao.orgaoIds;
   const unidadesComGestores = await listarUnidadesComGestores({
     orgaoIdsPermitidos,
-  });
+  }).then((unidades) =>
+    unidadeIdsPermitidos
+      ? unidades.filter((unidade) => unidadeIdsPermitidos.includes(unidade.id))
+      : unidades,
+  );
   const buscaNormalizada = normalizarBusca(params.busca);
   const apenasComChefia = params.apenasComChefia === "1";
   const unidadesFiltradas = unidadesComGestores.filter((unidade) => {

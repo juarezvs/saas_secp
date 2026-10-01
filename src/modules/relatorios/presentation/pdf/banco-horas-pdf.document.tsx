@@ -44,9 +44,32 @@ type BancoHorasPdfProps = {
   };
 };
 
+function somarMovimentos(
+  movimentos: BancoHorasPdfProps["dados"]["movimentos"],
+  tipo: string,
+  status: string,
+) {
+  return movimentos
+    .filter((movimento) => movimento.tipo === tipo && movimento.status === status)
+    .reduce((total, movimento) => total + movimento.minutos, 0);
+}
+
 export function BancoHorasPdfDocument({ dados }: BancoHorasPdfProps) {
   const servidor = dados.servidor;
   const saldo = servidor?.bancoHorasSaldo;
+  const saldoAtualMinutos = saldo?.saldoMinutos ?? 0;
+  const creditosPendentesMes = somarMovimentos(
+    dados.movimentos,
+    "CREDITO",
+    "PENDENTE",
+  );
+  const debitosPendentesMes = somarMovimentos(
+    dados.movimentos,
+    "DEBITO",
+    "PENDENTE",
+  );
+  const saldoProjetadoMinutos =
+    saldoAtualMinutos + creditosPendentesMes - debitosPendentesMes;
 
   return (
     <Document
@@ -124,6 +147,37 @@ export function BancoHorasPdfDocument({ dados }: BancoHorasPdfProps) {
               <Text style={s.label}>Débitos pendentes</Text>
               <Text style={s.value}>
                 {minutosParaHoraRelatorio(saldo?.debitosPendentesMinutos ?? 0)}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>Saldo real da competencia</Text>
+
+          <View style={s.row}>
+            <View style={s.infoBox}>
+              <Text style={s.label}>Saldo atual validado</Text>
+              <Text style={s.value}>
+                {minutosParaHoraRelatorio(saldoAtualMinutos)}
+              </Text>
+            </View>
+            <View style={s.infoBox}>
+              <Text style={s.label}>Creditos pendentes no mes</Text>
+              <Text style={s.value}>
+                {minutosParaHoraRelatorio(creditosPendentesMes)}
+              </Text>
+            </View>
+            <View style={s.infoBox}>
+              <Text style={s.label}>Debitos pendentes no mes</Text>
+              <Text style={s.value}>
+                {minutosParaHoraRelatorio(debitosPendentesMes)}
+              </Text>
+            </View>
+            <View style={s.infoBox}>
+              <Text style={s.label}>Saldo projetado</Text>
+              <Text style={s.value}>
+                {minutosParaHoraRelatorio(saldoProjetadoMinutos)}
               </Text>
             </View>
           </View>

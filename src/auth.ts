@@ -25,10 +25,47 @@ async function obterCodigoPerfilAtivoCookie() {
 }
 
 function deveIniciarSarhLoginWorkerAutomatico() {
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.SARH_LOGIN_SYNC_AUTO_WORKER !== "true" &&
+    process.env.SECP_AUTO_WORKERS !== "true"
+  ) {
+    return false;
+  }
+
   return (
     process.env.SECP_AUTO_WORKERS !== "false" &&
     process.env.SARH_LOGIN_SYNC_AUTO_WORKER !== "false"
   );
+}
+
+function agendarRotinasPosLogin(usuario: UsuarioAutenticado) {
+  setTimeout(() => {
+    const atualizacoesSarhLogin: Array<Promise<unknown>> = [
+      enfileirarAtualizacaoSarhLogin({
+        matricula: usuario.matricula,
+        usuarioId: usuario.id,
+      }),
+    ];
+
+    if (process.env.SECP_AUTO_WORKERS !== "false") {
+      atualizacoesSarhLogin.push(
+        enfileirarRecalculoEspelhoNoLogin({ usuarioId: usuario.id }),
+      );
+    }
+
+    if (deveIniciarSarhLoginWorkerAutomatico()) {
+      atualizacoesSarhLogin.push(
+        import(
+          "@/modules/integracoes/sarh/application/workers/sarh-login-sync-worker-runtime"
+        ).then((mod) => mod.garantirSarhLoginSyncWorkerAutomatico()),
+      );
+    }
+
+    Promise.all(atualizacoesSarhLogin).catch((error) => {
+      console.error("[SARH LOGIN] Falha ao enfileirar atualizacao SARH:", error);
+    });
+  }, 0);
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -69,28 +106,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        const atualizacoesSarhLogin: Array<Promise<unknown>> = [
-          enfileirarAtualizacaoSarhLogin({
-            matricula: usuario.matricula,
-            usuarioId: usuario.id,
-          }),
-          enfileirarRecalculoEspelhoNoLogin({ usuarioId: usuario.id }),
-        ];
-
-        if (deveIniciarSarhLoginWorkerAutomatico()) {
-          atualizacoesSarhLogin.push(
-            import(
-              "@/modules/integracoes/sarh/application/workers/sarh-login-sync-worker-runtime"
-            ).then((mod) => mod.garantirSarhLoginSyncWorkerAutomatico()),
-          );
-        }
-
-        Promise.all(atualizacoesSarhLogin).catch((error) => {
-          console.error(
-            "[SARH LOGIN] Falha ao enfileirar atualização SARH:",
-            error,
-          );
-        });
+        agendarRotinasPosLogin(usuario);
 
         return {
           id: usuario.id,

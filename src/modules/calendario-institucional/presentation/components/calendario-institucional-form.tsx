@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Loader2, Save } from "lucide-react";
+import { Info, Loader2, Save } from "lucide-react";
 
 import { SearchableSelect } from "@/components/ui";
 import {
@@ -90,9 +90,9 @@ export function CalendarioInstitucionalForm({
   const [unidadeId, setUnidadeId] = useState(campos?.unidadeId ?? "");
   const unidadeSelecionada = unidades.find((unidade) => unidade.id === unidadeId);
   const mostrarOrgao = abrangencia === "ORGAO";
-  const mostrarUnidade = ["ESTADUAL", "MUNICIPAL", "UNIDADE"].includes(
-    abrangencia,
-  );
+  const mostrarUf = ["ESTADUAL", "MUNICIPAL"].includes(abrangencia);
+  const mostrarMunicipio = abrangencia === "MUNICIPAL";
+  const mostrarUnidade = ["ESTADUAL", "MUNICIPAL", "UNIDADE"].includes(abrangencia);
   const ufDesabilitada = false;
   const municipioDesabilitado = false;
 
@@ -231,8 +231,8 @@ export function CalendarioInstitucionalForm({
                 )}
               </div>
 
-              <div className="hidden">
-                <div className="space-y-2">
+              <div className={mostrarUf ? "space-y-2" : "hidden"}>
+                <div className={mostrarMunicipio ? "mt-4 space-y-2" : "hidden"}>
                   <label htmlFor="uf" className="text-sm font-semibold">
                     UF
                   </label>
@@ -274,7 +274,7 @@ export function CalendarioInstitucionalForm({
                 </div>
               </div>
 
-              <div className="hidden">
+              <div className={mostrarMunicipio ? "space-y-2" : "hidden"}>
                 <label htmlFor="municipioIbge" className="text-sm font-semibold">
                   Código IBGE do município
                 </label>
@@ -329,7 +329,7 @@ export function CalendarioInstitucionalForm({
                 }`}
               >
                 <label htmlFor="unidadeId" className="text-sm font-semibold">
-                  Localidade
+                  Localidade vinculada
                 </label>
                 <SearchableSelect
                   id="unidadeId"
@@ -348,6 +348,20 @@ export function CalendarioInstitucionalForm({
                     })),
                   ]}
                 />
+                {mostrarMunicipio ? (
+                  <p className="flex items-start gap-2 text-xs text-[var(--muted-foreground)]">
+                    <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+                    Para feriado municipal, informe UF e municipio. A localidade
+                    vinculada associa o evento a uma subsecao quando houver cadastro.
+                  </p>
+                ) : null}
+                {abrangencia === "ESTADUAL" ? (
+                  <p className="flex items-start gap-2 text-xs text-[var(--muted-foreground)]">
+                    <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+                    Para abrangencia estadual, informe a UF. A localidade
+                    vinculada associa o evento a uma secao judiciaria quando houver cadastro.
+                  </p>
+                ) : null}
                 {unidadeSelecionada && (
                   <p className="text-xs text-[var(--muted-foreground)]">
                     {[

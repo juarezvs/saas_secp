@@ -48,8 +48,9 @@ export const criarSolicitacaoSchema = z
     titulo: z
       .string()
       .trim()
-      .min(5, "Informe um titulo com pelo menos 5 caracteres.")
-      .max(180, "O titulo deve ter no maximo 180 caracteres."),
+      .max(180, "O titulo deve ter no maximo 180 caracteres.")
+      .optional()
+      .or(z.literal("")),
     descricao: z
       .string()
       .trim()

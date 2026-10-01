@@ -1,7 +1,7 @@
-import bcrypt from "bcryptjs";
 import type { UsuarioAutenticado } from "../../domain/entities/usuario-autenticado";
 import { autenticarNoActiveDirectory } from "../../infrastructure/active-directory/active-directory-auth.service";
 import { buscarUsuarioParaLoginPorMatricula } from "../../infrastructure/repositories/usuario-auth.repository";
+import { compararSenhaComHash } from "./senha-hash.service";
 
 type AutenticarUsuarioParams = {
   matricula: string;
@@ -51,12 +51,11 @@ export async function autenticarUsuarioPorCredenciais({
     return null;
   }
 
-  const senhaLocalPrimeiro =
-    process.env.AUTH_LOCAL_PASSWORD_FIRST === "true" &&
+  const senhaLocalValidaPrimeiro =
     Boolean(usuario.senhaHash) &&
-    (await bcrypt.compare(senha, usuario.senhaHash ?? ""));
+    (await compararSenhaComHash(senha, usuario.senhaHash ?? ""));
 
-  if (senhaLocalPrimeiro) {
+  if (senhaLocalValidaPrimeiro) {
     return {
       id: usuario.id,
       matricula: usuario.matricula,
@@ -77,7 +76,7 @@ export async function autenticarUsuarioPorCredenciais({
   const senhaLocalValida =
     !senhaAdValida &&
     Boolean(usuario.senhaHash) &&
-    (await bcrypt.compare(senha, usuario.senhaHash ?? ""));
+    (await compararSenhaComHash(senha, usuario.senhaHash ?? ""));
 
   if (!senhaAdValida && !senhaLocalValida) {
     return null;

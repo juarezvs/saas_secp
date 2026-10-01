@@ -506,6 +506,7 @@ const CODIGOS_PERMISSOES_USUARIO_COM_USO_PRATICO = [
   "relatorios:exportar:proprio",
   "servidores:consultar:global",
   "servidores:consultar:seccional",
+  "servidores:desativar-lote:seccional",
   "servidores:gerenciar:global",
   "servidores:gerenciar:seccional",
   "solicitacoes:analisar:chefia",
@@ -667,6 +668,12 @@ const permissoesIniciais = [
     acao: "gerenciar",
     escopo: "global",
     descricao: "Gerenciar servidores e vínculos.",
+  },
+  {
+    recurso: "servidores",
+    acao: "desativar-lote",
+    escopo: "global",
+    descricao: "Desativar pessoas em lote.",
   },
   {
     recurso: "servidores",
@@ -1705,6 +1712,7 @@ const codigosPermissoesAdministrador = [
   "usuarios:consultar:global",
   "perfis:gerenciar:global",
   "unidades:gerenciar:global",
+  "servidores:desativar-lote:global",
   "servidores:gerenciar:global",
   "servidores:consultar:global",
   "chefias:gerenciar:global",

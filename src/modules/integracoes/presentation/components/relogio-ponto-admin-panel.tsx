@@ -30,6 +30,7 @@ import {
   sincronizarBiometriasEquipamentosOrgaoAction,
   type RelogioPontoActionState,
 } from "../../application/actions/relogio-ponto.actions";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type EquipamentoOperacional = {
   id: string;
@@ -242,7 +243,11 @@ export function RelogioPontoAdminPanel({
   );
 
   return (
-    <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
+    <Tabs
+      value={aba}
+      onValueChange={(value) => setAba(value as AbaOperacional)}
+    >
+      <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
       <div className="border-b p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
@@ -256,22 +261,17 @@ export function RelogioPontoAdminPanel({
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <TabsList className="flex h-auto flex-wrap justify-start gap-2 bg-transparent p-0">
             {abas.map((item) => (
-              <button
+              <TabsTrigger
                 key={item.id}
-                type="button"
-                onClick={() => setAba(item.id)}
-                className={`rounded-md px-3 py-2 text-sm font-semibold ${
-                  aba === item.id
-                    ? "bg-blue-900 text-white"
-                    : "border bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                }`}
+                value={item.id}
+                className="border bg-[var(--card)] data-[state=active]:bg-blue-900 data-[state=active]:text-white"
               >
                 {item.label}
-              </button>
+              </TabsTrigger>
             ))}
-          </div>
+          </TabsList>
         </div>
       </div>
 
@@ -284,38 +284,39 @@ export function RelogioPontoAdminPanel({
           </div>
         ) : (
           <>
-            {aba === "resumo" && (
+            <TabsContent value="resumo" className="mt-0">
               <ResumoRelogios
                 relogios={relogios}
                 coletasPorEquipamento={coletasPorEquipamento}
                 listenerOnlineAtivo={statusListenerOnline.ativo}
               />
-            )}
-            {aba === "coleta" && (
+            </TabsContent>
+            <TabsContent value="coleta" className="mt-0">
               <ColetaRelogios
                 relogios={relogios}
                 coletasPorEquipamento={coletasPorEquipamento}
                 listenerOnlineAtivo={statusListenerOnline.ativo}
               />
-            )}
-            {aba === "online" && (
+            </TabsContent>
+            <TabsContent value="online" className="mt-0">
               <OnlineRelogios
                 relogios={relogios}
                 coletasPorEquipamento={coletasPorEquipamento}
                 listenerOnlineAtivo={statusListenerOnline.ativo}
               />
-            )}
-            {aba === "biometria" && (
+            </TabsContent>
+            <TabsContent value="biometria" className="mt-0">
               <BiometriaRelogios
                 relogios={relogios}
                 coletasPorEquipamento={coletasPorEquipamento}
                 listenerOnlineAtivo={statusListenerOnline.ativo}
               />
-            )}
+            </TabsContent>
           </>
         )}
       </div>
     </section>
+    </Tabs>
   );
 }
 

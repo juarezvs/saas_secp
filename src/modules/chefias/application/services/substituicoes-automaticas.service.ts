@@ -229,38 +229,30 @@ export function aplicarPerfisHerdadosPorSubstituicaoAutomatica(
     return perfisAtuais;
   }
 
-  const permissoesHerdadas = new Set(
-    perfisHerdados.flatMap((perfil) => perfil.permissoes),
-  );
-  const orgaosHerdados = new Map(
-    perfisHerdados
-      .flatMap((perfil) => perfil.orgaos ?? [])
-      .map((orgao) => [orgao.id, orgao]),
-  );
   const perfisPorId = new Map<string, PerfilSessao>(
-    perfisAtuais.map((perfil) => [
-      perfil.id,
-      {
-        ...perfil,
-        permissoes: Array.from(
-          new Set([...perfil.permissoes, ...permissoesHerdadas]),
-        ),
-        orgaos: Array.from(
-          new Map([
-            ...(perfil.orgaos ?? []).map((orgao) => [orgao.id, orgao] as const),
-            ...orgaosHerdados,
-          ]).values(),
-        ),
-      },
-    ]),
+    perfisAtuais.map((perfil) => [perfil.id, perfil]),
   );
 
   for (const perfilHerdado of perfisHerdados) {
-    if (perfisPorId.has(perfilHerdado.id)) {
-      continue;
-    }
+    const perfilAtual = perfisPorId.get(perfilHerdado.id);
 
-    perfisPorId.set(perfilHerdado.id, perfilHerdado);
+    if (perfilAtual) {
+      perfisPorId.set(perfilHerdado.id, {
+        ...perfilAtual,
+        permissoes: Array.from(
+          new Set([...perfilAtual.permissoes, ...perfilHerdado.permissoes]),
+        ),
+        orgaos: Array.from(
+          new Map(
+            [...(perfilAtual.orgaos ?? []), ...(perfilHerdado.orgaos ?? [])].map(
+              (orgao) => [orgao.id, orgao],
+            ),
+          ).values(),
+        ),
+      });
+    } else {
+      perfisPorId.set(perfilHerdado.id, perfilHerdado);
+    }
   }
 
   return Array.from(perfisPorId.values());

@@ -9,6 +9,7 @@ export type ListarUnidadesParams = {
   tipo?: string;
   orgaoId?: string;
   orgaoIdsPermitidos?: string[];
+  unidadeIdsPermitidos?: string[];
   superior?: string;
   status?: string;
 };
@@ -105,8 +106,11 @@ export function montarWhereUnidades(params: ListarUnidadesParams) {
   const busca = params.busca?.trim();
   const orgaoId = params.orgaoId?.trim();
   const orgaoIdsPermitidos = params.orgaoIdsPermitidos?.filter(ehUuid);
+  const unidadeIdsPermitidos = params.unidadeIdsPermitidos?.filter(ehUuid);
 
   return {
+    ...(unidadeIdsPermitidos?.length ? { id: { in: unidadeIdsPermitidos } } : {}),
+
     ...(params.status === "ativa"
       ? { ativo: true }
       : params.status === "inativa"

@@ -789,6 +789,8 @@ model Usuario {
   programacoesFeriasAnalisadas       ProgramacaoFerias[]                            @relation("ProgramacoesFeriasAnalisadasPor")
   programacoesFeriasEnviadasSarh     ProgramacaoFerias[]                            @relation("ProgramacoesFeriasEnviadasSarhPor")
   programacoesFeriasEventos          ProgramacaoFeriasEvento[]                      @relation("ProgramacoesFeriasEventosPorUsuario")
+  excecoesSecapFeriasCriadas         ExcecaoSecapFeriasServidor[]                   @relation("ExcecoesSecapFeriasCriadasPor")
+  excecoesSecapFeriasEncerradas      ExcecaoSecapFeriasServidor[]                   @relation("ExcecoesSecapFeriasEncerradasPor")
   acompanhamentosEstagioFechados     AcompanhamentoEstagioMensal[]                  @relation("AcompanhamentosEstagioFechadosPorUsuario")
   acompanhamentosEstagioSupervisor   AcompanhamentoEstagioMensal[]                  @relation("AcompanhamentosEstagioAssinadosSupervisorPorUsuario")
   estagioSupervisoesCriadas          EstagioSupervisao[]                            @relation("EstagioSupervisoesCriadasPorUsuario")
@@ -1060,6 +1062,7 @@ model Orgao {
   autorizacoesHoraExtra            AutorizacaoHoraExtraAdministrativa[]
   perfis                           Perfil[]
   programacoesFerias               ProgramacaoFerias[]
+  excecoesSecapFerias              ExcecaoSecapFeriasServidor[]
 
   @@index([uf])
   @@index([municipioIbge])
@@ -1105,6 +1108,11 @@ model RegulamentacaoPontoOrgao {
   inicioJanelaNoite                              String  @default("18:00") @map("inicio_janela_noite") @db.VarChar(5)
   prazoHomologacaoDiaMesSeguinte                 Int     @default(10) @map("prazo_homologacao_dia_mes_seguinte")
   prazoAjustePontoDiaMesSeguinte                 Int     @default(10) @map("prazo_ajuste_ponto_dia_mes_seguinte")
+  feriasAntecedenciaPrimeiroPeriodoDias          Int     @default(45) @map("ferias_antecedencia_primeiro_periodo_dias")
+  feriasAntecedenciaDemaisPeriodosDiasUteis      Int     @default(2) @map("ferias_antecedencia_demais_periodos_dias_uteis")
+  feriasJanelaCienciaPrimeiroPeriodoDias         Int     @default(45) @map("ferias_janela_ciencia_primeiro_periodo_dias")
+  feriasExigeCienciaPrimeiroPeriodo              Boolean @default(true) @map("ferias_exige_ciencia_primeiro_periodo")
+  feriasAprovacaoAutomaticaSecap                 Boolean @default(false) @map("ferias_aprovacao_automatica_secap")
   percentualCreditoSabado                        Int     @default(50) @map("percentual_credito_sabado")
   percentualCreditoDomingoFeriado                Int     @default(100) @map("percentual_credito_domingo_feriado")
   percentualCreditoRecesso                       Int     @default(100) @map("percentual_credito_recesso")
@@ -1112,6 +1120,7 @@ model RegulamentacaoPontoOrgao {
   exigeAutorizacaoPreviaCredito                  Boolean @default(true) @map("exige_autorizacao_previa_credito")
   bancoHorasAtivo                                Boolean @default(true) @map("banco_horas_ativo")
   bancoHorasCompetenciaInicio                    String? @map("banco_horas_competencia_inicio") @db.VarChar(7)
+  nadaConstaConsideraMesAberto                   Boolean @default(false) @map("nada_consta_considera_mes_aberto")
   horasExtrasAtivo                               Boolean @default(true) @map("horas_extras_ativo")
   horasForaExpedienteInconsistente               Boolean @default(false) @map("horas_fora_expediente_inconsistente")
   ativo                                          Boolean @default(true)
@@ -1384,9 +1393,10 @@ model Servidor {
   teamsVinculos                        TeamsUsuarioVinculado[]
   autorizacoesHoraExtra                AutorizacaoHoraExtraServidor[]
   programacoesFerias                   ProgramacaoFerias[]
+  excecoesSecapFerias                  ExcecaoSecapFeriasServidor[]
   acompanhamentosEstagio               AcompanhamentoEstagioMensal[]
-  estagiosComoEstagiario               EstagioSupervisao[]                          @relation("EstagioSupervisoesEstagiario")
-  estagiosComoSupervisor               EstagioSupervisao[]                          @relation("EstagioSupervisoesSupervisor")
+  estagiosComoEstagiario               EstagioSupervisao[]                            @relation("EstagioSupervisoesEstagiario")
+  estagiosComoSupervisor               EstagioSupervisao[]                            @relation("EstagioSupervisoesSupervisor")
 
   @@index([orgaoId])
   @@index([categoriaPessoaId])
@@ -1398,29 +1408,29 @@ model Servidor {
 }
 
 model AcompanhamentoEstagioMensal {
-  id             String                      @id @default(uuid()) @db.Uuid
-  servidorId     String                      @map("servidor_id") @db.Uuid
-  anoReferencia  Int                         @map("ano_referencia")
-  mesReferencia  Int                         @map("mes_referencia")
-  status         StatusAcompanhamentoEstagio @default(ABERTO)
-  curso          String?                     @db.VarChar(180)
-  supervisor     String?                     @db.VarChar(180)
-  observacao     String?                     @db.Text
-  fechadoPorId   String?                     @map("fechado_por_id") @db.Uuid
-  fechadoEm      DateTime?                   @map("fechado_em")
-  assinatura     Json?
-  supervisorAssinadoPorId String?            @map("supervisor_assinado_por_id") @db.Uuid
-  supervisorAssinadoEm    DateTime?          @map("supervisor_assinado_em")
-  assinaturaSupervisor    Json?              @map("assinatura_supervisor")
-  devolucaoJustificativa  String?            @map("devolucao_justificativa") @db.Text
+  id                      String                      @id @default(uuid()) @db.Uuid
+  servidorId              String                      @map("servidor_id") @db.Uuid
+  anoReferencia           Int                         @map("ano_referencia")
+  mesReferencia           Int                         @map("mes_referencia")
+  status                  StatusAcompanhamentoEstagio @default(ABERTO)
+  curso                   String?                     @db.VarChar(180)
+  supervisor              String?                     @db.VarChar(180)
+  observacao              String?                     @db.Text
+  fechadoPorId            String?                     @map("fechado_por_id") @db.Uuid
+  fechadoEm               DateTime?                   @map("fechado_em")
+  assinatura              Json?
+  supervisorAssinadoPorId String?                     @map("supervisor_assinado_por_id") @db.Uuid
+  supervisorAssinadoEm    DateTime?                   @map("supervisor_assinado_em")
+  assinaturaSupervisor    Json?                       @map("assinatura_supervisor")
+  devolucaoJustificativa  String?                     @map("devolucao_justificativa") @db.Text
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  servidor   Servidor                      @relation(fields: [servidorId], references: [id], onDelete: Cascade)
-  fechadoPor Usuario?                      @relation("AcompanhamentosEstagioFechadosPorUsuario", fields: [fechadoPorId], references: [id], onDelete: SetNull)
-  supervisorAssinadoPor Usuario?           @relation("AcompanhamentosEstagioAssinadosSupervisorPorUsuario", fields: [supervisorAssinadoPorId], references: [id], onDelete: SetNull)
-  dias       AcompanhamentoEstagioDia[]
+  servidor              Servidor                   @relation(fields: [servidorId], references: [id], onDelete: Cascade)
+  fechadoPor            Usuario?                   @relation("AcompanhamentosEstagioFechadosPorUsuario", fields: [fechadoPorId], references: [id], onDelete: SetNull)
+  supervisorAssinadoPor Usuario?                   @relation("AcompanhamentosEstagioAssinadosSupervisorPorUsuario", fields: [supervisorAssinadoPorId], references: [id], onDelete: SetNull)
+  dias                  AcompanhamentoEstagioDia[]
 
   @@unique([servidorId, anoReferencia, mesReferencia])
   @@index([anoReferencia, mesReferencia])
@@ -1431,12 +1441,12 @@ model AcompanhamentoEstagioMensal {
 }
 
 model AcompanhamentoEstagioDia {
-  id                  String   @id @default(uuid()) @db.Uuid
-  acompanhamentoId    String   @map("acompanhamento_id") @db.Uuid
-  dataReferencia      DateTime @map("data_referencia") @db.Date
-  atividades          String   @db.Text
-  minutosRegistrados  Int      @default(0) @map("minutos_registrados")
-  metadados           Json?
+  id                 String   @id @default(uuid()) @db.Uuid
+  acompanhamentoId   String   @map("acompanhamento_id") @db.Uuid
+  dataReferencia     DateTime @map("data_referencia") @db.Date
+  atividades         String   @db.Text
+  minutosRegistrados Int      @default(0) @map("minutos_registrados")
+  metadados          Json?
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
@@ -1661,9 +1671,11 @@ model ProgramacaoFerias {
   status           StatusProgramacaoFerias           @default(ENVIADA)
   integracaoStatus StatusIntegracaoProgramacaoFerias @default(NAO_APLICAVEL) @map("integracao_status")
 
-  observacaoServidor String? @map("observacao_servidor") @db.Text
-  observacaoChefia   String? @map("observacao_chefia") @db.Text
-  observacaoSecap    String? @map("observacao_secap") @db.Text
+  observacaoServidor          String?   @map("observacao_servidor") @db.Text
+  observacaoChefia            String?   @map("observacao_chefia") @db.Text
+  observacaoSecap             String?   @map("observacao_secap") @db.Text
+  cienciaAdicionalFeriasTexto String?   @map("ciencia_adicional_ferias_texto") @db.Text
+  cienciaAdicionalFeriasEm    DateTime? @map("ciencia_adicional_ferias_em")
 
   solicitadoPorUsuarioId  String    @map("solicitado_por_usuario_id") @db.Uuid
   solicitadoEm            DateTime  @default(now()) @map("solicitado_em")
@@ -1701,6 +1713,30 @@ model ProgramacaoFerias {
   @@index([dataInicio, dataFim])
   @@index([integracaoStatus])
   @@map("programacoes_ferias")
+}
+
+model ExcecaoSecapFeriasServidor {
+  id         String  @id @default(uuid()) @db.Uuid
+  servidorId String  @map("servidor_id") @db.Uuid
+  orgaoId    String  @map("orgao_id") @db.Uuid
+  motivo     String  @db.Text
+  ativo      Boolean @default(true)
+
+  criadoPorUsuarioId    String?   @map("criado_por_usuario_id") @db.Uuid
+  encerradoPorUsuarioId String?   @map("encerrado_por_usuario_id") @db.Uuid
+  criadoEm              DateTime  @default(now()) @map("criado_em")
+  encerradoEm           DateTime? @map("encerrado_em")
+  atualizadoEm          DateTime  @updatedAt @map("atualizado_em")
+
+  servidor     Servidor @relation(fields: [servidorId], references: [id], onDelete: Cascade)
+  orgao        Orgao    @relation(fields: [orgaoId], references: [id], onDelete: Cascade)
+  criadoPor    Usuario? @relation("ExcecoesSecapFeriasCriadasPor", fields: [criadoPorUsuarioId], references: [id], onDelete: SetNull)
+  encerradoPor Usuario? @relation("ExcecoesSecapFeriasEncerradasPor", fields: [encerradoPorUsuarioId], references: [id], onDelete: SetNull)
+
+  @@index([orgaoId])
+  @@index([servidorId])
+  @@index([ativo])
+  @@map("excecoes_secap_ferias_servidores")
 }
 
 model ProgramacaoFeriasEvento {
@@ -2451,6 +2487,7 @@ model Solicitacao {
   analisadaPor       Usuario?               @relation("SolicitacoesAnalisadasPorUsuario", fields: [analisadaPorUsuarioId], references: [id], onDelete: SetNull)
 
   eventos               SolicitacaoEvento[]
+  anexos                SolicitacaoAnexo[]
   autorizacaoBancoHoras AutorizacaoBancoHoras?
 
   @@index([servidorId])
@@ -2462,6 +2499,28 @@ model Solicitacao {
   @@index([status])
   @@index([dataReferencia])
   @@map("solicitacoes")
+}
+
+model SolicitacaoAnexo {
+  id                 String @id @default(uuid()) @db.Uuid
+  solicitacaoId      String @map("solicitacao_id") @db.Uuid
+  criadoPorUsuarioId String @map("criado_por_usuario_id") @db.Uuid
+
+  descricao      String @db.VarChar(240)
+  nomeOriginal   String @map("nome_original") @db.VarChar(255)
+  nomeArquivo    String @map("nome_arquivo") @db.VarChar(255)
+  caminhoArquivo String @map("caminho_arquivo") @db.Text
+  contentType    String @map("content_type") @db.VarChar(120)
+  tamanhoBytes   Int    @map("tamanho_bytes")
+  hashSha256     String @map("hash_sha256") @db.VarChar(64)
+
+  criadoEm DateTime @default(now()) @map("criado_em")
+
+  solicitacao Solicitacao @relation(fields: [solicitacaoId], references: [id], onDelete: Cascade)
+
+  @@index([solicitacaoId])
+  @@index([criadoPorUsuarioId])
+  @@map("solicitacoes_anexos")
 }
 
 model SolicitacaoEvento {

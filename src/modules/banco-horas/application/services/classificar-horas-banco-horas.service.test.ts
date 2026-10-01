@@ -126,13 +126,49 @@ describe("classificarHorasCreditoBancoHoras", () => {
     expect(comConversao.minutosComputaveis).toBe(360);
   });
 
-  it("no ponto facultativo converte só o excedente após a oitava hora", () => {
+  it("limita sabado, domingo e feriado a 10h de servico extraordinario", () => {
     const resultado = classificarHorasCreditoBancoHoras({
       apuracao: {
         cargaPrevistaMinutos: 0,
+        minutosTrabalhados: 12 * 60,
+        minutosIntervalo: 60,
+        minutosCredito: 12 * 60,
+      },
+      classificacaoDia: classificacao("DOMINGO"),
+      regulamentacao,
+      temAutorizacaoPrevia: true,
+      permiteConversaoEspecial: true,
+    });
+
+    expect(resultado.minutosComputaveis).toBe(20 * 60);
+    expect(resultado.minutosNaoComputaveis).toBe(2 * 60);
+  });
+
+  it("nao computa dia nao util acima de 7h sem intervalo minimo de 1h", () => {
+    const resultado = classificarHorasCreditoBancoHoras({
+      apuracao: {
+        cargaPrevistaMinutos: 0,
+        minutosTrabalhados: 8 * 60,
+        minutosIntervalo: 30,
+        minutosCredito: 8 * 60,
+      },
+      classificacaoDia: classificacao("FERIADO"),
+      regulamentacao,
+      temAutorizacaoPrevia: true,
+      permiteConversaoEspecial: true,
+    });
+
+    expect(resultado.minutosComputaveis).toBe(0);
+    expect(resultado.codigoFundamento).toBe("DIA_NAO_UTIL_SEM_INTERVALO_MINIMO");
+  });
+
+  it("no ponto facultativo converte só o excedente após a oitava hora", () => {
+    const resultado = classificarHorasCreditoBancoHoras({
+      apuracao: {
+        cargaPrevistaMinutos: 480,
         minutosTrabalhados: 540,
         minutosIntervalo: 60,
-        minutosCredito: 540,
+        minutosCredito: 60,
       },
       classificacaoDia: classificacao("PONTO_FACULTATIVO"),
       regulamentacao,
@@ -142,6 +178,23 @@ describe("classificarHorasCreditoBancoHoras", () => {
 
     expect(resultado.minutosComputaveis).toBe(90);
     expect(resultado.multiplicadorAplicado).toBe(1.5);
+  });
+
+  it("na suspensao de expediente converte somente excedente da jornada regular", () => {
+    const resultado = classificarHorasCreditoBancoHoras({
+      apuracao: {
+        cargaPrevistaMinutos: 420,
+        minutosTrabalhados: 500,
+        minutosIntervalo: 60,
+        minutosCredito: 80,
+      },
+      classificacaoDia: classificacao("SUSPENSAO_EXPEDIENTE"),
+      regulamentacao,
+      temAutorizacaoPrevia: true,
+      permiteConversaoEspecial: true,
+    });
+
+    expect(resultado.minutosComputaveis).toBe(120);
   });
 
   it("marca alerta quando há horário antes das 6h ou depois das 19h", () => {

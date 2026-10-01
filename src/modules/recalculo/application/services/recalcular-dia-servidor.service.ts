@@ -15,6 +15,7 @@ import { servidorExigeDedicacaoIntegral } from "@/modules/jornadas/application/s
 import { resolverPrevisaoJornadaDia } from "@/modules/jornadas/application/services/resolver-previsao-jornada-dia.service";
 import { aplicarSolicitacoesDeferidasApuracao } from "@/modules/solicitacoes/application/services/aplicar-solicitacoes-deferidas-apuracao.service";
 import { TIPOS_SOLICITACAO_COM_EFEITO_APURACAO } from "@/modules/solicitacoes/application/services/periodo-solicitacao.service";
+import { aplicarApuracaoProvisoriaDiaNaoEncerrado } from "./aplicar-apuracao-provisoria.service";
 
 export type RecalcularDiaServidorParams = {
   servidorId: string;
@@ -417,7 +418,7 @@ export async function recalcularDiaServidorService(
         }
       : null,
   });
-  const { calculo, solicitacoesAplicadas } =
+  const { calculo: calculoComSolicitacoes, solicitacoesAplicadas } =
     aplicarSolicitacoesDeferidasApuracao({
       calculo: calculoBase,
       dataReferencia: dataNormalizada,
@@ -439,6 +440,12 @@ export async function recalcularDiaServidorService(
       marcacoes: marcacoesNormalizadas,
       fusoHorario,
     });
+  const calculo = aplicarApuracaoProvisoriaDiaNaoEncerrado({
+    calculo: calculoComSolicitacoes,
+    dataReferencia: dataNormalizada,
+  });
+  const apuracaoProvisoriaDiaNaoEncerrado =
+    calculo !== calculoComSolicitacoes;
 
   const apuracao = await prisma.$transaction(async (tx) => {
     const apuracaoAtualizada = await tx.apuracaoDiaria.upsert({
@@ -495,6 +502,7 @@ export async function recalcularDiaServidorService(
           trabalhoRemoto: calculo.trabalhoRemoto,
           frequenciaManual: calculo.frequenciaManual,
           solicitacoesAplicadas,
+          apuracaoProvisoriaDiaNaoEncerrado,
         },
       },
       create: {
@@ -546,6 +554,7 @@ export async function recalcularDiaServidorService(
           trabalhoRemoto: calculo.trabalhoRemoto,
           frequenciaManual: calculo.frequenciaManual,
           solicitacoesAplicadas,
+          apuracaoProvisoriaDiaNaoEncerrado,
         },
       },
     });

@@ -9,6 +9,7 @@ import {
   FileCheck2,
   FileText,
   KeyRound,
+  LifeBuoy,
   MessageSquare,
   Network,
   Palette,
@@ -75,6 +76,13 @@ export default async function AdministracaoPage() {
       descricao: "Controle a disponibilidade operacional das rotinas liberadas aos perfis.",
       href: "/administracao/liberacao-rotinas",
       icon: ToggleLeft,
+      permissoes: ["configuracoes:gerenciar:seccional", "configuracoes:gerenciar:global"],
+    },
+    {
+      titulo: "Suporte do login",
+      descricao: "Cadastre a URL da ferramenta aberta pelo botão Solicitar Suporte.",
+      href: "/administracao/suporte",
+      icon: LifeBuoy,
       permissoes: ["configuracoes:gerenciar:seccional", "configuracoes:gerenciar:global"],
     },
     {

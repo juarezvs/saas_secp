@@ -51,7 +51,17 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     case "MASTER":
       return <DashboardMaster />;
     case "ADMIN":
-      return <DashboardAdmin usuarioId={session.user.id} />;
+      return (
+        <DashboardAdmin
+          usuarioId={session.user.id}
+          orgaoIds={session.user.perfilAtivo?.orgaos?.map((orgao) => orgao.id)}
+          escopoGlobal={
+            session.user.perfilAtivo?.permissoes?.some((permissao) =>
+              permissao.endsWith(":global"),
+            ) ?? false
+          }
+        />
+      );
     case "GESTOR":
       return <DashboardGestor />;
     case "SECAP":

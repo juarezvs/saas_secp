@@ -179,8 +179,8 @@ export const calendarioInstitucionalSchema = z
       if (!dados.unidadeId && (!dados.uf || !dados.municipio)) {
         ctx.addIssue({
           code: "custom",
-          path: ["unidadeId"],
-          message: "Informe a subseção ou unidade avançada de atendimento.",
+          path: ["municipio"],
+          message: "Informe UF e municipio ou selecione a localidade vinculada.",
         });
       }
 

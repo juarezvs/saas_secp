@@ -56,6 +56,7 @@ export type DadosAcompanhamentoEstagio = {
   };
   linhas: LinhaAcompanhamentoEstagio[];
   competenciasAnteriores: CompetenciaAnteriorEstagio[];
+  estagiariosSupervisionados?: EstagiarioSupervisionado[];
 };
 
 export type StatusAcompanhamentoEstagioView =
@@ -78,6 +79,20 @@ export type CompetenciaAnteriorEstagio = {
   assinadoEstagiarioEm: string | null;
   assinadoSupervisorEm: string | null;
   supervisorAssinante: string | null;
+};
+
+export type EstagiarioSupervisionado = {
+  servidorId: string;
+  matricula: string;
+  nome: string;
+  lotacao: string;
+  curso: string;
+  ativo: boolean;
+  supervisaoInicio: string;
+  supervisaoFim: string | null;
+  acompanhamentoStatus: StatusAcompanhamentoEstagioView;
+  assinadoEstagiario: boolean;
+  assinadoSupervisor: boolean;
 };
 
 export type ItemConsultaAcompanhamentoEstagio = {
@@ -250,6 +265,17 @@ function validarServidorEstagiario(servidor: ServidorEstagio | null) {
   }
 
   return servidor;
+}
+
+function servidorEhEstagiario(servidor: ServidorEstagio | null) {
+  if (!servidor) {
+    return false;
+  }
+
+  const categoria = servidor.categoriaPessoa?.codigo?.toUpperCase();
+  const tipo = servidor.usuario.tipo.toUpperCase();
+
+  return tipo === "ESTAGIARIO" || categoria === "ESTAGIARIO";
 }
 
 export async function carregarAcompanhamentoEstagio(params: {
@@ -459,6 +485,199 @@ export async function buscarSupervisaoEstagioVigente(params: {
   });
 }
 
+export async function usuarioPossuiSupervisaoEstagioVigente(
+  usuarioId: string | undefined | null,
+  dataReferencia = new Date(),
+) {
+  if (!usuarioId) {
+    return false;
+  }
+
+  const supervisor = await prisma.servidor.findFirst({
+    where: {
+      usuarioId,
+      ativo: true,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!supervisor) {
+    return false;
+  }
+
+  const supervisao = await prisma.estagioSupervisao.findFirst({
+    where: {
+      supervisorServidorId: supervisor.id,
+      dataInicio: {
+        lte: dataReferencia,
+      },
+      OR: [{ dataFim: null }, { dataFim: { gte: dataReferencia } }],
+      estagiarioServidor: {
+        ativo: true,
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return Boolean(supervisao);
+}
+
+export async function buscarPrimeiroEstagiarioSupervisionadoPorUsuario(params: {
+  usuarioId: string | undefined | null;
+  dataReferencia?: Date;
+}) {
+  if (!params.usuarioId) {
+    return null;
+  }
+  const dataReferencia = params.dataReferencia ?? new Date();
+
+  const supervisor = await prisma.servidor.findFirst({
+    where: {
+      usuarioId: params.usuarioId,
+      ativo: true,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!supervisor) {
+    return null;
+  }
+
+  const supervisao = await prisma.estagioSupervisao.findFirst({
+    where: {
+      supervisorServidorId: supervisor.id,
+      dataInicio: {
+        lte: dataReferencia,
+      },
+      OR: [
+        {
+          dataFim: null,
+        },
+        {
+          dataFim: {
+            gte: dataReferencia,
+          },
+        },
+      ],
+      estagiarioServidor: {
+        ativo: true,
+      },
+    },
+    include: {
+      estagiarioServidor: {
+        include: includeServidorEstagio,
+      },
+    },
+    orderBy: {
+      dataInicio: "desc",
+    },
+  });
+
+  return validarServidorEstagiario(supervisao?.estagiarioServidor ?? null);
+}
+
+export async function listarEstagiariosSupervisionadosPorUsuario(params: {
+  usuarioId: string | undefined | null;
+  ano: number;
+  mes: number;
+}) {
+  if (!params.usuarioId) {
+    return [];
+  }
+
+  const supervisor = await prisma.servidor.findFirst({
+    where: {
+      usuarioId: params.usuarioId,
+      ativo: true,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!supervisor) {
+    return [];
+  }
+
+  const hoje = new Date();
+  const inicioCompetencia = dataReferenciaUtc(
+    `${params.ano}-${String(params.mes).padStart(2, "0")}-01`,
+  );
+  const fimCompetencia = new Date(Date.UTC(params.ano, params.mes, 0));
+  const supervisoes = await prisma.estagioSupervisao.findMany({
+    where: {
+      supervisorServidorId: supervisor.id,
+    },
+    include: {
+      estagiarioServidor: {
+        include: includeServidorEstagio,
+      },
+    },
+    orderBy: {
+      dataInicio: "desc",
+    },
+  });
+  const porServidor = new Map<string, (typeof supervisoes)[number]>();
+
+  for (const supervisao of supervisoes) {
+    if (
+      !porServidor.has(supervisao.estagiarioServidorId) &&
+      servidorEhEstagiario(supervisao.estagiarioServidor)
+    ) {
+      porServidor.set(supervisao.estagiarioServidorId, supervisao);
+    }
+  }
+
+  const selecionadas = Array.from(porServidor.values());
+  const acompanhamentos = await prisma.acompanhamentoEstagioMensal.findMany({
+    where: {
+      servidorId: {
+        in: selecionadas.map((supervisao) => supervisao.estagiarioServidorId),
+      },
+      anoReferencia: params.ano,
+      mesReferencia: params.mes,
+    },
+  });
+  const acompanhamentosPorServidor = new Map(
+    acompanhamentos.map((acompanhamento) => [
+      acompanhamento.servidorId,
+      acompanhamento,
+    ]),
+  );
+
+  return selecionadas.map((supervisao): EstagiarioSupervisionado => {
+    const servidor = supervisao.estagiarioServidor;
+    const lotacao = servidor.lotacoes[0];
+    const acompanhamento = acompanhamentosPorServidor.get(servidor.id);
+    const supervisaoAtiva =
+      supervisao.dataInicio <= hoje &&
+      (!supervisao.dataFim || supervisao.dataFim >= hoje);
+    const supervisaoNaCompetencia =
+      supervisao.dataInicio <= fimCompetencia &&
+      (!supervisao.dataFim || supervisao.dataFim >= inicioCompetencia);
+
+    return {
+      servidorId: servidor.id,
+      matricula: servidor.matricula,
+      nome: nomeServidor(servidor) || servidor.usuario.nome || servidor.matricula,
+      lotacao: lotacao?.unidade?.sigla ?? lotacao?.unidade?.nome ?? "-",
+      curso: supervisao.curso ?? "",
+      ativo: servidor.ativo && supervisaoAtiva && supervisaoNaCompetencia,
+      supervisaoInicio: supervisao.dataInicio.toISOString(),
+      supervisaoFim: supervisao.dataFim?.toISOString() ?? null,
+      acompanhamentoStatus: acompanhamento?.status ?? "ABERTO",
+      assinadoEstagiario: Boolean(acompanhamento?.assinatura),
+      assinadoSupervisor: Boolean(acompanhamento?.assinaturaSupervisor),
+    };
+  });
+}
+
 async function listarCompetenciasAnterioresEstagio(params: {
   servidorId: string;
   ano: number;
@@ -521,9 +740,10 @@ export async function carregarAcompanhamentoEstagioPorServidor(params: {
       : await usuarioSupervisionaServidor({
           usuarioId: params.usuarioId,
           servidor,
-          data: dataReferenciaUtc(
+          inicio: dataReferenciaUtc(
             `${params.ano}-${String(params.mes).padStart(2, "0")}-01`,
           ),
+          fim: new Date(Date.UTC(params.ano, params.mes, 0)),
         });
 
   if (!autorizado) {
@@ -681,11 +901,32 @@ export async function listarAcompanhamentosEstagioConsulta(params: {
 async function usuarioSupervisionaServidor(params: {
   usuarioId: string;
   servidor: ServidorEstagio;
-  data: Date;
+  inicio: Date;
+  fim: Date;
 }) {
-  const supervisao = await buscarSupervisaoEstagioVigente({
-    estagiarioServidorId: params.servidor.id,
-    dataReferencia: params.data,
+  const supervisao = await prisma.estagioSupervisao.findFirst({
+    where: {
+      estagiarioServidorId: params.servidor.id,
+      dataInicio: {
+        lte: params.fim,
+      },
+      OR: [
+        {
+          dataFim: null,
+        },
+        {
+          dataFim: {
+            gte: params.inicio,
+          },
+        },
+      ],
+    },
+    include: {
+      supervisorServidor: true,
+    },
+    orderBy: {
+      dataInicio: "desc",
+    },
   });
 
   if (supervisao?.supervisorServidor.usuarioId === params.usuarioId) {
@@ -700,7 +941,7 @@ async function usuarioSupervisionaServidor(params: {
 
   const unidades = await listarIdsUnidadesSubordinadasNaData({
     usuarioId: params.usuarioId,
-    data: params.data,
+    data: params.inicio,
   });
 
   return unidades.includes(unidadeId);

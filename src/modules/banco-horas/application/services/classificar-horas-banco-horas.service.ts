@@ -30,6 +30,7 @@ export type ClassificacaoHorasBancoHoras = {
     | "JORNADA_7H_SEM_INTERVALO_MINIMO"
     | "SABADO_CONVERSAO_AUTORIZADA"
     | "DOMINGO_FERIADO_CONVERSAO_AUTORIZADA"
+    | "DIA_NAO_UTIL_SEM_INTERVALO_MINIMO"
     | "PONTO_FACULTATIVO_APOS_OITAVA_HORA"
     | "PONTO_FACULTATIVO_SEM_INTERVALO_MINIMO"
     | "RECESSO_FORENSE_REGRA_ESPECIFICA"
@@ -66,6 +67,14 @@ function minutosExcedentesReais(apuracao: ApuracaoBancoHoras) {
     0,
     apuracao.minutosTrabalhados - apuracao.cargaPrevistaMinutos,
   );
+}
+
+function excedenteLimitadoDiaNaoUtil(apuracao: ApuracaoBancoHoras) {
+  return Math.min(minutosExcedentesReais(apuracao), 10 * 60);
+}
+
+function infringiuIntervaloDiaNaoUtil(apuracao: ApuracaoBancoHoras) {
+  return apuracao.minutosTrabalhados > 7 * 60 && apuracao.minutosIntervalo < 60;
 }
 
 function horaForaPeriodoOrdinario(
@@ -159,16 +168,31 @@ export function classificarHorasCreditoBancoHoras(params: {
   }
 
   if (classificacaoDia.tipo === "SABADO") {
+    if (infringiuIntervaloDiaNaoUtil(apuracao)) {
+      return resultadoNaoComputavel({
+        minutos: minutosApurados,
+        codigoFundamento: "DIA_NAO_UTIL_SEM_INTERVALO_MINIMO",
+        fundamento:
+          "Sabado com mais de 7h de servico extraordinario sem intervalo minimo de 1h. O periodo nao foi computado.",
+        alertas,
+        exigeJustificativaEspecifica,
+      });
+    }
+
     const multiplicador = multiplicadorPercentual(
       regulamentacao.percentualCreditoSabado,
     );
+    const minutosDentroLimite = Math.min(
+      minutosApurados,
+      excedenteLimitadoDiaNaoUtil(apuracao),
+    );
     const computaveis = params.permiteConversaoEspecial
-      ? arredondarMinutos(minutosApurados * multiplicador)
+      ? arredondarMinutos(minutosDentroLimite * multiplicador)
       : 0;
 
     return {
       minutosComputaveis: computaveis,
-      minutosNaoComputaveis: Math.max(0, minutosApurados - computaveis),
+      minutosNaoComputaveis: Math.max(0, minutosApurados - minutosDentroLimite),
       multiplicadorAplicado: computaveis > 0 ? multiplicador : 1,
       codigoFundamento: "SABADO_CONVERSAO_AUTORIZADA",
       fundamento:
@@ -180,16 +204,31 @@ export function classificarHorasCreditoBancoHoras(params: {
   }
 
   if (classificacaoDia.tipo === "DOMINGO" || classificacaoDia.tipo === "FERIADO") {
+    if (infringiuIntervaloDiaNaoUtil(apuracao)) {
+      return resultadoNaoComputavel({
+        minutos: minutosApurados,
+        codigoFundamento: "DIA_NAO_UTIL_SEM_INTERVALO_MINIMO",
+        fundamento:
+          "Domingo ou feriado com mais de 7h de servico extraordinario sem intervalo minimo de 1h. O periodo nao foi computado.",
+        alertas,
+        exigeJustificativaEspecifica,
+      });
+    }
+
     const multiplicador = multiplicadorPercentual(
       regulamentacao.percentualCreditoDomingoFeriado,
     );
+    const minutosDentroLimite = Math.min(
+      minutosApurados,
+      excedenteLimitadoDiaNaoUtil(apuracao),
+    );
     const computaveis = params.permiteConversaoEspecial
-      ? arredondarMinutos(minutosApurados * multiplicador)
+      ? arredondarMinutos(minutosDentroLimite * multiplicador)
       : 0;
 
     return {
       minutosComputaveis: computaveis,
-      minutosNaoComputaveis: Math.max(0, minutosApurados - computaveis),
+      minutosNaoComputaveis: Math.max(0, minutosApurados - minutosDentroLimite),
       multiplicadorAplicado: computaveis > 0 ? multiplicador : 1,
       codigoFundamento: "DOMINGO_FERIADO_CONVERSAO_AUTORIZADA",
       fundamento:
@@ -200,7 +239,10 @@ export function classificarHorasCreditoBancoHoras(params: {
     };
   }
 
-  if (classificacaoDia.tipo === "PONTO_FACULTATIVO") {
+  if (
+    classificacaoDia.tipo === "PONTO_FACULTATIVO" ||
+    classificacaoDia.tipo === "SUSPENSAO_EXPEDIENTE"
+  ) {
     if (
       regulamentacao.jornada7hCreditoExigeIntervalo &&
       apuracao.minutosIntervalo < regulamentacao.jornada7hIntervaloMinimoMinutos
@@ -215,16 +257,16 @@ export function classificarHorasCreditoBancoHoras(params: {
       });
     }
 
-    const excedenteAposOitavaHora = Math.max(
+    const excedenteJornadaRegular = Math.max(
       0,
-      apuracao.minutosTrabalhados - regulamentacao.jornada7hCreditoMinimoMinutos,
+      apuracao.minutosTrabalhados - apuracao.cargaPrevistaMinutos,
     );
     const multiplicador = multiplicadorPercentual(
       regulamentacao.percentualCreditoSabado,
     );
     const computaveis = params.permiteConversaoEspecial
       ? arredondarMinutos(
-          Math.min(excedenteAposOitavaHora, minutosApurados) * multiplicador,
+          Math.min(excedenteJornadaRegular, minutosApurados) * multiplicador,
         )
       : 0;
 

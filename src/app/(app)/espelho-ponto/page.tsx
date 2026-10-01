@@ -1,13 +1,15 @@
 import {
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   CheckCircle2,
+  MoreVertical,
   Send,
   ShieldCheck,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
-import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui";
-import { redirect } from "next/navigation";
 import {
   exigirUmaDasPermissoesOuRedirecionar,
   usuarioPossuiPermissaoNoPerfil,
@@ -25,22 +27,29 @@ import {
   resolverSeccionalAssinatura,
 } from "@/modules/documentos-autenticacao/application/services/dados-assinatura-documento.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
+import { FavoritoPaginaButton } from "@/modules/favoritos/presentation/favorito-pagina-button";
 import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import {
   buscarServidorComUsuarioPorUsuarioId,
   listarApuracoesDoServidorNoMes,
   listarMarcacoesDoServidorNoMes,
   listarServidoresParaEspelhoPonto,
+  listarSolicitacoesDoServidorNoMes,
 } from "@/modules/apuracao/infrastructure/repositories/apuracao.repository";
 import { EspelhoPontoMensal } from "@/modules/apuracao/presentation/components/espelho-ponto-mensal";
 import { EspelhoPontoFiltrosAuto } from "@/modules/apuracao/presentation/components/espelho-ponto-filtros-auto";
+import {
+  EspelhoPontoCarregamentoToast,
+  EspelhoPontoNavLink,
+  EspelhoPontoUrlCanonica,
+} from "@/modules/apuracao/presentation/components/espelho-ponto-carregamento-toast";
 import {
   classeStatusHomologacao,
   rotuloStatusHomologacaoServidor,
 } from "@/modules/homologacao/application/services/formatar-homologacao.service";
 import {
+  buscarEnvioEspelhoServidor,
   buscarHomologacaoServidorMes,
-  verificarEnvioEspelhoServidor,
 } from "@/modules/homologacao/infrastructure/repositories/homologacao.repository";
 import { EnviarEspelhoHomologacaoModal } from "@/modules/homologacao/presentation/components/enviar-espelho-homologacao-modal";
 import { RelatorioExportacaoButton } from "@/modules/relatorios/presentation/components/relatorio-exportacao-button";
@@ -58,6 +67,7 @@ type EspelhoPontoPageProps = {
     mesReferencia?: string;
     destaqueData?: string;
     destaqueOcorrencia?: string;
+    aba?: string;
   }>;
 };
 
@@ -69,6 +79,44 @@ type EtapaTempo = {
   etapa: string;
   durationMs: number;
 };
+
+function PageHeader({
+  actions,
+  descricao,
+  icon: Icon,
+  titulo,
+}: {
+  actions?: ReactNode;
+  descricao?: string;
+  icon: typeof CalendarDays;
+  titulo: string;
+  artigo?: string;
+  regraTitulo?: string;
+  regraDescricao?: string;
+}) {
+  return (
+    <section className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="grid min-w-0 grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-x-2.5">
+        <div className="flex size-9 items-center justify-center rounded-lg bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100">
+          <Icon className="size-5" aria-hidden="true" />
+        </div>
+        <h1 className="min-w-0 text-xl font-black leading-none tracking-normal text-slate-950 dark:text-slate-50">
+          {titulo}
+        </h1>
+        {descricao ? (
+          <p className="col-start-2 mt-0.5 max-w-4xl text-[11px] leading-4 text-slate-500">
+            {descricao}
+          </p>
+        ) : null}
+      </div>
+      {actions ? (
+        <div className="flex flex-wrap items-end gap-2 sm:justify-end">
+          {actions}
+        </div>
+      ) : null}
+    </section>
+  );
+}
 
 function limiteLogLentoEspelhoPonto() {
   const valor = Number(process.env.ESPELHO_PONTO_SLOW_LOG_MS);
@@ -139,6 +187,30 @@ function competenciaParaInput(anoReferencia: number, mesReferencia: number) {
   return `${anoReferencia}-${String(mesReferencia).padStart(2, "0")}`;
 }
 
+function deslocarCompetencia(
+  anoReferencia: number,
+  mesReferencia: number,
+  deslocamento: number,
+) {
+  const data = new Date(
+    Date.UTC(anoReferencia, mesReferencia - 1 + deslocamento, 1),
+  );
+
+  return competenciaParaInput(data.getUTCFullYear(), data.getUTCMonth() + 1);
+}
+
+function formatarPeriodoCompetencia(
+  anoReferencia: number,
+  mesReferencia: number,
+) {
+  const ultimoDia = new Date(
+    Date.UTC(anoReferencia, mesReferencia, 0),
+  ).getUTCDate();
+  const mes = String(mesReferencia).padStart(2, "0");
+
+  return `01/${mes}/${anoReferencia} a ${String(ultimoDia).padStart(2, "0")}/${mes}/${anoReferencia}`;
+}
+
 function obterCompetenciaAtual(fusoHorario: string) {
   const partes = new Intl.DateTimeFormat("en-CA", {
     timeZone: fusoHorario,
@@ -173,9 +245,7 @@ function servidorProprioParaLista(
     return [];
   }
 
-  return [
-    servidor,
-  ];
+  return [servidor];
 }
 
 function montarHrefExportacaoEspelho(params: {
@@ -189,6 +259,26 @@ function montarHrefExportacaoEspelho(params: {
   });
 
   return `/api/relatorios/espelho/${params.servidorId}/pdf?${query.toString()}`;
+}
+
+function montarHrefEspelho(params: {
+  competencia: string;
+  servidorId?: string | null;
+  aba?: string | null;
+}) {
+  const query = new URLSearchParams({
+    competencia: params.competencia,
+  });
+
+  if (params.servidorId) {
+    query.set("servidorId", params.servidorId);
+  }
+
+  if (params.aba) {
+    query.set("aba", params.aba);
+  }
+
+  return `/espelho-ponto?${query.toString()}`;
 }
 
 export default async function EspelhoPontoPage({
@@ -216,11 +306,31 @@ export default async function EspelhoPontoPage({
   });
   const podeConsultarTodosServidores =
     podeConsultarGlobal && !perfilChefiaAtivo;
-  const podeRecalcular = usuarioPossuiPermissaoNoPerfil(
+  const podeRecalcularGlobal = usuarioPossuiPermissaoNoPerfil(
     permissao.perfilAtivoCodigo,
     permissao.permissoes,
     "apuracao:recalcular:global",
   );
+  const podeRecalcularSeccional = usuarioPossuiPermissaoNoPerfil(
+    permissao.perfilAtivoCodigo,
+    permissao.permissoes,
+    "apuracao:recalcular:seccional",
+  );
+  const podeRecalcularBancoHoras = usuarioPossuiPermissaoNoPerfil(
+    permissao.perfilAtivoCodigo,
+    permissao.permissoes,
+    "banco-horas:gerenciar:global",
+  );
+  const podeRecalcularChefia =
+    perfilChefiaAtivo &&
+    (permissao.permissoes.includes("homologacao:gerenciar:chefia") ||
+      permissao.permissoes.includes("minha-equipe:consultar:chefia"));
+  const podeRecalcular =
+    podeRecalcularGlobal ||
+    podeRecalcularSeccional ||
+    podeRecalcularBancoHoras ||
+    podeRecalcularChefia;
+  const workerEspelhoAtivo = process.env.SECP_AUTO_WORKERS !== "false";
   const podeGerenciarBancoHorasNoEspelho =
     perfilChefiaAtivo ||
     usuarioPossuiPermissaoNoPerfil(
@@ -292,25 +402,6 @@ export default async function EspelhoPontoPage({
     (perfilProprioAtivo || perfilChefiaAtivo ? servidores[0] : null) ??
     null;
 
-  if (!paramsPossuemCompetencia(params)) {
-    const fusoHorario = servidorSelecionado
-      ? await medidor.medir("fuso_horario_redirect", () =>
-          resolverFusoHorarioServidorNoBanco({
-            servidorId: servidorSelecionado.id,
-          }),
-        )
-      : "America/Manaus";
-    const query = new URLSearchParams({
-      competencia: obterCompetenciaAtual(fusoHorario),
-    });
-
-    if (servidorSelecionado) {
-      query.set("servidorId", servidorSelecionado.id);
-    }
-
-    redirect(`/espelho-ponto?${query.toString()}`);
-  }
-
   let processamentoEspelho: Awaited<
     ReturnType<typeof obterProcessamentoEspelhoPonto>
   > = null;
@@ -323,12 +414,14 @@ export default async function EspelhoPontoPage({
       }),
     );
 
-    processamentoEspelho = await medidor.medir("estado_processamento_espelho", () =>
-      obterProcessamentoEspelhoPonto({
-        servidorId: servidorSelecionado.id,
-        anoReferencia,
-        mesReferencia,
-      }),
+    processamentoEspelho = await medidor.medir(
+      "estado_processamento_espelho",
+      () =>
+        obterProcessamentoEspelhoPonto({
+          servidorId: servidorSelecionado.id,
+          anoReferencia,
+          mesReferencia,
+        }),
     );
 
     const competenciaSelecionada = competenciaParaInput(
@@ -343,6 +436,7 @@ export default async function EspelhoPontoPage({
 
     if (
       podeCalcularCompetencia &&
+      workerEspelhoAtivo &&
       !processamentoEmAndamento &&
       !processamentoAtualizadoHoje(processamentoEspelho, fusoHorario)
     ) {
@@ -373,7 +467,7 @@ export default async function EspelhoPontoPage({
     }
   }
 
-  const [apuracoes, marcacoes, homologacaoServidor] =
+  const [apuracoes, marcacoes, solicitacoes, homologacaoServidor] =
     await medidor.medir("dados_espelho_mensal", () =>
       servidorSelecionado
         ? Promise.all([
@@ -387,6 +481,11 @@ export default async function EspelhoPontoPage({
               ano: anoReferencia,
               mes: mesReferencia,
             }),
+            listarSolicitacoesDoServidorNoMes({
+              servidorId: servidorSelecionado.id,
+              ano: anoReferencia,
+              mes: mesReferencia,
+            }),
             perfilServidorAtivo
               ? buscarHomologacaoServidorMes({
                   servidorId: servidorSelecionado.id,
@@ -395,15 +494,17 @@ export default async function EspelhoPontoPage({
                 })
               : Promise.resolve(null),
           ])
-        : Promise.resolve([[], [], null]),
+        : Promise.resolve([[], [], [], null]),
     );
-  const envioRegistrado = await medidor.medir("envio_espelho_homologacao", () =>
-    homologacaoServidor
-      ? verificarEnvioEspelhoServidor(homologacaoServidor.id)
-      : Promise.resolve(false),
+  const envioHomologacao = await medidor.medir(
+    "envio_espelho_homologacao",
+    () =>
+      homologacaoServidor
+        ? buscarEnvioEspelhoServidor(homologacaoServidor.id)
+        : Promise.resolve(null),
   );
   const espelhoEnviado = Boolean(
-    envioRegistrado ||
+    envioHomologacao ||
     (homologacaoServidor &&
       ["HOMOLOGADO", "HOMOLOGADO_COM_RESSALVA"].includes(
         homologacaoServidor.status,
@@ -452,42 +553,138 @@ export default async function EspelhoPontoPage({
     });
   }
 
+  const hrefCompetenciaAnterior = montarHrefEspelho({
+    competencia: deslocarCompetencia(anoReferencia, mesReferencia, -1),
+    servidorId: servidorSelecionado?.id ?? params.servidorId ?? null,
+    aba: params.aba ?? null,
+  });
+  const hrefCompetenciaProxima = montarHrefEspelho({
+    competencia: deslocarCompetencia(anoReferencia, mesReferencia, 1),
+    servidorId: servidorSelecionado?.id ?? params.servidorId ?? null,
+    aba: params.aba ?? null,
+  });
+  const hrefExportacao = servidorSelecionado
+    ? montarHrefExportacaoEspelho({
+        servidorId: servidorSelecionado.id,
+        anoReferencia,
+        mesReferencia,
+      })
+    : null;
+  const hrefCanonicoEspelho =
+    !paramsPossuemCompetencia(params) ||
+    (servidorSelecionado && params.servidorId !== servidorSelecionado.id)
+      ? montarHrefEspelho({
+          competencia: competenciaInput,
+          servidorId: servidorSelecionado?.id ?? params.servidorId ?? null,
+          aba: params.aba ?? null,
+        })
+      : null;
+
   return (
-    <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Espelho de ponto" }]} />
+    <div className="-mt-4 space-y-1.5">
+      <EspelhoPontoCarregamentoToast />
+      <EspelhoPontoUrlCanonica href={hrefCanonicoEspelho} />
+      <div className="relative flex min-h-9 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <Breadcrumb items={[{ label: "Espelho de ponto" }]} />
+        {servidorSelecionado ? (
+          <div className="absolute left-1/2 top-1/2 w-fit max-w-[44rem] -translate-x-1/2 -translate-y-1/2">
+            <RecalcularMesForm
+              key={`${servidorSelecionado.id}-${competenciaInput}-${processamentoEspelho?.status}-${processamentoEspelho?.concluidoEm?.toISOString()}-breadcrumb`}
+              servidorId={servidorSelecionado.id}
+              anoReferencia={anoReferencia}
+              mesReferencia={mesReferencia}
+              podeRecalcular={podeRecalcular}
+              workerAtivo={workerEspelhoAtivo}
+              compacto
+              estadoInicial={{
+                status: processamentoEspelho?.status ?? "AUSENTE",
+                atualizadoEm:
+                  processamentoEspelho?.concluidoEm?.toISOString() ?? null,
+                erro: processamentoEspelho?.erro ?? null,
+              }}
+            />
+          </div>
+        ) : null}
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <EspelhoPontoNavLink
+            href={hrefCompetenciaAnterior}
+            className="inline-flex size-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+            aria-label="Competencia anterior"
+          >
+            <ChevronLeft className="size-4" aria-hidden="true" />
+          </EspelhoPontoNavLink>
+          <EspelhoPontoFiltrosAuto
+            competencia={competenciaInput}
+            className="flex w-64 items-center gap-2"
+            compacto
+            labelInline
+          />
+          <EspelhoPontoNavLink
+            href={hrefCompetenciaProxima}
+            className="inline-flex size-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+            aria-label="Proxima competencia"
+          >
+            <ChevronRight className="size-4" aria-hidden="true" />
+          </EspelhoPontoNavLink>
+          {hrefExportacao ? (
+            <RelatorioExportacaoButton
+              href={hrefExportacao}
+              className="inline-flex h-8 items-center justify-center gap-2 rounded-md bg-blue-700 px-3 text-xs font-bold text-white shadow-sm hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-70"
+            />
+          ) : null}
+          <FavoritoPaginaButton />
+          <button
+            type="button"
+            className="inline-flex size-8 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+            aria-label="Mais opcoes"
+          >
+            <MoreVertical className="size-4" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
 
       <PageHeader
         icon={CalendarDays}
         titulo="Espelho de ponto"
-        descricao="Consulte marcações, jornada prevista, horas trabalhadas, créditos, débitos e inconsistências apuradas para a competência selecionada."
         artigo="Arts. 8, 16 e 17"
         regraTitulo="Conferência mensal da frequência"
         regraDescricao="O servidor pode consultar a própria frequência e o saldo; a chefia homologa mensalmente comparecimento, ausências, créditos, débitos e compensações."
       />
 
       {!perfilProprioAtivo && (
-        <Card className="p-5">
-          <EspelhoPontoFiltrosAuto
-            competencia={competenciaInput}
-            servidorId={servidorSelecionado?.id ?? ""}
-            servidores={servidorOpcoes}
-            podeSelecionarServidor={podeSelecionarServidor}
-            pessoasSearchUrl={`/api/espelho-ponto/pessoas?${queryBuscaPessoa.toString()}`}
-            mostrarServidor
-          />
+        <Card className="p-3">
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+            <EspelhoPontoFiltrosAuto
+              competencia={competenciaInput}
+              servidorId={servidorSelecionado?.id ?? ""}
+              servidores={servidorOpcoes}
+              podeSelecionarServidor={podeSelecionarServidor}
+              pessoasSearchUrl={`/api/espelho-ponto/pessoas?${queryBuscaPessoa.toString()}`}
+              mostrarServidor
+              className="grid gap-3 md:grid-cols-[minmax(12rem,15rem)_minmax(0,1fr)] md:items-end"
+            />
 
-          {servidorSelecionado && (
-            <div className="mt-4 flex justify-end border-t pt-4">
-              <RelatorioExportacaoButton
-                href={montarHrefExportacaoEspelho({
-                  servidorId: servidorSelecionado.id,
-                  anoReferencia,
-                  mesReferencia,
-                })}
-                className="inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-semibold hover:bg-[var(--muted)]"
-              />
-            </div>
-          )}
+            {servidorSelecionado && (
+              <div className="xl:min-w-[28rem]">
+                <RecalcularMesForm
+                  key={`${servidorSelecionado.id}-${competenciaInput}-${processamentoEspelho?.status}-${processamentoEspelho?.concluidoEm?.toISOString()}-admin`}
+                  servidorId={servidorSelecionado.id}
+                  anoReferencia={anoReferencia}
+                  mesReferencia={mesReferencia}
+                  podeRecalcular={podeRecalcular}
+                  workerAtivo={workerEspelhoAtivo}
+                  compacto
+                  mostrarCompactoQuandoDisponivel
+                  estadoInicial={{
+                    status: processamentoEspelho?.status ?? "AUSENTE",
+                    atualizadoEm:
+                      processamentoEspelho?.concluidoEm?.toISOString() ?? null,
+                    erro: processamentoEspelho?.erro ?? null,
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </Card>
       )}
 
@@ -510,27 +707,12 @@ export default async function EspelhoPontoPage({
         </Card>
       )}
 
-      {servidorSelecionado && (
-        <RecalcularMesForm
-          key={`${servidorSelecionado.id}-${competenciaInput}-${processamentoEspelho?.status}-${processamentoEspelho?.concluidoEm?.toISOString()}`}
-          servidorId={servidorSelecionado.id}
-          anoReferencia={anoReferencia}
-          mesReferencia={mesReferencia}
-          podeRecalcular={podeRecalcular}
-          estadoInicial={{
-            status: processamentoEspelho?.status ?? "AUSENTE",
-            atualizadoEm:
-              processamentoEspelho?.concluidoEm?.toISOString() ?? null,
-            erro: processamentoEspelho?.erro ?? null,
-          }}
-        />
-      )}
-
       {servidorSelecionado ? (
         <EspelhoPontoMensal
           key={`${servidorSelecionado.id}-${competenciaInput}`}
           apuracoes={apuracoes}
           marcacoes={marcacoes}
+          solicitacoes={solicitacoes}
           destaque={{
             dataReferencia: params.destaqueData,
             ocorrenciaId: params.destaqueOcorrencia,
@@ -544,6 +726,43 @@ export default async function EspelhoPontoPage({
             anoReferencia,
             mesReferencia,
           }}
+          periodoLabel={formatarPeriodoCompetencia(
+            anoReferencia,
+            mesReferencia,
+          )}
+          homologacaoCompetencia={
+            homologacaoServidor
+              ? {
+                  status: homologacaoServidor.status,
+                  enviadoEm: envioHomologacao?.criadoEm ?? null,
+                  enviadoPor: envioHomologacao?.usuario?.nome ?? null,
+                  homologadoEm: homologacaoServidor.homologadoEm,
+                  homologadoPor: homologacaoServidor.homologadoPor?.nome ?? null,
+                  unidadeSigla: homologacaoServidor.fechamento.unidade.sigla,
+                  chefiaResponsavel:
+                    nomeServidor(
+                      homologacaoServidor.fechamento.gestorResponsavel
+                        ?.servidor,
+                    ) || null,
+                }
+              : null
+          }
+          acaoHomologacao={
+            perfilServidorAtivo && !espelhoEnviado ? (
+              <EnviarEspelhoHomologacaoModal
+                anoReferencia={anoReferencia}
+                mesReferencia={mesReferencia}
+                assinatura={{
+                  orgao: resolverSeccionalAssinatura(servidorSelecionado),
+                  assinante:
+                    nomeServidor(servidorSelecionado) ||
+                    servidorSelecionado.matricula,
+                  cargoFuncoes:
+                    montarOpcoesCargoFuncaoAssinatura(servidorSelecionado),
+                }}
+              />
+            ) : undefined
+          }
           controles={
             perfilServidorAtivo ? (
               <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
@@ -599,9 +818,8 @@ export default async function EspelhoPontoPage({
                         anoReferencia={anoReferencia}
                         mesReferencia={mesReferencia}
                         assinatura={{
-                          orgao: resolverSeccionalAssinatura(
-                            servidorSelecionado,
-                          ),
+                          orgao:
+                            resolverSeccionalAssinatura(servidorSelecionado),
                           assinante:
                             nomeServidor(servidorSelecionado) ||
                             servidorSelecionado.matricula,

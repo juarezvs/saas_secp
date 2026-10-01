@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, Users, Eye } from "lucide-react";
+import { Plus, Users, Eye, UserX } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
@@ -27,6 +27,7 @@ import {
   descricaoCargoServidor,
   descricaoFuncaoServidor,
 } from "@/modules/servidores/application/services/funcao-cargo-servidor.service";
+import { desativarServidoresLoteAction } from "@/modules/servidores/application/actions/desativar-servidores-lote.action";
 import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
 import {
   listarCategoriasPessoasAtivas,
@@ -165,6 +166,7 @@ export default async function ServidoresPage({
     "servidores:consultar:global",
     "servidores:gerenciar:seccional",
     "servidores:consultar:seccional",
+    "servidores:desativar-lote:seccional",
     "homologacao:gerenciar:chefia",
     "minha-equipe:consultar:chefia",
     ...PERMISSOES_ADMIN_BIOMETRIA_FACIAL_TERCEIROS,
@@ -183,6 +185,11 @@ export default async function ServidoresPage({
       "servidores:gerenciar:seccional",
       "servidores:consultar:seccional",
     ],
+  );
+  const podeDesativarLote = usuarioPossuiAlgumaPermissaoNoPerfil(
+    permissoesSessao.perfilAtivoCodigo,
+    permissoesSessao.permissoes,
+    ["servidores:desativar-lote:seccional"],
   );
 
   const params = searchParams ? await searchParams : {};
@@ -382,7 +389,18 @@ export default async function ServidoresPage({
           />
         }
       >
-        <div className="overflow-x-auto">
+        <form action={desativarServidoresLoteAction} className="overflow-x-auto">
+          {podeDesativarLote ? (
+            <div className="flex justify-end border-b p-3">
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 rounded-md border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
+              >
+                <UserX className="size-4" aria-hidden="true" />
+                Desativar selecionados
+              </button>
+            </div>
+          ) : null}
           <table className="w-full min-w-[1040px] text-left text-sm">
             <caption className="sr-only">
               Listagem de pessoas ativas com matrícula, CPF, PIS/PASEP, nome,
@@ -414,6 +432,17 @@ export default async function ServidoresPage({
 
                 return (
                   <tr key={servidor.id} className="border-b last:border-b-0">
+                    {podeDesativarLote ? (
+                      <td className="px-5 py-4">
+                        <input
+                          type="checkbox"
+                          name="servidorId"
+                          value={servidor.id}
+                          className="size-4 rounded border-slate-300"
+                          aria-label={`Selecionar ${servidor.matricula}`}
+                        />
+                      </td>
+                    ) : null}
                     <td className="px-5 py-4 font-mono text-xs font-semibold">
                       {servidor.matricula}
                     </td>
@@ -483,7 +512,7 @@ export default async function ServidoresPage({
               {resultado.servidores.length === 0 && (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={podeDesativarLote ? 10 : 9}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
                     Nenhum registro encontrado para os filtros informados.
@@ -492,7 +521,7 @@ export default async function ServidoresPage({
               )}
             </tbody>
           </table>
-        </div>
+        </form>
       </DataTableShell>
     </div>
   );

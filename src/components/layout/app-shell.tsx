@@ -14,6 +14,10 @@ import {
   buscarMenusPersonalizadosPorPerfil,
 } from "@/modules/menus/infrastructure/repositories/menu-personalizado.repository";
 import { listarFavoritosUsuarioPerfil } from "@/modules/favoritos/application/favoritos-usuario-perfil.service";
+import {
+  PERMISSOES_ACOMPANHAMENTO_ESTAGIO,
+  usuarioPossuiSupervisaoEstagioVigente,
+} from "@/modules/acompanhamento-estagio/application/services/acompanhamento-estagio.service";
 import { buscarFotoServidorDataUrl } from "@/modules/servidores/application/services/foto-servidor.service";
 import { descricaoNomeFuncaoServidor } from "@/modules/servidores/application/services/funcao-cargo-servidor.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
@@ -160,7 +164,19 @@ export async function AppShell({ children }: AppShellProps) {
     redirect("/acesso-negado?motivo=sem-perfil");
   }
 
-  const [totalNotificacoes, favoritosPerfil, alertaChefia] = await Promise.all([
+  const permissoesAcompanhamentoEstagio = [
+    PERMISSOES_ACOMPANHAMENTO_ESTAGIO.consultar,
+    PERMISSOES_ACOMPANHAMENTO_ESTAGIO.preencher,
+    PERMISSOES_ACOMPANHAMENTO_ESTAGIO.supervisionar,
+    PERMISSOES_ACOMPANHAMENTO_ESTAGIO.consultarSeccional,
+    PERMISSOES_ACOMPANHAMENTO_ESTAGIO.exportarSeccional,
+  ];
+  const perfilAtivoJaAcessaAcompanhamentoEstagio =
+    permissoesAcompanhamentoEstagio.some((permissao) =>
+      perfilAtivo.permissoes.includes(permissao),
+    );
+
+  const [totalNotificacoes, favoritosPerfil, alertaChefia, supervisionaEstagio] = await Promise.all([
     contarNotificacoesUsuario(session.user.id, {
       perfilAtivo,
     }),
@@ -178,7 +194,18 @@ export async function AppShell({ children }: AppShellProps) {
           perfilAtivo,
         })
       : Promise.resolve({ total: 0, perfilChefia: null }),
+    perfilAtivoJaAcessaAcompanhamentoEstagio
+      ? Promise.resolve(false)
+      : usuarioPossuiSupervisaoEstagioVigente(session.user.id),
   ]);
+  const permissoesPerfilAtivo = supervisionaEstagio
+    ? Array.from(
+        new Set([
+          ...perfilAtivo.permissoes,
+          PERMISSOES_ACOMPANHAMENTO_ESTAGIO.supervisionar,
+        ]),
+      )
+    : perfilAtivo.permissoes;
 
   const fotoCpf = servidor?.cpf;
   const [fotoUrl, menusPersonalizados, iconesItensCatalogo] = await Promise.all([
@@ -229,7 +256,7 @@ export async function AppShell({ children }: AppShellProps) {
       id: perfilAtivo.id,
       codigo: perfilAtivo.codigo,
       nome: perfilAtivo.nome,
-      permissoes: perfilAtivo.permissoes,
+      permissoes: permissoesPerfilAtivo,
       administrativo: perfilAtivo.administrativo,
       excecao: perfilAtivo.excecao,
       perfilDestinoExcecaoId: perfilAtivo.perfilDestinoExcecaoId,
@@ -248,6 +275,7 @@ export async function AppShell({ children }: AppShellProps) {
     session.user.id,
     perfilAtivo.codigo,
     ...perfilAtivo.permissoes,
+    ...permissoesPerfilAtivo,
   ].join("-");
 
   return (

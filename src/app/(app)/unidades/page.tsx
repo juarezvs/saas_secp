@@ -3,11 +3,13 @@ import { Building2, Plus, Eye } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
-import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { perfilAtivoEhChefia } from "@/modules/auth/application/services/perfil-chefia.service";
+import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   aplicarEscopoOrgaoId,
   obterEscopoOrgaoDaSessao,
 } from "@/modules/auth/application/services/escopo-orgao.service";
+import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 import { resolverFusoHorarioUnidade } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
 import { listarUnidadesOrganizacionaisPaginado } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
@@ -30,10 +32,22 @@ type UnidadesPageProps = {
 export default async function UnidadesPage({
   searchParams,
 }: UnidadesPageProps) {
-  await exigirPermissaoOuRedirecionar("unidades:gerenciar:global");
+  const permissao = await exigirUmaDasPermissoesOuRedirecionar([
+    "unidades:gerenciar:global",
+    "unidades:gerenciar:seccional",
+    "homologacao:gerenciar:chefia",
+    "minha-equipe:consultar:chefia",
+  ]);
 
   const params = searchParams ? await searchParams : {};
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
+  const perfilChefiaAtivo = perfilAtivoEhChefia({
+    perfilAtivoCodigo: permissao.perfilAtivoCodigo,
+    permissoes: permissao.permissoes,
+  });
+  const unidadeIdsPermitidos = perfilChefiaAtivo
+    ? await listarIdsUnidadesSubordinadasPorUsuario(permissao.usuarioId ?? "")
+    : undefined;
   const statusFiltro = params.status ?? "ativa";
   const filtrosEscopados = aplicarEscopoOrgaoId(
     {
@@ -44,6 +58,7 @@ export default async function UnidadesPage({
       orgaoId: params.orgaoId ?? "",
       superior: params.superior ?? "",
       status: statusFiltro,
+      unidadeIdsPermitidos,
       pagina: Number(params.pagina ?? 1),
       itensPorPagina: Number(params.itensPorPagina ?? 10),
     },

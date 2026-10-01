@@ -20,6 +20,11 @@ export type RegulamentacaoPonto = {
   inicioJanelaNoite: string;
   prazoHomologacaoDiaMesSeguinte: number;
   prazoAjustePontoDiaMesSeguinte: number;
+  feriasAntecedenciaPrimeiroPeriodoDias: number;
+  feriasAntecedenciaDemaisPeriodosDiasUteis: number;
+  feriasJanelaCienciaPrimeiroPeriodoDias: number;
+  feriasExigeCienciaPrimeiroPeriodo: boolean;
+  feriasAprovacaoAutomaticaSecap: boolean;
   percentualCreditoSabado: number;
   percentualCreditoDomingoFeriado: number;
   percentualCreditoRecesso: number;
@@ -27,6 +32,7 @@ export type RegulamentacaoPonto = {
   exigeAutorizacaoPreviaCredito: boolean;
   bancoHorasAtivo: boolean;
   bancoHorasCompetenciaInicio: string | null;
+  nadaConstaConsideraMesAberto: boolean;
   horasExtrasAtivo: boolean;
   horasForaExpedienteInconsistente: boolean;
 };
@@ -52,6 +58,11 @@ export const REGULAMENTACAO_PONTO_PADRAO: RegulamentacaoPonto = {
   inicioJanelaNoite: "18:00",
   prazoHomologacaoDiaMesSeguinte: 10,
   prazoAjustePontoDiaMesSeguinte: 10,
+  feriasAntecedenciaPrimeiroPeriodoDias: 45,
+  feriasAntecedenciaDemaisPeriodosDiasUteis: 2,
+  feriasJanelaCienciaPrimeiroPeriodoDias: 45,
+  feriasExigeCienciaPrimeiroPeriodo: true,
+  feriasAprovacaoAutomaticaSecap: false,
   percentualCreditoSabado: 50,
   percentualCreditoDomingoFeriado: 100,
   percentualCreditoRecesso: 100,
@@ -59,6 +70,7 @@ export const REGULAMENTACAO_PONTO_PADRAO: RegulamentacaoPonto = {
   exigeAutorizacaoPreviaCredito: true,
   bancoHorasAtivo: true,
   bancoHorasCompetenciaInicio: null,
+  nadaConstaConsideraMesAberto: false,
   horasExtrasAtivo: true,
   horasForaExpedienteInconsistente: false,
 };
@@ -83,6 +95,11 @@ type RegulamentacaoBanco = {
   inicioJanelaNoite: string;
   prazoHomologacaoDiaMesSeguinte: number;
   prazoAjustePontoDiaMesSeguinte: number;
+  feriasAntecedenciaPrimeiroPeriodoDias?: number;
+  feriasAntecedenciaDemaisPeriodosDiasUteis?: number;
+  feriasJanelaCienciaPrimeiroPeriodoDias?: number;
+  feriasExigeCienciaPrimeiroPeriodo?: boolean;
+  feriasAprovacaoAutomaticaSecap?: boolean;
   percentualCreditoSabado: number;
   percentualCreditoDomingoFeriado: number;
   percentualCreditoRecesso: number;
@@ -90,6 +107,7 @@ type RegulamentacaoBanco = {
   exigeAutorizacaoPreviaCredito: boolean;
   bancoHorasAtivo?: boolean;
   bancoHorasCompetenciaInicio?: string | null;
+  nadaConstaConsideraMesAberto?: boolean;
   horasExtrasAtivo?: boolean;
   horasForaExpedienteInconsistente: boolean;
   ativo: boolean;
@@ -179,6 +197,19 @@ export function normalizarRegulamentacaoPonto(
       regulamentacao.prazoHomologacaoDiaMesSeguinte,
     prazoAjustePontoDiaMesSeguinte:
       regulamentacao.prazoAjustePontoDiaMesSeguinte,
+    feriasAntecedenciaPrimeiroPeriodoDias:
+      regulamentacao.feriasAntecedenciaPrimeiroPeriodoDias ??
+      REGULAMENTACAO_PONTO_PADRAO.feriasAntecedenciaPrimeiroPeriodoDias,
+    feriasAntecedenciaDemaisPeriodosDiasUteis:
+      regulamentacao.feriasAntecedenciaDemaisPeriodosDiasUteis ??
+      REGULAMENTACAO_PONTO_PADRAO.feriasAntecedenciaDemaisPeriodosDiasUteis,
+    feriasJanelaCienciaPrimeiroPeriodoDias:
+      regulamentacao.feriasJanelaCienciaPrimeiroPeriodoDias ??
+      REGULAMENTACAO_PONTO_PADRAO.feriasJanelaCienciaPrimeiroPeriodoDias,
+    feriasExigeCienciaPrimeiroPeriodo:
+      regulamentacao.feriasExigeCienciaPrimeiroPeriodo ?? true,
+    feriasAprovacaoAutomaticaSecap:
+      regulamentacao.feriasAprovacaoAutomaticaSecap ?? false,
     percentualCreditoSabado: regulamentacao.percentualCreditoSabado,
     percentualCreditoDomingoFeriado:
       regulamentacao.percentualCreditoDomingoFeriado,
@@ -189,6 +220,8 @@ export function normalizarRegulamentacaoPonto(
     bancoHorasAtivo: regulamentacao.bancoHorasAtivo ?? true,
     bancoHorasCompetenciaInicio:
       regulamentacao.bancoHorasCompetenciaInicio ?? null,
+    nadaConstaConsideraMesAberto:
+      regulamentacao.nadaConstaConsideraMesAberto ?? false,
     horasExtrasAtivo: regulamentacao.horasExtrasAtivo ?? true,
     horasForaExpedienteInconsistente:
       regulamentacao.horasForaExpedienteInconsistente,

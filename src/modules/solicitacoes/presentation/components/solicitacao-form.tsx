@@ -10,8 +10,11 @@ import {
   ClipboardCheck,
   FileText,
   Loader2,
+  Paperclip,
   Send,
   Settings2,
+  Trash2,
+  UploadCloud,
 } from "lucide-react";
 import { criarSolicitacaoAction } from "../../application/actions/criar-solicitacao.action";
 import {
@@ -23,6 +26,7 @@ import {
   type CriarSolicitacaoFormState,
 } from "../../application/schemas/solicitacao.schema";
 import { rotuloTipoSolicitacao } from "../../application/services/fluxo-solicitacao.service";
+import { gerarTituloSolicitacao } from "../../application/services/titulo-solicitacao.service";
 
 const estadoInicial: CriarSolicitacaoFormState = {
   sucesso: false,
@@ -62,9 +66,9 @@ const etapas = [
   {
     id: "justificativa",
     titulo: "Justificativa",
-    descricao: "Resumo e fundamento",
+    descricao: "Fundamento e anexos",
     icon: FileText,
-    campos: ["titulo", "descricao"],
+    campos: ["descricao", "anexos"],
   },
 ] as const;
 
@@ -81,9 +85,17 @@ type SolicitacaoPreview = {
 
 type TipoSolicitacao = (typeof tiposSolicitacao)[number];
 
+type AnexoFormulario = {
+  id: string;
+  file: File;
+  descricao: string;
+  previewUrl: string;
+};
+
 type SolicitacaoFormProps = {
   tipoInicial?: TipoSolicitacao;
   valoresIniciais?: CriarSolicitacaoFormState["campos"];
+  etapaInicial?: EtapaIndice;
   action?: (
     state: CriarSolicitacaoFormState,
     formData: FormData,
@@ -248,16 +260,34 @@ function validarEtapaFormulario(etapa: number, formData: FormData) {
   }
 
   if (etapa === 3) {
-    const titulo = String(formData.get("titulo") ?? "").trim();
     const descricao = String(formData.get("descricao") ?? "").trim();
-
-    if (titulo.length < 5) {
-      falhas.push("Informe um titulo com pelo menos 5 caracteres.");
-    }
+    const anexos = formData
+      .getAll("anexos")
+      .filter(
+        (valor): valor is File => valor instanceof File && valor.size > 0,
+      );
+    const descricoesAnexos = formData
+      .getAll("anexoDescricoes")
+      .map((valor) => String(valor ?? "").trim());
 
     if (descricao.length < 10) {
       falhas.push("Descreva a solicitacao com mais detalhes.");
     }
+
+    anexos.forEach((anexo, indice) => {
+      const descricaoAnexo = descricoesAnexos[indice] ?? "";
+
+      if (
+        anexo.type !== "application/pdf" &&
+        !anexo.name.toLocaleLowerCase("pt-BR").endsWith(".pdf")
+      ) {
+        falhas.push(`O anexo ${indice + 1} deve ser um arquivo PDF.`);
+      }
+
+      if (descricaoAnexo.length < 3) {
+        falhas.push(`Informe a descrição do anexo ${indice + 1}.`);
+      }
+    });
   }
 
   return falhas;
@@ -266,6 +296,38 @@ function validarEtapaFormulario(etapa: number, formData: FormData) {
 function formatarValorAusente(valor: FormDataEntryValue | null) {
   const texto = String(valor ?? "").trim();
   return texto || "Não informado";
+}
+
+function horasDecimaisParaHoraMinuto(valor?: number | string | null) {
+  const numero =
+    typeof valor === "number"
+      ? valor
+      : Number(String(valor ?? "").replace(",", "."));
+
+  if (!Number.isFinite(numero) || numero <= 0) {
+    return "";
+  }
+
+  const minutosTotais = Math.round(numero * 60);
+  const horas = Math.floor(minutosTotais / 60);
+  const minutos = minutosTotais % 60;
+
+  return `${String(horas).padStart(2, "0")}:${String(minutos).padStart(2, "0")}`;
+}
+
+function formatarHorasSolicitadasPreview(valor: FormDataEntryValue | null) {
+  const texto = String(valor ?? "").trim();
+
+  if (!texto) {
+    return "Nao informado";
+  }
+
+  if (/^\d{1,2}:[0-5]\d$/.test(texto)) {
+    const [horas, minutos] = texto.split(":");
+    return `${horas.padStart(2, "0")}:${minutos}`;
+  }
+
+  return horasDecimaisParaHoraMinuto(texto) || texto;
 }
 
 function formatarDataPreview(valor: FormDataEntryValue | null) {
@@ -349,7 +411,9 @@ function montarDetalhePreview(formData: FormData, tipo: string) {
   }
 
   if (tipo === "HORA_CREDITO_PREVIA") {
-    return `${formatarValorAusente(formData.get("horasSolicitadas"))} hora(s) solicitada(s)`;
+    return `${formatarHorasSolicitadasPreview(
+      formData.get("horasSolicitadas"),
+    )} solicitada(s)`;
   }
 
   if (tipo === "DISPENSA_PONTO") {
@@ -392,7 +456,12 @@ function criarPreviewInicial(
 
   return {
     tipo: rotuloTipoSolicitacao(tipo),
-    titulo: campos?.titulo || "Ainda sem título",
+    titulo: gerarTituloSolicitacao({
+      tipo,
+      dataReferencia: campos?.dataReferencia,
+      dataInicio: campos?.dataInicio,
+      dataFim: campos?.dataFim,
+    }),
     periodo: montarPeriodoPreview(formData, tipo),
     detalhe: montarDetalhePreview(formData, tipo),
     justificativa: campos?.descricao || "A justificativa aparecerá aqui.",
@@ -562,15 +631,18 @@ function StepperSolicitacao({
 export function SolicitacaoForm({
   tipoInicial,
   valoresIniciais,
+  etapaInicial = 0,
   action = criarSolicitacaoAction,
   submitLabel = "Enviar solicitacao",
   hiddenFields,
 }: SolicitacaoFormProps = {}) {
   const formRef = useRef<HTMLFormElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const anexosRef = useRef<AnexoFormulario[]>([]);
   const [estado, formAction, pendente] = useActionState(action, estadoInicial);
   const campos = estado.campos ?? valoresIniciais;
-  const [etapaAtual, setEtapaAtual] = useState<EtapaIndice>(0);
-  const [etapaMaxima, setEtapaMaxima] = useState(0);
+  const [etapaAtual, setEtapaAtual] = useState<EtapaIndice>(etapaInicial);
+  const [etapaMaxima, setEtapaMaxima] = useState<number>(etapaInicial);
   const [falhasEtapa, setFalhasEtapa] = useState<string[]>([]);
   const [tipoSelecionado, setTipoSelecionado] = useState<string>(
     campos?.tipo ?? tipoInicial ?? "AJUSTE_PONTO",
@@ -590,6 +662,7 @@ export function SolicitacaoForm({
   const [modalidadeCapacitacao, setModalidadeCapacitacao] = useState<string>(
     campos?.modalidadeCapacitacao ?? "EXTERNA",
   );
+  const [anexos, setAnexos] = useState<AnexoFormulario[]>([]);
   const [preview, setPreview] = useState<SolicitacaoPreview>(() =>
     criarPreviewInicial(campos ?? { tipo: tipoInicial ?? "AJUSTE_PONTO" }),
   );
@@ -627,6 +700,81 @@ export function SolicitacaoForm({
   }, [campos]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  useEffect(() => {
+    anexosRef.current = anexos;
+  }, [anexos]);
+
+  useEffect(() => {
+    return () => {
+      anexosRef.current.forEach((anexo) =>
+        URL.revokeObjectURL(anexo.previewUrl),
+      );
+    };
+  }, []);
+
+  function sincronizarInputArquivos(proximosAnexos: AnexoFormulario[]) {
+    if (!fileInputRef.current) {
+      return;
+    }
+
+    const dataTransfer = new DataTransfer();
+    proximosAnexos.forEach((anexo) => dataTransfer.items.add(anexo.file));
+    fileInputRef.current.files = dataTransfer.files;
+  }
+
+  function atualizarAnexos(
+    resolver: (atuais: AnexoFormulario[]) => AnexoFormulario[],
+  ) {
+    setAnexos((atuais) => {
+      const proximos = resolver(atuais);
+      anexosRef.current = proximos;
+      sincronizarInputArquivos(proximos);
+      return proximos;
+    });
+  }
+
+  function adicionarArquivos(files: FileList | null) {
+    const selecionados = Array.from(files ?? []);
+
+    if (selecionados.length === 0) {
+      return;
+    }
+
+    atualizarAnexos((atuais) => [
+      ...atuais,
+      ...selecionados.map((file) => {
+        const id =
+          globalThis.crypto?.randomUUID?.() ??
+          `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+        return {
+          id: `${file.name}-${file.size}-${file.lastModified}-${id}`,
+          file,
+          descricao: "",
+          previewUrl: URL.createObjectURL(file),
+        };
+      }),
+    ]);
+  }
+
+  function removerAnexo(id: string) {
+    atualizarAnexos((atuais) => {
+      const removido = atuais.find((anexo) => anexo.id === id);
+      if (removido) {
+        URL.revokeObjectURL(removido.previewUrl);
+      }
+      return atuais.filter((anexo) => anexo.id !== id);
+    });
+  }
+
+  function atualizarDescricaoAnexo(id: string, descricao: string) {
+    atualizarAnexos((atuais) =>
+      atuais.map((anexo) =>
+        anexo.id === id ? { ...anexo, descricao } : anexo,
+      ),
+    );
+  }
+
   function atualizarPreview(tipo = tipoSelecionado) {
     if (!formRef.current) {
       return;
@@ -637,7 +785,12 @@ export function SolicitacaoForm({
 
     setPreview({
       tipo: rotuloTipoSolicitacao(tipo),
-      titulo: String(formData.get("titulo") ?? "").trim() || "Ainda sem título",
+      titulo: gerarTituloSolicitacao({
+        tipo,
+        dataReferencia: String(formData.get("dataReferencia") ?? ""),
+        dataInicio: String(formData.get("dataInicio") ?? ""),
+        dataFim: String(formData.get("dataFim") ?? ""),
+      }),
       periodo: montarPeriodoPreview(formData, tipo),
       detalhe: montarDetalhePreview(formData, tipo),
       justificativa:
@@ -676,6 +829,7 @@ export function SolicitacaoForm({
     <form
       ref={formRef}
       action={formAction}
+      encType="multipart/form-data"
       className="space-y-6"
       onChange={() => atualizarPreview()}
       onInput={() => atualizarPreview()}
@@ -1008,13 +1162,20 @@ export function SolicitacaoForm({
                       <input
                         id="horasSolicitadas"
                         name="horasSolicitadas"
-                        type="number"
-                        min="0.25"
-                        max="16"
-                        step="0.25"
-                        defaultValue={campos?.horasSolicitadas ?? ""}
+                        type="time"
+                        min="00:15"
+                        max="16:00"
+                        step={60}
+                        inputMode="numeric"
+                        pattern="[0-9]{2}:[0-9]{2}"
+                        defaultValue={horasDecimaisParaHoraMinuto(
+                          campos?.horasSolicitadas,
+                        )}
                         className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
                       />
+                      <p className="text-xs text-[var(--muted-foreground)]">
+                        Informe no formato HH:MM.
+                      </p>
                       {erro(estado, "horasSolicitadas") && (
                         <p className="text-sm text-red-600">
                           {erro(estado, "horasSolicitadas")}
@@ -1178,39 +1339,19 @@ export function SolicitacaoForm({
             <CabecalhoEtapa
               numero="4"
               titulo="Revise e envie"
-              descricao="Registre um título objetivo e a justificativa que será analisada pela chefia."
+              descricao="Registre a justificativa que será analisada pela chefia e, se necessário, anexe documentos em PDF."
             />
             <div className="hidden">
               <h2 className="text-lg font-bold">Justificativa e envio</h2>
               <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-                Registre um titulo objetivo e a justificativa que sera analisada
-                pela chefia.
+                Registre a justificativa que será analisada pela chefia.
               </p>
             </div>
 
             <div className="mt-5 grid gap-5">
               <div className="space-y-2">
-                <label htmlFor="titulo" className="text-sm font-semibold">
-                  Título
-                </label>
-                <input
-                  id="titulo"
-                  name="titulo"
-                  defaultValue={campos?.titulo ?? ""}
-                  placeholder="Ex.: Ajuste de ponto de entrada"
-                  className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-                  required
-                />
-                {erro(estado, "titulo") && (
-                  <p className="text-sm text-red-600">
-                    {erro(estado, "titulo")}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
                 <label htmlFor="descricao" className="text-sm font-semibold">
-                  Justificativa / descricao
+                  Justificativa
                 </label>
                 <textarea
                   id="descricao"
@@ -1225,6 +1366,100 @@ export function SolicitacaoForm({
                   <p className="text-sm text-red-600">
                     {erro(estado, "descricao")}
                   </p>
+                )}
+              </div>
+
+              <div className="space-y-3 rounded-lg border bg-[var(--muted)] p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">Anexos em PDF</p>
+                    <CampoAjuda>
+                      Opcional. Inclua documentos que ajudem a chefia na análise
+                      da solicitação.
+                    </CampoAjuda>
+                  </div>
+                  <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-md border bg-[var(--card)] px-3 text-sm font-semibold transition hover:bg-[var(--accent)]">
+                    <UploadCloud className="size-4" aria-hidden="true" />
+                    Incluir PDF
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      name="anexos"
+                      accept="application/pdf,.pdf"
+                      multiple
+                      className="sr-only"
+                      onChange={(event) =>
+                        adicionarArquivos(event.currentTarget.files)
+                      }
+                    />
+                  </label>
+                </div>
+
+                {erro(estado, "anexos") && (
+                  <p className="text-sm text-red-600">
+                    {erro(estado, "anexos")}
+                  </p>
+                )}
+
+                {anexos.length > 0 ? (
+                  <div className="space-y-3">
+                    {anexos.map((anexo, indice) => (
+                      <div
+                        key={anexo.id}
+                        className="grid gap-3 rounded-lg border bg-[var(--card)] p-3 md:grid-cols-[minmax(0,1fr)_minmax(16rem,24rem)_auto]"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 text-sm font-semibold">
+                            <Paperclip
+                              className="size-4 shrink-0"
+                              aria-hidden="true"
+                            />
+                            <span className="truncate">{anexo.file.name}</span>
+                          </div>
+                          <a
+                            href={anexo.previewUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1 inline-flex text-xs font-semibold text-[var(--primary)] hover:underline"
+                          >
+                            Visualizar PDF
+                          </a>
+                        </div>
+
+                        <label className="space-y-1 text-sm">
+                          <span className="font-semibold">
+                            Descrição do anexo {indice + 1}
+                          </span>
+                          <input
+                            name="anexoDescricoes"
+                            value={anexo.descricao}
+                            onChange={(event) =>
+                              atualizarDescricaoAnexo(
+                                anexo.id,
+                                event.currentTarget.value,
+                              )
+                            }
+                            placeholder="Ex.: Atestado médico"
+                            className="h-10 w-full rounded-md border bg-[var(--background)] px-3 text-sm"
+                            required
+                          />
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() => removerAnexo(anexo.id)}
+                          className="inline-flex size-10 items-center justify-center rounded-md border text-red-600 transition hover:bg-red-50"
+                          aria-label={`Remover anexo ${anexo.file.name}`}
+                        >
+                          <Trash2 className="size-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-dashed bg-[var(--card)] p-4 text-sm text-[var(--muted-foreground)]">
+                    Nenhum documento anexado.
+                  </div>
                 )}
               </div>
             </div>

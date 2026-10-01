@@ -5,7 +5,10 @@ import { auth } from "@/auth";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import { perfilEhAdministradorSistema } from "@/modules/auth/domain/constants/perfis-sistema";
+import {
+  perfilEhAdministradorSistema,
+  perfilEhChefia,
+} from "@/modules/auth/domain/constants/perfis-sistema";
 import { recalcularPosSolicitacaoAction } from "@/modules/recalculo/application/actions/recalcular-pos-solicitacao.action";
 import { analisarSolicitacaoAction } from "@/modules/solicitacoes/application/actions/analisar-solicitacao.action";
 import { excluirSolicitacaoAction } from "@/modules/solicitacoes/application/actions/excluir-solicitacao.action";
@@ -24,6 +27,7 @@ import {
   usuarioPodeAcessarSolicitacaoComoChefia,
 } from "@/modules/solicitacoes/infrastructure/repositories/solicitacao.repository";
 import { AnalisarSolicitacaoForm } from "@/modules/solicitacoes/presentation/components/analisar-solicitacao-form";
+import { SolicitacaoAnexosPdfViewer } from "@/modules/solicitacoes/presentation/components/solicitacao-anexos-pdf-viewer";
 import { PreviewSolicitacao } from "@/modules/solicitacoes/presentation/components/solicitacao-form";
 import { SolicitacaoStepper } from "@/modules/solicitacoes/presentation/components/solicitacao-stepper";
 import { SolicitacaoTimeline } from "@/modules/solicitacoes/presentation/components/solicitacao-timeline";
@@ -215,13 +219,21 @@ export default async function SolicitacaoDetalhePage({
     !podeAcessarComoChefia &&
     solicitacao.usuarioSolicitanteId === session?.user.id &&
     ["ENVIADA", "EM_ANALISE"].includes(solicitacao.status);
+  const perfilAtivoChefia = perfilEhChefia(session?.user.perfilAtivo);
   const podeExcluir =
-    perfilEhAdministradorSistema(session?.user.perfilAtivo) ||
-    (solicitacao.usuarioSolicitanteId === session?.user.id &&
-      solicitacao.status === "ENVIADA");
+    !perfilAtivoChefia &&
+    (perfilEhAdministradorSistema(session?.user.perfilAtivo) ||
+      (solicitacao.usuarioSolicitanteId === session?.user.id &&
+        solicitacao.status === "ENVIADA"));
   const action = analisarSolicitacaoAction.bind(null, solicitacao.id);
   const excluirAction = excluirSolicitacaoAction.bind(null, solicitacao.id);
   const fusoHorario = resolverFusoHorarioUnidade(solicitacao.unidade);
+  const anexos = solicitacao.anexos.map((anexo) => ({
+    id: anexo.id,
+    descricao: anexo.descricao,
+    nomeOriginal: anexo.nomeOriginal,
+    tamanhoBytes: anexo.tamanhoBytes,
+  }));
 
   return (
     <div className="space-y-6">
@@ -280,6 +292,13 @@ export default async function SolicitacaoDetalhePage({
         }
       >
         <div className="space-y-5">
+          <div
+            className={
+              anexos.length > 0
+                ? "grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start"
+                : ""
+            }
+          >
           <PreviewSolicitacao
             titulo="Solicitação a ser analisada"
             preview={{
@@ -306,6 +325,17 @@ export default async function SolicitacaoDetalhePage({
                 "A chefia deve registrar a decisão ou devolver para ajustes.",
             }}
           />
+
+            {anexos.length > 0 ? (
+              <aside className="lg:sticky lg:top-24">
+                <SolicitacaoAnexosPdfViewer
+                  solicitacaoId={solicitacao.id}
+                  anexos={anexos}
+                  variant="sidebar"
+                />
+              </aside>
+            ) : null}
+          </div>
 
           {solicitacao.justificativaAnalise && (
             <div className="rounded-xl border bg-(--card) p-5 text-(--card-foreground) shadow-sm">

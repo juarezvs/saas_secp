@@ -33,6 +33,7 @@ import {
   Hourglass,
   KeyRound,
   Landmark,
+  LifeBuoy,
   LayoutDashboard,
   ListChecks,
   MapPin,
@@ -818,6 +819,15 @@ export const MENU_ITEMS: MenuItem[] = [
         label: "Liberação de Rotinas",
         href: "/administracao/liberacao-rotinas",
         icon: ToggleLeft,
+        permissoes: [
+          "configuracoes:gerenciar:seccional",
+          "configuracoes:gerenciar:global",
+        ],
+      },
+      {
+        label: "Suporte do login",
+        href: "/administracao/suporte",
+        icon: LifeBuoy,
         permissoes: [
           "configuracoes:gerenciar:seccional",
           "configuracoes:gerenciar:global",

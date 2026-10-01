@@ -29,6 +29,12 @@ import {
   TIPOS_SOLICITACAO_COM_RECALCULO_APOS_DEFERIMENTO,
 } from "../services/periodo-solicitacao.service";
 import {
+  extrairArquivosAnexosSolicitacao,
+  salvarAnexosSolicitacao,
+  validarAnexosSolicitacao,
+} from "../services/solicitacao-anexo-storage.service";
+import { gerarTituloSolicitacao } from "../services/titulo-solicitacao.service";
+import {
   PrazoAjustePontoExpiradoError,
   verificarPrazoAjustePontoComCalendario,
 } from "../services/verificar-prazo-ajuste-ponto.service";
@@ -99,6 +105,25 @@ function normalizarTipoSolicitacao(
     : undefined;
 }
 
+function normalizarHorasSolicitadas(valor: FormDataEntryValue | null) {
+  const texto = String(valor ?? "").trim();
+
+  if (!texto) {
+    return undefined;
+  }
+
+  const horaMinuto = /^(\d{1,2}):([0-5]\d)$/.exec(texto);
+
+  if (horaMinuto) {
+    const horas = Number(horaMinuto[1]);
+    const minutos = Number(horaMinuto[2]);
+    return Math.round((horas + minutos / 60) * 100) / 100;
+  }
+
+  const numero = Number(texto.replace(",", "."));
+  return Number.isFinite(numero) ? numero : undefined;
+}
+
 function extrairDados(formData: FormData): Partial<CriarSolicitacaoInput> {
   return {
     tipo: normalizarTipoSolicitacao(formData.get("tipo")),
@@ -111,9 +136,9 @@ function extrairDados(formData: FormData): Partial<CriarSolicitacaoInput> {
     horaAjuste: String(formData.get("horaAjuste") ?? ""),
     tipoCompensacao: String(formData.get("tipoCompensacao") ?? "") as
       CriarSolicitacaoInput["tipoCompensacao"] | "",
-    horasSolicitadas: formData.get("horasSolicitadas")
-      ? Number(formData.get("horasSolicitadas"))
-      : undefined,
+    horasSolicitadas: normalizarHorasSolicitadas(
+      formData.get("horasSolicitadas"),
+    ),
     regimeTrabalhoRemotoTipo: String(
       formData.get("regimeTrabalhoRemotoTipo") ?? "NAO_SE_APLICA",
     ) as CriarSolicitacaoInput["regimeTrabalhoRemotoTipo"],
@@ -149,6 +174,20 @@ export async function criarSolicitacaoAction(
   }
 
   const dados = extrairDados(formData);
+  const anexosFormulario = extrairArquivosAnexosSolicitacao(formData);
+  const errosAnexos = validarAnexosSolicitacao(anexosFormulario);
+
+  if (errosAnexos.length > 0) {
+    return {
+      sucesso: false,
+      mensagem: "Verifique os anexos da solicitação.",
+      erros: {
+        anexos: errosAnexos,
+      },
+      campos: dados,
+    };
+  }
+
   const parsed = criarSolicitacaoSchema.safeParse(dados);
 
   if (!parsed.success) {
@@ -264,6 +303,9 @@ export async function criarSolicitacaoAction(
     }
   }
 
+  const anexosSalvos = await salvarAnexosSolicitacao(anexosFormulario);
+  const titulo = gerarTituloSolicitacao(parsed.data);
+
   const solicitacao = await prisma.$transaction(async (tx) => {
     const novaSolicitacao = await tx.solicitacao.create({
       data: {
@@ -273,7 +315,7 @@ export async function criarSolicitacaoAction(
         chefiaResponsavelId: chefiaResolvida?.gestorUnidadeId ?? null,
         tipo: parsed.data.tipo,
         status: "ENVIADA",
-        titulo: parsed.data.titulo,
+        titulo,
         descricao: parsed.data.descricao,
         dataReferencia,
         dataInicio,
@@ -310,6 +352,22 @@ export async function criarSolicitacaoAction(
       },
     });
 
+    if (anexosSalvos.length > 0) {
+      await tx.solicitacaoAnexo.createMany({
+        data: anexosSalvos.map((anexo) => ({
+          solicitacaoId: novaSolicitacao.id,
+          criadoPorUsuarioId: session.user.id,
+          descricao: anexo.descricao,
+          nomeOriginal: anexo.nomeOriginal,
+          nomeArquivo: anexo.nomeArquivo,
+          caminhoArquivo: anexo.caminhoArquivo,
+          contentType: anexo.contentType,
+          tamanhoBytes: anexo.tamanhoBytes,
+          hashSha256: anexo.hashSha256,
+        })),
+      });
+    }
+
     await tx.solicitacaoEvento.create({
       data: {
         solicitacaoId: novaSolicitacao.id,
@@ -318,6 +376,7 @@ export async function criarSolicitacaoAction(
         descricao: "Solicitação criada e enviada para análise.",
         metadados: {
           status: "ENVIADA",
+          anexos: anexosSalvos.length,
         },
       },
     });

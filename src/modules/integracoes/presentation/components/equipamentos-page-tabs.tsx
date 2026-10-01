@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EquipamentosBiometricosTable } from "./equipamentos-biometricos-table";
 import { RelogioPontoAdminPanel } from "./relogio-ponto-admin-panel";
 
@@ -12,6 +13,8 @@ type ColetaAtivaItem =
   Parameters<typeof EquipamentosBiometricosTable>[0]["coletasAtivas"][number];
 type StatusListenerOnline =
   Parameters<typeof EquipamentosBiometricosTable>[0]["statusListenerOnline"];
+
+type AbaEquipamentos = "listagem" | "operacoes";
 
 export function EquipamentosPageTabs({
   equipamentos,
@@ -24,7 +27,7 @@ export function EquipamentosPageTabs({
   statusListenerOnline: StatusListenerOnline;
   orgaoId?: string | null;
 }) {
-  const [aba, setAba] = useState<"listagem" | "operacoes">("listagem");
+  const [aba, setAba] = useState<AbaEquipamentos>("listagem");
   const router = useRouter();
   const novoEquipamentoHref = orgaoId
     ? `/equipamentos/novo?${new URLSearchParams({ orgaoId }).toString()}`
@@ -41,33 +44,19 @@ export function EquipamentosPageTabs({
   }, [router]);
 
   return (
-    <section className="space-y-4">
-      <div className="flex flex-wrap gap-2 rounded-xl border bg-[var(--card)] p-2 shadow-sm">
-        <button
-          type="button"
-          onClick={() => setAba("listagem")}
-          className={`rounded-md px-4 py-2 text-sm font-semibold ${
-            aba === "listagem"
-              ? "bg-blue-900 text-white"
-              : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-          }`}
-        >
-          Listagem
-        </button>
-        <button
-          type="button"
-          onClick={() => setAba("operacoes")}
-          className={`rounded-md px-4 py-2 text-sm font-semibold ${
-            aba === "operacoes"
-              ? "bg-blue-900 text-white"
-              : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-          }`}
-        >
+    <Tabs
+      value={aba}
+      onValueChange={(value) => setAba(value as AbaEquipamentos)}
+      className="space-y-4"
+    >
+      <TabsList className="flex h-auto flex-wrap justify-start rounded-xl border bg-[var(--card)] p-2 shadow-sm">
+        <TabsTrigger value="listagem">Listagem</TabsTrigger>
+        <TabsTrigger value="operacoes">
           Operações dos relógios de ponto
-        </button>
-      </div>
+        </TabsTrigger>
+      </TabsList>
 
-      {aba === "listagem" ? (
+      <TabsContent value="listagem">
         <div className="space-y-6">
           <div className="flex justify-end">
             <Link
@@ -84,13 +73,15 @@ export function EquipamentosPageTabs({
             orgaoId={orgaoId}
           />
         </div>
-      ) : (
+      </TabsContent>
+
+      <TabsContent value="operacoes">
         <RelogioPontoAdminPanel
           equipamentos={equipamentos}
           coletasAtivas={coletasAtivas}
           statusListenerOnline={statusListenerOnline}
         />
-      )}
-    </section>
+      </TabsContent>
+    </Tabs>
   );
 }

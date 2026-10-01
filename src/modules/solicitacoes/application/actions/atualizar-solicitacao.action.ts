@@ -19,6 +19,12 @@ import {
   type CriarSolicitacaoFormState,
   type CriarSolicitacaoInput,
 } from "../schemas/solicitacao.schema";
+import {
+  extrairArquivosAnexosSolicitacao,
+  salvarAnexosSolicitacao,
+  validarAnexosSolicitacao,
+} from "../services/solicitacao-anexo-storage.service";
+import { gerarTituloSolicitacao } from "../services/titulo-solicitacao.service";
 
 type TipoSolicitacao = CriarSolicitacaoInput["tipo"];
 
@@ -85,6 +91,25 @@ function valorOpcionalFimPeriodo(
   return valorOpcionalDateTime(valor, fusoHorario);
 }
 
+function normalizarHorasSolicitadas(valor: FormDataEntryValue | null) {
+  const texto = String(valor ?? "").trim();
+
+  if (!texto) {
+    return undefined;
+  }
+
+  const horaMinuto = /^(\d{1,2}):([0-5]\d)$/.exec(texto);
+
+  if (horaMinuto) {
+    const horas = Number(horaMinuto[1]);
+    const minutos = Number(horaMinuto[2]);
+    return Math.round((horas + minutos / 60) * 100) / 100;
+  }
+
+  const numero = Number(texto.replace(",", "."));
+  return Number.isFinite(numero) ? numero : undefined;
+}
+
 function extrairDados(formData: FormData): Partial<CriarSolicitacaoInput> {
   return {
     tipo: normalizarTipoSolicitacao(formData.get("tipo")),
@@ -97,9 +122,9 @@ function extrairDados(formData: FormData): Partial<CriarSolicitacaoInput> {
     horaAjuste: String(formData.get("horaAjuste") ?? ""),
     tipoCompensacao: String(formData.get("tipoCompensacao") ?? "") as
       CriarSolicitacaoInput["tipoCompensacao"] | "",
-    horasSolicitadas: formData.get("horasSolicitadas")
-      ? Number(formData.get("horasSolicitadas"))
-      : undefined,
+    horasSolicitadas: normalizarHorasSolicitadas(
+      formData.get("horasSolicitadas"),
+    ),
     regimeTrabalhoRemotoTipo: String(
       formData.get("regimeTrabalhoRemotoTipo") ?? "NAO_SE_APLICA",
     ) as CriarSolicitacaoInput["regimeTrabalhoRemotoTipo"],
@@ -127,6 +152,20 @@ export async function atualizarSolicitacaoAction(
   }
 
   const dados = extrairDados(formData);
+  const anexosFormulario = extrairArquivosAnexosSolicitacao(formData);
+  const errosAnexos = validarAnexosSolicitacao(anexosFormulario);
+
+  if (errosAnexos.length > 0) {
+    return {
+      sucesso: false,
+      mensagem: "Verifique os anexos da solicitação.",
+      erros: {
+        anexos: errosAnexos,
+      },
+      campos: dados,
+    };
+  }
+
   const parsed = criarSolicitacaoSchema.safeParse(dados);
 
   if (!parsed.success) {
@@ -241,13 +280,16 @@ export async function atualizarSolicitacaoAction(
     }
   }
 
+  const anexosSalvos = await salvarAnexosSolicitacao(anexosFormulario);
+  const titulo = gerarTituloSolicitacao(parsed.data);
+
   await prisma.$transaction(async (tx) => {
     await tx.solicitacao.update({
       where: { id: solicitacao.id },
       data: {
         status: "ENVIADA",
         tipo: parsed.data.tipo,
-        titulo: parsed.data.titulo,
+        titulo,
         descricao: parsed.data.descricao,
         dataReferencia,
         dataInicio,
@@ -292,6 +334,22 @@ export async function atualizarSolicitacaoAction(
       },
     });
 
+    if (anexosSalvos.length > 0) {
+      await tx.solicitacaoAnexo.createMany({
+        data: anexosSalvos.map((anexo) => ({
+          solicitacaoId: solicitacao.id,
+          criadoPorUsuarioId: session.user.id,
+          descricao: anexo.descricao,
+          nomeOriginal: anexo.nomeOriginal,
+          nomeArquivo: anexo.nomeArquivo,
+          caminhoArquivo: anexo.caminhoArquivo,
+          contentType: anexo.contentType,
+          tamanhoBytes: anexo.tamanhoBytes,
+          hashSha256: anexo.hashSha256,
+        })),
+      });
+    }
+
     await tx.solicitacaoEvento.create({
       data: {
         solicitacaoId: solicitacao.id,
@@ -301,6 +359,7 @@ export async function atualizarSolicitacaoAction(
         metadados: {
           status: "ENVIADA",
           chefiaResponsavelId,
+          anexosNovos: anexosSalvos.length,
         },
       },
     });

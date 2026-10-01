@@ -123,10 +123,11 @@ export function AlertaSaidaEstimada() {
   }, [carregarAlerta, disparar]);
 
   useEffect(() => {
-    void sincronizar();
+    const inicial = window.setTimeout(() => void sincronizar(), 0);
     const intervalo = window.setInterval(() => void sincronizar(), 60_000);
 
     return () => {
+      window.clearTimeout(inicial);
       window.clearInterval(intervalo);
       if (timeoutRef.current) {
         window.clearTimeout(timeoutRef.current);
@@ -212,4 +213,3 @@ export function AlertaSaidaEstimada() {
     </div>
   );
 }
-

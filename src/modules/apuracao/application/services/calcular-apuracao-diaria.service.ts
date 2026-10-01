@@ -97,7 +97,7 @@ export type ResultadoCalculoApuracaoDiaria = {
     | "INCOMPLETA"
     | "SEM_JORNADA"
     | "SEM_EXPEDIENTE";
-  status: "CALCULADA" | "INCONSISTENTE";
+  status: "PENDENTE" | "CALCULADA" | "INCONSISTENTE";
   primeiraEntrada: Date | null;
   saidaIntervalo: Date | null;
   retornoIntervalo: Date | null;
@@ -316,16 +316,31 @@ export function calcularApuracaoDiaria(params: {
     const exigeFrequenciaManual =
       Boolean(dispensaPontoEletronico?.ativa) &&
       Boolean(dispensaPontoEletronico?.exigeFrequenciaManual);
-    const servidorDispensado = Boolean(dispensaPontoEletronico?.ativa);
+    const servidorDispensadoSemFrequenciaManual =
+      Boolean(dispensaPontoEletronico?.ativa) && !exigeFrequenciaManual;
+    const frequenciaManual = exigeFrequenciaManual
+      ? {
+          obrigatoria: true,
+          registrada: false,
+          descricao:
+            "Frequencia manual obrigatoria nao registrada para a data.",
+        }
+      : null;
 
     return {
       cargaPrevistaMinutos: cargaPrevistaDia,
-      minutosTrabalhados: servidorDispensado ? cargaPrevistaDia : 0,
+      minutosTrabalhados: servidorDispensadoSemFrequenciaManual
+        ? cargaPrevistaDia
+        : 0,
       minutosIntervalo: 0,
       minutosCredito: 0,
-      minutosDebito: servidorDispensado ? 0 : cargaPrevistaDia,
-      resultado: servidorDispensado ? "REGULAR" : "FALTA",
-      status: servidorDispensado ? "CALCULADA" : "INCONSISTENTE",
+      minutosDebito: servidorDispensadoSemFrequenciaManual
+        ? 0
+        : cargaPrevistaDia,
+      resultado: servidorDispensadoSemFrequenciaManual ? "REGULAR" : "FALTA",
+      status: servidorDispensadoSemFrequenciaManual
+        ? "CALCULADA"
+        : "INCONSISTENTE",
       primeiraEntrada: null,
       saidaIntervalo: null,
       retornoIntervalo: null,
@@ -334,21 +349,15 @@ export function calcularApuracaoDiaria(params: {
       minutosForaExpediente: 0,
       dispensaPontoEletronico,
       trabalhoRemoto: null,
-      frequenciaManual: exigeFrequenciaManual
-        ? {
-            obrigatoria: true,
-            registrada: false,
-            descricao:
-              "Frequencia manual dispensada pela dispensa de ponto na data.",
-          }
-        : null,
-      ocorrencias: servidorDispensado
+      frequenciaManual,
+      ocorrencias: servidorDispensadoSemFrequenciaManual
         ? []
         : [
             {
               tipo: "FALTA",
-              descricao:
-                "Ausencia integral durante o expediente, sem autorizacao da chefia.",
+              descricao: exigeFrequenciaManual
+                ? "Frequencia manual obrigatoria nao registrada para a data."
+                : "Ausencia integral durante o expediente, sem autorizacao da chefia.",
               minutos: cargaPrevistaDia,
             },
           ],
@@ -387,39 +396,64 @@ export function calcularApuracaoDiaria(params: {
   const minutosBrutos = diferencaEmMinutos(entrada, saida);
   let minutosIntervalo = 0;
   let minutosIntervaloParaCalculo = 0;
+  let intervaloMinimoAplicadoAutomaticamente = false;
+  let minutosBrutosTrabalhados = Math.max(0, minutosBrutos - minutosIntervalo);
+  const intervaloMinimoHoraExtra =
+    jornada.intervaloMinimoMinutos ??
+    regras.jornada7hIntervaloMinimoMinutos ??
+    60;
 
   if (jornada.exigeIntervalo) {
     if (!saidaIntervalo || !retornoIntervalo) {
-      ocorrencias.push({
-        tipo: "MARCACAO_INCOMPLETA",
-        descricao:
-          "Jornada exige intervalo, mas saída e/ou retorno do intervalo não foram registrados.",
-        minutos: 0,
-      });
+      const podeAplicarIntervaloMinimo =
+        !saidaIntervalo &&
+        !retornoIntervalo &&
+        intervaloMinimoHoraExtra > 0 &&
+        minutosBrutos >= cargaPrevistaDia + intervaloMinimoHoraExtra;
 
-      return {
-        cargaPrevistaMinutos: cargaPrevistaDia,
-        minutosTrabalhados: 0,
-        minutosIntervalo: 0,
-        minutosCredito: 0,
-        minutosDebito: cargaPrevistaDia,
-        resultado: "INCOMPLETA",
-        status: "INCONSISTENTE",
-        primeiraEntrada: entrada,
-        saidaIntervalo,
-        retornoIntervalo,
-        ultimaSaida: saida,
-        janelaExpediente,
-        minutosForaExpediente: 0,
-        dispensaPontoEletronico,
-        trabalhoRemoto: null,
-        frequenciaManual: null,
-        ocorrencias,
-      };
+      if (podeAplicarIntervaloMinimo) {
+        minutosIntervalo = intervaloMinimoHoraExtra;
+        minutosIntervaloParaCalculo = intervaloMinimoHoraExtra;
+        minutosBrutosTrabalhados = Math.max(
+          0,
+          minutosBrutos - minutosIntervalo,
+        );
+        intervaloMinimoAplicadoAutomaticamente = true;
+      } else {
+        ocorrencias.push({
+          tipo: "MARCACAO_INCOMPLETA",
+          descricao:
+            "Jornada exige intervalo, mas saída e/ou retorno do intervalo não foram registrados.",
+          minutos: 0,
+        });
+
+        return {
+          cargaPrevistaMinutos: cargaPrevistaDia,
+          minutosTrabalhados: 0,
+          minutosIntervalo: 0,
+          minutosCredito: 0,
+          minutosDebito: cargaPrevistaDia,
+          resultado: "INCOMPLETA",
+          status: "INCONSISTENTE",
+          primeiraEntrada: entrada,
+          saidaIntervalo,
+          retornoIntervalo,
+          ultimaSaida: saida,
+          janelaExpediente,
+          minutosForaExpediente: 0,
+          dispensaPontoEletronico,
+          trabalhoRemoto: null,
+          frequenciaManual: null,
+          ocorrencias,
+        };
+      }
     }
 
-    minutosIntervalo = diferencaEmMinutos(saidaIntervalo, retornoIntervalo);
-    minutosIntervaloParaCalculo = minutosIntervalo;
+    if (saidaIntervalo && retornoIntervalo) {
+      minutosIntervalo = diferencaEmMinutos(saidaIntervalo, retornoIntervalo);
+      minutosIntervaloParaCalculo = minutosIntervalo;
+      minutosBrutosTrabalhados = Math.max(0, minutosBrutos - minutosIntervalo);
+    }
 
     if (
       jornada.intervaloMinimoMinutos &&
@@ -448,13 +482,15 @@ export function calcularApuracaoDiaria(params: {
   if (!jornada.exigeIntervalo && saidaIntervalo && retornoIntervalo) {
     minutosIntervalo = diferencaEmMinutos(saidaIntervalo, retornoIntervalo);
     minutosIntervaloParaCalculo = minutosIntervalo;
+    minutosBrutosTrabalhados = Math.max(0, minutosBrutos - minutosIntervalo);
   }
 
-  const minutosBrutosTrabalhados = Math.max(
-    0,
-    minutosBrutos - minutosIntervalo,
-  );
-
+  const creditoMinimoJornada7h =
+    jornada.cargaDiariaMinutos === 7 * 60
+      ? jornada.servidorDedicacaoIntegral
+        ? regras.jornada7hCargoComissionadoCreditoMinimoMinutos
+        : regras.jornada7hCreditoMinimoMinutos
+      : 0;
   if (diaSemExpediente) {
     const minutosTrabalhados = Math.max(
       0,
@@ -508,6 +544,19 @@ export function calcularApuracaoDiaria(params: {
     janela: janelaExpediente,
     fusoHorario,
   });
+  if (
+    !jornada.exigeIntervalo &&
+    !saidaIntervalo &&
+    !retornoIntervalo &&
+    intervaloMinimoHoraExtra > 0 &&
+    minutosBrutosNoExpediente === minutosBrutos &&
+    minutosBrutos >= cargaPrevistaDia + intervaloMinimoHoraExtra
+  ) {
+    minutosIntervalo = intervaloMinimoHoraExtra;
+    minutosIntervaloParaCalculo = intervaloMinimoHoraExtra;
+    minutosBrutosTrabalhados = Math.max(0, minutosBrutos - minutosIntervalo);
+    intervaloMinimoAplicadoAutomaticamente = true;
+  }
   const minutosIntervaloNoExpediente =
     saidaIntervalo && retornoIntervalo
       ? calcularMinutosNoExpediente({
@@ -561,15 +610,16 @@ export function calcularApuracaoDiaria(params: {
     !jornada.exigeIntervalo &&
     minutosTrabalhados > cargaPrevistaDia
   ) {
-    const creditoMinimoJornada7h = jornada.servidorDedicacaoIntegral
-      ? regras.jornada7hCargoComissionadoCreditoMinimoMinutos
-      : regras.jornada7hCreditoMinimoMinutos;
+    const intervaloCumpridoAutomaticamente =
+      intervaloMinimoAplicadoAutomaticamente &&
+      minutosIntervalo >= regras.jornada7hIntervaloMinimoMinutos;
     const intervaloCumprido =
       !regras.jornada7hCreditoExigeIntervalo ||
       Boolean(
-        saidaIntervalo &&
-        retornoIntervalo &&
-        minutosIntervalo >= regras.jornada7hIntervaloMinimoMinutos,
+        (saidaIntervalo &&
+          retornoIntervalo &&
+          minutosIntervalo >= regras.jornada7hIntervaloMinimoMinutos) ||
+        intervaloCumpridoAutomaticamente,
       );
 
     minutosCredito = intervaloCumprido
@@ -609,11 +659,10 @@ export function calcularApuracaoDiaria(params: {
     });
   }
 
-  const status = ocorrencias.some(
-    (o) =>
-      TIPOS_OCORRENCIA_INCONSISTENTE.includes(
-        o.tipo as (typeof TIPOS_OCORRENCIA_INCONSISTENTE)[number],
-      ),
+  const status = ocorrencias.some((o) =>
+    TIPOS_OCORRENCIA_INCONSISTENTE.includes(
+      o.tipo as (typeof TIPOS_OCORRENCIA_INCONSISTENTE)[number],
+    ),
   )
     ? "INCONSISTENTE"
     : "CALCULADA";

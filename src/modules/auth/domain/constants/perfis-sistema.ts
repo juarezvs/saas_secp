@@ -33,11 +33,26 @@ type PerfilComCodigo = {
   codigo?: string | null;
   administrativo?: boolean | null;
   excecao?: boolean | null;
+  permissoes?: unknown[] | null;
 };
 
 export function perfilEhAdministradorSistema(perfil?: PerfilComCodigo | null) {
   return CODIGOS_PERFIL_ADMINISTRADOR_SISTEMA.includes(
     perfil?.codigo?.toUpperCase() ?? "",
+  );
+}
+
+export function perfilEhChefia(perfil?: PerfilComCodigo | null) {
+  const codigo = perfil?.codigo?.toUpperCase() ?? "";
+
+  return (
+    codigo === "CHEFIA" ||
+    (!perfilEhAdministradorSistema(perfil) &&
+      Boolean(
+        perfil?.permissoes?.some(
+          (permissao) => permissao === "solicitacoes:analisar:chefia",
+        ),
+      ))
   );
 }
 

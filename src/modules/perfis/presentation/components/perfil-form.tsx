@@ -2,6 +2,8 @@
 
 import { useActionState, useState } from "react";
 import { Loader2, Save } from "lucide-react";
+import { SwitchField } from "@/components/ui/switch";
+import { ActionStateToast } from "@/components/ui/toast";
 import type { PerfilFormState } from "../../application/schemas/perfil.schema";
 import { PermissoesCheckboxList } from "./permissoes-checkbox-list";
 
@@ -17,7 +19,7 @@ type PermissaoItem = {
 type PerfilFormProps = {
   action: (
     state: PerfilFormState,
-    formData: FormData
+    formData: FormData,
   ) => Promise<PerfilFormState>;
   permissoes: PermissaoItem[];
   perfisDestinoExcecao: Array<{
@@ -53,7 +55,7 @@ const estadoInicial: PerfilFormState = {
 
 function obterErro(
   erros: Record<string, string[]> | undefined,
-  campo: string
+  campo: string,
 ) {
   return erros?.[campo]?.[0];
 }
@@ -68,11 +70,8 @@ export function PerfilForm({
   modo,
 }: PerfilFormProps) {
   const [estado, formAction, pendente] = useActionState(action, estadoInicial);
-
   const campos = estado.campos ?? valoresIniciais;
-  const [excecaoAtiva, setExcecaoAtiva] = useState(
-    campos?.excecao ?? false,
-  );
+  const [excecaoAtiva, setExcecaoAtiva] = useState(campos?.excecao ?? false);
   const [orgaoIdSelecionado, setOrgaoIdSelecionado] = useState(
     campos?.orgaoId ?? "",
   );
@@ -80,14 +79,7 @@ export function PerfilForm({
 
   return (
     <form action={formAction} className="space-y-6">
-      {estado.mensagem && (
-        <div
-          role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
-        >
-          {estado.mensagem}
-        </div>
-      )}
+      <ActionStateToast state={estado} />
 
       <section className="rounded-xl border bg-[var(--card)] p-6 text-[var(--card-foreground)] shadow-sm">
         <h2 className="text-lg font-bold">Dados do perfil</h2>
@@ -97,7 +89,6 @@ export function PerfilForm({
             <label htmlFor="codigo" className="text-sm font-semibold">
               Código
             </label>
-
             <input
               id="codigo"
               name="codigo"
@@ -107,7 +98,6 @@ export function PerfilForm({
               className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
               required
             />
-
             {obterErro(estado.erros, "codigo") && (
               <p className="text-sm text-red-600">
                 {obterErro(estado.erros, "codigo")}
@@ -119,7 +109,6 @@ export function PerfilForm({
             <label htmlFor="nome" className="text-sm font-semibold">
               Nome
             </label>
-
             <input
               id="nome"
               name="nome"
@@ -129,7 +118,6 @@ export function PerfilForm({
               className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
               required
             />
-
             {obterErro(estado.erros, "nome") && (
               <p className="text-sm text-red-600">
                 {obterErro(estado.erros, "nome")}
@@ -142,7 +130,6 @@ export function PerfilForm({
               <label htmlFor="orgaoId" className="text-sm font-semibold">
                 Seccional do perfil
               </label>
-
               <select
                 id="orgaoId"
                 name="orgaoId"
@@ -162,7 +149,6 @@ export function PerfilForm({
                   </option>
                 ))}
               </select>
-
               <p className="text-xs text-[var(--muted-foreground)]">
                 Perfis sem seccional recebem o prefixo SECP; perfis seccionais
                 recebem automaticamente a sigla da seccional como prefixo do
@@ -172,36 +158,33 @@ export function PerfilForm({
           ) : null}
 
           {permitirPerfilGlobal ? (
-            <label
+            <div
               className={`flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm md:col-span-2 ${
                 podeMarcarGlobal ? "" : "opacity-70"
               }`}
             >
-              <input
+              <SwitchField
                 key={podeMarcarGlobal ? "global-enabled" : "global-disabled"}
-                type="checkbox"
+                id="global"
                 name="global"
                 defaultChecked={podeMarcarGlobal && (campos?.global ?? false)}
                 disabled={!podeMarcarGlobal}
-                className="size-4 rounded border-slate-300"
               />
-
-              <span>
+              <label htmlFor="global" className="min-w-0 flex-1">
                 <span className="block font-semibold">Perfil global</span>
                 <span className="text-xs text-[var(--muted-foreground)]">
                   Quando marcado, este perfil fica disponível para todas as
                   seccionais. Sem essa marcação, perfis sem seccional ficam
                   visíveis apenas para usuários com escopo global.
                 </span>
-              </span>
-            </label>
+              </label>
+            </div>
           ) : null}
 
           <div className="space-y-2 md:col-span-2">
             <label htmlFor="descricao" className="text-sm font-semibold">
               Descrição
             </label>
-
             <textarea
               id="descricao"
               name="descricao"
@@ -210,7 +193,6 @@ export function PerfilForm({
               placeholder="Descreva a finalidade institucional deste perfil."
               className="w-full rounded-md border bg-[var(--card)] px-3 py-2 text-sm outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
             />
-
             {obterErro(estado.erros, "descricao") && (
               <p className="text-sm text-red-600">
                 {obterErro(estado.erros, "descricao")}
@@ -218,56 +200,50 @@ export function PerfilForm({
             )}
           </div>
 
-          <label className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm">
-            <input
-              type="checkbox"
+          <div className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm">
+            <SwitchField
+              id="ativo"
               name="ativo"
               defaultChecked={campos?.ativo ?? true}
-              className="size-4 rounded border-slate-300"
             />
-
-            <span>
+            <label htmlFor="ativo" className="min-w-0 flex-1">
               <span className="block font-semibold">Perfil ativo</span>
               <span className="text-xs text-[var(--muted-foreground)]">
                 Perfis inativos não devem ser atribuídos a novos usuários.
               </span>
-            </span>
-          </label>
+            </label>
+          </div>
 
-          <label className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm">
-            <input
-              type="checkbox"
+          <div className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm">
+            <SwitchField
+              id="administrativo"
               name="administrativo"
               defaultChecked={campos?.administrativo ?? false}
-              className="size-4 rounded border-slate-300"
             />
-
-            <span>
+            <label htmlFor="administrativo" className="min-w-0 flex-1">
               <span className="block font-semibold">Perfil administrativo</span>
               <span className="text-xs text-[var(--muted-foreground)]">
                 Organiza o menu como rotina administrativa e oculta atalhos
                 operacionais individuais.
               </span>
-            </span>
-          </label>
+            </label>
+          </div>
 
-          <label className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm md:col-span-2">
-            <input
-              type="checkbox"
+          <div className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm md:col-span-2">
+            <SwitchField
+              id="excecao"
               name="excecao"
               defaultChecked={campos?.excecao ?? false}
-              onChange={(event) => setExcecaoAtiva(event.currentTarget.checked)}
-              className="size-4 rounded border-slate-300"
+              onCheckedChange={setExcecaoAtiva}
             />
-
-            <span>
-              <span className="block font-semibold">Perfil de excecao</span>
+            <label htmlFor="excecao" className="min-w-0 flex-1">
+              <span className="block font-semibold">Perfil de exceção</span>
               <span className="text-xs text-[var(--muted-foreground)]">
-                Mantem o perfil oculto na troca de perfil e injeta suas
-                permissoes no perfil nao administrativo da pessoa vinculada.
+                Mantém o perfil oculto na troca de perfil e injeta suas
+                permissões no perfil não administrativo da pessoa vinculada.
               </span>
-            </span>
-          </label>
+            </label>
+          </div>
 
           {excecaoAtiva ? (
             <div className="space-y-2 md:col-span-2">
@@ -275,9 +251,8 @@ export function PerfilForm({
                 htmlFor="perfilDestinoExcecaoId"
                 className="text-sm font-semibold"
               >
-                Perfil que recebera as permissoes da excecao
+                Perfil que receberá as permissões da exceção
               </label>
-
               <select
                 id="perfilDestinoExcecaoId"
                 name="perfilDestinoExcecaoId"
@@ -292,7 +267,6 @@ export function PerfilForm({
                   </option>
                 ))}
               </select>
-
               {obterErro(estado.erros, "perfilDestinoExcecaoId") && (
                 <p className="text-sm text-red-600">
                   {obterErro(estado.erros, "perfilDestinoExcecaoId")}
@@ -328,7 +302,6 @@ export function PerfilForm({
           ) : (
             <Save className="size-4" aria-hidden="true" />
           )}
-
           {modo === "criar" ? "Criar perfil" : "Salvar alterações"}
         </button>
       </div>

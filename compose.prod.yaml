@@ -178,6 +178,7 @@ services:
     volumes:
       - secp_uploads_data:/app/import/_upload/afd
       - secp_relatorios_data:/app/.storage/relatorios
+      - secp_solicitacoes_anexos_data:/app/.storage/solicitacoes
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
       - /opt/secp/certs/host-ca-certificates.crt:/etc/secp/certs/host-ca-certificates.crt:ro
@@ -615,6 +616,7 @@ volumes:
   secp_pgadmin_data:
   secp_uploads_data:
   secp_relatorios_data:
+  secp_solicitacoes_anexos_data:
 
 secrets:
   secp_metrics_token:

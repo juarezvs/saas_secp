@@ -1114,6 +1114,13 @@ export class SarhOracleClient {
       .map((row): SarhCalendarioDto | null => {
         const data = this.toStringOrNull(row.data);
         const descricao = String(row.descricao ?? "").trim();
+        const localidadeDescricao =
+          this.extrairLocalidadeDescricaoCalendario(descricao);
+        const uf = this.toStringOrNull(row.uf) ?? localidadeDescricao?.uf ?? null;
+        const municipio =
+          this.toStringOrNull(row.municipio) ??
+          localidadeDescricao?.municipio ??
+          null;
 
         if (!data || !descricao) {
           return null;
@@ -1126,12 +1133,13 @@ export class SarhOracleClient {
           tipo: this.mapearTipoCalendarioSarh(descricao),
           abrangencia: this.mapearAbrangenciaCalendarioSarh(
             this.toNumberOrNull(row.abrangencia),
-            this.toStringOrNull(row.uf),
+            uf,
             this.toNumberOrNull(row.secaoSubsecaoId),
             null,
+            localidadeDescricao,
           ),
-          uf: this.toStringOrNull(row.uf),
-          municipio: this.toStringOrNull(row.municipio),
+          uf,
+          municipio,
           municipioIbge: null,
           secaoSubsecaoId: this.toNumberOrNull(row.secaoSubsecaoId),
           siglaSecaoSubsecao: this.toStringOrNull(row.siglaSecaoSubsecao),
@@ -1146,6 +1154,7 @@ export class SarhOracleClient {
             siglaSecaoSubsecao: this.toStringOrNull(row.siglaSecaoSubsecao),
             secaoSubsecaoId: this.toNumberOrNull(row.secaoSubsecaoId),
             codigoLotacaoSarh: this.toNumberOrNull(row.codigoLotacaoSarh),
+            localidadeInferidaDescricao: localidadeDescricao,
           },
         };
       })
@@ -1491,12 +1500,39 @@ export class SarhOracleClient {
     uf: string | null,
     secaoSubsecaoId: number | null,
     varaId: number | null,
+    localidadeDescricao?: { municipio: string; uf: string } | null,
   ): SarhCalendarioDto["abrangencia"] {
     if (varaId) return "UNIDADE";
     if (abrangencia === 3) return "MUNICIPAL";
     if (abrangencia === 2) return "ESTADUAL";
+    if (localidadeDescricao?.municipio && localidadeDescricao.uf) {
+      return "MUNICIPAL";
+    }
     if (secaoSubsecaoId && uf) return "ESTADUAL";
     if (uf) return "ESTADUAL";
     return "NACIONAL";
+  }
+
+  private extrairLocalidadeDescricaoCalendario(
+    descricao: string,
+  ): { municipio: string; uf: string } | null {
+    const resultado = descricao
+      .trim()
+      .match(/\b([A-Za-zÀ-ÿ .'-]{3,})-([A-Z]{2})$/u);
+
+    if (!resultado) {
+      return null;
+    }
+
+    const municipio = resultado[1]
+      .trim()
+      .replace(
+        /^(anivers[aá]rio|emancipa[cç][aã]o|funda[cç][aã]o|instala[cç][aã]o|cria[cç][aã]o)\s+d[eo]\s+/iu,
+        "",
+      )
+      .trim();
+    const uf = resultado[2].trim().toUpperCase();
+
+    return municipio && uf ? { municipio, uf } : null;
   }
 }

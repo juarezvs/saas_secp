@@ -1,14 +1,28 @@
 ﻿import Link from "next/link";
-import { CalendarPlus, CheckCircle2, Pencil, Send, Trash2, XCircle } from "lucide-react";
+import {
+  AlertTriangle,
+  CalendarClock,
+  CalendarPlus,
+  CheckCircle2,
+  LockKeyhole,
+  Pencil,
+  Send,
+  Trash2,
+  UnlockKeyhole,
+  XCircle,
+} from "lucide-react";
 
 import {
   atualizarProgramacaoFeriasAction,
   confirmarProgramacaoFeriasSarhAction,
+  criarExcecaoSecapFeriasServidorAction,
   criarProgramacaoFeriasAction,
   deliberarProgramacaoFeriasAction,
+  encerrarExcecaoSecapFeriasServidorAction,
   executarEnvioProgramacaoFeriasSarhAction,
   excluirProgramacaoFeriasAction,
 } from "../../application/actions/programacao-ferias.actions";
+import { MENSAGEM_CIENCIA_ADICIONAL_FERIAS } from "../../application/services/programacao-ferias-ciencia.service";
 import {
   classeStatusProgramacaoFerias,
   formatarDataFerias,
@@ -18,6 +32,7 @@ import {
 import type {
   ProgramacaoFeriasMapaItem,
   ProgramacaoFeriasSaldo,
+  CompensacaoFeriasDisponivel,
 } from "../../infrastructure/repositories/programacao-ferias.repository";
 
 type ProgramacaoFeriasItem = {
@@ -32,12 +47,50 @@ type ProgramacaoFeriasItem = {
   observacaoChefia: string | null;
   integracaoErro?: string | null;
   servidor?: {
+    id?: string;
     matricula: string;
     usuario?: { nome: string } | null;
+    excecoesSecapFerias?: Array<{
+      id: string;
+      motivo: string;
+      criadoEm: Date;
+      criadoPor?: { nome: string } | null;
+    }>;
   };
   unidade?: { sigla: string; nome: string } | null;
   orgao?: { sigla: string } | null;
 };
+
+function CienciaAdicionalFeriasField({
+  disabled = false,
+}: {
+  disabled?: boolean;
+}) {
+  return (
+    <label className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+      <input
+        type="checkbox"
+        name="cienciaAdicionalFeriasTexto"
+        value={MENSAGEM_CIENCIA_ADICIONAL_FERIAS}
+        disabled={disabled}
+        className="mt-1 size-4 rounded border-amber-300"
+      />
+      <span>
+        <span className="block font-bold">Ciência do adicional de férias</span>
+        <span className="mt-1 block leading-relaxed">
+          {MENSAGEM_CIENCIA_ADICIONAL_FERIAS}
+        </span>
+      </span>
+    </label>
+  );
+}
+
+function formatarMinutosFerias(minutos: number) {
+  const horas = Math.floor(Math.abs(minutos) / 60);
+  const resto = Math.abs(minutos) % 60;
+
+  return `${horas}h ${String(resto).padStart(2, "0")}min`;
+}
 
 export function MensagemFerias({
   ok,
@@ -158,6 +211,9 @@ export function NovaProgramacaoFeriasCard({
           <Send className="size-4" aria-hidden="true" />
           Enviar
         </button>
+        <div className="lg:col-span-5">
+          <CienciaAdicionalFeriasField disabled={semSaldoProgramavel} />
+        </div>
       </form>
     </section>
   );
@@ -341,6 +397,9 @@ export function FormEditarProgramacaoFerias({
           <Pencil className="size-4" aria-hidden="true" />
           Salvar
         </button>
+        <div className="lg:col-span-5">
+          <CienciaAdicionalFeriasField disabled={!editavel} />
+        </div>
       </form>
 
       {editavel && (
@@ -433,6 +492,7 @@ function itemNoMes(item: ProgramacaoFeriasMapaItem, ano: number, mes: number) {
 
 function classeOrigemMapa(origem: ProgramacaoFeriasMapaItem["origem"]) {
   if (origem === "PREVIA") return "border-purple-500 bg-purple-50 text-purple-900 dark:bg-purple-950 dark:text-purple-100";
+  if (origem === "COMPENSACAO") return "border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100";
   if (origem === "SECP") return "border-blue-600 bg-blue-50 text-blue-900 dark:bg-blue-950 dark:text-blue-100";
   return "border-green-600 bg-green-50 text-green-900 dark:bg-green-950 dark:text-green-100";
 }
@@ -458,6 +518,7 @@ export function MapaFeriasAnual({
         <div className="flex flex-wrap gap-2 text-xs font-bold">
           <span className="rounded-full border border-green-200 px-2 py-1">SARH</span>
           <span className="rounded-full border border-blue-200 px-2 py-1">SECP</span>
+          <span className="rounded-full border border-amber-200 px-2 py-1">Compensações</span>
           <span className="rounded-full border border-purple-200 px-2 py-1">Prévia</span>
         </div>
       </div>
@@ -510,6 +571,63 @@ export function MapaFeriasAnual({
   );
 }
 
+export function CompensacoesFeriasCard({
+  compensacoes,
+}: {
+  compensacoes: CompensacaoFeriasDisponivel[];
+}) {
+  return (
+    <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
+      <div className="flex items-start gap-3 border-b p-5">
+        <span className="secp-theme-icon flex size-10 shrink-0 items-center justify-center rounded-lg">
+          <CalendarClock className="size-5" aria-hidden="true" />
+        </span>
+        <div>
+          <h2 className="text-lg font-bold">Compensações disponíveis</h2>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+            Saldos que entram na prévia da chefia, com vencimento quando informado.
+          </p>
+        </div>
+      </div>
+      {compensacoes.length === 0 ? (
+        <div className="p-5 text-sm text-[var(--muted-foreground)]">
+          Nenhuma compensação disponível para o servidor.
+        </div>
+      ) : (
+        <div className="grid gap-3 p-5">
+          {compensacoes.map((item) => (
+            <article key={item.id} className="rounded-md border bg-background p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-bold">
+                    {formatarMinutosFerias(item.minutos)}
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                    Referência {formatarDataFerias(item.dataReferencia)}
+                  </p>
+                </div>
+                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-800 dark:bg-blue-950 dark:text-blue-100">
+                  {item.status}
+                </span>
+              </div>
+              <p className="mt-3 text-xs text-[var(--muted-foreground)]">
+                {item.expiraEm
+                  ? `Vence em ${formatarDataFerias(item.expiraEm)}`
+                  : "Sem vencimento informado"}
+              </p>
+              {item.descricao && (
+                <p className="mt-2 text-xs text-[var(--muted-foreground)]">
+                  {item.descricao}
+                </p>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function IntegracaoSarhFeriasTable({
   programacoes,
 }: {
@@ -535,6 +653,7 @@ export function IntegracaoSarhFeriasTable({
                 <th className="px-5 py-3">Servidor</th>
                 <th className="px-5 py-3">Período</th>
                 <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3">Tratativa SECAP</th>
                 <th className="px-5 py-3">Erro</th>
                 <th className="px-5 py-3">Ações</th>
               </tr>
@@ -555,6 +674,43 @@ export function IntegracaoSarhFeriasTable({
                     <StatusProgramacaoFeriasBadge status={item.status} />
                   </td>
                   <td className="px-5 py-4">
+                    {item.servidor?.excecoesSecapFerias?.[0] ? (
+                      <div className="grid gap-2">
+                        <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800 dark:bg-amber-950 dark:text-amber-100">
+                          <LockKeyhole className="size-3.5" aria-hidden="true" />
+                          Travado
+                        </span>
+                        <p className="max-w-xs text-xs text-[var(--muted-foreground)]">
+                          {item.servidor.excecoesSecapFerias[0].motivo}
+                        </p>
+                        <form action={encerrarExcecaoSecapFeriasServidorAction}>
+                          <input
+                            type="hidden"
+                            name="excecaoId"
+                            value={item.servidor.excecoesSecapFerias[0].id}
+                          />
+                          <button className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border px-2.5 text-xs font-bold transition hover:bg-[var(--muted)]">
+                            <UnlockKeyhole className="size-3.5" aria-hidden="true" />
+                            Liberar
+                          </button>
+                        </form>
+                      </div>
+                    ) : (
+                      <form action={criarExcecaoSecapFeriasServidorAction} className="grid gap-2">
+                        <input type="hidden" name="servidorId" value={item.servidor?.id ?? ""} />
+                        <input
+                          name="motivo"
+                          className="h-9 w-72 rounded-md border border-input bg-background px-3 text-xs"
+                          defaultValue="Servidor exige tratativa manual da SECAP antes do envio ao SARH."
+                        />
+                        <button className="inline-flex h-8 w-fit items-center justify-center gap-1.5 rounded-md border border-amber-200 px-2.5 text-xs font-bold text-amber-800 transition hover:bg-amber-50 dark:border-amber-900 dark:text-amber-100 dark:hover:bg-amber-950">
+                          <AlertTriangle className="size-3.5" aria-hidden="true" />
+                          Travar SECAP
+                        </button>
+                      </form>
+                    )}
+                  </td>
+                  <td className="px-5 py-4">
                     <p className="max-w-sm truncate text-xs text-[var(--muted-foreground)]">
                       {item.integracaoErro ?? "-"}
                     </p>
@@ -563,7 +719,10 @@ export function IntegracaoSarhFeriasTable({
                     <div className="flex flex-wrap gap-2">
                       <form action={executarEnvioProgramacaoFeriasSarhAction}>
                         <input type="hidden" name="id" value={item.id} />
-                        <button className="inline-flex h-9 items-center justify-center rounded-md bg-blue-900 px-3 text-xs font-bold text-white transition hover:bg-blue-950">
+                        <button
+                          disabled={Boolean(item.servidor?.excecoesSecapFerias?.[0])}
+                          className="inline-flex h-9 items-center justify-center rounded-md bg-blue-900 px-3 text-xs font-bold text-white transition hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
                           Enviar SARH
                         </button>
                       </form>

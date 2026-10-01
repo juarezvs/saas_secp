@@ -1,4 +1,5 @@
 import { MENU_CATALOGO } from "@/modules/menus/domain/menu-catalogo";
+import { SwitchField } from "@/components/ui/switch";
 
 type PermissaoItem = {
   id: string;
@@ -87,19 +88,22 @@ export function PermissoesCheckboxList({
               const menus = menusRelacionados(permissao.codigo);
 
               return (
-                <label
+                <div
                   key={permissao.id}
-                  className="flex cursor-pointer gap-3 rounded-lg border bg-[var(--muted)] p-3 text-sm transition hover:border-blue-300"
+                  className="flex gap-3 rounded-lg border bg-[var(--muted)] p-3 text-sm transition hover:border-blue-300"
                 >
-                  <input
-                    type="checkbox"
+                  <SwitchField
+                    id={`permissao-${permissao.id}`}
                     name="permissoes"
                     value={permissao.id}
                     defaultChecked={permissoesSelecionadas.includes(permissao.id)}
-                    className="mt-1 size-4 rounded border-slate-300"
+                    className="mt-1"
                   />
 
-                  <span className="min-w-0 flex-1">
+                  <label
+                    htmlFor={`permissao-${permissao.id}`}
+                    className="min-w-0 flex-1 cursor-pointer"
+                  >
                     <span className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-[var(--foreground)]">
                         {rotuloPermissao(permissao)}
@@ -132,8 +136,8 @@ export function PermissoesCheckboxList({
                         {permissao.descricao}
                       </span>
                     )}
-                  </span>
-                </label>
+                  </label>
+                </div>
               );
             })}
           </div>

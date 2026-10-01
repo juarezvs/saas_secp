@@ -170,6 +170,7 @@ export function SolicitacoesTable({
   mostrarFiltroServidor,
   paginacao,
   usuarioIdAtual,
+  podeExcluirSolicitacoes = true,
 }: {
   solicitacoes: SolicitacaoItem[];
   tipoSelecionado?: string;
@@ -178,6 +179,7 @@ export function SolicitacoesTable({
   servidoresFiltro?: ServidorFiltroItem[];
   mostrarFiltroServidor?: boolean;
   usuarioIdAtual?: string;
+  podeExcluirSolicitacoes?: boolean;
   paginacao?: {
     total: number;
     pagina: number;
@@ -474,7 +476,8 @@ export function SolicitacoesTable({
                         Detalhar
                       </Link>
 
-                      {usuarioIdAtual &&
+                      {podeExcluirSolicitacoes &&
+                      usuarioIdAtual &&
                       solicitacao.usuarioSolicitanteId === usuarioIdAtual &&
                       solicitacao.status === "ENVIADA" ? (
                         <form

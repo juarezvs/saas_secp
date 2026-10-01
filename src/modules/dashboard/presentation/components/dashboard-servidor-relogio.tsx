@@ -7,7 +7,6 @@ type DashboardServidorRelogioProps = {
   dataExtenso: string;
   horaReferencia: string;
   fusoHorario?: string;
-  unidade: string;
 };
 
 function formatarHoraAtual(fusoHorario: string) {
@@ -23,7 +22,6 @@ export function DashboardServidorRelogio({
   dataExtenso,
   horaReferencia,
   fusoHorario = FUSO_HORARIO_PADRAO,
-  unidade,
 }: DashboardServidorRelogioProps) {
   const [horaAtual, setHoraAtual] = useState(horaReferencia);
 
@@ -36,12 +34,10 @@ export function DashboardServidorRelogio({
   }, [fusoHorario]);
 
   return (
-    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+    <p className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
       {dataExtenso}
       {" \u2022 "}
       <time dateTime={horaAtual}>{horaAtual}</time>
-      {" \u2022 "}
-      {unidade}
     </p>
   );
 }

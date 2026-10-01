@@ -33,7 +33,12 @@ describe("escalaSchema", () => {
     expect(escalaSchema.safeParse({ ...escalaBase, tipo: "INDIVIDUAL" }).success)
       .toBe(true);
     expect(
-      escalaSchema.safeParse({ ...escalaBase, tipo: "REVEZAMENTO" }).success,
+      escalaSchema.safeParse({
+        ...escalaBase,
+        tipo: "REVEZAMENTO",
+        quantidadeDiasCiclo: 7,
+        dataAncoragem: "2026-01-01",
+      }).success,
     ).toBe(true);
   });
 

@@ -12,6 +12,7 @@ import {
   carregarAcompanhamentoEstagio,
   carregarAcompanhamentoEstagioPorServidor,
   normalizarCompetenciaEstagio,
+  usuarioPossuiSupervisaoEstagioVigente,
 } from "@/modules/acompanhamento-estagio/application/services/acompanhamento-estagio.service";
 import { AcompanhamentoEstagioPdfDocument } from "@/modules/acompanhamento-estagio/presentation/pdf/acompanhamento-estagio-pdf.document";
 
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
     permissao.perfilAtivoCodigo,
     permissao.permissoes,
     [PERMISSOES_ACOMPANHAMENTO_ESTAGIO.supervisionar],
-  );
+  ) || (await usuarioPossuiSupervisaoEstagioVigente(permissao.usuarioId));
   const podeExportarSeccional = usuarioPossuiAlgumaPermissaoNoPerfil(
     permissao.perfilAtivoCodigo,
     permissao.permissoes,

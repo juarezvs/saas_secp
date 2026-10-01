@@ -54,6 +54,19 @@ const regulamentacaoSchema = z.object({
   inicioJanelaNoite: horaSchema,
   prazoHomologacaoDiaMesSeguinte: z.coerce.number().int().min(1).max(31),
   prazoAjustePontoDiaMesSeguinte: z.coerce.number().int().min(1).max(31),
+  feriasAntecedenciaPrimeiroPeriodoDias: z.coerce.number().int().min(0).max(365),
+  feriasAntecedenciaDemaisPeriodosDiasUteis: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(60),
+  feriasJanelaCienciaPrimeiroPeriodoDias: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(365),
+  feriasExigeCienciaPrimeiroPeriodo: z.coerce.boolean().default(true),
+  feriasAprovacaoAutomaticaSecap: z.coerce.boolean().default(false),
   percentualCreditoSabado: z.coerce.number().int().min(0).max(300),
   percentualCreditoDomingoFeriado: z.coerce.number().int().min(0).max(300),
   percentualCreditoRecesso: z.coerce.number().int().min(0).max(300),
@@ -65,6 +78,7 @@ const regulamentacaoSchema = z.object({
     .regex(/^\d{4}-\d{2}$/)
     .optional()
     .or(z.literal("")),
+  nadaConstaConsideraMesAberto: z.coerce.boolean().default(false),
   horasExtrasAtivo: z.coerce.boolean().default(true),
   horasForaExpedienteInconsistente: z.coerce.boolean().default(false),
   ativo: z.coerce.boolean().default(true),
@@ -114,6 +128,23 @@ function extrairDados(formData: FormData) {
     prazoAjustePontoDiaMesSeguinte: formData.get(
       "prazoAjustePontoDiaMesSeguinte",
     ),
+    feriasAntecedenciaPrimeiroPeriodoDias: formData.get(
+      "feriasAntecedenciaPrimeiroPeriodoDias",
+    ),
+    feriasAntecedenciaDemaisPeriodosDiasUteis: formData.get(
+      "feriasAntecedenciaDemaisPeriodosDiasUteis",
+    ),
+    feriasJanelaCienciaPrimeiroPeriodoDias: formData.get(
+      "feriasJanelaCienciaPrimeiroPeriodoDias",
+    ),
+    feriasExigeCienciaPrimeiroPeriodo: checkboxLigado(
+      formData,
+      "feriasExigeCienciaPrimeiroPeriodo",
+    ),
+    feriasAprovacaoAutomaticaSecap: checkboxLigado(
+      formData,
+      "feriasAprovacaoAutomaticaSecap",
+    ),
     percentualCreditoSabado: formData.get("percentualCreditoSabado"),
     percentualCreditoDomingoFeriado: formData.get(
       "percentualCreditoDomingoFeriado",
@@ -130,6 +161,10 @@ function extrairDados(formData: FormData) {
     bancoHorasAtivo: checkboxLigado(formData, "bancoHorasAtivo"),
     bancoHorasCompetenciaInicio: String(
       formData.get("bancoHorasCompetenciaInicio") ?? "",
+    ),
+    nadaConstaConsideraMesAberto: checkboxLigado(
+      formData,
+      "nadaConstaConsideraMesAberto",
     ),
     horasExtrasAtivo: checkboxLigado(formData, "horasExtrasAtivo"),
     horasForaExpedienteInconsistente: checkboxLigado(

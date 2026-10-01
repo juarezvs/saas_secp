@@ -11,6 +11,7 @@ import { Prisma, type StatusProgramacaoFerias } from "@/generated/prisma/client"
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import {
   buscarProgramacaoFeriasPorId,
+  buscarExcecaoSecapFeriasAtivaServidor,
   buscarSaldoFeriasServidor,
   buscarServidorFeriasPorUsuarioId,
   existePeriodoPosteriorNaoUsufruido,
@@ -20,6 +21,8 @@ import {
   usuarioPodeAnalisarProgramacaoFerias,
 } from "../../infrastructure/repositories/programacao-ferias.repository";
 import { enviarProgramacaoFeriasSarh } from "../services/enviar-programacao-ferias-sarh.service";
+import { buscarRegulamentacaoPontoOrgao } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
+import { MENSAGEM_CIENCIA_ADICIONAL_FERIAS } from "../services/programacao-ferias-ciencia.service";
 import {
   dataIsoParaUtc,
   diferencaDiasCalendarioUtc,
@@ -77,41 +80,45 @@ async function registrarEvento(params: {
 
 async function validarPeriodoSolicitado(params: {
   servidorId: string;
+  orgaoId: string;
   dataInicio: Date;
   dataFim: Date;
   exercicio: number;
+  cienciaAdicionalTexto?: string | null;
   ignorarProgramacaoId?: string | null;
 }) {
   const dias = diasEntreDatasUtc(params.dataInicio, params.dataFim);
 
   if (dias <= 0) {
-    return "A data final deve ser igual ou posterior a data inicial.";
+    return { erro: "A data final deve ser igual ou posterior a data inicial." };
   }
 
-  const [saldo, periodosAtivos, diasLicencaPropriaSaude] = await Promise.all([
-    buscarSaldoFeriasServidor({
-      servidorId: params.servidorId,
-      exercicio: params.exercicio,
-      ignorarProgramacaoId: params.ignorarProgramacaoId,
-    }),
-    listarPeriodosFeriasAtivosServidor({
-      servidorId: params.servidorId,
-      exercicio: params.exercicio,
-      ignorarProgramacaoId: params.ignorarProgramacaoId,
-    }),
-    somarDiasLicencaPropriaSaudeServidor(params.servidorId),
-  ]);
+  const [saldo, periodosAtivos, diasLicencaPropriaSaude, regulamentacao] =
+    await Promise.all([
+      buscarSaldoFeriasServidor({
+        servidorId: params.servidorId,
+        exercicio: params.exercicio,
+        ignorarProgramacaoId: params.ignorarProgramacaoId,
+      }),
+      listarPeriodosFeriasAtivosServidor({
+        servidorId: params.servidorId,
+        exercicio: params.exercicio,
+        ignorarProgramacaoId: params.ignorarProgramacaoId,
+      }),
+      somarDiasLicencaPropriaSaudeServidor(params.servidorId),
+      buscarRegulamentacaoPontoOrgao(params.orgaoId),
+    ]);
 
   if (saldo.diasDisponiveis < dias) {
-    return `Saldo insuficiente para o exercício ${params.exercicio}. Disponível: ${saldo.diasDisponiveis} dia(s).`;
-  }
-
-  if (diasLicencaPropriaSaude > 730) {
-    return "Há registro de mais de 730 dias de licença para tratamento da própria saúde. A programação deste caso excepcional deve ser feita via SEI pela SECAP/DICAP.";
+    return {
+      erro: `Saldo insuficiente para o exercício ${params.exercicio}. Disponível: ${saldo.diasDisponiveis} dia(s).`,
+    };
   }
 
   if (periodosAtivos.length >= 3) {
-    return `O exercício ${params.exercicio} já possui três períodos de férias ativos. Cancele um período editável antes de marcar outro.`;
+    return {
+      erro: `O exercício ${params.exercicio} já possui três períodos de férias ativos. Cancele um período editável antes de marcar outro.`,
+    };
   }
 
   const conflito = await existeConflitoProgramacaoServidor({
@@ -122,7 +129,7 @@ async function validarPeriodoSolicitado(params: {
   });
 
   if (conflito) {
-    return "Já existe férias ou programação ativa nesse período.";
+    return { erro: "Já existe férias ou programação ativa nesse período." };
   }
 
   const periodosComSolicitado = [
@@ -147,7 +154,9 @@ async function validarPeriodoSolicitado(params: {
     const intervalo = diferencaDiasCalendarioUtc(anterior.dataFim, atual.dataInicio) - 1;
 
     if (intervalo < 10) {
-      return `Entre períodos consecutivos do exercício ${params.exercicio} deve haver intervalo mínimo de 10 dias.`;
+      return {
+        erro: `Entre períodos consecutivos do exercício ${params.exercicio} deve haver intervalo mínimo de 10 dias.`,
+      };
     }
   }
 
@@ -155,22 +164,54 @@ async function validarPeriodoSolicitado(params: {
   const diasCorridosAteInicio = diferencaDiasCalendarioUtc(hoje, params.dataInicio);
 
   if (indiceSolicitado === 0) {
-    if (diasCorridosAteInicio < 45) {
-      return "O primeiro período do exercício deve ser marcado com antecedência mínima de 45 dias da data de início.";
+    if (
+      diasCorridosAteInicio <
+      regulamentacao.feriasAntecedenciaPrimeiroPeriodoDias
+    ) {
+      return {
+        erro: `O primeiro período do exercício deve ser marcado com antecedência mínima de ${regulamentacao.feriasAntecedenciaPrimeiroPeriodoDias} dia(s) da data de início.`,
+      };
+    }
+
+    const exigeCiencia =
+      regulamentacao.feriasExigeCienciaPrimeiroPeriodo &&
+      diasCorridosAteInicio <
+        regulamentacao.feriasJanelaCienciaPrimeiroPeriodoDias;
+
+    if (
+      exigeCiencia &&
+      params.cienciaAdicionalTexto !== MENSAGEM_CIENCIA_ADICIONAL_FERIAS
+    ) {
+      return {
+        erro:
+          "Confirme a ciência sobre possível pagamento do adicional de férias em folha subsequente.",
+      };
     }
   } else {
     const dataLimite = await subtrairDiasUteisInstitucionais(
       params.dataInicio,
-      2,
+      regulamentacao.feriasAntecedenciaDemaisPeriodosDiasUteis,
       params.servidorId,
     );
 
     if (diferencaDiasCalendarioUtc(hoje, dataLimite) < 0) {
-      return "Os demais períodos devem ser marcados ou alterados até dois dias úteis antes da data de início.";
+      return {
+        erro: `Os demais períodos devem ser marcados ou alterados até ${regulamentacao.feriasAntecedenciaDemaisPeriodosDiasUteis} dia(s) útil(eis) antes da data de início.`,
+      };
     }
   }
 
-  return null;
+  return {
+    erro: null,
+    cienciaAdicionalTexto:
+      indiceSolicitado === 0 &&
+      regulamentacao.feriasExigeCienciaPrimeiroPeriodo &&
+      diasCorridosAteInicio <
+        regulamentacao.feriasJanelaCienciaPrimeiroPeriodoDias
+        ? MENSAGEM_CIENCIA_ADICIONAL_FERIAS
+        : null,
+    diasLicencaPropriaSaude,
+  };
 }
 
 export async function criarProgramacaoFeriasAction(formData: FormData) {
@@ -189,6 +230,7 @@ export async function criarProgramacaoFeriasAction(formData: FormData) {
   const dataInicioTexto = texto(formData, "dataInicio");
   const dataFimTexto = texto(formData, "dataFim");
   const observacaoServidor = texto(formData, "observacaoServidor");
+  const cienciaAdicionalTexto = texto(formData, "cienciaAdicionalFeriasTexto");
 
   if (!exercicio || !dataInicioTexto || !dataFimTexto) {
     voltarComMensagem("/minhas-ferias", "Informe exercício e período das férias.", "erro");
@@ -196,17 +238,27 @@ export async function criarProgramacaoFeriasAction(formData: FormData) {
 
   const dataInicio = dataIsoParaUtc(dataInicioTexto);
   const dataFim = dataIsoParaUtc(dataFimTexto);
-  const erro = await validarPeriodoSolicitado({
+  const validacao = await validarPeriodoSolicitado({
     servidorId: servidor.id,
+    orgaoId: servidor.orgaoId,
     dataInicio,
     dataFim,
     exercicio,
+    cienciaAdicionalTexto,
   });
 
-  if (erro) voltarComMensagem("/minhas-ferias", erro, "erro");
+  if (validacao.erro) voltarComMensagem("/minhas-ferias", validacao.erro, "erro");
 
   const dias = diasEntreDatasUtc(dataInicio, dataFim);
   const lotacao = servidor.lotacoes[0];
+  const diasLicencaPropriaSaude = validacao.diasLicencaPropriaSaude ?? 0;
+  const metadados: Record<string, string | number> = {};
+  if (validacao.cienciaAdicionalTexto) {
+    metadados.cienciaAdicionalFerias = validacao.cienciaAdicionalTexto;
+  }
+  if (diasLicencaPropriaSaude > 730) {
+    metadados.diasLicencaPropriaSaude = diasLicencaPropriaSaude;
+  }
 
   const programacao = await prisma.$transaction(async (tx) => {
     const criada = await tx.programacaoFerias.create({
@@ -221,6 +273,11 @@ export async function criarProgramacaoFeriasAction(formData: FormData) {
         status: "ENVIADA",
         integracaoStatus: "NAO_APLICAVEL",
         observacaoServidor: observacaoServidor || null,
+        cienciaAdicionalFeriasTexto:
+          validacao.cienciaAdicionalTexto ?? null,
+        cienciaAdicionalFeriasEm: validacao.cienciaAdicionalTexto
+          ? new Date()
+          : null,
         solicitadoPorUsuarioId: permissao.usuarioId!,
       },
     });
@@ -231,6 +288,7 @@ export async function criarProgramacaoFeriasAction(formData: FormData) {
       usuarioId: permissao.usuarioId,
       statusNovo: "ENVIADA",
       descricao: "Programação de férias enviada para análise da chefia.",
+      metadados: Object.keys(metadados).length ? metadados : undefined,
     });
 
     return criada;
@@ -258,6 +316,7 @@ export async function atualizarProgramacaoFeriasAction(formData: FormData) {
   const exercicio = numero(formData, "exercicio");
   const dataInicioTexto = texto(formData, "dataInicio");
   const dataFimTexto = texto(formData, "dataFim");
+  const cienciaAdicionalTexto = texto(formData, "cienciaAdicionalFeriasTexto");
   if (!exercicio || !dataInicioTexto || !dataFimTexto) {
     redirect(`/minhas-ferias/${id}?erro=Informe exercício e período das férias.`);
   }
@@ -278,18 +337,30 @@ export async function atualizarProgramacaoFeriasAction(formData: FormData) {
 
   const dataInicio = dataIsoParaUtc(dataInicioTexto);
   const dataFim = dataIsoParaUtc(dataFimTexto);
-  const erro = await validarPeriodoSolicitado({
+  const validacao = await validarPeriodoSolicitado({
     servidorId: programacao.servidorId,
+    orgaoId: programacao.orgaoId,
     dataInicio,
     dataFim,
     exercicio,
+    cienciaAdicionalTexto,
     ignorarProgramacaoId: id,
   });
-  if (erro) redirect(`/minhas-ferias/${id}?erro=${encodeURIComponent(erro)}`);
+  if (validacao.erro) {
+    redirect(`/minhas-ferias/${id}?erro=${encodeURIComponent(validacao.erro)}`);
+  }
 
   const statusAnterior = programacao.status;
   const statusNovo = "ENVIADA";
   const dias = diasEntreDatasUtc(dataInicio, dataFim);
+  const diasLicencaPropriaSaude = validacao.diasLicencaPropriaSaude ?? 0;
+  const metadados: Record<string, string | number> = {};
+  if (validacao.cienciaAdicionalTexto) {
+    metadados.cienciaAdicionalFerias = validacao.cienciaAdicionalTexto;
+  }
+  if (diasLicencaPropriaSaude > 730) {
+    metadados.diasLicencaPropriaSaude = diasLicencaPropriaSaude;
+  }
 
   await prisma.$transaction(async (tx) => {
     await tx.programacaoFerias.update({
@@ -301,6 +372,11 @@ export async function atualizarProgramacaoFeriasAction(formData: FormData) {
         dias,
         status: statusNovo,
         observacaoServidor: texto(formData, "observacaoServidor") || null,
+        cienciaAdicionalFeriasTexto:
+          validacao.cienciaAdicionalTexto ?? null,
+        cienciaAdicionalFeriasEm: validacao.cienciaAdicionalTexto
+          ? new Date()
+          : null,
         observacaoChefia: null,
         analisadoPorUsuarioId: null,
         analisadoEm: null,
@@ -314,6 +390,7 @@ export async function atualizarProgramacaoFeriasAction(formData: FormData) {
       statusAnterior,
       statusNovo,
       descricao: "Programação ajustada pelo servidor e reenviada para análise.",
+      metadados: Object.keys(metadados).length ? metadados : undefined,
     });
   });
 
@@ -415,11 +492,25 @@ export async function deliberarProgramacaoFeriasAction(formData: FormData) {
     redirect(`/minha-equipe/ferias/solicitacoes/${id}?erro=Decisão inválida.`);
   }
 
+  const [regulamentacao, excecaoSecap] =
+    statusNovo === "APROVADA_CHEFIA"
+      ? await Promise.all([
+          buscarRegulamentacaoPontoOrgao(programacao.orgaoId),
+          buscarExcecaoSecapFeriasAtivaServidor(programacao.servidorId),
+        ])
+      : [null, null];
+  const statusFinal: StatusProgramacaoFerias =
+    statusNovo === "APROVADA_CHEFIA" &&
+    regulamentacao?.feriasAprovacaoAutomaticaSecap &&
+    !excecaoSecap
+      ? "AGUARDANDO_ENVIO_SARH"
+      : statusNovo;
+
   await prisma.$transaction(async (tx) => {
     await tx.programacaoFerias.update({
       where: { id },
       data: {
-        status: statusNovo,
+        status: statusFinal,
         integracaoStatus:
           statusNovo === "APROVADA_CHEFIA" ? "PENDENTE" : "NAO_APLICAVEL",
         observacaoChefia: observacaoChefia || null,
@@ -432,14 +523,30 @@ export async function deliberarProgramacaoFeriasAction(formData: FormData) {
       programacaoId: id,
       usuarioId: permissao.usuarioId,
       statusAnterior: programacao.status,
-      statusNovo,
+      statusNovo: statusFinal,
       descricao:
         statusNovo === "APROVADA_CHEFIA"
-          ? "Programação aprovada pela chefia."
+          ? statusFinal === "AGUARDANDO_ENVIO_SARH"
+            ? "Programação aprovada pela chefia e liberada automaticamente pela SECAP."
+            : "Programação aprovada pela chefia."
           : statusNovo === "DEVOLVIDA"
             ? "Programação devolvida ao servidor para ajuste."
             : "Programação reprovada pela chefia.",
-      metadados: observacaoChefia ? { observacaoChefia } : undefined,
+      metadados:
+        observacaoChefia || excecaoSecap || statusFinal === "AGUARDANDO_ENVIO_SARH"
+          ? {
+              ...(observacaoChefia ? { observacaoChefia } : {}),
+              ...(excecaoSecap
+                ? {
+                    excecaoSecapFeriasServidorId: excecaoSecap.id,
+                    motivoExcecaoSecap: excecaoSecap.motivo,
+                  }
+                : {}),
+              ...(statusFinal === "AGUARDANDO_ENVIO_SARH"
+                ? { aprovacaoAutomaticaSecap: true }
+                : {}),
+            }
+          : undefined,
     });
   });
 
@@ -486,6 +593,17 @@ export async function executarEnvioProgramacaoFeriasSarhAction(formData: FormDat
 
   if (!programacaoFeriasPodeExecutarSarh(programacao.status)) {
     redirect(`/administracao/ferias/integracao-sarh?erro=Programação sem status de envio ao SARH.`);
+  }
+
+  const excecaoSecap = await buscarExcecaoSecapFeriasAtivaServidor(
+    programacao.servidorId,
+  );
+  if (excecaoSecap) {
+    redirect(
+      `/administracao/ferias/integracao-sarh?erro=${encodeURIComponent(
+        `Servidor travado para tratativa SECAP: ${excecaoSecap.motivo}`,
+      )}`,
+    );
   }
 
   await prisma.programacaoFerias.update({
@@ -539,6 +657,116 @@ export async function executarEnvioProgramacaoFeriasSarhAction(formData: FormDat
       mensagem,
     )}`,
   );
+}
+
+export async function criarExcecaoSecapFeriasServidorAction(formData: FormData) {
+  const permissao = await exigirUmaDasPermissoesOuRedirecionar([
+    "programacao-ferias:executar-sarh:seccional",
+    "programacao-ferias:executar-sarh:global",
+  ]);
+  if (!permissao.usuarioId) redirect("/login");
+
+  const servidorId = texto(formData, "servidorId");
+  const motivo =
+    texto(formData, "motivo") ||
+    "Servidor exige tratativa manual da SECAP antes do envio ao SARH.";
+
+  const servidor = await prisma.servidor.findUnique({
+    where: { id: servidorId },
+    select: { id: true, orgaoId: true },
+  });
+  if (!servidor) {
+    voltarComMensagem(
+      "/administracao/ferias/integracao-sarh",
+      "Servidor não localizado para trava SECAP.",
+      "erro",
+    );
+  }
+
+  const podeGlobal = usuarioPossuiPermissaoNoPerfil(
+    permissao.perfilAtivoCodigo,
+    permissao.permissoes,
+    "programacao-ferias:executar-sarh:global",
+  );
+  const podeSeccional =
+    usuarioPossuiPermissaoNoPerfil(
+      permissao.perfilAtivoCodigo,
+      permissao.permissoes,
+      "programacao-ferias:executar-sarh:seccional",
+    ) && (permissao.orgaoIds ?? []).includes(servidor.orgaoId);
+
+  if (!podeGlobal && !podeSeccional) {
+    redirect(`/acesso-negado?permissao=programacao-ferias%3Aexecutar-sarh%3Aseccional`);
+  }
+
+  const existente = await buscarExcecaoSecapFeriasAtivaServidor(servidorId);
+  if (existente) {
+    await prisma.excecaoSecapFeriasServidor.update({
+      where: { id: existente.id },
+      data: { motivo },
+    });
+  } else {
+    await prisma.excecaoSecapFeriasServidor.create({
+      data: {
+        servidorId,
+        orgaoId: servidor.orgaoId,
+        motivo,
+        criadoPorUsuarioId: permissao.usuarioId,
+      },
+    });
+  }
+
+  revalidarFerias();
+  redirect("/administracao/ferias/integracao-sarh?ok=Servidor travado para tratativa SECAP.");
+}
+
+export async function encerrarExcecaoSecapFeriasServidorAction(formData: FormData) {
+  const permissao = await exigirUmaDasPermissoesOuRedirecionar([
+    "programacao-ferias:executar-sarh:seccional",
+    "programacao-ferias:executar-sarh:global",
+  ]);
+  if (!permissao.usuarioId) redirect("/login");
+
+  const excecaoId = texto(formData, "excecaoId");
+  const excecao = await prisma.excecaoSecapFeriasServidor.findUnique({
+    where: { id: excecaoId },
+    select: { id: true, orgaoId: true },
+  });
+  if (!excecao) {
+    voltarComMensagem(
+      "/administracao/ferias/integracao-sarh",
+      "Trava SECAP não localizada.",
+      "erro",
+    );
+  }
+
+  const podeGlobal = usuarioPossuiPermissaoNoPerfil(
+    permissao.perfilAtivoCodigo,
+    permissao.permissoes,
+    "programacao-ferias:executar-sarh:global",
+  );
+  const podeSeccional =
+    usuarioPossuiPermissaoNoPerfil(
+      permissao.perfilAtivoCodigo,
+      permissao.permissoes,
+      "programacao-ferias:executar-sarh:seccional",
+    ) && (permissao.orgaoIds ?? []).includes(excecao.orgaoId);
+
+  if (!podeGlobal && !podeSeccional) {
+    redirect(`/acesso-negado?permissao=programacao-ferias%3Aexecutar-sarh%3Aseccional`);
+  }
+
+  await prisma.excecaoSecapFeriasServidor.update({
+    where: { id: excecaoId },
+    data: {
+      ativo: false,
+      encerradoPorUsuarioId: permissao.usuarioId,
+      encerradoEm: new Date(),
+    },
+  });
+
+  revalidarFerias();
+  redirect("/administracao/ferias/integracao-sarh?ok=Trava SECAP removida.");
 }
 
 export async function confirmarProgramacaoFeriasSarhAction(formData: FormData) {

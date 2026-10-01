@@ -1,4 +1,12 @@
-import Link from "next/link";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 type DataTablePaginationProps = {
   pagina: number;
@@ -13,39 +21,72 @@ export function DataTablePagination({
 }: DataTablePaginationProps) {
   const paginaAnterior = Math.max(pagina - 1, 1);
   const proximaPagina = Math.min(pagina + 1, totalPaginas);
-
-  const classesBase =
-    "rounded-md border px-3 py-2 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+  const paginas = montarPaginasVisiveis(pagina, totalPaginas);
 
   return (
-    <nav
-      className="flex gap-2"
-      aria-label={`Paginacao da tabela. Pagina ${pagina} de ${totalPaginas}`}
+    <Pagination
+      aria-label={`Paginação da tabela. Página ${pagina} de ${totalPaginas}`}
     >
-      <Link
-        href={montarHrefPagina(paginaAnterior)}
-        aria-disabled={pagina <= 1}
-        className={`${classesBase} ${
-          pagina <= 1
-            ? "pointer-events-none opacity-50"
-            : "hover:bg-[var(--muted)]"
-        }`}
-      >
-        Anterior
-      </Link>
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious
+            href={montarHrefPagina(paginaAnterior)}
+            disabled={pagina <= 1}
+          />
+        </PaginationItem>
 
-      <Link
-        href={montarHrefPagina(proximaPagina)}
-        aria-disabled={pagina >= totalPaginas}
-        className={`${classesBase} ${
-          pagina >= totalPaginas
-            ? "pointer-events-none opacity-50"
-            : "hover:bg-[var(--muted)]"
-        }`}
-      >
-        Próxima
-      </Link>
-    </nav>
+        {paginas.map((item, index) => (
+          <PaginationItem key={`${item}-${index}`}>
+            {item === "ellipsis" ? (
+              <PaginationEllipsis />
+            ) : (
+              <PaginationLink
+                href={montarHrefPagina(item)}
+                isActive={item === pagina}
+              >
+                {item}
+              </PaginationLink>
+            )}
+          </PaginationItem>
+        ))}
+
+        <PaginationItem>
+          <PaginationNext
+            href={montarHrefPagina(proximaPagina)}
+            disabled={pagina >= totalPaginas}
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
   );
 }
 
+function montarPaginasVisiveis(
+  paginaAtual: number,
+  totalPaginas: number,
+): Array<number | "ellipsis"> {
+  if (totalPaginas <= 7) {
+    return Array.from({ length: totalPaginas }, (_, index) => index + 1);
+  }
+
+  const paginas = new Set<number>([
+    1,
+    totalPaginas,
+    paginaAtual,
+    Math.max(1, paginaAtual - 1),
+    Math.min(totalPaginas, paginaAtual + 1),
+  ]);
+
+  const ordenadas = Array.from(paginas).sort((a, b) => a - b);
+  const resultado: Array<number | "ellipsis"> = [];
+
+  ordenadas.forEach((numeroPagina, index) => {
+    const anterior = ordenadas[index - 1];
+    if (anterior && numeroPagina - anterior > 1) {
+      resultado.push("ellipsis");
+    }
+    resultado.push(numeroPagina);
+  });
+
+  return resultado;
+}

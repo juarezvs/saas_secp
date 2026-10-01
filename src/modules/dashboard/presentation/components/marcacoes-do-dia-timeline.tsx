@@ -1,64 +1,113 @@
 import Link from "next/link";
-import { ArrowRight, Clock3, Info } from "lucide-react";
+import {
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  FileText,
+  Monitor,
+  MoreVertical,
+  Smartphone,
+} from "lucide-react";
 
 import { Badge, Card } from "@/components/ui";
-import type {
-  MarcacaoDia,
-  PrevisaoJornadaDia,
-} from "../data/dashboard-servidor.config";
+import type { MarcacaoDia } from "../data/dashboard-servidor.config";
 
 type MarcacoesDoDiaTimelineProps = {
   marcacoes: MarcacaoDia[];
-  previsao?: PrevisaoJornadaDia | null;
 };
 
 export function MarcacoesDoDiaTimeline({
   marcacoes,
-  previsao,
 }: MarcacoesDoDiaTimelineProps) {
   return (
     <Card className="p-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">Marcações de hoje</h2>
-        <Link
-          href="/marcacoes"
-          className="rounded-sm text-xs font-semibold text-secp-blue-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        >
-          Ver todas
-        </Link>
+        <h2 className="inline-flex items-center gap-2 text-sm font-black text-blue-950">
+          <CalendarDays className="size-4 text-blue-700" aria-hidden="true" />
+          Marcações de hoje
+        </h2>
+        <div className="flex items-center gap-2">
+          <span className="rounded-md bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700">
+            {marcacoes.length} marcações
+          </span>
+          <Link
+            href="/marcacoes"
+            className="grid size-7 place-items-center rounded-md text-blue-700 hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            aria-label="Ver marcações"
+          >
+            <MoreVertical className="size-4" aria-hidden="true" />
+          </Link>
+        </div>
       </div>
 
       {marcacoes.length > 0 ? (
         <ol className="mt-3 space-y-2">
-          {marcacoes.map((marcacao, index) => (
-            <li key={marcacao.rotulo} className="flex gap-2.5">
-              <div className="flex flex-col items-center">
-                <span
-                  className={
-                    marcacao.status === "registrada"
-                      ? "flex size-6 items-center justify-center rounded-full bg-secp-green-700 text-white"
-                      : "flex size-6 items-center justify-center rounded-full bg-muted text-muted-foreground"
-                  }
-                >
-                  <ArrowRight className="size-3" aria-hidden="true" />
-                </span>
-                {index < marcacoes.length - 1 && (
-                  <span className="h-4 border-l border-dashed border-border" />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold">{marcacao.rotulo}</p>
-                  {marcacao.status === "pendente" && (
+          {marcacoes.map((marcacao, index) => {
+            const registrada = marcacao.status === "registrada";
+            const SourceIcon =
+              index === marcacoes.length - 1
+                ? Smartphone
+                : index === marcacoes.length - 2
+                  ? FileText
+                  : Monitor;
+            const origem =
+              index === marcacoes.length - 1
+                ? "App Mobile"
+                : index === marcacoes.length - 2
+                  ? "Sistema"
+                  : "Web";
+
+            return (
+              <li key={`${marcacao.rotulo}-${index}`} className="flex gap-2.5">
+                <div className="flex flex-col items-center pt-5">
+                  <span
+                    className={
+                      registrada
+                        ? "flex size-3 rounded-full bg-emerald-500"
+                        : "flex size-3 rounded-full bg-red-500"
+                    }
+                  />
+                  {index < marcacoes.length - 1 ? (
+                    <span className="h-12 border-l border-slate-200" />
+                  ) : null}
+                </div>
+                <div className="grid min-h-14 flex-1 grid-cols-[2rem_minmax(0,1fr)_auto_auto] items-center gap-3 rounded-lg bg-slate-50 px-3 py-2">
+                  <span
+                    className={
+                      registrada
+                        ? "grid size-8 place-items-center rounded-lg bg-emerald-50 text-emerald-700"
+                        : "grid size-8 place-items-center rounded-lg bg-red-50 text-red-700"
+                    }
+                  >
+                    {registrada ? (
+                      <CheckCircle2 className="size-4" aria-hidden="true" />
+                    ) : (
+                      <Clock3 className="size-4" aria-hidden="true" />
+                    )}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-black text-blue-950">
+                      {marcacao.rotulo}
+                    </p>
+                    <p className="font-mono text-xs font-semibold text-blue-900">
+                      {marcacao.horario}
+                    </p>
+                  </div>
+                  {registrada ? (
+                    <Badge className="bg-emerald-50 text-emerald-700">
+                      Registrada
+                    </Badge>
+                  ) : (
                     <Badge variant="pendente">Pendente</Badge>
                   )}
+                  <span className="hidden items-center gap-1 text-[11px] font-medium text-slate-500 sm:inline-flex">
+                    <SourceIcon className="size-3.5" aria-hidden="true" />
+                    {origem}
+                  </span>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {marcacao.horario}
-                </p>
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ol>
       ) : (
         <div className="mt-3 rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
@@ -66,78 +115,15 @@ export function MarcacoesDoDiaTimeline({
         </div>
       )}
 
-      <div className="mt-3 flex gap-2 rounded-md bg-muted p-2 text-xs leading-5 text-muted-foreground">
-        <Info
-          className="mt-0.5 size-4 shrink-0 text-secp-blue-700"
-          aria-hidden="true"
-        />
+      <div className="mt-3 flex gap-2 rounded-md border border-dashed border-blue-100 bg-blue-50/40 p-2 text-xs leading-5 text-blue-900">
+        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-blue-100 text-base font-bold text-blue-700">
+          +
+        </span>
         <p>
-          Registre seus horários ao iniciar, sair e retornar do intervalo ou
-          finalizar sua jornada.
+          Qualquer quantidade de marcações pode ser registrada. O painel exibe
+          todas as marcações do dia em ordem cronológica.
         </p>
       </div>
-
-      {previsao && (
-        <footer className="mt-3 flex flex-col border-t border-border pt-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <p className="text-xs font-bold uppercase text-muted-foreground">
-                Previsão da jornada hoje
-              </p>
-              <p className="mt-0.5 text-xs font-semibold text-foreground">
-                {previsao.titulo}
-              </p>
-            </div>
-            <Badge variant="regular">Carga {previsao.carga}</Badge>
-          </div>
-
-          {previsao.saidaEstimada && (
-            <div className="order-last mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-3 text-amber-950 shadow-sm dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
-              <div className="flex items-start gap-3">
-                <span className="rounded-md bg-amber-200 p-2 text-amber-900 dark:bg-amber-900 dark:text-amber-100">
-                  <Clock3 className="size-4" aria-hidden="true" />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-bold uppercase tracking-wide">
-                    Saída estimada
-                  </p>
-                  <p className="mt-1 text-xl font-black leading-none">
-                    {previsao.saidaEstimada}
-                  </p>
-                  <p className="mt-1 text-xs font-medium leading-5">
-                    Entrada registrada às {previsao.entradaReferencia}. Ajuste sua
-                    saída para cumprir a carga de {previsao.carga}.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {previsao.horarios.length > 0 && (
-            <dl className="mt-3 grid gap-2 sm:grid-cols-2">
-              {previsao.horarios.map((item) => (
-                <div
-                  key={`${item.rotulo}-${item.horario}`}
-                  className="rounded-md bg-muted px-2.5 py-2"
-                >
-                  <dt className="text-[11px] font-semibold uppercase text-muted-foreground">
-                    {item.rotulo}
-                  </dt>
-                  <dd className="mt-0.5 font-mono text-sm font-bold text-foreground">
-                    {item.horario}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          )}
-
-          {previsao.indicativo && !previsao.saidaEstimada && (
-            <p className="mt-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs leading-5 text-blue-900 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200">
-              {previsao.indicativo}
-            </p>
-          )}
-        </footer>
-      )}
     </Card>
   );
 }

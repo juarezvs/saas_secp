@@ -104,7 +104,7 @@ export function FrequenciaMesResumo({ resumo }: FrequenciaMesResumoProps) {
   const espelhoHref = montarHrefEspelho(resumo.mes);
 
   return (
-    <Card className="p-3">
+    <Card className="p-2.5">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold">
           Frequência mês {mesReferenciaTitulo}
@@ -117,14 +117,14 @@ export function FrequenciaMesResumo({ resumo }: FrequenciaMesResumoProps) {
         </Link>
       </div>
 
-      <div className="mt-3 grid gap-3 sm:grid-cols-[5.25rem_1fr] sm:items-center">
+      <div className="mt-2 grid gap-2 sm:grid-cols-[4.75rem_1fr] sm:items-center">
         <div
-          className="grid aspect-square place-items-center rounded-full p-3"
+          className="grid aspect-square place-items-center rounded-full p-2.5"
           style={{ background: montarGradiente(resumo) }}
         >
           <div className="grid size-full place-items-center rounded-full bg-card text-center">
             <div>
-              <p className="text-xl font-bold leading-none">
+              <p className="text-lg font-bold leading-none">
                 {resumo.diasUteis}
               </p>
               <p className="mt-0.5 text-[10px] leading-none text-muted-foreground">
@@ -134,16 +134,41 @@ export function FrequenciaMesResumo({ resumo }: FrequenciaMesResumoProps) {
           </div>
         </div>
 
-        <dl className="grid gap-x-4 gap-y-1.5 text-xs sm:grid-cols-2">
-          <Linha label="Regulares" valor={resumo.regular} cor="bg-secp-green-700" href={espelhoHref} />
-          <Linha label="Pendências" valor={resumo.pendente} cor="bg-secp-warning" href="/solicitacoes" />
-          <Linha label="Faltas" valor={resumo.falta} cor="bg-secp-danger" href={espelhoHref} />
-          <Linha label="Sem expediente" valor={resumo.recesso} cor="bg-slate-300" href={espelhoHref} />
-          <Linha label="Aguardando homologação" valor={resumo.aguardando} cor="bg-secp-info" href={espelhoHref} />
+        <dl className="grid gap-x-3 gap-y-1 text-xs sm:grid-cols-2">
+          <Linha
+            label="Regulares"
+            valor={resumo.regular}
+            cor="bg-secp-green-700"
+            href={espelhoHref}
+          />
+          <Linha
+            label="Pendências"
+            valor={resumo.pendente}
+            cor="bg-secp-warning"
+            href="/solicitacoes"
+          />
+          <Linha
+            label="Faltas"
+            valor={resumo.falta}
+            cor="bg-secp-danger"
+            href={espelhoHref}
+          />
+          <Linha
+            label="Sem expediente"
+            valor={resumo.recesso}
+            cor="bg-slate-300"
+            href={espelhoHref}
+          />
+          <Linha
+            label="Aguardando homologação"
+            valor={resumo.aguardando}
+            cor="bg-secp-info"
+            href={espelhoHref}
+          />
         </dl>
       </div>
 
-      <div className="mt-3 flex gap-2 rounded-md bg-muted p-2 text-xs leading-5">
+      <div className="mt-2 flex gap-2 rounded-md bg-muted p-1.5 text-xs leading-4">
         <FileCheck2
           className="mt-0.5 size-4 shrink-0 text-secp-blue-700"
           aria-hidden="true"
@@ -189,9 +214,7 @@ function Linha({
             {conteudo}
           </Link>
         ) : (
-          <span className="flex min-w-0 items-center gap-1.5">
-            {conteudo}
-          </span>
+          <span className="flex min-w-0 items-center gap-1.5">{conteudo}</span>
         )}
       </dd>
     </div>

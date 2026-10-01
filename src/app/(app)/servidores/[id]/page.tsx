@@ -5,6 +5,7 @@ import {
   CalendarClock,
   Edit,
   ShieldCheck,
+  UserCog,
   UserRound,
   UserRoundCheck,
 } from "lucide-react";
@@ -33,10 +34,12 @@ import {
   listarServidoresParaFiltro,
 } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
+import { montarRotuloUnidadeComHierarquia } from "@/modules/unidades/application/services/rotulo-unidade.service";
 import {
   criarDispensaPontoServidorAction,
   encerrarDispensaPontoServidorAction,
 } from "@/modules/servidores/application/actions/dispensa-ponto-servidor.action";
+import { desvincularJornadaServidorAction } from "@/modules/jornadas/application/actions/desvincular-jornada-servidor.action";
 import { reprocessarIdentificadoresPontoServidorAction } from "@/modules/servidores/application/actions/reprocessar-identificadores-ponto-servidor.action";
 import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { DispensaPontoServidorCard } from "@/modules/servidores/presentation/components/dispensa-ponto-servidor-card";
@@ -64,6 +67,7 @@ type ServidorDetalhePageProps = {
 type AbaServidor =
   | "dados"
   | "perfis"
+  | "perfilChefia"
   | "jornadas"
   | "lotacoes"
   | "supervisaoEstagio"
@@ -76,6 +80,7 @@ type AbaAfastamentos = "ferias" | "outros";
 const ABAS_SERVIDOR: Array<{ valor: AbaServidor; label: string }> = [
   { valor: "dados", label: "Dados" },
   { valor: "perfis", label: "Perfis" },
+  { valor: "perfilChefia", label: "Perfil de Chefia" },
   { valor: "jornadas", label: "Jornadas" },
   { valor: "lotacoes", label: "Lotações" },
   { valor: "supervisaoEstagio", label: "Supervisao de estagio" },
@@ -137,6 +142,21 @@ function formatarCarga(minutos: number) {
   const resto = minutos % 60;
 
   return resto === 0 ? `${horas}h` : `${horas}h${resto}`;
+}
+
+function rotuloPapelChefia(papel: string) {
+  const rotulos: Record<string, string> = {
+    GESTOR_TITULAR: "Titular",
+    GESTOR_SUBSTITUTO: "Substituto",
+    DELEGADO_CHEFIA: "Delegado",
+    AUTOMATICA: "Substituto automatico",
+    EVENTUAL: "Substituto eventual",
+    DESIGNADA: "Substituto designado",
+    INTERINA: "Chefia interina",
+    OUTRA: "Outra substituicao",
+  };
+
+  return rotulos[papel] ?? papel;
 }
 
 function classeAba(ativa: boolean) {
@@ -245,6 +265,137 @@ export default async function ServidorDetalhePage({
 
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
+  const [gestoesUnidadeAtivas, substituicoesChefiaAtivas] =
+    abaSolicitada === "perfilChefia"
+      ? await Promise.all([
+          prisma.gestorUnidade.findMany({
+            where: {
+              servidorId,
+              ativo: true,
+              dataInicio: { lte: hoje },
+              OR: [{ dataFim: null }, { dataFim: { gte: hoje } }],
+            },
+            include: {
+              unidade: {
+                include: {
+                  orgao: true,
+                  unidadePai: {
+                    include: {
+                      orgao: true,
+                      unidadePai: {
+                        include: {
+                          orgao: true,
+                          unidadePai: {
+                            include: {
+                              orgao: true,
+                              unidadePai: {
+                                include: {
+                                  orgao: true,
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            orderBy: [{ papel: "asc" }, { dataInicio: "desc" }],
+          }),
+          prisma.substituicaoFuncao.findMany({
+            where: {
+              substitutoServidorId: servidorId,
+              status: "ATIVA",
+              dataInicio: { lte: hoje },
+              OR: [{ dataFim: null }, { dataFim: { gte: hoje } }],
+            },
+            include: {
+              orgao: true,
+              unidade: {
+                include: {
+                  orgao: true,
+                  unidadePai: {
+                    include: {
+                      orgao: true,
+                      unidadePai: {
+                        include: {
+                          orgao: true,
+                          unidadePai: {
+                            include: {
+                              orgao: true,
+                              unidadePai: {
+                                include: {
+                                  orgao: true,
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              titularServidor: {
+                include: {
+                  usuario: true,
+                  gestores: {
+                    where: {
+                      ativo: true,
+                      dataInicio: { lte: hoje },
+                      OR: [{ dataFim: null }, { dataFim: { gte: hoje } }],
+                    },
+                    include: {
+                      unidade: {
+                        include: {
+                          orgao: true,
+                          unidadePai: {
+                            include: {
+                              orgao: true,
+                              unidadePai: {
+                                include: {
+                                  orgao: true,
+                                  unidadePai: {
+                                    include: {
+                                      orgao: true,
+                                      unidadePai: {
+                                        include: {
+                                          orgao: true,
+                                        },
+                                      },
+                                    },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                  afastamentosSarh: {
+                    where: {
+                      ativo: true,
+                      dataInicio: { lte: hoje },
+                      OR: [{ dataFim: null }, { dataFim: { gte: hoje } }],
+                    },
+                    select: {
+                      dataInicio: true,
+                      dataFim: true,
+                      tipoDescricao: true,
+                      categoria: true,
+                    },
+                    orderBy: [{ dataInicio: "desc" }],
+                  },
+                },
+              },
+            },
+            orderBy: [{ tipo: "asc" }, { dataInicio: "desc" }],
+          }),
+        ])
+      : [[], []];
   const substituicoesAutomaticas = await prisma.substituicaoFuncao.findMany({
     where: {
       substitutoServidorId: servidorId,
@@ -361,6 +512,59 @@ export default async function ServidorDetalhePage({
       dispensa.id,
     ),
   }));
+  const perfilChefiaItens = [
+    ...gestoesUnidadeAtivas.map((gestao) => ({
+      id: `gestao-${gestao.id}`,
+      unidade: gestao.unidade,
+      papel: rotuloPapelChefia(gestao.papel),
+      origem: "Cadastro de chefia",
+      situacao: gestao.ativo ? "Ativa" : "Inativa",
+      dataInicio: gestao.dataInicio,
+      dataFim: gestao.dataFim,
+      titular: null as string | null,
+      detalhe: null as string | null,
+      efetiva: true,
+    })),
+    ...substituicoesChefiaAtivas.flatMap((substituicao) => {
+      const unidades = substituicao.unidade
+        ? [substituicao.unidade]
+        : substituicao.titularServidor.gestores.map(
+            (gestor) => gestor.unidade,
+          );
+      const unidadesReferencia = unidades.length > 0 ? unidades : [null];
+      const afastamentoVigente =
+        substituicao.titularServidor.afastamentosSarh[0] ?? null;
+      const automaticaEfetiva =
+        substituicao.tipo !== "AUTOMATICA" || Boolean(afastamentoVigente);
+
+      return unidadesReferencia.map((unidade, index) => ({
+        id: `substituicao-${substituicao.id}-${unidade?.id ?? index}`,
+        unidade,
+        papel: rotuloPapelChefia(substituicao.tipo),
+        origem: `Substituicao de funcao (${substituicao.origem})`,
+        situacao: automaticaEfetiva
+          ? "Temporaria ativa"
+          : "Cadastro ativo, aguardando afastamento",
+        dataInicio: substituicao.dataInicio,
+        dataFim: substituicao.dataFim,
+        titular: `${nomeServidor(substituicao.titularServidor)} (${substituicao.titularServidor.matricula})`,
+        detalhe: afastamentoVigente
+          ? `${
+              afastamentoVigente.tipoDescricao ??
+              afastamentoVigente.categoria ??
+              "Afastamento"
+            } desde ${formatarData(afastamentoVigente.dataInicio)}`
+          : null,
+        efetiva: automaticaEfetiva,
+      }));
+    }),
+  ].sort((a, b) => {
+    if (a.efetiva !== b.efetiva) {
+      return a.efetiva ? -1 : 1;
+    }
+
+    return a.papel.localeCompare(b.papel, "pt-BR");
+  });
 
   function montarHrefPaginaAfastamentos(novaPagina: number) {
     const params = new URLSearchParams();
@@ -660,6 +864,93 @@ export default async function ServidorDetalhePage({
         </section>
       )}
 
+      {abaServidor === "perfilChefia" && (
+        <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
+          <div className="flex items-center gap-2 border-b p-5">
+            <UserCog className="size-5 text-blue-900 dark:text-blue-300" />
+            <div>
+              <h2 className="text-lg font-bold">Perfil de Chefia</h2>
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                Lotações em que este servidor atua como titular, substituto,
+                delegado ou chefia temporária.
+              </p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[960px] text-left text-sm">
+              <thead className="border-b bg-[var(--muted)] text-xs uppercase text-[var(--muted-foreground)]">
+                <tr>
+                  <th className="px-5 py-3">Unidade</th>
+                  <th className="px-5 py-3">Papel</th>
+                  <th className="px-5 py-3">Titular vinculado</th>
+                  <th className="px-5 py-3">Vigencia</th>
+                  <th className="px-5 py-3">Origem</th>
+                  <th className="px-5 py-3">Situacao</th>
+                </tr>
+              </thead>
+              <tbody>
+                {perfilChefiaItens.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-5 py-10 text-center text-sm text-[var(--muted-foreground)]"
+                    >
+                      Este servidor não possui perfil de chefia vigente.
+                    </td>
+                  </tr>
+                ) : null}
+
+                {perfilChefiaItens.map((item) => (
+                  <tr key={item.id} className="border-b last:border-b-0">
+                    <td className="px-5 py-4">
+                      <div className="font-semibold">
+                        {item.unidade
+                          ? montarRotuloUnidadeComHierarquia(item.unidade)
+                          : "-"}
+                      </div>
+                      <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                        {item.unidade?.nome ?? "Unidade nao informada"}
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                        {item.papel}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      {item.titular ?? "-"}
+                      {item.detalhe ? (
+                        <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                          {item.detalhe}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td className="px-5 py-4">
+                      {formatarData(item.dataInicio)} a{" "}
+                      {formatarData(item.dataFim)}
+                    </td>
+                    <td className="px-5 py-4">{item.origem}</td>
+                    <td className="px-5 py-4">
+                      <span
+                        className={[
+                          "w-fit rounded-full px-2 py-1 text-xs font-semibold",
+                          item.efetiva
+                            ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
+                            : "bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+                        ].join(" ")}
+                      >
+                        {item.situacao}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       {abaServidor === "jornadas" && (
         <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
           <div className="flex items-center gap-2 border-b p-5">
@@ -680,16 +971,38 @@ export default async function ServidorDetalhePage({
                     </p>
                   </div>
 
-                  <span
-                    className={[
-                      "w-fit rounded-full px-2 py-1 text-xs font-semibold",
-                      jornadaServidor.ativo
-                        ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
-                        : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
-                    ].join(" ")}
-                  >
-                    {jornadaServidor.ativo ? "Vigente" : "Encerrada"}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={[
+                        "w-fit rounded-full px-2 py-1 text-xs font-semibold",
+                        jornadaServidor.ativo
+                          ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
+                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+                      ].join(" ")}
+                    >
+                      {jornadaServidor.ativo ? "Vigente" : "Encerrada"}
+                    </span>
+                    {podeGerenciarServidor && jornadaServidor.ativo ? (
+                      <form action={desvincularJornadaServidorAction}>
+                        <input
+                          type="hidden"
+                          name="servidorId"
+                          value={servidor.id}
+                        />
+                        <input
+                          type="hidden"
+                          name="jornadaServidorId"
+                          value={jornadaServidor.id}
+                        />
+                        <button
+                          type="submit"
+                          className="rounded-md border border-red-200 px-2 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
+                        >
+                          Desvincular
+                        </button>
+                      </form>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div className="grid gap-2 text-sm text-[var(--muted-foreground)] sm:grid-cols-2">

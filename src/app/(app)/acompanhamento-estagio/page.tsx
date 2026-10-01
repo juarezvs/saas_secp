@@ -1,14 +1,20 @@
 import { ClipboardList } from "lucide-react";
+import { redirect } from "next/navigation";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui";
-import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { obterPermissoesDaSessao } from "@/modules/auth/application/services/permissao.service";
 import {
   PERMISSOES_ACOMPANHAMENTO_ESTAGIO,
+  buscarPrimeiroEstagiarioSupervisionadoPorUsuario,
   carregarAcompanhamentoEstagio,
   carregarAcompanhamentoEstagioPorServidor,
+  competenciaParaInputEstagio,
+  listarEstagiariosSupervisionadosPorUsuario,
   normalizarCompetenciaEstagio,
+  usuarioPossuiSupervisaoEstagioVigente,
+  type DadosAcompanhamentoEstagio,
 } from "@/modules/acompanhamento-estagio/application/services/acompanhamento-estagio.service";
 import { AcompanhamentoEstagioPage } from "@/modules/acompanhamento-estagio/presentation/components/acompanhamento-estagio-page";
 
@@ -24,25 +30,44 @@ type AcompanhamentoEstagioRouteProps = {
 export default async function AcompanhamentoMensalEstagioRoute({
   searchParams,
 }: AcompanhamentoEstagioRouteProps) {
-  const permissao = await exigirUmaDasPermissoesOuRedirecionar([
-    PERMISSOES_ACOMPANHAMENTO_ESTAGIO.consultar,
-    PERMISSOES_ACOMPANHAMENTO_ESTAGIO.preencher,
-    PERMISSOES_ACOMPANHAMENTO_ESTAGIO.supervisionar,
-    PERMISSOES_ACOMPANHAMENTO_ESTAGIO.consultarSeccional,
-  ]);
+  const permissao = await obterPermissoesDaSessao();
+  if (!permissao.permitido) {
+    redirect("/login");
+  }
   const params = await searchParams;
   const { ano, mes } = normalizarCompetenciaEstagio(params);
   const permissoes = new Set(permissao.permissoes);
+  const supervisionaEstagiario =
+    permissoes.has(PERMISSOES_ACOMPANHAMENTO_ESTAGIO.supervisionar) ||
+    (await usuarioPossuiSupervisaoEstagioVigente(permissao.usuarioId));
+  const podeAcessar =
+    supervisionaEstagiario ||
+    permissoes.has(PERMISSOES_ACOMPANHAMENTO_ESTAGIO.consultar) ||
+    permissoes.has(PERMISSOES_ACOMPANHAMENTO_ESTAGIO.preencher) ||
+    permissoes.has(PERMISSOES_ACOMPANHAMENTO_ESTAGIO.consultarSeccional);
+
+  if (!podeAcessar) {
+    redirect(
+      `/acesso-negado?permissao=${encodeURIComponent(
+        `${PERMISSOES_ACOMPANHAMENTO_ESTAGIO.consultar} ou ${PERMISSOES_ACOMPANHAMENTO_ESTAGIO.preencher}`,
+      )}`,
+    );
+  }
   const servidorId = params.servidorId;
-  const dados = servidorId
+  const estagiariosSupervisionados = supervisionaEstagiario
+    ? await listarEstagiariosSupervisionadosPorUsuario({
+        usuarioId: permissao.usuarioId,
+        ano,
+        mes,
+      })
+    : [];
+  let dados: DadosAcompanhamentoEstagio | null = servidorId
     ? await carregarAcompanhamentoEstagioPorServidor({
         servidorId,
         usuarioId: permissao.usuarioId ?? "",
         ano,
         mes,
-        modo: permissoes.has(PERMISSOES_ACOMPANHAMENTO_ESTAGIO.supervisionar)
-          ? "SUPERVISOR"
-          : "CONSULTA",
+        modo: supervisionaEstagiario ? "SUPERVISOR" : "CONSULTA",
         orgaoIds: permissao.orgaoIds,
       })
     : await carregarAcompanhamentoEstagio({
@@ -50,6 +75,27 @@ export default async function AcompanhamentoMensalEstagioRoute({
         ano,
         mes,
       });
+
+  if (!servidorId && !dados && supervisionaEstagiario) {
+    const competencia = competenciaParaInputEstagio(ano, mes);
+    const estagiarioSupervisionado =
+      await buscarPrimeiroEstagiarioSupervisionadoPorUsuario({
+        usuarioId: permissao.usuarioId,
+      });
+
+    if (estagiarioSupervisionado) {
+      redirect(
+        `/acompanhamento-estagio?competencia=${competencia}&servidorId=${estagiarioSupervisionado.id}`,
+      );
+    }
+  }
+
+  if (dados && supervisionaEstagiario) {
+    dados = {
+      ...dados,
+      estagiariosSupervisionados,
+    };
+  }
 
   return (
     <div className="space-y-6">

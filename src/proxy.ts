@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 const rotasPublicas = ["/login"];
 const apisPublicasComToken = [
   "/api/integracoes/equipamentos-biometricos/webhook",
+  "/api/suporte-login",
 ];
 const cookiesSessao = ["__Secure-authjs.session-token", "authjs.session-token"];
 
@@ -59,12 +60,13 @@ export const config = {
      * Protege tudo, exceto:
      * - API auth
      * - sondas de observabilidade
+     * - suporte do login
      * - webhooks de equipamentos biometricos validados por token proprio
      * - arquivos estáticos
      * - imagens
      * - favicon
      * - assets públicos com extensão (png, css, js, etc.)
      */
-    "/((?!api/auth|api/metrics|api/health|api/ready|api/integracoes/equipamentos-biometricos/webhook|_next/static|_next/image|favicon.ico|.*\\..*).*)",
+    "/((?!api/auth|api/metrics|api/health|api/ready|api/suporte-login|api/integracoes/equipamentos-biometricos/webhook|_next/static|_next/image|favicon.ico|.*\\..*).*)",
   ],
 };

@@ -505,6 +505,11 @@ export async function buscarSolicitacaoPorId(id: string) {
         },
       },
       analisadaPor: true,
+      anexos: {
+        orderBy: {
+          criadoEm: "asc",
+        },
+      },
       autorizacaoBancoHoras: {
         include: {
           autorizadoPor: true,

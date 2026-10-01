@@ -92,7 +92,75 @@ const atalhosAdministracao: Array<{
   },
 ];
 
-export async function DashboardAdmin({ usuarioId }: { usuarioId: string }) {
+export async function DashboardAdmin({
+  usuarioId,
+  orgaoIds,
+  escopoGlobal = false,
+}: {
+  usuarioId: string;
+  orgaoIds?: string[];
+  escopoGlobal?: boolean;
+}) {
+  const orgaoIdsFiltro = escopoGlobal ? [] : (orgaoIds ?? []).filter(Boolean);
+  const filtrarSeccional = !escopoGlobal && orgaoIdsFiltro.length > 0;
+  const whereServidorSeccional = filtrarSeccional
+    ? {
+        orgaoId: {
+          in: orgaoIdsFiltro,
+        },
+      }
+    : {};
+  const whereUsuarioSeccional = filtrarSeccional
+    ? {
+        OR: [
+          {
+            perfis: {
+              some: {
+                ativo: true,
+                OR: [
+                  {
+                    orgaoId: {
+                      in: orgaoIdsFiltro,
+                    },
+                  },
+                  {
+                    perfil: {
+                      orgaoId: {
+                        in: orgaoIdsFiltro,
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+          {
+            servidor: {
+              orgaoId: {
+                in: orgaoIdsFiltro,
+              },
+            },
+          },
+        ],
+      }
+    : {};
+  const whereMarcacaoBrutaSeccional = filtrarSeccional
+    ? {
+        servidor: {
+          orgaoId: {
+            in: orgaoIdsFiltro,
+          },
+        },
+      }
+    : {};
+  const whereAuditoriaSeccional = filtrarSeccional
+    ? {
+        usuario: {
+          is: whereUsuarioSeccional,
+        },
+      }
+    : {};
+
   const [
     totalUsuarios,
     totalServidores,
@@ -102,17 +170,21 @@ export async function DashboardAdmin({ usuarioId }: { usuarioId: string }) {
     eventosAuditoriaUsuario,
     servidoresSemCpf,
   ] = await Promise.all([
-    prisma.usuario.count(),
+    prisma.usuario.count({
+      where: whereUsuarioSeccional,
+    }),
 
     prisma.servidor.count({
       where: {
         ativo: true,
+        ...whereServidorSeccional,
       },
     }),
 
     prisma.marcacaoBruta.count({
       where: {
         processada: false,
+        ...whereMarcacaoBrutaSeccional,
       },
     }),
 
@@ -124,7 +196,9 @@ export async function DashboardAdmin({ usuarioId }: { usuarioId: string }) {
       },
     }),
 
-    prisma.auditoriaEvento.count(),
+    prisma.auditoriaEvento.count({
+      where: whereAuditoriaSeccional,
+    }),
 
     prisma.auditoriaEvento.count({
       where: {
@@ -135,6 +209,7 @@ export async function DashboardAdmin({ usuarioId }: { usuarioId: string }) {
     prisma.servidor.count({
       where: {
         ativo: true,
+        ...whereServidorSeccional,
         OR: [{ cpf: null }, { cpf: "" }],
       },
     }),

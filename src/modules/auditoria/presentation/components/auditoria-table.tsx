@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { Eye } from "lucide-react";
+import { DataTablePagination } from "@/components/listagens/data-table-pagination";
 import {
   formatarDataHoraAuditoria,
   rotuloEntidadeAuditoria,
@@ -75,7 +75,6 @@ export function AuditoriaTable({
                 <td className="px-5 py-4">
                   {formatarDataHoraAuditoria(evento.criadoEm)}
                 </td>
-
                 <td className="px-5 py-4">
                   {evento.usuario ? (
                     <>
@@ -90,25 +89,20 @@ export function AuditoriaTable({
                     </span>
                   )}
                 </td>
-
                 <td className="px-5 py-4">
                   {rotuloEntidadeAuditoria(evento.entidade)}
                 </td>
-
                 <td className="px-5 py-4 font-mono text-xs">
                   {evento.entidadeId ?? "-"}
                 </td>
-
                 <td className="px-5 py-4">
                   <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-900 dark:bg-blue-950 dark:text-blue-300">
                     {evento.acao}
                   </span>
                 </td>
-
                 <td className="px-5 py-4 font-mono text-xs">
                   {evento.ip ?? "-"}
                 </td>
-
                 <td className="px-5 py-4 text-right">
                   <a
                     href={`/auditoria/${evento.id}`}
@@ -140,37 +134,11 @@ export function AuditoriaTable({
           Exibindo até {paginacao.limite} registros por página.
         </p>
 
-        <div className="flex gap-2">
-          <Link
-            href={montarHrefPagina(
-              queryStringBase,
-              Math.max(1, paginacao.pagina - 1),
-            )}
-            aria-disabled={paginacao.pagina <= 1}
-            className={`rounded-md border px-3 py-2 text-sm font-semibold transition ${
-              paginacao.pagina <= 1
-                ? "pointer-events-none opacity-50"
-                : "hover:bg-[var(--muted)]"
-            }`}
-          >
-            Anterior
-          </Link>
-
-          <Link
-            href={montarHrefPagina(
-              queryStringBase,
-              Math.min(paginacao.totalPaginas, paginacao.pagina + 1),
-            )}
-            aria-disabled={paginacao.pagina >= paginacao.totalPaginas}
-            className={`rounded-md border px-3 py-2 text-sm font-semibold transition ${
-              paginacao.pagina >= paginacao.totalPaginas
-                ? "pointer-events-none opacity-50"
-                : "hover:bg-[var(--muted)]"
-            }`}
-          >
-            Próxima
-          </Link>
-        </div>
+        <DataTablePagination
+          pagina={paginacao.pagina}
+          totalPaginas={paginacao.totalPaginas}
+          montarHrefPagina={(pagina) => montarHrefPagina(queryStringBase, pagina)}
+        />
       </div>
     </section>
   );

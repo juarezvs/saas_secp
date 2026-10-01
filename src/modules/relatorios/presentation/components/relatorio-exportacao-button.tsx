@@ -2,6 +2,7 @@
 
 import { type MouseEvent, useState } from "react";
 import { Download, Loader2 } from "lucide-react";
+import { toast } from "@/components/ui/toast";
 
 type Estado = "pronto" | "enfileirando" | "processando" | "baixando" | "erro";
 
@@ -40,80 +41,102 @@ export function RelatorioExportacaoButton({
     URL.revokeObjectURL(url);
   }
 
-  async function iniciar(event?: MouseEvent<HTMLButtonElement>) {
-    event?.preventDefault();
-    event?.stopPropagation();
+  async function executarExportacao() {
+    setEstado("enfileirando");
+    const response = await fetch(href, {
+      headers: {
+        Accept: "application/json",
+      },
+    });
+    const contentType = response.headers.get("content-type") ?? "";
 
-    try {
-      setEstado("enfileirando");
-      const response = await fetch(href, {
+    if (modo === "auto" && !contentType.includes("application/json")) {
+      if (!response.ok) {
+        throw new Error("Falha ao gerar relatório.");
+      }
+
+      await baixarResponse(response);
+      setEstado("pronto");
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error("Falha ao enfileirar relatório.");
+    }
+
+    const data = (await response.json()) as {
+      statusUrl: string;
+      downloadUrl: string;
+    };
+
+    setEstado("processando");
+
+    for (let tentativa = 0; tentativa < 120; tentativa += 1) {
+      await aguardar(tentativa < 10 ? 1000 : 3000);
+
+      const statusResponse = await fetch(data.statusUrl, {
         headers: {
           Accept: "application/json",
         },
       });
 
-      const contentType = response.headers.get("content-type") ?? "";
+      if (!statusResponse.ok) {
+        throw new Error("Falha ao consultar relatório.");
+      }
 
-      if (modo === "auto" && !contentType.includes("application/json")) {
-        if (!response.ok) {
-          throw new Error("Falha ao gerar relatório.");
+      const status = (await statusResponse.json()) as {
+        estado: string;
+        resultado?: {
+          downloadUrl: string;
+        } | null;
+        erro?: string | null;
+      };
+
+      if (status.estado === "completed" && status.resultado?.downloadUrl) {
+        const downloadResponse = await fetch(status.resultado.downloadUrl);
+
+        if (!downloadResponse.ok) {
+          throw new Error("Falha ao baixar relatório.");
         }
 
-        await baixarResponse(response);
+        await baixarResponse(downloadResponse);
         setEstado("pronto");
         return;
       }
 
-      if (!response.ok) {
-        throw new Error("Falha ao enfileirar relatório.");
+      if (status.estado === "failed") {
+        throw new Error(status.erro ?? "Relatório falhou.");
       }
+    }
 
-      const data = (await response.json()) as {
-        statusUrl: string;
-        downloadUrl: string;
-      };
+    throw new Error("Tempo limite ao gerar relatório.");
+  }
 
-      setEstado("processando");
+  async function iniciar(event?: MouseEvent<HTMLButtonElement>) {
+    event?.preventDefault();
+    event?.stopPropagation();
 
-      for (let tentativa = 0; tentativa < 120; tentativa += 1) {
-        await aguardar(tentativa < 10 ? 1000 : 3000);
-
-        const statusResponse = await fetch(data.statusUrl, {
-          headers: {
-            Accept: "application/json",
-          },
-        });
-
-        if (!statusResponse.ok) {
-          throw new Error("Falha ao consultar relatorio.");
-        }
-
-        const status = (await statusResponse.json()) as {
-          estado: string;
-          resultado?: {
-            downloadUrl: string;
-          } | null;
-          erro?: string | null;
-        };
-
-        if (status.estado === "completed" && status.resultado?.downloadUrl) {
-          const downloadResponse = await fetch(status.resultado.downloadUrl);
-
-          if (!downloadResponse.ok) {
-            throw new Error("Falha ao baixar relatório.");
-          }
-
-          await baixarResponse(downloadResponse);
-          setEstado("pronto");
-          return;
-        }
-
-        if (status.estado === "failed") {
-          throw new Error(status.erro ?? "Relatório falhou.");
-        }
-      }
-
-      throw new Error("Tempo limite ao gerar relatório.");
+    try {
+      await toast.promise(executarExportacao(), {
+        loading: {
+          title: "Gerando relatório",
+          description: "A exportação foi iniciada.",
+          variant: "info",
+        },
+        success: {
+          title: "Relatório pronto",
+          description: "O arquivo foi baixado com sucesso.",
+          variant: "success",
+        },
+        error: (error) => ({
+          title: "Falha na exportação",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Não foi possível gerar o relatório.",
+          variant: "error",
+        }),
+      });
     } catch {
       setEstado("erro");
     }
@@ -145,9 +168,9 @@ export function RelatorioExportacaoButton({
           ? "Gerando"
           : estado === "baixando"
             ? "Baixando"
-          : estado === "erro"
-            ? "Tentar novamente"
-            : children}
+            : estado === "erro"
+              ? "Tentar novamente"
+              : children}
     </button>
   );
 }

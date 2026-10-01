@@ -68,8 +68,12 @@ export function AtribuirPessoaPerfilModal({
 
   useEffect(() => {
     if (estado.sucesso) {
-      setSelecionados([]);
-      router.refresh();
+      const timeout = window.setTimeout(() => {
+        setSelecionados([]);
+        router.refresh();
+      }, 0);
+
+      return () => window.clearTimeout(timeout);
     }
   }, [estado.sucesso, router]);
 

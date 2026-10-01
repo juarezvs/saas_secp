@@ -182,6 +182,61 @@ describe("montarEspelhoMensalCompleto", () => {
     );
   });
 
+  it("nao contabiliza debito nem inconsistencia do dia atual mesmo apos o horario previsto", async () => {
+    const espelho = await montarEspelhoMensalCompleto({
+      anoReferencia: 2026,
+      mesReferencia: 6,
+      calendario: { eventosPorData: new Map(), recessos: [] },
+      jornadas: [jornada],
+      hoje: new Date("2026-06-18T23:00:00.000Z"),
+      apuracoes: [
+        {
+          id: "apuracao-hoje",
+          dataReferencia: new Date("2026-06-18T00:00:00.000Z"),
+          cargaPrevistaMinutos: 420,
+          minutosTrabalhados: 120,
+          minutosIntervalo: 0,
+          minutosCredito: 0,
+          minutosDebito: 300,
+          resultado: "DEBITO",
+          status: "INCONSISTENTE",
+          primeiraEntrada: new Date("2026-06-18T12:00:00.000Z"),
+          metadados: {
+            janelaExpediente: {
+              inicio: "08:00",
+              fim: "18:00",
+            },
+          },
+          ocorrencias: [
+            {
+              tipo: "DEBITO",
+              descricao: "Ausencia parcial.",
+              minutos: 300,
+            },
+          ],
+        },
+      ],
+    });
+
+    const hoje = espelho.itens.find(
+      (apuracao) =>
+        apuracao.dataReferencia.toISOString().slice(0, 10) === "2026-06-18",
+    );
+
+    expect(hoje).toEqual(
+      expect.objectContaining({
+        minutosCredito: 0,
+        minutosDebito: 0,
+        resultado: "PENDENTE",
+        status: "PENDENTE",
+        contabilizarSaldos: false,
+        minutosDebitoApurado: 0,
+        minutosBancoHoras: 0,
+      }),
+    );
+    expect(hoje?.ocorrencias).toEqual([]);
+  });
+
   it("considera teletrabalho sem marcacao como carga prevista cumprida", async () => {
     const espelho = await montarEspelhoMensalCompleto({
       anoReferencia: 2026,

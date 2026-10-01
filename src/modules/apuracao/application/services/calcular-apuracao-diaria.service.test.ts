@@ -73,8 +73,9 @@ describe("calcularApuracaoDiaria", () => {
     });
 
     expect(resultado.resultado).toBe("REGULAR");
-    expect(resultado.status).toBe("INCONSISTENTE");
-    expect(resultado.minutosTrabalhados).toBe(480);
+    expect(resultado.status).toBe("CALCULADA");
+    expect(resultado.minutosIntervalo).toBe(60);
+    expect(resultado.minutosTrabalhados).toBe(420);
     expect(resultado.minutosCredito).toBe(0);
     expect(resultado.minutosDebito).toBe(0);
   });
@@ -99,7 +100,7 @@ describe("calcularApuracaoDiaria", () => {
     expect(resultado.minutosDebito).toBe(0);
   });
 
-  it("sinaliza inconsistencia quando a jornada de 7h tenta gerar credito sem intervalo minimo", () => {
+  it("aplica intervalo minimo quando a jornada de 7h tem indicativo de hora extra sem intervalo registrado", () => {
     const resultado = calcularApuracaoDiaria({
       jornada: jornada7h,
       marcacoes: [marcacao("ENTRADA", "08:00"), marcacao("SAIDA", "17:00")],
@@ -107,14 +108,30 @@ describe("calcularApuracaoDiaria", () => {
     });
 
     expect(resultado.resultado).toBe("REGULAR");
-    expect(resultado.status).toBe("INCONSISTENTE");
-    expect(resultado.minutosTrabalhados).toBe(540);
+    expect(resultado.status).toBe("CALCULADA");
+    expect(resultado.minutosIntervalo).toBe(60);
+    expect(resultado.minutosTrabalhados).toBe(480);
     expect(resultado.minutosCredito).toBe(0);
-    expect(resultado.ocorrencias).toEqual(
+    expect(resultado.ocorrencias).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({ tipo: "INTERVALO_INVALIDO" }),
       ]),
     );
+  });
+
+  it("gera credito na jornada de 7h sem intervalo registrado apos aplicar o intervalo minimo", () => {
+    const resultado = calcularApuracaoDiaria({
+      jornada: jornada7h,
+      marcacoes: [marcacao("ENTRADA", "08:00"), marcacao("SAIDA", "18:00")],
+      regulamentacao: regulamentacaoLocalLegada,
+    });
+
+    expect(resultado.resultado).toBe("CREDITO");
+    expect(resultado.status).toBe("CALCULADA");
+    expect(resultado.minutosIntervalo).toBe(60);
+    expect(resultado.minutosTrabalhados).toBe(540);
+    expect(resultado.minutosCredito).toBe(60);
+    expect(resultado.minutosDebito).toBe(0);
   });
 
   it("calcula debito quando a jornada de 7h fica abaixo da carga prevista", () => {
@@ -156,6 +173,36 @@ describe("calcularApuracaoDiaria", () => {
     expect(resultado.minutosIntervalo).toBe(60);
     expect(resultado.minutosTrabalhados).toBe(480);
     expect(resultado.minutosCredito).toBe(0);
+    expect(resultado.minutosDebito).toBe(0);
+  });
+
+  it("aplica intervalo minimo na jornada de 8h sem intervalo registrado e sem credito efetivo", () => {
+    const resultado = calcularApuracaoDiaria({
+      jornada: jornada8h,
+      marcacoes: [marcacao("ENTRADA", "08:00"), marcacao("SAIDA", "17:00")],
+      regulamentacao: regulamentacaoLocalLegada,
+    });
+
+    expect(resultado.resultado).toBe("REGULAR");
+    expect(resultado.status).toBe("CALCULADA");
+    expect(resultado.minutosIntervalo).toBe(60);
+    expect(resultado.minutosTrabalhados).toBe(480);
+    expect(resultado.minutosCredito).toBe(0);
+    expect(resultado.minutosDebito).toBe(0);
+  });
+
+  it("gera credito na jornada de 8h sem intervalo registrado apos aplicar o intervalo minimo", () => {
+    const resultado = calcularApuracaoDiaria({
+      jornada: jornada8h,
+      marcacoes: [marcacao("ENTRADA", "08:00"), marcacao("SAIDA", "18:00")],
+      regulamentacao: regulamentacaoLocalLegada,
+    });
+
+    expect(resultado.resultado).toBe("CREDITO");
+    expect(resultado.status).toBe("CALCULADA");
+    expect(resultado.minutosIntervalo).toBe(60);
+    expect(resultado.minutosTrabalhados).toBe(540);
+    expect(resultado.minutosCredito).toBe(60);
     expect(resultado.minutosDebito).toBe(0);
   });
 
@@ -219,7 +266,7 @@ describe("calcularApuracaoDiaria", () => {
     );
   });
 
-  it("calcula dia dispensado sem inconsistencia mesmo com frequencia manual", () => {
+  it("marca falta quando a dispensa de ponto exige frequencia manual sem registro", () => {
     const resultado = calcularApuracaoDiaria({
       jornada: jornada7h,
       marcacoes: [],
@@ -230,23 +277,50 @@ describe("calcularApuracaoDiaria", () => {
       },
     });
 
-    expect(resultado.resultado).toBe("REGULAR");
-    expect(resultado.status).toBe("CALCULADA");
-    expect(resultado.minutosTrabalhados).toBe(420);
-    expect(resultado.minutosDebito).toBe(0);
+    expect(resultado.resultado).toBe("FALTA");
+    expect(resultado.status).toBe("INCONSISTENTE");
+    expect(resultado.minutosTrabalhados).toBe(0);
+    expect(resultado.minutosDebito).toBe(420);
     expect(resultado.frequenciaManual).toEqual(
       expect.objectContaining({
         obrigatoria: true,
         registrada: false,
       }),
     );
-    expect(resultado.ocorrencias).toEqual([]);
+    expect(resultado.ocorrencias).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          tipo: "FALTA",
+          descricao: expect.stringContaining("Frequencia manual obrigatoria"),
+          minutos: 420,
+        }),
+      ]),
+    );
     expect(resultado.dispensaPontoEletronico).toEqual(
       expect.objectContaining({
         ativa: true,
         exigeFrequenciaManual: true,
       }),
     );
+  });
+
+  it("calcula dia dispensado sem inconsistencia quando frequencia manual nao e exigida", () => {
+    const resultado = calcularApuracaoDiaria({
+      jornada: jornada7h,
+      marcacoes: [],
+      dispensaPontoEletronico: {
+        ativa: true,
+        motivos: ["Dispensa administrativa de ponto."],
+        exigeFrequenciaManual: false,
+      },
+    });
+
+    expect(resultado.resultado).toBe("REGULAR");
+    expect(resultado.status).toBe("CALCULADA");
+    expect(resultado.minutosTrabalhados).toBe(420);
+    expect(resultado.minutosDebito).toBe(0);
+    expect(resultado.frequenciaManual).toBeNull();
+    expect(resultado.ocorrencias).toEqual([]);
   });
 
   it("considera marcacoes existentes mesmo quando ha dispensa de ponto na data", () => {

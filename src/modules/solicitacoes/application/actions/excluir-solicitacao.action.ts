@@ -5,7 +5,10 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { normalizarDataReferencia } from "@/modules/apuracao/application/services/calcular-tempo.service";
-import { perfilEhAdministradorSistema } from "@/modules/auth/domain/constants/perfis-sistema";
+import {
+  perfilEhAdministradorSistema,
+  perfilEhChefia,
+} from "@/modules/auth/domain/constants/perfis-sistema";
 import { recalcularDiaServidorService } from "@/modules/recalculo/application/services/recalcular-dia-servidor.service";
 import { regerarBancoHorasMesService } from "@/modules/recalculo/application/services/regerar-banco-horas-mes.service";
 import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
@@ -86,9 +89,17 @@ export async function excluirSolicitacaoAction(solicitacaoId: string) {
   const exclusaoAdministrativa = perfilEhAdministradorSistema(
     session.user.perfilAtivo,
   );
+  const perfilAtivoChefia = perfilEhChefia(session.user.perfilAtivo);
   const exclusaoPeloSolicitante =
+    !perfilAtivoChefia &&
     solicitacao.usuarioSolicitanteId === session.user.id &&
     solicitacao.status === "ENVIADA";
+
+  if (perfilAtivoChefia) {
+    throw new Error(
+      "O perfil de chefia nao possui permissao para excluir solicitacoes de ponto.",
+    );
+  }
 
   if (!exclusaoAdministrativa && !exclusaoPeloSolicitante) {
     throw new Error(

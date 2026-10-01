@@ -304,10 +304,10 @@ export async function buscarHomologacaoServidorMes(params: {
   });
 }
 
-export async function verificarEnvioEspelhoServidor(
+export async function buscarEnvioEspelhoServidor(
   homologacaoServidorMesId: string,
 ) {
-  const envio = await prisma.auditoriaEvento.findFirst({
+  return prisma.auditoriaEvento.findFirst({
     where: {
       entidade: "HomologacaoServidorMes",
       entidadeId: homologacaoServidorMesId,
@@ -315,8 +315,23 @@ export async function verificarEnvioEspelhoServidor(
     },
     select: {
       id: true,
+      criadoEm: true,
+      usuario: {
+        select: {
+          nome: true,
+        },
+      },
+    },
+    orderBy: {
+      criadoEm: "asc",
     },
   });
+}
+
+export async function verificarEnvioEspelhoServidor(
+  homologacaoServidorMesId: string,
+) {
+  const envio = await buscarEnvioEspelhoServidor(homologacaoServidorMesId);
 
   return Boolean(envio);
 }

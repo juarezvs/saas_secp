@@ -10,8 +10,9 @@ export type CompetenciaInputProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
   "type" | "onChange" | "value" | "defaultValue"
 > & {
-  label?: string;
+  label?: string | null;
   inputClassName?: string;
+  labelClassName?: string;
   value?: string;
   defaultValue?: string;
   onValueChange?: (value: string) => void;
@@ -66,6 +67,7 @@ export function CompetenciaInput({
   label = "Competência",
   className,
   inputClassName,
+  labelClassName,
   value,
   defaultValue,
   onValueChange,
@@ -107,12 +109,17 @@ export function CompetenciaInput({
 
   return (
     <div ref={containerRef} className={cn("relative", className)}>
-      <label
-        htmlFor={`${id}-trigger`}
-        className="text-sm font-semibold text-[var(--foreground)]"
-      >
-        {label}
-      </label>
+      {label ? (
+        <label
+          htmlFor={`${id}-trigger`}
+          className={cn(
+            "text-sm font-semibold text-[var(--foreground)]",
+            labelClassName,
+          )}
+        >
+          {label}
+        </label>
+      ) : null}
       <input id={id} name={name} type="hidden" value={valorAtual} {...props} />
       <button
         id={`${id}-trigger`}

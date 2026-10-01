@@ -203,6 +203,62 @@ export async function listarApuracoesDoServidorNoMes(params: {
   return espelho.itens;
 }
 
+export async function listarSolicitacoesDoServidorNoMes(params: {
+  servidorId: string;
+  ano: number;
+  mes: number;
+}) {
+  const inicio = new Date(Date.UTC(params.ano, params.mes - 1, 1));
+  const fim = new Date(Date.UTC(params.ano, params.mes, 1));
+
+  return prisma.solicitacao.findMany({
+    where: {
+      servidorId: params.servidorId,
+      OR: [
+        {
+          dataReferencia: {
+            gte: inicio,
+            lt: fim,
+          },
+        },
+        {
+          dataReferencia: null,
+          dataInicio: {
+            lt: fim,
+          },
+          OR: [{ dataFim: null }, { dataFim: { gte: inicio } }],
+        },
+        {
+          criadoEm: {
+            gte: inicio,
+            lt: fim,
+          },
+        },
+      ],
+    },
+    include: {
+      usuarioSolicitante: true,
+      analisadaPor: true,
+      anexos: {
+        orderBy: {
+          criadoEm: "asc",
+        },
+      },
+      eventos: {
+        include: {
+          usuario: true,
+        },
+        orderBy: {
+          criadoEm: "asc",
+        },
+      },
+    },
+    orderBy: {
+      criadoEm: "desc",
+    },
+  });
+}
+
 export async function listarApuracoesCalculadasDoServidorNoMes(params: {
   servidorId: string;
   ano: number;

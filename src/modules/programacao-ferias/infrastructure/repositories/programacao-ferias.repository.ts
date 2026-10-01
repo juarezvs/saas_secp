@@ -11,7 +11,7 @@ const TOTAL_DIAS_FERIAS_EXERCICIO = 30;
 
 export type ProgramacaoFeriasMapaItem = {
   id: string;
-  origem: "SARH" | "SECP" | "PREVIA";
+  origem: "SARH" | "SECP" | "PREVIA" | "COMPENSACAO";
   servidorId: string;
   servidorNome: string;
   matricula: string;
@@ -32,6 +32,15 @@ export type ProgramacaoFeriasSaldo = {
   diasSarh: number;
   diasSecp: number;
   diasDisponiveis: number;
+};
+
+export type CompensacaoFeriasDisponivel = {
+  id: string;
+  dataReferencia: Date;
+  expiraEm: Date | null;
+  minutos: number;
+  descricao: string | null;
+  status: string;
 };
 
 export type PeriodoFeriasServidor = {
@@ -151,6 +160,49 @@ export async function buscarProgramacaoFeriasPorId(id: string) {
       analisadoPor: true,
       enviadoSarhPor: true,
       afastamentoSarh: true,
+    },
+  });
+}
+
+export async function listarCompensacoesFeriasDisponiveisServidor(
+  servidorId: string,
+): Promise<CompensacaoFeriasDisponivel[]> {
+  const hoje = new Date();
+  hoje.setUTCHours(0, 0, 0, 0);
+
+  return prisma.movimentoBancoHoras.findMany({
+    where: {
+      servidorId,
+      tipo: { in: ["CREDITO", "COMPENSACAO_DEBITO"] },
+      status: { in: ["VALIDADO", "PENDENTE"] },
+      minutos: { gt: 0 },
+      OR: [{ expiraEm: null }, { expiraEm: { gte: hoje } }],
+    },
+    select: {
+      id: true,
+      dataReferencia: true,
+      expiraEm: true,
+      minutos: true,
+      descricao: true,
+      status: true,
+    },
+    orderBy: [{ expiraEm: "asc" }, { dataReferencia: "asc" }],
+  });
+}
+
+export async function buscarExcecaoSecapFeriasAtivaServidor(
+  servidorId: string,
+) {
+  return prisma.excecaoSecapFeriasServidor.findFirst({
+    where: {
+      servidorId,
+      ativo: true,
+    },
+    include: {
+      criadoPor: true,
+    },
+    orderBy: {
+      criadoEm: "desc",
     },
   });
 }
@@ -465,7 +517,17 @@ export async function listarProgramacoesPendentesEnvioSarh(orgaoIds?: string[]) 
       ...(orgaoIds?.length ? { orgaoId: { in: orgaoIds } } : {}),
     },
     include: {
-      servidor: { include: { usuario: true } },
+      servidor: {
+        include: {
+          usuario: true,
+          excecoesSecapFerias: {
+            where: { ativo: true },
+            include: { criadoPor: true },
+            orderBy: { criadoEm: "desc" },
+            take: 1,
+          },
+        },
+      },
       unidade: true,
       orgao: true,
       enviadoSarhPor: true,
@@ -513,7 +575,7 @@ export async function montarMapaFeriasEquipe(params: {
     dataInicio: { lt: inicioProximoAno },
     OR: [{ dataFim: null }, { dataFim: { gte: inicioAno } }],
   };
-  const [afastamentos, programacoes, previewServidor] = await Promise.all([
+  const [afastamentos, programacoes, compensacoes, previewServidor] = await Promise.all([
     prisma.afastamentoSarh.findMany({
       where: {
         servidorId: { not: null },
@@ -559,6 +621,31 @@ export async function montarMapaFeriasEquipe(params: {
           },
         },
         unidade: true,
+      },
+    }),
+    prisma.movimentoBancoHoras.findMany({
+      where: {
+        dataReferencia: { lt: inicioProximoAno },
+        OR: [{ expiraEm: null }, { expiraEm: { gte: inicioAno } }],
+        tipo: { in: ["CREDITO", "COMPENSACAO_DEBITO"] },
+        status: { in: ["VALIDADO", "PENDENTE"] },
+        minutos: { gt: 0 },
+        servidor: {
+          ativo: true,
+          lotacoes: { some: lotacaoNoPeriodo },
+        },
+      },
+      include: {
+        servidor: {
+          include: {
+            usuario: true,
+            lotacoes: {
+              where: lotacaoNoPeriodo,
+              include: { unidade: true },
+              orderBy: [{ dataInicio: "desc" }],
+            },
+          },
+        },
       },
     }),
     params.preview
@@ -646,8 +733,35 @@ export async function montarMapaFeriasEquipe(params: {
           },
         ]
       : [];
+  const itensCompensacao = compensacoes
+    .map((movimento): ProgramacaoFeriasMapaItem | null => {
+      const unidade = primeiraLotacaoAtiva(movimento.servidor);
 
-  return [...itensSarh, ...itensSecpSemPreview, ...itemPreview].sort(
+      if (!unidade) return null;
+
+      return {
+        id: movimento.id,
+        origem: "COMPENSACAO",
+        servidorId: movimento.servidorId,
+        servidorNome:
+          nomeServidor(movimento.servidor) || movimento.servidor.matricula,
+        matricula: movimento.servidor.matricula,
+        unidadeId: unidade.id,
+        unidadeSigla: unidade.sigla,
+        unidadeNome: unidade.nome,
+        dataInicio: movimento.dataReferencia,
+        dataFim: movimento.dataReferencia,
+        dias: 1,
+        exercicio: movimento.anoReferencia,
+        status: movimento.status,
+        statusLabel: movimento.expiraEm
+          ? `Compensação vence em ${movimento.expiraEm.toLocaleDateString("pt-BR", { timeZone: "UTC" })}`
+          : "Compensação sem vencimento",
+      };
+    })
+    .filter((item): item is ProgramacaoFeriasMapaItem => Boolean(item));
+
+  return [...itensSarh, ...itensSecpSemPreview, ...itensCompensacao, ...itemPreview].sort(
     (a, b) => a.dataInicio.getTime() - b.dataInicio.getTime(),
   );
 }

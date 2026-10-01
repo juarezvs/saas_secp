@@ -247,7 +247,7 @@ function dataLimiteSaldos(params: {
     return new Date(fim.getTime() - 1);
   }
 
-  return hoje;
+  return new Date(hoje.getTime() - 1);
 }
 
 function metadadosComoObjeto(metadados: unknown) {
@@ -296,7 +296,7 @@ function extrairJanelaExpediente(metadados: unknown) {
   };
 }
 
-function ajustarDiaAtualEmAndamento(
+function ajustarDiaNaoEncerrado(
   item: ItemEspelhoMensalCompleto,
   params: {
     hoje: Date;
@@ -304,29 +304,23 @@ function ajustarDiaAtualEmAndamento(
     fusoHorario?: string | null;
   },
 ) {
+  const dataReferencia = normalizarDataReferencia(item.dataReferencia);
+  const diaNaoEncerrado = dataReferencia >= params.hoje;
+
   if (
     item.cargaPrevistaMinutos <= 0 ||
-    chaveData(item.dataReferencia) !== chaveData(params.hoje) ||
-    !["FALTA", "INCOMPLETA", "DEBITO", "PENDENTE"].includes(item.resultado)
+    !diaNaoEncerrado ||
+    (item.ocorrencias ?? []).some((ocorrencia) => ocorrencia.tipo === "AFASTAMENTO")
   ) {
     return item;
   }
 
   const janela = extrairJanelaExpediente(item.metadados);
   const inicioJanela = horaParaMinutos(janela?.inicio) ?? 8 * 60;
-  const fimJanela = horaParaMinutos(janela?.fim) ?? 18 * 60;
   const inicioPrevisto = item.primeiraEntrada
     ? minutosLocais(item.primeiraEntrada, params.fusoHorario)
     : inicioJanela;
-  const saidaPrevista = Math.min(
-    fimJanela,
-    inicioPrevisto + item.cargaPrevistaMinutos,
-  );
   const agora = minutosAgoraNoFuso(params.fusoHorario, params.agora);
-
-  if (agora >= saidaPrevista) {
-    return item;
-  }
 
   const minutosTrabalhadosParciais = item.primeiraEntrada
     ? Math.max(0, Math.min(agora - inicioPrevisto, item.cargaPrevistaMinutos))
@@ -348,6 +342,7 @@ function ajustarDiaAtualEmAndamento(
     minutosHoraExtraAutorizada: 0,
     minutosHoraExtraNaoAutorizada: 0,
     minutosBancoHoras: 0,
+    contabilizarSaldos: false,
   };
 }
 
@@ -895,7 +890,7 @@ export async function montarEspelhoMensalCompleto(params: {
               ? aplicarPrevisaoTrabalhoRemoto(item)
               : item;
 
-        return ajustarDiaAtualEmAndamento(
+        return ajustarDiaNaoEncerrado(
           afastamento
             ? aplicarAfastamentoSarh(itemAjustado, afastamento)
             : itemAjustado,
@@ -947,7 +942,7 @@ export async function montarEspelhoMensalCompleto(params: {
         ? aplicarPrevisaoTrabalhoRemoto(item)
         : item;
 
-      return ajustarDiaAtualEmAndamento(
+      return ajustarDiaNaoEncerrado(
         afastamento
           ? aplicarAfastamentoSarh(itemComPrevisao, afastamento)
           : itemComPrevisao,

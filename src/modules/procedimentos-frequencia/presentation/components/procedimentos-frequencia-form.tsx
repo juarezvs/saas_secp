@@ -8,6 +8,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+import { SwitchField } from "@/components/ui/switch";
 import { salvarProcedimentosFrequenciaAction } from "../../application/actions/salvar-procedimentos-frequencia.action";
 import { coberturaProcedimentoFrequencia } from "../../application/services/procedimentos-frequencia.service";
 
@@ -112,16 +113,19 @@ function CheckboxParametro({
   label: string;
   defaultChecked: boolean;
 }) {
+  const inputId = `${name}-${id}`;
+
   return (
-    <label className="flex min-h-11 items-center gap-2 rounded-md border bg-[var(--muted)] px-3 py-2 text-xs font-semibold">
-      <input
-        type="checkbox"
-        name={`${name}-${id}`}
+    <div className="flex min-h-11 items-center justify-between gap-3 rounded-md border bg-[var(--muted)] px-3 py-2 text-xs font-semibold">
+      <label htmlFor={inputId} className="min-w-0 flex-1">
+        {label}
+      </label>
+      <SwitchField
+        id={inputId}
+        name={inputId}
         defaultChecked={defaultChecked}
-        className="size-4 rounded border-slate-300"
       />
-      {label}
-    </label>
+    </div>
   );
 }
 
@@ -237,15 +241,16 @@ export function ProcedimentosFrequenciaForm({
                           </label>
                         </div>
 
-                        <label className="flex items-center gap-2 rounded-md border bg-[var(--muted)] px-3 py-2 text-sm font-semibold">
-                          <input
-                            type="checkbox"
+                        <div className="flex items-center justify-between gap-3 rounded-md border bg-[var(--muted)] px-3 py-2 text-sm font-semibold">
+                          <label htmlFor={`ativo-${procedimento.id}`}>
+                            Ativo
+                          </label>
+                          <SwitchField
+                            id={`ativo-${procedimento.id}`}
                             name={`ativo-${procedimento.id}`}
                             defaultChecked={procedimento.ativo}
-                            className="size-4 rounded border-slate-300"
                           />
-                          Ativo
-                        </label>
+                        </div>
                       </div>
 
                       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">

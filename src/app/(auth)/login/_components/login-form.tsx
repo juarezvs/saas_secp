@@ -63,6 +63,9 @@ export function LoginForm() {
   const [senha, setSenha] = useState("");
   const [lembrarCredenciais, setLembrarCredenciais] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
+  const suporteHref = `/api/suporte-login?matricula=${encodeURIComponent(
+    matricula.trim(),
+  )}`;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -191,7 +194,7 @@ export function LoginForm() {
       </Button>
 
       <a
-        href="https://esosti.trf1.jus.br/"
+        href={suporteHref}
         target="_blank"
         rel="noreferrer"
         className="flex h-11 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-center text-sm font-bold text-blue-950 transition hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"

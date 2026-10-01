@@ -1,4 +1,5 @@
 ﻿import { CompetenciaInput } from "@/components/ui";
+import { SwitchField } from "@/components/ui/switch";
 import { salvarRegulamentacaoPontoAction } from "@/modules/regulamentacao-ponto/application/actions/salvar-regulamentacao-ponto.action";
 import { REGULAMENTACAO_PONTO_PADRAO } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 import { RegulamentacaoPontoSubmitButton } from "./regulamentacao-ponto-submit-button";
@@ -30,6 +31,11 @@ type RegrasFormulario = {
   inicioJanelaNoite: string;
   prazoHomologacaoDiaMesSeguinte: number;
   prazoAjustePontoDiaMesSeguinte: number;
+  feriasAntecedenciaPrimeiroPeriodoDias: number;
+  feriasAntecedenciaDemaisPeriodosDiasUteis: number;
+  feriasJanelaCienciaPrimeiroPeriodoDias: number;
+  feriasExigeCienciaPrimeiroPeriodo: boolean;
+  feriasAprovacaoAutomaticaSecap: boolean;
   percentualCreditoSabado: number;
   percentualCreditoDomingoFeriado: number;
   percentualCreditoRecesso: number;
@@ -37,6 +43,7 @@ type RegrasFormulario = {
   exigeAutorizacaoPreviaCredito: boolean;
   bancoHorasAtivo: boolean;
   bancoHorasCompetenciaInicio?: string | null;
+  nadaConstaConsideraMesAberto: boolean;
   horasExtrasAtivo: boolean;
   horasForaExpedienteInconsistente: boolean;
 };
@@ -60,6 +67,36 @@ function formatarMinutosComoHora(minutos: number) {
   const resto = minutos % 60;
 
   return `${String(horas).padStart(2, "0")}:${String(resto).padStart(2, "0")}`;
+}
+
+function SwitchParametro({
+  name,
+  label,
+  description,
+  defaultChecked,
+  className,
+}: {
+  name: string;
+  label: string;
+  description?: string;
+  defaultChecked?: boolean;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`flex items-start justify-between gap-3 rounded-md border bg-[var(--muted)] p-4 text-sm ${className ?? ""}`}
+    >
+      <label htmlFor={name} className="min-w-0 flex-1">
+        <span className="block font-semibold">{label}</span>
+        {description ? (
+          <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
+            {description}
+          </span>
+        ) : null}
+      </label>
+      <SwitchField id={name} name={name} defaultChecked={defaultChecked} />
+    </div>
+  );
 }
 
 export function RegulamentacaoPontoForm({
@@ -89,15 +126,14 @@ export function RegulamentacaoPontoForm({
           </p>
         </div>
 
-        <label className="inline-flex items-center gap-2 text-sm font-semibold">
-          <input
-            type="checkbox"
+        <div className="inline-flex items-center gap-3 text-sm font-semibold">
+          <label htmlFor="ativo">Usar estas regras para este órgão</label>
+          <SwitchField
+            id="ativo"
             name="ativo"
             defaultChecked={configuracaoAtiva}
-            className="size-4 rounded border-slate-300"
           />
-          Usar estas regras para este órgão
-        </label>
+        </div>
       </div>
 
       <div className="mt-5 grid items-start gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -387,6 +423,81 @@ export function RegulamentacaoPontoForm({
           />
         </label>
 
+        <fieldset className="space-y-3 rounded-md border bg-[var(--muted)] p-4 md:col-span-2 xl:col-span-4">
+          <legend className="px-1 text-sm font-semibold">
+            Férias - marcação, ciência e SECAP
+          </legend>
+          <p className="text-xs leading-5 text-[var(--muted-foreground)]">
+            Parâmetros independentes por seccional para bloquear marcações,
+            exigir ciência do servidor no 1º período e controlar aprovação
+            automática pela SECAP.
+          </p>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <label className="space-y-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+                Bloqueio 1º período
+              </span>
+              <input
+                name="feriasAntecedenciaPrimeiroPeriodoDias"
+                type="number"
+                min={0}
+                max={365}
+                defaultValue={valores.feriasAntecedenciaPrimeiroPeriodoDias}
+                className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              />
+              <span className="block text-[11px] text-[var(--muted-foreground)]">
+                Dias corridos mínimos antes do início.
+              </span>
+            </label>
+            <label className="space-y-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+                Bloqueio demais períodos
+              </span>
+              <input
+                name="feriasAntecedenciaDemaisPeriodosDiasUteis"
+                type="number"
+                min={0}
+                max={60}
+                defaultValue={
+                  valores.feriasAntecedenciaDemaisPeriodosDiasUteis
+                }
+                className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              />
+              <span className="block text-[11px] text-[var(--muted-foreground)]">
+                Dias úteis mínimos antes do início.
+              </span>
+            </label>
+            <label className="space-y-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+                Janela de ciência
+              </span>
+              <input
+                name="feriasJanelaCienciaPrimeiroPeriodoDias"
+                type="number"
+                min={0}
+                max={365}
+                defaultValue={valores.feriasJanelaCienciaPrimeiroPeriodoDias}
+                className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              />
+              <span className="block text-[11px] text-[var(--muted-foreground)]">
+                Exibe ciência quando inferior a este prazo.
+              </span>
+            </label>
+            <SwitchParametro
+              name="feriasExigeCienciaPrimeiroPeriodo"
+              label="Exigir ciência no 1º período"
+              description="Mantém a ciência obrigatória mesmo que o bloqueio seja flexibilizado."
+              defaultChecked={valores.feriasExigeCienciaPrimeiroPeriodo}
+            />
+            <SwitchParametro
+              name="feriasAprovacaoAutomaticaSecap"
+              label="Aprovação automática SECAP"
+              description="Permite seguir sem tratativa manual, exceto servidores travados pela SECAP."
+              defaultChecked={valores.feriasAprovacaoAutomaticaSecap}
+            />
+          </div>
+        </fieldset>
+
         <label className="space-y-2">
           <span className="text-sm font-semibold">
             Acréscimo para sábado (%)
@@ -438,68 +549,30 @@ export function RegulamentacaoPontoForm({
           />
         </label>
 
-        <label className="flex items-center gap-3 rounded-md border bg-[var(--muted)] p-4 text-sm">
-          <input
-            type="checkbox"
-            name="jornada7hCreditoExigeIntervalo"
-            defaultChecked={valores.jornada7hCreditoExigeIntervalo}
-            className="size-4 rounded border-slate-300"
-          />
-          <span>
-            <span className="block font-semibold">
-              Exigir intervalo para crédito na jornada de 7h
-            </span>
-            <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
-              Quando desmarcado, o excedente da jornada de 7h pode gerar
-              crédito sem intervalo.
-            </span>
-          </span>
-        </label>
+        <SwitchParametro
+          name="jornada7hCreditoExigeIntervalo"
+          label="Exigir intervalo para crédito na jornada de 7h"
+          description="Quando desmarcado, o excedente da jornada de 7h pode gerar crédito sem intervalo."
+          defaultChecked={valores.jornada7hCreditoExigeIntervalo}
+        />
 
-        <label className="flex items-center gap-3 rounded-md border bg-[var(--muted)] p-4 text-sm">
-          <input
-            type="checkbox"
-            name="recessoIgnoraLimiteMensal"
-            defaultChecked={valores.recessoIgnoraLimiteMensal}
-            className="size-4 rounded border-slate-300"
-          />
-          <span>
-            <span className="block font-semibold">
-              Recesso não se submete ao teto mensal
-            </span>
-            <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
-              Mantém separada a regra especial de recesso forense.
-            </span>
-          </span>
-        </label>
+        <SwitchParametro
+          name="recessoIgnoraLimiteMensal"
+          label="Recesso não se submete ao teto mensal"
+          description="Mantém separada a regra especial de recesso forense."
+          defaultChecked={valores.recessoIgnoraLimiteMensal}
+        />
 
-        <label className="flex items-center gap-3 rounded-md border bg-[var(--muted)] p-4 text-sm">
-          <input
-            type="checkbox"
-            name="exigeAutorizacaoPreviaCredito"
-            defaultChecked={valores.exigeAutorizacaoPreviaCredito}
-            className="size-4 rounded border-slate-300"
-          />
-          <span>
-            <span className="block font-semibold">
-              Exigir autorização prévia para crédito
-            </span>
-            <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
-              O excedente só entra no banco de horas quando houver autorização
-              deferida.
-            </span>
-          </span>
-        </label>
+        <SwitchParametro
+          name="exigeAutorizacaoPreviaCredito"
+          label="Exigir autorização prévia para crédito"
+          description="O excedente só entra no banco de horas quando houver autorização deferida."
+          defaultChecked={valores.exigeAutorizacaoPreviaCredito}
+        />
 
         <div className="rounded-md border bg-[var(--muted)] p-4 text-sm md:col-span-2">
-          <label className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              name="bancoHorasAtivo"
-              defaultChecked={valores.bancoHorasAtivo}
-              className="size-4 rounded border-slate-300"
-            />
-            <span>
+          <div className="flex items-start justify-between gap-3">
+            <label htmlFor="bancoHorasAtivo" className="min-w-0 flex-1">
               <span className="block font-semibold">
                 Controle de banco de horas ativo
               </span>
@@ -507,8 +580,13 @@ export function RegulamentacaoPontoForm({
                 Quando desativado, o SECP não gera movimentos, saldo ou opções
                 de banco de horas para esta seccional.
               </span>
-            </span>
-          </label>
+            </label>
+            <SwitchField
+              id="bancoHorasAtivo"
+              name="bancoHorasAtivo"
+              defaultChecked={valores.bancoHorasAtivo}
+            />
+          </div>
 
           <div className="mt-3 max-w-xs">
             <CompetenciaInput
@@ -522,41 +600,26 @@ export function RegulamentacaoPontoForm({
           </div>
         </div>
 
-        <label className="flex items-center gap-3 rounded-md border bg-[var(--muted)] p-4 text-sm">
-          <input
-            type="checkbox"
-            name="horasExtrasAtivo"
-            defaultChecked={valores.horasExtrasAtivo}
-            className="size-4 rounded border-slate-300"
-          />
-          <span>
-            <span className="block font-semibold">
-              Controle de horas extras ativo
-            </span>
-            <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
-              Quando desativado, a rotina de horas extras fica indisponível
-              para servidores desta seccional.
-            </span>
-          </span>
-        </label>
+        <SwitchParametro
+          name="horasExtrasAtivo"
+          label="Controle de horas extras ativo"
+          description="Quando desativado, a rotina de horas extras fica indisponível para servidores desta seccional."
+          defaultChecked={valores.horasExtrasAtivo}
+        />
 
-        <label className="flex items-center gap-3 rounded-md border bg-[var(--muted)] p-4 text-sm">
-          <input
-            type="checkbox"
-            name="horasForaExpedienteInconsistente"
-            defaultChecked={valores.horasForaExpedienteInconsistente}
-            className="size-4 rounded border-slate-300"
-          />
-          <span>
-            <span className="block font-semibold">
-              Sinalizar marcação fora do expediente
-            </span>
-            <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
-              Usa a janela de expediente como referência no espelho, sem impedir
-              ou invalidar o registro da marcação.
-            </span>
-          </span>
-        </label>
+        <SwitchParametro
+          name="nadaConstaConsideraMesAberto"
+          label="Considerar mês aberto para Nada Consta"
+          description="Quando marcado, o Nada Consta considera débitos e créditos do mês corrente se a competência estiver dentro do período consultado."
+          defaultChecked={valores.nadaConstaConsideraMesAberto}
+        />
+
+        <SwitchParametro
+          name="horasForaExpedienteInconsistente"
+          label="Sinalizar marcação fora do expediente"
+          description="Usa a janela de expediente como referência no espelho, sem impedir ou invalidar o registro da marcação."
+          defaultChecked={valores.horasForaExpedienteInconsistente}
+        />
 
         <label className="space-y-2 md:col-span-2 xl:col-span-4">
           <span className="text-sm font-semibold">
@@ -583,23 +646,12 @@ export function RegulamentacaoPontoForm({
             defaultValue={competenciaAtual()}
           />
 
-          <label className="flex items-center gap-3 rounded-md border bg-[var(--muted)] px-4 py-3 text-sm">
-            <input
-              type="checkbox"
-              name="recalcularCompetencia"
-              className="size-4 rounded border-slate-300"
-            />
-            <span>
-              <span className="block font-semibold">
-                Recalcular esta competência ao salvar
-              </span>
-              <span className="block min-h-14 text-xs leading-5 text-[var(--muted-foreground)]">
-                Reprocessa espelho e banco de horas apenas dos servidores deste
-                órgão. O processamento continua em segundo plano mesmo se você
-                sair desta tela.
-              </span>
-            </span>
-          </label>
+          <SwitchParametro
+            name="recalcularCompetencia"
+            label="Recalcular esta competência ao salvar"
+            description="Reprocessa espelho e banco de horas apenas dos servidores deste órgão. O processamento continua em segundo plano mesmo se você sair desta tela."
+            className="px-4 py-3"
+          />
         </div>
 
         <RegulamentacaoPontoSubmitButton />

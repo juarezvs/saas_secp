@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LockKeyhole, Save } from "lucide-react";
+import { LockKeyhole, Save, UsersRound } from "lucide-react";
 
 import { Button, Modal } from "@/components/ui";
+import { ActionStateToast } from "@/components/ui/toast";
 import { RelatorioExportacaoButton } from "@/modules/relatorios/presentation/components/relatorio-exportacao-button";
 import {
   assinarSupervisorAcompanhamentoEstagioAction,
@@ -42,6 +44,9 @@ export function AcompanhamentoEstagioPage({ dados }: Props) {
     useState(false);
   const [modalDevolucaoAberto, setModalDevolucaoAberto] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState<"atual" | "anteriores">("atual");
+  const [filtroEstagiarios, setFiltroEstagiarios] = useState<
+    "ativos" | "inativos" | "todos"
+  >("ativos");
   const fechado = dados.acompanhamento.status === "FECHADO";
   const aguardandoSupervisor =
     dados.acompanhamento.status === "AGUARDANDO_SUPERVISOR";
@@ -67,6 +72,19 @@ export function AcompanhamentoEstagioPage({ dados }: Props) {
 
     return params.toString();
   }, [dados.competencia.input, dados.modo, dados.servidor.id]);
+  const estagiariosVisiveis = useMemo(() => {
+    const estagiarios = dados.estagiariosSupervisionados ?? [];
+
+    if (filtroEstagiarios === "ativos") {
+      return estagiarios.filter((estagiario) => estagiario.ativo);
+    }
+
+    if (filtroEstagiarios === "inativos") {
+      return estagiarios.filter((estagiario) => !estagiario.ativo);
+    }
+
+    return estagiarios;
+  }, [dados.estagiariosSupervisionados, filtroEstagiarios]);
 
   useEffect(() => {
     if (
@@ -87,6 +105,115 @@ export function AcompanhamentoEstagioPage({ dados }: Props) {
 
   return (
     <div className="space-y-5">
+      <ActionStateToast state={estadoSalvar} />
+      <ActionStateToast state={estadoFechar} />
+      <ActionStateToast state={estadoAssinarSupervisor} />
+      <ActionStateToast state={estadoDevolverSupervisor} />
+
+      {modoSupervisor && (dados.estagiariosSupervisionados?.length ?? 0) > 0 ? (
+        <section className="overflow-hidden rounded-md border bg-[var(--card)]">
+          <div className="flex flex-col gap-3 border-b px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="flex size-10 items-center justify-center rounded-md bg-blue-900 text-white">
+                <UsersRound className="size-5" aria-hidden="true" />
+              </span>
+              <div>
+                <h2 className="text-base font-semibold">
+                  Estagiários supervisionados
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Selecione um estagiário para acompanhar a competência.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {(["ativos", "inativos", "todos"] as const).map((filtro) => (
+                <button
+                  key={filtro}
+                  type="button"
+                  onClick={() => setFiltroEstagiarios(filtro)}
+                  className={`h-9 rounded-md border px-3 text-sm font-semibold ${
+                    filtroEstagiarios === filtro
+                      ? "border-blue-900 bg-blue-900 text-white"
+                      : "hover:bg-[var(--muted)]"
+                  }`}
+                >
+                  {filtro === "ativos"
+                    ? "Ativos"
+                    : filtro === "inativos"
+                      ? "Inativos"
+                      : "Todos"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-[var(--muted)] text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3">Estagiário</th>
+                  <th className="px-4 py-3">Lotação</th>
+                  <th className="px-4 py-3">Curso</th>
+                  <th className="px-4 py-3">Vínculo</th>
+                  <th className="px-4 py-3">Competência</th>
+                </tr>
+              </thead>
+              <tbody>
+                {estagiariosVisiveis.map((estagiario) => {
+                  const selecionado =
+                    estagiario.servidorId === dados.servidor.id;
+                  const href = `/acompanhamento-estagio?competencia=${dados.competencia.input}&servidorId=${estagiario.servidorId}`;
+
+                  return (
+                    <tr
+                      key={estagiario.servidorId}
+                      className={`border-t ${
+                        selecionado
+                          ? "bg-blue-50/70 dark:bg-blue-950/30"
+                          : ""
+                      }`}
+                    >
+                      <td className="px-4 py-3">
+                        <Link
+                          href={href}
+                          className="font-semibold text-blue-800 hover:underline"
+                        >
+                          {estagiario.nome}
+                        </Link>
+                        <p className="text-xs text-muted-foreground">
+                          {estagiario.matricula}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3">{estagiario.lotacao}</td>
+                      <td className="px-4 py-3">{estagiario.curso || "-"}</td>
+                      <td className="px-4 py-3">
+                        {estagiario.ativo ? "Ativo" : "Inativo"}
+                      </td>
+                      <td className="px-4 py-3">
+                        {rotuloStatusAcompanhamento(
+                          estagiario.acompanhamentoStatus,
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {estagiariosVisiveis.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={5}
+                      className="px-4 py-8 text-center text-muted-foreground"
+                    >
+                      Nenhum estagiário encontrado para o filtro selecionado.
+                    </td>
+                  </tr>
+                ) : null}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
+
       <div className="grid gap-4 lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)]">
         <section className="rounded-md border bg-[var(--card)] p-4">
           <label
@@ -558,13 +685,38 @@ function CampoInfo({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="text-xs font-semibold uppercase text-muted-foreground">
-        {label}
+        {corrigirGrafiaEstagio(label)}
       </dt>
       <dd className="mt-1 min-h-10 rounded-md border bg-[var(--muted)] px-3 py-2 text-sm font-medium">
         {value || "-"}
       </dd>
     </div>
   );
+}
+
+function rotuloStatusAcompanhamento(status: string) {
+  const rotulos: Record<string, string> = {
+    ABERTO: "Aberta",
+    AGUARDANDO_SUPERVISOR: "Aguardando supervisor",
+    DEVOLVIDO: "Devolvida",
+    FECHADO: "Fechada",
+  };
+
+  return rotulos[status] ?? status;
+}
+
+function corrigirGrafiaEstagio(texto: string) {
+  return texto
+    .replaceAll("EstagiÃ¡rio", "Estagiário")
+    .replaceAll("EstagiÃƒÂ¡rio", "Estagiário")
+    .replaceAll("MatrÃ­cula", "Matrícula")
+    .replaceAll("MatrÃƒÂ­cula", "Matrícula")
+    .replaceAll("LotaÃ§Ã£o", "Lotação")
+    .replaceAll("LotaÃƒÂ§ÃƒÂ£o", "Lotação")
+    .replaceAll("MÃªs", "Mês")
+    .replaceAll("MÃƒÂªs", "Mês")
+    .replaceAll("CompetÃªncia", "Competência")
+    .replaceAll("CompetÃƒÂªncia", "Competência");
 }
 
 function CompetenciasAnterioresGrid({

@@ -347,7 +347,7 @@ export function NadaConstaFrequenciaPdfDocument({
 
           <SecaoDadosServidor dados={dados} />
           <SecaoPeriodo dados={dados} />
-          <SecaoDeclaracao dados={dados} semPendencias={semPendencias} />
+          <SecaoDeclaracao semPendencias={semPendencias} />
           <SecaoResumo dados={dados} />
 
           {autenticacao ? (
@@ -424,13 +424,7 @@ function SecaoPeriodo({ dados }: { dados: NadaConstaFrequenciaPdfDados }) {
   );
 }
 
-function SecaoDeclaracao({
-  dados,
-  semPendencias,
-}: {
-  dados: NadaConstaFrequenciaPdfDados;
-  semPendencias: boolean;
-}) {
+function SecaoDeclaracao({ semPendencias }: { semPendencias: boolean }) {
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>3. SITUAÇÃO DA JORNADA</Text>

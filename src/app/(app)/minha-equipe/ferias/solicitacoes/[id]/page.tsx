@@ -6,10 +6,12 @@ import { PageHeader } from "@/components/layout/page-header";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
   buscarProgramacaoFeriasPorId,
+  listarCompensacoesFeriasDisponiveisServidor,
   montarMapaFeriasEquipe,
   usuarioPodeAnalisarProgramacaoFerias,
 } from "@/modules/programacao-ferias/infrastructure/repositories/programacao-ferias.repository";
 import {
+  CompensacoesFeriasCard,
   DeliberacaoProgramacaoFeriasForm,
   MapaFeriasAnual,
   MensagemFerias,
@@ -49,18 +51,21 @@ export default async function DetalheSolicitacaoFeriasChefiaPage({
   }
 
   const ano = programacao.dataInicio.getUTCFullYear();
-  const mapa = await montarMapaFeriasEquipe({
-    usuarioId: permissao.usuarioId,
-    ano,
-    preview: {
-      servidorId: programacao.servidorId,
-      dataInicio: programacao.dataInicio,
-      dataFim: programacao.dataFim,
-      dias: programacao.dias,
-      exercicio: programacao.exercicio,
-      programacaoId: programacao.id,
-    },
-  });
+  const [mapa, compensacoes] = await Promise.all([
+    montarMapaFeriasEquipe({
+      usuarioId: permissao.usuarioId,
+      ano,
+      preview: {
+        servidorId: programacao.servidorId,
+        dataInicio: programacao.dataInicio,
+        dataFim: programacao.dataFim,
+        dias: programacao.dias,
+        exercicio: programacao.exercicio,
+        programacaoId: programacao.id,
+      },
+    }),
+    listarCompensacoesFeriasDisponiveisServidor(programacao.servidorId),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -83,42 +88,45 @@ export default async function DetalheSolicitacaoFeriasChefiaPage({
 
       <MensagemFerias ok={query?.ok} erro={query?.erro} />
 
-      <section className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
-        <div className="grid gap-4 md:grid-cols-5">
-          <div className="md:col-span-2">
-            <p className="text-xs font-bold uppercase text-[var(--muted-foreground)]">
-              Servidor
-            </p>
-            <p className="mt-1 font-semibold">{programacao.servidor.usuario.nome}</p>
-            <p className="text-xs text-[var(--muted-foreground)]">
-              {programacao.servidor.matricula} · {programacao.unidade?.sigla ?? "-"}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs font-bold uppercase text-[var(--muted-foreground)]">
-              Período
-            </p>
-            <p className="mt-1 font-semibold">
-              {formatarDataFerias(programacao.dataInicio)} até{" "}
-              {formatarDataFerias(programacao.dataFim)}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs font-bold uppercase text-[var(--muted-foreground)]">
-              Dias
-            </p>
-            <p className="mt-1 font-semibold">{programacao.dias}</p>
-          </div>
-          <div>
-            <p className="text-xs font-bold uppercase text-[var(--muted-foreground)]">
-              Status
-            </p>
-            <div className="mt-1">
-              <StatusProgramacaoFeriasBadge status={programacao.status} />
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+        <section className="rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm">
+          <div className="grid gap-4 md:grid-cols-5">
+            <div className="md:col-span-2">
+              <p className="text-xs font-bold uppercase text-[var(--muted-foreground)]">
+                Servidor
+              </p>
+              <p className="mt-1 font-semibold">{programacao.servidor.usuario.nome}</p>
+              <p className="text-xs text-[var(--muted-foreground)]">
+                {programacao.servidor.matricula} · {programacao.unidade?.sigla ?? "-"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase text-[var(--muted-foreground)]">
+                Período
+              </p>
+              <p className="mt-1 font-semibold">
+                {formatarDataFerias(programacao.dataInicio)} até{" "}
+                {formatarDataFerias(programacao.dataFim)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase text-[var(--muted-foreground)]">
+                Dias
+              </p>
+              <p className="mt-1 font-semibold">{programacao.dias}</p>
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase text-[var(--muted-foreground)]">
+                Status
+              </p>
+              <div className="mt-1">
+                <StatusProgramacaoFeriasBadge status={programacao.status} />
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+        <CompensacoesFeriasCard compensacoes={compensacoes} />
+      </div>
 
       <details className="group rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm" open>
         <summary className="flex cursor-pointer items-center justify-between gap-3 p-5 text-sm font-bold">

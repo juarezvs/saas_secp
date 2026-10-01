@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Edit2, Plus, Trash2 } from "lucide-react";
 
-import { Button, Modal } from "@/components/ui";
+import { Button, Modal, useToast } from "@/components/ui";
 
 type IdentificadoresPontoFieldProps = {
   valorInicial?: string[];
@@ -42,6 +42,7 @@ export function IdentificadoresPontoField({
   const [indiceEdicao, setIndiceEdicao] = useState<number | null>(null);
   const [indiceExclusao, setIndiceExclusao] = useState<number | null>(null);
   const valorTratado = valor.trim();
+  const toast = useToast();
 
   function limparEdicao() {
     setValor("");
@@ -85,10 +86,19 @@ export function IdentificadoresPontoField({
       return;
     }
 
+    const identificador = identificadores[indiceExclusao] ?? "";
+
     setIdentificadores((atuais) =>
       atuais.filter((_, indice) => indice !== indiceExclusao),
     );
     setIndiceExclusao(null);
+    toast.show({
+      title: "Identificador removido",
+      description: identificador
+        ? `${identificador} foi removido. Salve o cadastro para persistir a alteração.`
+        : "Identificador removido. Salve o cadastro para persistir a alteração.",
+      variant: "success",
+    });
   }
 
   return (

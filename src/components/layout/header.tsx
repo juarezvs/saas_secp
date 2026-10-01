@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { AccessibilityToolbar } from "@/components/accessibility/accessibility-toolbar";
 import { SecpLogo } from "@/components/brand/secp-logo";
-import { ChatInternoWidget } from "@/components/layout/chat-interno-widget";
 import type { PerfilNavegacao } from "@/components/layout/sidebar";
 import type { PreferenciasAcessibilidade } from "@/modules/auth/application/services/preferencias-acessibilidade.service";
 
@@ -223,7 +222,6 @@ export function Header({
       return;
     }
 
-    window.sessionStorage.setItem("secp:abrir-caixa-mensagens", "1");
     selecionarPerfil(alertaChefia.perfilCodigo, "/notificacoes");
   }
 
@@ -296,11 +294,6 @@ export function Header({
           )}
 
           <div className="hidden shrink-0 items-center gap-3 lg:flex">
-            <ChatInternoWidget
-              perfilAtivoCodigo={perfilAtivo.codigo}
-              totalInicial={totalNotificacoesAtual}
-              variant="header"
-            />
             {perfilAtivo.codigo.toUpperCase() === "SERVIDOR" && alertaChefia ? (
               <button
                 type="button"

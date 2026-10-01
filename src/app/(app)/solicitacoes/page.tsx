@@ -6,6 +6,7 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { perfilEhChefia } from "@/modules/auth/domain/constants/perfis-sistema";
 import {
   listarSolicitacoesDoUsuarioPaginado,
   listarSolicitacoesGlobaisPaginado,
@@ -63,6 +64,7 @@ export default async function SolicitacoesPage({
   );
   const perfilAtivoServidor =
     session?.user.perfilAtivo?.codigo?.toUpperCase() === "SERVIDOR";
+  const perfilAtivoChefia = perfilEhChefia(session?.user.perfilAtivo);
   const servidorFiltro = perfilAtivoServidor ? undefined : params.servidor;
   const competencia = normalizarCompetencia(params.competencia);
   const pagina = Number(params.pagina ?? 1);
@@ -167,6 +169,7 @@ export default async function SolicitacoesPage({
         servidoresFiltro={servidoresFiltro}
         mostrarFiltroServidor={!perfilAtivoServidor}
         usuarioIdAtual={session?.user.id}
+        podeExcluirSolicitacoes={!perfilAtivoChefia}
         paginacao={{
           total: resultado.total,
           pagina: resultado.pagina,

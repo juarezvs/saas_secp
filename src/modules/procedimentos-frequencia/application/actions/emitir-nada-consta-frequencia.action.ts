@@ -5,6 +5,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { validarERegistrarProcedimentoFrequencia } from "@/modules/procedimentos-frequencia/application/services/motor-procedimentos-frequencia.service";
+import { buscarRegulamentacaoPontoOrgao } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 export type NadaConstaFrequenciaResumo = {
@@ -19,6 +20,8 @@ export type NadaConstaFrequenciaResumo = {
   justificativa?: string | null;
   dataInicio: string;
   dataFim: string;
+  dataFimVerificacao?: string | null;
+  consideraMesAberto?: boolean;
   emitidoEm?: string;
   diasPrevistosTrabalho: number;
   diasTrabalhadosRegistrados: number;
@@ -98,15 +101,73 @@ function competenciasEntre(inicio: Date, fim: Date) {
   return competencias;
 }
 
+function ultimoDiaMesAnterior(dataBase: Date) {
+  return new Date(
+    Date.UTC(dataBase.getUTCFullYear(), dataBase.getUTCMonth(), 0),
+  );
+}
+
+function resolverPeriodoVerificacaoNadaConsta({
+  dataInicio,
+  dataFim,
+  hoje,
+  considerarMesAberto,
+}: {
+  dataInicio: Date;
+  dataFim: Date;
+  hoje: Date;
+  considerarMesAberto: boolean;
+}) {
+  if (considerarMesAberto) {
+    return { gte: dataInicio, lte: dataFim };
+  }
+
+  const inicioMesAtual = new Date(
+    Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), 1),
+  );
+  const dataFimVerificacao =
+    dataFim >= inicioMesAtual ? ultimoDiaMesAnterior(hoje) : dataFim;
+
+  if (dataFimVerificacao < dataInicio) {
+    return null;
+  }
+
+  return { gte: dataInicio, lte: dataFimVerificacao };
+}
+
+function calcularSaldoMovimentosBancoHoras(
+  movimentos: { tipo: string; _sum: { minutos: number | null } }[],
+) {
+  return movimentos.reduce((total, movimento) => {
+    const minutos = movimento._sum.minutos ?? 0;
+
+    if (["CREDITO", "COMPENSACAO_DEBITO"].includes(movimento.tipo)) {
+      return total + minutos;
+    }
+
+    if (["DEBITO", "COMPENSACAO_CREDITO"].includes(movimento.tipo)) {
+      return total - minutos;
+    }
+
+    return total;
+  }, 0);
+}
+
 function montarMensagemNadaConsta(
   resumo: Omit<NadaConstaFrequenciaResumo, "mensagem">,
 ) {
   const periodo = `${formatarDataBr(resumo.dataInicio)} a ${formatarDataBr(
     resumo.dataFim,
   )}`;
+  const complementoPeriodo =
+    resumo.dataFimVerificacao && resumo.dataFimVerificacao !== resumo.dataFim
+      ? ` Verificacao efetiva ate ${formatarDataBr(
+          resumo.dataFimVerificacao,
+        )}; mes aberto desconsiderado conforme parametro da seccional.`
+      : "";
 
   if (resumo.resultado === "NADA_CONSTA") {
-    return `Nada consta para ${resumo.servidorNome} (${resumo.servidorMatricula}) no periodo de ${periodo} quanto a saldo negativo, debitos vencidos, faltas nao resolvidas e homologacoes pendentes.`;
+    return `Nada consta para ${resumo.servidorNome} (${resumo.servidorMatricula}) no periodo de ${periodo} quanto a saldo negativo, debitos vencidos, faltas nao resolvidas e homologacoes pendentes.${complementoPeriodo}`;
   }
 
   return [
@@ -115,6 +176,7 @@ function montarMensagemNadaConsta(
     `Debitos vencidos: ${minutosParaHora(resumo.debitosVencidosMinutos)}.`,
     `Faltas nao resolvidas: ${resumo.faltasNaoResolvidas}.`,
     `Homologacoes pendentes: ${resumo.pendenciasHomologacao}.`,
+    complementoPeriodo.trim(),
   ].join(" ");
 }
 
@@ -226,13 +288,20 @@ export async function emitirNadaConstaFrequenciaAction(
   }
 
   const hoje = new Date();
-  const periodo = {
-    gte: dataInicio!,
-    lte: dataFim!,
-  };
-  const competenciasPeriodo = competenciasEntre(dataInicio!, dataFim!);
+  const regulamentacao = await buscarRegulamentacaoPontoOrgao(
+    servidor.orgaoId,
+  );
+  const periodoVerificacao = resolverPeriodoVerificacaoNadaConsta({
+    dataInicio: dataInicio!,
+    dataFim: dataFim!,
+    hoje,
+    considerarMesAberto: regulamentacao.nadaConstaConsideraMesAberto,
+  });
+  const competenciasPeriodo = periodoVerificacao
+    ? competenciasEntre(periodoVerificacao.gte, periodoVerificacao.lte)
+    : [];
   const [
-    saldo,
+    movimentosSaldoPeriodo,
     debitosVencidos,
     faltasApuradas,
     faltasOcorrencias,
@@ -241,70 +310,100 @@ export async function emitirNadaConstaFrequenciaAction(
     diasTrabalhadosRegistrados,
     afastamentosNoPeriodo,
   ] = await Promise.all([
-    prisma.bancoHorasSaldo.findUnique({
-      where: { servidorId: servidor.id },
-      select: { saldoMinutos: true },
-    }),
-    prisma.movimentoBancoHoras.aggregate({
-      where: {
-        servidorId: servidor.id,
-        dataReferencia: periodo,
-        tipo: { in: ["DEBITO", "COMPENSACAO_DEBITO"] },
-        status: { in: ["PENDENTE", "VALIDADO", "EXPIRADO"] },
-        OR: [{ status: "EXPIRADO" }, { expiraEm: { lt: hoje } }],
-      },
-      _sum: { minutos: true },
-    }),
-    prisma.apuracaoDiaria.count({
-      where: {
-        servidorId: servidor.id,
-        dataReferencia: periodo,
-        resultado: "FALTA",
-        status: { notIn: ["FECHADA", "HOMOLOGADA"] },
-      },
-    }),
-    prisma.ocorrenciaFrequencia.count({
-      where: {
-        servidorId: servidor.id,
-        tipo: "FALTA",
-        resolvida: false,
-        apuracaoDiaria: {
-          dataReferencia: periodo,
-        },
-      },
-    }),
-    prisma.homologacaoServidorMes.count({
-      where: {
-        servidorId: servidor.id,
-        status: { in: ["PENDENTE", "COM_PENDENCIAS", "DEVOLVIDO"] },
-        fechamento: {
-          OR: competenciasPeriodo,
-        },
-      },
-    }),
-    prisma.apuracaoDiaria.count({
-      where: {
-        servidorId: servidor.id,
-        dataReferencia: periodo,
-        cargaPrevistaMinutos: { gt: 0 },
-      },
-    }),
-    prisma.apuracaoDiaria.count({
-      where: {
-        servidorId: servidor.id,
-        dataReferencia: periodo,
-        minutosTrabalhados: { gt: 0 },
-      },
-    }),
-    prisma.afastamentoSarh.count({
-      where: {
-        servidorId: servidor.id,
-        ativo: true,
-        dataInicio: { lte: dataFim! },
-        OR: [{ dataFim: null }, { dataFim: { gte: dataInicio! } }],
-      },
-    }),
+    periodoVerificacao
+      ? prisma.movimentoBancoHoras.groupBy({
+          by: ["tipo"],
+          where: {
+            servidorId: servidor.id,
+            dataReferencia: periodoVerificacao,
+            tipo: {
+              in: ["CREDITO", "COMPENSACAO_DEBITO", "DEBITO", "COMPENSACAO_CREDITO"],
+            },
+            status: { in: ["PENDENTE", "VALIDADO", "EXPIRADO"] },
+          },
+          _sum: { minutos: true },
+        })
+      : Promise.resolve([]),
+    periodoVerificacao
+      ? prisma.movimentoBancoHoras.aggregate({
+          where: {
+            servidorId: servidor.id,
+            dataReferencia: periodoVerificacao,
+            tipo: { in: ["DEBITO", "COMPENSACAO_CREDITO"] },
+            status: { in: ["PENDENTE", "VALIDADO", "EXPIRADO"] },
+            OR: [{ status: "EXPIRADO" }, { expiraEm: { lt: hoje } }],
+          },
+          _sum: { minutos: true },
+        })
+      : Promise.resolve({ _sum: { minutos: 0 } }),
+    periodoVerificacao
+      ? prisma.apuracaoDiaria.count({
+          where: {
+            servidorId: servidor.id,
+            dataReferencia: periodoVerificacao,
+            resultado: "FALTA",
+            status: { notIn: ["FECHADA", "HOMOLOGADA"] },
+          },
+        })
+      : Promise.resolve(0),
+    periodoVerificacao
+      ? prisma.ocorrenciaFrequencia.count({
+          where: {
+            servidorId: servidor.id,
+            tipo: "FALTA",
+            resolvida: false,
+            apuracaoDiaria: {
+              dataReferencia: periodoVerificacao,
+            },
+          },
+        })
+      : Promise.resolve(0),
+    competenciasPeriodo.length > 0
+      ? prisma.homologacaoServidorMes.count({
+          where: {
+            servidorId: servidor.id,
+            status: { in: ["PENDENTE", "COM_PENDENCIAS", "DEVOLVIDO"] },
+            fechamento: {
+              OR: competenciasPeriodo,
+            },
+          },
+        })
+      : Promise.resolve(0),
+    periodoVerificacao
+      ? prisma.apuracaoDiaria.count({
+          where: {
+            servidorId: servidor.id,
+            dataReferencia: periodoVerificacao,
+            cargaPrevistaMinutos: { gt: 0 },
+          },
+        })
+      : Promise.resolve(0),
+    periodoVerificacao
+      ? prisma.apuracaoDiaria.count({
+          where: {
+            servidorId: servidor.id,
+            dataReferencia: periodoVerificacao,
+            minutosTrabalhados: { gt: 0 },
+          },
+        })
+      : Promise.resolve(0),
+    periodoVerificacao
+      ? prisma.afastamentoSarh.count({
+          where: {
+            servidorId: servidor.id,
+            ativo: true,
+            dataInicio: { lte: periodoVerificacao.lte },
+            OR: [
+              { dataFim: null },
+              { dataFim: { gte: periodoVerificacao.gte } },
+            ],
+          },
+        })
+      : Promise.resolve(0),
   ]);
+  const saldoBancoHorasMinutos = calcularSaldoMovimentosBancoHoras(
+    movimentosSaldoPeriodo,
+  );
 
   const resumoSemMensagem = {
     servidorNome:
@@ -323,16 +422,20 @@ export async function emitirNadaConstaFrequenciaAction(
     justificativa: campos.justificativa,
     dataInicio: formatarDataInput(dataInicio!),
     dataFim: formatarDataInput(dataFim!),
+    dataFimVerificacao: periodoVerificacao
+      ? formatarDataInput(periodoVerificacao.lte)
+      : null,
+    consideraMesAberto: regulamentacao.nadaConstaConsideraMesAberto,
     emitidoEm: hoje.toISOString(),
     diasPrevistosTrabalho,
     diasTrabalhadosRegistrados,
     afastamentosNoPeriodo,
-    saldoBancoHorasMinutos: saldo?.saldoMinutos ?? 0,
+    saldoBancoHorasMinutos,
     debitosVencidosMinutos: debitosVencidos._sum.minutos ?? 0,
     faltasNaoResolvidas: faltasApuradas + faltasOcorrencias,
     pendenciasHomologacao,
     resultado:
-      (saldo?.saldoMinutos ?? 0) < 0 ||
+      saldoBancoHorasMinutos < 0 ||
       (debitosVencidos._sum.minutos ?? 0) > 0 ||
       faltasApuradas + faltasOcorrencias > 0 ||
       pendenciasHomologacao > 0
@@ -367,6 +470,10 @@ export async function emitirNadaConstaFrequenciaAction(
         orgaoSigla: servidor.orgao.sigla,
         dataInicio: resumo.dataInicio,
         dataFim: resumo.dataFim,
+        dataFimVerificacao: periodoVerificacao
+          ? formatarDataInput(periodoVerificacao.lte)
+          : null,
+        consideraMesAberto: regulamentacao.nadaConstaConsideraMesAberto,
       } satisfies Prisma.InputJsonValue,
     });
 
@@ -389,6 +496,10 @@ export async function emitirNadaConstaFrequenciaAction(
             afastamentosNoPeriodo: resumo.afastamentosNoPeriodo,
             dataInicio: resumo.dataInicio,
             dataFim: resumo.dataFim,
+            dataFimVerificacao: periodoVerificacao
+              ? formatarDataInput(periodoVerificacao.lte)
+              : null,
+            consideraMesAberto: regulamentacao.nadaConstaConsideraMesAberto,
             emitidoEm: resumo.emitidoEm,
             processoSei: resumo.processoSei,
             justificativa: resumo.justificativa,

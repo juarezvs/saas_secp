@@ -166,6 +166,7 @@ function normalizarMenuPerfil(
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function removerGrupoMeuPontoPadraoPerfil(perfilId: string) {
   const grupoMeuPonto = await prisma.menuGrupoPerfil.findFirst({
     where: {
@@ -200,6 +201,7 @@ async function removerGrupoMeuPontoPadraoPerfil(perfilId: string) {
   ]);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function sincronizarNovosItensCatalogoPerfil(perfilId: string) {
   const itensExistentes = await prisma.menuItemPerfil.findMany({
     where: { perfilId },
@@ -271,6 +273,7 @@ async function sincronizarNovosItensCatalogoPerfil(perfilId: string) {
   });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function garantirGrupoManutencaoPerfil(perfilId: string) {
   const itemManutencao = await prisma.menuItemPerfil.findFirst({
     where: {
@@ -336,6 +339,7 @@ async function garantirGrupoManutencaoPerfil(perfilId: string) {
   });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function removerItensForaDoCatalogoPerfil(perfilId: string) {
   const itensCatalogo = MENU_CATALOGO.map((item) => item.id);
 
@@ -372,11 +376,6 @@ async function removerItensForaDoCatalogoPerfil(perfilId: string) {
 export async function buscarMenuPersonalizadoPerfil(
   perfilId: string,
 ): Promise<MenuPersonalizadoPerfil> {
-  await removerGrupoMeuPontoPadraoPerfil(perfilId);
-  await removerItensForaDoCatalogoPerfil(perfilId);
-  await sincronizarNovosItensCatalogoPerfil(perfilId);
-  await garantirGrupoManutencaoPerfil(perfilId);
-
   const [grupos, itensRaiz] = await Promise.all([
     prisma.menuGrupoPerfil.findMany({
       where: { perfilId },

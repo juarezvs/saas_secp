@@ -1,15 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  compare: vi.fn(),
+  compararSenhaComHash: vi.fn(),
   autenticarNoActiveDirectory: vi.fn(),
   buscarUsuarioParaLoginPorMatricula: vi.fn(),
 }));
 
-vi.mock("bcryptjs", () => ({
-  default: {
-    compare: mocks.compare,
-  },
+vi.mock("./senha-hash.service", () => ({
+  compararSenhaComHash: mocks.compararSenhaComHash,
 }));
 
 vi.mock(
@@ -47,7 +45,7 @@ describe("autenticarUsuarioPorCredenciais", () => {
     vi.clearAllMocks();
     delete process.env.AUTH_LOCAL_PASSWORD_FIRST;
     mocks.autenticarNoActiveDirectory.mockResolvedValue(true);
-    mocks.compare.mockResolvedValue(false);
+    mocks.compararSenhaComHash.mockResolvedValue(false);
   });
 
   it("autentica usuario comum no AD do orgao principal", async () => {

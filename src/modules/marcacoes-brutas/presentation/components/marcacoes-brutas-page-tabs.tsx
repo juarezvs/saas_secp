@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { DatabaseZap, RefreshCw } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type AbaMarcacoesBrutas = "marcacoes" | "reprocessamento";
 
@@ -15,50 +16,31 @@ export function MarcacoesBrutasPageTabs({
   const [aba, setAba] = useState<AbaMarcacoesBrutas>("marcacoes");
 
   return (
-    <section className="space-y-4">
-      <div
-        className="flex flex-wrap gap-2 rounded-xl border bg-[var(--card)] p-2 shadow-sm"
-        role="tablist"
-        aria-label="Marcacoes brutas"
+    <Tabs
+      value={aba}
+      onValueChange={(value) => setAba(value as AbaMarcacoesBrutas)}
+      className="space-y-4"
+    >
+      <TabsList
+        aria-label="Marcações brutas"
+        className="flex h-auto flex-wrap justify-start rounded-xl border bg-[var(--card)] p-2 shadow-sm"
       >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={aba === "marcacoes"}
-          onClick={() => setAba("marcacoes")}
-          className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold ${
-            aba === "marcacoes"
-              ? "bg-blue-900 text-white"
-              : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-          }`}
-        >
+        <TabsTrigger value="marcacoes" className="gap-2">
           <DatabaseZap className="size-4" aria-hidden="true" />
-          Marcacoes brutas
-        </button>
-
-        {reprocessamento && (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={aba === "reprocessamento"}
-            onClick={() => setAba("reprocessamento")}
-            className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold ${
-              aba === "reprocessamento"
-                ? "bg-blue-900 text-white"
-                : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-            }`}
-          >
+          Marcações brutas
+        </TabsTrigger>
+        {reprocessamento ? (
+          <TabsTrigger value="reprocessamento" className="gap-2">
             <RefreshCw className="size-4" aria-hidden="true" />
             Reprocessamento
-          </button>
-        )}
-      </div>
+          </TabsTrigger>
+        ) : null}
+      </TabsList>
 
-      <div role="tabpanel">
-        {aba === "marcacoes" || !reprocessamento
-          ? marcacoes
-          : reprocessamento}
-      </div>
-    </section>
+      <TabsContent value="marcacoes">{marcacoes}</TabsContent>
+      {reprocessamento ? (
+        <TabsContent value="reprocessamento">{reprocessamento}</TabsContent>
+      ) : null}
+    </Tabs>
   );
 }

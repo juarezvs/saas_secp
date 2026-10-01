@@ -1,6 +1,13 @@
 "use server";
 
 import { auth } from "@/auth";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
+import { perfilAtivoEhChefia } from "@/modules/auth/application/services/perfil-chefia.service";
+import {
+  buscarServidorComUsuarioPorUsuarioId,
+  listarServidoresParaEspelhoPonto,
+} from "@/modules/apuracao/infrastructure/repositories/apuracao.repository";
+import { prisma } from "@/shared/infrastructure/database/prisma";
 import { enfileirarRecalculoEspelhoPonto } from "../queues/recalcular-espelho-ponto-queue";
 import { obterProcessamentoEspelhoPonto } from "../services/processamento-espelho-ponto.service";
 
@@ -10,11 +17,64 @@ export type EstadoProcessamentoEspelho = {
   erro: string | null;
 };
 
-function podeRecalcular(permissoes: string[]) {
+function podeSolicitarRecalculo(permissoes: string[]) {
   return (
     permissoes.includes("apuracao:recalcular:global") ||
+    permissoes.includes("apuracao:recalcular:seccional") ||
+    permissoes.includes("homologacao:gerenciar:chefia") ||
+    permissoes.includes("minha-equipe:consultar:chefia") ||
     permissoes.includes("banco-horas:gerenciar:global")
   );
+}
+
+async function usuarioPodeRecalcularServidor(params: {
+  usuarioId: string;
+  perfilAtivoCodigo?: string | null;
+  servidorId: string;
+  permissoes: string[];
+}) {
+  if (
+    params.permissoes.includes("apuracao:recalcular:global") ||
+    params.permissoes.includes("apuracao:recalcular:seccional") ||
+    params.permissoes.includes("banco-horas:gerenciar:global")
+  ) {
+    const escopo = await obterEscopoOrgaoDaSessao();
+
+    if (escopo.global) {
+      return true;
+    }
+
+    const servidor = await prisma.servidor.findUnique({
+      where: { id: params.servidorId },
+      select: { orgaoId: true },
+    });
+
+    return Boolean(
+      servidor?.orgaoId && escopo.orgaoIds.includes(servidor.orgaoId),
+    );
+  }
+
+  if (
+    perfilAtivoEhChefia({
+      perfilAtivoCodigo: params.perfilAtivoCodigo,
+      permissoes: params.permissoes,
+    })
+  ) {
+    const [servidorProprio, servidoresChefia] = await Promise.all([
+      buscarServidorComUsuarioPorUsuarioId(params.usuarioId),
+      listarServidoresParaEspelhoPonto({
+        usuarioId: params.usuarioId,
+        escopo: "chefia",
+      }),
+    ]);
+
+    return (
+      servidorProprio?.id === params.servidorId ||
+      servidoresChefia.some((servidor) => servidor.id === params.servidorId)
+    );
+  }
+
+  return false;
 }
 
 function lerParametros(formData: FormData) {
@@ -32,7 +92,9 @@ export async function recalcularMesServidorAction(formData: FormData) {
     return { sucesso: false, mensagem: "Sua sessao expirou." };
   }
 
-  if (!podeRecalcular(session.user.perfilAtivo?.permissoes ?? [])) {
+  const permissoes = session.user.perfilAtivo?.permissoes ?? [];
+
+  if (!podeSolicitarRecalculo(permissoes)) {
     return {
       sucesso: false,
       mensagem: "Voce nao tem permissao para recalcular este mes.",
@@ -44,6 +106,27 @@ export async function recalcularMesServidorAction(formData: FormData) {
     return { sucesso: false, mensagem: "Servidor ou competencia invalida." };
   }
 
+  const permitido = await usuarioPodeRecalcularServidor({
+    usuarioId: session.user.id,
+    perfilAtivoCodigo: session.user.perfilAtivo?.codigo,
+    servidorId: params.servidorId,
+    permissoes,
+  });
+
+  if (!permitido) {
+    return {
+      sucesso: false,
+      mensagem: "Voce nao tem permissao para recalcular este servidor.",
+    };
+  }
+
+  if (process.env.SECP_AUTO_WORKERS === "false") {
+    return {
+      sucesso: false,
+      mensagem: "O worker de recalculo do espelho esta inativo neste ambiente.",
+    };
+  }
+
   try {
     await enfileirarRecalculoEspelhoPonto({
       ...params,
@@ -52,7 +135,10 @@ export async function recalcularMesServidorAction(formData: FormData) {
       forcar: true,
     });
   } catch (error) {
-    console.error("[ESPELHO PONTO] Falha ao enfileirar recalculo manual", error);
+    console.error(
+      "[ESPELHO PONTO] Falha ao enfileirar recalculo manual",
+      error,
+    );
     return {
       sucesso: false,
       mensagem: "Nao foi possivel iniciar o recalculo agora.",

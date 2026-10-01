@@ -1,9 +1,10 @@
 "use client";
 
-import { usePathname, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
 
 import { CompetenciaInput, SearchableSelect } from "@/components/ui";
+import { notificarCarregamentoEspelho } from "./espelho-ponto-carregamento-toast";
 
 type ServidorOpcao = {
   value: string;
@@ -19,6 +20,8 @@ type EspelhoPontoFiltrosAutoProps = {
   pessoasSearchUrl?: string;
   mostrarServidor?: boolean;
   className?: string;
+  compacto?: boolean;
+  labelInline?: boolean;
 };
 
 function competenciaValida(valor: string) {
@@ -33,7 +36,10 @@ export function EspelhoPontoFiltrosAuto({
   pessoasSearchUrl,
   mostrarServidor = false,
   className = "grid gap-4 md:grid-cols-[220px_minmax(0,1fr)] md:items-end",
+  compacto = false,
+  labelInline = false,
 }: EspelhoPontoFiltrosAutoProps) {
+  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchParamsKey = useMemo(
@@ -41,11 +47,13 @@ export function EspelhoPontoFiltrosAuto({
     [searchParams],
   );
   const [destinoPendente, setDestinoPendente] = useState<string | null>(null);
+  const [pendente, iniciarTransicao] = useTransition();
   const urlAtual = useMemo(
     () => (searchParamsKey ? `${pathname}?${searchParamsKey}` : pathname),
     [pathname, searchParamsKey],
   );
-  const navegando = Boolean(destinoPendente);
+  const navegando =
+    Boolean(destinoPendente && destinoPendente !== urlAtual) || pendente;
 
   function atualizarFiltros(novosFiltros: {
     competencia?: string;
@@ -75,7 +83,10 @@ export function EspelhoPontoFiltrosAuto({
     }
 
     setDestinoPendente(destino);
-    window.location.assign(destino);
+    notificarCarregamentoEspelho();
+    iniciarTransicao(() => {
+      router.push(destino, { scroll: false });
+    });
   }
 
   function aoTrocarCompetencia(novaCompetencia: string) {
@@ -85,12 +96,22 @@ export function EspelhoPontoFiltrosAuto({
   }
 
   return (
-    <div className="relative min-h-[4.625rem]">
+    <div className={compacto ? "relative" : "relative min-h-[4.625rem]"}>
       <div className={className} aria-busy={navegando}>
         <CompetenciaInput
           key={competencia}
           defaultValue={competencia}
           disabled={navegando}
+          className={compacto ? "w-full" : undefined}
+          inputClassName={
+            compacto
+              ? labelInline
+                ? "mt-0 h-9 rounded-md px-3 text-xs font-semibold"
+                : "mt-1 h-9 rounded-md px-3 text-xs font-semibold"
+              : undefined
+          }
+          labelClassName={compacto ? "sr-only" : undefined}
+          label={compacto ? null : undefined}
           onValueChange={aoTrocarCompetencia}
         />
 
