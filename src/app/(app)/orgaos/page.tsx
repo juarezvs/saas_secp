@@ -98,17 +98,18 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
 
   return (
     <div className="space-y-3">
-      <Breadcrumb
-        items={[
-          { label: "Administração", href: "/administracao" },
-          { label: "Órgãos" },
-        ]}
-      />
-
       <PageHeader
         icon={Landmark}
-        titulo="Órgãos"
-        descricao="Consulte os órgãos institucionais usados como base para unidades, servidores, lotações e integração SARH."
+        titulo="Órgãos e seccionais"
+        contexto={
+          <Breadcrumb
+            embedded
+            items={[
+              { label: "Administração", href: "/administracao" },
+              { label: "Órgãos" },
+            ]}
+          />
+        }
         variant="blade"
         artigo="Arts. 1, 3 e 20"
         regraTitulo="Abrangência institucional"

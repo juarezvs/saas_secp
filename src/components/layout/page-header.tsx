@@ -9,6 +9,7 @@ type PageHeaderProps = {
   icon: LucideIcon;
   titulo: string;
   descricao?: string;
+  contexto?: ReactNode;
 
   artigo?: string;
   regraTitulo?: string;
@@ -22,6 +23,7 @@ export function PageHeader({
   icon: Icon,
   titulo,
   descricao,
+  contexto,
   actions,
   variant = "default",
 }: PageHeaderProps) {
@@ -42,6 +44,11 @@ export function PageHeader({
                 <p className="mt-0.5 max-w-5xl text-xs leading-5 text-[var(--muted-foreground)]">
                   {descricao}
                 </p>
+              )}
+              {contexto && (
+                <div className="mt-0.5 max-w-5xl text-xs text-[var(--muted-foreground)]">
+                  {contexto}
+                </div>
               )}
             </div>
           </div>

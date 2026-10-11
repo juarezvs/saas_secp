@@ -8,12 +8,17 @@ type BreadcrumbItem = {
 
 type BreadcrumbProps = {
   items: BreadcrumbItem[];
+  embedded?: boolean;
 };
 
-export function Breadcrumb({ items }: BreadcrumbProps) {
+export function Breadcrumb({ items, embedded = false }: BreadcrumbProps) {
   return (
     <div
-      className="-mb-2 flex min-h-7 items-center gap-3"
+      className={
+        embedded
+          ? "flex min-h-5 items-center"
+          : "-mb-2 flex min-h-7 items-center gap-3"
+      }
       data-secp-breadcrumb
     >
       <nav aria-label="Trilha de navegação" className="min-w-0 text-xs">
