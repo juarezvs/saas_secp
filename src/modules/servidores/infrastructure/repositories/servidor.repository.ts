@@ -6,10 +6,10 @@ export const CAMPOS_ORDENACAO_SERVIDORES = [
   "documentos",
   "categoria",
   "nome",
+  "cargo",
+  "funcao",
   "orgao",
   "lotacao",
-  "lotacoes",
-  "gestores",
 ] as const;
 
 export type CampoOrdenacaoServidores =
@@ -50,13 +50,14 @@ function montarOrdenacaoServidores(params: ListarServidoresParams) {
       return [{ cpf: direcao }, { pis: direcao }, { matricula: "asc" as const }];
     case "categoria":
       return [{ categoriaPessoa: { nome: direcao } }, { matricula: "asc" as const }];
+    case "cargo":
+      return [{ cargo: { descricao: direcao } }, { matricula: "asc" as const }];
+    case "funcao":
+      return [{ funcaoDescricao: direcao }, { matricula: "asc" as const }];
     case "orgao":
       return [{ orgao: { sigla: direcao } }, { matricula: "asc" as const }];
     case "lotacao":
-    case "lotacoes":
       return [{ lotacoes: { _count: direcao } }, { matricula: "asc" as const }];
-    case "gestores":
-      return [{ gestores: { _count: direcao } }, { matricula: "asc" as const }];
     default:
       return [
         { nomeFuncional: direcao },

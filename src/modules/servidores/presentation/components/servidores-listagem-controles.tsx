@@ -3,9 +3,12 @@
 import { useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Plus, RefreshCw, SlidersHorizontal, X } from "lucide-react";
+import { Plus, RefreshCw, SlidersHorizontal, UserX, X } from "lucide-react";
 import { DataTableExportButtons } from "@/components/listagens/data-table-export-buttons";
 import { Button, Modal } from "@/components/ui";
+import { toast } from "@/components/ui/toast";
+import { desativarServidoresLoteAction } from "@/modules/servidores/application/actions/desativar-servidores-lote.action";
+import { useServidoresSelection } from "./servidores-selection-context";
 
 type Option = { value: string; label: string; searchText?: string };
 type Props = {
@@ -21,6 +24,7 @@ type Props = {
   novoLabel?: string;
   acoesComplementares?: ReactNode;
   acoesDireita?: ReactNode;
+  permitirDesativar?: boolean;
 };
 
 const FILTROS = ["busca", "matricula", "cpf", "pis", "nome", "lotacao", "categoriaPessoaId", "tipoUsuario", "orgaoId", "vinculo"] as const;
@@ -34,12 +38,13 @@ const VINCULOS = ["EFETIVO", "CEDIDO", "REQUISITADO", "REDISTRIBUIDO", "REMOVIDO
 const commandClassName = "inline-flex h-8 items-center gap-1.5 rounded-sm px-2 text-xs font-medium transition hover:bg-[var(--muted)] disabled:opacity-60";
 const inputClassName = "mt-2 h-10 w-full rounded-md border border-[var(--input)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--secp-theme-accent)]";
 
-export function ServidoresListagemControles({ orgaos, servidores, lotacoes, categorias = [], tipoUsuarioFixo, exportCsvHref, exportPdfHref, permitirNovo = false, novoHref = "/servidores/novo", novoLabel = "Novo servidor", acoesComplementares, acoesDireita }: Props) {
+export function ServidoresListagemControles({ orgaos, servidores, lotacoes, categorias = [], tipoUsuarioFixo, exportCsvHref, exportPdfHref, permitirNovo = false, novoHref = "/servidores/novo", novoLabel = "Novo servidor", acoesComplementares, acoesDireita, permitirDesativar = false }: Props) {
   const [aberto, setAberto] = useState(false);
   const [pending, startTransition] = useTransition();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { selecionados, limpar: limparSelecao } = useServidoresSelection();
   const filtrosDisponiveis = useMemo(() => tipoUsuarioFixo ? FILTROS.filter((item) => item !== "tipoUsuario") : [...FILTROS], [tipoUsuarioFixo]);
   const filtrosAtivos = useMemo(() => filtrosDisponiveis.flatMap((nome) => {
     const valor = searchParams.get(nome)?.trim();
@@ -73,6 +78,17 @@ export function ServidoresListagemControles({ orgaos, servidores, lotacoes, cate
     for (const nome of filtrosDisponiveis) params.delete(nome);
     navegar(params);
   }
+  function desativarSelecionados() {
+    if (selecionados.size === 0) return;
+    const dados = new FormData();
+    for (const id of selecionados) dados.append("servidorId", id);
+    startTransition(async () => {
+      await desativarServidoresLoteAction(dados);
+      limparSelecao();
+      toast.success(`${selecionados.size} registro(s) foram desativados.`, "Servidores desativados");
+      router.refresh();
+    });
+  }
 
   return <>
     <div className="flex min-h-10 flex-wrap items-center gap-1 border-y border-[var(--border)] px-2 py-1">
@@ -81,6 +97,7 @@ export function ServidoresListagemControles({ orgaos, servidores, lotacoes, cate
       {exportCsvHref && exportPdfHref && <><Separador /><DataTableExportButtons csvHref={exportCsvHref} pdfHref={exportPdfHref} variant="command" /></>}
       <Separador />
       <button type="button" onClick={() => setAberto(true)} className={commandClassName}><SlidersHorizontal className="size-4" />Filtros{filtrosAtivos.length > 0 && <span className="flex size-5 items-center justify-center rounded-full bg-[var(--primary)] text-xs text-[var(--primary-foreground)]">{filtrosAtivos.length}</span>}</button>
+      {permitirDesativar && <><Separador /><button type="button" onClick={desativarSelecionados} disabled={pending || selecionados.size === 0} className={`${commandClassName} text-red-700 dark:text-red-300`}><UserX className="size-4" />Desativar selecionados</button></>}
       {acoesComplementares && <><Separador /><div className="flex items-center">{acoesComplementares}</div></>}
       {acoesDireita && <div className="ml-auto flex items-center justify-end pl-2">{acoesDireita}</div>}
     </div>

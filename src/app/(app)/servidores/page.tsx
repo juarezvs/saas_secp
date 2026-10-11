@@ -39,6 +39,7 @@ import {
 } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
 import { ServidoresListagemControles } from "@/modules/servidores/presentation/components/servidores-listagem-controles";
 import { ServidoresDataTable } from "@/modules/servidores/presentation/components/servidores-data-table";
+import { ServidoresSelectionProvider } from "@/modules/servidores/presentation/components/servidores-selection-context";
 
 type ServidoresPageProps = {
   searchParams?: Promise<{
@@ -376,6 +377,7 @@ export default async function ServidoresPage({
         regraDescricao={contextoPessoa.regraDescricao}
       />
 
+      <ServidoresSelectionProvider>
       <section className="overflow-hidden border border-[var(--border)] bg-[var(--card)] text-[var(--card-foreground)]">
         <div className="border-b border-[var(--border)] px-3 pt-1">
           <div className="inline-flex h-10 items-center border-b-2 border-[var(--secp-theme-accent)] px-2 text-sm font-semibold">
@@ -409,6 +411,7 @@ export default async function ServidoresPage({
             permitirNovo={podeGerenciarServidor}
             novoHref={`/servidores/novo?${new URLSearchParams({ tipoUsuario }).toString()}`}
             novoLabel={contextoPessoa.novoLabel}
+            permitirDesativar={podeDesativarLote}
             acoesComplementares={
               <DataTablePageSize value={resultado.itensPorPagina} command />
             }
@@ -422,7 +425,7 @@ export default async function ServidoresPage({
             }
           />
         <form action={desativarServidoresLoteAction} className="overflow-x-auto">
-          {podeDesativarLote ? (
+          {false && podeDesativarLote ? (
             <div className="flex justify-end border-b p-3">
               <button
                 type="submit"
@@ -564,6 +567,7 @@ export default async function ServidoresPage({
           )}
         </form>
       </section>
+      </ServidoresSelectionProvider>
     </div>
   );
 }
