@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { MENU_CATALOGO } from "./menu-catalogo";
-import { MENUS_PERFIS_ADMINISTRATIVOS } from "./menu-perfis-administrativos";
+import {
+  MENUS_PERFIS_ADMINISTRATIVOS,
+  menuPadraoNovoPerfilAdministrativo,
+} from "./menu-perfis-administrativos";
 
 describe("menus dos perfis administrativos", () => {
   const idsCatalogo = new Set(MENU_CATALOGO.map((item) => item.id));
@@ -37,5 +40,20 @@ describe("menus dos perfis administrativos", () => {
         (grupo) => grupo.label === "Governança Global",
       ),
     ).toBe(true);
+  });
+
+  it("organiza servidor e chefia conforme o contexto de uso", () => {
+    expect(
+      MENUS_PERFIS_ADMINISTRATIVOS.SERVIDOR.grupos.map((grupo) => grupo.label),
+    ).toContain("Minha Vida Funcional");
+    expect(
+      MENUS_PERFIS_ADMINISTRATIVOS.CHEFIA.grupos.map((grupo) => grupo.label),
+    ).toContain("Gestão da Equipe");
+  });
+
+  it("usa o menu do administrador como modelo de novos perfis administrativos", () => {
+    expect(menuPadraoNovoPerfilAdministrativo()).toBe(
+      MENUS_PERFIS_ADMINISTRATIVOS.ADMIN,
+    );
   });
 });

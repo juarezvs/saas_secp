@@ -4,13 +4,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { menuPadraoNovoPerfilAdministrativo } from "@/modules/menus/domain/menu-perfis-administrativos";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 import { perfilSchema, type PerfilFormState } from "../schemas/perfil.schema";
 
 function extrairDadosPerfil(formData: FormData) {
   return {
-    codigo: String(formData.get("codigo") ?? "").trim().toUpperCase(),
+    codigo: String(formData.get("codigo") ?? "")
+      .trim()
+      .toUpperCase(),
     nome: String(formData.get("nome") ?? "").trim(),
     descricao: String(formData.get("descricao") ?? "").trim(),
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
@@ -45,7 +48,9 @@ async function resolverOrgaoPerfil(params: {
   }
 
   if (!params.escopoGlobal && !params.orgaoIdsPermitidos.includes(orgaoId)) {
-    throw new Error("A seccional informada não pertence ao escopo do perfil ativo.");
+    throw new Error(
+      "A seccional informada não pertence ao escopo do perfil ativo.",
+    );
   }
 
   return prisma.orgao.findUnique({
@@ -149,6 +154,45 @@ export async function criarPerfilAction(
           permissaoId,
         })),
         skipDuplicates: true,
+      });
+    }
+
+    if (parsed.data.administrativo) {
+      const menu = menuPadraoNovoPerfilAdministrativo();
+      const grupos = new Map<string, string>();
+
+      for (const grupo of menu.grupos) {
+        const criado = await tx.menuGrupoPerfil.create({
+          data: {
+            perfilId: novoPerfil.id,
+            label: grupo.label,
+            icone: grupo.icone,
+            ordem: grupo.ordem,
+          },
+          select: { id: true },
+        });
+        grupos.set(grupo.chave, criado.id);
+      }
+
+      await tx.menuItemPerfil.createMany({
+        data: [
+          ...menu.itensRaiz.map((item, index) => ({
+            perfilId: novoPerfil.id,
+            grupoId: null,
+            itemCatalogo: item.itemCatalogo,
+            label: item.label ?? null,
+            ordem: (index + 1) * 10,
+          })),
+          ...menu.grupos.flatMap((grupo) =>
+            grupo.itens.map((item, index) => ({
+              perfilId: novoPerfil.id,
+              grupoId: grupos.get(grupo.chave) ?? null,
+              itemCatalogo: item.itemCatalogo,
+              label: item.label ?? null,
+              ordem: (index + 1) * 10,
+            })),
+          ),
+        ],
       });
     }
 

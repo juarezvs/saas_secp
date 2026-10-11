@@ -124,10 +124,155 @@ const controle: ItemMenuPerfilPadrao[] = [
   { itemCatalogo: "/auditoria", label: "Auditoria" },
 ];
 
+const menuServidor: MenuPerfilPadrao = {
+  itensRaiz: [{ itemCatalogo: "/dashboard", label: "Minha página inicial" }],
+  grupos: [
+    {
+      chave: "meu-ponto",
+      label: "Meu Ponto",
+      icone: "Fingerprint",
+      ordem: 20,
+      itens: [
+        { itemCatalogo: "/marcacoes/registrar", label: "Registrar ponto" },
+        { itemCatalogo: "/marcacoes", label: "Ponto de hoje" },
+        {
+          itemCatalogo: "/historico-marcacoes",
+          label: "Histórico de marcações",
+        },
+        { itemCatalogo: "/espelho-ponto", label: "Meu espelho de ponto" },
+      ],
+    },
+    {
+      chave: "solicitacoes",
+      label: "Solicitações e Frequência",
+      icone: "ClipboardCheck",
+      ordem: 30,
+      itens: [
+        { itemCatalogo: "/solicitacoes", label: "Solicitações de ajuste" },
+        {
+          itemCatalogo: "/banco-horas/solicitacoes",
+          label: "Solicitações de banco de horas",
+        },
+        {
+          itemCatalogo: "/acompanhamento-estagio",
+          label: "Acompanhamento de estágio",
+        },
+      ],
+    },
+    {
+      chave: "vida-funcional",
+      label: "Minha Vida Funcional",
+      icone: "BriefcaseBusiness",
+      ordem: 40,
+      itens: [
+        { itemCatalogo: "/meu-contracheque", label: "Meu contracheque" },
+        { itemCatalogo: "/meus-afastamentos", label: "Meus afastamentos" },
+        { itemCatalogo: "/minhas-ferias", label: "Minhas férias" },
+        { itemCatalogo: "/banco-horas", label: "Meu banco de horas" },
+        { itemCatalogo: "/horas-extras", label: "Minhas horas extras" },
+      ],
+    },
+    {
+      chave: "consultas",
+      label: "Consultas e Documentos",
+      icone: "FileSearch",
+      ordem: 50,
+      itens: [
+        { itemCatalogo: "/recesso-forense", label: "Recesso forense" },
+        { itemCatalogo: "/relatorios", label: "Meus relatórios" },
+        {
+          itemCatalogo: "/substituicoes-funcao/relatorio",
+          label: "Minhas substituições",
+        },
+      ],
+    },
+  ],
+};
+
+const menuChefia: MenuPerfilPadrao = {
+  itensRaiz: [{ itemCatalogo: "/dashboard", label: "Visão da equipe" }],
+  grupos: [
+    {
+      chave: "meu-ponto",
+      label: "Meu Ponto",
+      icone: "Fingerprint",
+      ordem: 20,
+      itens: [
+        { itemCatalogo: "/marcacoes/registrar", label: "Registrar ponto" },
+        { itemCatalogo: "/marcacoes", label: "Ponto de hoje" },
+        {
+          itemCatalogo: "/historico-marcacoes",
+          label: "Histórico de marcações",
+        },
+      ],
+    },
+    {
+      chave: "equipe",
+      label: "Gestão da Equipe",
+      icone: "UsersRound",
+      ordem: 30,
+      itens: [
+        {
+          itemCatalogo: "/minha-equipe/presencas",
+          label: "Presenças e afastamentos",
+        },
+        { itemCatalogo: "/minha-equipe/ferias", label: "Férias da equipe" },
+        { itemCatalogo: "/solicitacoes", label: "Solicitações da equipe" },
+        { itemCatalogo: "/homologacao", label: "Homologação de frequência" },
+      ],
+    },
+    {
+      chave: "frequencia-equipe",
+      label: "Frequência e Banco de Horas",
+      icone: "Clock3",
+      ordem: 40,
+      itens: [
+        { itemCatalogo: "/espelho-ponto", label: "Espelhos de ponto" },
+        {
+          itemCatalogo: "/banco-horas/chefia",
+          label: "Banco de horas da equipe",
+        },
+        { itemCatalogo: "/banco-horas", label: "Meu banco de horas" },
+        { itemCatalogo: "/boletim-frequencia", label: "Boletim de frequência" },
+      ],
+    },
+    {
+      chave: "horas-extras",
+      label: "Serviço Extraordinário",
+      icone: "TimerReset",
+      ordem: 50,
+      itens: [
+        {
+          itemCatalogo: "/gestao/horas-extras",
+          label: "Gestão de horas extras",
+        },
+        { itemCatalogo: "/horas-extras/autorizacoes", label: "Autorizações" },
+        { itemCatalogo: "/horas-extras", label: "Minhas horas extras" },
+      ],
+    },
+    {
+      chave: "consultas",
+      label: "Recesso e Relatórios",
+      icone: "FileBarChart",
+      ordem: 60,
+      itens: [
+        { itemCatalogo: "/recesso-forense", label: "Recesso da equipe" },
+        { itemCatalogo: "/relatorios", label: "Relatórios da equipe" },
+        {
+          itemCatalogo: "/substituicoes-funcao/relatorio",
+          label: "Relatório de substituições",
+        },
+      ],
+    },
+  ],
+};
+
 export const MENUS_PERFIS_ADMINISTRATIVOS: Record<
-  "ADMIN" | "MASTER",
+  "ADMIN" | "MASTER" | "SERVIDOR" | "CHEFIA",
   MenuPerfilPadrao
 > = {
+  SERVIDOR: menuServidor,
+  CHEFIA: menuChefia,
   ADMIN: {
     itensRaiz: [{ itemCatalogo: "/dashboard", label: "Visão geral" }],
     grupos: [
@@ -322,7 +467,13 @@ export const MENUS_PERFIS_ADMINISTRATIVOS: Record<
 export function menuPadraoPerfilAdministrativo(codigo?: string | null) {
   const normalizado = codigo?.trim().toUpperCase();
 
-  return normalizado === "ADMIN" || normalizado === "MASTER"
-    ? MENUS_PERFIS_ADMINISTRATIVOS[normalizado]
+  return normalizado && normalizado in MENUS_PERFIS_ADMINISTRATIVOS
+    ? MENUS_PERFIS_ADMINISTRATIVOS[
+        normalizado as keyof typeof MENUS_PERFIS_ADMINISTRATIVOS
+      ]
     : null;
+}
+
+export function menuPadraoNovoPerfilAdministrativo() {
+  return MENUS_PERFIS_ADMINISTRATIVOS.ADMIN;
 }
