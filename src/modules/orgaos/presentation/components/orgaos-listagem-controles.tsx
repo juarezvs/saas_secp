@@ -22,26 +22,27 @@ type OrgaosListagemControlesProps = {
   }[];
 };
 
+const NOMES_FILTROS = [
+  "busca",
+  "sigla",
+  "nome",
+  "codigoExternoSarh",
+  "status",
+  "fusoHorario",
+] as const;
+
 export function OrgaosListagemControles({
   exportCsvHref,
   exportPdfHref,
   fusosHorarios = [],
 }: OrgaosListagemControlesProps) {
-  const nomesFiltros = [
-    "busca",
-    "sigla",
-    "nome",
-    "codigoExternoSarh",
-    "status",
-    "fusoHorario",
-  ] as const;
   const [aberto, setAberto] = useState(false);
   const [pending, startTransition] = useTransition();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const quantidadeFiltros = useMemo(
-    () => nomesFiltros.filter((nome) => searchParams.get(nome)?.trim()).length,
+    () => NOMES_FILTROS.filter((nome) => searchParams.get(nome)?.trim()).length,
     [searchParams],
   );
 
@@ -58,7 +59,7 @@ export function OrgaosListagemControles({
     const formData = new FormData(event.currentTarget);
     const params = new URLSearchParams(searchParams.toString());
 
-    for (const nome of nomesFiltros) {
+    for (const nome of NOMES_FILTROS) {
       const valor = String(formData.get(nome) ?? "").trim();
       if (valor) params.set(nome, valor);
       else params.delete(nome);
@@ -69,7 +70,7 @@ export function OrgaosListagemControles({
 
   function limparFiltros() {
     const params = new URLSearchParams(searchParams.toString());
-    for (const nome of nomesFiltros) params.delete(nome);
+    for (const nome of NOMES_FILTROS) params.delete(nome);
     navegarComFiltros(params);
   }
 

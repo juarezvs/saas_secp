@@ -1,5 +1,19 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
+export const CAMPOS_ORDENACAO_ORGAOS = [
+  "sigla",
+  "nome",
+  "codigoExternoSarh",
+  "localidade",
+  "unidades",
+  "servidores",
+  "fusoHorario",
+  "ultimaSincronizacaoSarh",
+  "status",
+] as const;
+
+export type CampoOrdenacaoOrgaos = (typeof CAMPOS_ORDENACAO_ORGAOS)[number];
+
 export type ListarOrgaosParams = {
   pagina?: number;
   itensPorPagina?: number;
@@ -11,7 +25,44 @@ export type ListarOrgaosParams = {
   fusoHorario?: string;
   orgaoId?: string;
   orgaoIdsPermitidos?: string[];
+  ordenarPor?: string;
+  direcao?: string;
 };
+
+function montarOrdenacaoOrgaos(params: ListarOrgaosParams) {
+  const campo = CAMPOS_ORDENACAO_ORGAOS.includes(
+    params.ordenarPor as CampoOrdenacaoOrgaos,
+  )
+    ? (params.ordenarPor as CampoOrdenacaoOrgaos)
+    : "sigla";
+  const direcao =
+    params.direcao === "desc" ? ("desc" as const) : ("asc" as const);
+
+  switch (campo) {
+    case "codigoExternoSarh":
+      return [{ codigoExternoSarh: direcao }, { sigla: "asc" as const }];
+    case "localidade":
+      return [
+        { municipio: direcao },
+        { uf: direcao },
+        { sigla: "asc" as const },
+      ];
+    case "unidades":
+      return [{ unidades: { _count: direcao } }, { sigla: "asc" as const }];
+    case "servidores":
+      return [{ servidores: { _count: direcao } }, { sigla: "asc" as const }];
+    case "fusoHorario":
+      return [{ fusoHorario: direcao }, { sigla: "asc" as const }];
+    case "ultimaSincronizacaoSarh":
+      return [{ ultimaSincronizacaoSarh: direcao }, { sigla: "asc" as const }];
+    case "status":
+      return [{ ativo: direcao }, { sigla: "asc" as const }];
+    case "nome":
+      return [{ nome: direcao }, { sigla: "asc" as const }];
+    default:
+      return [{ sigla: direcao }, { nome: "asc" as const }];
+  }
+}
 
 function ehUuid(valor?: string | null): valor is string {
   if (!valor) {
@@ -171,7 +222,7 @@ export async function listarOrgaosPaginado(params: ListarOrgaosParams) {
     prisma.orgao.findMany({
       where,
       include: includeOrgaoListagem,
-      orderBy: [{ sigla: "asc" }, { nome: "asc" }],
+      orderBy: montarOrdenacaoOrgaos(params),
       skip: (pagina - 1) * itensPorPagina,
       take: itensPorPagina,
     }),

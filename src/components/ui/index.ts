@@ -13,5 +13,6 @@ export * from "./searchable-select";
 export * from "./sheet";
 export * from "./skeleton";
 export * from "./stepper";
+export * from "./table";
 export * from "./toast";
 export * from "./utils";

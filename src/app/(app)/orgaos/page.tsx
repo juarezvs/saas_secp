@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Edit, Landmark, Plus } from "lucide-react";
+import { Landmark, Plus } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
@@ -10,7 +10,12 @@ import {
 } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarFusosHorariosAtivos } from "@/modules/fusos-horarios/infrastructure/repositories/fuso-horario.repository";
-import { listarOrgaosPaginado } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
+import {
+  CAMPOS_ORDENACAO_ORGAOS,
+  listarOrgaosPaginado,
+  type CampoOrdenacaoOrgaos,
+} from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
+import { OrgaosDataTable } from "@/modules/orgaos/presentation/components/orgaos-data-table";
 import { OrgaosListagemControles } from "@/modules/orgaos/presentation/components/orgaos-listagem-controles";
 
 type OrgaosPageProps = {
@@ -23,28 +28,10 @@ type OrgaosPageProps = {
     fusoHorario?: string;
     pagina?: string;
     itensPorPagina?: string;
+    ordenarPor?: string;
+    direcao?: string;
   }>;
 };
-
-function formatarLocalidade(orgao: {
-  uf?: string | null;
-  municipio?: string | null;
-  municipioIbge?: string | null;
-}) {
-  if (!orgao.uf && !orgao.municipio && !orgao.municipioIbge) {
-    return null;
-  }
-
-  return {
-    principal: orgao.municipio ?? "Cidade não informada",
-    detalhe: [
-      orgao.uf ?? "UF não informada",
-      orgao.municipioIbge ? `IBGE ${orgao.municipioIbge}` : null,
-    ]
-      .filter(Boolean)
-      .join(" - "),
-  };
-}
 
 export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
   await exigirPermissaoOuRedirecionar("unidades:gerenciar:global");
@@ -53,6 +40,12 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
+  const ordenarPor = CAMPOS_ORDENACAO_ORGAOS.includes(
+    params.ordenarPor as CampoOrdenacaoOrgaos,
+  )
+    ? (params.ordenarPor as CampoOrdenacaoOrgaos)
+    : "sigla";
+  const direcao = params.direcao === "desc" ? "desc" : "asc";
 
   const [resultado, fusosHorarios] = await Promise.all([
     listarOrgaosPaginado(
@@ -64,6 +57,8 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
           codigoExternoSarh: params.codigoExternoSarh ?? "",
           status: params.status ?? "",
           fusoHorario: params.fusoHorario ?? "",
+          ordenarPor,
+          direcao,
           pagina,
           itensPorPagina,
         },
@@ -90,6 +85,8 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
 
   const baseParams = new URLSearchParams(exportParams);
   baseParams.set("itensPorPagina", String(resultado.itensPorPagina));
+  baseParams.set("ordenarPor", ordenarPor);
+  baseParams.set("direcao", direcao);
 
   function montarHrefPagina(novaPagina: number) {
     const query = new URLSearchParams(baseParams);
@@ -145,104 +142,11 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
           </div>
         }
       >
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1080px] text-left text-sm">
-            <caption className="sr-only">
-              Listagem de órgãos com sigla, nome, localidade, código SARH,
-              unidades, servidores, status e datas de sincronização.
-            </caption>
-            <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
-              <tr>
-                <th className="px-5 py-3">Sigla</th>
-                <th className="px-5 py-3">Nome</th>
-                <th className="px-5 py-3">Código SARH</th>
-                <th className="px-5 py-3">Localidade</th>
-                <th className="px-5 py-3">Unidades</th>
-                <th className="px-5 py-3">Servidores</th>
-                <th className="px-5 py-3">Fuso</th>
-                <th className="px-5 py-3">Última sincronização</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Ações</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {resultado.orgaos.map((orgao) => {
-                const localidade = formatarLocalidade(orgao);
-
-                return (
-                  <tr key={orgao.id} className="border-b last:border-b-0">
-                    <td className="px-5 py-4 font-mono text-xs font-semibold">
-                      {orgao.sigla}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="font-semibold">{orgao.nome}</div>
-                    </td>
-                    <td className="px-5 py-4 font-mono text-xs">
-                      {orgao.codigoExternoSarh ?? "-"}
-                    </td>
-                    <td className="px-5 py-4">
-                      {localidade ? (
-                        <div>
-                          <div className="font-medium">
-                            {localidade.principal}
-                          </div>
-                          <div className="text-xs text-[var(--muted-foreground)]">
-                            {localidade.detalhe}
-                          </div>
-                        </div>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                    <td className="px-5 py-4">{orgao._count.unidades}</td>
-                    <td className="px-5 py-4">{orgao._count.servidores}</td>
-                    <td className="px-5 py-4">{orgao.fusoHorario ?? "-"}</td>
-                    <td className="px-5 py-4">
-                      {orgao.ultimaSincronizacaoSarh
-                        ? new Intl.DateTimeFormat("pt-BR", {
-                            dateStyle: "short",
-                            timeStyle: "short",
-                          }).format(orgao.ultimaSincronizacaoSarh)
-                        : "-"}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                          orgao.ativo
-                            ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
-                            : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                        }`}
-                      >
-                        {orgao.ativo ? "Ativo" : "Inativo"}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <Link
-                        href={`/orgaos/${orgao.id}/editar`}
-                        className="inline-flex items-center gap-2 text-sm font-semibold text-blue-900 hover:underline dark:text-blue-300"
-                      >
-                        <Edit className="size-4" aria-hidden="true" />
-                        Editar
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {resultado.orgaos.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={10}
-                    className="px-5 py-10 text-center text-[var(--muted-foreground)]"
-                  >
-                    Nenhum órgão encontrado para os filtros informados.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <OrgaosDataTable
+          dados={resultado.orgaos}
+          ordenarPor={ordenarPor}
+          direcao={direcao}
+        />
       </DataTableShell>
     </div>
   );

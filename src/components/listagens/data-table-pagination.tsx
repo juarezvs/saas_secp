@@ -7,6 +7,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { ChevronsLeft, ChevronsRight } from "lucide-react";
 
 type DataTablePaginationProps = {
   pagina: number;
@@ -28,6 +29,17 @@ export function DataTablePagination({
       aria-label={`Paginação da tabela. Página ${pagina} de ${totalPaginas}`}
     >
       <PaginationContent>
+        <PaginationItem>
+          <PaginationLink
+            href={montarHrefPagina(1)}
+            disabled={pagina <= 1}
+            aria-label="Ir para a primeira página"
+            title="Primeira página"
+          >
+            <ChevronsLeft className="size-4" aria-hidden="true" />
+          </PaginationLink>
+        </PaginationItem>
+
         <PaginationItem>
           <PaginationPrevious
             href={montarHrefPagina(paginaAnterior)}
@@ -55,6 +67,17 @@ export function DataTablePagination({
             href={montarHrefPagina(proximaPagina)}
             disabled={pagina >= totalPaginas}
           />
+        </PaginationItem>
+
+        <PaginationItem>
+          <PaginationLink
+            href={montarHrefPagina(totalPaginas)}
+            disabled={pagina >= totalPaginas}
+            aria-label="Ir para a última página"
+            title="Última página"
+          >
+            <ChevronsRight className="size-4" aria-hidden="true" />
+          </PaginationLink>
         </PaginationItem>
       </PaginationContent>
     </Pagination>
