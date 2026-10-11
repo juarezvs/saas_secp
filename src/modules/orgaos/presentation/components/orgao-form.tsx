@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Save } from "lucide-react";
 
 import { SearchableSelect } from "@/components/ui";
+import { toast } from "@/components/ui/toast";
 import type { EstadoComCidadesSelecao } from "@/modules/localidades/infrastructure/repositories/localidade.repository";
 import { LocalidadeFields } from "@/modules/localidades/presentation/components/localidade-fields";
 
@@ -48,6 +50,8 @@ export function OrgaoForm({
   fusosHorarios = [],
   estados = [],
 }: OrgaoFormProps) {
+  const router = useRouter();
+  const toastId = useRef<string | null>(null);
   const [estado, formAction, pendente] = useActionState(action, estadoInicial);
   const campos = estado.campos ?? valoresIniciais;
   const opcoesFuso =
@@ -55,9 +59,50 @@ export function OrgaoForm({
       ? fusosHorarios
       : [{ valor: "America/Manaus", rotulo: "Manaus (UTC-04)" }];
 
+  useEffect(() => {
+    if (modo !== "editar" || pendente || !toastId.current) return;
+
+    if (estado.sucesso) {
+      toast.update(toastId.current, {
+        title: "Órgão salvo",
+        description:
+          estado.mensagem ?? "As alterações foram salvas com sucesso.",
+        variant: "success",
+        duration: 5000,
+      });
+      toastId.current = null;
+      const timeout = window.setTimeout(() => router.push("/orgaos"), 700);
+      return () => window.clearTimeout(timeout);
+    }
+
+    if (estado.mensagem) {
+      toast.update(toastId.current, {
+        title: "Não foi possível salvar",
+        description: estado.mensagem,
+        variant: "error",
+        duration: 5000,
+      });
+      toastId.current = null;
+    }
+  }, [estado, modo, pendente, router]);
+
+  function iniciarSalvamento() {
+    if (modo !== "editar") return;
+    toastId.current = toast.show({
+      title: "Salvando órgão",
+      description: "Aguarde enquanto as alterações são salvas.",
+      variant: "info",
+      duration: 100000,
+    });
+  }
+
   return (
-    <form action={formAction} className="space-y-6">
-      {estado.mensagem && (
+    <form
+      action={formAction}
+      onSubmit={iniciarSalvamento}
+      className="space-y-6"
+    >
+      {estado.mensagem && !estado.sucesso && (
         <div
           role="alert"
           className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300"

@@ -131,26 +131,17 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
           exportCsvHref={`/api/orgaos/export?${exportParams.toString()}`}
           exportPdfHref={`/api/orgaos/export/pdf?${exportParams.toString()}`}
           fusosHorarios={fusosHorarios}
+          acoesDireita={
+            <>
+              <DataTablePageSize value={resultado.itensPorPagina} compact />
+              <DataTablePagination
+                pagina={resultado.pagina}
+                totalPaginas={resultado.totalPaginas}
+                montarHrefPagina={montarHrefPagina}
+              />
+            </>
+          }
         />
-
-        <div className="flex flex-col justify-between gap-2 border-b border-[var(--border)] px-3 py-2 lg:flex-row lg:items-center">
-          <div className="flex flex-wrap items-center gap-4">
-            <span className="text-xs text-[var(--muted-foreground)]">
-              {resultado.total} registro(s)
-            </span>
-            <DataTablePageSize value={resultado.itensPorPagina} compact />
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-xs text-[var(--muted-foreground)]">
-              Página {resultado.pagina} de {resultado.totalPaginas}
-            </span>
-            <DataTablePagination
-              pagina={resultado.pagina}
-              totalPaginas={resultado.totalPaginas}
-              montarHrefPagina={montarHrefPagina}
-            />
-          </div>
-        </div>
 
         <OrgaosDataTable
           dados={resultado.orgaos}

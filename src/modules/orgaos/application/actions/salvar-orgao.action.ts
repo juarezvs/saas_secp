@@ -164,5 +164,8 @@ export async function atualizarOrgaoAction(
   });
 
   revalidar();
-  redirect(`/orgaos/${orgaoId}/editar`);
+  return {
+    sucesso: true,
+    mensagem: "Órgão salvo com sucesso.",
+  };
 }
