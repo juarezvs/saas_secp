@@ -42,27 +42,27 @@ export function DataTableShell({
         {toolbar}
       </div>
 
-      <div className="flex flex-col justify-between gap-3 border-b p-5 md:flex-row md:items-center">
-        <p className="text-sm text-[var(--muted-foreground)]">
-          {total} registro(s) encontrado(s)
-        </p>
+      <div className="flex flex-col justify-between gap-3 border-b px-5 py-3 lg:flex-row lg:items-center">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <p className="text-sm text-[var(--muted-foreground)]">
+            {total} registro(s) encontrado(s)
+          </p>
+          <DataTablePageSize value={itensPorPagina} />
+        </div>
 
-        <DataTablePageSize value={itensPorPagina} />
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-sm text-[var(--muted-foreground)]">
+            Página {pagina} de {totalPaginas}
+          </span>
+          <DataTablePagination
+            pagina={pagina}
+            totalPaginas={totalPaginas}
+            montarHrefPagina={montarHrefPagina}
+          />
+        </div>
       </div>
 
       {children}
-
-      <div className="flex flex-col justify-between gap-3 border-t p-5 md:flex-row md:items-center">
-        <p className="text-sm text-[var(--muted-foreground)]">
-          Página {pagina} de {totalPaginas}
-        </p>
-
-        <DataTablePagination
-          pagina={pagina}
-          totalPaginas={totalPaginas}
-          montarHrefPagina={montarHrefPagina}
-        />
-      </div>
     </section>
   );
 }

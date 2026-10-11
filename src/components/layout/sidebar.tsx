@@ -1229,6 +1229,29 @@ function achatarItens(itens: MenuItem[]): MenuItem[] {
   ]);
 }
 
+function normalizarBuscaMenu(valor: string) {
+  return valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function filtrarItensPorBusca(itens: MenuItem[], busca: string): MenuItem[] {
+  const termo = normalizarBuscaMenu(busca);
+  if (!termo) return itens;
+
+  return itens.flatMap((item) => {
+    if (normalizarBuscaMenu(item.label).includes(termo)) return [item];
+
+    const filhos = item.children
+      ? filtrarItensPorBusca(item.children, busca)
+      : [];
+
+    return filhos.length ? [{ ...item, children: filhos }] : [];
+  });
+}
+
 function clonarItemMenu(item: MenuItem, label?: string | null): MenuItem {
   return {
     ...item,
@@ -1543,6 +1566,7 @@ function MenuPrincipal({
   const { favoritos, isFavorito, favoritar, desfavoritar } =
     useFavoritosPerfil();
   const [favoritoPendente, setFavoritoPendente] = useState<string | null>(null);
+  const [buscaMenu, setBuscaMenu] = useState("");
   const itensPadraoComIcones = useMemo(
     () => aplicarIconesItensCatalogo(MENU_ITEMS, iconesItensCatalogo),
     [iconesItensCatalogo],
@@ -1561,6 +1585,18 @@ function MenuPrincipal({
       }),
     [itensPadraoVisiveis, perfilAtivo, menusPersonalizados],
   );
+  const itensFiltrados = useMemo(
+    () => filtrarItensPorBusca(itensVisiveis, buscaMenu),
+    [itensVisiveis, buscaMenu],
+  );
+  const favoritosFiltrados = useMemo(() => {
+    const termo = normalizarBuscaMenu(buscaMenu);
+    return termo
+      ? favoritos.filter((favorito) =>
+          normalizarBuscaMenu(favorito.titulo).includes(termo),
+        )
+      : favoritos;
+  }, [buscaMenu, favoritos]);
   const itemAtivo = useMemo(
     () => obterItemAtivo(pathname, itensVisiveis, searchParams),
     [pathname, searchParams, itensVisiveis],
@@ -1642,34 +1678,51 @@ function MenuPrincipal({
 
   return (
     <nav
-      className="flex-1 overflow-y-auto px-3 py-4"
+      className="flex min-h-0 flex-1 flex-col"
       aria-label={`Menu do perfil ${perfilAtivo.nome}`}
       data-tour="menu-lateral"
     >
-      <ul className="space-y-1">
-        {favoritos.length > 0 && (
-          <li className="space-y-1 border-b border-border/80 pb-3">
+      <div className="secp-sidebar-search sticky top-0 z-10 border-b border-border/80 px-3 py-3">
+        <label className="relative block">
+          <Search
+            className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 opacity-70"
+            aria-hidden="true"
+          />
+          <span className="sr-only">Buscar no menu</span>
+          <input
+            type="search"
+            value={buscaMenu}
+            onChange={(event) => setBuscaMenu(event.target.value)}
+            placeholder="Buscar no menu"
+            className="h-9 w-full rounded-sm border border-current/25 bg-transparent pl-8 pr-3 text-[13px] outline-none transition-colors placeholder:opacity-60 focus:border-[var(--secp-theme-accent)]"
+          />
+        </label>
+      </div>
+
+      <ul className="space-y-0.5 overflow-y-auto px-2 py-2">
+        {favoritosFiltrados.length > 0 && (
+          <li className="space-y-0.5 border-b border-border/80 pb-2">
             <button
               type="button"
               onClick={() => alternarGrupo("__favoritos", grupoFavoritosAberto)}
               aria-expanded={grupoFavoritosAberto}
-              className="secp-sidebar-item flex w-full items-center gap-3 rounded-md bg-white px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-secp-blue-900/10 hover:text-secp-blue-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:bg-transparent dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white"
+              className="secp-sidebar-item flex min-h-8 w-full items-center gap-2 rounded-sm bg-white px-2 py-1.5 text-left text-[13px] font-semibold text-slate-700 transition hover:bg-secp-blue-900/10 hover:text-secp-blue-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:bg-transparent dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white"
               data-tour="menu-favoritos"
             >
-              <span className="min-w-0 flex-1 break-words leading-5">
-                Meus Favoritos
-              </span>
               <ChevronDown
                 className={[
-                  "size-4 shrink-0 transition-transform",
-                  grupoFavoritosAberto ? "rotate-180" : "",
+                  "size-3.5 shrink-0 -rotate-90 transition-transform",
+                  grupoFavoritosAberto ? "rotate-0" : "",
                 ].join(" ")}
                 aria-hidden="true"
               />
+              <span className="min-w-0 flex-1 break-words leading-5">
+                Meus Favoritos
+              </span>
             </button>
             {grupoFavoritosAberto ? (
-              <ul className="ml-4 space-y-1 border-l border-border pl-2">
-                {favoritos.map((favorito) => {
+              <ul className="ml-3 space-y-0.5 border-l border-border pl-2">
+                {favoritosFiltrados.map((favorito) => {
                   const favoritoAtivo = itemCorrespondeAoPath(
                     pathname,
                     favorito.href,
@@ -1694,7 +1747,7 @@ function MenuPrincipal({
                     <li
                       key={favorito.id}
                       className={[
-                        "secp-sidebar-subitem flex items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition",
+                        "secp-sidebar-subitem flex min-h-8 items-center gap-2 rounded-sm px-2 py-1.5 text-[13px] font-medium transition",
                         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                         favoritoAtivo
                           ? "bg-secp-blue-900/10 text-secp-blue-900 dark:bg-white/10 dark:text-white"
@@ -1728,18 +1781,20 @@ function MenuPrincipal({
             ) : null}
           </li>
         )}
-        {itensVisiveis.map((item) => {
+        {itensFiltrados.map((item) => {
           const Icon = item.icon;
           const filhos = item.children ?? [];
           const possuiFilhos = filhos.length > 0;
           const ativo = item.href === itemAtivo?.href;
           const filhoAtivo = filhos.some((child) => child === itemAtivo);
           const grupoAtivo = ativo || filhoAtivo;
-          const grupoAberto = gruposAlternados[item.href] ?? grupoAtivo;
+          const grupoAberto = buscaMenu
+            ? true
+            : (gruposAlternados[item.href] ?? grupoAtivo);
           const mostrarFilhos = possuiFilhos && !recolhida && grupoAberto;
           const itemClassName = [
             "secp-sidebar-item",
-            "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-semibold transition",
+            "flex min-h-8 w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-[13px] font-medium transition",
             "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
             grupoAtivo
               ? "bg-secp-blue-900 text-white shadow-sm"
@@ -1759,29 +1814,21 @@ function MenuPrincipal({
                     type="button"
                     onClick={() => alternarGrupo(item.href, grupoAberto)}
                     aria-expanded={mostrarFilhos}
-                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
                   >
-                    <Icon className="size-5 shrink-0" aria-hidden="true" />
+                    <ChevronDown
+                      className={[
+                        "size-3.5 shrink-0 -rotate-90 transition-transform",
+                        mostrarFilhos ? "rotate-0" : "",
+                      ].join(" ")}
+                      aria-hidden="true"
+                    />
+                    <Icon className="size-4 shrink-0" aria-hidden="true" />
                     <span className="min-w-0 flex-1 break-words leading-5">
                       {item.label}
                     </span>
                   </button>
                   <MenuFavorito href={item.href} label={item.label} />
-                  <button
-                    type="button"
-                    onClick={() => alternarGrupo(item.href, grupoAberto)}
-                    aria-expanded={mostrarFilhos}
-                    aria-label={`${mostrarFilhos ? "Recolher" : "Expandir"} ${item.label}`}
-                    className="grid size-7 shrink-0 place-items-center rounded-sm hover:bg-black/5 dark:hover:bg-white/10"
-                  >
-                    <ChevronDown
-                      className={[
-                        "size-4 transition-transform",
-                        mostrarFilhos ? "rotate-180" : "",
-                      ].join(" ")}
-                      aria-hidden="true"
-                    />
-                  </button>
                 </div>
               ) : (
                 <div
@@ -1795,12 +1842,13 @@ function MenuPrincipal({
                     onClick={onNavigate}
                     aria-label={recolhida ? item.label : undefined}
                     title={recolhida ? item.label : undefined}
-                    className="flex min-w-0 flex-1 items-center gap-3"
+                    className="flex min-w-0 flex-1 items-center gap-2"
                     data-tour={dataTourMenuItem(
                       possuiFilhos ? (filhos[0]?.href ?? item.href) : item.href,
                     )}
                   >
-                    <Icon className="size-5 shrink-0" aria-hidden="true" />
+                    {!recolhida && <span className="size-3.5 shrink-0" />}
+                    <Icon className="size-4 shrink-0" aria-hidden="true" />
                     {!recolhida && (
                       <span className="min-w-0 flex-1 break-words leading-5">
                         {item.label}
@@ -1814,7 +1862,7 @@ function MenuPrincipal({
               )}
 
               {mostrarFilhos && (
-                <ul className="ml-4 space-y-1 border-l border-border pl-2">
+                <ul className="ml-3 space-y-0.5 border-l border-border pl-2">
                   {filhos.map((child) => {
                     const ChildIcon = child.icon;
                     const childAtivo = child.href === hrefAtivo;
@@ -1825,7 +1873,7 @@ function MenuPrincipal({
                           aria-current={childAtivo ? "page" : undefined}
                           className={[
                             "secp-sidebar-subitem",
-                            "flex items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition",
+                            "flex min-h-8 items-center gap-2 rounded-sm px-2 py-1.5 text-[13px] font-medium transition",
                             "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                             childAtivo
                               ? "bg-secp-blue-900/10 text-secp-blue-900 dark:bg-white/10 dark:text-white"
@@ -1856,7 +1904,7 @@ function MenuPrincipal({
             </li>
           );
         })}
-        {itensVisiveis.length === 0 && (
+        {itensFiltrados.length === 0 && favoritosFiltrados.length === 0 && (
           <li className="rounded-md border border-dashed border-border px-3 py-4 text-xs text-muted-foreground">
             Nenhum item disponível para o perfil ativo.
           </li>
@@ -1882,7 +1930,7 @@ export function Sidebar({
       <Sheet open={!recolhida} onOpenChange={onDesktopOpenChange}>
         <SheetContent
           id="secp-sidebar-desktop"
-          className="secp-sidebar hidden w-96 p-0 lg:flex"
+          className="secp-sidebar hidden w-[22rem] p-0 lg:flex"
           exibirFechar={false}
           overlayClassName="hidden lg:block"
           aria-describedby="secp-sidebar-desktop-description"

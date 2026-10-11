@@ -529,6 +529,10 @@ html[data-secp-color-theme="padrao"] .secp-sidebar {
   color: #003c88;
 }
 
+.secp-sidebar-search {
+  background: inherit;
+}
+
 html:not([data-secp-color-theme]) .secp-sidebar-header,
 html[data-secp-color-theme="padrao"] .secp-sidebar-header {
   border-color: color-mix(in srgb, #003c88 14%, white);
