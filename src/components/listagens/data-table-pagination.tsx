@@ -33,6 +33,7 @@ export function DataTablePagination({
           <PaginationLink
             href={montarHrefPagina(1)}
             disabled={pagina <= 1}
+            size="icon"
             aria-label="Ir para a primeira página"
             title="Primeira página"
           >
@@ -73,6 +74,7 @@ export function DataTablePagination({
           <PaginationLink
             href={montarHrefPagina(totalPaginas)}
             disabled={pagina >= totalPaginas}
+            size="icon"
             aria-label="Ir para a última página"
             title="Última página"
           >
