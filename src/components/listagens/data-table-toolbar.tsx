@@ -1,283 +1,54 @@
 "use client";
 
-import { useCallback, useMemo, useTransition } from "react";
+import { useMemo, useState, useTransition, type FormEvent } from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Filter } from "lucide-react";
-import { DataTableExportButtons } from "@/components/listagens/data-table-export-buttons";
-import { FiltroSelectImediato } from "@/components/listagens/filtro-select-imediato";
-import { FiltroTextoDebounce } from "@/components/listagens/filtro-texto-debounce";
-import { Button, CompetenciaInput, SearchableSelect } from "@/components/ui";
-import {
-  criarQueryStringAtualizada,
-  montarHrefComQuery,
-} from "@/components/listagens/query-string";
+import { Edit, Eye, Plus, RefreshCw, SlidersHorizontal, X } from "lucide-react";
+import { DataTableExportButtons } from "./data-table-export-buttons";
+import { useDataTableSelection } from "./data-table-selection";
+import { Button, Modal } from "@/components/ui";
 
-export type DataTableFiltroTexto = {
-  tipo: "texto";
-  nome: string;
-  label: string;
-  placeholder?: string;
-  className?: string;
-  comIconeBusca?: boolean;
-  defaultValue?: string;
-};
+type Option = { value: string; label: string; searchText?: string };
+type BaseFiltro = { nome: string; label: string; className?: string; defaultValue?: string };
+export type DataTableFiltroTexto = BaseFiltro & { tipo: "texto"; placeholder?: string; comIconeBusca?: boolean };
+export type DataTableFiltroSelect = BaseFiltro & { tipo: "select"; options: Option[]; limparAoAlterar?: string[] };
+export type DataTableFiltroSearchableSelect = BaseFiltro & { tipo: "searchable-select"; options: Option[]; placeholder?: string; searchPlaceholder?: string; limparAoAlterar?: string[] };
+export type DataTableFiltroCompetencia = BaseFiltro & { tipo: "competencia" };
+export type DataTableFiltroData = BaseFiltro & { tipo: "data" };
+export type DataTableFiltro = DataTableFiltroTexto | DataTableFiltroSelect | DataTableFiltroSearchableSelect | DataTableFiltroCompetencia | DataTableFiltroData;
 
-export type DataTableFiltroSelect = {
-  tipo: "select";
-  nome: string;
-  label: string;
-  options: {
-    value: string;
-    label: string;
-  }[];
-  className?: string;
-  defaultValue?: string;
-  limparAoAlterar?: string[];
-};
+type Props = { filtros: DataTableFiltro[]; csvHref?: string; pdfHref?: string; csvAssincrono?: boolean; pdfAssincrono?: boolean; novoHref?: string; novoLabel?: string; visualizarHrefBase?: string; editarHrefBase?: string; podeEditar?: boolean };
+const commandClass = "inline-flex h-8 items-center gap-1.5 rounded-sm px-2 text-xs font-medium transition hover:bg-[var(--muted)] disabled:opacity-50";
+const inputClass = "mt-2 h-10 w-full rounded-md border border-[var(--input)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--secp-theme-accent)]";
 
-export type DataTableFiltroSearchableSelect = {
-  tipo: "searchable-select";
-  nome: string;
-  label: string;
-  options: {
-    value: string;
-    label: string;
-    searchText?: string;
-  }[];
-  className?: string;
-  placeholder?: string;
-  searchPlaceholder?: string;
-  defaultValue?: string;
-  limparAoAlterar?: string[];
-};
-
-export type DataTableFiltroCompetencia = {
-  tipo: "competencia";
-  nome: string;
-  label: string;
-  className?: string;
-  defaultValue?: string;
-};
-
-export type DataTableFiltroData = {
-  tipo: "data";
-  nome: string;
-  label: string;
-  className?: string;
-  defaultValue?: string;
-};
-
-export type DataTableFiltro =
-  | DataTableFiltroTexto
-  | DataTableFiltroSelect
-  | DataTableFiltroSearchableSelect
-  | DataTableFiltroCompetencia
-  | DataTableFiltroData;
-
-type DataTableToolbarProps = {
-  filtros: DataTableFiltro[];
-  csvHref?: string;
-  pdfHref?: string;
-  csvAssincrono?: boolean;
-  pdfAssincrono?: boolean;
-};
-
-export function DataTableToolbar({
-  filtros,
-  csvHref,
-  pdfHref,
-  csvAssincrono = false,
-  pdfAssincrono = false,
-}: DataTableToolbarProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+export function DataTableToolbar({ filtros, csvHref, pdfHref, csvAssincrono = false, pdfAssincrono = false, novoHref, novoLabel = "Novo", visualizarHrefBase, editarHrefBase, podeEditar = false }: Props) {
+  const [aberto, setAberto] = useState(false);
   const [pending, startTransition] = useTransition();
-
-  const paramsAtuais = useMemo(
-    () => new URLSearchParams(searchParams.toString()),
-    [searchParams],
-  );
-
-  const aplicarParametro = useCallback(
-    (nome: string, valor: string) => {
-      const filtro = filtros.find((item) => item.nome === nome);
-      const dependentes =
-        filtro && "limparAoAlterar" in filtro ? filtro.limparAoAlterar : [];
-      const params = criarQueryStringAtualizada(searchParams, {
-        [nome]: valor,
-        pagina: "1",
-        ...Object.fromEntries((dependentes ?? []).map((item) => [item, ""])),
-      });
-
-      const destino = montarHrefComQuery(pathname, params);
-
-      startTransition(() => {
-        router.push(destino);
-      });
-    },
-    [filtros, pathname, router, searchParams],
-  );
-
-  const aplicarParametrosTexto = useCallback(
-    (formData: FormData) => {
-      const atualizacoes: Record<string, string> = { pagina: "1" };
-
-      for (const filtro of filtros) {
-        if (filtro.tipo !== "texto") continue;
-        atualizacoes[filtro.nome] = String(formData.get(filtro.nome) ?? "");
-      }
-
-      const params = criarQueryStringAtualizada(searchParams, atualizacoes);
-      const destino = montarHrefComQuery(pathname, params);
-
-      startTransition(() => {
-        router.push(destino);
-      });
-    },
-    [filtros, pathname, router, searchParams],
-  );
-
-  const obterValorFiltro = useCallback(
-    (filtro: DataTableFiltro) => {
-      const value = paramsAtuais.get(filtro.nome) ?? filtro.defaultValue ?? "";
-
-      if (filtro.tipo !== "competencia" || value) {
-        return value;
-      }
-
-      const anoReferencia = paramsAtuais.get("anoReferencia");
-      const mesReferencia = paramsAtuais.get("mesReferencia");
-
-      if (!anoReferencia || !mesReferencia) {
-        return "";
-      }
-
-      return `${anoReferencia}-${mesReferencia.padStart(2, "0")}`;
-    },
-    [paramsAtuais],
-  );
-  const possuiFiltroTexto = filtros.some((filtro) => filtro.tipo === "texto");
-
-  return (
-    <>
-      {csvHref && pdfHref && (
-        <div className="flex flex-col justify-end gap-3 lg:flex-row">
-          <DataTableExportButtons
-            csvHref={csvHref}
-            pdfHref={pdfHref}
-            csvAssincrono={csvAssincrono}
-            pdfAssincrono={pdfAssincrono}
-          />
-        </div>
-      )}
-
-      <form
-        action={aplicarParametrosTexto}
-        className="grid gap-3 lg:grid-cols-6"
-      >
-        {filtros.map((filtro) => {
-          const value = obterValorFiltro(filtro);
-
-          if (filtro.tipo === "select") {
-            return (
-              <FiltroSelectImediato
-                key={filtro.nome}
-                nome={filtro.nome}
-                label={filtro.label}
-                value={value}
-                options={filtro.options}
-                onChange={aplicarParametro}
-                className={filtro.className}
-              />
-            );
-          }
-
-          if (filtro.tipo === "searchable-select") {
-            return (
-              <div key={filtro.nome} className={filtro.className}>
-                <label className="text-xs font-semibold uppercase text-[var(--muted-foreground)]">
-                  {filtro.label}
-                </label>
-                <SearchableSelect
-                  key={`${filtro.nome}-${value}`}
-                  id={filtro.nome}
-                  name={filtro.nome}
-                  defaultValue={value}
-                  options={filtro.options}
-                  placeholder={filtro.placeholder ?? "Todos"}
-                  searchPlaceholder={filtro.searchPlaceholder ?? "Pesquisar..."}
-                  className="mt-2"
-                  onValueChange={(novoValor) =>
-                    aplicarParametro(filtro.nome, novoValor)
-                  }
-                />
-              </div>
-            );
-          }
-
-          if (filtro.tipo === "competencia") {
-            return (
-              <CompetenciaInput
-                key={filtro.nome}
-                name={filtro.nome}
-                label={filtro.label}
-                value={value}
-                onValueChange={(novoValor) =>
-                  aplicarParametro(filtro.nome, novoValor)
-                }
-                className={filtro.className}
-              />
-            );
-          }
-
-          if (filtro.tipo === "data") {
-            return (
-              <div key={`${filtro.nome}-${value}`} className={filtro.className}>
-                <label
-                  htmlFor={filtro.nome}
-                  className="text-xs font-semibold uppercase text-[var(--muted-foreground)]"
-                >
-                  {filtro.label}
-                </label>
-                <input
-                  id={filtro.nome}
-                  name={filtro.nome}
-                  type="date"
-                  defaultValue={value}
-                  onChange={(event) =>
-                    aplicarParametro(filtro.nome, event.currentTarget.value)
-                  }
-                  className="mt-2 h-10 w-full rounded-md border border-[var(--input)] bg-[var(--background)] px-3 text-sm shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                />
-              </div>
-            );
-          }
-
-          return (
-            <FiltroTextoDebounce
-              key={`${filtro.nome}-${value}`}
-              nome={filtro.nome}
-              label={filtro.label}
-              valor={value}
-              placeholder={filtro.placeholder}
-              comIconeBusca={filtro.comIconeBusca}
-              className={filtro.className}
-            />
-          );
-        })}
-        {possuiFiltroTexto && (
-          <div className="flex items-end">
-            <Button
-              type="submit"
-              leftIcon={<Filter className="size-4" aria-hidden="true" />}
-              loading={pending}
-            >
-              Filtrar
-            </Button>
-          </div>
-        )}
-      </form>
-    </>
-  );
+  const pathname = usePathname(); const router = useRouter(); const searchParams = useSearchParams();
+  const { selecionados } = useDataTableSelection();
+  const unico = selecionados.size === 1 ? [...selecionados][0] : null;
+  const ativos = useMemo(() => filtros.flatMap((f) => { const valor = searchParams.get(f.nome)?.trim(); return valor ? [{ filtro: f, valor }] : []; }), [filtros, searchParams]);
+  function navegar(params: URLSearchParams, fechar = true) { params.set("pagina", "1"); startTransition(() => { router.push(`${pathname}?${params}`); if (fechar) setAberto(false); }); }
+  function aplicar(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const data = new FormData(event.currentTarget); const params = new URLSearchParams(searchParams.toString()); for (const filtro of filtros) { const valor = String(data.get(filtro.nome) ?? "").trim(); if (valor) params.set(filtro.nome, valor); else params.delete(filtro.nome); } navegar(params); }
+  function remover(nome: string) { const params = new URLSearchParams(searchParams.toString()); params.delete(nome); navegar(params, false); }
+  function limpar() { const params = new URLSearchParams(searchParams.toString()); for (const filtro of filtros) params.delete(filtro.nome); navegar(params); }
+  return <>
+    <div className="flex min-h-10 flex-wrap items-center gap-1 px-2 py-1">
+      {novoHref ? <Link href={novoHref} className="secp-theme-primary-action inline-flex h-8 items-center gap-1.5 rounded-sm border px-2 text-xs font-medium"><Plus className="size-4" />{novoLabel}</Link> : null}
+      <button type="button" onClick={() => startTransition(() => router.refresh())} disabled={pending} className={commandClass}><RefreshCw className={`size-4 ${pending ? "animate-spin" : ""}`} />Atualizar</button>
+      {visualizarHrefBase ? unico ? <Link href={`${visualizarHrefBase}/${unico}`} className={commandClass}><Eye className="size-4" />Visualizar</Link> : <button disabled className={commandClass}><Eye className="size-4" />Visualizar</button> : null}
+      {editarHrefBase ? unico && podeEditar ? <Link href={`${editarHrefBase}/${unico}/editar`} className={commandClass}><Edit className="size-4" />Editar</Link> : <button disabled className={commandClass}><Edit className="size-4" />Editar</button> : null}
+      {(novoHref || visualizarHrefBase || editarHrefBase) ? <Separador /> : null}
+      <button type="button" onClick={() => setAberto(true)} className={commandClass}><SlidersHorizontal className="size-4" />Filtros{ativos.length ? <span className="grid size-5 place-items-center rounded-full bg-[var(--primary)] text-[var(--primary-foreground)]">{ativos.length}</span> : null}</button>
+      {csvHref && pdfHref ? <><Separador /><DataTableExportButtons csvHref={csvHref} pdfHref={pdfHref} csvAssincrono={csvAssincrono} pdfAssincrono={pdfAssincrono} variant="command" /></> : null}
+    </div>
+    {ativos.length ? <div className="flex flex-wrap items-center gap-1.5 border-t border-[var(--border)] px-3 py-2"><SlidersHorizontal className="size-3.5 text-[var(--muted-foreground)]" />{ativos.map(({ filtro, valor }) => <button key={filtro.nome} type="button" onClick={() => remover(filtro.nome)} className="inline-flex h-7 items-center gap-1 rounded-sm border bg-[var(--muted)]/50 px-2 text-xs"><b>{filtro.label}:</b><span className="max-w-48 truncate">{rotulo(filtro, valor)}</span><X className="size-3" /></button>)}<button type="button" onClick={limpar} className="h-7 px-2 text-xs font-medium text-[var(--secp-theme-accent)] hover:underline">Limpar todos</button></div> : null}
+    <Modal open={aberto} onOpenChange={setAberto} title="Filtros" description="Refine a listagem pelos criterios desejados." className="max-h-[88vh] w-[min(94vw,900px)] overflow-y-auto">
+      <form onSubmit={aplicar}><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{filtros.map((filtro) => <CampoFiltro key={filtro.nome} filtro={filtro} valor={searchParams.get(filtro.nome) ?? filtro.defaultValue ?? ""} />)}</div><div className="mt-6 flex justify-between border-t pt-4"><Button type="button" variant="ghost" onClick={limpar} disabled={!ativos.length}>Limpar filtros</Button><Button type="submit" loading={pending}>Aplicar filtros</Button></div></form>
+    </Modal>
+  </>;
 }
+
+function CampoFiltro({ filtro, valor }: { filtro: DataTableFiltro; valor: string }) { const tipo = filtro.tipo === "data" ? "date" : filtro.tipo === "competencia" ? "month" : "text"; return <label className={filtro.className}><span className="text-sm font-medium">{filtro.label}</span>{filtro.tipo === "select" || filtro.tipo === "searchable-select" ? <select name={filtro.nome} defaultValue={valor} className={inputClass}>{filtro.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select> : <input name={filtro.nome} type={tipo} defaultValue={valor} placeholder={filtro.tipo === "texto" ? filtro.placeholder : undefined} className={inputClass} />}</label>; }
+function rotulo(filtro: DataTableFiltro, valor: string) { return filtro.tipo === "select" || filtro.tipo === "searchable-select" ? filtro.options.find((o) => o.value === valor)?.label ?? valor : valor; }
+function Separador() { return <span className="mx-1 h-5 w-px bg-[var(--border)]" />; }

@@ -12,12 +12,14 @@ type UnidadesListagemControlesProps = {
   orgaos: OrgaoOption[];
   exportCsvHref: string;
   exportPdfHref: string;
+  podeGerenciar: boolean;
 };
 
 export function UnidadesListagemControles({
   orgaos,
   exportCsvHref,
   exportPdfHref,
+  podeGerenciar,
 }: UnidadesListagemControlesProps) {
   const filtros: DataTableFiltro[] = [
     {
@@ -83,6 +85,11 @@ export function UnidadesListagemControles({
       filtros={filtros}
       csvHref={exportCsvHref}
       pdfHref={exportPdfHref}
+      novoHref={podeGerenciar ? "/unidades/nova" : undefined}
+      novoLabel="Nova unidade"
+      visualizarHrefBase="/unidades"
+      editarHrefBase="/unidades"
+      podeEditar={podeGerenciar}
     />
   );
 }

@@ -3,7 +3,7 @@ import { ArrowRight, Plus, RefreshCw, UserRoundCheck } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
-import { DataTableShell } from "@/components/listagens";
+import { DataTableHeaderCheckbox, DataTableRowCheckbox, DataTableShell } from "@/components/listagens";
 import type { Prisma } from "@/generated/prisma/client";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
@@ -280,7 +280,7 @@ export default async function SubstituicoesFuncaoPage({
   baseParams.set("itensPorPagina", String(itensPorPagina));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <Breadcrumb
         items={[
           { label: "Administracao", href: "/administracao" },
@@ -384,6 +384,7 @@ export default async function SubstituicoesFuncaoPage({
         }
         toolbar={
           <SubstituicoesFuncaoListagemControles
+            novoHref={modoCadastroAutomatico ? "/administracao/substituicoes-funcao/novo?tipo=AUTOMATICA" : "/administracao/substituicoes-funcao/novo"}
             orgaos={orgaos.map((orgao) => ({
               id: orgao.id,
               sigla: orgao.sigla,
@@ -428,6 +429,7 @@ export default async function SubstituicoesFuncaoPage({
           <table className="w-full min-w-[1040px] text-left text-sm">
             <thead className="border-b bg-[var(--muted)] text-xs uppercase text-[var(--muted-foreground)]">
               <tr>
+                <th className="w-10 px-3 py-3"><DataTableHeaderCheckbox ids={substituicoes.map((item) => item.id)} /></th>
                 <th className="px-5 py-3">Seccional</th>
                 <th className="px-5 py-3">Titular</th>
                 <th className="px-5 py-3">Substituto</th>
@@ -441,7 +443,7 @@ export default async function SubstituicoesFuncaoPage({
               {substituicoes.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-5 py-10 text-center text-sm text-[var(--muted-foreground)]"
                   >
                     Nenhuma substituicao encontrada para os filtros informados.
@@ -450,6 +452,7 @@ export default async function SubstituicoesFuncaoPage({
               )}
               {substituicoes.map((item) => (
                 <tr key={item.id} className="border-b last:border-b-0">
+                  <td className="px-3 py-4"><DataTableRowCheckbox id={item.id} label={`Selecionar substituicao de ${item.titularServidor.matricula}`} /></td>
                   <td className="px-5 py-4">
                     <div className="font-semibold">{item.orgao.sigla}</div>
                     <div className="text-xs text-[var(--muted-foreground)]">

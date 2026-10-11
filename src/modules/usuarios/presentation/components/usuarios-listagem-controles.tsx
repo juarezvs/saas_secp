@@ -14,6 +14,7 @@ type UsuariosListagemControlesProps = {
   lotacoes: FiltroOption[];
   exportCsvHref: string;
   exportPdfHref: string;
+  podeGerenciar: boolean;
 };
 
 export function UsuariosListagemControles({
@@ -21,6 +22,7 @@ export function UsuariosListagemControles({
   lotacoes,
   exportCsvHref,
   exportPdfHref,
+  podeGerenciar,
 }: UsuariosListagemControlesProps) {
   const filtros: DataTableFiltro[] = [
     {
@@ -83,6 +85,11 @@ export function UsuariosListagemControles({
       filtros={filtros}
       csvHref={exportCsvHref}
       pdfHref={exportPdfHref}
+      novoHref={podeGerenciar ? "/usuarios/novo" : undefined}
+      novoLabel="Novo usuario"
+      visualizarHrefBase="/usuarios"
+      editarHrefBase="/usuarios"
+      podeEditar={podeGerenciar}
     />
   );
 }

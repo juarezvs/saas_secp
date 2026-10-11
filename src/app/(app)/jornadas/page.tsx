@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CalendarClock, Plus, Eye } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
-import { DataTableShell } from "@/components/listagens";
+import { DataTableHeaderCheckbox, DataTableRowCheckbox, DataTableShell } from "@/components/listagens";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarJornadasPaginado } from "@/modules/jornadas/infrastructure/repositories/jornada.repository";
@@ -68,7 +68,7 @@ export default async function JornadasPage({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <Breadcrumb items={[{ label: "Horário de Trabalho" }]} />
 
       <PageHeader
@@ -118,6 +118,7 @@ export default async function JornadasPage({
             </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
+                <th className="w-10 px-3 py-3"><DataTableHeaderCheckbox ids={resultado.jornadas.map((item) => item.id)} /></th>
                 <th className="px-5 py-3">Código</th>
                 <th className="px-5 py-3">Descrição</th>
                 <th className="px-5 py-3">Tipo</th>
@@ -132,6 +133,7 @@ export default async function JornadasPage({
             <tbody>
               {resultado.jornadas.map((jornada) => (
                 <tr key={jornada.id} className="border-b last:border-b-0">
+                  <td className="px-3 py-4"><DataTableRowCheckbox id={jornada.id} label={`Selecionar ${jornada.nome}`} /></td>
                   <td className="px-5 py-4 font-mono text-xs font-semibold">
                     {jornada.codigo}
                   </td>
@@ -183,7 +185,7 @@ export default async function JornadasPage({
               {resultado.jornadas.length === 0 && (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
                     Nenhum horário encontrado para os filtros informados.

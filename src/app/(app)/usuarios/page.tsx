@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Plus, UserCog, Eye } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
-import { DataTableShell } from "@/components/listagens";
+import { DataTableHeaderCheckbox, DataTableRowCheckbox, DataTableShell } from "@/components/listagens";
 import {
   aplicarEscopoOrgaoId,
   obterEscopoOrgaoDaSessao,
@@ -130,7 +130,7 @@ export default async function UsuariosPage({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <Breadcrumb
         items={[
           { label: "Administração", href: "/administracao" },
@@ -170,6 +170,7 @@ export default async function UsuariosPage({
             lotacoes={lotacoesOptions}
             exportCsvHref={`/api/usuarios/export?${exportParams.toString()}`}
             exportPdfHref={`/api/usuarios/export/pdf?${exportParams.toString()}`}
+            podeGerenciar={podeGerenciarUsuarios}
           />
         }
       >
@@ -181,6 +182,7 @@ export default async function UsuariosPage({
             </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
+                <th className="w-10 px-3 py-3"><DataTableHeaderCheckbox ids={resultado.usuarios.map((item) => item.id)} /></th>
                 <th className="px-5 py-3">Matrícula/Login</th>
                 <th className="px-5 py-3">Nome</th>
                 <th className="px-5 py-3">Tipo</th>
@@ -197,6 +199,7 @@ export default async function UsuariosPage({
 
                 return (
                   <tr key={usuario.id} className="border-b last:border-b-0">
+                    <td className="px-3 py-4"><DataTableRowCheckbox id={usuario.id} label={`Selecionar ${usuario.nome}`} /></td>
                     <td className="px-5 py-4 font-mono text-xs font-semibold">
                       {usuario.matricula}
                     </td>
@@ -248,7 +251,7 @@ export default async function UsuariosPage({
               {resultado.usuarios.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
                     Nenhum usuário encontrado para os filtros informados.

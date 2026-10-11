@@ -56,6 +56,11 @@ export function JornadasListagemControles({
       filtros={filtros}
       csvHref={exportCsvHref}
       pdfHref={exportPdfHref}
+      novoHref="/jornadas/nova"
+      novoLabel="Novo horario"
+      visualizarHrefBase="/jornadas"
+      editarHrefBase="/jornadas"
+      podeEditar
     />
   );
 }

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import type { FormEvent } from "react";
-import { useMemo, useState } from "react";
 import { Edit, Trash2 } from "lucide-react";
+import { DataTableHeaderCheckbox, DataTableRowCheckbox, useDataTableSelection } from "@/components/listagens";
 
 import { excluirCalendariosInstitucionaisAction } from "../../application/actions/excluir-calendario-institucional.action";
 
@@ -54,27 +54,13 @@ export function CalendarioInstitucionalListagem({
   eventos,
   redirectTo,
 }: CalendarioInstitucionalListagemProps) {
-  const [selecionados, setSelecionados] = useState<string[]>([]);
-  const ids = useMemo(() => eventos.map((evento) => evento.id), [eventos]);
-  const todosSelecionados =
-    ids.length > 0 && ids.every((id) => selecionados.includes(id));
-
-  function alternarTodos() {
-    setSelecionados(todosSelecionados ? [] : ids);
-  }
-
-  function alternarSelecionado(id: string) {
-    setSelecionados((atuais) =>
-      atuais.includes(id)
-        ? atuais.filter((item) => item !== id)
-        : [...atuais, id],
-    );
-  }
+  const { selecionados } = useDataTableSelection();
+  const ids = eventos.map((evento) => evento.id);
 
   function confirmarExclusao(event: FormEvent<HTMLFormElement>) {
     if (
       !window.confirm(
-        `Excluir ${selecionados.length} evento(s) selecionado(s)? Esta acao nao pode ser desfeita.`,
+        `Excluir ${selecionados.size} evento(s) selecionado(s)? Esta acao nao pode ser desfeita.`,
       )
     ) {
       event.preventDefault();
@@ -88,14 +74,14 @@ export function CalendarioInstitucionalListagem({
     >
       <input type="hidden" name="redirectTo" value={redirectTo} />
 
-      {selecionados.map((id) => (
+      {[...selecionados].map((id) => (
         <input key={id} type="hidden" name="calendarioId" value={id} />
       ))}
 
-      {selecionados.length > 0 && (
+      {selecionados.size > 0 && (
         <div className="flex items-center justify-between gap-3 border-b bg-red-50 px-5 py-3 text-sm text-red-800 dark:bg-red-950/30 dark:text-red-200">
           <span className="font-semibold">
-            {selecionados.length} selecionado(s)
+            {selecionados.size} selecionado(s)
           </span>
           <button
             type="submit"
@@ -116,13 +102,7 @@ export function CalendarioInstitucionalListagem({
           <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
             <tr>
               <th className="w-12 px-5 py-3">
-                <input
-                  type="checkbox"
-                  checked={todosSelecionados}
-                  onChange={alternarTodos}
-                  aria-label="Selecionar todos os eventos da pagina"
-                  className="size-4 rounded border-slate-300 accent-blue-900"
-                />
+                <DataTableHeaderCheckbox ids={ids} label="Selecionar todos os eventos da pagina" />
               </th>
               <th className="px-5 py-3">Data</th>
               <th className="px-5 py-3">Tipo</th>
@@ -139,13 +119,7 @@ export function CalendarioInstitucionalListagem({
             {eventos.map((evento) => (
               <tr key={evento.id} className="border-b last:border-b-0">
                 <td className="px-5 py-4">
-                  <input
-                    type="checkbox"
-                    checked={selecionados.includes(evento.id)}
-                    onChange={() => alternarSelecionado(evento.id)}
-                    aria-label={`Selecionar ${evento.descricao}`}
-                    className="size-4 rounded border-slate-300 accent-blue-900"
-                  />
+                  <DataTableRowCheckbox id={evento.id} label={`Selecionar ${evento.descricao}`} />
                 </td>
                 <td className="px-5 py-4 font-semibold">
                   {formatarDataUtc(evento.dataReferencia)}

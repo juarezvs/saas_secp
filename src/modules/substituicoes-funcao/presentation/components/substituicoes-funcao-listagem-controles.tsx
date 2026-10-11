@@ -17,6 +17,7 @@ type SubstituicoesFuncaoListagemControlesProps = {
   titulares: FiltroOption[];
   substitutos: FiltroOption[];
   funcoes: FiltroOption[];
+  novoHref: string;
 };
 
 export function SubstituicoesFuncaoListagemControles({
@@ -24,6 +25,7 @@ export function SubstituicoesFuncaoListagemControles({
   titulares,
   substitutos,
   funcoes,
+  novoHref,
 }: SubstituicoesFuncaoListagemControlesProps) {
   const filtros: DataTableFiltro[] = [
     {
@@ -74,5 +76,5 @@ export function SubstituicoesFuncaoListagemControles({
     },
   ];
 
-  return <DataTableToolbar filtros={filtros} />;
+  return <DataTableToolbar filtros={filtros} novoHref={novoHref} novoLabel="Nova substituicao" editarHrefBase="/administracao/substituicoes-funcao" podeEditar />;
 }

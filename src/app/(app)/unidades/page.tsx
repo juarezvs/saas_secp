@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Building2, Plus, Eye } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
-import { DataTableShell } from "@/components/listagens";
+import { DataTableHeaderCheckbox, DataTableRowCheckbox, DataTableShell } from "@/components/listagens";
 import { perfilAtivoEhChefia } from "@/modules/auth/application/services/perfil-chefia.service";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
@@ -98,7 +98,7 @@ export default async function UnidadesPage({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <Breadcrumb
         items={[
           { label: "Administração", href: "/administracao" },
@@ -137,6 +137,7 @@ export default async function UnidadesPage({
             orgaos={orgaos}
             exportCsvHref={`/api/unidades/export?${exportParams.toString()}`}
             exportPdfHref={`/api/unidades/export/pdf?${exportParams.toString()}`}
+            podeGerenciar={!perfilChefiaAtivo}
           />
         }
       >
@@ -148,6 +149,7 @@ export default async function UnidadesPage({
             </caption>
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
+                <th className="w-10 px-3 py-3"><DataTableHeaderCheckbox ids={resultado.unidades.map((item) => item.id)} /></th>
                 <th className="px-5 py-3">Sigla</th>
                 <th className="px-5 py-3">Nome</th>
                 <th className="px-5 py-3">Tipo</th>
@@ -164,6 +166,7 @@ export default async function UnidadesPage({
             <tbody>
               {resultado.unidades.map((unidade) => (
                 <tr key={unidade.id} className="border-b last:border-b-0">
+                  <td className="px-3 py-4"><DataTableRowCheckbox id={unidade.id} label={`Selecionar ${unidade.sigla}`} /></td>
                   <td className="px-5 py-4 font-mono text-xs font-semibold">
                     {unidade.sigla}
                   </td>
@@ -218,7 +221,7 @@ export default async function UnidadesPage({
               {resultado.unidades.length === 0 && (
                 <tr>
                   <td
-                    colSpan={10}
+                    colSpan={11}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
                     Nenhuma unidade encontrada para os filtros informados.

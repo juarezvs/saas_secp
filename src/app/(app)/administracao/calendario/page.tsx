@@ -7,6 +7,7 @@ import { DataTableShell } from "@/components/listagens";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarCalendarioInstitucionalPaginado } from "@/modules/calendario-institucional/infrastructure/repositories/calendario-institucional.repository";
 import { CalendarioInstitucionalListagem } from "@/modules/calendario-institucional/presentation/components/calendario-institucional-listagem";
+import { CalendarioListagemControles } from "@/modules/calendario-institucional/presentation/components/calendario-listagem-controles";
 import { ReplicarCalendarioInstitucionalForm } from "@/modules/calendario-institucional/presentation/components/replicar-calendario-institucional-form";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
@@ -74,7 +75,7 @@ export default async function CalendarioInstitucionalPage({
   const redirectTo = `/administracao/calendario?${redirectParams.toString()}`;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <Breadcrumb
         items={[
           { label: "Administracao", href: "/administracao" },
@@ -113,70 +114,7 @@ export default async function CalendarioInstitucionalPage({
         totalPaginas={resultado.totalPaginas}
         itensPorPagina={resultado.itensPorPagina}
         montarHrefPagina={montarHrefPagina}
-        toolbar={
-          <form method="GET" className="grid gap-3 md:grid-cols-6">
-            <input
-              type="text"
-              name="busca"
-              defaultValue={params.busca ?? ""}
-              placeholder="Buscar descricao"
-              className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm md:col-span-2"
-            />
-            <select
-              name="tipo"
-              defaultValue={params.tipo ?? ""}
-              className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
-            >
-              <option value="">Todos os tipos</option>
-              {tipos.map((tipo) => (
-                <option key={tipo.id} value={tipo.codigo}>
-                  {tipo.nome}
-                </option>
-              ))}
-            </select>
-            <select
-              name="status"
-              defaultValue={params.status ?? ""}
-              className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
-            >
-              <option value="">Todos os status</option>
-              <option value="ativo">Ativos</option>
-              <option value="inativo">Inativos</option>
-            </select>
-            <input
-              type="number"
-              name="ano"
-              min={2000}
-              max={2100}
-              defaultValue={params.ano ?? ""}
-              placeholder="Ano"
-              className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
-            />
-            <input
-              type="number"
-              name="mes"
-              min={1}
-              max={12}
-              defaultValue={params.mes ?? ""}
-              placeholder="Mes"
-              className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
-            />
-            <div className="flex gap-2 md:col-span-6">
-              <button
-                type="submit"
-                className="rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950"
-              >
-                Filtrar
-              </button>
-              <Link
-                href="/administracao/calendario"
-                className="rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)]"
-              >
-                Limpar
-              </Link>
-            </div>
-          </form>
-        }
+        toolbar={<CalendarioListagemControles tipos={tipos} />}
       >
         <CalendarioInstitucionalListagem
           redirectTo={redirectTo}

@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { Building2, Filter, Network, Plus, UserCheck } from "lucide-react";
+import { Building2, Filter, Network, UserCheck } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
+import { DataTableHeaderCheckbox, DataTablePageSize, DataTablePagination, DataTableRowCheckbox, DataTableSelectionProvider } from "@/components/listagens";
+import { ChefiasListagemControles } from "@/modules/chefias/presentation/components/chefias-listagem-controles";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { perfilAtivoEhChefia } from "@/modules/auth/application/services/perfil-chefia.service";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
@@ -25,6 +27,8 @@ type ChefiasPageProps = {
     superior?: string;
     chefia?: string;
     apenasComChefia?: string;
+    pagina?: string;
+    itensPorPagina?: string;
   }>;
 };
 
@@ -122,9 +126,17 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
         .filter((sigla): sigla is string => Boolean(sigla)),
     ),
   ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const itensPorPagina = Math.max(1, Number(params.itensPorPagina ?? 10));
+  const totalPaginas = Math.max(1, Math.ceil(unidadesFiltradas.length / itensPorPagina));
+  const pagina = Math.min(Math.max(1, Number(params.pagina ?? 1)), totalPaginas);
+  const unidadesPagina = unidadesFiltradas.slice((pagina - 1) * itensPorPagina, pagina * itensPorPagina);
+  const baseParams = new URLSearchParams();
+  for (const chave of ["busca", "orgao", "superior", "chefia"] as const) if (params[chave]) baseParams.set(chave, params[chave]!);
+  baseParams.set("itensPorPagina", String(itensPorPagina));
+  function montarHrefPagina(novaPagina: number) { const query = new URLSearchParams(baseParams); query.set("pagina", String(novaPagina)); return `/chefias?${query}`; }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <Breadcrumb items={[{ label: "Chefias" }]} />
 
       <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
@@ -137,17 +149,11 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
           regraDescricao="A frequência mensal é homologada pelo superior hierárquico, que poderá delegar competência a servidor lotado na unidade, sem afastar sua responsabilidade e a responsabilidade pessoal do delegado."
         />
 
-        <Link
-          href="/chefias/vincular"
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-        >
-          <Plus className="size-4" aria-hidden="true" />
-          Vincular chefia
-        </Link>
       </section>
 
-      <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
-        <div className="space-y-4 border-b p-5">
+      <DataTableSelectionProvider>
+      <section className="overflow-hidden border border-[var(--border)] bg-[var(--card)] text-[var(--card-foreground)]">
+        <div className="hidden">
           <div className="flex items-center gap-2">
             <UserCheck className="size-5 text-blue-900 dark:text-blue-300" />
             <h2 className="text-lg font-bold">Unidades e chefias ativas</h2>
@@ -222,10 +228,13 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
           </form>
         </div>
 
+        <div className="border-b border-[var(--border)] px-3 pt-1"><div className="inline-flex h-10 items-center gap-2 border-b-2 border-[var(--secp-theme-accent)] px-2"><h2 className="text-sm font-semibold">Unidades e chefias ativas</h2><span className="text-xs text-[var(--muted-foreground)]">{unidadesFiltradas.length}</span></div></div>
+        <div className="flex min-h-10 flex-wrap items-center border-b border-[var(--border)]"><div className="min-w-0 flex-1"><ChefiasListagemControles orgaos={orgaosFiltro} superiores={superioresFiltro} /></div><div className="ml-auto flex items-center gap-1 px-2 py-1"><DataTablePageSize value={itensPorPagina} command /><DataTablePagination pagina={pagina} totalPaginas={totalPaginas} montarHrefPagina={montarHrefPagina} command /></div></div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1120px] text-left text-sm">
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>
+                <th className="w-10 px-3 py-3"><DataTableHeaderCheckbox ids={unidadesPagina.map((item) => item.id)} /></th>
                 <th className="px-5 py-3">Unidade</th>
                 <th className="px-5 py-3">Chefia titular</th>
                 <th className="px-5 py-3">Órgão</th>
@@ -239,11 +248,12 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
             </thead>
 
             <tbody>
-              {unidadesFiltradas.map((unidade) => {
+              {unidadesPagina.map((unidade) => {
                 const chefiaTitular = obterChefiaTitular(unidade);
 
                 return (
                   <tr key={unidade.id} className="border-b last:border-b-0">
+                    <td className="px-3 py-4"><DataTableRowCheckbox id={unidade.id} label={`Selecionar ${unidade.sigla}`} /></td>
                     <td className="px-5 py-4">
                       <div className="font-semibold">{unidade.sigla}</div>
                       <div className="mt-1 text-xs text-[var(--muted-foreground)]">
@@ -308,10 +318,10 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
                 );
               })}
 
-              {unidadesFiltradas.length === 0 && (
+              {unidadesPagina.length === 0 && (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="px-5 py-10 text-center text-[var(--muted-foreground)]"
                   >
                     Nenhuma unidade encontrada para os filtros informados.
@@ -322,6 +332,7 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
           </table>
         </div>
       </section>
+      </DataTableSelectionProvider>
     </div>
   );
 }
