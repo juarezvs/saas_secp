@@ -138,7 +138,6 @@ function isTipoPeriodo(tipo: string) {
 function usaPeriodoPorData(tipo: string) {
   return [
     "COMPENSACAO",
-    "ABONO_JUSTIFICATIVA",
     "VIAGEM_SERVICO",
     "FOLGA_BANCO_HORAS",
   ].includes(tipo);
@@ -972,8 +971,9 @@ export function SolicitacaoForm({
                         : "Data/hora inicial"}
                     </label>
                     <CampoAjuda>
-                      Início do evento que terá efeito na apuração da
-                      frequência.
+                      {tipoSelecionado === "ABONO_JUSTIFICATIVA"
+                        ? "Informe o início exato do período coberto pelo documento."
+                        : "Início do evento que terá efeito na apuração da frequência."}
                     </CampoAjuda>
                     <input
                       id="dataInicio"
@@ -1001,8 +1001,9 @@ export function SolicitacaoForm({
                         : "Data/hora final"}
                     </label>
                     <CampoAjuda>
-                      Fim do evento. Para intervalos, deve ser posterior ao
-                      início.
+                      {tipoSelecionado === "ABONO_JUSTIFICATIVA"
+                        ? "Informe o fim exato. Somente esse intervalo será abonado."
+                        : "Fim do evento. Para intervalos, deve ser posterior ao início."}
                     </CampoAjuda>
                     <input
                       id="dataFim"

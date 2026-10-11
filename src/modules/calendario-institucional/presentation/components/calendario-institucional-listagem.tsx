@@ -110,7 +110,7 @@ export function CalendarioInstitucionalListagem({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1180px] text-left text-sm">
           <caption className="sr-only">
-            Listagem de eventos do calendario institucional com data, tipo,
+            Listagem de eventos do calendário institucional com data, tipo,
             descricao, parametros de prazo, apuracao e acoes.
           </caption>
           <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">

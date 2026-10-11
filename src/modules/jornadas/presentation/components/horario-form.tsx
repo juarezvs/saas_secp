@@ -10,6 +10,7 @@ import {
   Plus,
   Save,
 } from "lucide-react";
+import { SwitchField } from "@/components/ui/switch";
 
 import type { JornadaFormState } from "../../application/schemas/jornada.schema";
 
@@ -31,6 +32,7 @@ type HorarioFormProps = {
     cargaMaximaDiariaMinutos?: number | null;
     controlaHorario?: boolean;
     permiteFlexibilidade?: boolean;
+    permiteCompensacaoNoDia?: boolean;
     permiteBancoHoras?: boolean;
     permiteHoraExtra?: boolean;
     exigeIntervalo?: boolean;
@@ -109,6 +111,12 @@ const tiposHorario = [
     descricao: "Use quando o mesmo quadro semanal se repete toda semana.",
   },
   {
+    value: "CARGA_HORARIA_LIVRE",
+    label: "Carga horária com marcação livre",
+    descricao:
+      "Use quando a pessoa pode cumprir a carga diária livremente dentro dos limites de início e término do expediente.",
+  },
+  {
     value: "ESCALA_CICLICA",
     label: "Escala Cíclica",
     descricao:
@@ -153,6 +161,7 @@ function formatarDataInput(valor?: Date | string | null) {
 function normalizarTipoHorario(tipo?: string | null) {
   if (
     tipo === "ESCALA_CICLICA" ||
+    tipo === "CARGA_HORARIA_LIVRE" ||
     tipo === "CARGA_MENSAL" ||
     tipo === "HIBRIDO" ||
     tipo === "TELETRABALHO"
@@ -342,6 +351,15 @@ export function HorarioForm({
     formatarDataInput(campos?.vigenciaFim),
   );
   const [tipo, setTipo] = useState(normalizarTipoHorario(campos?.tipo));
+  const [limiteInicioLivre, setLimiteInicioLivre] = useState(
+    campos?.horarioEntradaPadrao ?? "06:00",
+  );
+  const [limiteFimLivre, setLimiteFimLivre] = useState(
+    campos?.horarioSaidaPadrao ?? "19:00",
+  );
+  const [cargaDiariaLivre, setCargaDiariaLivre] = useState(
+    minutosParaHHMM(campos?.cargaDiariaMinutos ?? 420),
+  );
   const [etapaAtual, setEtapaAtual] =
     useState<(typeof etapas)[number]["id"]>("identificacao");
   const [linhas, setLinhas] = useState<LinhaHorario[]>(() =>
@@ -353,7 +371,10 @@ export function HorarioForm({
   const [cicloAtivo, setCicloAtivo] = useState(0);
   const tipoSelecionado = tiposHorario.find((item) => item.value === tipo);
   const linhasAtivas = tipo === "ESCALA_CICLICA" ? ciclos : linhas;
-  const cargaDiariaPadrao = Math.max(...linhasAtivas.map(cargaLinha), 0);
+  const cargaDiariaPadrao =
+    tipo === "CARGA_HORARIA_LIVRE"
+      ? (horaParaMinutos(cargaDiariaLivre) ?? 0)
+      : Math.max(...linhasAtivas.map(cargaLinha), 0);
   const cargaSemanal = linhas.reduce((total, linha) => total + cargaLinha(linha), 0);
   const cargaCiclo = ciclos.reduce(
     (total, ciclo) =>
@@ -518,11 +539,23 @@ export function HorarioForm({
         <input name={`${prefixo}.tipoDia`} value={tipoDiaEfetivo} readOnly />
         <input
           name={`${prefixo}.cargaPrevistaMinutos`}
-          value={cargaLinha(linha)}
+          value={
+            tipo === "CARGA_HORARIA_LIVRE" && linha.tipoDia !== "FOLGA"
+              ? (horaParaMinutos(cargaDiariaLivre) ?? 0)
+              : cargaLinha(linha)
+          }
           readOnly
         />
-        <input name={`${prefixo}.entrada1`} value={linha.entrada1} readOnly />
-        <input name={`${prefixo}.saida1`} value={linha.saida1} readOnly />
+        <input
+          name={`${prefixo}.entrada1`}
+          value={tipo === "CARGA_HORARIA_LIVRE" ? limiteInicioLivre : linha.entrada1}
+          readOnly
+        />
+        <input
+          name={`${prefixo}.saida1`}
+          value={tipo === "CARGA_HORARIA_LIVRE" ? limiteFimLivre : linha.saida1}
+          readOnly
+        />
         <input name={`${prefixo}.entrada2`} value={linha.entrada2} readOnly />
         <input name={`${prefixo}.saida2`} value={linha.saida2} readOnly />
         <input name={`${prefixo}.entrada3`} value={linha.entrada3} readOnly />
@@ -569,7 +602,12 @@ export function HorarioForm({
       <input type="hidden" name="situacao" defaultValue="ATIVA" />
       <input type="hidden" name="controlaHorario" value="true" readOnly />
       <input type="hidden" name="permiteBancoHoras" value="true" readOnly />
-      <input type="hidden" name="permiteFlexibilidade" value="false" readOnly />
+      <input
+        type="hidden"
+        name="permiteFlexibilidade"
+        value={String(tipo === "CARGA_HORARIA_LIVRE")}
+        readOnly
+      />
       <input type="hidden" name="permiteHoraExtra" value="true" readOnly />
       <input type="hidden" name="exigeIntervalo" value="false" readOnly />
       <input
@@ -583,17 +621,23 @@ export function HorarioForm({
       <input
         type="hidden"
         name="horarioEntradaPadrao"
-        value={linhaReferenciaHorario?.entrada1 ?? ""}
+        value={
+          tipo === "CARGA_HORARIA_LIVRE"
+            ? limiteInicioLivre
+            : (linhaReferenciaHorario?.entrada1 ?? "")
+        }
         readOnly
       />
       <input
         type="hidden"
         name="horarioSaidaPadrao"
         value={
-          linhaReferenciaHorario?.saida3 ||
-          linhaReferenciaHorario?.saida2 ||
-          linhaReferenciaHorario?.saida1 ||
-          ""
+          tipo === "CARGA_HORARIA_LIVRE"
+            ? limiteFimLivre
+            : linhaReferenciaHorario?.saida3 ||
+              linhaReferenciaHorario?.saida2 ||
+              linhaReferenciaHorario?.saida1 ||
+              ""
         }
         readOnly
       />
@@ -715,6 +759,25 @@ export function HorarioForm({
               </p>
             </div>
 
+            {tipo === "FIXA_SEMANAL" ? (
+              <div className="flex items-center gap-3 rounded-md border bg-[var(--muted)] p-4 md:col-span-2">
+                <SwitchField
+                  id="permiteCompensacaoNoDia"
+                  name="permiteCompensacaoNoDia"
+                  defaultChecked={campos?.permiteCompensacaoNoDia ?? false}
+                  disabled={somenteLeitura}
+                />
+                <label htmlFor="permiteCompensacaoNoDia" className="cursor-pointer">
+                  <span className="block text-sm font-semibold">
+                    Permitir compensação no dia
+                  </span>
+                  <span className="block text-xs leading-5 text-[var(--muted-foreground)]">
+                    Um atraso pode ser compensado pelo mesmo período após a saída prevista, sem gerar crédito pela parcela compensada.
+                  </span>
+                </label>
+              </div>
+            ) : null}
+
             {tipo === "ESCALA_CICLICA" && (
               <div className="space-y-2">
                 <label htmlFor="inicioCiclo" className="text-sm font-semibold">
@@ -735,6 +798,42 @@ export function HorarioForm({
 
         {etapaAtual === "grade" && tipo !== "ESCALA_CICLICA" && (
           <div className="space-y-4">
+            {tipo === "CARGA_HORARIA_LIVRE" ? (
+              <div className="grid gap-4 rounded-md border bg-[var(--muted)] p-4 md:grid-cols-3">
+                <label className="space-y-2 text-sm font-semibold">
+                  <span>Limite de início</span>
+                  <input
+                    type="time"
+                    value={limiteInicioLivre}
+                    onChange={(event) => setLimiteInicioLivre(event.target.value)}
+                    disabled={somenteLeitura}
+                    className="h-10 w-full rounded-md border bg-[var(--card)] px-3 font-mono"
+                  />
+                </label>
+                <label className="space-y-2 text-sm font-semibold">
+                  <span>Limite de término</span>
+                  <input
+                    type="time"
+                    value={limiteFimLivre}
+                    onChange={(event) => setLimiteFimLivre(event.target.value)}
+                    disabled={somenteLeitura}
+                    className="h-10 w-full rounded-md border bg-[var(--card)] px-3 font-mono"
+                  />
+                </label>
+                <label className="space-y-2 text-sm font-semibold">
+                  <span>Carga diária</span>
+                  <input
+                    type="time"
+                    min="01:00"
+                    max="23:59"
+                    value={cargaDiariaLivre}
+                    onChange={(event) => setCargaDiariaLivre(event.target.value)}
+                    disabled={somenteLeitura}
+                    className="h-10 w-full rounded-md border bg-[var(--card)] px-3"
+                  />
+                </label>
+              </div>
+            ) : null}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-lg font-bold">Grade semanal do horário</h2>
@@ -1005,6 +1104,7 @@ function TabelaLinhas({
                       : linha.tipoDia;
                 const horariosDesabilitados =
                   somenteLeitura ||
+                  tipoHorario === "CARGA_HORARIA_LIVRE" ||
                   ["FOLGA", "HOME_OFFICE"].includes(tipoDiaVisivel);
 
                 return (

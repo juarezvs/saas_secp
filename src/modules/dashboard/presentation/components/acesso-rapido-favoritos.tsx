@@ -3,10 +3,10 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  Bookmark,
   CalendarDays,
   Clock,
   FileText,
-  Star,
   type LucideIcon,
 } from "lucide-react";
 
@@ -25,7 +25,7 @@ function iconeFavorito(href: string): LucideIcon {
     return FileText;
   }
 
-  return Star;
+  return Bookmark;
 }
 
 export function AcessoRapidoFavoritos() {
@@ -44,21 +44,17 @@ export function AcessoRapidoFavoritos() {
           <Link
             key={favorito.id}
             href={favorito.href}
-            className="group flex min-h-[96px] flex-col justify-between rounded-xl border border-amber-100 bg-amber-50/45 p-3 shadow-sm transition hover:border-amber-200 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            className="group flex min-h-[88px] items-start gap-3 rounded border border-zinc-200 bg-white p-3 shadow-sm transition hover:border-amber-400 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:border-zinc-700 dark:bg-zinc-950"
           >
-            <span className="flex items-center justify-between gap-2">
-              <span className="grid size-10 place-items-center rounded-lg bg-amber-100 text-amber-700">
+            <span className="flex items-center gap-2">
+              <span className="grid size-9 shrink-0 place-items-center bg-[#ffb900] text-white">
                 <Icon className="size-5" aria-hidden="true" />
               </span>
-              <ArrowRight
-                className="size-4 text-blue-700 transition group-hover:translate-x-1"
-                aria-hidden="true"
-              />
             </span>
-            <span className="min-w-0">
+            <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1.5 text-xs font-black leading-tight text-blue-950">
                 {favorito.titulo}
-                <Star
+                <Bookmark
                   className="size-3.5 fill-amber-400 text-amber-500"
                   aria-hidden="true"
                 />
@@ -67,6 +63,7 @@ export function AcessoRapidoFavoritos() {
                 {favorito.descricao}
               </span>
             </span>
+            <ArrowRight className="mt-2 size-4 shrink-0 text-blue-700 opacity-0 transition group-hover:translate-x-1 group-hover:opacity-100" aria-hidden="true" />
           </Link>
         );
       })}

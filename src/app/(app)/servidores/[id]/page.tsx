@@ -642,10 +642,6 @@ export default async function ServidorDetalhePage({
           )}
 
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-              {rotuloPessoa.singularTitulo}
-            </p>
-
             <h1 className="mt-2 text-3xl font-bold tracking-tight">
               {nomeFuncional}
             </h1>

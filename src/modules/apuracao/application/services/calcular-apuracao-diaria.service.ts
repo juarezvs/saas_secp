@@ -24,6 +24,7 @@ type JornadaCalculo = {
   trabalhaNoDia?: boolean;
   tipoDiaPrevisto?: string | null;
   controlaHorario?: boolean;
+  permiteCompensacaoNoDia?: boolean;
   janelaPrevista?: {
     inicio: string;
     fim: string;
@@ -46,6 +47,10 @@ type DiaInstitucionalCalculo = {
   descricao?: string | null;
   contaComoDiaUtil: boolean;
   geraApuracaoRegular: boolean;
+  contabilizaJornadaComoTrabalhada?: boolean;
+  exigeRegistroPonto?: boolean;
+  geraDebito?: boolean;
+  geraCredito?: boolean;
   janelaInicio?: string | null;
   janelaFim?: string | null;
 };
@@ -181,7 +186,42 @@ function criarResultadoTrabalhoRemotoSemMarcacao(params: {
   };
 }
 
-export function calcularApuracaoDiaria(params: {
+function criarResultadoJornadaInstitucionalAutomatica(params: {
+  cargaPrevistaMinutos: number;
+  marcacoes: MarcacaoCalculo[];
+  descricao?: string | null;
+  tipo: string;
+}): ResultadoCalculoApuracaoDiaria {
+  return {
+    cargaPrevistaMinutos: params.cargaPrevistaMinutos,
+    minutosTrabalhados: params.cargaPrevistaMinutos,
+    minutosIntervalo: 0,
+    minutosCredito: 0,
+    minutosDebito: 0,
+    resultado: "REGULAR",
+    status: "CALCULADA",
+    primeiraEntrada: encontrarMarcacao(params.marcacoes, "ENTRADA"),
+    saidaIntervalo: encontrarMarcacao(params.marcacoes, "SAIDA_INTERVALO"),
+    retornoIntervalo: encontrarMarcacao(params.marcacoes, "RETORNO_INTERVALO"),
+    ultimaSaida: encontrarMarcacao(params.marcacoes, "SAIDA"),
+    janelaExpediente: null,
+    minutosForaExpediente: 0,
+    dispensaPontoEletronico: null,
+    trabalhoRemoto: {
+      ativo: true,
+      regime: "TOTAL",
+      diaSemana: params.tipo,
+      exigeRegistroPonto: false,
+      descricao:
+        params.descricao ??
+        "Jornada institucional considerada cumprida sem registro de ponto.",
+    },
+    frequenciaManual: null,
+    ocorrencias: [],
+  };
+}
+
+function calcularApuracaoDiariaBase(params: {
   marcacoes: MarcacaoCalculo[];
   jornada: JornadaCalculo | null;
   diaInstitucional?: DiaInstitucionalCalculo | null;
@@ -288,6 +328,18 @@ export function calcularApuracaoDiaria(params: {
   const saidaIntervalo = encontrarMarcacao(ordenadas, "SAIDA_INTERVALO");
   const retornoIntervalo = encontrarMarcacao(ordenadas, "RETORNO_INTERVALO");
   const saida = encontrarMarcacao(ordenadas, "SAIDA");
+
+  if (
+    diaInstitucional?.contabilizaJornadaComoTrabalhada &&
+    diaInstitucional.exigeRegistroPonto === false
+  ) {
+    return criarResultadoJornadaInstitucionalAutomatica({
+      cargaPrevistaMinutos: cargaPrevistaDia,
+      marcacoes: ordenadas,
+      descricao: diaInstitucional.descricao,
+      tipo: diaInstitucional.tipo,
+    });
+  }
 
   const ocorrencias: OcorrenciaCalculada[] = [];
   const janelaExpediente = janelaExpedienteDia;
@@ -578,9 +630,20 @@ export function calcularApuracaoDiaria(params: {
     0,
     minutosBrutosTrabalhados - ajusteIntervaloMinimo,
   );
-  const minutosForaExpediente = Math.max(
+  const minutosForaExpedienteBrutos = Math.max(
     0,
     minutosBrutosTrabalhados - minutosTrabalhadosNoExpediente,
+  );
+  const minutosNecessariosParaCompensar = Math.max(
+    0,
+    cargaPrevistaDia - minutosTrabalhadosNoExpediente,
+  );
+  const minutosCompensadosNoDia = jornada.permiteCompensacaoNoDia
+    ? Math.min(minutosForaExpedienteBrutos, minutosNecessariosParaCompensar)
+    : 0;
+  const minutosForaExpediente = Math.max(
+    0,
+    minutosForaExpedienteBrutos - minutosCompensadosNoDia,
   );
 
   if (minutosForaExpediente > 0) {
@@ -684,6 +747,53 @@ export function calcularApuracaoDiaria(params: {
     dispensaPontoEletronico,
     trabalhoRemoto: null,
     frequenciaManual: null,
+    ocorrencias,
+  };
+}
+
+export function calcularApuracaoDiaria(
+  params: Parameters<typeof calcularApuracaoDiariaBase>[0],
+): ResultadoCalculoApuracaoDiaria {
+  const calculo = calcularApuracaoDiariaBase(params);
+  const politica = params.diaInstitucional;
+
+  if (!politica) {
+    return calculo;
+  }
+
+  const suprimirDebito = politica.geraDebito === false;
+  const suprimirCredito = politica.geraCredito === false;
+
+  if (!suprimirDebito && !suprimirCredito) {
+    return calculo;
+  }
+
+  const ocorrencias = calculo.ocorrencias.filter(
+    (ocorrencia) =>
+      !(suprimirDebito && ["DEBITO", "FALTA"].includes(ocorrencia.tipo)) &&
+      !(suprimirCredito && ocorrencia.tipo === "CREDITO"),
+  );
+  const minutosDebito = suprimirDebito ? 0 : calculo.minutosDebito;
+  const minutosCredito = suprimirCredito ? 0 : calculo.minutosCredito;
+  const resultado =
+    (suprimirDebito && ["DEBITO", "FALTA"].includes(calculo.resultado)) ||
+    (suprimirCredito && calculo.resultado === "CREDITO")
+      ? "REGULAR"
+      : calculo.resultado;
+  const status = ocorrencias.some((ocorrencia) =>
+    TIPOS_OCORRENCIA_INCONSISTENTE.includes(
+      ocorrencia.tipo as (typeof TIPOS_OCORRENCIA_INCONSISTENTE)[number],
+    ),
+  )
+    ? "INCONSISTENTE"
+    : "CALCULADA";
+
+  return {
+    ...calculo,
+    minutosCredito,
+    minutosDebito,
+    resultado,
+    status,
     ocorrencias,
   };
 }

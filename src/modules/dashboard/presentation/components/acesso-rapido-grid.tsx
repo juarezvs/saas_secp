@@ -11,10 +11,10 @@ type AcessoRapidoGridProps = {
 
 export function AcessoRapidoGrid({ acessos }: AcessoRapidoGridProps) {
   return (
-    <Card className="p-3">
-      <div className="flex items-center justify-between gap-3">
+    <Card className="overflow-hidden rounded border-zinc-200 p-0 shadow-[0_1px_2px_rgba(0,0,0,0.12),0_3px_8px_rgba(0,0,0,0.06)] dark:border-zinc-700">
+      <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-3 py-2.5 dark:border-zinc-700">
         <h2 className="inline-flex items-center gap-2 text-sm font-black text-slate-950 dark:text-slate-50">
-          <Settings className="size-4 text-blue-700" aria-hidden="true" />
+          <span className="grid size-8 place-items-center bg-[#0078d4] text-white"><Settings className="size-4" aria-hidden="true" /></span>
           Acesso rápido
         </h2>
         <Link
@@ -25,14 +25,14 @@ export function AcessoRapidoGrid({ acessos }: AcessoRapidoGridProps) {
         </Link>
       </div>
 
-      <AcessoRapidoFavoritos />
+      <div className="px-3"><AcessoRapidoFavoritos /></div>
 
       {acessos.length === 0 ? (
         <p className="mt-3 rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
           Nenhum atalho disponível para o perfil ativo.
         </p>
       ) : (
-        <div className="mt-2.5 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-2 p-3 sm:grid-cols-2 xl:grid-cols-3">
           {acessos.slice(0, 6).map((acesso) => {
             const Icon = acesso.icon;
 
@@ -40,20 +40,16 @@ export function AcessoRapidoGrid({ acessos }: AcessoRapidoGridProps) {
               <Link
                 key={`${acesso.href}-${acesso.titulo}`}
                 href={acesso.href}
-                className={`group flex min-h-[96px] flex-col justify-between rounded-xl border p-3 shadow-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:border-slate-800 ${tomAcessoRapido(acesso.titulo).card}`}
+                className="group flex min-h-[88px] items-start gap-3 rounded border border-zinc-200 bg-white p-3 shadow-sm transition hover:border-blue-400 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:border-zinc-700 dark:bg-zinc-950"
               >
-                <span className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2">
                   <span
-                    className={`grid size-10 place-items-center rounded-lg ${tomAcessoRapido(acesso.titulo).icon}`}
+                    className={`grid size-9 shrink-0 place-items-center text-white ${tomAcessoRapido(acesso.titulo).icon}`}
                   >
                     <Icon className="size-5" aria-hidden="true" />
                   </span>
-                  <ArrowRight
-                    className="size-4 text-blue-700 transition group-hover:translate-x-1"
-                    aria-hidden="true"
-                  />
                 </span>
-                <span className="min-w-0">
+                <span className="min-w-0 flex-1">
                   <span className="block truncate text-xs font-black leading-tight text-blue-950 dark:text-blue-100">
                     {acesso.titulo}
                   </span>
@@ -61,6 +57,7 @@ export function AcessoRapidoGrid({ acessos }: AcessoRapidoGridProps) {
                     {acesso.descricao}
                   </span>
                 </span>
+                <ArrowRight className="mt-2 size-4 shrink-0 text-blue-700 opacity-0 transition group-hover:translate-x-1 group-hover:opacity-100" aria-hidden="true" />
               </Link>
             );
           })}
@@ -73,41 +70,35 @@ export function AcessoRapidoGrid({ acessos }: AcessoRapidoGridProps) {
 function tomAcessoRapido(titulo: string) {
   if (titulo.includes("Solicitar")) {
     return {
-      card: "border-emerald-100 bg-emerald-50/45 hover:bg-emerald-50",
-      icon: "bg-emerald-100 text-emerald-700",
+      icon: "bg-[#107c10]",
     };
   }
 
   if (titulo.includes("Banco")) {
     return {
-      card: "border-amber-100 bg-amber-50/45 hover:bg-amber-50",
-      icon: "bg-amber-100 text-amber-700",
+      icon: "bg-[#ffb900]",
     };
   }
 
   if (titulo.includes("Comprovantes")) {
     return {
-      card: "border-red-100 bg-red-50/45 hover:bg-red-50",
-      icon: "bg-red-100 text-red-700",
+      icon: "bg-[#d83b01]",
     };
   }
 
   if (titulo.includes("Compensa")) {
     return {
-      card: "border-blue-100 bg-blue-50/45 hover:bg-blue-50",
-      icon: "bg-blue-100 text-blue-700",
+      icon: "bg-[#0078d4]",
     };
   }
 
   if (titulo.includes("afastamentos") || titulo.includes("Recesso")) {
     return {
-      card: "border-violet-100 bg-violet-50/45 hover:bg-violet-50",
-      icon: "bg-violet-100 text-violet-700",
+      icon: "bg-[#8661c5]",
     };
   }
 
   return {
-    card: "border-blue-100 bg-blue-50/45 hover:bg-blue-50",
-    icon: "bg-blue-100 text-blue-700",
+    icon: "bg-[#0078d4]",
   };
 }

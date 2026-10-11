@@ -514,7 +514,7 @@ export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps
   const usuarioId = permissao.usuarioId;
 
   if (!usuarioId) {
-    return <main className="rounded-xl border bg-white p-8 text-sm text-slate-600">Nao foi possivel identificar o usuario da sessao.</main>;
+    return <main className="rounded-xl border bg-white p-8 text-sm text-slate-600">Não foi possível identificar o usuário da sessão.</main>;
   }
 
   const servidor = await buscarServidorPorUsuarioId(usuarioId);

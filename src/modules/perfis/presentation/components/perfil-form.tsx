@@ -33,6 +33,9 @@ type PerfilFormProps = {
     nome: string;
   }>;
   permitirPerfilGlobal?: boolean;
+  editarSomentePermissoesSeccionais?: boolean;
+  orgaoEscopoPermissoes?: string | null;
+  nomeOrgaoEscopoPermissoes?: string;
   valoresIniciais?: {
     codigo?: string;
     nome?: string;
@@ -66,6 +69,9 @@ export function PerfilForm({
   perfisDestinoExcecao,
   orgaosPermitidos = [],
   permitirPerfilGlobal = false,
+  editarSomentePermissoesSeccionais = false,
+  orgaoEscopoPermissoes,
+  nomeOrgaoEscopoPermissoes,
   valoresIniciais,
   modo,
 }: PerfilFormProps) {
@@ -80,8 +86,24 @@ export function PerfilForm({
   return (
     <form action={formAction} className="space-y-6">
       <ActionStateToast state={estado} />
+      {orgaoEscopoPermissoes ? (
+        <input
+          type="hidden"
+          name="orgaoEscopoPermissoes"
+          value={orgaoEscopoPermissoes}
+        />
+      ) : null}
 
-      <section className="rounded-xl border bg-[var(--card)] p-6 text-[var(--card-foreground)] shadow-sm">
+      {editarSomentePermissoesSeccionais ? (
+        <div className="rounded-md border border-blue-300 bg-blue-50 p-4 text-sm text-blue-950 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-100">
+          <p className="font-semibold">Configuração seccional</p>
+          <p className="mt-1">
+            As permissões abaixo serão aplicadas somente a {nomeOrgaoEscopoPermissoes ?? "esta seccional"}. A configuração global permanece inalterada.
+          </p>
+        </div>
+      ) : null}
+
+      <section className={editarSomentePermissoesSeccionais ? "hidden" : "rounded-xl border bg-[var(--card)] p-6 text-[var(--card-foreground)] shadow-sm"}>
         <h2 className="text-lg font-bold">Dados do perfil</h2>
 
         <div className="mt-5 grid gap-5 md:grid-cols-2">

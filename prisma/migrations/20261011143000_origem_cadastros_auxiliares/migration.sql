@@ -1,0 +1,4 @@
+ALTER TABLE "tipos_feriados_suspensoes" ADD COLUMN "origem" VARCHAR(20) NOT NULL DEFAULT 'SARH';
+ALTER TABLE "estados" ADD COLUMN "origem" VARCHAR(20) NOT NULL DEFAULT 'SARH';
+ALTER TABLE "cidades" ADD COLUMN "origem" VARCHAR(20) NOT NULL DEFAULT 'SARH';
+ALTER TABLE "dominios_caracteristicas_pessoais" ADD COLUMN "origem" VARCHAR(20) NOT NULL DEFAULT 'SARH';

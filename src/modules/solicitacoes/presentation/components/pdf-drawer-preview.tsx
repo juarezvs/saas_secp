@@ -92,7 +92,7 @@ export function PdfCanvasPages({ dados, nomeArquivo, zoom }: PdfCanvasPagesProps
           const contexto = canvas.getContext("2d");
 
           if (!contexto) {
-            throw new Error("Nao foi possivel preparar a area de desenho.");
+            throw new Error("Não foi possível preparar a área de desenho.");
           }
 
           canvas.width = Math.floor(viewport.width);
@@ -126,7 +126,7 @@ export function PdfCanvasPages({ dados, nomeArquivo, zoom }: PdfCanvasPagesProps
         setErro(
           erroRenderizacao instanceof Error
             ? erroRenderizacao.message
-            : "Nao foi possivel renderizar o PDF.",
+            : "Não foi possível renderizar o PDF.",
         );
       } finally {
         if (!cancelado) {
@@ -157,7 +157,7 @@ export function PdfCanvasPages({ dados, nomeArquivo, zoom }: PdfCanvasPagesProps
         <div className="flex h-[calc(100dvh-11rem)] items-center justify-center rounded-lg border bg-white p-6 text-center text-sm text-red-700">
           <div>
             <AlertCircle className="mx-auto mb-3 size-8" aria-hidden="true" />
-            <p className="font-semibold">Nao foi possivel renderizar o PDF.</p>
+            <p className="font-semibold">Não foi possível renderizar o PDF.</p>
             <p className="mt-1 text-red-600">{erro}</p>
           </div>
         </div>
@@ -202,7 +202,7 @@ export function PdfDrawerPreview({
           const mensagem = await resposta.text().catch(() => "");
           throw new Error(
             mensagem ||
-              "Nao foi possivel carregar o PDF. Tente reenviar o anexo.",
+              "Não foi possível carregar o PDF. Tente reenviar o anexo.",
           );
         }
 
@@ -231,7 +231,7 @@ export function PdfDrawerPreview({
           mensagem:
             erro instanceof Error
               ? erro.message
-              : "Nao foi possivel carregar o PDF.",
+              : "Não foi possível carregar o PDF.",
         });
       }
     }
@@ -316,7 +316,7 @@ export function PdfDrawerPreview({
                   className="mx-auto mb-3 size-8"
                   aria-hidden="true"
                 />
-                <p className="font-semibold">Nao foi possivel visualizar o PDF.</p>
+                <p className="font-semibold">Não foi possível visualizar o PDF.</p>
                 <p className="mt-1 text-red-600">{estado.mensagem}</p>
               </div>
             </div>

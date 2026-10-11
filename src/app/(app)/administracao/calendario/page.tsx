@@ -8,6 +8,7 @@ import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/servic
 import { listarCalendarioInstitucionalPaginado } from "@/modules/calendario-institucional/infrastructure/repositories/calendario-institucional.repository";
 import { CalendarioInstitucionalListagem } from "@/modules/calendario-institucional/presentation/components/calendario-institucional-listagem";
 import { ReplicarCalendarioInstitucionalForm } from "@/modules/calendario-institucional/presentation/components/replicar-calendario-institucional-form";
+import { prisma } from "@/shared/infrastructure/database/prisma";
 
 type CalendarioInstitucionalPageProps = {
   searchParams?: Promise<{
@@ -30,15 +31,21 @@ export default async function CalendarioInstitucionalPage({
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
 
-  const resultado = await listarCalendarioInstitucionalPaginado({
-    busca: params.busca ?? "",
-    tipo: params.tipo ?? "",
-    status: params.status ?? "",
-    ano: params.ano ?? "",
-    mes: params.mes ?? "",
-    pagina,
-    itensPorPagina,
-  });
+  const [resultado, tipos] = await Promise.all([
+    listarCalendarioInstitucionalPaginado({
+      busca: params.busca ?? "",
+      tipo: params.tipo ?? "",
+      status: params.status ?? "",
+      ano: params.ano ?? "",
+      mes: params.mes ?? "",
+      pagina,
+      itensPorPagina,
+    }),
+    prisma.tipoFeriadoSuspensao.findMany({
+      where: { ativo: true },
+      orderBy: { nome: "asc" },
+    }),
+  ]);
 
   const baseParams = new URLSearchParams();
 
@@ -121,9 +128,11 @@ export default async function CalendarioInstitucionalPage({
               className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
             >
               <option value="">Todos os tipos</option>
-              <option value="FERIADO">Feriado</option>
-              <option value="PONTO_FACULTATIVO">Ponto facultativo</option>
-              <option value="SUSPENSAO_EXPEDIENTE">Suspensao do expediente</option>
+              {tipos.map((tipo) => (
+                <option key={tipo.id} value={tipo.codigo}>
+                  {tipo.nome}
+                </option>
+              ))}
             </select>
             <select
               name="status"

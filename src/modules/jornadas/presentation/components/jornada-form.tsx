@@ -11,6 +11,7 @@ import {
   Save,
   Settings2,
 } from "lucide-react";
+import { SwitchField } from "@/components/ui/switch";
 
 import {
   diasSemana,
@@ -37,6 +38,7 @@ type JornadaFormProps = {
     cargaMaximaDiariaMinutos?: number | null;
     controlaHorario?: boolean;
     permiteFlexibilidade?: boolean;
+    permiteCompensacaoNoDia?: boolean;
     permiteBancoHoras?: boolean;
     permiteHoraExtra?: boolean;
     exigeIntervalo?: boolean;
@@ -88,6 +90,7 @@ type JornadaPreview = {
   exigeIntervalo: boolean;
   controlaHorario: boolean;
   permiteFlexibilidade: boolean;
+  permiteCompensacaoNoDia: boolean;
   permiteBancoHoras: boolean;
   permiteHoraExtra: boolean;
   cruzaMeiaNoite: boolean;
@@ -108,6 +111,7 @@ const rotulosTipo: Record<string, string> = {
   FIXA_SEMANAL: "Fixa semanal",
   FLEXIVEL: "Flexível",
   CARGA_DIARIA: "Carga diária",
+  CARGA_HORARIA_LIVRE: "Carga horária com marcação livre",
   CARGA_SEMANAL: "Carga semanal",
   CARGA_MENSAL: "Carga mensal",
   ESCALA_CICLICA: "Escala cíclica",
@@ -133,6 +137,8 @@ const descricoesTipo: Record<string, string> = {
     "Use quando há carga diária prevista, mas com janela de entrada/saída mais ampla ou núcleo obrigatório.",
   CARGA_DIARIA:
     "Use quando a apuração compara principalmente a carga diária, com ou sem faixa rígida de horário.",
+  CARGA_HORARIA_LIVRE:
+    "Permite marcações livres dentro dos limites do expediente. A regularidade depende do cumprimento da carga diária.",
   CARGA_SEMANAL:
     "Use quando o controle principal é a carga semanal. Informe a carga semanal e configure os dias esperados quando houver.",
   CARGA_MENSAL:
@@ -188,6 +194,11 @@ const descricoesParametros: Record<string, { label: string; descricao: string }>
   permiteFlexibilidade: {
     label: "Permite flexibilidade",
     descricao: "Permite cumprir a carga dentro de uma janela mais ampla.",
+  },
+  permiteCompensacaoNoDia: {
+    label: "Permitir compensação no dia",
+    descricao:
+      "Permite compensar atraso permanecendo o mesmo tempo após a saída prevista, sem gerar crédito pela parcela compensada.",
   },
   permiteBancoHoras: {
     label: "Permite banco de horas",
@@ -323,6 +334,7 @@ function criarPreviewInicial(
     exigeIntervalo: campos?.exigeIntervalo ?? false,
     controlaHorario: campos?.controlaHorario ?? tipo !== "SEM_CONTROLE_CONVENCIONAL",
     permiteFlexibilidade: campos?.permiteFlexibilidade ?? false,
+    permiteCompensacaoNoDia: campos?.permiteCompensacaoNoDia ?? false,
     permiteBancoHoras: campos?.permiteBancoHoras ?? true,
     permiteHoraExtra: campos?.permiteHoraExtra ?? false,
     cruzaMeiaNoite: campos?.cruzaMeiaNoite ?? tipo === "NOTURNA",
@@ -363,6 +375,10 @@ function lerPreviewFormulario(form: HTMLFormElement, tipo: string): JornadaPrevi
     exigeIntervalo: checkboxDoCampo(form, "exigeIntervalo"),
     controlaHorario: checkboxDoCampo(form, "controlaHorario"),
     permiteFlexibilidade: checkboxDoCampo(form, "permiteFlexibilidade"),
+    permiteCompensacaoNoDia: checkboxDoCampo(
+      form,
+      "permiteCompensacaoNoDia",
+    ),
     permiteBancoHoras: checkboxDoCampo(form, "permiteBancoHoras"),
     permiteHoraExtra: checkboxDoCampo(form, "permiteHoraExtra"),
     cruzaMeiaNoite: checkboxDoCampo(form, "cruzaMeiaNoite"),
@@ -443,6 +459,7 @@ function etapaDoCampoComErro(campo: string): EtapaJornada {
       "horarioLimiteVirada",
       "controlaHorario",
       "permiteFlexibilidade",
+      "permiteCompensacaoNoDia",
       "permiteBancoHoras",
       "permiteHoraExtra",
       "cruzaMeiaNoite",
@@ -501,6 +518,7 @@ export function JornadaForm({
 
     return {
       usaCiclo,
+      cargaLivre: tipoSelecionado === "CARGA_HORARIA_LIVRE",
       semControle: tipoSelecionado === "SEM_CONTROLE_CONVENCIONAL",
       exigeCargaSemanal: tipoSelecionado === "CARGA_SEMANAL",
       exigeCargaMensal: tipoSelecionado === "CARGA_MENSAL",
@@ -783,15 +801,15 @@ export function JornadaForm({
               <CampoErro estado={estado} campo="cargaDiariaMinutos" />
               <CampoHora
                 id="horarioEntradaPadrao"
-                label="Entrada padrão"
-                descricao="Horário previsto de início quando a jornada controla marcações."
+                label={contextoTipo.cargaLivre ? "Limite de início do expediente" : "Entrada padrão"}
+                descricao={contextoTipo.cargaLivre ? "Primeiro horário em que a marcação pode ser contabilizada." : "Horário previsto de início quando a jornada controla marcações."}
                 defaultValue={campos?.horarioEntradaPadrao ?? ""}
               />
               <CampoErro estado={estado} campo="horarioEntradaPadrao" />
               <CampoHora
                 id="horarioSaidaPadrao"
-                label="Saída padrão"
-                descricao="Horário previsto de término, usado para apuração e comparação."
+                label={contextoTipo.cargaLivre ? "Limite de término do expediente" : "Saída padrão"}
+                descricao={contextoTipo.cargaLivre ? "Último horário em que a marcação pode ser contabilizada." : "Horário previsto de término, usado para apuração e comparação."}
                 defaultValue={campos?.horarioSaidaPadrao ?? ""}
               />
               <CampoErro estado={estado} campo="horarioSaidaPadrao" />
@@ -907,7 +925,12 @@ export function JornadaForm({
                   ],
                   [
                     "permiteFlexibilidade",
-                    campos?.permiteFlexibilidade ?? contextoTipo.usaCiclo,
+                    campos?.permiteFlexibilidade ??
+                      (contextoTipo.usaCiclo || contextoTipo.cargaLivre),
+                  ],
+                  [
+                    "permiteCompensacaoNoDia",
+                    campos?.permiteCompensacaoNoDia ?? false,
                   ],
                   ["permiteBancoHoras", campos?.permiteBancoHoras ?? true],
                   ["permiteHoraExtra", campos?.permiteHoraExtra ?? false],
@@ -1384,25 +1407,25 @@ function ParametroCheckbox({
   className?: string;
 }) {
   return (
-    <label
+    <div
       className={[
         "flex items-start gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm",
         className ?? "",
       ].join(" ")}
     >
-      <input
-        type="checkbox"
+      <SwitchField
+        id={name}
         name={name}
         defaultChecked={defaultChecked}
-        className="mt-0.5 size-4 rounded border-slate-300"
+        className="mt-0.5"
       />
-      <span>
+      <label htmlFor={name} className="cursor-pointer">
         <span className="block font-semibold">{label}</span>
         <span className="text-xs leading-5 text-[var(--muted-foreground)]">
           {descricao}
         </span>
-      </span>
-    </label>
+      </label>
+    </div>
   );
 }
 

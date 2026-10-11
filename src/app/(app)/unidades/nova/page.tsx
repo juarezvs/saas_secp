@@ -11,6 +11,7 @@ import {
   listarUnidadesParaSelecao,
 } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
 import { UnidadeForm } from "@/modules/unidades/presentation/components/unidade-form";
+import { listarEstadosComCidadesAtivas } from "@/modules/localidades/infrastructure/repositories/localidade.repository";
 
 export default async function NovaUnidadePage() {
   await exigirPermissaoOuRedirecionar("unidades:gerenciar:global");
@@ -21,10 +22,11 @@ export default async function NovaUnidadePage() {
       ? escopoOrgao.orgaoIds
       : ["00000000-0000-4000-8000-000000000000"];
 
-  const [orgaos, unidades, fusosHorarios] = await Promise.all([
+  const [orgaos, unidades, fusosHorarios, estados] = await Promise.all([
     listarOrgaosAtivos({ orgaoIdsPermitidos }),
     listarUnidadesParaSelecao({ orgaoIdsPermitidos }),
     listarFusosHorariosAtivos(),
+    listarEstadosComCidadesAtivas(),
   ]);
 
   return (
@@ -51,6 +53,7 @@ export default async function NovaUnidadePage() {
         orgaos={orgaos}
         unidades={unidades}
         fusosHorarios={fusosHorarios}
+        estados={estados}
         modo="criar"
         valoresIniciais={{
           ativo: true,

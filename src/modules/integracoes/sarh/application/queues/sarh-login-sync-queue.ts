@@ -64,3 +64,29 @@ export async function enfileirarAtualizacaoSarhLogin(params: {
     },
   );
 }
+
+export type EstadoAtualizacaoSarhLogin =
+  | "AGUARDANDO"
+  | "SINCRONIZANDO"
+  | null;
+
+export async function obterEstadoAtualizacaoSarhLogin(
+  matriculaInformada: string,
+): Promise<EstadoAtualizacaoSarhLogin> {
+  const matricula = matriculaInformada.trim().toUpperCase();
+  if (!matricula) return null;
+
+  const fila = obterSarhLoginSyncQueue();
+  const [ativos, aguardando] = await Promise.all([
+    fila.getJobs(["active"], 0, 100, false),
+    fila.getJobs(["waiting", "delayed", "prioritized"], 0, 100, false),
+  ]);
+
+  if (ativos.some((job) => job.data.matricula === matricula)) {
+    return "SINCRONIZANDO";
+  }
+
+  return aguardando.some((job) => job.data.matricula === matricula)
+    ? "AGUARDANDO"
+    : null;
+}

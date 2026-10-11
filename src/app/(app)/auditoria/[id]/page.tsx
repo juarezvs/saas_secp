@@ -57,10 +57,6 @@ export default async function AuditoriaDetalhePage({
 
       <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-            Evento de auditoria
-          </p>
-
           <h1 className="mt-2 text-3xl font-bold tracking-tight">
             {evento.acao}
           </h1>

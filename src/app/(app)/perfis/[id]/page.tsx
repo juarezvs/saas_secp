@@ -10,6 +10,7 @@ import { buscarPerfilPorId } from "@/modules/perfis/infrastructure/repositories/
 import { AtribuirPessoaPerfilModal } from "@/modules/perfis/presentation/components/atribuir-pessoa-perfil-modal";
 import { ExcluirPerfilButton } from "@/modules/perfis/presentation/components/excluir-perfil-button";
 import { listarPessoasAtivasParaAtribuirPerfil } from "@/modules/usuarios/infrastructure/repositories/usuario.repository";
+import { resolverPermissoesPerfilNaSeccional } from "@/modules/perfis/application/services/permissoes-perfil-seccional.service";
 
 type PerfilDetalhePageProps = {
   params: Promise<{
@@ -59,6 +60,33 @@ export default async function PerfilDetalhePage({
     orgaoSigla: pessoa.orgao.sigla,
     lotacao: pessoa.lotacoes[0]?.unidade.sigla ?? null,
   }));
+  const orgaoEscopoPermissoes =
+    !escopoOrgao.global && perfil.global ? escopoOrgao.orgaoIds[0] : null;
+  const codigosPermissoesEfetivas = new Set(
+    resolverPermissoesPerfilNaSeccional(
+      perfil.permissoes,
+      perfil.permissoesSeccionais,
+      orgaoEscopoPermissoes,
+    ),
+  );
+  const permissoesEfetivas = [
+    ...perfil.permissoes,
+    ...perfil.permissoesSeccionais
+      .filter((item) => item.orgaoId === orgaoEscopoPermissoes)
+      .map((item) => ({
+        id: item.id,
+        permissaoId: item.permissaoId,
+        perfilId: item.perfilId,
+        criadoEm: item.criadoEm,
+        permissao: item.permissao,
+      })),
+  ].filter(
+    (item, indice, itens) =>
+      codigosPermissoesEfetivas.has(item.permissao.codigo) &&
+      itens.findIndex(
+        (candidato) => candidato.permissao.codigo === item.permissao.codigo,
+      ) === indice,
+  );
 
   return (
     <div className="space-y-6">
@@ -72,10 +100,6 @@ export default async function PerfilDetalhePage({
 
       <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-            Perfil de acesso
-          </p>
-
           <h1 className="mt-2 text-3xl font-bold tracking-tight">
             {perfil.nome}
           </h1>
@@ -123,7 +147,7 @@ export default async function PerfilDetalhePage({
         <div className="rounded-xl border bg-[var(--card)] p-5 shadow-sm">
           <p className="text-sm text-[var(--muted-foreground)]">Permissões</p>
           <h2 className="mt-2 text-2xl font-bold">
-            {perfil.permissoes.length}
+            {permissoesEfetivas.length}
           </h2>
         </div>
 
@@ -163,11 +187,18 @@ export default async function PerfilDetalhePage({
       <section className="rounded-xl border bg-[var(--card)] shadow-sm">
         <div className="flex items-center gap-2 border-b p-5">
           <ShieldCheck className="size-5 text-blue-900 dark:text-blue-300" />
-          <h2 className="text-lg font-bold">Permissões vinculadas</h2>
+          <div>
+            <h2 className="text-lg font-bold">Permissões vinculadas</h2>
+            {orgaoEscopoPermissoes ? (
+              <p className="text-xs text-[var(--muted-foreground)]">
+                Permissões efetivas nesta seccional
+              </p>
+            ) : null}
+          </div>
         </div>
 
         <div className="divide-y">
-          {perfil.permissoes.map((item) => (
+          {permissoesEfetivas.map((item) => (
             <div key={item.id} className="p-5">
               <code className="text-sm font-semibold">
                 {item.permissao.codigo}
@@ -181,7 +212,7 @@ export default async function PerfilDetalhePage({
             </div>
           ))}
 
-          {perfil.permissoes.length === 0 && (
+          {permissoesEfetivas.length === 0 && (
             <div className="p-8 text-center text-sm text-[var(--muted-foreground)]">
               Nenhuma permissão vinculada.
             </div>

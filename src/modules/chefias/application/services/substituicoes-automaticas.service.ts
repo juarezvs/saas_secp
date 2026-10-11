@@ -1,6 +1,7 @@
 import type { PerfilSessao } from "@/modules/auth/domain/entities/usuario-autenticado";
 import { perfilEhAdministradorSistema } from "@/modules/auth/domain/constants/perfis-sistema";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { resolverPermissoesPerfilNaSeccional } from "@/modules/perfis/application/services/permissoes-perfil-seccional.service";
 
 const CODIGOS_PERFIS_NAO_HERDAVEIS = new Set([
   "ADMIN",
@@ -112,6 +113,11 @@ export async function listarSubstituicoesAutomaticasEfetivasPorUsuario(
                           permissao: true,
                         },
                       },
+                      permissoesSeccionais: {
+                        include: {
+                          permissao: true,
+                        },
+                      },
                     },
                   },
                 },
@@ -181,9 +187,16 @@ function adicionarPerfisHerdados(
       perfilDestinoExcecaoId: string | null;
       orgao: { id: string; sigla: string; nome: string } | null;
       permissoes: Array<{
+        permissaoId: string;
         permissao: {
           codigo: string;
         };
+      }>;
+      permissoesSeccionais: Array<{
+        orgaoId: string;
+        permissaoId: string;
+        permitida: boolean;
+        permissao: { codigo: string };
       }>;
     };
   }>,
@@ -207,8 +220,10 @@ function adicionarPerfisHerdados(
       id: usuarioPerfil.perfil.id,
       codigo: usuarioPerfil.perfil.codigo,
       nome: usuarioPerfil.perfil.nome,
-      permissoes: usuarioPerfil.perfil.permissoes.map(
-        (perfilPermissao) => perfilPermissao.permissao.codigo,
+      permissoes: resolverPermissoesPerfilNaSeccional(
+        usuarioPerfil.perfil.permissoes,
+        usuarioPerfil.perfil.permissoesSeccionais,
+        orgaoPerfil?.id,
       ),
       administrativo: usuarioPerfil.perfil.administrativo,
       excecao: usuarioPerfil.perfil.excecao,

@@ -4,6 +4,9 @@ import { useActionState, useState } from "react";
 import { Info, Loader2, Save } from "lucide-react";
 
 import { SearchableSelect } from "@/components/ui";
+import { SwitchField } from "@/components/ui/switch";
+import type { EstadoComCidadesSelecao } from "@/modules/localidades/infrastructure/repositories/localidade.repository";
+import { LocalidadeFields } from "@/modules/localidades/presentation/components/localidade-fields";
 import {
   abrangenciasCalendarioInstitucional,
   tiposCalendarioInstitucional,
@@ -17,6 +20,7 @@ type CalendarioInstitucionalFormProps = {
   ) => Promise<CalendarioInstitucionalFormState>;
   valoresIniciais?: {
     dataReferencia?: string;
+    dataFim?: string | null;
     descricao?: string;
     tipo?: string;
     abrangencia?: string;
@@ -27,9 +31,14 @@ type CalendarioInstitucionalFormProps = {
     unidadeId?: string | null;
     contaComoDiaUtil?: boolean;
     geraApuracaoRegular?: boolean;
+    contabilizaJornadaComoTrabalhada?: boolean;
+    exigeRegistroPonto?: boolean;
+    geraDebito?: boolean;
+    geraCredito?: boolean;
     janelaInicio?: string | null;
     janelaFim?: string | null;
     dataOriginal?: string | null;
+    dataOriginalFim?: string | null;
     dataSubstituida?: boolean;
     observacao?: string | null;
     ativo?: boolean;
@@ -45,6 +54,8 @@ type CalendarioInstitucionalFormProps = {
     municipioIbge?: string | null;
   }>;
   modo: "criar" | "editar";
+  tipos?: Array<{ codigo: string; nome: string }>;
+  estados?: EstadoComCidadesSelecao[];
 };
 
 const estadoInicial: CalendarioInstitucionalFormState = {
@@ -56,6 +67,8 @@ const rotulosTipo: Record<string, string> = {
   FERIADO: "Feriado",
   PONTO_FACULTATIVO: "Ponto facultativo",
   SUSPENSAO_EXPEDIENTE: "Suspensão do expediente",
+  TELETRABALHO_INTEGRAL_EXTRAORDINARIO:
+    "Teletrabalho integral extraordinário",
 };
 
 const rotulosAbrangencia: Record<string, string> = {
@@ -76,11 +89,16 @@ export function CalendarioInstitucionalForm({
   orgaos = [],
   unidades = [],
   modo,
+  tipos,
+  estados = [],
 }: CalendarioInstitucionalFormProps) {
   const [estado, formAction, pendente] = useActionState(action, estadoInicial);
   const campos = estado.campos ?? valoresIniciais;
   const [abrangencia, setAbrangencia] = useState(
     campos?.abrangencia ?? "NACIONAL",
+  );
+  const [tipoSelecionado, setTipoSelecionado] = useState(
+    campos?.tipo ?? "FERIADO",
   );
   const [uf, setUf] = useState(campos?.uf ?? "");
   const [municipio, setMunicipio] = useState(campos?.municipio ?? "");
@@ -93,8 +111,8 @@ export function CalendarioInstitucionalForm({
   const mostrarUf = ["ESTADUAL", "MUNICIPAL"].includes(abrangencia);
   const mostrarMunicipio = abrangencia === "MUNICIPAL";
   const mostrarUnidade = ["ESTADUAL", "MUNICIPAL", "UNIDADE"].includes(abrangencia);
-  const ufDesabilitada = false;
-  const municipioDesabilitado = false;
+  const ufDesabilitada = true;
+  const municipioDesabilitado = true;
 
   function alterarAbrangencia(novaAbrangencia: string) {
     setAbrangencia(novaAbrangencia);
@@ -158,19 +176,43 @@ export function CalendarioInstitucionalForm({
           </div>
 
           <div className="space-y-2">
+            <label htmlFor="dataFim" className="text-sm font-semibold">
+              Data final de efeito
+            </label>
+            <input
+              id="dataFim"
+              name="dataFim"
+              type="date"
+              defaultValue={campos?.dataFim ?? ""}
+              className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+            />
+            <p className="text-xs text-[var(--muted-foreground)]">
+              Deixe em branco quando o evento ocorrer em um único dia.
+            </p>
+            {erro(estado, "dataFim") && (
+              <p className="text-sm text-red-600">{erro(estado, "dataFim")}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
             <label htmlFor="tipo" className="text-sm font-semibold">
               Tipo
             </label>
             <select
               id="tipo"
               name="tipo"
-              defaultValue={campos?.tipo ?? "FERIADO"}
+              value={tipoSelecionado}
+              onChange={(event) => setTipoSelecionado(event.currentTarget.value)}
               className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
               required
             >
-              {tiposCalendarioInstitucional.map((tipo) => (
-                <option key={tipo} value={tipo}>
-                  {rotulosTipo[tipo] ?? tipo}
+              {(tipos ??
+                tiposCalendarioInstitucional.map((codigo) => ({
+                  codigo,
+                  nome: rotulosTipo[codigo] ?? codigo,
+                }))).map((tipo) => (
+                <option key={tipo.codigo} value={tipo.codigo}>
+                  {tipo.nome}
                 </option>
               ))}
             </select>
@@ -231,7 +273,26 @@ export function CalendarioInstitucionalForm({
                 )}
               </div>
 
-              <div className={mostrarUf ? "space-y-2" : "hidden"}>
+              {mostrarUf ? (
+                <div className={`grid gap-4 ${mostrarMunicipio ? "md:col-span-2 md:grid-cols-[minmax(12rem,0.8fr)_minmax(16rem,1fr)_11rem]" : ""}`}>
+                  <LocalidadeFields
+                    key={`${uf}-${municipioIbge}-${abrangencia}`}
+                    estados={estados}
+                    ufInicial={uf}
+                    municipioInicial={municipio}
+                    municipioIbgeInicial={municipioIbge}
+                    ufObrigatoria
+                    cidadeObrigatoria={mostrarMunicipio}
+                    mostrarCidade={mostrarMunicipio}
+                    mostrarCodigoIbge={mostrarMunicipio}
+                    erroUf={erro(estado, "uf")}
+                    erroMunicipio={erro(estado, "municipio")}
+                    erroMunicipioIbge={erro(estado, "municipioIbge")}
+                  />
+                </div>
+              ) : null}
+
+              <div className="hidden">
                 <div className={mostrarMunicipio ? "mt-4 space-y-2" : "hidden"}>
                   <label htmlFor="uf" className="text-sm font-semibold">
                     UF
@@ -351,15 +412,15 @@ export function CalendarioInstitucionalForm({
                 {mostrarMunicipio ? (
                   <p className="flex items-start gap-2 text-xs text-[var(--muted-foreground)]">
                     <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-                    Para feriado municipal, informe UF e municipio. A localidade
-                    vinculada associa o evento a uma subsecao quando houver cadastro.
+                    Para feriado municipal, informe UF e município. A localidade
+                    vinculada associa o evento a uma subseção quando houver cadastro.
                   </p>
                 ) : null}
                 {abrangencia === "ESTADUAL" ? (
                   <p className="flex items-start gap-2 text-xs text-[var(--muted-foreground)]">
                     <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-                    Para abrangencia estadual, informe a UF. A localidade
-                    vinculada associa o evento a uma secao judiciaria quando houver cadastro.
+                    Para abrangência estadual, informe a UF. A localidade
+                    vinculada associa o evento a uma seção judiciária quando houver cadastro.
                   </p>
                 ) : null}
                 {unidadeSelecionada && (
@@ -383,11 +444,10 @@ export function CalendarioInstitucionalForm({
           </div>
 
           <label className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm">
-            <input
-              type="checkbox"
+            <SwitchField
+              id="contaComoDiaUtil"
               name="contaComoDiaUtil"
               defaultChecked={campos?.contaComoDiaUtil ?? false}
-              className="size-4 rounded border-slate-300"
             />
             <span>
               <span className="block font-semibold">Conta como dia útil</span>
@@ -398,11 +458,10 @@ export function CalendarioInstitucionalForm({
           </label>
 
           <label className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm">
-            <input
-              type="checkbox"
+            <SwitchField
+              id="geraApuracaoRegular"
               name="geraApuracaoRegular"
               defaultChecked={campos?.geraApuracaoRegular ?? false}
-              className="size-4 rounded border-slate-300"
             />
             <span>
               <span className="block font-semibold">Gera apuração regular</span>
@@ -416,6 +475,38 @@ export function CalendarioInstitucionalForm({
               {erro(estado, "geraApuracaoRegular")}
             </p>
           )}
+
+          <div className="grid gap-3 rounded-lg border bg-[var(--muted)] p-4 md:col-span-2 sm:grid-cols-2">
+            <h3 className="font-semibold sm:col-span-2">Efeito na apuração</h3>
+            <label className="flex items-center gap-3 text-sm">
+              <SwitchField
+                name="contabilizaJornadaComoTrabalhada"
+                defaultChecked={campos?.contabilizaJornadaComoTrabalhada ?? false}
+              />
+              <span>Contabiliza a jornada prevista como trabalhada</span>
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <SwitchField
+                name="exigeRegistroPonto"
+                defaultChecked={campos?.exigeRegistroPonto ?? true}
+              />
+              <span>Exige registro de ponto</span>
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <SwitchField
+                name="geraDebito"
+                defaultChecked={campos?.geraDebito ?? true}
+              />
+              <span>Gera débito</span>
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <SwitchField
+                name="geraCredito"
+                defaultChecked={campos?.geraCredito ?? true}
+              />
+              <span>Gera crédito</span>
+            </label>
+          </div>
 
           <div className="rounded-lg border bg-[var(--muted)] p-4 md:col-span-2">
             <div className="mb-4">
@@ -468,11 +559,10 @@ export function CalendarioInstitucionalForm({
 
           <div className="rounded-lg border bg-[var(--muted)] p-4 md:col-span-2">
             <label className="flex items-center gap-3 text-sm">
-              <input
-                type="checkbox"
+              <SwitchField
+                id="dataSubstituida"
                 name="dataSubstituida"
                 defaultChecked={campos?.dataSubstituida ?? false}
-                className="size-4 rounded border-slate-300"
               />
               <span>
                 <span className="block font-semibold">
@@ -501,6 +591,26 @@ export function CalendarioInstitucionalForm({
                 </p>
               )}
             </div>
+            <div className="mt-4 space-y-2">
+              <label htmlFor="dataOriginalFim" className="text-sm font-semibold">
+                Data original final
+              </label>
+              <input
+                id="dataOriginalFim"
+                name="dataOriginalFim"
+                type="date"
+                defaultValue={campos?.dataOriginalFim ?? ""}
+                className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
+              />
+              <p className="text-xs text-[var(--muted-foreground)]">
+                Use quando o evento transferido abranger um período.
+              </p>
+              {erro(estado, "dataOriginalFim") && (
+                <p className="text-sm text-red-600">
+                  {erro(estado, "dataOriginalFim")}
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2 md:col-span-2">
@@ -521,11 +631,10 @@ export function CalendarioInstitucionalForm({
           </div>
 
           <label className="flex items-center gap-3 rounded-lg border bg-[var(--muted)] p-4 text-sm md:col-span-2">
-            <input
-              type="checkbox"
+            <SwitchField
+              id="ativo"
               name="ativo"
               defaultChecked={campos?.ativo ?? true}
-              className="size-4 rounded border-slate-300"
             />
             <span>
               <span className="block font-semibold">Evento ativo</span>

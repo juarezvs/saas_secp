@@ -246,9 +246,6 @@ export default async function SolicitacaoDetalhePage({
 
       <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-            {rotuloTipoSolicitacao(solicitacao.tipo)}
-          </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight">
             {solicitacao.titulo}
           </h1>

@@ -7,6 +7,7 @@ export const tiposJornada = [
   "FIXA_SEMANAL",
   "FLEXIVEL",
   "CARGA_DIARIA",
+  "CARGA_HORARIA_LIVRE",
   "CARGA_SEMANAL",
   "CARGA_MENSAL",
   "HIBRIDO",
@@ -130,6 +131,7 @@ export const jornadaSchema = z
     cargaMaximaDiariaMinutos: z.coerce.number().int().optional().nullable(),
     controlaHorario: z.coerce.boolean().default(true),
     permiteFlexibilidade: z.coerce.boolean().default(false),
+    permiteCompensacaoNoDia: z.coerce.boolean().default(false),
     permiteBancoHoras: z.coerce.boolean().default(true),
     permiteHoraExtra: z.coerce.boolean().default(false),
     exigeIntervalo: z.coerce.boolean().default(false),
@@ -211,6 +213,20 @@ export const jornadaSchema = z
         code: "custom",
         path: ["horarioSaidaPadrao"],
         message: "A saída padrão deve ser posterior à entrada.",
+      });
+    }
+
+    if (
+      data.tipo === "CARGA_HORARIA_LIVRE" &&
+      entradaPadrao !== null &&
+      saidaPadrao !== null &&
+      saidaPadrao - entradaPadrao < data.cargaDiariaMinutos
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["cargaDiariaMinutos"],
+        message:
+          "A carga diária deve caber entre os limites de início e término do expediente.",
       });
     }
 

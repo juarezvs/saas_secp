@@ -20,10 +20,10 @@ export function MarcacoesDoDiaTimeline({
   marcacoes,
 }: MarcacoesDoDiaTimelineProps) {
   return (
-    <Card className="p-3">
-      <div className="flex items-center justify-between gap-3">
+    <Card className="overflow-hidden rounded border-zinc-200 p-0 shadow-[0_1px_2px_rgba(0,0,0,0.12),0_3px_8px_rgba(0,0,0,0.06)] dark:border-zinc-700">
+      <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-3 py-2.5 dark:border-zinc-700">
         <h2 className="inline-flex items-center gap-2 text-sm font-black text-blue-950">
-          <CalendarDays className="size-4 text-blue-700" aria-hidden="true" />
+          <span className="grid size-8 place-items-center bg-[#0078d4] text-white"><CalendarDays className="size-4" aria-hidden="true" /></span>
           Marcações de hoje
         </h2>
         <div className="flex items-center gap-2">
@@ -41,7 +41,7 @@ export function MarcacoesDoDiaTimeline({
       </div>
 
       {marcacoes.length > 0 ? (
-        <ol className="mt-3 space-y-2">
+        <ol className="space-y-2 p-3">
           {marcacoes.map((marcacao, index) => {
             const registrada = marcacao.status === "registrada";
             const SourceIcon =
@@ -110,12 +110,12 @@ export function MarcacoesDoDiaTimeline({
           })}
         </ol>
       ) : (
-        <div className="mt-3 rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
+        <div className="m-3 rounded border border-dashed border-border p-3 text-xs text-muted-foreground">
           Nenhuma jornada ativa encontrada para exibir as marcações de hoje.
         </div>
       )}
 
-      <div className="mt-3 flex gap-2 rounded-md border border-dashed border-blue-100 bg-blue-50/40 p-2 text-xs leading-5 text-blue-900">
+      <div className="mx-3 mb-3 flex gap-2 rounded border border-dashed border-blue-100 bg-blue-50/40 p-2 text-xs leading-5 text-blue-900">
         <span className="grid size-6 shrink-0 place-items-center rounded-full bg-blue-100 text-base font-bold text-blue-700">
           +
         </span>

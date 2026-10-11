@@ -164,20 +164,14 @@ export default async function HomologacaoPage({
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "Homologação" }]} />
 
-      <section>
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Homologação mensal
-        </p>
-
-        <PageHeader
+      <PageHeader
           icon={ShieldCheck}
           titulo="Fechamentos mensais"
           descricao="Acompanhe fechamentos de frequência por unidade, competência, status e servidores vinculados."
           artigo="Art. 16"
           regraTitulo="Prazo de homologação"
           regraDescricao="A chefia deve homologar mensalmente a frequência ate o segundo dia util do mês subsequente, permitindo a consolidacao do boletim de frequência."
-        />
-      </section>
+      />
 
       <DataTableShell
         title="Fechamentos para homologação"

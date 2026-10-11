@@ -843,7 +843,7 @@ export function EspelhoPontoMensal({
   const podeSolicitarAjuste = permiteAcoesAjusteEspelho(homologacaoCompetencia);
 
   return (
-    <section className="space-y-1.5 text-[var(--card-foreground)]">
+    <section className="grid items-start gap-1.5 text-[var(--card-foreground)] xl:grid-cols-[repeat(3,minmax(0,1fr))_minmax(17rem,1fr)]">
       <div className="hidden">
         <div>
           <p className="text-xs font-semibold text-slate-500">
@@ -858,7 +858,7 @@ export function EspelhoPontoMensal({
         </div>
       </div>
 
-      <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3 xl:col-span-4 xl:grid-cols-6">
         <Resumo
           label="Previsto"
           value={minutosParaTexto(totais.previsto)}
@@ -893,11 +893,6 @@ export function EspelhoPontoMensal({
           destaque="credito"
         />
         <Resumo
-          label="Hora extra não autorizada"
-          value={minutosParaTexto(totais.horaExtraNaoAutorizada)}
-          destaque={totais.horaExtraNaoAutorizada > 0 ? "debito" : undefined}
-        />
-        <Resumo
           label="Banco de horas"
           value={formatarSaldoBancoHoras(totais.bancoHoras)}
           destaque={
@@ -908,29 +903,22 @@ export function EspelhoPontoMensal({
                 : undefined
           }
         />
-        <Resumo
-          label="Ausências"
-          value={String(resumoFuncional.ausencias)}
-          detalhe={minutosParaTexto(resumoFuncional.minutosAusencia)}
-          destaque={resumoFuncional.ausencias > 0 ? "debito" : undefined}
-        />
-        <Resumo
-          label="Ativ. externas"
-          value={String(resumoFuncional.atividadesExternas)}
-          detalhe={minutosParaTexto(resumoFuncional.minutosAtividadeExterna)}
-          destaque={
-            resumoFuncional.atividadesExternas > 0 ? "neutro" : undefined
-          }
-        />
       </div>
 
-      <CardSituacaoCompetencia
-        acaoHomologacao={acaoHomologacao}
-        homologacao={homologacaoCompetencia}
-        periodoLabel={periodoLabel}
-      />
+      <aside className="order-2 grid self-start gap-1.5 xl:col-start-4 xl:row-start-3">
+        <CardSituacaoCompetencia
+          acaoHomologacao={acaoHomologacao}
+          homologacao={homologacaoCompetencia}
+          periodoLabel={periodoLabel}
+        />
 
-      <div id="espelho-painel-dias" className="grid gap-1.5 xl:grid-cols-2">
+        <div
+          id="espelho-painel-lateral-abas"
+          hidden
+          className="grid gap-1.5"
+        />
+
+        <div id="espelho-painel-dias" className="grid gap-1.5">
         <Card className="p-2.5">
           <div className="mb-1.5">
             <h3 className="text-sm font-bold text-slate-950 dark:text-slate-50">
@@ -1066,8 +1054,10 @@ export function EspelhoPontoMensal({
             </p>
           </div>
         </Card>
-      </div>
+        </div>
+      </aside>
 
+      <div className="order-1 min-w-0 xl:col-span-3 xl:col-start-1 xl:row-start-3">
       {modoCompactoPessoaExterna ? (
         <EspelhoPontoMensalCompacto
           apuracoes={apuracoes}
@@ -1604,6 +1594,7 @@ export function EspelhoPontoMensal({
           </EspelhoPontoTabelaInterativa>
         </Card>
       )}
+      </div>
     </section>
   );
 }
@@ -1747,10 +1738,12 @@ function tomSituacaoCompetencia(
 
 function CardSituacaoCompetencia({
   acaoHomologacao,
+  className,
   homologacao,
   periodoLabel,
 }: {
   acaoHomologacao?: ReactNode;
+  className?: string;
   homologacao?: HomologacaoCompetenciaEspelho | null;
   periodoLabel?: string;
 }) {
@@ -1765,8 +1758,8 @@ function CardSituacaoCompetencia({
     : "Em andamento";
 
   return (
-    <Card className={`${tom.card} p-2.5`}>
-      <div className="grid gap-2 sm:grid-cols-[minmax(0,0.95fr)_minmax(0,1fr)]">
+    <Card className={`${tom.card} ${className ?? ""} p-2.5`}>
+      <div className="grid gap-3">
         <div className="flex gap-2">
           <span
             className={`inline-flex size-9 shrink-0 items-center justify-center rounded-full ${tom.icon}`}
@@ -1968,7 +1961,7 @@ function PainelSemana({
   );
 
   return (
-    <div className="grid gap-2 border-b border-slate-100 p-2.5 xl:grid-cols-[1.35fr_0.78fr_0.72fr] dark:border-slate-800">
+    <div className="grid gap-1.5">
       <Card className="p-3">
         <div className="mb-3">
           <h3 className="text-sm font-black text-slate-950 dark:text-slate-50">
@@ -2325,7 +2318,7 @@ function PainelOcorrencias({
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-2 border-b border-slate-100 p-2.5 md:grid-cols-3 xl:grid-cols-6 dark:border-slate-800">
+    <div className="grid grid-cols-2 gap-1.5">
       {cards.map((card) => {
         const Icon = card.icon;
 
@@ -2636,7 +2629,7 @@ function PainelTotaisPorTipo({
   compensacoes: number;
 }) {
   return (
-    <div className="grid gap-1.5 border-b border-slate-100 p-2.5 xl:grid-cols-2 dark:border-slate-800">
+    <div className="grid gap-1.5">
       <Card className="p-2.5 shadow-none">
         <div className="mb-1.5">
           <h3 className="text-sm font-bold text-slate-950 dark:text-slate-50">
@@ -2723,8 +2716,8 @@ function PainelTotaisPorTipo({
         </div>
       </Card>
 
-      <div className="xl:col-span-2">
-        <div className="grid gap-1.5 md:grid-cols-4">
+      <div>
+        <div className="grid grid-cols-2 gap-1.5">
           <OcorrênciaTipoCard
             icon={FileText}
             label="Ajustes"
@@ -3792,6 +3785,8 @@ function rotuloTipoDiaInstitucional(tipo: string) {
     FERIADO: "Feriado institucional",
     PONTO_FACULTATIVO: "Ponto facultativo",
     SUSPENSAO_EXPEDIENTE: "Suspensão de expediente",
+    TELETRABALHO_INTEGRAL_EXTRAORDINARIO:
+      "Teletrabalho integral extraordinário",
     RECESSO_FORENSE: "Recesso forense",
   };
 

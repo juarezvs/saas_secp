@@ -255,16 +255,16 @@ export function AcompanhamentoEstagioPage({ dados }: Props) {
 
         <section className="rounded-md border bg-[var(--card)] p-4">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <CampoInfo label="EstagiÃ¡rio" value={dados.servidor.nome} />
-            <CampoInfo label="MatrÃ­cula" value={dados.servidor.matricula} />
-            <CampoInfo label="LotaÃ§Ã£o" value={dados.servidor.lotacao} />
+            <CampoInfo label="Estagiário" value={dados.servidor.nome} />
+            <CampoInfo label="Matrícula" value={dados.servidor.matricula} />
+            <CampoInfo label="Lotação" value={dados.servidor.lotacao} />
             <CampoInfo label="Curso" value={dados.acompanhamento.curso} />
             <CampoInfo label="Supervisor" value={dados.acompanhamento.supervisor} />
-            <CampoInfo label="MÃªs/Ano" value={dados.competencia.label} />
+            <CampoInfo label="Mês/Ano" value={dados.competencia.label} />
           </div>
           {dados.acompanhamento.devolucaoJustificativa ? (
             <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
-              <strong>DevoluÃ§Ã£o:</strong>{" "}
+              <strong>Devolução:</strong>{" "}
               {dados.acompanhamento.devolucaoJustificativa}
             </div>
           ) : null}
@@ -281,7 +281,7 @@ export function AcompanhamentoEstagioPage({ dados }: Props) {
               : "hover:bg-[var(--muted)]"
           }`}
         >
-          CompetÃªncia atual
+          Competência atual
         </button>
         <button
           type="button"
@@ -292,7 +292,7 @@ export function AcompanhamentoEstagioPage({ dados }: Props) {
               : "hover:bg-[var(--muted)]"
           }`}
         >
-          CompetÃªncias passadas
+          Competências passadas
         </button>
       </div>
 
@@ -707,16 +707,16 @@ function rotuloStatusAcompanhamento(status: string) {
 
 function corrigirGrafiaEstagio(texto: string) {
   return texto
-    .replaceAll("EstagiÃ¡rio", "Estagiário")
-    .replaceAll("EstagiÃƒÂ¡rio", "Estagiário")
-    .replaceAll("MatrÃ­cula", "Matrícula")
-    .replaceAll("MatrÃƒÂ­cula", "Matrícula")
-    .replaceAll("LotaÃ§Ã£o", "Lotação")
-    .replaceAll("LotaÃƒÂ§ÃƒÂ£o", "Lotação")
-    .replaceAll("MÃªs", "Mês")
-    .replaceAll("MÃƒÂªs", "Mês")
-    .replaceAll("CompetÃªncia", "Competência")
-    .replaceAll("CompetÃƒÂªncia", "Competência");
+    .replaceAll("Estagiário", "Estagiário")
+    .replaceAll("EstagiÃƒ¡rio", "Estagiário")
+    .replaceAll("Matrícula", "Matrícula")
+    .replaceAll("MatrÃƒ­cula", "Matrícula")
+    .replaceAll("Lotação", "Lotação")
+    .replaceAll("LotaÃƒ§Ãƒ£o", "Lotação")
+    .replaceAll("Mês", "Mês")
+    .replaceAll("MÃƒªs", "Mês")
+    .replaceAll("Competência", "Competência")
+    .replaceAll("CompetÃƒªncia", "Competência");
 }
 
 function CompetenciasAnterioresGrid({
@@ -727,16 +727,16 @@ function CompetenciasAnterioresGrid({
   return (
     <section className="overflow-hidden rounded-md border bg-[var(--card)]">
       <div className="border-b px-4 py-3">
-        <h2 className="text-base font-semibold">CompetÃªncias passadas</h2>
+        <h2 className="text-base font-semibold">Competências passadas</h2>
       </div>
       {competencias.length > 0 ? (
         <div className="overflow-x-auto">
           <table className="min-w-full border-separate border-spacing-0 text-sm">
             <thead className="bg-[var(--muted)] text-left text-xs uppercase text-muted-foreground">
               <tr>
-                <th className="px-4 py-3 font-semibold">CompetÃªncia</th>
+                <th className="px-4 py-3 font-semibold">Competência</th>
                 <th className="px-4 py-3 font-semibold">
-                  Assinatura do estagiÃ¡rio
+                  Assinatura do estagiário
                 </th>
                 <th className="px-4 py-3 font-semibold">
                   Assinatura do supervisor
@@ -768,7 +768,7 @@ function CompetenciasAnterioresGrid({
         </div>
       ) : (
         <div className="p-8 text-center text-sm text-muted-foreground">
-          Nenhuma competÃªncia passada encontrada.
+          Nenhuma competência passada encontrada.
         </div>
       )}
     </section>

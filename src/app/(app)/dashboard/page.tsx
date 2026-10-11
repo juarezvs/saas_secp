@@ -21,14 +21,16 @@ type DashboardPageProps = {
 
 function DashboardComBreadcrumb({ children }: { children: ReactNode }) {
   return (
-    <div className="space-y-3">
+    <div>
       <Breadcrumb items={[{ label: "Dashboard" }]} />
-      {children}
+      <div data-secp-dashboard-content>{children}</div>
     </div>
   );
 }
 
-export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+export default async function DashboardPage({
+  searchParams,
+}: DashboardPageProps) {
   const session = await auth();
 
   if (!session?.user) {
@@ -73,7 +75,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <DashboardComBreadcrumb>
           <DashboardAdmin
             usuarioId={session.user.id}
-            orgaoIds={session.user.perfilAtivo?.orgaos?.map((orgao) => orgao.id)}
+            orgaoIds={session.user.perfilAtivo?.orgaos?.map(
+              (orgao) => orgao.id,
+            )}
             escopoGlobal={
               session.user.perfilAtivo?.permissoes?.some((permissao) =>
                 permissao.endsWith(":global"),

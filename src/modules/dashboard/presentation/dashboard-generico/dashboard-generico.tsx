@@ -136,7 +136,7 @@ const atalhos: Array<{
   },
   {
     titulo: "Rotinas",
-    descricao: "Acesse jornadas, regulamentacao, calendarios e parametros do ponto.",
+    descricao: "Acesse jornadas, regulamentação, calendários e parâmetros do ponto.",
     href: "/jornadas",
     icon: Wrench,
     permissoes: [
@@ -201,7 +201,7 @@ export function DashboardGenerico({
         <Card className="p-6">
           <p className="text-base font-semibold">Nenhum favorito salvo</p>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted-foreground)]">
-            Use o icone de estrela no cabecalho das telas para montar os
+            Use o ícone de marcador no cabeçalho das telas para montar os
             favoritos deste usuario e perfil.
           </p>
         </Card>

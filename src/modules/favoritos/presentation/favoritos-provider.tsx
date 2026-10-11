@@ -49,7 +49,7 @@ export function FavoritosProvider({
         message?: string;
       } | null;
 
-      throw new Error(erro?.message ?? "Nao foi possivel favoritar.");
+      throw new Error(erro?.message ?? "Não foi possível favoritar.");
     }
 
     const payload = (await resposta.json()) as {
@@ -84,7 +84,7 @@ export function FavoritosProvider({
         message?: string;
       } | null;
 
-      throw new Error(erro?.message ?? "Nao foi possivel remover favorito.");
+      throw new Error(erro?.message ?? "Não foi possível remover favorito.");
     }
 
     setFavoritos((atuais) =>

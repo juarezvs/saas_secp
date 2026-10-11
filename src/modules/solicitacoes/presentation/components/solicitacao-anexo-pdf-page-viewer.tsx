@@ -50,7 +50,7 @@ export function SolicitacaoAnexoPdfPageViewer({
         if (!resposta.ok) {
           const mensagem = await resposta.text().catch(() => "");
           throw new Error(
-            mensagem || "Nao foi possivel carregar o PDF do anexo.",
+            mensagem || "Não foi possível carregar o PDF do anexo.",
           );
         }
 
@@ -78,7 +78,7 @@ export function SolicitacaoAnexoPdfPageViewer({
             mensagem:
               erro instanceof Error
                 ? erro.message
-                : "Nao foi possivel carregar o PDF.",
+                : "Não foi possível carregar o PDF.",
           });
         }
       }
@@ -148,7 +148,7 @@ export function SolicitacaoAnexoPdfPageViewer({
           <div className="flex h-[calc(100dvh-8rem)] items-center justify-center rounded-lg border bg-white p-6 text-center text-sm text-red-700">
             <div>
               <AlertCircle className="mx-auto mb-3 size-8" aria-hidden="true" />
-              <p className="font-semibold">Nao foi possivel visualizar o PDF.</p>
+              <p className="font-semibold">Não foi possível visualizar o PDF.</p>
               <p className="mt-1 text-red-600">{estado.mensagem}</p>
             </div>
           </div>

@@ -138,23 +138,14 @@ export default async function UsuariosPage({
         ]}
       />
 
-      <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-            Administração de acessos
-          </p>
-
-          <PageHeader
-            icon={UserCog}
-            titulo="Usuários"
-            descricao="Gerencie contas, perfis de acesso, status e vínculos funcionais dos usuários do SECP."
-            artigo="Art. 20, inciso I"
-            regraTitulo="Gerenciamento de usuários"
-            regraDescricao="O gerenciamento técnico dos usuários do sistema é atribuição administrativa essencial para garantir segurança, rastreabilidade e controle de acesso."
-          />
-        </div>
-
-        {podeGerenciarUsuarios && (
+      <PageHeader
+        icon={UserCog}
+        titulo="Usuários"
+        descricao="Gerencie contas, perfis de acesso, status e vínculos funcionais dos usuários do SECP."
+        artigo="Art. 20, inciso I"
+        regraTitulo="Gerenciamento de usuários"
+        regraDescricao="O gerenciamento técnico dos usuários do sistema é atribuição administrativa essencial para garantir segurança, rastreabilidade e controle de acesso."
+        actions={podeGerenciarUsuarios && (
           <Link
             href="/usuarios/novo"
             className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -163,7 +154,7 @@ export default async function UsuariosPage({
             Novo usuário
           </Link>
         )}
-      </section>
+      />
 
       <DataTableShell
         title="Usuários cadastrados"

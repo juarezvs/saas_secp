@@ -149,7 +149,6 @@ export default async function ProblemasImportacaoAfdPage({
     servidores.map((servidor) => [servidor.matricula, servidor]),
   );
   const config = configuracaoTipo[tipo];
-  const Icon = config.icon;
 
   return (
     <div className="space-y-6">
@@ -163,12 +162,6 @@ export default async function ProblemasImportacaoAfdPage({
 
       <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div>
-          <div className="flex items-center gap-2 text-red-700 dark:text-red-300">
-            <Icon className="size-5" aria-hidden="true" />
-            <p className="text-sm font-semibold uppercase tracking-wide">
-              Diagnóstico da importação AFD
-            </p>
-          </div>
           <h1 className="mt-2 text-3xl font-bold tracking-tight">
             {config.titulo}
           </h1>

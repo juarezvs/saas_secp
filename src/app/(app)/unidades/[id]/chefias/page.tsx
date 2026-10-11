@@ -54,10 +54,6 @@ export default async function UnidadeChefiasPage({
       />
 
       <section>
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Chefias da unidade
-        </p>
-
         <h1 className="mt-2 text-3xl font-bold tracking-tight">
           {unidade.sigla}
         </h1>

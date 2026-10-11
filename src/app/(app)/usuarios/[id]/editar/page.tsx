@@ -1,5 +1,8 @@
 import { notFound } from "next/navigation";
+import { UserCog } from "lucide-react";
+
 import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { PageHeader } from "@/components/layout/page-header";
 import { RegraPortariaCard } from "@/components/ui/regra-portaria-card";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarOrgaosAtivos } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
@@ -55,19 +58,14 @@ export default async function EditarUsuarioPage({
         ]}
       />
 
-      <section>
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Administração de acessos
-        </p>
-
-        <h1 className="mt-2 text-3xl font-bold tracking-tight">
-          Editar usuário
-        </h1>
-
-        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted-foreground)]">
-          Atualize os dados da conta, status, senha local e perfis de acesso.
-        </p>
-      </section>
+      <PageHeader
+        icon={UserCog}
+        titulo="Editar usuário"
+        descricao="Atualize os dados da conta, status, senha local e perfis de acesso."
+        artigo="RBAC dinâmico do SECP"
+        regraTitulo="Usuários e perfis"
+        regraDescricao="O acesso ao sistema é controlado por perfis e permissões, permitindo que cada usuário tenha diferentes escopos de atuação."
+      />
 
       <RegraPortariaCard
         artigo="RBAC dinâmico do SECP"

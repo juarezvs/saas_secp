@@ -210,11 +210,28 @@ export function aplicarSolicitacoesDeferidasApuracao(params: {
       continue;
     }
 
-    if (
-      ["ABONO_JUSTIFICATIVA", "DISPENSA_PONTO", "VIAGEM_SERVICO"].includes(
-        solicitacao.tipo,
-      )
-    ) {
+    if (solicitacao.tipo === "ABONO_JUSTIFICATIVA") {
+      const minutosAbonados = Math.min(
+        minutosCobertos,
+        jornada.cargaDiariaMinutos,
+      );
+      coberturaMinima = Math.min(
+        jornada.cargaDiariaMinutos,
+        coberturaMinima + minutosAbonados,
+      );
+      coberturaIntegral = coberturaMinima >= jornada.cargaDiariaMinutos;
+      bloquearCredito = true;
+      solicitacoesAplicadas.push(
+        buildSolicitacaoAplicada(
+          solicitacao,
+          minutosAbonados,
+          coberturaIntegral,
+        ),
+      );
+      continue;
+    }
+
+    if (["DISPENSA_PONTO", "VIAGEM_SERVICO"].includes(solicitacao.tipo)) {
       coberturaIntegral = true;
       bloquearCredito = true;
 

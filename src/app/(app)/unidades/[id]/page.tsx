@@ -51,10 +51,6 @@ export default async function UnidadeDetalhePage({
 
       <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-            Unidade organizacional
-          </p>
-
           <h1 className="mt-2 text-3xl font-bold tracking-tight">
             {unidade.sigla}
           </h1>

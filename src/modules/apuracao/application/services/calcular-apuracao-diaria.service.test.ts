@@ -52,6 +52,54 @@ function marcacao(tipo: string, hora: string) {
 }
 
 describe("calcularApuracaoDiaria", () => {
+  it("permite compensar no mesmo dia o atraso após a saída prevista", () => {
+    const resultado = calcularApuracaoDiaria({
+      jornada: {
+        ...jornada7h,
+        permiteCompensacaoNoDia: true,
+        janelaPrevista: { inicio: "08:00", fim: "15:00" },
+      },
+      marcacoes: [
+        marcacao("ENTRADA", "08:30"),
+        marcacao("SAIDA", "15:30"),
+      ],
+      regulamentacao: regulamentacaoLocalLegada,
+    });
+
+    expect(resultado.resultado).toBe("REGULAR");
+    expect(resultado.minutosTrabalhados).toBe(420);
+    expect(resultado.minutosCredito).toBe(0);
+    expect(resultado.minutosDebito).toBe(0);
+    expect(resultado.minutosForaExpediente).toBe(0);
+    expect(resultado.ocorrencias).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ tipo: "HORA_NAO_AUTORIZADA" }),
+      ]),
+    );
+  });
+
+  it("mantém como não autorizado o período após a saída sem compensação habilitada", () => {
+    const resultado = calcularApuracaoDiaria({
+      jornada: {
+        ...jornada7h,
+        permiteCompensacaoNoDia: false,
+        janelaPrevista: { inicio: "08:00", fim: "15:00" },
+      },
+      marcacoes: [
+        marcacao("ENTRADA", "08:30"),
+        marcacao("SAIDA", "15:30"),
+      ],
+      regulamentacao: regulamentacaoLocalLegada,
+    });
+
+    expect(resultado.minutosForaExpediente).toBe(30);
+    expect(resultado.ocorrencias).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ tipo: "HORA_NAO_AUTORIZADA", minutos: 30 }),
+      ]),
+    );
+  });
+
   it("calcula jornada de 7h regular sem intervalo", () => {
     const resultado = calcularApuracaoDiaria({
       jornada: jornada7h,
@@ -618,6 +666,41 @@ describe("calcularApuracaoDiaria", () => {
     expect(resultado.cargaPrevistaMinutos).toBe(420);
     expect(resultado.minutosTrabalhados).toBe(420);
     expect(resultado.minutosDebito).toBe(0);
+    expect(resultado.trabalhoRemoto).toEqual(
+      expect.objectContaining({
+        ativo: true,
+        regime: "TOTAL",
+        exigeRegistroPonto: false,
+      }),
+    );
+  });
+
+  it("considera a jornada cumprida em teletrabalho integral extraordinario", () => {
+    const resultado = calcularApuracaoDiaria({
+      jornada: {
+        ...jornada8h,
+        cargaPrevistaMinutos: 480,
+      },
+      marcacoes: [],
+      diaInstitucional: {
+        tipo: "TELETRABALHO_INTEGRAL_EXTRAORDINARIO",
+        contaComoDiaUtil: true,
+        geraApuracaoRegular: true,
+        descricao: "Decisao institucional de trabalho remoto",
+        contabilizaJornadaComoTrabalhada: true,
+        exigeRegistroPonto: false,
+        geraDebito: false,
+        geraCredito: false,
+      },
+    });
+
+    expect(resultado.resultado).toBe("REGULAR");
+    expect(resultado.status).toBe("CALCULADA");
+    expect(resultado.cargaPrevistaMinutos).toBe(480);
+    expect(resultado.minutosTrabalhados).toBe(480);
+    expect(resultado.minutosCredito).toBe(0);
+    expect(resultado.minutosDebito).toBe(0);
+    expect(resultado.ocorrencias).toEqual([]);
     expect(resultado.trabalhoRemoto).toEqual(
       expect.objectContaining({
         ativo: true,

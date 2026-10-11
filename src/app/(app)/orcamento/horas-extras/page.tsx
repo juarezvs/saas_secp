@@ -35,7 +35,7 @@ export default async function OrcamentoHorasExtrasPage() {
     erroConsulta =
       error instanceof Error
         ? error.message
-        : "Nao foi possivel consultar as solicitacoes.";
+        : "Não foi possível consultar as solicitações.";
   }
 
   return (

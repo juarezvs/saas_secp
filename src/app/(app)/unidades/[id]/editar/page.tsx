@@ -11,6 +11,7 @@ import {
   listarUnidadesParaSelecao,
 } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
 import { UnidadeForm } from "@/modules/unidades/presentation/components/unidade-form";
+import { listarEstadosComCidadesAtivas } from "@/modules/localidades/infrastructure/repositories/localidade.repository";
 
 type EditarUnidadePageProps = {
   params: Promise<{
@@ -31,11 +32,12 @@ export default async function EditarUnidadePage({
       ? escopoOrgao.orgaoIds
       : ["00000000-0000-4000-8000-000000000000"];
 
-  const [unidade, orgaos, unidades, fusosHorarios] = await Promise.all([
+  const [unidade, orgaos, unidades, fusosHorarios, estados] = await Promise.all([
     buscarUnidadePorId(id),
     listarOrgaosAtivos({ orgaoIdsPermitidos }),
     listarUnidadesParaSelecao({ orgaoIdsPermitidos }),
     listarFusosHorariosAtivos(),
+    listarEstadosComCidadesAtivas(),
   ]);
 
   if (!unidade) {
@@ -56,10 +58,6 @@ export default async function EditarUnidadePage({
       />
 
       <section>
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Estrutura institucional
-        </p>
-
         <h1 className="mt-2 text-3xl font-bold tracking-tight">
           Editar unidade
         </h1>
@@ -81,6 +79,7 @@ export default async function EditarUnidadePage({
         orgaos={orgaos}
         unidades={unidades}
         fusosHorarios={fusosHorarios}
+        estados={estados}
         unidadeAtualId={unidade.id}
         modo="editar"
         valoresIniciais={{

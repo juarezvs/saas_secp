@@ -57,9 +57,6 @@ export default async function JornadaDetalhePage({
 
       <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-            Horário de Trabalho
-          </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight">
             {jornada.nome}
           </h1>
@@ -107,6 +104,7 @@ export default async function JornadaDetalhePage({
           cargaMaximaDiariaMinutos: jornada.cargaMaximaDiariaMinutos,
           controlaHorario: jornada.controlaHorario,
           permiteFlexibilidade: jornada.permiteFlexibilidade,
+          permiteCompensacaoNoDia: jornada.permiteCompensacaoNoDia,
           permiteBancoHoras: jornada.permiteBancoHoras,
           permiteHoraExtra: jornada.permiteHoraExtra,
           nucleoObrigatorioInicio: jornada.nucleoObrigatorioInicio,

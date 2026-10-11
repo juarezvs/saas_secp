@@ -91,20 +91,14 @@ export default async function AuditoriaPage({
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "Auditoria" }]} />
 
-      <section>
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Auditoria e trilhas de controle
-        </p>
-
-        <PageHeader
+      <PageHeader
           icon={ScrollText}
           titulo="Eventos de auditoria"
           descricao="Consulte ações sensíveis realizadas no SECP, incluindo marcações, solicitações, apuracoes, banco de horas, homologações, boletins, usuários e perfis."
           artigo="Governança, controle eletrônico e responsabilidade"
           regraTitulo="Rastreabilidade das ações"
           regraDescricao="A auditoria registra quem realizou cada ação, quando ocorreu, qual entidade foi afetada e quais dados foram alterados, apoiando a responsabilizacao administrativa e a integridade do controle de frequência."
-        />
-      </section>
+      />
 
       <DataTableShell
         title="Eventos de auditoria"

@@ -121,7 +121,7 @@ export default async function RegulamentacaoPontoPage() {
 
       <DataTableShell
         title="Regulamentacao por orgao"
-        description="Entre no orgao desejado para ajustar regras, ato normativo, tolerancias e recalculo da competencia."
+        description="Entre no órgão desejado para ajustar regras, ato normativo, tolerâncias e recálculo da competência."
         total={orgaos.length}
         pagina={1}
         totalPaginas={1}

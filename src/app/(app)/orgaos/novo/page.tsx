@@ -6,10 +6,14 @@ import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/servic
 import { listarFusosHorariosAtivos } from "@/modules/fusos-horarios/infrastructure/repositories/fuso-horario.repository";
 import { criarOrgaoAction } from "@/modules/orgaos/application/actions/salvar-orgao.action";
 import { OrgaoForm } from "@/modules/orgaos/presentation/components/orgao-form";
+import { listarEstadosComCidadesAtivas } from "@/modules/localidades/infrastructure/repositories/localidade.repository";
 
 export default async function NovoOrgaoPage() {
   await exigirPermissaoOuRedirecionar("unidades:gerenciar:global");
-  const fusosHorarios = await listarFusosHorariosAtivos();
+  const [fusosHorarios, estados] = await Promise.all([
+    listarFusosHorariosAtivos(),
+    listarEstadosComCidadesAtivas(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -31,6 +35,7 @@ export default async function NovoOrgaoPage() {
         action={criarOrgaoAction}
         modo="criar"
         fusosHorarios={fusosHorarios}
+        estados={estados}
       />
     </div>
   );

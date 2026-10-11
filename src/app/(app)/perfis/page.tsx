@@ -99,30 +99,21 @@ export default async function PerfisPage({ searchParams }: PerfisPageProps) {
         ]}
       />
 
-      <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-            Controle de acesso
-          </p>
-
-          <PageHeader
-            icon={ShieldAlert}
-            titulo="Perfis e permissões"
-            descricao="Gerencie perfis de acesso, permissões e escopos de atuação dos usuários do SECP."
-            artigo="Art. 2, inciso XII; Arts. 16 e 20"
-            regraTitulo="Ações gerenciais e responsabilidades"
-            regraDescricao="O controle de acesso por perfis garante que chefias, delegados, administradores, SECAP, SECAD, DIREF e NUTEC executem apenas ações compatíveis com suas responsabilidades institucionais."
-          />
-        </div>
-
-        <Link
+      <PageHeader
+        icon={ShieldAlert}
+        titulo="Perfis e permissões"
+        descricao="Gerencie perfis de acesso, permissões e escopos de atuação dos usuários do SECP."
+        artigo="Art. 2, inciso XII; Arts. 16 e 20"
+        regraTitulo="Ações gerenciais e responsabilidades"
+        regraDescricao="O controle de acesso por perfis garante que chefias, delegados, administradores, SECAP, SECAD, DIREF e NUTEC executem apenas ações compatíveis com suas responsabilidades institucionais."
+        actions={<Link
           href="/perfis/novo"
           className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           <Plus className="size-4" aria-hidden="true" />
           Novo perfil
-        </Link>
-      </section>
+        </Link>}
+      />
 
       <DataTableShell
         title="Perfis cadastrados"

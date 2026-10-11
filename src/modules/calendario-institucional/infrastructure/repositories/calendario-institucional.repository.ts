@@ -13,9 +13,12 @@ export type ListarCalendarioInstitucionalParams = {
 };
 
 function ehTipoCalendarioInstitucional(valor?: string | null) {
-  return ["FERIADO", "PONTO_FACULTATIVO", "SUSPENSAO_EXPEDIENTE"].includes(
-    valor ?? "",
-  );
+  return [
+    "FERIADO",
+    "PONTO_FACULTATIVO",
+    "SUSPENSAO_EXPEDIENTE",
+    "TELETRABALHO_INTEGRAL_EXTRAORDINARIO",
+  ].includes(valor ?? "");
 }
 
 function ehAbrangenciaCalendarioInstitucional(valor?: string | null) {
@@ -120,10 +123,11 @@ export async function listarEventosCalendarioInstitucionalNoPeriodo(
   return prisma.calendarioInstitucional.findMany({
     where: {
       ativo: true,
-      dataReferencia: {
-        gte: normalizarDataReferencia(inicio),
-        lt: normalizarDataReferencia(fimExclusivo),
-      },
+      dataReferencia: { lt: normalizarDataReferencia(fimExclusivo) },
+      OR: [
+        { dataFim: null },
+        { dataFim: { gte: normalizarDataReferencia(inicio) } },
+      ],
     },
     orderBy: [{ dataReferencia: "asc" }, { descricao: "asc" }],
   });
@@ -140,7 +144,11 @@ export async function buscarEventoCalendarioInstitucionalPorData(
 ) {
   return prisma.calendarioInstitucional.findFirst({
     where: {
-      dataReferencia: normalizarDataReferencia(dataReferencia),
+      dataReferencia: { lte: normalizarDataReferencia(dataReferencia) },
+      OR: [
+        { dataFim: null },
+        { dataFim: { gte: normalizarDataReferencia(dataReferencia) } },
+      ],
       abrangencia: "NACIONAL",
     },
     orderBy: {
@@ -151,6 +159,7 @@ export async function buscarEventoCalendarioInstitucionalPorData(
 
 export async function buscarConflitoEventoCalendarioInstitucional(params: {
   dataReferencia: Date;
+  dataFim?: Date | null;
   abrangencia: string;
   uf?: string | null;
   municipio?: string | null;
@@ -161,7 +170,13 @@ export async function buscarConflitoEventoCalendarioInstitucional(params: {
 }) {
   return prisma.calendarioInstitucional.findFirst({
     where: {
-      dataReferencia: normalizarDataReferencia(params.dataReferencia),
+      dataReferencia: {
+        lte: normalizarDataReferencia(params.dataFim ?? params.dataReferencia),
+      },
+      OR: [
+        { dataFim: null },
+        { dataFim: { gte: normalizarDataReferencia(params.dataReferencia) } },
+      ],
       abrangencia: params.abrangencia as never,
       uf: params.uf || null,
       municipio: params.municipio || null,

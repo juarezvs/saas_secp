@@ -117,10 +117,10 @@ export function DashboardServidor({
 
   return (
     <div className="space-y-2">
-      <section className="rounded-xl border border-slate-200 bg-[var(--card)] px-3 py-2.5 text-[var(--card-foreground)] shadow-sm dark:border-slate-800">
+      <section className="rounded border border-zinc-200 bg-white px-3 py-2.5 text-zinc-900 shadow-[0_1px_2px_rgba(0,0,0,0.12),0_3px_8px_rgba(0,0,0,0.06)] dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50">
         <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-amber-50 text-amber-500 dark:bg-amber-950/40 dark:text-amber-300">
+            <span className="grid size-10 shrink-0 place-items-center bg-[#0078d4] text-white">
               <SaudacaoServidorIcon fusoHorario={dados.servidor.fusoHorario} />
             </span>
             <div className="min-w-0 flex-1">
@@ -279,10 +279,10 @@ function CardResumoServidor({
   return (
     <Link
       href={href}
-      className={`group flex min-h-[88px] items-center gap-3 rounded-xl border p-3 shadow-sm transition hover:border-blue-100 dark:border-slate-800 ${classes.card}`}
+      className={`group flex min-h-[88px] items-center gap-3 rounded border border-zinc-200 bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.12),0_3px_8px_rgba(0,0,0,0.06)] transition hover:border-blue-400 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-950 ${classes.card}`}
     >
       <span
-        className={`grid size-12 place-items-center rounded-xl ${classes.icon}`}
+        className={`grid size-10 shrink-0 place-items-center text-white ${classes.icon}`}
       >
         <Icon className="size-6" aria-hidden="true" />
       </span>
@@ -340,42 +340,42 @@ function classesCardResumo(titulo: string, tone: "blue" | "green" | "orange") {
 
   if (tituloNormalizado === "TRABALHADO HOJE") {
     return {
-      card: "border-emerald-100 bg-emerald-50/45 hover:bg-emerald-50",
-      icon: "bg-emerald-100 text-emerald-700",
+      card: "",
+      icon: "bg-[#107c10]",
     };
   }
 
   if (tituloNormalizado === "BANCO DE HORAS") {
     return {
-      card: "border-violet-100 bg-violet-50/45 hover:bg-violet-50",
-      icon: "bg-violet-100 text-violet-700",
+      card: "",
+      icon: "bg-[#8661c5]",
     };
   }
 
   if (tituloNormalizado === "PENDENCIAS") {
     return {
-      card: "border-orange-100 bg-orange-50/45 hover:bg-orange-50",
-      icon: "bg-orange-100 text-orange-700",
+      card: "",
+      icon: "bg-[#d83b01]",
     };
   }
 
   if (tone === "green") {
     return {
-      card: "border-emerald-100 bg-emerald-50/45 hover:bg-emerald-50",
-      icon: "bg-emerald-100 text-emerald-700",
+      card: "",
+      icon: "bg-[#107c10]",
     };
   }
 
   if (tone === "orange") {
     return {
-      card: "border-orange-100 bg-orange-50/45 hover:bg-orange-50",
-      icon: "bg-orange-100 text-orange-700",
+      card: "",
+      icon: "bg-[#d83b01]",
     };
   }
 
   return {
-    card: "border-blue-100 bg-blue-50/45 hover:bg-blue-50",
-    icon: "bg-blue-100 text-blue-700",
+    card: "",
+    icon: "bg-[#0078d4]",
   };
 }
 
@@ -395,17 +395,17 @@ function MinhaJornadaHoje({
   const saida = previsao?.horarios.at(-1)?.horario ?? "--:--";
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-      <div className="flex items-center justify-between gap-3">
+    <section className="overflow-hidden rounded border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.12),0_3px_8px_rgba(0,0,0,0.06)] dark:border-zinc-700 dark:bg-zinc-950">
+      <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-3 py-2.5 dark:border-zinc-700">
         <h2 className="inline-flex items-center gap-2 text-sm font-black text-blue-950 dark:text-blue-100">
-          <Clock3 className="size-4 text-blue-700" aria-hidden="true" />
+          <span className="grid size-8 place-items-center bg-[#0078d4] text-white"><Clock3 className="size-4" aria-hidden="true" /></span>
           Minha jornada hoje
         </h2>
         <Link href="/marcacoes" className="text-xs font-bold text-blue-700">
           Detalhes do dia
         </Link>
       </div>
-      <div className="mt-3 grid gap-2 sm:grid-cols-4">
+      <div className="mx-3 mt-3 grid gap-2 sm:grid-cols-4">
         <ResumoJornada label="Entrada prevista" value={entrada} />
         <ResumoJornada label="Saída prevista" value={saida} />
         <ResumoJornada
@@ -417,19 +417,19 @@ function MinhaJornadaHoje({
           value={previsao?.saidaEstimada ?? saida}
         />
       </div>
-      <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-100">
+      <div className="mx-3 mt-3 h-3 overflow-hidden rounded-full bg-slate-100">
         <span className="block h-full w-4/5 rounded-full bg-blue-700" />
       </div>
-      <div className="mt-1 flex items-center justify-between text-[10px] font-semibold text-slate-500">
+      <div className="mx-3 mt-1 flex items-center justify-between text-[10px] font-semibold text-slate-500">
         <span>Progresso da jornada de hoje (05:37:45 de 07:00)</span>
         <span className="text-blue-700">80%</span>
       </div>
-      <div className="mt-2 flex justify-between px-1 text-[10px] font-medium text-slate-500">
+      <div className="mx-3 mt-2 flex justify-between px-1 text-[10px] font-medium text-slate-500">
         {["08:00", "10:00", "12:00", "14:00", "15:00"].map((hora) => (
           <span key={hora}>{hora}</span>
         ))}
       </div>
-      <div className="mt-1 grid grid-cols-[1fr_0.62fr_1fr_0.3fr] overflow-hidden rounded-xl border border-slate-100 text-center text-xs font-semibold">
+      <div className="mx-3 mt-1 grid grid-cols-[1fr_0.62fr_1fr_0.3fr] overflow-hidden rounded border border-slate-100 text-center text-xs font-semibold">
         <span className="bg-emerald-100 px-2 py-2.5 text-emerald-700">
           Trabalhando
         </span>
@@ -447,7 +447,7 @@ function MinhaJornadaHoje({
           -
         </span>
       </div>
-      <div className="mt-2 flex flex-wrap gap-4 text-[10px] font-semibold text-slate-500">
+      <div className="mx-3 mb-3 mt-2 flex flex-wrap gap-4 text-[10px] font-semibold text-slate-500">
         <span className="inline-flex items-center gap-1">
           <span className="size-2 rounded-full bg-emerald-500" />
           Período trabalhado
@@ -497,11 +497,9 @@ function ProximasAcoes() {
   ];
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-      <h2 className="text-sm font-black text-blue-950 dark:text-blue-100">
-        Próximas ações
-      </h2>
-      <div className="mt-2 grid gap-1.5">
+    <section className="overflow-hidden rounded border border-zinc-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.12),0_3px_8px_rgba(0,0,0,0.06)] dark:border-zinc-700 dark:bg-zinc-950">
+      <div className="flex items-center gap-2 border-b border-zinc-200 px-3 py-2.5 dark:border-zinc-700"><span className="grid size-8 place-items-center bg-[#8661c5] text-white"><CheckCircle2 className="size-4" aria-hidden="true" /></span><h2 className="text-sm font-black text-blue-950 dark:text-blue-100">Próximas ações</h2></div>
+      <div className="grid gap-1.5 p-3">
         {acoes.map((acao) => {
           const Icon = acao.icon;
 
@@ -509,7 +507,7 @@ function ProximasAcoes() {
             <Link
               key={acao.label}
               href={acao.href}
-              className="flex items-center gap-2 rounded-lg bg-slate-50 p-2 text-xs font-bold text-blue-950 hover:bg-blue-50 dark:bg-slate-900 dark:text-blue-100"
+              className="flex items-center gap-2 border-b border-zinc-100 p-2 text-xs font-bold text-blue-950 transition last:border-b-0 hover:bg-blue-50 dark:border-zinc-800 dark:text-blue-100"
             >
               <Icon className="size-5 text-blue-700" aria-hidden="true" />
               <span className="min-w-0 flex-1">{acao.label}</span>

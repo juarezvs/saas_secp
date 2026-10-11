@@ -173,7 +173,7 @@ export function ManutencaoMarcacoesGrid({
         setErro(
           error instanceof Error
             ? error.message
-            : "Nao foi possivel salvar as marcacoes.",
+            : "Não foi possível salvar as marcações.",
         );
       } finally {
         setCelulaSalvando(null);

@@ -328,23 +328,14 @@ export default async function ServidoresPage({
         ]}
       />
 
-      <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-            {contextoPessoa.eyebrow}
-          </p>
-
-          <PageHeader
-            icon={Users}
-            titulo={contextoPessoa.titulo}
-            descricao={contextoPessoa.descricao}
-            artigo="Arts. 4, 8, 16 e 19"
-            regraTitulo={contextoPessoa.regraTitulo}
-            regraDescricao={contextoPessoa.regraDescricao}
-          />
-        </div>
-
-        {podeGerenciarServidor && (
+      <PageHeader
+        icon={Users}
+        titulo={contextoPessoa.titulo}
+        descricao={contextoPessoa.descricao}
+        artigo="Arts. 4, 8, 16 e 19"
+        regraTitulo={contextoPessoa.regraTitulo}
+        regraDescricao={contextoPessoa.regraDescricao}
+        actions={podeGerenciarServidor && (
           <Link
             href={`/servidores/novo?${new URLSearchParams({
               tipoUsuario,
@@ -355,7 +346,7 @@ export default async function ServidoresPage({
             {contextoPessoa.novoLabel}
           </Link>
         )}
-      </section>
+      />
 
       <DataTableShell
         title={contextoPessoa.tabelaTitulo}

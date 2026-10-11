@@ -23,6 +23,7 @@ import {
   processamentoAtualizadoHoje,
 } from "@/modules/recalculo/application/services/processamento-espelho-ponto.service";
 import { recalculoEspelhoPontoDisponivel } from "@/modules/recalculo/application/services/recalculo-worker-env";
+import { obterEstadoAtualizacaoSarhLogin } from "@/modules/integracoes/sarh/application/queues/sarh-login-sync-queue";
 import {
   montarOpcoesCargoFuncaoAssinatura,
   resolverSeccionalAssinatura,
@@ -403,6 +404,21 @@ export default async function EspelhoPontoPage({
     (perfilProprioAtivo || perfilChefiaAtivo ? servidores[0] : null) ??
     null;
 
+  const estadoAtualizacaoSarh =
+    servidorSelecionado && servidorSelecionado.id === servidorProprio?.id
+      ? await medidor
+          .medir("estado_sincronizacao_sarh_login", () =>
+            obterEstadoAtualizacaoSarhLogin(servidorSelecionado.matricula),
+          )
+          .catch((error: unknown) => {
+            logger.warn("Falha ao consultar sincronizacao SARH do login", {
+              matricula: servidorSelecionado.matricula,
+              erro: error instanceof Error ? error.message : String(error),
+            });
+            return null;
+          })
+      : null;
+
   let processamentoEspelho: Awaited<
     ReturnType<typeof obterProcessamentoEspelhoPonto>
   > = null;
@@ -583,7 +599,13 @@ export default async function EspelhoPontoPage({
 
   return (
     <div className="-mt-4 space-y-1.5">
-      <EspelhoPontoCarregamentoToast />
+      <EspelhoPontoCarregamentoToast
+        estadoSarh={estadoAtualizacaoSarh}
+        processamento={{
+          status: processamentoEspelho?.status ?? "AUSENTE",
+          erro: processamentoEspelho?.erro ?? null,
+        }}
+      />
       <EspelhoPontoUrlCanonica href={hrefCanonicoEspelho} />
       <div className="relative flex min-h-9 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <Breadcrumb items={[{ label: "Espelho de ponto" }]} />

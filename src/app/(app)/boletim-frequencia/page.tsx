@@ -194,20 +194,14 @@ export default async function BoletimFrequenciaPage({
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "Boletim de Frequência" }]} />
 
-      <section>
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Boletim de Frequência
-        </p>
-
-        <PageHeader
+      <PageHeader
           icon={FileSpreadsheet}
           titulo="Boletins mensais"
           descricao="Gere, consulte e encaminhe à SECAP/NUCGP os boletins mensais de frequência das unidades homologadas."
           artigo="Arts. 16 e 17"
           regraTitulo="Boletim após homologação"
           regraDescricao="Após a homologação da frequência mensal, o boletim consolida as ocorrências e deve ser encaminhado à SECAP/NUCGP dentro do prazo regulamentar."
-        />
-      </section>
+      />
 
       <section className="grid gap-3 rounded-xl border bg-[var(--card)] p-5 text-[var(--card-foreground)] shadow-sm md:grid-cols-3">
         <article className="rounded-lg border bg-[var(--muted)] p-4">

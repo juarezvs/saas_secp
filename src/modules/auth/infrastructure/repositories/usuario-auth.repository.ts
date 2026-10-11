@@ -10,6 +10,7 @@ import { escolherPerfilInicial } from "../../application/services/perfil-servido
 import { filtrarPermissoesLiberadas } from "@/modules/rotinas/application/services/liberacao-rotinas.service";
 import { expandirPermissoesCompatibilidade } from "../../application/services/permissao-utils";
 import { perfilEhAdministradorSistema } from "../../domain/constants/perfis-sistema";
+import { resolverPermissoesPerfilNaSeccional } from "@/modules/perfis/application/services/permissoes-perfil-seccional.service";
 import {
   aplicarPerfisHerdadosPorSubstituicaoAutomatica,
   listarPerfisHerdadosPorSubstituicaoAutomatica,
@@ -77,6 +78,11 @@ export async function buscarUsuarioParaLoginPorMatricula(
                   permissao: true,
                 },
               },
+              permissoesSeccionais: {
+                include: {
+                  permissao: true,
+                },
+              },
             },
           },
         },
@@ -103,12 +109,16 @@ export async function buscarUsuarioParaLoginPorMatricula(
     const perfilSistemaGlobal = perfilEhAdministradorSistema(
       usuarioPerfil.perfil,
     );
-    const permissoes = usuarioPerfil.perfil.permissoes.map(
-      (perfilPermissao) => perfilPermissao.permissao.codigo,
+    const orgaoIdVinculado =
+      usuarioPerfil.orgaoId ??
+      usuarioPerfil.perfil.orgaoId ??
+      usuario.servidor?.orgaoId;
+    const permissoes = resolverPermissoesPerfilNaSeccional(
+      usuarioPerfil.perfil.permissoes,
+      usuarioPerfil.perfil.permissoesSeccionais,
+      orgaoIdVinculado,
     );
     const orgaoPerfil = usuarioPerfil.orgao ?? usuarioPerfil.perfil.orgao;
-    const orgaoIdVinculado =
-      usuarioPerfil.orgaoId ?? usuarioPerfil.perfil.orgaoId;
 
     if (orgaoIdVinculado) {
       const orgaoIds =
@@ -134,6 +144,9 @@ export async function buscarUsuarioParaLoginPorMatricula(
     }
 
     existente.escopoGlobal ||= perfilSistemaGlobal;
+    existente.permissoes = existente.permissoes.filter((codigo) =>
+      permissoes.includes(codigo),
+    );
 
     if (
       orgaoPerfil &&

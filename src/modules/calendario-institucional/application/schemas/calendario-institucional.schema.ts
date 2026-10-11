@@ -4,6 +4,7 @@ export const tiposCalendarioInstitucional = [
   "FERIADO",
   "PONTO_FACULTATIVO",
   "SUSPENSAO_EXPEDIENTE",
+  "TELETRABALHO_INTEGRAL_EXTRAORDINARIO",
 ] as const;
 
 export const abrangenciasCalendarioInstitucional = [
@@ -40,6 +41,10 @@ export const calendarioInstitucionalSchema = z
       .string()
       .trim()
       .refine(validarDataIso, "Informe a data no formato AAAA-MM-DD."),
+    dataFim: z.string().trim().optional().or(z.literal("")).refine(
+      (valor) => !valor || validarDataIso(valor),
+      "Informe a data final no formato AAAA-MM-DD.",
+    ),
     descricao: z
       .string()
       .trim()
@@ -77,6 +82,10 @@ export const calendarioInstitucionalSchema = z
       .or(z.literal("")),
     contaComoDiaUtil: z.coerce.boolean().default(false),
     geraApuracaoRegular: z.coerce.boolean().default(false),
+    contabilizaJornadaComoTrabalhada: z.coerce.boolean().default(false),
+    exigeRegistroPonto: z.coerce.boolean().default(true),
+    geraDebito: z.coerce.boolean().default(true),
+    geraCredito: z.coerce.boolean().default(true),
     janelaInicio: z.string().trim().optional().or(z.literal("")),
     janelaFim: z.string().trim().optional().or(z.literal("")),
     dataOriginal: z
@@ -88,11 +97,42 @@ export const calendarioInstitucionalSchema = z
         (valor) => !valor || validarDataIso(valor),
         "Informe a data original no formato AAAA-MM-DD.",
       ),
+    dataOriginalFim: z.string().trim().optional().or(z.literal("")).refine(
+      (valor) => !valor || validarDataIso(valor),
+      "Informe a data original final no formato AAAA-MM-DD.",
+    ),
     dataSubstituida: z.coerce.boolean().default(false),
     observacao: z.string().trim().max(2000).optional().or(z.literal("")),
     ativo: z.coerce.boolean().default(true),
   })
   .superRefine((dados, ctx) => {
+    if (dados.dataFim && dados.dataFim < dados.dataReferencia) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["dataFim"],
+        message: "A data final deve ser igual ou posterior à data inicial.",
+      });
+    }
+
+    if (dados.dataOriginalFim && !dados.dataOriginal) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["dataOriginal"],
+        message: "Informe a data original inicial.",
+      });
+    }
+
+    if (
+      dados.dataOriginal &&
+      dados.dataOriginalFim &&
+      dados.dataOriginalFim < dados.dataOriginal
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["dataOriginalFim"],
+        message: "A data original final deve ser posterior à inicial.",
+      });
+    }
     const temInicio = Boolean(dados.janelaInicio);
     const temFim = Boolean(dados.janelaFim);
 

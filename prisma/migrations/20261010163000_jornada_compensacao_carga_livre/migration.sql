@@ -1,0 +1,4 @@
+ALTER TYPE "TipoJornada" ADD VALUE IF NOT EXISTS 'CARGA_HORARIA_LIVRE';
+
+ALTER TABLE "jornadas"
+ADD COLUMN "permite_compensacao_no_dia" BOOLEAN NOT NULL DEFAULT false;

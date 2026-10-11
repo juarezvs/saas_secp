@@ -11,6 +11,7 @@ import {
   codigoPerfilExiste,
 } from "../../infrastructure/repositories/perfil.repository";
 import { perfilSchema, type PerfilFormState } from "../schemas/perfil.schema";
+import { calcularExcecoesPermissoesSeccionais } from "../services/permissoes-perfil-seccional.service";
 
 function extrairDadosPerfil(formData: FormData) {
   return {
@@ -30,6 +31,9 @@ function extrairDadosPerfil(formData: FormData) {
     ),
     orgaoId: String(formData.get("orgaoId") ?? ""),
     permissoes: formData.getAll("permissoes").map(String),
+    orgaoEscopoPermissoes: String(
+      formData.get("orgaoEscopoPermissoes") ?? "",
+    ),
   };
 }
 
@@ -111,6 +115,63 @@ export async function atualizarPerfilAction(
       erros: parsed.error.flatten().fieldErrors,
       campos: dados,
     };
+  }
+
+  if (!escopoGlobal && perfilAtual.global) {
+    const orgaoId = dados.orgaoEscopoPermissoes;
+
+    if (!orgaoId || !orgaoIdsPermitidos.includes(orgaoId)) {
+      return {
+        sucesso: false,
+        mensagem: "Não foi possível determinar a seccional desta configuração.",
+        campos: dados,
+      };
+    }
+
+    const excecoes = calcularExcecoesPermissoesSeccionais(
+      perfilAtual.permissoes.map((item) => item.permissaoId),
+      parsed.data.permissoes,
+    );
+
+    await prisma.$transaction(async (tx) => {
+      await tx.perfilPermissaoOrgao.deleteMany({
+        where: { perfilId, orgaoId },
+      });
+
+      if (excecoes.length) {
+        await tx.perfilPermissaoOrgao.createMany({
+          data: excecoes.map((item) => ({
+            perfilId,
+            orgaoId,
+            permissaoId: item.permissaoId,
+            permitida: item.permitida,
+          })),
+        });
+      }
+
+      await tx.auditoriaEvento.create({
+        data: {
+          usuarioId: permissao.usuarioId,
+          entidade: "PerfilPermissaoOrgao",
+          entidadeId: perfilId,
+          acao: "PERMISSOES_PERFIL_SECCIONAL_ATUALIZADAS",
+          dadosAntes: {
+            orgaoId,
+            excecoes: perfilAtual.permissoesSeccionais
+              .filter((item) => item.orgaoId === orgaoId)
+              .map((item) => ({
+                permissaoId: item.permissaoId,
+                permitida: item.permitida,
+              })),
+          },
+          dadosDepois: { orgaoId, excecoes },
+        },
+      });
+    });
+
+    revalidatePath("/perfis");
+    revalidatePath(`/perfis/${perfilId}`);
+    redirect(`/perfis/${perfilId}`);
   }
 
   const orgao = perfilAtual.sistema

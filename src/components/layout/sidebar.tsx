@@ -3,11 +3,13 @@
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import * as LucideIcons from "lucide-react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   Activity,
   BadgeCheck,
   BarChart3,
   Ban,
+  Bookmark,
   Building2,
   CalendarDays,
   CalendarClock,
@@ -19,6 +21,7 @@ import {
   ClipboardList,
   ClipboardPenLine,
   Clock,
+  ContactRound,
   DatabaseZap,
   FileCheck2,
   FileClock,
@@ -37,6 +40,8 @@ import {
   LayoutDashboard,
   ListChecks,
   MapPin,
+  MapPinned,
+  MoreVertical,
   Network,
   Palette,
   Plane,
@@ -50,7 +55,6 @@ import {
   ShieldAlert,
   ShieldCheck,
   SlidersHorizontal,
-  Star,
   TimerReset,
   ToggleLeft,
   TreePalm,
@@ -68,6 +72,7 @@ import {
   SheetDescription,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Toggle } from "@/components/ui/toggle";
 import { possuiAlgumaPermissaoNaLista } from "@/modules/auth/application/services/permissao-utils";
 import type {
   IconesItensCatalogoMenu,
@@ -90,6 +95,7 @@ import type {
   TemaVisualAcessibilidade,
 } from "@/modules/auth/application/services/preferencias-acessibilidade.service";
 import { useFavoritosPerfil } from "@/modules/favoritos/presentation/favoritos-provider";
+import { MENU_CATALOGO } from "@/modules/menus/domain/menu-catalogo";
 
 export type PerfilNavegacao = {
   id?: string;
@@ -743,10 +749,7 @@ export const MENU_ITEMS: MenuItem[] = [
     label: "Manutenção",
     href: "/manutencao/marcacoes",
     icon: Wrench,
-    permissoes: [
-      "marcacao:manutencao:seccional",
-      "marcacao:manutencao:global",
-    ],
+    permissoes: ["marcacao:manutencao:seccional", "marcacao:manutencao:global"],
     children: [
       {
         label: "Marcações",
@@ -755,6 +758,56 @@ export const MENU_ITEMS: MenuItem[] = [
         permissoes: [
           "marcacao:manutencao:seccional",
           "marcacao:manutencao:global",
+        ],
+      },
+    ],
+  },
+  {
+    label: "Cadastros Auxiliares",
+    href: "/cadastros-auxiliares/tipos-feriados-suspensoes",
+    icon: ListChecks,
+    permissoes: [
+      "tipoferiado:consultar:seccional",
+      "tipoferiado:cadastrar:seccional",
+      "tipoferiado:cadastrar:master",
+      "localidade:consultar:seccional",
+      "localidade:cadastrar:seccional",
+      "localidade:cadastrar:master",
+      "configuracoes:gerenciar:seccional",
+      "configuracoes:gerenciar:global",
+    ],
+    children: [
+      {
+        label: "Tipos de Feriados/Suspensões",
+        href: "/cadastros-auxiliares/tipos-feriados-suspensoes",
+        icon: CalendarRange,
+        permissoes: [
+          "tipoferiado:consultar:seccional",
+          "tipoferiado:cadastrar:seccional",
+          "tipoferiado:cadastrar:master",
+          "configuracoes:gerenciar:seccional",
+          "configuracoes:gerenciar:global",
+        ],
+      },
+      {
+        label: "Estados/Cidades",
+        href: "/cadastros-auxiliares/estados-cidades",
+        icon: MapPinned,
+        permissoes: [
+          "localidade:consultar:seccional",
+          "localidade:cadastrar:seccional",
+          "localidade:cadastrar:master",
+          "configuracoes:gerenciar:seccional",
+          "configuracoes:gerenciar:global",
+        ],
+      },
+      {
+        label: "Características pessoais",
+        href: "/cadastros-auxiliares/caracteristicas-pessoais",
+        icon: ContactRound,
+        permissoes: [
+          "configuracoes:gerenciar:seccional",
+          "configuracoes:gerenciar:global",
         ],
       },
     ],
@@ -1481,7 +1534,9 @@ function MenuPrincipal({
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { favoritos } = useFavoritosPerfil();
+  const { favoritos, isFavorito, favoritar, desfavoritar } =
+    useFavoritosPerfil();
+  const [favoritoPendente, setFavoritoPendente] = useState<string | null>(null);
   const itensPadraoComIcones = useMemo(
     () => aplicarIconesItensCatalogo(MENU_ITEMS, iconesItensCatalogo),
     [iconesItensCatalogo],
@@ -1505,26 +1560,78 @@ function MenuPrincipal({
     [pathname, searchParams, itensVisiveis],
   );
   const hrefAtivo = itemAtivo?.href;
-  const favoritosAtivo =
-    pathname === "/dashboard" && searchParams.get("secao") === "favoritos";
-  const itemFavoritosClassName = [
-    "secp-sidebar-item",
-    "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-semibold transition",
-    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-    favoritosAtivo
-      ? "bg-secp-blue-900 text-white shadow-sm"
-      : "bg-white text-slate-700 hover:bg-secp-blue-900/10 hover:text-secp-blue-900 dark:bg-transparent dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white",
-    recolhida ? "justify-center" : "",
-  ].join(" ");
   const [gruposAlternados, setGruposAlternados] = useState<
     Record<string, boolean>
   >({});
+  const grupoFavoritosAberto = gruposAlternados.__favoritos ?? true;
 
   function alternarGrupo(href: string, abertoAtual: boolean) {
     setGruposAlternados((gruposAtuais) => ({
       ...gruposAtuais,
       [href]: !abertoAtual,
     }));
+  }
+
+  function idCatalogoDoHref(href: string) {
+    return MENU_CATALOGO.find((item) => item.href === href)?.id ?? null;
+  }
+
+  async function alternarFavorito(href: string) {
+    const itemCatalogo = idCatalogoDoHref(href);
+    if (!itemCatalogo || favoritoPendente) return;
+    setFavoritoPendente(itemCatalogo);
+    try {
+      if (isFavorito(itemCatalogo)) await desfavoritar(itemCatalogo);
+      else await favoritar(itemCatalogo);
+    } finally {
+      setFavoritoPendente(null);
+    }
+  }
+
+  function MenuFavorito({ href, label }: { href: string; label: string }) {
+    const itemCatalogo = idCatalogoDoHref(href);
+    if (!itemCatalogo) return null;
+    const ativo = isFavorito(itemCatalogo);
+    return (
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger asChild>
+          <button
+            type="button"
+            onClick={(event) => event.stopPropagation()}
+            aria-label={`Mais opções para ${label}`}
+            title="Mais opções"
+            className="grid size-7 shrink-0 place-items-center rounded-sm transition hover:bg-black/5 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring dark:hover:bg-white/10"
+          >
+            <MoreVertical className="size-4" aria-hidden="true" />
+          </button>
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Content
+            side="right"
+            align="start"
+            sideOffset={6}
+            className="z-[100] min-w-40 rounded-md border border-border bg-card p-1 text-card-foreground shadow-lg"
+          >
+            <DropdownMenu.Item asChild>
+              <Toggle
+                pressed={ativo}
+                disabled={favoritoPendente === itemCatalogo}
+                onPressedChange={() => void alternarFavorito(href)}
+                variant="ghost"
+                size="sm"
+                className="w-full cursor-pointer justify-start px-3 shadow-none"
+              >
+                <Bookmark
+                  className={ativo ? "fill-current" : ""}
+                  aria-hidden="true"
+                />
+                <span>{ativo ? "Desfavoritar" : "Favoritar"}</span>
+              </Toggle>
+            </DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu.Portal>
+      </DropdownMenu.Root>
+    );
   }
 
   return (
@@ -1535,29 +1642,82 @@ function MenuPrincipal({
     >
       <ul className="space-y-1">
         {favoritos.length > 0 && (
-          <li className="border-b border-border/80 pb-3">
-            <a
-              href="/dashboard?secao=favoritos"
-              onClick={onNavigate}
-              aria-current={favoritosAtivo ? "page" : undefined}
-              aria-label={recolhida ? "Meus Favoritos" : undefined}
-              title={recolhida ? "Meus Favoritos" : undefined}
-              className={itemFavoritosClassName}
+          <li className="space-y-1 border-b border-border/80 pb-3">
+            <button
+              type="button"
+              onClick={() => alternarGrupo("__favoritos", grupoFavoritosAberto)}
+              aria-expanded={grupoFavoritosAberto}
+              className="secp-sidebar-item flex w-full items-center gap-3 rounded-md bg-white px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-secp-blue-900/10 hover:text-secp-blue-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:bg-transparent dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white"
               data-tour="menu-favoritos"
             >
-              <Star
+              <span className="min-w-0 flex-1 truncate">Meus Favoritos</span>
+              <ChevronDown
                 className={[
-                  "size-5 shrink-0",
-                  favoritosAtivo ? "fill-current" : "",
+                  "size-4 shrink-0 transition-transform",
+                  grupoFavoritosAberto ? "rotate-180" : "",
                 ].join(" ")}
                 aria-hidden="true"
               />
-              {!recolhida && (
-                <span className="min-w-0 flex-1 truncate">
-                  Meus Favoritos
-                </span>
-              )}
-            </a>
+            </button>
+            {grupoFavoritosAberto ? (
+              <ul className="ml-4 space-y-1 border-l border-border pl-2">
+                {favoritos.map((favorito) => {
+                  const favoritoAtivo = itemCorrespondeAoPath(
+                    pathname,
+                    favorito.href,
+                    searchParams,
+                  );
+                  const itemPai = itensVisiveis.find(
+                    (item) =>
+                      item.href === favorito.href ||
+                      item.children?.some(
+                        (child) => child.href === favorito.href,
+                      ),
+                  );
+                  const itemOriginal =
+                    itemPai?.href === favorito.href
+                      ? itemPai
+                      : itemPai?.children?.find(
+                          (child) => child.href === favorito.href,
+                        );
+                  const FavoritoIcon = itemOriginal?.icon;
+
+                  return (
+                    <li
+                      key={favorito.id}
+                      className={[
+                        "secp-sidebar-subitem flex items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition",
+                        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                        favoritoAtivo
+                          ? "bg-secp-blue-900/10 text-secp-blue-900 dark:bg-white/10 dark:text-white"
+                          : "bg-white text-slate-600 hover:bg-secp-blue-900/10 hover:text-secp-blue-900 dark:bg-transparent dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white",
+                      ].join(" ")}
+                    >
+                      <a
+                        href={favorito.href}
+                        onClick={onNavigate}
+                        className="flex min-w-0 flex-1 items-center gap-2"
+                        data-tour={dataTourMenuItem(favorito.href)}
+                      >
+                        {FavoritoIcon ? (
+                          <FavoritoIcon
+                            className="size-4 shrink-0"
+                            aria-hidden="true"
+                          />
+                        ) : null}
+                        <span className="min-w-0 flex-1 truncate">
+                          {favorito.titulo}
+                        </span>
+                      </a>
+                      <MenuFavorito
+                        href={favorito.href}
+                        label={favorito.titulo}
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
           </li>
         )}
         {itensVisiveis.map((item) => {
@@ -1582,47 +1742,67 @@ function MenuPrincipal({
           return (
             <li key={`${item.href}:${item.label}`} className="space-y-1">
               {possuiFilhos && !recolhida ? (
-                <button
-                  type="button"
-                  onClick={() => alternarGrupo(item.href, grupoAberto)}
+                <div
                   aria-current={grupoAtivo ? "page" : undefined}
-                  aria-expanded={mostrarFilhos}
                   className={itemClassName}
                   data-tour={dataTourMenuItem(item.href)}
                 >
-                  <Icon className="size-5 shrink-0" aria-hidden="true" />
-                  <span className="min-w-0 flex-1 truncate text-left">
-                    {item.label}
-                  </span>
-                  <ChevronDown
-                    className={[
-                      "size-4 shrink-0 transition-transform",
-                      mostrarFilhos ? "rotate-180" : "",
-                    ].join(" ")}
-                    aria-hidden="true"
-                  />
-                </button>
-              ) : (
-                <a
-                  href={
-                    possuiFilhos ? (filhos[0]?.href ?? item.href) : item.href
-                  }
-                  onClick={onNavigate}
-                  aria-current={grupoAtivo ? "page" : undefined}
-                  aria-label={recolhida ? item.label : undefined}
-                  title={recolhida ? item.label : undefined}
-                  className={itemClassName}
-                  data-tour={dataTourMenuItem(
-                    possuiFilhos ? (filhos[0]?.href ?? item.href) : item.href,
-                  )}
-                >
-                  <Icon className="size-5 shrink-0" aria-hidden="true" />
-                  {!recolhida && (
+                  <button
+                    type="button"
+                    onClick={() => alternarGrupo(item.href, grupoAberto)}
+                    aria-expanded={mostrarFilhos}
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  >
+                    <Icon className="size-5 shrink-0" aria-hidden="true" />
                     <span className="min-w-0 flex-1 truncate">
                       {item.label}
                     </span>
-                  )}
-                </a>
+                  </button>
+                  <MenuFavorito href={item.href} label={item.label} />
+                  <button
+                    type="button"
+                    onClick={() => alternarGrupo(item.href, grupoAberto)}
+                    aria-expanded={mostrarFilhos}
+                    aria-label={`${mostrarFilhos ? "Recolher" : "Expandir"} ${item.label}`}
+                    className="grid size-7 shrink-0 place-items-center rounded-sm hover:bg-black/5 dark:hover:bg-white/10"
+                  >
+                    <ChevronDown
+                      className={[
+                        "size-4 transition-transform",
+                        mostrarFilhos ? "rotate-180" : "",
+                      ].join(" ")}
+                      aria-hidden="true"
+                    />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className={itemClassName}
+                  aria-current={grupoAtivo ? "page" : undefined}
+                >
+                  <a
+                    href={
+                      possuiFilhos ? (filhos[0]?.href ?? item.href) : item.href
+                    }
+                    onClick={onNavigate}
+                    aria-label={recolhida ? item.label : undefined}
+                    title={recolhida ? item.label : undefined}
+                    className="flex min-w-0 flex-1 items-center gap-3"
+                    data-tour={dataTourMenuItem(
+                      possuiFilhos ? (filhos[0]?.href ?? item.href) : item.href,
+                    )}
+                  >
+                    <Icon className="size-5 shrink-0" aria-hidden="true" />
+                    {!recolhida && (
+                      <span className="min-w-0 flex-1 truncate">
+                        {item.label}
+                      </span>
+                    )}
+                  </a>
+                  {!recolhida ? (
+                    <MenuFavorito href={item.href} label={item.label} />
+                  ) : null}
+                </div>
               )}
 
               {mostrarFilhos && (
@@ -1633,9 +1813,7 @@ function MenuPrincipal({
 
                     return (
                       <li key={`${child.href}:${child.label}`}>
-                        <a
-                          href={child.href}
-                          onClick={onNavigate}
+                        <div
                           aria-current={childAtivo ? "page" : undefined}
                           className={[
                             "secp-sidebar-subitem",
@@ -1645,16 +1823,23 @@ function MenuPrincipal({
                               ? "bg-secp-blue-900/10 text-secp-blue-900 dark:bg-white/10 dark:text-white"
                               : "bg-white text-slate-600 hover:bg-secp-blue-900/10 hover:text-secp-blue-900 dark:bg-transparent dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white",
                           ].join(" ")}
-                          data-tour={dataTourMenuItem(child.href)}
                         >
-                          <ChildIcon
-                            className="size-4 shrink-0"
-                            aria-hidden="true"
-                          />
-                          <span className="min-w-0 flex-1 truncate">
-                            {child.label}
-                          </span>
-                        </a>
+                          <a
+                            href={child.href}
+                            onClick={onNavigate}
+                            className="flex min-w-0 flex-1 items-center gap-2"
+                            data-tour={dataTourMenuItem(child.href)}
+                          >
+                            <ChildIcon
+                              className="size-4 shrink-0"
+                              aria-hidden="true"
+                            />
+                            <span className="min-w-0 flex-1 truncate">
+                              {child.label}
+                            </span>
+                          </a>
+                          <MenuFavorito href={child.href} label={child.label} />
+                        </div>
                       </li>
                     );
                   })}

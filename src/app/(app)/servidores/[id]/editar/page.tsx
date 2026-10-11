@@ -125,10 +125,6 @@ export default async function EditarServidorPage({
             )}
 
             <div className="min-w-0">
-              <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-                {rotuloPessoa.cadastro}
-              </p>
-
               <h1 className="mt-1 truncate text-2xl font-bold tracking-tight sm:text-3xl">
                 {servidor.nomeFuncional ?? servidor.usuario.nome}
               </h1>

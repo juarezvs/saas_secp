@@ -12,10 +12,19 @@ type EventoCalendarioInstitucionalLite = Awaited<
 type EventoCalendarioInstitucionalPeriodo = {
   id: string;
   dataReferencia: Date;
+  dataFim?: Date | null;
   descricao: string;
-  tipo: "FERIADO" | "PONTO_FACULTATIVO" | "SUSPENSAO_EXPEDIENTE";
+  tipo:
+    | "FERIADO"
+    | "PONTO_FACULTATIVO"
+    | "SUSPENSAO_EXPEDIENTE"
+    | "TELETRABALHO_INTEGRAL_EXTRAORDINARIO";
   contaComoDiaUtil: boolean;
   geraApuracaoRegular: boolean;
+  contabilizaJornadaComoTrabalhada?: boolean;
+  exigeRegistroPonto?: boolean;
+  geraDebito?: boolean;
+  geraCredito?: boolean;
   janelaInicio?: string | null;
   janelaFim?: string | null;
   dataOriginal?: Date | null;
@@ -40,6 +49,7 @@ export type TipoDiaInstitucional =
   | "FERIADO"
   | "PONTO_FACULTATIVO"
   | "SUSPENSAO_EXPEDIENTE"
+  | "TELETRABALHO_INTEGRAL_EXTRAORDINARIO"
   | "RECESSO_FORENSE";
 
 export type ClassificacaoDiaInstitucional = {
@@ -50,6 +60,10 @@ export type ClassificacaoDiaInstitucional = {
   abrangencia?: string | null;
   contaComoDiaUtil: boolean;
   geraApuracaoRegular: boolean;
+  contabilizaJornadaComoTrabalhada?: boolean;
+  exigeRegistroPonto?: boolean;
+  geraDebito?: boolean;
+  geraCredito?: boolean;
   janelaInicio?: string | null;
   janelaFim?: string | null;
   dataOriginal?: Date | null;
@@ -152,6 +166,11 @@ function classificarPorEvento(
     abrangencia: evento.abrangencia ?? null,
     contaComoDiaUtil: evento.contaComoDiaUtil,
     geraApuracaoRegular: evento.geraApuracaoRegular,
+    contabilizaJornadaComoTrabalhada:
+      evento.contabilizaJornadaComoTrabalhada ?? false,
+    exigeRegistroPonto: evento.exigeRegistroPonto ?? true,
+    geraDebito: evento.geraDebito ?? true,
+    geraCredito: evento.geraCredito ?? true,
     janelaInicio: evento.janelaInicio,
     janelaFim: evento.janelaFim,
     dataOriginal: evento.dataOriginal,
@@ -598,10 +617,21 @@ export async function carregarCalendarioInstitucionalPeriodo(params: {
 
   return {
     eventosPorData: eventos.reduce((mapa, evento) => {
-      const chave = chaveData(evento.dataReferencia);
-      const eventosData = mapa.get(chave) ?? [];
-      eventosData.push(evento);
-      mapa.set(chave, eventosData);
+      const cursor = normalizarDataReferencia(
+        evento.dataReferencia < params.inicio
+          ? params.inicio
+          : evento.dataReferencia,
+      );
+      const limite = normalizarDataReferencia(
+        evento.dataFim ?? evento.dataReferencia,
+      );
+      while (cursor <= limite && cursor < params.fimExclusivo) {
+        const chave = chaveData(cursor);
+        const eventosData = mapa.get(chave) ?? [];
+        eventosData.push(evento);
+        mapa.set(chave, eventosData);
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
+      }
       return mapa;
     }, new Map<string, EventoCalendarioInstitucionalPeriodo[]>()),
     recessos,

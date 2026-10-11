@@ -71,23 +71,14 @@ export default async function JornadasPage({
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "Horário de Trabalho" }]} />
 
-      <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-            Horário de Trabalho
-          </p>
-
-          <PageHeader
-            icon={CalendarClock}
-            titulo="Horário de Trabalho"
-            descricao="Gerencie horários semanais, cíclicos, mensais e suas associações às pessoas."
-            artigo="Arts. 4, 8 e 18"
-            regraTitulo="Horário cadastrado e apuração futura"
-            regraDescricao="O sistema deve manter o horário a ser cumprido pela pessoa, permitindo apurar a carga mensal e comparar com o esperado no mês de referência."
-          />
-        </div>
-
-        <div className="flex flex-col gap-2 sm:flex-row">
+      <PageHeader
+        icon={CalendarClock}
+        titulo="Horário de Trabalho"
+        descricao="Gerencie horários semanais, cíclicos, mensais e suas associações às pessoas."
+        artigo="Arts. 4, 8 e 18"
+        regraTitulo="Horário cadastrado e apuração futura"
+        regraDescricao="O sistema deve manter o horário a ser cumprido pela pessoa, permitindo apurar a carga mensal e comparar com o esperado no mês de referência."
+        actions={<div className="flex flex-col gap-2 sm:flex-row">
           <Link
             href="/jornadas/atribuicoes"
             className="inline-flex items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -101,8 +92,8 @@ export default async function JornadasPage({
             <Plus className="size-4" aria-hidden="true" />
             Novo horário
           </Link>
-        </div>
-      </section>
+        </div>}
+      />
 
       <DataTableShell
         title="Horários cadastrados"

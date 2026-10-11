@@ -30,6 +30,7 @@ import {
 function eventoCalendario(params: {
   id?: string;
   dataReferencia: Date;
+  dataFim?: Date | null;
   ativo?: boolean;
   tipo?: "FERIADO" | "PONTO_FACULTATIVO" | "SUSPENSAO_EXPEDIENTE";
   contaComoDiaUtil?: boolean;
@@ -37,11 +38,13 @@ function eventoCalendario(params: {
   janelaInicio?: string | null;
   janelaFim?: string | null;
   dataOriginal?: Date | null;
+  dataOriginalFim?: Date | null;
   dataSubstituida?: boolean;
 }) {
   return {
     id: params.id ?? "evento-1",
     dataReferencia: params.dataReferencia,
+    dataFim: params.dataFim ?? null,
     descricao: "Evento institucional",
     tipo: params.tipo ?? "FERIADO",
     abrangencia: "NACIONAL" as const,
@@ -52,9 +55,14 @@ function eventoCalendario(params: {
     unidadeId: null,
     contaComoDiaUtil: params.contaComoDiaUtil ?? false,
     geraApuracaoRegular: params.geraApuracaoRegular ?? false,
+    contabilizaJornadaComoTrabalhada: false,
+    exigeRegistroPonto: true,
+    geraDebito: true,
+    geraCredito: true,
     janelaInicio: params.janelaInicio ?? null,
     janelaFim: params.janelaFim ?? null,
     dataOriginal: params.dataOriginal ?? null,
+    dataOriginalFim: params.dataOriginalFim ?? null,
     dataSubstituida: params.dataSubstituida ?? false,
     observacao: null,
     ativo: params.ativo ?? true,

@@ -272,6 +272,11 @@ export async function buscarPerfilPorId(id: string) {
           permissao: true,
         },
       },
+      permissoesSeccionais: {
+        include: {
+          permissao: true,
+        },
+      },
       usuarios: {
         include: {
           usuario: true,

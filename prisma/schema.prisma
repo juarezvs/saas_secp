@@ -25,6 +25,7 @@ enum TipoCalendarioInstitucional {
   FERIADO
   PONTO_FACULTATIVO
   SUSPENSAO_EXPEDIENTE
+  TELETRABALHO_INTEGRAL_EXTRAORDINARIO
 }
 
 enum AbrangenciaCalendarioInstitucional {
@@ -122,6 +123,7 @@ enum TipoJornada {
   FIXA_SEMANAL
   FLEXIVEL
   CARGA_DIARIA
+  CARGA_HORARIA_LIVRE
   CARGA_SEMANAL
   CARGA_MENSAL
   HIBRIDO
@@ -866,6 +868,7 @@ model Perfil {
 
   usuarios             UsuarioPerfil[]
   permissoes           PerfilPermissao[]
+  permissoesSeccionais PerfilPermissaoOrgao[]
   menusGrupos          MenuGrupoPerfil[]
   menusItens           MenuItemPerfil[]
   favoritosUsuarios    UsuarioPerfilFavorito[]
@@ -962,7 +965,8 @@ model Permissao {
 
   criadoEm DateTime @default(now()) @map("criado_em")
 
-  perfis PerfilPermissao[]
+  perfis           PerfilPermissao[]
+  perfisSeccionais PerfilPermissaoOrgao[]
 
   @@unique([recurso, acao, escopo])
   @@map("permissoes")
@@ -1023,6 +1027,27 @@ model PerfilPermissao {
   @@map("perfis_permissoes")
 }
 
+model PerfilPermissaoOrgao {
+  id String @id @default(uuid()) @db.Uuid
+
+  perfilId    String  @map("perfil_id") @db.Uuid
+  permissaoId String  @map("permissao_id") @db.Uuid
+  orgaoId     String  @map("orgao_id") @db.Uuid
+  permitida   Boolean @default(true)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  perfil    Perfil    @relation(fields: [perfilId], references: [id], onDelete: Cascade)
+  permissao Permissao @relation(fields: [permissaoId], references: [id], onDelete: Cascade)
+  orgao     Orgao     @relation(fields: [orgaoId], references: [id], onDelete: Cascade)
+
+  @@unique([perfilId, permissaoId, orgaoId])
+  @@index([perfilId, orgaoId])
+  @@index([orgaoId])
+  @@map("perfis_permissoes_orgaos")
+}
+
 model Orgao {
   id            String  @id @default(uuid()) @db.Uuid
   sigla         String  @unique @db.VarChar(30)
@@ -1047,6 +1072,7 @@ model Orgao {
   categoriasPessoas                CategoriaPessoa[]
   equipamentosBiometricos          EquipamentoBiometrico[]
   regulamentacaoPonto              RegulamentacaoPontoOrgao?
+  permissoesPerfis                 PerfilPermissaoOrgao[]
   integracoes                      IntegracaoSistema[]
   calendariosInstitucionais        CalendarioInstitucional[]
   recessosForenses                 RecessoForense[]
@@ -2017,6 +2043,7 @@ model Jornada {
   cargaMaximaDiariaMinutos     Int?        @map("carga_maxima_diaria_minutos")
   controlaHorario              Boolean     @default(true) @map("controla_horario")
   permiteFlexibilidade         Boolean     @default(false) @map("permite_flexibilidade")
+  permiteCompensacaoNoDia      Boolean     @default(false) @map("permite_compensacao_no_dia")
   permiteBancoHoras            Boolean     @default(true) @map("permite_banco_horas")
   permiteHoraExtra             Boolean     @default(false) @map("permite_hora_extra")
   exigeIntervalo               Boolean     @default(false) @map("exige_intervalo")
@@ -3358,6 +3385,7 @@ model CalendarioInstitucional {
   id String @id @default(uuid()) @db.Uuid
 
   dataReferencia DateTime                           @map("data_referencia") @db.Date
+  dataFim        DateTime?                          @map("data_fim") @db.Date
   descricao      String                             @db.VarChar(200)
   tipo           TipoCalendarioInstitucional
   abrangencia    AbrangenciaCalendarioInstitucional @default(NACIONAL)
@@ -3367,20 +3395,26 @@ model CalendarioInstitucional {
   orgaoId        String?                            @map("orgao_id") @db.Uuid
   unidadeId      String?                            @map("unidade_id") @db.Uuid
 
-  contaComoDiaUtil    Boolean   @default(false) @map("conta_como_dia_util")
-  geraApuracaoRegular Boolean   @default(false) @map("gera_apuracao_regular")
-  janelaInicio        String?   @map("janela_inicio") @db.VarChar(5)
-  janelaFim           String?   @map("janela_fim") @db.VarChar(5)
-  dataOriginal        DateTime? @map("data_original") @db.Date
-  dataSubstituida     Boolean   @default(false) @map("data_substituida")
-  observacao          String?   @db.Text
-  ativo               Boolean   @default(true)
+  contaComoDiaUtil                 Boolean   @default(false) @map("conta_como_dia_util")
+  geraApuracaoRegular              Boolean   @default(false) @map("gera_apuracao_regular")
+  contabilizaJornadaComoTrabalhada Boolean   @default(false) @map("contabiliza_jornada_como_trabalhada")
+  exigeRegistroPonto               Boolean   @default(true) @map("exige_registro_ponto")
+  geraDebito                       Boolean   @default(true) @map("gera_debito")
+  geraCredito                      Boolean   @default(true) @map("gera_credito")
+  janelaInicio                     String?   @map("janela_inicio") @db.VarChar(5)
+  janelaFim                        String?   @map("janela_fim") @db.VarChar(5)
+  dataOriginal                     DateTime? @map("data_original") @db.Date
+  dataOriginalFim                  DateTime? @map("data_original_fim") @db.Date
+  dataSubstituida                  Boolean   @default(false) @map("data_substituida")
+  observacao                       String?   @db.Text
+  ativo                            Boolean   @default(true)
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  orgao   Orgao?                 @relation(fields: [orgaoId], references: [id], onDelete: SetNull)
-  unidade UnidadeOrganizacional? @relation(fields: [unidadeId], references: [id], onDelete: SetNull)
+  orgao        Orgao?                 @relation(fields: [orgaoId], references: [id], onDelete: SetNull)
+  unidade      UnidadeOrganizacional? @relation(fields: [unidadeId], references: [id], onDelete: SetNull)
+  tipoCadastro TipoFeriadoSuspensao   @relation(fields: [tipo], references: [codigo], onDelete: Restrict)
 
   @@index([dataReferencia])
   @@index([tipo])
@@ -3391,6 +3425,82 @@ model CalendarioInstitucional {
   @@index([orgaoId])
   @@index([unidadeId])
   @@map("calendarios_institucionais")
+}
+
+model TipoFeriadoSuspensao {
+  id           String                      @id @default(uuid()) @db.Uuid
+  codigo       TipoCalendarioInstitucional @unique
+  nome         String                      @db.VarChar(120)
+  descricao    String?                     @db.Text
+  ativo        Boolean                     @default(true)
+  origem       String                      @default("SARH") @db.VarChar(20)
+  criadoEm     DateTime                    @default(now()) @map("criado_em")
+  atualizadoEm DateTime                    @updatedAt @map("atualizado_em")
+
+  eventos CalendarioInstitucional[]
+
+  @@map("tipos_feriados_suspensoes")
+}
+
+model Estado {
+  id           Int      @id
+  sigla        String   @unique @db.Char(2)
+  nome         String   @db.VarChar(80)
+  regiaoId     Int?     @map("regiao_id")
+  regiaoSigla  String?  @map("regiao_sigla") @db.VarChar(2)
+  regiaoNome   String?  @map("regiao_nome") @db.VarChar(40)
+  ativo        Boolean  @default(true)
+  origem       String   @default("SARH") @db.VarChar(20)
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  cidades Cidade[]
+
+  @@index([nome])
+  @@index([ativo])
+  @@map("estados")
+}
+
+model Cidade {
+  id           Int      @id
+  estadoId     Int      @map("estado_id")
+  nome         String   @db.VarChar(120)
+  ativo        Boolean  @default(true)
+  origem       String   @default("SARH") @db.VarChar(20)
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  estado Estado @relation(fields: [estadoId], references: [id], onDelete: Cascade)
+
+  @@index([estadoId, nome])
+  @@index([ativo])
+  @@map("cidades")
+}
+
+model ConfiguracaoGlobal {
+  id                           String   @id @default("global") @db.VarChar(30)
+  dominiosEmailInstitucionais  String[] @default(["trf1.jus.br"]) @map("dominios_email_institucionais")
+  criadoEm                     DateTime @default(now()) @map("criado_em")
+  atualizadoEm                 DateTime @updatedAt @map("atualizado_em")
+
+  @@map("configuracoes_globais")
+}
+
+model DominioCaracteristicaPessoal {
+  id           String   @id @default(uuid()) @db.Uuid
+  tipo         String   @db.VarChar(40)
+  codigoSarh   String   @map("codigo_sarh") @db.VarChar(20)
+  nome         String   @db.VarChar(100)
+  ordem        Int      @default(0)
+  ativo        Boolean  @default(true)
+  origemSarh   Boolean  @default(true) @map("origem_sarh")
+  origem       String   @default("SARH") @db.VarChar(20)
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  @@unique([tipo, codigoSarh])
+  @@index([tipo, ativo, ordem])
+  @@map("dominios_caracteristicas_pessoais")
 }
 
 model RecessoForense {

@@ -327,6 +327,8 @@ export async function recalcularDiaServidorService(
           cargaMaximaDiariaMinutos:
             jornadaServidor.jornada.cargaMaximaDiariaMinutos,
           controlaHorario: jornadaServidor.jornada.controlaHorario,
+          permiteCompensacaoNoDia:
+            jornadaServidor.jornada.permiteCompensacaoNoDia,
           permiteFlexibilidade: jornadaServidor.jornada.permiteFlexibilidade,
           permiteBancoHoras: jornadaServidor.jornada.permiteBancoHoras,
           permiteHoraExtra: jornadaServidor.jornada.permiteHoraExtra,
@@ -477,6 +479,11 @@ export async function recalcularDiaServidorService(
           fonteDiaInstitucional: diaInstitucional.fonte,
           contaComoDiaUtil: diaInstitucional.contaComoDiaUtil,
           geraApuracaoRegular: diaInstitucional.geraApuracaoRegular,
+          contabilizaJornadaComoTrabalhada:
+            diaInstitucional.contabilizaJornadaComoTrabalhada ?? false,
+          exigeRegistroPonto: diaInstitucional.exigeRegistroPonto ?? true,
+          geraDebito: diaInstitucional.geraDebito ?? true,
+          geraCredito: diaInstitucional.geraCredito ?? true,
           eventoCalendarioId: diaInstitucional.eventoCalendarioId ?? null,
           janelaInstitucional:
             diaInstitucional.janelaInicio && diaInstitucional.janelaFim
@@ -529,6 +536,11 @@ export async function recalcularDiaServidorService(
           fonteDiaInstitucional: diaInstitucional.fonte,
           contaComoDiaUtil: diaInstitucional.contaComoDiaUtil,
           geraApuracaoRegular: diaInstitucional.geraApuracaoRegular,
+          contabilizaJornadaComoTrabalhada:
+            diaInstitucional.contabilizaJornadaComoTrabalhada ?? false,
+          exigeRegistroPonto: diaInstitucional.exigeRegistroPonto ?? true,
+          geraDebito: diaInstitucional.geraDebito ?? true,
+          geraCredito: diaInstitucional.geraCredito ?? true,
           eventoCalendarioId: diaInstitucional.eventoCalendarioId ?? null,
           janelaInstitucional:
             diaInstitucional.janelaInicio && diaInstitucional.janelaFim

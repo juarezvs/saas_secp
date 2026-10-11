@@ -104,9 +104,10 @@ export function FrequenciaMesResumo({ resumo }: FrequenciaMesResumoProps) {
   const espelhoHref = montarHrefEspelho(resumo.mes);
 
   return (
-    <Card className="p-2.5">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">
+    <Card className="overflow-hidden rounded border-zinc-200 p-0 shadow-[0_1px_2px_rgba(0,0,0,0.12),0_3px_8px_rgba(0,0,0,0.06)] dark:border-zinc-700">
+      <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-3 py-2.5 dark:border-zinc-700">
+        <h2 className="inline-flex items-center gap-2 text-sm font-semibold">
+          <span className="grid size-8 place-items-center bg-[#107c10] text-white"><FileCheck2 className="size-4" aria-hidden="true" /></span>
           Frequência mês {mesReferenciaTitulo}
         </h2>
         <Link
@@ -117,7 +118,7 @@ export function FrequenciaMesResumo({ resumo }: FrequenciaMesResumoProps) {
         </Link>
       </div>
 
-      <div className="mt-2 grid gap-2 sm:grid-cols-[4.75rem_1fr] sm:items-center">
+      <div className="mx-3 mt-3 grid gap-2 sm:grid-cols-[4.75rem_1fr] sm:items-center">
         <div
           className="grid aspect-square place-items-center rounded-full p-2.5"
           style={{ background: montarGradiente(resumo) }}
@@ -168,7 +169,7 @@ export function FrequenciaMesResumo({ resumo }: FrequenciaMesResumoProps) {
         </dl>
       </div>
 
-      <div className="mt-2 flex gap-2 rounded-md bg-muted p-1.5 text-xs leading-4">
+      <div className="m-3 flex gap-2 rounded bg-muted p-1.5 text-xs leading-4">
         <FileCheck2
           className="mt-0.5 size-4 shrink-0 text-secp-blue-700"
           aria-hidden="true"

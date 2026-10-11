@@ -1,5 +1,6 @@
 import { Worker, type Job } from "bullmq";
 
+import { enfileirarRecalculoEspelhoNoLogin } from "@/modules/recalculo/application/queues/recalcular-espelho-ponto-queue";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { SincronizarSarhUseCase } from "../use-cases/sincronizar-sarh.use-case";
 import {
@@ -52,6 +53,14 @@ async function processarAtualizacaoSarhLogin(
       "calendarios",
     ],
   });
+
+  if (job.data.usuarioId) {
+    await enfileirarRecalculoEspelhoNoLogin({
+      usuarioId: job.data.usuarioId,
+      forcar: true,
+      motivo: "SINCRONIZACAO_SARH_LOGIN",
+    });
+  }
 
   console.log("[SARH LOGIN] Atualizacao concluida:", matricula);
 }

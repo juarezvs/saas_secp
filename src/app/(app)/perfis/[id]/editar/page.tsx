@@ -11,6 +11,7 @@ import {
   listarPermissoesOrdenadas,
 } from "@/modules/perfis/infrastructure/repositories/perfil.repository";
 import { PerfilForm } from "@/modules/perfis/presentation/components/perfil-form";
+import { resolverPermissoesPerfilNaSeccional } from "@/modules/perfis/application/services/permissoes-perfil-seccional.service";
 
 type EditarPerfilPageProps = {
   params: Promise<{
@@ -52,6 +53,18 @@ export default async function EditarPerfilPage({
   }
 
   const action = atualizarPerfilAction.bind(null, perfil.id);
+  const orgaoEscopoPermissoes =
+    !escopoOrgao.global && perfil.global ? escopoOrgao.orgaoIds[0] : null;
+  const codigosPermissoesEfetivas = new Set(
+    resolverPermissoesPerfilNaSeccional(
+      perfil.permissoes,
+      perfil.permissoesSeccionais,
+      orgaoEscopoPermissoes,
+    ),
+  );
+  const idsPermissoesEfetivas = permissoes
+    .filter((item) => codigosPermissoesEfetivas.has(item.codigo))
+    .map((item) => item.id);
 
   return (
     <div className="space-y-6">
@@ -65,10 +78,6 @@ export default async function EditarPerfilPage({
       />
 
       <section>
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Controle de acesso
-        </p>
-
         <h1 className="mt-2 text-3xl font-bold tracking-tight">
           Editar perfil
         </h1>
@@ -90,6 +99,13 @@ export default async function EditarPerfilPage({
         perfisDestinoExcecao={perfis.filter((item) => item.id !== perfil.id)}
         orgaosPermitidos={orgaosPermitidos}
         permitirPerfilGlobal={escopoOrgao.global}
+        editarSomentePermissoesSeccionais={Boolean(orgaoEscopoPermissoes)}
+        orgaoEscopoPermissoes={orgaoEscopoPermissoes}
+        nomeOrgaoEscopoPermissoes={
+          escopoOrgao.orgaos.find(
+            (orgao) => orgao.id === orgaoEscopoPermissoes,
+          )?.nome
+        }
         modo="editar"
         valoresIniciais={{
           codigo: perfil.codigo,
@@ -101,7 +117,7 @@ export default async function EditarPerfilPage({
           excecao: perfil.excecao,
           global: perfil.global,
           perfilDestinoExcecaoId: perfil.perfilDestinoExcecaoId,
-          permissoes: perfil.permissoes.map((item) => item.permissaoId),
+          permissoes: idsPermissoesEfetivas,
         }}
       />
     </div>

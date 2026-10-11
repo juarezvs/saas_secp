@@ -48,7 +48,9 @@ function prismaClientEstaAtualizado(client?: PrismaClient): client is PrismaClie
   return (
     "notificacaoLeitura" in client &&
     "documentoAutenticacao" in client &&
-    "usuarioPerfilFavorito" in client
+    "usuarioPerfilFavorito" in client &&
+    "configuracaoGlobal" in client &&
+    "dominioCaracteristicaPessoal" in client
   );
 }
 

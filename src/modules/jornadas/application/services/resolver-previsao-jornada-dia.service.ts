@@ -219,7 +219,24 @@ export function resolverPrevisaoJornadaDia(params: {
   );
 
   if (porEscala) return porEscala;
-  if (porJornada) return porJornada;
+  if (porJornada) {
+    if (
+      params.jornada.tipo === "CARGA_HORARIA_LIVRE" &&
+      params.jornada.horarioEntradaPadrao &&
+      params.jornada.horarioSaidaPadrao
+    ) {
+      return {
+        ...porJornada,
+        janela: {
+          inicio: params.jornada.horarioEntradaPadrao,
+          fim: params.jornada.horarioSaidaPadrao,
+          cruzaMeiaNoite: params.jornada.cruzaMeiaNoite,
+        },
+      };
+    }
+
+    return porJornada;
+  }
 
   if (params.jornada.tipo === "TELETRABALHO") {
     return {

@@ -638,6 +638,24 @@ const codigosPermissoesHorasExtrasGestao = [
 ];
 
 const permissoesIniciais = [
+  {
+    recurso: "tipoferiado",
+    acao: "cadastrar",
+    escopo: "seccional",
+    descricao: "Cadastrar tipos de feriados e suspensões na seccional.",
+  },
+  {
+    recurso: "tipoferiado",
+    acao: "cadastrar",
+    escopo: "master",
+    descricao: "Cadastrar tipos de feriados e suspensões em âmbito master.",
+  },
+  {
+    recurso: "tipoferiado",
+    acao: "consultar",
+    escopo: "seccional",
+    descricao: "Consultar tipos de feriados e suspensões.",
+  },
   // Usuários / perfis / estrutura
   {
     recurso: "usuarios",

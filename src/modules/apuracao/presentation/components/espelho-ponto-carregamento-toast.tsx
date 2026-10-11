@@ -2,47 +2,151 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, type MouseEventHandler, type ReactNode } from "react";
-
+import {
+  useEffect,
+  useRef,
+  type MouseEventHandler,
+  type ReactNode,
+} from "react";
 import { toast } from "@/components/ui";
 
 let toastCarregamentoId: string | null = null;
 let chaveUrlAtual = "";
 
-export function notificarCarregamentoEspelho() {
+type Props = {
+  estadoSarh: "AGUARDANDO" | "SINCRONIZANDO" | null;
+  processamento: {
+    status: "PENDENTE" | "PROCESSANDO" | "ATUALIZADO" | "FALHA" | "AUSENTE";
+    erro: string | null;
+  };
+};
+
+function mostrarEtapa(title: string, description: string) {
   const mensagem = {
-    title: "Carregando espelho",
-    description: "Atualizando as informações da competência selecionada.",
+    title,
+    description,
     variant: "info" as const,
     duration: 100000,
   };
-
-  if (toastCarregamentoId) {
-    toast.update(toastCarregamentoId, mensagem);
-    return;
-  }
-
-  toastCarregamentoId = toast.show(mensagem);
+  if (toastCarregamentoId) toast.update(toastCarregamentoId, mensagem);
+  else toastCarregamentoId = toast.show(mensagem);
 }
 
-export function EspelhoPontoCarregamentoToast() {
+export function notificarCarregamentoEspelho() {
+  mostrarEtapa(
+    "Atualizando espelho",
+    "Carregando as informações da competência selecionada.",
+  );
+}
+
+export function EspelhoPontoCarregamentoToast({
+  estadoSarh,
+  processamento,
+}: Props) {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const chave = `${pathname}?${searchParams.toString()}`;
+  const acompanhouProcessamento = useRef(false);
+  const sarhEmAndamento = estadoSarh !== null;
+  const recalculoEmAndamento = ["PENDENTE", "PROCESSANDO"].includes(
+    processamento.status,
+  );
+
+  useEffect(() => {
+    if (!sarhEmAndamento && !recalculoEmAndamento) return;
+    const interval = window.setInterval(() => router.refresh(), 2000);
+    return () => window.clearInterval(interval);
+  }, [recalculoEmAndamento, router, sarhEmAndamento]);
+
+  useEffect(() => {
+    if (sarhEmAndamento) {
+      acompanhouProcessamento.current = true;
+      mostrarEtapa(
+        "Sincronizando dados com SARH",
+        estadoSarh === "AGUARDANDO"
+          ? "A sincronização está aguardando processamento."
+          : "Buscando afastamentos e demais dados funcionais.",
+      );
+      return;
+    }
+
+    if (recalculoEmAndamento) {
+      acompanhouProcessamento.current = true;
+      mostrarEtapa(
+        "Recalculando espelho de ponto",
+        processamento.status === "PENDENTE"
+          ? "O recálculo está aguardando processamento."
+          : "Aplicando as informações atualizadas ao espelho.",
+      );
+      return;
+    }
+
+    if (
+      processamento.status === "FALHA" &&
+      acompanhouProcessamento.current &&
+      toastCarregamentoId
+    ) {
+      toast.update(toastCarregamentoId, {
+        title: "Falha ao atualizar espelho",
+        description:
+          processamento.erro ?? "Não foi possível concluir a atualização.",
+        variant: "error",
+        duration: 6000,
+      });
+      toastCarregamentoId = null;
+      acompanhouProcessamento.current = false;
+      return;
+    }
+
+    if (
+      processamento.status === "ATUALIZADO" &&
+      acompanhouProcessamento.current &&
+      toastCarregamentoId
+    ) {
+      acompanhouProcessamento.current = false;
+      mostrarEtapa(
+        "Atualizando espelho",
+        "Carregando na tela os dados recalculados.",
+      );
+      router.refresh();
+      const timeout = window.setTimeout(() => {
+        if (!toastCarregamentoId) return;
+        toast.update(toastCarregamentoId, {
+          title: "Espelho atualizado",
+          description: "As informações do espelho foram atualizadas.",
+          variant: "success",
+          duration: 2500,
+        });
+        toastCarregamentoId = null;
+      }, 500);
+      return () => window.clearTimeout(timeout);
+    }
+  }, [
+    estadoSarh,
+    processamento.erro,
+    processamento.status,
+    recalculoEmAndamento,
+    router,
+    sarhEmAndamento,
+  ]);
 
   useEffect(() => {
     if (chaveUrlAtual && chave !== chaveUrlAtual && toastCarregamentoId) {
-      toast.update(toastCarregamentoId, {
-        title: "Espelho carregado",
-        description: "As informações do espelho foram atualizadas.",
-        variant: "success",
-        duration: 2500,
-      });
-      toastCarregamentoId = null;
+      if (sarhEmAndamento || recalculoEmAndamento) {
+        acompanhouProcessamento.current = true;
+      } else {
+        toast.update(toastCarregamentoId, {
+          title: "Espelho atualizado",
+          description: "As informações do espelho foram carregadas.",
+          variant: "success",
+          duration: 2500,
+        });
+        toastCarregamentoId = null;
+      }
     }
-
     chaveUrlAtual = chave;
-  }, [chave]);
+  }, [chave, recalculoEmAndamento, sarhEmAndamento]);
 
   return null;
 }
@@ -56,13 +160,8 @@ export function EspelhoPontoUrlCanonica({ href }: { href: string | null }) {
     : pathname;
 
   useEffect(() => {
-    if (!href || href === atual) {
-      return;
-    }
-
-    router.replace(href, { scroll: false });
+    if (href && href !== atual) router.replace(href, { scroll: false });
   }, [atual, href, router]);
-
   return null;
 }
 
@@ -80,7 +179,6 @@ export function EspelhoPontoNavLink({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const atual = `${pathname}?${searchParams.toString()}`;
-
   const aoClicar: MouseEventHandler<HTMLAnchorElement> = (event) => {
     if (
       event.defaultPrevented ||
@@ -93,7 +191,6 @@ export function EspelhoPontoNavLink({
     ) {
       return;
     }
-
     notificarCarregamentoEspelho();
   };
 

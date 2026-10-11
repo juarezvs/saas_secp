@@ -23,7 +23,12 @@ function normalizarTipoCalendarioInstitucional(
 ): CalendarioInstitucionalInput["tipo"] | undefined {
   const tipo = String(valor ?? "").trim();
 
-  return ["FERIADO", "PONTO_FACULTATIVO", "SUSPENSAO_EXPEDIENTE"].includes(tipo)
+  return [
+    "FERIADO",
+    "PONTO_FACULTATIVO",
+    "SUSPENSAO_EXPEDIENTE",
+    "TELETRABALHO_INTEGRAL_EXTRAORDINARIO",
+  ].includes(tipo)
     ? (tipo as CalendarioInstitucionalInput["tipo"])
     : undefined;
 }
@@ -45,6 +50,7 @@ function extrairDadosCalendario(
 ): Partial<CalendarioInstitucionalInput> {
   return {
     dataReferencia: String(formData.get("dataReferencia") ?? "").trim(),
+    dataFim: valorOpcionalString(formData.get("dataFim")),
     descricao: String(formData.get("descricao") ?? "").trim(),
     tipo: normalizarTipoCalendarioInstitucional(formData.get("tipo")),
     abrangencia: normalizarAbrangenciaCalendarioInstitucional(
@@ -63,9 +69,20 @@ function extrairDadosCalendario(
     geraApuracaoRegular:
       formData.get("geraApuracaoRegular") === "on" ||
       formData.get("geraApuracaoRegular") === "true",
+    contabilizaJornadaComoTrabalhada:
+      formData.get("contabilizaJornadaComoTrabalhada") === "on" ||
+      formData.get("contabilizaJornadaComoTrabalhada") === "true",
+    exigeRegistroPonto:
+      formData.get("exigeRegistroPonto") === "on" ||
+      formData.get("exigeRegistroPonto") === "true",
+    geraDebito:
+      formData.get("geraDebito") === "on" || formData.get("geraDebito") === "true",
+    geraCredito:
+      formData.get("geraCredito") === "on" || formData.get("geraCredito") === "true",
     janelaInicio: valorOpcionalString(formData.get("janelaInicio")),
     janelaFim: valorOpcionalString(formData.get("janelaFim")),
     dataOriginal: valorOpcionalString(formData.get("dataOriginal")),
+    dataOriginalFim: valorOpcionalString(formData.get("dataOriginalFim")),
     dataSubstituida:
       formData.get("dataSubstituida") === "on" ||
       formData.get("dataSubstituida") === "true",
@@ -76,6 +93,17 @@ function extrairDadosCalendario(
 
 function dataIsoParaUtc(valor: string) {
   return new Date(`${valor}T00:00:00.000Z`);
+}
+
+function datasDoPeriodo(inicio: Date, fim?: Date | null) {
+  const datas: Date[] = [];
+  const cursor = new Date(inicio);
+  const limite = fim ?? inicio;
+  while (cursor <= limite) {
+    datas.push(new Date(cursor));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return datas;
 }
 
 async function aplicarLocalidadeDaUnidade(dados: CalendarioInstitucionalInput) {
@@ -168,6 +196,9 @@ export async function criarCalendarioInstitucionalAction(
   const dataReferencia = dataIsoParaUtc(dadosValidados.dataReferencia);
   const existente = await buscarConflitoEventoCalendarioInstitucional({
     dataReferencia,
+    dataFim: dadosValidados.dataFim
+      ? dataIsoParaUtc(dadosValidados.dataFim)
+      : null,
     abrangencia: dadosValidados.abrangencia,
     uf: dadosValidados.uf,
     municipio: dadosValidados.municipio,
@@ -193,6 +224,9 @@ export async function criarCalendarioInstitucionalAction(
     const novoEvento = await tx.calendarioInstitucional.create({
       data: {
         dataReferencia,
+        dataFim: dadosValidados.dataFim
+          ? dataIsoParaUtc(dadosValidados.dataFim)
+          : null,
         descricao: dadosValidados.descricao,
         tipo: dadosValidados.tipo,
         abrangencia: dadosValidados.abrangencia,
@@ -203,10 +237,18 @@ export async function criarCalendarioInstitucionalAction(
         unidadeId: dadosValidados.unidadeId || null,
         contaComoDiaUtil: dadosValidados.contaComoDiaUtil,
         geraApuracaoRegular: dadosValidados.geraApuracaoRegular,
+        contabilizaJornadaComoTrabalhada:
+          dadosValidados.contabilizaJornadaComoTrabalhada,
+        exigeRegistroPonto: dadosValidados.exigeRegistroPonto,
+        geraDebito: dadosValidados.geraDebito,
+        geraCredito: dadosValidados.geraCredito,
         janelaInicio: dadosValidados.janelaInicio || null,
         janelaFim: dadosValidados.janelaFim || null,
         dataOriginal: dadosValidados.dataOriginal
           ? dataIsoParaUtc(dadosValidados.dataOriginal)
+          : null,
+        dataOriginalFim: dadosValidados.dataOriginalFim
+          ? dataIsoParaUtc(dadosValidados.dataOriginalFim)
           : null,
         dataSubstituida: dadosValidados.dataSubstituida,
         observacao: dadosValidados.observacao || null,
@@ -230,8 +272,10 @@ export async function criarCalendarioInstitucionalAction(
   await enfileirarReflexosCalendarioInstitucional({
     calendarioId: evento.id,
     datasReferencia: [
-      evento.dataReferencia,
-      ...(evento.dataOriginal ? [evento.dataOriginal] : []),
+      ...datasDoPeriodo(evento.dataReferencia, evento.dataFim),
+      ...(evento.dataOriginal
+        ? datasDoPeriodo(evento.dataOriginal, evento.dataOriginalFim)
+        : []),
     ],
     usuarioIdAuditoria: permissao.usuarioId,
   });

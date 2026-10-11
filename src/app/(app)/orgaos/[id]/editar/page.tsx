@@ -8,6 +8,7 @@ import { listarFusosHorariosAtivos } from "@/modules/fusos-horarios/infrastructu
 import { atualizarOrgaoAction } from "@/modules/orgaos/application/actions/salvar-orgao.action";
 import { buscarOrgaoPorId } from "@/modules/orgaos/infrastructure/repositories/orgao.repository";
 import { OrgaoForm } from "@/modules/orgaos/presentation/components/orgao-form";
+import { listarEstadosComCidadesAtivas } from "@/modules/localidades/infrastructure/repositories/localidade.repository";
 
 type EditarOrgaoPageProps = {
   params: Promise<{
@@ -19,9 +20,10 @@ export default async function EditarOrgaoPage({ params }: EditarOrgaoPageProps) 
   await exigirPermissaoOuRedirecionar("unidades:gerenciar:global");
 
   const { id } = await params;
-  const [orgao, fusosHorarios] = await Promise.all([
+  const [orgao, fusosHorarios, estados] = await Promise.all([
     buscarOrgaoPorId(id),
     listarFusosHorariosAtivos(),
+    listarEstadosComCidadesAtivas(),
   ]);
 
   if (!orgao) {
@@ -48,6 +50,7 @@ export default async function EditarOrgaoPage({ params }: EditarOrgaoPageProps) 
         action={atualizarOrgaoAction.bind(null, orgao.id)}
         modo="editar"
         fusosHorarios={fusosHorarios}
+        estados={estados}
         valoresIniciais={{
           sigla: orgao.sigla,
           nome: orgao.nome,

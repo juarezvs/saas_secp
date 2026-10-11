@@ -14,7 +14,7 @@ export default async function AdministracaoSuportePage() {
   const { orgaos, configuracoes } = await listarConfiguracoesSuporteLogin();
 
   return (
-    <main className="space-y-6 p-6">
+    <div className="space-y-6">
       <Breadcrumb
         items={[
           { label: "Administração", href: "/administracao" },
@@ -29,6 +29,6 @@ export default async function AdministracaoSuportePage() {
       />
 
       <SuporteLoginConfigForm orgaos={orgaos} configuracoes={configuracoes} />
-    </main>
+    </div>
   );
 }

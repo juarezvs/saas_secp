@@ -533,6 +533,39 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
     ],
   },
   {
+    id: "/cadastros-auxiliares/tipos-feriados-suspensoes",
+    label: "Tipos de Feriados/Suspensões",
+    href: "/cadastros-auxiliares/tipos-feriados-suspensoes",
+    permissoes: [
+      "tipoferiado:consultar:seccional",
+      "tipoferiado:cadastrar:seccional",
+      "tipoferiado:cadastrar:master",
+      "configuracoes:gerenciar:seccional",
+      "configuracoes:gerenciar:global",
+    ],
+  },
+  {
+    id: "/cadastros-auxiliares/estados-cidades",
+    label: "Estados/Cidades",
+    href: "/cadastros-auxiliares/estados-cidades",
+    permissoes: [
+      "localidade:consultar:seccional",
+      "localidade:cadastrar:seccional",
+      "localidade:cadastrar:master",
+      "configuracoes:gerenciar:seccional",
+      "configuracoes:gerenciar:global",
+    ],
+  },
+  {
+    id: "/cadastros-auxiliares/caracteristicas-pessoais",
+    label: "Características pessoais",
+    href: "/cadastros-auxiliares/caracteristicas-pessoais",
+    permissoes: [
+      "configuracoes:gerenciar:seccional",
+      "configuracoes:gerenciar:global",
+    ],
+  },
+  {
     id: "/administracao/calendario",
     label: "Calendário institucional",
     href: "/administracao/calendario",

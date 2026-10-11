@@ -310,6 +310,16 @@ ls -1t "${BACKUP_DIR}"/secp-app-before-*.tar.gz 2>/dev/null || true
 ls -1t "${DEPLOY_DIR}"/secp-deploy-*.tar.gz 2>/dev/null || true
 ls -1t "${REMOTE_ROOT}"/secp-*.tar.gz 2>/dev/null || true
 
+log "Removendo imagens sem uso com mais de 7 dias"
+docker image prune -a -f --filter "until=168h"
+
+log "Removendo cache de build com mais de 24 horas"
+docker builder prune -a -f --filter "until=24h"
+
+log "Uso de disco apos retencao"
+df -h /
+docker system df
+
 log "Deploy concluido"
 '@
 

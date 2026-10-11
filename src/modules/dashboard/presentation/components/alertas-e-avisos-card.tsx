@@ -28,9 +28,9 @@ const styles = {
 
 export function AlertasEAvisosCard({ alertas }: AlertasEAvisosCardProps) {
   return (
-    <Card className="p-2.5">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">Alertas e avisos</h2>
+    <Card className="overflow-hidden rounded border-zinc-200 p-0 shadow-[0_1px_2px_rgba(0,0,0,0.12),0_3px_8px_rgba(0,0,0,0.06)] dark:border-zinc-700">
+      <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-3 py-2.5 dark:border-zinc-700">
+        <h2 className="inline-flex items-center gap-2 text-sm font-semibold"><span className="grid size-8 place-items-center bg-[#d83b01] text-white"><AlertTriangle className="size-4" aria-hidden="true" /></span>Alertas e avisos</h2>
         <Link
           href="/solicitacoes"
           className="text-xs font-semibold text-secp-blue-700 hover:underline"
@@ -38,7 +38,7 @@ export function AlertasEAvisosCard({ alertas }: AlertasEAvisosCardProps) {
           Ver todos
         </Link>
       </div>
-      <div className="mt-2 grid gap-1.5 md:grid-cols-3">
+      <div className="grid gap-1.5 p-3 md:grid-cols-3">
         {alertas.map((alerta) => {
           const Icon = styles[alerta.tipo].icon;
 

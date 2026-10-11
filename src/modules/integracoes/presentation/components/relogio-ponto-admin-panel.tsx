@@ -10,11 +10,17 @@ import {
 } from "react";
 import {
   Activity,
+  AlertTriangle,
+  CheckCircle2,
+  Clock3,
   DatabaseBackup,
   DownloadCloud,
   Fingerprint,
+  List,
+  PlayCircle,
   RadioTower,
   RotateCcw,
+  Search,
   Settings2,
   UsersRound,
   XCircle,
@@ -40,7 +46,10 @@ type EquipamentoOperacional = {
   modelo: string | null;
   ip: string | null;
   porta: number | null;
+  localizacao?: string | null;
   ativo: boolean;
+  orgao?: { sigla: string } | null;
+  unidade?: { sigla: string } | null;
   ultimoHeartbeatEm: Date | null;
   ultimaSincronizacaoEm: Date | null;
   configuracao: unknown;
@@ -232,6 +241,11 @@ export function RelogioPontoAdminPanel({
   statusListenerOnline: StatusListenerOnline;
 }) {
   const [aba, setAba] = useState<AbaOperacional>("resumo");
+  const [busca, setBusca] = useState("");
+  const [filtroEquipamento, setFiltroEquipamento] = useState("todos");
+  const [filtroFabricante, setFiltroFabricante] = useState("todos");
+  const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [filtroTipo, setFiltroTipo] = useState("todos");
   const relogios = useMemo(
     () =>
       equipamentos.filter(equipamentoOperacionalSuportado),
@@ -241,43 +255,164 @@ export function RelogioPontoAdminPanel({
     () => new Map(coletasAtivas.map((coleta) => [coleta.equipamentoId, coleta])),
     [coletasAtivas],
   );
+  const fabricantes = useMemo(
+    () =>
+      Array.from(
+        new Set(relogios.map((relogio) => relogio.fabricante).filter(Boolean)),
+      ).sort() as string[],
+    [relogios],
+  );
+  const relogiosFiltrados = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+
+    return relogios.filter((relogio) => {
+      const coletaAtiva = coletasPorEquipamento.get(relogio.id);
+      const status = statusOperacional(
+        relogio,
+        statusListenerOnline.ativo,
+        coletaAtiva,
+      );
+      const texto = [
+        relogio.nome,
+        relogio.codigo,
+        relogio.ip,
+        relogio.fabricante,
+        relogio.modelo,
+        relogio.orgao?.sigla,
+        relogio.unidade?.sigla,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return (
+        (!termo || texto.includes(termo)) &&
+        (filtroEquipamento === "todos" || relogio.id === filtroEquipamento) &&
+        (filtroFabricante === "todos" ||
+          relogio.fabricante === filtroFabricante) &&
+        (filtroStatus === "todos" || status.label === filtroStatus) &&
+        (filtroTipo === "todos" || aba === filtroTipo)
+      );
+    });
+  }, [
+    aba,
+    busca,
+    coletasPorEquipamento,
+    filtroEquipamento,
+    filtroFabricante,
+    filtroStatus,
+    filtroTipo,
+    relogios,
+    statusListenerOnline.ativo,
+  ]);
 
   return (
     <Tabs
       value={aba}
       onValueChange={(value) => setAba(value as AbaOperacional)}
+      className="space-y-3"
     >
-      <section className="rounded-xl border bg-[var(--card)] text-[var(--card-foreground)] shadow-sm">
-      <div className="border-b p-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <Settings2 className="size-5 text-blue-900 dark:text-blue-300" />
-              <h2 className="text-lg font-bold">Operacao dos relogios de ponto</h2>
-            </div>
-            <p className="mt-1 max-w-4xl text-sm text-[var(--muted-foreground)]">
-              Operacoes administrativas por protocolo, com interface comum para
-              o SECP e adaptador especifico por fabricante.
-            </p>
-          </div>
+      <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm xl:flex-row xl:items-center">
+        <TabsList className="flex h-auto flex-wrap justify-start gap-2 bg-transparent p-0">
+          {abas.map((item) => (
+            <TabsTrigger
+              key={item.id}
+              value={item.id}
+              className="rounded-md border border-blue-100 bg-white px-4 py-2 text-xs font-black text-blue-900 data-[state=active]:bg-blue-900 data-[state=active]:text-white"
+            >
+              {item.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </div>
 
-          <TabsList className="flex h-auto flex-wrap justify-start gap-2 bg-transparent p-0">
-            {abas.map((item) => (
-              <TabsTrigger
-                key={item.id}
-                value={item.id}
-                className="border bg-[var(--card)] data-[state=active]:bg-blue-900 data-[state=active]:text-white"
-              >
-                {item.label}
-              </TabsTrigger>
+      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="grid gap-3 lg:grid-cols-[minmax(240px,1.6fr)_repeat(5,minmax(130px,1fr))]">
+          <label className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={busca}
+              onChange={(event) => setBusca(event.target.value)}
+              placeholder="Buscar equipamento, seccional, IP ou NSR..."
+              className="h-11 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            />
+          </label>
+          <FiltroOperacoes
+            label="Equipamento"
+            value={filtroEquipamento}
+            onChange={setFiltroEquipamento}
+          >
+            <option value="todos">Todos</option>
+            {relogios.map((relogio) => (
+              <option key={relogio.id} value={relogio.id}>
+                {relogio.nome}
+              </option>
             ))}
-          </TabsList>
+          </FiltroOperacoes>
+          <FiltroOperacoes label="Seccional" value="SJAM" onChange={() => undefined}>
+            <option value="SJAM">SJAM</option>
+          </FiltroOperacoes>
+          <FiltroOperacoes
+            label="Fabricante"
+            value={filtroFabricante}
+            onChange={setFiltroFabricante}
+          >
+            <option value="todos">Todos</option>
+            {fabricantes.map((fabricante) => (
+              <option key={fabricante} value={fabricante}>
+                {fabricante}
+              </option>
+            ))}
+          </FiltroOperacoes>
+          <FiltroOperacoes
+            label="Status operacional"
+            value={filtroStatus}
+            onChange={setFiltroStatus}
+          >
+            <option value="todos">Todos</option>
+            <option value="Online">Online</option>
+            <option value="Atrasado">Atrasado</option>
+            <option value="Offline">Offline</option>
+            <option value="Coletando">Coletando</option>
+            <option value="Inativo">Inativo</option>
+          </FiltroOperacoes>
+          <FiltroOperacoes
+            label="Tipo de operacao"
+            value={filtroTipo}
+            onChange={setFiltroTipo}
+          >
+            <option value="todos">Todos</option>
+            {abas.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </FiltroOperacoes>
         </div>
       </div>
 
-      <div className="p-5">
+      <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_330px]">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Settings2 className="size-5 text-blue-700" />
+              <h2 className="text-lg font-black text-blue-950">
+                Equipamentos ({relogiosFiltrados.length})
+              </h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-500">Ordenar por:</span>
+              <select className="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-bold text-blue-900">
+                <option>Ultima comunicacao (mais recente)</option>
+              </select>
+              <button className="inline-flex size-9 items-center justify-center rounded-md bg-blue-900 text-white">
+                <List className="size-4" />
+              </button>
+            </div>
+          </div>
+
         {relogios.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-8 text-center text-sm text-[var(--muted-foreground)]">
+          <div className="m-4 rounded-lg border border-dashed p-8 text-center text-sm text-[var(--muted-foreground)]">
             Nenhum equipamento de ponto suportado cadastrado. Cadastre Henry,
             Dimep Smart Print, Control iD FACE ID ou Intelbras Bio-T para
             habilitar operacoes e monitoramento.
@@ -286,36 +421,44 @@ export function RelogioPontoAdminPanel({
           <>
             <TabsContent value="resumo" className="mt-0">
               <ResumoRelogios
-                relogios={relogios}
+                relogios={relogiosFiltrados}
                 coletasPorEquipamento={coletasPorEquipamento}
                 listenerOnlineAtivo={statusListenerOnline.ativo}
+                selecionarAba={setAba}
               />
             </TabsContent>
             <TabsContent value="coleta" className="mt-0">
               <ColetaRelogios
-                relogios={relogios}
+                relogios={relogiosFiltrados}
                 coletasPorEquipamento={coletasPorEquipamento}
                 listenerOnlineAtivo={statusListenerOnline.ativo}
               />
             </TabsContent>
             <TabsContent value="online" className="mt-0">
               <OnlineRelogios
-                relogios={relogios}
+                relogios={relogiosFiltrados}
                 coletasPorEquipamento={coletasPorEquipamento}
                 listenerOnlineAtivo={statusListenerOnline.ativo}
               />
             </TabsContent>
             <TabsContent value="biometria" className="mt-0">
               <BiometriaRelogios
-                relogios={relogios}
+                relogios={relogiosFiltrados}
                 coletasPorEquipamento={coletasPorEquipamento}
                 listenerOnlineAtivo={statusListenerOnline.ativo}
               />
             </TabsContent>
           </>
         )}
-      </div>
-    </section>
+        </div>
+
+        <PainelOperacoesLateral
+          relogios={relogios}
+          coletasAtivas={coletasAtivas}
+          statusListenerOnline={statusListenerOnline}
+          coletasPorEquipamento={coletasPorEquipamento}
+        />
+      </section>
     </Tabs>
   );
 }
@@ -324,10 +467,12 @@ function ResumoRelogios({
   relogios,
   coletasPorEquipamento,
   listenerOnlineAtivo,
+  selecionarAba,
 }: {
   relogios: EquipamentoOperacional[];
   coletasPorEquipamento: Map<string, ColetaAtivaItem>;
   listenerOnlineAtivo: boolean;
+  selecionarAba: (aba: AbaOperacional) => void;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -341,6 +486,7 @@ function ResumoRelogios({
             <th className="px-4 py-3">Proximo NSR</th>
             <th className="px-4 py-3">Brutas</th>
             <th className="px-4 py-3">Pendentes</th>
+            <th className="px-4 py-3">Operacao atual</th>
           </tr>
         </thead>
         <tbody>
@@ -400,12 +546,268 @@ function ResumoRelogios({
                 <td className="px-4 py-4">
                   {relogio.estatisticasMarcacoes?.marcacoesPendentes ?? 0}
                 </td>
+                <td className="px-4 py-4">
+                  <div className="min-w-[240px]">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs font-black text-blue-950">
+                        {coletaAtiva
+                          ? `${coletaAtiva.progresso.etapa} ${coletaAtiva.progresso.percentual}%`
+                          : status.label === "Online"
+                            ? "Coleta concluida"
+                            : "Aguardando coleta"}
+                      </span>
+                    </div>
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className={`h-full rounded-full ${
+                          coletaAtiva ? "bg-blue-600" : "bg-emerald-500"
+                        }`}
+                        style={{ width: `${coletaAtiva?.progresso.percentual ?? 100}%` }}
+                      />
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => selecionarAba("coleta")}
+                        className="inline-flex h-8 items-center gap-1 rounded-md border border-blue-100 px-2 text-xs font-black text-blue-800 hover:bg-blue-50"
+                      >
+                        <DownloadCloud className="size-3.5" />
+                        Coletar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => selecionarAba("coleta")}
+                        className="inline-flex h-8 items-center gap-1 rounded-md border border-blue-100 px-2 text-xs font-black text-blue-800 hover:bg-blue-50"
+                      >
+                        <RotateCcw className="size-3.5" />
+                        Reprocessar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => selecionarAba("biometria")}
+                        className="inline-flex h-8 items-center gap-1 rounded-md border border-blue-100 px-2 text-xs font-black text-blue-800 hover:bg-blue-50"
+                      >
+                        <Fingerprint className="size-3.5" />
+                        Biometria
+                      </button>
+                    </div>
+                  </div>
+                </td>
               </tr>
             );
           })}
         </tbody>
       </table>
     </div>
+  );
+}
+
+function PainelOperacoesLateral({
+  relogios,
+  coletasAtivas,
+  statusListenerOnline,
+  coletasPorEquipamento,
+}: {
+  relogios: EquipamentoOperacional[];
+  coletasAtivas: ColetaAtivaItem[];
+  statusListenerOnline: StatusListenerOnline;
+  coletasPorEquipamento: Map<string, ColetaAtivaItem>;
+}) {
+  const online = relogios.filter((relogio) => {
+    const status = statusOperacional(
+      relogio,
+      statusListenerOnline.ativo,
+      coletasPorEquipamento.get(relogio.id),
+    );
+    return status.label === "Online";
+  }).length;
+  const pendentes = relogios.filter(
+    (relogio) => (relogio.estatisticasMarcacoes?.marcacoesPendentes ?? 0) > 0,
+  ).length;
+  const comErro = Math.max(relogios.length - online - coletasAtivas.length, 0);
+  const eventos = relogios
+    .map((relogio) => ({
+      relogio,
+      data: getUltimaComunicacao(relogio),
+      status: statusOperacional(
+        relogio,
+        statusListenerOnline.ativo,
+        coletasPorEquipamento.get(relogio.id),
+      ),
+    }))
+    .sort((a, b) => (b.data?.getTime() ?? 0) - (a.data?.getTime() ?? 0))
+    .slice(0, 5);
+
+  return (
+    <aside className="space-y-3">
+      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="flex items-center gap-2 text-sm font-black text-blue-950">
+            <Settings2 className="size-4 text-blue-700" />
+            Central de operacoes
+          </h3>
+          <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700">
+            Servicos ativos
+          </span>
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          <MiniStatus icon={PlayCircle} valor={coletasAtivas.length} label="Em execucao" tom="blue" />
+          <MiniStatus icon={CheckCircle2} valor={online} label="Concluidas" tom="green" />
+          <MiniStatus icon={Clock3} valor={pendentes} label="Pendentes" tom="amber" />
+          <MiniStatus icon={XCircle} valor={comErro} label="Com erro" tom="red" />
+        </div>
+        <div className="mt-4">
+          <div className="mb-2 flex items-center justify-between">
+            <h4 className="text-xs font-black text-blue-950">
+              Fila de operacoes ({coletasAtivas.length})
+            </h4>
+            <button type="button" className="text-xs font-black text-blue-700">
+              Ver todas
+            </button>
+          </div>
+          <div className="space-y-2">
+            {coletasAtivas.slice(0, 5).map((coleta, index) => {
+              const relogio = relogios.find((item) => item.id === coleta.equipamentoId);
+
+              return (
+                <div
+                  key={coleta.id}
+                  className="grid grid-cols-[24px_1fr_auto] items-center gap-2 rounded-md border border-slate-100 p-2"
+                >
+                  <span className="flex size-6 items-center justify-center rounded-full bg-blue-50 text-xs font-black text-blue-700">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <p className="text-xs font-black text-blue-950">
+                      {coleta.progresso.etapa || "Coleta de registros"}
+                    </p>
+                    <p className="text-[11px] font-semibold text-slate-500">
+                      {relogio?.nome ?? "Equipamento"} - {coleta.progresso.percentual}%
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-blue-50 px-2 py-1 text-[11px] font-black text-blue-700">
+                    {coleta.status}
+                  </span>
+                </div>
+              );
+            })}
+            {coletasAtivas.length === 0 && (
+              <p className="rounded-md bg-slate-50 p-3 text-xs font-semibold text-slate-500">
+                Nenhuma operacao em execucao neste momento.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-black text-blue-950">Eventos recentes</h3>
+          <button type="button" className="text-xs font-black text-blue-700">
+            Ver todos
+          </button>
+        </div>
+        <div className="space-y-3">
+          {eventos.map(({ relogio, data, status }) => (
+            <div key={relogio.id} className="flex items-start gap-2">
+              <span
+                className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full ${
+                  status.label === "Online"
+                    ? "bg-emerald-50 text-emerald-700"
+                    : status.label === "Atrasado"
+                      ? "bg-amber-50 text-amber-700"
+                      : "bg-red-50 text-red-700"
+                }`}
+              >
+                {status.label === "Online" ? (
+                  <CheckCircle2 className="size-4" />
+                ) : status.label === "Atrasado" ? (
+                  <AlertTriangle className="size-4" />
+                ) : (
+                  <XCircle className="size-4" />
+                )}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-black text-blue-950">
+                  {status.label === "Online"
+                    ? "Heartbeat recebido"
+                    : status.label === "Atrasado"
+                      ? "Comunicacao atrasada"
+                      : "Falha na comunicacao"}
+                </p>
+                <p className="truncate text-[11px] font-semibold text-slate-500">
+                  {relogio.nome} - {status.detalhe}
+                </p>
+              </div>
+              <span className="text-[11px] font-bold text-slate-500">
+                {data
+                  ? new Intl.DateTimeFormat("pt-BR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }).format(data)
+                  : "-"}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function MiniStatus({
+  icon: Icon,
+  valor,
+  label,
+  tom,
+}: {
+  icon: LucideIcon;
+  valor: number;
+  label: string;
+  tom: "blue" | "green" | "amber" | "red";
+}) {
+  const cores = {
+    blue: "bg-blue-50 text-blue-700",
+    green: "bg-emerald-50 text-emerald-700",
+    amber: "bg-amber-50 text-amber-700",
+    red: "bg-red-50 text-red-700",
+  } satisfies Record<typeof tom, string>;
+
+  return (
+    <div className="rounded-md bg-slate-50 p-2">
+      <div className="flex items-center gap-1">
+        <span className={`flex size-7 items-center justify-center rounded-md ${cores[tom]}`}>
+          <Icon className="size-4" />
+        </span>
+        <span className="text-lg font-black text-blue-950">{valor}</span>
+      </div>
+      <p className="mt-1 text-[10px] font-bold text-slate-500">{label}</p>
+    </div>
+  );
+}
+
+function FiltroOperacoes({
+  label,
+  value,
+  onChange,
+  children,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="space-y-1">
+      <span className="text-[11px] font-black text-blue-950">{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-blue-950 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+      >
+        {children}
+      </select>
+    </label>
   );
 }
 

@@ -2,9 +2,9 @@
 
 import { useMemo, useTransition } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Star } from "lucide-react";
+import { Bookmark } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
 import { MENU_CATALOGO } from "@/modules/menus/domain/menu-catalogo";
 import { useFavoritosPerfil } from "./favoritos-provider";
 
@@ -78,26 +78,22 @@ export function FavoritoPaginaButton() {
   }
 
   return (
-    <Button
+    <Toggle
       type="button"
       variant="outline"
       size="sm"
-      onClick={alternarFavorito}
+      pressed={ativo}
+      onPressedChange={alternarFavorito}
       disabled={pending}
-      aria-pressed={ativo}
       aria-label={ativo ? "Remover dos favoritos" : "Adicionar aos favoritos"}
       title={ativo ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-      className={[
-        "size-9 shrink-0 px-0",
-        ativo
-          ? "border-[#b78b20]/50 bg-[#b78b20]/10 text-[#8a6616] hover:bg-[#b78b20]/15"
-          : "text-[var(--muted-foreground)] hover:text-[#8a6616]",
-      ].join(" ")}
+      className="shrink-0"
     >
-      <Star
+      <Bookmark
         className={["size-4", ativo ? "fill-current" : ""].join(" ")}
         aria-hidden="true"
       />
-    </Button>
+      <span>{ativo ? "Desfavoritar" : "Favoritar"}</span>
+    </Toggle>
   );
 }

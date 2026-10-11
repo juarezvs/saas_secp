@@ -13,6 +13,8 @@ import {
   listarLocalidadesCalendarioParaSelecao,
   listarOrgaosAtivos,
 } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
+import { prisma } from "@/shared/infrastructure/database/prisma";
+import { listarEstadosComCidadesAtivas } from "@/modules/localidades/infrastructure/repositories/localidade.repository";
 
 type EditarCalendarioInstitucionalPageProps = {
   params: Promise<{
@@ -36,10 +38,16 @@ export default async function EditarCalendarioInstitucionalPage({
     : escopoOrgao.orgaoIds.length
       ? escopoOrgao.orgaoIds
       : ["00000000-0000-4000-8000-000000000000"];
-  const [evento, orgaos, unidades] = await Promise.all([
+  const [evento, orgaos, unidades, tipos, estados] = await Promise.all([
     buscarEventoCalendarioInstitucionalPorId(id),
     listarOrgaosAtivos({ orgaoIdsPermitidos }),
     listarLocalidadesCalendarioParaSelecao({ orgaoIdsPermitidos }),
+    prisma.tipoFeriadoSuspensao.findMany({
+      where: { ativo: true },
+      select: { codigo: true, nome: true },
+      orderBy: { nome: "asc" },
+    }),
+    listarEstadosComCidadesAtivas(),
   ]);
 
   if (!evento) {
@@ -73,8 +81,11 @@ export default async function EditarCalendarioInstitucionalPage({
         modo="editar"
         orgaos={orgaos}
         unidades={unidades}
+        tipos={tipos}
+        estados={estados}
         valoresIniciais={{
           dataReferencia: dataParaInput(evento.dataReferencia),
+          dataFim: evento.dataFim ? dataParaInput(evento.dataFim) : "",
           descricao: evento.descricao,
           tipo: evento.tipo,
           abrangencia: evento.abrangencia,
@@ -85,10 +96,18 @@ export default async function EditarCalendarioInstitucionalPage({
           unidadeId: evento.unidadeId,
           contaComoDiaUtil: evento.contaComoDiaUtil,
           geraApuracaoRegular: evento.geraApuracaoRegular,
+          contabilizaJornadaComoTrabalhada:
+            evento.contabilizaJornadaComoTrabalhada,
+          exigeRegistroPonto: evento.exigeRegistroPonto,
+          geraDebito: evento.geraDebito,
+          geraCredito: evento.geraCredito,
           janelaInicio: evento.janelaInicio,
           janelaFim: evento.janelaFim,
           dataOriginal: evento.dataOriginal
             ? dataParaInput(evento.dataOriginal)
+            : "",
+          dataOriginalFim: evento.dataOriginalFim
+            ? dataParaInput(evento.dataOriginalFim)
             : "",
           dataSubstituida: evento.dataSubstituida,
           observacao: evento.observacao,
@@ -99,8 +118,8 @@ export default async function EditarCalendarioInstitucionalPage({
       <section className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-950 shadow-sm dark:border-red-900 dark:bg-red-950 dark:text-red-100">
         <h2 className="text-lg font-bold">Excluir evento institucional</h2>
         <p className="mt-2 max-w-3xl text-sm leading-6">
-          A exclusao remove o feriado, ponto facultativo ou suspensao do
-          calendario e dispara o recalculo do espelho de ponto e banco de horas
+          A exclusão remove o feriado, ponto facultativo ou suspensão do
+          calendário e dispara o recálculo do espelho de ponto e banco de horas
           dos servidores afetados pelo escopo deste evento.
         </p>
         <form action={excluirAction} className="mt-4">

@@ -39,10 +39,6 @@ export default async function AfdDetalhePage({ params }: AfdDetalhePageProps) {
 
       <section className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-            Detalhe da importação AFD
-          </p>
-
           <h1 className="mt-2 text-3xl font-bold tracking-tight">
             Importação {importacao.id.slice(0, 8)}
           </h1>

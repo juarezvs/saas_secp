@@ -10,6 +10,8 @@ import {
   listarLocalidadesCalendarioParaSelecao,
   listarOrgaosAtivos,
 } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
+import { prisma } from "@/shared/infrastructure/database/prisma";
+import { listarEstadosComCidadesAtivas } from "@/modules/localidades/infrastructure/repositories/localidade.repository";
 
 export default async function NovoCalendarioInstitucionalPage() {
   await exigirPermissaoOuRedirecionar("configuracoes:gerenciar:global");
@@ -19,9 +21,15 @@ export default async function NovoCalendarioInstitucionalPage() {
     : escopoOrgao.orgaoIds.length
       ? escopoOrgao.orgaoIds
       : ["00000000-0000-4000-8000-000000000000"];
-  const [orgaos, unidades] = await Promise.all([
+  const [orgaos, unidades, tipos, estados] = await Promise.all([
     listarOrgaosAtivos({ orgaoIdsPermitidos }),
     listarLocalidadesCalendarioParaSelecao({ orgaoIdsPermitidos }),
+    prisma.tipoFeriadoSuspensao.findMany({
+      where: { ativo: true },
+      select: { codigo: true, nome: true },
+      orderBy: { nome: "asc" },
+    }),
+    listarEstadosComCidadesAtivas(),
   ]);
 
   return (
@@ -50,6 +58,8 @@ export default async function NovoCalendarioInstitucionalPage() {
         action={criarCalendarioInstitucionalAction}
         orgaos={orgaos}
         unidades={unidades}
+        tipos={tipos}
+        estados={estados}
         modo="criar"
       />
     </div>

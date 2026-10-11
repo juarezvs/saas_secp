@@ -2,9 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { ArrowRight, Star, X } from "lucide-react";
+import { ArrowRight, Bookmark } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
 import { Card, Modal } from "@/components/ui";
 import { cn } from "@/components/ui/utils";
 import type { FavoritoUsuarioPerfilDto } from "@/modules/favoritos/application/favoritos-usuario-perfil.service";
@@ -60,10 +61,12 @@ export function DashboardFavoritoCard({
 
   function confirmarRemocao() {
     startTransition(() => {
-      void desfavoritar(favorito.itemCatalogo).then(() => {
-        setConfirmacaoAberta(false);
-        router.refresh();
-      }).catch(() => undefined);
+      void desfavoritar(favorito.itemCatalogo)
+        .then(() => {
+          setConfirmacaoAberta(false);
+          router.refresh();
+        })
+        .catch(() => undefined);
     });
   }
 
@@ -104,20 +107,24 @@ export function DashboardFavoritoCard({
                   tema.icone,
                 )}
               >
-                <Star className="size-5 fill-current" aria-hidden="true" />
+                <Bookmark className="size-5 fill-current" aria-hidden="true" />
               </span>
-              <button
+              <Toggle
                 type="button"
+                variant="outline"
+                size="sm"
+                pressed
+                onPressedChange={() => setConfirmacaoAberta(true)}
                 onClick={(event) => {
                   event.stopPropagation();
-                  setConfirmacaoAberta(true);
                 }}
                 aria-label={`Remover ${favorito.titulo} dos favoritos`}
                 title="Remover dos favoritos"
-                className="inline-flex size-8 items-center justify-center rounded-md border border-border bg-card/90 text-[var(--muted-foreground)] shadow-sm transition hover:bg-red-50 hover:text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                className="bg-card/90"
               >
-                <X className="size-4" aria-hidden="true" />
-              </button>
+                <Bookmark className="fill-current" aria-hidden="true" />
+                <span>Desfavoritar</span>
+              </Toggle>
             </div>
           </div>
 

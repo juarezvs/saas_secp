@@ -259,6 +259,9 @@ function extrairDadosJornada(formData: FormData): Partial<JornadaInput> {
     permiteFlexibilidade:
       formData.get("permiteFlexibilidade") === "on" ||
       formData.get("permiteFlexibilidade") === "true",
+    permiteCompensacaoNoDia:
+      formData.get("permiteCompensacaoNoDia") === "on" ||
+      formData.get("permiteCompensacaoNoDia") === "true",
     permiteBancoHoras:
       formData.get("permiteBancoHoras") === "on" ||
       formData.get("permiteBancoHoras") === "true",
@@ -375,6 +378,7 @@ export async function atualizarJornadaAction(
           parsed.data.cargaMaximaDiariaMinutos ?? null,
         controlaHorario: parsed.data.controlaHorario,
         permiteFlexibilidade: parsed.data.permiteFlexibilidade,
+        permiteCompensacaoNoDia: parsed.data.permiteCompensacaoNoDia,
         permiteBancoHoras: parsed.data.permiteBancoHoras,
         permiteHoraExtra: parsed.data.permiteHoraExtra,
         exigeIntervalo: parsed.data.exigeIntervalo,

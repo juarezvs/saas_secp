@@ -142,6 +142,8 @@ export async function enfileirarRecalculoEspelhoPonto(params: {
 
 export async function enfileirarRecalculoEspelhoNoLogin(params: {
   usuarioId: string;
+  forcar?: boolean;
+  motivo?: string;
 }) {
   const servidor = await prisma.servidor.findUnique({
     where: { usuarioId: params.usuarioId },
@@ -162,8 +164,9 @@ export async function enfileirarRecalculoEspelhoNoLogin(params: {
     servidorId: servidor.id,
     anoReferencia,
     mesReferencia,
-    motivo: "LOGIN_SERVIDOR",
+    motivo: params.motivo ?? "LOGIN_SERVIDOR",
     solicitadoPorId: params.usuarioId,
+    forcar: params.forcar,
     fusoHorario: "America/Manaus",
   });
 }

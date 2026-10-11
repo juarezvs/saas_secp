@@ -12,7 +12,10 @@ type BreadcrumbProps = {
 
 export function Breadcrumb({ items }: BreadcrumbProps) {
   return (
-    <div className="-mb-2 flex min-h-7 items-center gap-3">
+    <div
+      className="-mb-2 flex min-h-7 items-center gap-3"
+      data-secp-breadcrumb
+    >
       <nav aria-label="Trilha de navegação" className="min-w-0 text-xs">
         <ol className="flex flex-wrap items-center gap-0.5 text-muted-foreground">
           <li>

@@ -11,7 +11,9 @@ Projetar autenticação, sessão, múltiplos perfis e permissões dinâmicas do 
 ## Saídas
 - Permissões RBAC.
 - Guards server-side.
-- Regras de perfil ativo.
+- Regras de perfil ativo.Falha na última atualização
+
+
 - Ajustes em session/token.
 - Seeds de permissões.
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -13,13 +12,13 @@ import {
   LogOut,
   Menu,
   ShieldCheck,
-  UserRound,
   WandSparkles,
 } from "lucide-react";
 import { AccessibilityToolbar } from "@/components/accessibility/accessibility-toolbar";
 import { SecpLogo } from "@/components/brand/secp-logo";
 import type { PerfilNavegacao } from "@/components/layout/sidebar";
 import type { PreferenciasAcessibilidade } from "@/modules/auth/application/services/preferencias-acessibilidade.service";
+import { PerfilPessoalDrawer } from "@/modules/perfil-pessoal/presentation/perfil-pessoal-drawer";
 
 type HeaderProps = {
   nomeUsuario: string;
@@ -447,33 +446,12 @@ export function Header({
             )}
           </Link>
 
-          <div className="hidden min-w-0 items-center gap-3 rounded-md border border-white/15 bg-white/10 px-3 py-2 shadow-sm backdrop-blur md:flex">
-            {fotoUrl ? (
-              <Image
-                src={fotoUrl}
-                alt=""
-                width={40}
-                height={40}
-                unoptimized
-                className="size-10 rounded-full border-2 border-white bg-white object-cover shadow-sm ring-2 ring-white/25"
-              />
-            ) : (
-              <span className="flex size-10 items-center justify-center rounded-full border-2 border-white bg-white text-secp-blue-900 shadow-sm ring-2 ring-white/25">
-                <UserRound className="size-4" aria-hidden="true" />
-              </span>
-            )}
-            <div className="min-w-0 max-w-80">
-              <div className="flex min-w-0 items-center gap-2">
-                <p className="truncate text-sm font-semibold">{nomeUsuario}</p>
-                <span className="shrink-0 rounded bg-white/15 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-white/85">
-                  {matricula}
-                </span>
-              </div>
-              <p className="mt-0.5 truncate text-xs text-white/75">
-                {funcaoOuCargo || perfilAtivo.nome}
-              </p>
-            </div>
-          </div>
+          <PerfilPessoalDrawer
+            nome={nomeUsuario}
+            matricula={matricula}
+            funcaoOuCargo={funcaoOuCargo || perfilAtivo.nome}
+            fotoUrl={fotoUrl}
+          />
 
           <form action={onLogout}>
             <button

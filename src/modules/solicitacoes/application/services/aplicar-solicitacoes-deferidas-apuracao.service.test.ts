@@ -104,6 +104,43 @@ describe("aplicarSolicitacoesDeferidasApuracao", () => {
     expect(resultado.calculo.ocorrencias).toEqual([]);
   });
 
+  it("abona somente o intervalo da declaracao de comparecimento", () => {
+    const resultado = aplicarSolicitacoesDeferidasApuracao({
+      calculo: {
+        ...calculoBase,
+        minutosTrabalhados: 300,
+        minutosDebito: 120,
+        resultado: "DEBITO",
+      },
+      dataReferencia: new Date("2026-06-15T00:00:00.000Z"),
+      jornada,
+      solicitacoes: [
+        {
+          id: "sol-abono-parcial",
+          tipo: "ABONO_JUSTIFICATIVA",
+          titulo: "Declaracao de comparecimento",
+          descricao: "Atendimento medico das 10h as 12h",
+          dataReferencia: null,
+          dataInicio: new Date("2026-06-15T10:00:00-04:00"),
+          dataFim: new Date("2026-06-15T12:00:00-04:00"),
+        },
+      ],
+      fusoHorario: "America/Manaus",
+    });
+
+    expect(resultado.calculo.resultado).toBe("REGULAR");
+    expect(resultado.calculo.minutosTrabalhados).toBe(420);
+    expect(resultado.calculo.minutosCredito).toBe(0);
+    expect(resultado.calculo.minutosDebito).toBe(0);
+    expect(resultado.solicitacoesAplicadas).toEqual([
+      expect.objectContaining({
+        id: "sol-abono-parcial",
+        minutosCobertos: 120,
+        coberturaIntegral: true,
+      }),
+    ]);
+  });
+
   it("usa capacitacao externa acima de quatro horas para fechar a jornada do dia", () => {
     const resultado = aplicarSolicitacoesDeferidasApuracao({
       calculo: calculoBase,

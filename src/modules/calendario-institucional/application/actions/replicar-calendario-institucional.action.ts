@@ -143,6 +143,11 @@ export async function replicarCalendarioInstitucionalAction(
         tipo: evento.tipo,
         contaComoDiaUtil: evento.contaComoDiaUtil,
         geraApuracaoRegular: evento.geraApuracaoRegular,
+        contabilizaJornadaComoTrabalhada:
+          evento.contabilizaJornadaComoTrabalhada,
+        exigeRegistroPonto: evento.exigeRegistroPonto,
+        geraDebito: evento.geraDebito,
+        geraCredito: evento.geraCredito,
         janelaInicio: evento.janelaInicio,
         janelaFim: evento.janelaFim,
         dataOriginal: replicarDataOpcional(

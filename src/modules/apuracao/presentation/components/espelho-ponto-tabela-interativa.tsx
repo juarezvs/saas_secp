@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 const opcoesPorPagina = [10, 20, 30, 50];
 
@@ -29,7 +30,6 @@ export function EspelhoPontoTabelaInterativa({
   totalRegistros,
   semanas,
   semanaInicial = 0,
-  painelDias,
   painelSemana,
   painelTotais,
   painelOcorrencias,
@@ -51,7 +51,6 @@ export function EspelhoPontoTabelaInterativa({
     totalRegistros: number;
   }>;
   semanaInicial?: number;
-  painelDias?: ReactNode;
   painelSemana?: ReactNode;
   painelTotais?: ReactNode;
   painelOcorrencias?: ReactNode;
@@ -84,6 +83,7 @@ export function EspelhoPontoTabelaInterativa({
   const [pagina, setPagina] = useState(1);
   const [totalFiltrado, setTotalFiltrado] = useState(totalRegistros);
   const [semanaAtiva, setSemanaAtiva] = useState(semanaInicial);
+  const [painelLateral, setPainelLateral] = useState<HTMLElement | null>(null);
   const buscaNormalizada = useMemo(() => normalizarBusca(busca), [busca]);
   const exibindoSemana = abaAtiva === "semana";
   const semanaAtual = semanas?.[semanaAtiva];
@@ -96,23 +96,36 @@ export function EspelhoPontoTabelaInterativa({
     totalFiltrado === 0 ? 0 : (paginaSegura - 1) * itensPorPagina + 1;
   const fim = Math.min(paginaSegura * itensPorPagina, totalFiltrado);
 
-  useEffect(() => {
-    const painelDias = document.getElementById("espelho-painel-dias");
+  const conteudoPainelLateral = exibindoSemana
+    ? (semanaAtual?.painel ?? painelSemana)
+    : exibindoTotais
+      ? painelTotais
+      : exibindoOcorrencias
+        ? painelOcorrencias
+        : null;
 
-    if (!painelDias) {
-      return;
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setPainelLateral(document.getElementById("espelho-painel-lateral-abas"));
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    const painelDiasElement = document.getElementById("espelho-painel-dias");
+    const painelAbasElement = document.getElementById(
+      "espelho-painel-lateral-abas",
+    );
+
+    if (painelDiasElement) {
+      painelDiasElement.hidden = abaAtiva !== "dias";
     }
 
-    painelDias.hidden =
-      exibindoSemana ||
-      exibindoTotais ||
-      exibindoOcorrencias ||
-      exibindoHistorico;
-
-    return () => {
-      painelDias.hidden = false;
-    };
-  }, [exibindoHistorico, exibindoOcorrencias, exibindoSemana, exibindoTotais]);
+    if (painelAbasElement) {
+      painelAbasElement.hidden = !conteudoPainelLateral;
+    }
+  }, [abaAtiva, conteudoPainelLateral]);
 
   useEffect(() => {
     const linhas = Array.from(
@@ -231,15 +244,9 @@ export function EspelhoPontoTabelaInterativa({
 
   return (
     <>
-      {exibindoSemana
-        ? (semanaAtual?.painel ?? painelSemana)
-        : exibindoTotais
-          ? painelTotais
-          : exibindoOcorrencias
-            ? painelOcorrencias
-            : exibindoHistorico
-              ? null
-              : painelDias}
+      {painelLateral && conteudoPainelLateral
+        ? createPortal(conteudoPainelLateral, painelLateral)
+        : null}
 
       <div className="flex flex-col gap-2 border-b border-slate-100 px-3 py-2 lg:flex-row lg:items-center lg:justify-between dark:border-slate-800">
         <div className="flex gap-1 overflow-x-auto">

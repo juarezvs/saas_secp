@@ -4,6 +4,8 @@ import { useActionState } from "react";
 import { Loader2, Save } from "lucide-react";
 
 import { SearchableSelect } from "@/components/ui";
+import type { EstadoComCidadesSelecao } from "@/modules/localidades/infrastructure/repositories/localidade.repository";
+import { LocalidadeFields } from "@/modules/localidades/presentation/components/localidade-fields";
 
 import type { OrgaoFormState } from "../../application/schemas/orgao.schema";
 
@@ -27,6 +29,7 @@ type OrgaoFormProps = {
     valor: string;
     rotulo: string;
   }[];
+  estados?: EstadoComCidadesSelecao[];
 };
 
 const estadoInicial: OrgaoFormState = {
@@ -43,6 +46,7 @@ export function OrgaoForm({
   modo,
   valoresIniciais,
   fusosHorarios = [],
+  estados = [],
 }: OrgaoFormProps) {
   const [estado, formAction, pendente] = useActionState(action, estadoInicial);
   const campos = estado.campos ?? valoresIniciais;
@@ -138,13 +142,26 @@ export function OrgaoForm({
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="contents">
+            <LocalidadeFields
+              estados={estados}
+              ufInicial={campos?.uf}
+              municipioInicial={campos?.municipio}
+              municipioIbgeInicial={campos?.municipioIbge}
+              erroUf={erro(estado, "uf")}
+              erroMunicipio={erro(estado, "municipio")}
+              erroMunicipioIbge={erro(estado, "municipioIbge")}
+            />
+          </div>
+
+          <div className="hidden">
             <label htmlFor="uf" className="text-sm font-semibold">
               Estado (UF)
             </label>
             <input
               id="uf"
               name="uf"
+              disabled
               maxLength={2}
               defaultValue={campos?.uf ?? ""}
               placeholder="AM"
@@ -155,13 +172,14 @@ export function OrgaoForm({
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="hidden">
             <label htmlFor="municipio" className="text-sm font-semibold">
               Cidade
             </label>
             <input
               id="municipio"
               name="municipio"
+              disabled
               defaultValue={campos?.municipio ?? ""}
               placeholder="Manaus"
               className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/20"
@@ -173,13 +191,14 @@ export function OrgaoForm({
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="hidden">
             <label htmlFor="municipioIbge" className="text-sm font-semibold">
               Código IBGE
             </label>
             <input
               id="municipioIbge"
               name="municipioIbge"
+              disabled
               inputMode="numeric"
               maxLength={7}
               defaultValue={campos?.municipioIbge ?? ""}

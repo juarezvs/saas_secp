@@ -258,7 +258,7 @@ export function SarhSyncProgressForm({ orgaoId }: { orgaoId?: string | null }) {
     }
 
     if (!response.ok) {
-      throw new Error("NÃ£o foi possÃ­vel consultar a sincronizaÃ§Ã£o SARH.");
+      throw new Error("Não foi possível consultar a sincronização SARH.");
     }
 
     const status = (await response.json()) as SarhSyncStatusResponse;

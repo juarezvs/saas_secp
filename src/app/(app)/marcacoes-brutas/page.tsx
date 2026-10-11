@@ -281,20 +281,14 @@ export default async function MarcacoesBrutasPage({
     <div className="space-y-6">
       <Breadcrumb items={[{ label: "Marcações Brutas" }]} />
 
-      <section>
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-900 dark:text-blue-300">
-          Marcações brutas
-        </p>
-
-        <PageHeader
+      <PageHeader
           icon={DatabaseZap}
           titulo="Fonte oficial das marcações"
           descricao="Consulte os registros brutos imutaveis recebidos por equipamento biométrico, importação AFD, registro web autorizado ou reconhecimento facial autorizado."
           artigo="Fonte oficial"
           regraTitulo="Registro bruto imutavel"
           regraDescricao="As marcações brutas preservam o dado original recebido pelo SECP. A marcação classificada usada na apuração é derivada deste registro."
-        />
-      </section>
+      />
 
       <MarcacoesBrutasPageTabs
         marcacoes={
