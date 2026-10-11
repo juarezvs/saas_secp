@@ -869,6 +869,12 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
     children: [
       {
+        label: "Configurações globais",
+        href: "/administracao/configuracoes-globais",
+        icon: Settings,
+        permissoes: ["configuracoes:gerenciar:global"],
+      },
+      {
         label: "Liberação de Rotinas",
         href: "/administracao/liberacao-rotinas",
         icon: ToggleLeft,

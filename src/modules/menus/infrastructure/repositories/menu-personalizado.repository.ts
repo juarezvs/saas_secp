@@ -1,5 +1,6 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { MENU_CATALOGO } from "../../domain/menu-catalogo";
+import { menuPadraoPerfilAdministrativo } from "../../domain/menu-perfis-administrativos";
 import type {
   IconesItensCatalogoMenu,
   MenuPersonalizadoPerfil,
@@ -407,7 +408,53 @@ export async function inicializarMenuPersonalizadoPerfilSeVazio(
     return;
   }
 
+  const perfil = await prisma.perfil.findUnique({
+    where: { id: perfilId },
+    select: { codigo: true },
+  });
+  const menuAdministrativo = menuPadraoPerfilAdministrativo(perfil?.codigo);
+
   await prisma.$transaction(async (tx) => {
+    if (menuAdministrativo) {
+      const gruposCriados = new Map<string, string>();
+
+      for (const grupo of menuAdministrativo.grupos) {
+        const criado = await tx.menuGrupoPerfil.create({
+          data: {
+            perfilId,
+            label: grupo.label,
+            icone: grupo.icone,
+            ordem: grupo.ordem,
+          },
+          select: { id: true },
+        });
+
+        gruposCriados.set(grupo.chave, criado.id);
+      }
+
+      await tx.menuItemPerfil.createMany({
+        data: [
+          ...menuAdministrativo.itensRaiz.map((item, index) => ({
+            perfilId,
+            grupoId: null,
+            itemCatalogo: item.itemCatalogo,
+            label: item.label ?? null,
+            ordem: (index + 1) * 10,
+          })),
+          ...menuAdministrativo.grupos.flatMap((grupo) =>
+            grupo.itens.map((item, index) => ({
+              perfilId,
+              grupoId: gruposCriados.get(grupo.chave) ?? null,
+              itemCatalogo: item.itemCatalogo,
+              label: item.label ?? null,
+              ordem: (index + 1) * 10,
+            })),
+          ),
+        ],
+      });
+      return;
+    }
+
     const gruposCriados = new Map<string, string>();
 
     for (const [chave, grupo] of Object.entries(GRUPOS_PADRAO_MENU)) {

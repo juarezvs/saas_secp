@@ -345,10 +345,7 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
     id: "/manutencao/marcacoes",
     label: "Marcações",
     href: "/manutencao/marcacoes",
-    permissoes: [
-      "marcacao:manutencao:seccional",
-      "marcacao:manutencao:global",
-    ],
+    permissoes: ["marcacao:manutencao:seccional", "marcacao:manutencao:global"],
   },
   {
     id: "/administracao",
@@ -369,6 +366,12 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
       "configuracoes:gerenciar:seccional",
       "configuracoes:gerenciar:global",
     ],
+  },
+  {
+    id: "/administracao/configuracoes-globais",
+    label: "Configurações globais",
+    href: "/administracao/configuracoes-globais",
+    permissoes: ["configuracoes:gerenciar:global"],
   },
   {
     id: "/administracao/suporte",
