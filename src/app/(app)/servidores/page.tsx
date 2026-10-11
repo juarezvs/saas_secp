@@ -40,6 +40,7 @@ import {
 import { ServidoresListagemControles } from "@/modules/servidores/presentation/components/servidores-listagem-controles";
 import { ServidoresDataTable } from "@/modules/servidores/presentation/components/servidores-data-table";
 import { ServidoresSelectionProvider } from "@/modules/servidores/presentation/components/servidores-selection-context";
+import { montarCaminhoHierarquicoUnidade } from "@/modules/unidades/application/services/rotulo-unidade.service";
 
 type ServidoresPageProps = {
   searchParams?: Promise<{
@@ -351,7 +352,12 @@ export default async function ServidoresPage({
         ? (fotosServidores.get(normalizarCpfFoto(fotoCpf) ?? "") ?? null)
         : null,
       orgao: servidor.orgao.sigla,
-      lotacaoAtual: lotacaoAtual?.unidade.sigla ?? "-",
+      lotacaoAtual: lotacaoAtual
+        ? montarCaminhoHierarquicoUnidade(
+            lotacaoAtual.unidade,
+            servidor.orgao.sigla,
+          )
+        : "-",
       lotacoes: servidor._count.lotacoes,
       gestores: servidor._count.gestores,
     };

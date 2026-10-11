@@ -49,3 +49,19 @@ export function montarTextoBuscaUnidade(unidade: UnidadeHierarquiaRotulo) {
   const caminho = montarCaminhoUnidadeSuperior(unidade);
   return [unidade.sigla, unidade.nome, caminho].filter(Boolean).join(" ");
 }
+
+export function montarCaminhoHierarquicoUnidade(
+  unidade: UnidadeHierarquiaRotulo,
+  orgaoSigla?: string | null,
+) {
+  const partes: string[] = [];
+  let atual: UnidadeHierarquiaRotulo | null | undefined = unidade;
+
+  while (atual) {
+    if (atual.sigla && !partes.includes(atual.sigla)) partes.unshift(atual.sigla);
+    atual = atual.unidadePai;
+  }
+
+  if (orgaoSigla && !partes.includes(orgaoSigla)) partes.unshift(orgaoSigla);
+  return partes.join("/");
+}

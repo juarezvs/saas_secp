@@ -95,7 +95,26 @@ const servidorListagemInclude = {
   cargo: true,
   lotacoes: {
     where: { status: "ATIVO" },
-    include: { cargo: true, unidade: true },
+    include: {
+      cargo: true,
+      unidade: {
+        include: {
+          unidadePai: {
+            include: {
+              unidadePai: {
+                include: {
+                  unidadePai: {
+                    include: {
+                      unidadePai: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     orderBy: { dataInicio: "desc" },
     take: 1,
   },
