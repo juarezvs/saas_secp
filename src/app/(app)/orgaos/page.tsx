@@ -115,18 +115,6 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
         regraDescricao="A estrutura de órgãos organiza a abrangência administrativa do SECP e sustenta cadastros funcionais, unidades organizacionais e sincronizações externas."
       />
 
-      {escopoOrgao.global && (
-        <div className="flex justify-end">
-          <Link
-            href="/orgaos/novo"
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-blue-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-950"
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            Novo órgão
-          </Link>
-        </div>
-      )}
-
       <DataTableShell
         title="Órgãos cadastrados"
         description="Use a pesquisa geral ou filtre por sigla, nome, código SARH e status."
@@ -136,11 +124,25 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
         itensPorPagina={resultado.itensPorPagina}
         montarHrefPagina={montarHrefPagina}
         toolbar={
-          <OrgaosListagemControles
-            exportCsvHref={`/api/orgaos/export?${exportParams.toString()}`}
-            exportPdfHref={`/api/orgaos/export/pdf?${exportParams.toString()}`}
-            fusosHorarios={fusosHorarios}
-          />
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+            <div>
+              {escopoOrgao.global && (
+                <Link
+                  href="/orgaos/novo"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-blue-900 px-4 text-sm font-semibold text-white transition hover:bg-blue-950"
+                >
+                  <Plus className="size-4" aria-hidden="true" />
+                  Novo órgão
+                </Link>
+              )}
+            </div>
+
+            <OrgaosListagemControles
+              exportCsvHref={`/api/orgaos/export?${exportParams.toString()}`}
+              exportPdfHref={`/api/orgaos/export/pdf?${exportParams.toString()}`}
+              fusosHorarios={fusosHorarios}
+            />
+          </div>
         }
       >
         <div className="overflow-x-auto">
