@@ -103,6 +103,7 @@ export type ServidorInput = z.infer<typeof servidorSchema>;
 export type ServidorFormState = {
   sucesso: boolean;
   mensagem: string | null;
+  destino?: string;
   erros?: Record<string, string[]>;
   campos?: Partial<ServidorInput>;
 };

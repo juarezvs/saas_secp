@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { vincularMarcacoesBrutasServidorService } from "@/modules/marcacoes-brutas/application/services/vincular-marcacoes-brutas-servidor.service";
@@ -289,5 +288,9 @@ export async function atualizarServidorAction(
   revalidatePath("/servidores");
   revalidatePath(`/servidores/${servidorId}`);
 
-  redirect(`/servidores/${servidorId}`);
+  return {
+    sucesso: true,
+    mensagem: "Servidor salvo com sucesso.",
+    destino: `/servidores/${servidorId}`,
+  };
 }

@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { garantirJornadaPadraoServidorService } from "@/modules/jornadas/application/services/garantir-jornada-padrao-servidor.service";
@@ -287,5 +286,9 @@ export async function criarServidorAction(
   revalidatePath("/voluntarios");
   revalidatePath(`/servidores/${servidor.id}`);
 
-  redirect(`/servidores/${servidor.id}`);
+  return {
+    sucesso: true,
+    mensagem: "Servidor criado com sucesso.",
+    destino: `/servidores/${servidor.id}`,
+  };
 }

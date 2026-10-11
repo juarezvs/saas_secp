@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Save } from "lucide-react";
 
 import { SearchableSelect } from "@/components/ui";
+import { toast } from "@/components/ui/toast";
 import {
   tiposVinculoServidor,
   type ServidorFormState,
@@ -74,6 +76,8 @@ export function ServidorForm({
   valoresIniciais,
   modo,
 }: ServidorFormProps) {
+  const router = useRouter();
+  const toastId = useRef<string | null>(null);
   const [estado, formAction, pendente] = useActionState(action, estadoInicial);
 
   const campos = {
@@ -81,15 +85,53 @@ export function ServidorForm({
     ...estado.campos,
   };
 
+  useEffect(() => {
+    if (pendente || !toastId.current) return;
+
+    if (estado.sucesso) {
+      toast.update(toastId.current, {
+        title: modo === "criar" ? "Servidor criado" : "Servidor salvo",
+        description: estado.mensagem ?? "Os dados foram salvos com sucesso.",
+        variant: "success",
+        duration: 5000,
+      });
+      toastId.current = null;
+      const timeout = window.setTimeout(
+        () => router.push(estado.destino ?? "/servidores"),
+        700,
+      );
+      return () => window.clearTimeout(timeout);
+    }
+
+    if (estado.mensagem) {
+      toast.update(toastId.current, {
+        title: "Não foi possível salvar",
+        description: estado.mensagem,
+        variant: "error",
+        duration: 5000,
+      });
+      toastId.current = null;
+    }
+  }, [estado, modo, pendente, router]);
+
+  function iniciarSalvamento() {
+    toastId.current = toast.show({
+      title: modo === "criar" ? "Criando servidor" : "Salvando servidor",
+      description: "Aguarde enquanto os dados são salvos.",
+      variant: "info",
+      duration: 100000,
+    });
+  }
+
   return (
-    <form action={formAction} className="space-y-6">
+    <form action={formAction} onSubmit={iniciarSalvamento} className="space-y-6">
       <input
         type="hidden"
         name="tipoUsuario"
         value={campos.tipoUsuario ?? "SERVIDOR"}
       />
 
-      {estado.mensagem && (
+      {estado.mensagem && !estado.sucesso && (
         <div
           role="alert"
           className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300"

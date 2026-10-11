@@ -1,4 +1,14 @@
+"use client";
+
+import type { ReactNode } from "react";
+import { useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Plus, RefreshCw, SlidersHorizontal } from "lucide-react";
+
 import { DataTableToolbar, type DataTableFiltro } from "@/components/listagens";
+import { DataTableExportButtons } from "@/components/listagens/data-table-export-buttons";
+import { Modal } from "@/components/ui";
 
 type OrgaoOption = {
   id: string;
@@ -19,6 +29,11 @@ type ServidoresListagemControlesProps = {
   tipoUsuarioFixo?: string;
   exportCsvHref?: string;
   exportPdfHref?: string;
+  permitirNovo?: boolean;
+  novoHref?: string;
+  novoLabel?: string;
+  acoesComplementares?: ReactNode;
+  acoesDireita?: ReactNode;
 };
 
 const rotulosPessoa: Record<string, { singular: string; plural: string }> = {
@@ -36,7 +51,16 @@ export function ServidoresListagemControles({
   tipoUsuarioFixo,
   exportCsvHref,
   exportPdfHref,
+  permitirNovo = false,
+  novoHref = "/servidores/novo",
+  novoLabel = "Novo servidor",
+  acoesComplementares,
+  acoesDireita,
 }: ServidoresListagemControlesProps) {
+  const [aberto, setAberto] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const rotuloPessoa =
     rotulosPessoa[tipoUsuarioFixo ?? "SERVIDOR"] ?? rotulosPessoa.SERVIDOR;
   const filtros: DataTableFiltro[] = [
@@ -122,12 +146,75 @@ export function ServidoresListagemControles({
           },
         ]),
   ];
+  const quantidadeFiltros = filtros.filter((filtro) =>
+    searchParams.get(filtro.nome)?.trim(),
+  ).length;
 
   return (
-    <DataTableToolbar
-      filtros={filtros}
-      csvHref={exportCsvHref}
-      pdfHref={exportPdfHref}
-    />
+    <>
+      <div className="flex min-h-10 flex-wrap items-center gap-1 border-y border-[var(--border)] px-2 py-1">
+        {permitirNovo && (
+          <Link
+            href={novoHref}
+            className="secp-theme-primary-action inline-flex h-8 items-center gap-1.5 rounded-sm border px-2 text-xs font-medium"
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            {novoLabel}
+          </Link>
+        )}
+        <button
+          type="button"
+          onClick={() => startTransition(() => router.refresh())}
+          disabled={pending}
+          className="inline-flex h-8 items-center gap-1.5 rounded-sm px-2 text-xs font-medium transition hover:bg-[var(--muted)] disabled:opacity-60"
+        >
+          <RefreshCw className={`size-4 ${pending ? "animate-spin" : ""}`} aria-hidden="true" />
+          Atualizar
+        </button>
+        {exportCsvHref && exportPdfHref && (
+          <>
+            <span className="mx-1 h-5 w-px bg-[var(--border)]" aria-hidden="true" />
+            <DataTableExportButtons
+              csvHref={exportCsvHref}
+              pdfHref={exportPdfHref}
+              variant="command"
+            />
+          </>
+        )}
+        <span className="mx-1 h-5 w-px bg-[var(--border)]" aria-hidden="true" />
+        <button
+          type="button"
+          onClick={() => setAberto(true)}
+          className="inline-flex h-8 items-center gap-1.5 rounded-sm px-2 text-xs font-medium transition hover:bg-[var(--muted)]"
+        >
+          <SlidersHorizontal className="size-4" aria-hidden="true" />
+          Filtros
+          {quantidadeFiltros > 0 && (
+            <span className="flex size-5 items-center justify-center rounded-full bg-[var(--primary)] text-xs text-[var(--primary-foreground)]">
+              {quantidadeFiltros}
+            </span>
+          )}
+        </button>
+        {acoesComplementares && (
+          <>
+            <span className="mx-1 h-5 w-px bg-[var(--border)]" aria-hidden="true" />
+            <div className="flex items-center">{acoesComplementares}</div>
+          </>
+        )}
+        {acoesDireita && (
+          <div className="ml-auto flex items-center justify-end pl-2">{acoesDireita}</div>
+        )}
+      </div>
+
+      <Modal
+        open={aberto}
+        onOpenChange={setAberto}
+        title="Filtros"
+        description={`Refine a lista de ${rotuloPessoa.plural.toLowerCase()} pelos critérios desejados.`}
+        className="max-h-[88vh] w-[min(94vw,960px)] overflow-y-auto"
+      >
+        <DataTableToolbar filtros={filtros} />
+      </Modal>
+    </>
   );
 }

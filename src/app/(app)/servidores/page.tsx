@@ -1,9 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, Users, Eye, UserX } from "lucide-react";
+import { Users, Eye, UserX } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
-import { DataTableShell } from "@/components/listagens";
+import { DataTablePageSize, DataTablePagination } from "@/components/listagens";
 import {
   exigirUmaDasPermissoesOuRedirecionar,
   usuarioPossuiAlgumaPermissaoNoPerfil,
@@ -320,44 +320,36 @@ export default async function ServidoresPage({
   }
 
   return (
-    <div className="space-y-6">
-      <Breadcrumb
-        items={[
-          { label: "Administração", href: "/administracao" },
-          { label: contextoPessoa.breadcrumb },
-        ]}
-      />
-
+    <div className="space-y-3">
       <PageHeader
         icon={Users}
         titulo={contextoPessoa.titulo}
-        descricao={contextoPessoa.descricao}
+        contexto={
+          <Breadcrumb
+            embedded
+            items={[
+              { label: "Administração", href: "/administracao" },
+              { label: contextoPessoa.breadcrumb },
+            ]}
+          />
+        }
+        variant="blade"
         artigo="Arts. 4, 8, 16 e 19"
         regraTitulo={contextoPessoa.regraTitulo}
         regraDescricao={contextoPessoa.regraDescricao}
-        actions={podeGerenciarServidor && (
-          <Link
-            href={`/servidores/novo?${new URLSearchParams({
-              tipoUsuario,
-            }).toString()}`}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            {contextoPessoa.novoLabel}
-          </Link>
-        )}
       />
 
-      <DataTableShell
-        title={contextoPessoa.tabelaTitulo}
-        description="Use a pesquisa geral ou filtre diretamente pelas colunas da tabela."
-        total={resultado.total}
-        pagina={resultado.pagina}
-        totalPaginas={resultado.totalPaginas}
-        itensPorPagina={resultado.itensPorPagina}
-        montarHrefPagina={montarHrefPagina}
-        toolbar={
-          <ServidoresListagemControles
+      <section className="overflow-hidden border border-[var(--border)] bg-[var(--card)] text-[var(--card-foreground)]">
+        <div className="border-b border-[var(--border)] px-3 pt-1">
+          <div className="inline-flex h-10 items-center border-b-2 border-[var(--secp-theme-accent)] px-2 text-sm font-semibold">
+            {contextoPessoa.titulo}
+            <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)]">
+              {resultado.total}
+            </span>
+          </div>
+        </div>
+
+        <ServidoresListagemControles
             orgaos={orgaos}
             servidores={servidoresOptions}
             lotacoes={lotacoesOptions}
@@ -377,9 +369,21 @@ export default async function ServidoresPage({
                 ? `/api/servidores/export/pdf?${exportParams.toString()}`
                 : undefined
             }
+            permitirNovo={podeGerenciarServidor}
+            novoHref={`/servidores/novo?${new URLSearchParams({ tipoUsuario }).toString()}`}
+            novoLabel={contextoPessoa.novoLabel}
+            acoesComplementares={
+              <DataTablePageSize value={resultado.itensPorPagina} command />
+            }
+            acoesDireita={
+              <DataTablePagination
+                pagina={resultado.pagina}
+                totalPaginas={resultado.totalPaginas}
+                montarHrefPagina={montarHrefPagina}
+                command
+              />
+            }
           />
-        }
-      >
         <form action={desativarServidoresLoteAction} className="overflow-x-auto">
           {podeDesativarLote ? (
             <div className="flex justify-end border-b p-3">
@@ -513,7 +517,7 @@ export default async function ServidoresPage({
             </tbody>
           </table>
         </form>
-      </DataTableShell>
+      </section>
     </div>
   );
 }
