@@ -1656,7 +1656,9 @@ function MenuPrincipal({
               className="secp-sidebar-item flex w-full items-center gap-3 rounded-md bg-white px-3 py-2.5 text-left text-sm font-semibold text-slate-700 transition hover:bg-secp-blue-900/10 hover:text-secp-blue-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring dark:bg-transparent dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white"
               data-tour="menu-favoritos"
             >
-              <span className="min-w-0 flex-1 truncate">Meus Favoritos</span>
+              <span className="min-w-0 flex-1 break-words leading-5">
+                Meus Favoritos
+              </span>
               <ChevronDown
                 className={[
                   "size-4 shrink-0 transition-transform",
@@ -1711,7 +1713,7 @@ function MenuPrincipal({
                             aria-hidden="true"
                           />
                         ) : null}
-                        <span className="min-w-0 flex-1 truncate">
+                        <span className="min-w-0 flex-1 break-words leading-5">
                           {favorito.titulo}
                         </span>
                       </a>
@@ -1760,7 +1762,7 @@ function MenuPrincipal({
                     className="flex min-w-0 flex-1 items-center gap-3 text-left"
                   >
                     <Icon className="size-5 shrink-0" aria-hidden="true" />
-                    <span className="min-w-0 flex-1 truncate">
+                    <span className="min-w-0 flex-1 break-words leading-5">
                       {item.label}
                     </span>
                   </button>
@@ -1800,7 +1802,7 @@ function MenuPrincipal({
                   >
                     <Icon className="size-5 shrink-0" aria-hidden="true" />
                     {!recolhida && (
-                      <span className="min-w-0 flex-1 truncate">
+                      <span className="min-w-0 flex-1 break-words leading-5">
                         {item.label}
                       </span>
                     )}
@@ -1840,7 +1842,7 @@ function MenuPrincipal({
                               className="size-4 shrink-0"
                               aria-hidden="true"
                             />
-                            <span className="min-w-0 flex-1 truncate">
+                            <span className="min-w-0 flex-1 break-words leading-5">
                               {child.label}
                             </span>
                           </a>
@@ -1880,7 +1882,7 @@ export function Sidebar({
       <Sheet open={!recolhida} onOpenChange={onDesktopOpenChange}>
         <SheetContent
           id="secp-sidebar-desktop"
-          className="secp-sidebar hidden w-72 p-0 lg:flex"
+          className="secp-sidebar hidden w-96 p-0 lg:flex"
           exibirFechar={false}
           overlayClassName="hidden lg:block"
           aria-describedby="secp-sidebar-desktop-description"
@@ -1915,7 +1917,7 @@ export function Sidebar({
       >
         <SheetContent
           id="secp-sidebar-mobile"
-          className="secp-sidebar w-[min(20rem,88vw)] p-0 lg:hidden"
+          className="secp-sidebar w-[min(24rem,94vw)] p-0 lg:hidden"
           exibirFechar={false}
           overlayClassName="lg:hidden"
           aria-describedby="secp-sidebar-mobile-description"
