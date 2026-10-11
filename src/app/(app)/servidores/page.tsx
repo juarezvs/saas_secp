@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Users, Eye, UserX } from "lucide-react";
+import { Eye, Users, UserX } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTablePageSize, DataTablePagination } from "@/components/listagens";
@@ -34,8 +34,11 @@ import {
   listarLotacoesAtivasParaFiltro,
   listarServidoresParaFiltro,
   listarServidoresPaginado,
+  CAMPOS_ORDENACAO_SERVIDORES,
+  type CampoOrdenacaoServidores,
 } from "@/modules/servidores/infrastructure/repositories/servidor.repository";
 import { ServidoresListagemControles } from "@/modules/servidores/presentation/components/servidores-listagem-controles";
+import { ServidoresDataTable } from "@/modules/servidores/presentation/components/servidores-data-table";
 
 type ServidoresPageProps = {
   searchParams?: Promise<{
@@ -52,6 +55,8 @@ type ServidoresPageProps = {
     status?: string;
     pagina?: string;
     itensPorPagina?: string;
+    ordenarPor?: string;
+    direcao?: string;
   }>;
 };
 
@@ -221,6 +226,12 @@ export default async function ServidoresPage({
     : undefined;
   const pagina = Number(params.pagina ?? 1);
   const itensPorPagina = Number(params.itensPorPagina ?? 10);
+  const ordenarPor = CAMPOS_ORDENACAO_SERVIDORES.includes(
+    params.ordenarPor as CampoOrdenacaoServidores,
+  )
+    ? (params.ordenarPor as CampoOrdenacaoServidores)
+    : "nome";
+  const direcao = params.direcao === "desc" ? "desc" : "asc";
   const statusFiltro = "ativo";
   const filtrosEscopados = aplicarEscopoOrgaoId(
     {
@@ -238,6 +249,8 @@ export default async function ServidoresPage({
       servidorIdsPermitidos: servidorIdsPermitidosChefia,
       pagina,
       itensPorPagina,
+      ordenarPor,
+      direcao,
     },
     escopoOrgao,
   );
@@ -312,12 +325,36 @@ export default async function ServidoresPage({
 
   const baseParams = new URLSearchParams(exportParams);
   baseParams.set("itensPorPagina", String(resultado.itensPorPagina));
+  baseParams.set("ordenarPor", ordenarPor);
+  baseParams.set("direcao", direcao);
 
   function montarHrefPagina(novaPagina: number) {
     const query = new URLSearchParams(baseParams);
     query.set("pagina", String(novaPagina));
     return `${contextoPessoa.hrefBase}?${query.toString()}`;
   }
+
+  const dadosTabela = resultado.servidores.map((servidor) => {
+    const lotacaoAtual = servidor.lotacoes[0];
+    const fotoCpf = servidor.cpf ?? servidor.usuario.cpf;
+    return {
+      id: servidor.id,
+      matricula: servidor.matricula,
+      cpf: servidor.cpf ?? servidor.usuario.cpf,
+      pis: servidor.pis,
+      categoria: servidor.categoriaPessoa?.nome ?? "-",
+      nome: nomeServidor(servidor),
+      cargo: descricaoCargoServidor(servidor),
+      funcao: descricaoFuncaoServidor(servidor),
+      fotoSrc: fotoCpf
+        ? (fotosServidores.get(normalizarCpfFoto(fotoCpf) ?? "") ?? null)
+        : null,
+      orgao: servidor.orgao.sigla,
+      lotacaoAtual: lotacaoAtual?.unidade.sigla ?? "-",
+      lotacoes: servidor._count.lotacoes,
+      gestores: servidor._count.gestores,
+    };
+  });
 
   return (
     <div className="space-y-3">
@@ -396,6 +433,14 @@ export default async function ServidoresPage({
               </button>
             </div>
           ) : null}
+          <ServidoresDataTable
+            dados={dadosTabela}
+            ordenarPor={ordenarPor}
+            direcao={direcao}
+            podeEditar={podeGerenciarServidor}
+            permitirSelecao={podeDesativarLote}
+          />
+          {false && (
           <table className="w-full min-w-[1040px] text-left text-sm">
             <caption className="sr-only">
               Listagem de pessoas ativas com matrícula, CPF, PIS/PASEP, nome,
@@ -516,6 +561,7 @@ export default async function ServidoresPage({
               )}
             </tbody>
           </table>
+          )}
         </form>
       </section>
     </div>

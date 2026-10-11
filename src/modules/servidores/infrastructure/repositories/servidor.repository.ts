@@ -1,6 +1,20 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
+export const CAMPOS_ORDENACAO_SERVIDORES = [
+  "matricula",
+  "documentos",
+  "categoria",
+  "nome",
+  "orgao",
+  "lotacao",
+  "lotacoes",
+  "gestores",
+] as const;
+
+export type CampoOrdenacaoServidores =
+  (typeof CAMPOS_ORDENACAO_SERVIDORES)[number];
+
 export type ListarServidoresParams = {
   pagina?: number;
   itensPorPagina?: number;
@@ -17,7 +31,40 @@ export type ListarServidoresParams = {
   vinculo?: string;
   lotacao?: string;
   status?: string;
+  ordenarPor?: string;
+  direcao?: string;
 };
+
+function montarOrdenacaoServidores(params: ListarServidoresParams) {
+  const campo = CAMPOS_ORDENACAO_SERVIDORES.includes(
+    params.ordenarPor as CampoOrdenacaoServidores,
+  )
+    ? (params.ordenarPor as CampoOrdenacaoServidores)
+    : "nome";
+  const direcao = params.direcao === "desc" ? ("desc" as const) : ("asc" as const);
+
+  switch (campo) {
+    case "matricula":
+      return [{ matricula: direcao }];
+    case "documentos":
+      return [{ cpf: direcao }, { pis: direcao }, { matricula: "asc" as const }];
+    case "categoria":
+      return [{ categoriaPessoa: { nome: direcao } }, { matricula: "asc" as const }];
+    case "orgao":
+      return [{ orgao: { sigla: direcao } }, { matricula: "asc" as const }];
+    case "lotacao":
+    case "lotacoes":
+      return [{ lotacoes: { _count: direcao } }, { matricula: "asc" as const }];
+    case "gestores":
+      return [{ gestores: { _count: direcao } }, { matricula: "asc" as const }];
+    default:
+      return [
+        { nomeFuncional: direcao },
+        { usuario: { nome: direcao } },
+        { matricula: "asc" as const },
+      ];
+  }
+}
 
 function ehUuid(valor?: string | null): valor is string {
   if (!valor) {
@@ -240,11 +287,7 @@ export async function listarServidoresPaginado(params: ListarServidoresParams) {
     prisma.servidor.findMany({
       where,
       include: servidorListagemInclude,
-      orderBy: [
-        { nomeFuncional: "asc" },
-        { usuario: { nome: "asc" } },
-        { matricula: "asc" },
-      ],
+      orderBy: montarOrdenacaoServidores(params),
       skip: (pagina - 1) * itensPorPagina,
       take: itensPorPagina,
     }),
