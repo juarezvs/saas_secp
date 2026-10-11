@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Plus, RefreshCw, SlidersHorizontal, UserX, X } from "lucide-react";
+import { Edit, Eye, Plus, RefreshCw, SlidersHorizontal, UserX, X } from "lucide-react";
 import { DataTableExportButtons } from "@/components/listagens/data-table-export-buttons";
 import { Button, Modal } from "@/components/ui";
 import { toast } from "@/components/ui/toast";
@@ -45,6 +45,9 @@ export function ServidoresListagemControles({ orgaos, servidores, lotacoes, cate
   const router = useRouter();
   const searchParams = useSearchParams();
   const { selecionados, limpar: limparSelecao } = useServidoresSelection();
+  const selecionadoUnico = selecionados.size === 1
+    ? Array.from(selecionados)[0]
+    : null;
   const filtrosDisponiveis = useMemo(() => tipoUsuarioFixo ? FILTROS.filter((item) => item !== "tipoUsuario") : [...FILTROS], [tipoUsuarioFixo]);
   const filtrosAtivos = useMemo(() => filtrosDisponiveis.flatMap((nome) => {
     const valor = searchParams.get(nome)?.trim();
@@ -94,12 +97,13 @@ export function ServidoresListagemControles({ orgaos, servidores, lotacoes, cate
     <div className="flex min-h-10 flex-wrap items-center gap-1 border-y border-[var(--border)] px-2 py-1">
       {permitirNovo && <Link href={novoHref} className="secp-theme-primary-action inline-flex h-8 items-center gap-1.5 rounded-sm border px-2 text-xs font-medium"><Plus className="size-4" />{novoLabel}</Link>}
       <button type="button" onClick={() => startTransition(() => router.refresh())} disabled={pending} className={commandClassName}><RefreshCw className={`size-4 ${pending ? "animate-spin" : ""}`} />Atualizar</button>
-      {exportCsvHref && exportPdfHref && <><Separador /><DataTableExportButtons csvHref={exportCsvHref} pdfHref={exportPdfHref} variant="command" /></>}
+      {selecionadoUnico && <Link href={`/servidores/${selecionadoUnico}`} className={commandClassName}><Eye className="size-4" />Visualizar</Link>}
+      {selecionadoUnico && permitirNovo && <Link href={`/servidores/${selecionadoUnico}/editar`} className={commandClassName}><Edit className="size-4" />Editar</Link>}
+      {permitirDesativar && <button type="button" onClick={desativarSelecionados} disabled={pending || selecionados.size === 0} className={`${commandClassName} text-red-700 dark:text-red-300`}><UserX className="size-4" />Desativar selecionados</button>}
       <Separador />
       <button type="button" onClick={() => setAberto(true)} className={commandClassName}><SlidersHorizontal className="size-4" />Filtros{filtrosAtivos.length > 0 && <span className="flex size-5 items-center justify-center rounded-full bg-[var(--primary)] text-xs text-[var(--primary-foreground)]">{filtrosAtivos.length}</span>}</button>
-      {permitirDesativar && <><Separador /><button type="button" onClick={desativarSelecionados} disabled={pending || selecionados.size === 0} className={`${commandClassName} text-red-700 dark:text-red-300`}><UserX className="size-4" />Desativar selecionados</button></>}
-      {acoesComplementares && <><Separador /><div className="flex items-center">{acoesComplementares}</div></>}
-      {acoesDireita && <div className="ml-auto flex items-center justify-end pl-2">{acoesDireita}</div>}
+      {exportCsvHref && exportPdfHref && <><Separador /><DataTableExportButtons csvHref={exportCsvHref} pdfHref={exportPdfHref} variant="command" /></>}
+      {(acoesComplementares || acoesDireita) && <div className="ml-auto flex items-center justify-end gap-1 pl-2">{acoesComplementares}{acoesDireita}</div>}
     </div>
     {filtrosAtivos.length > 0 && <div className="flex flex-wrap items-center gap-1.5 border-b border-[var(--border)] px-3 py-2">
       <SlidersHorizontal className="size-3.5 text-[var(--muted-foreground)]" />
