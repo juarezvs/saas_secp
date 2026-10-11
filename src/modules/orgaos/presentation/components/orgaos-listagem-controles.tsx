@@ -18,6 +18,7 @@ type OrgaosListagemControlesProps = {
   exportCsvHref: string;
   exportPdfHref: string;
   permitirNovo?: boolean;
+  acoesComplementares?: ReactNode;
   acoesDireita?: ReactNode;
   fusosHorarios?: {
     valor: string;
@@ -38,6 +39,7 @@ export function OrgaosListagemControles({
   exportCsvHref,
   exportPdfHref,
   permitirNovo = false,
+  acoesComplementares,
   acoesDireita,
   fusosHorarios = [],
 }: OrgaosListagemControlesProps) {
@@ -156,8 +158,14 @@ export function OrgaosListagemControles({
             </span>
           )}
           </button>
+          {acoesComplementares && (
+            <>
+              <span className="mx-1 h-5 w-px bg-[var(--border)]" aria-hidden="true" />
+              <div className="flex items-center">{acoesComplementares}</div>
+            </>
+          )}
           {acoesDireita && (
-            <div className="ml-auto flex flex-wrap items-center justify-end gap-3 pl-2">
+            <div className="ml-auto flex items-center justify-end pl-2">
               {acoesDireita}
             </div>
           )}

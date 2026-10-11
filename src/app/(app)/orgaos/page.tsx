@@ -131,15 +131,16 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
           exportCsvHref={`/api/orgaos/export?${exportParams.toString()}`}
           exportPdfHref={`/api/orgaos/export/pdf?${exportParams.toString()}`}
           fusosHorarios={fusosHorarios}
+          acoesComplementares={
+            <DataTablePageSize value={resultado.itensPorPagina} command />
+          }
           acoesDireita={
-            <>
-              <DataTablePageSize value={resultado.itensPorPagina} compact />
-              <DataTablePagination
-                pagina={resultado.pagina}
-                totalPaginas={resultado.totalPaginas}
-                montarHrefPagina={montarHrefPagina}
-              />
-            </>
+            <DataTablePagination
+              pagina={resultado.pagina}
+              totalPaginas={resultado.totalPaginas}
+              montarHrefPagina={montarHrefPagina}
+              command
+            />
           }
         />
 

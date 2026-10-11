@@ -13,12 +13,14 @@ type DataTablePaginationProps = {
   pagina: number;
   totalPaginas: number;
   montarHrefPagina: (pagina: number) => string;
+  command?: boolean;
 };
 
 export function DataTablePagination({
   pagina,
   totalPaginas,
   montarHrefPagina,
+  command = false,
 }: DataTablePaginationProps) {
   const paginaAnterior = Math.max(pagina - 1, 1);
   const proximaPagina = Math.min(pagina + 1, totalPaginas);
@@ -28,12 +30,13 @@ export function DataTablePagination({
     <Pagination
       aria-label={`Paginação da tabela. Página ${pagina} de ${totalPaginas}`}
     >
-      <PaginationContent>
+      <PaginationContent className={command ? "gap-0.5" : undefined}>
         <PaginationItem>
           <PaginationLink
             href={montarHrefPagina(1)}
             disabled={pagina <= 1}
             size="icon"
+            className={command ? commandButtonClassName : undefined}
             aria-label="Ir para a primeira página"
             title="Primeira página"
           >
@@ -45,6 +48,7 @@ export function DataTablePagination({
           <PaginationPrevious
             href={montarHrefPagina(paginaAnterior)}
             disabled={pagina <= 1}
+            className={command ? commandButtonClassName : undefined}
           />
         </PaginationItem>
 
@@ -56,6 +60,7 @@ export function DataTablePagination({
               <PaginationLink
                 href={montarHrefPagina(item)}
                 isActive={item === pagina}
+                className={command ? commandButtonClassName : undefined}
               >
                 {item}
               </PaginationLink>
@@ -67,6 +72,7 @@ export function DataTablePagination({
           <PaginationNext
             href={montarHrefPagina(proximaPagina)}
             disabled={pagina >= totalPaginas}
+            className={command ? commandButtonClassName : undefined}
           />
         </PaginationItem>
 
@@ -75,6 +81,7 @@ export function DataTablePagination({
             href={montarHrefPagina(totalPaginas)}
             disabled={pagina >= totalPaginas}
             size="icon"
+            className={command ? commandButtonClassName : undefined}
             aria-label="Ir para a última página"
             title="Última página"
           >
@@ -85,6 +92,9 @@ export function DataTablePagination({
     </Pagination>
   );
 }
+
+const commandButtonClassName =
+  "h-8 min-w-8 w-auto rounded-sm border border-transparent px-2 text-xs shadow-none hover:bg-[var(--muted)] data-[active]:border-[var(--border)] data-[active]:bg-[var(--muted)]";
 
 function montarPaginasVisiveis(
   paginaAtual: number,
