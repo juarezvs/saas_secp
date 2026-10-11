@@ -15,6 +15,7 @@ type PageHeaderProps = {
   regraDescricao?: string;
 
   actions?: ReactNode;
+  variant?: "default" | "blade";
 };
 
 export function PageHeader({
@@ -22,7 +23,37 @@ export function PageHeader({
   titulo,
   descricao,
   actions,
+  variant = "default",
 }: PageHeaderProps) {
+  if (variant === "blade") {
+    return (
+      <section data-secp-page-header>
+        <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="secp-theme-icon relative flex size-9 shrink-0 items-center justify-center rounded-sm">
+              <Icon className="size-5" aria-hidden="true" />
+              <PageHeaderMenuIcon />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl font-semibold tracking-normal text-foreground">
+                <PageHeaderTitle titulo={titulo} />
+              </h1>
+              {descricao && (
+                <p className="mt-0.5 max-w-5xl text-xs leading-5 text-[var(--muted-foreground)]">
+                  {descricao}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">
+            {actions}
+            <FavoritoPaginaButton />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section
       className="rounded border border-zinc-200 bg-white px-3 py-3 text-zinc-900 shadow-sm dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 sm:px-4"

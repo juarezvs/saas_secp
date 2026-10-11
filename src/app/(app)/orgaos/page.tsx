@@ -1,9 +1,11 @@
-import Link from "next/link";
-import { Landmark, Plus } from "lucide-react";
+import { Landmark } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
-import { DataTableShell } from "@/components/listagens";
+import {
+  DataTablePageSize,
+  DataTablePagination,
+} from "@/components/listagens";
 import {
   aplicarEscopoOrgaoId,
   obterEscopoOrgaoDaSessao,
@@ -95,7 +97,7 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <Breadcrumb
         items={[
           { label: "Administração", href: "/administracao" },
@@ -107,47 +109,54 @@ export default async function OrgaosPage({ searchParams }: OrgaosPageProps) {
         icon={Landmark}
         titulo="Órgãos"
         descricao="Consulte os órgãos institucionais usados como base para unidades, servidores, lotações e integração SARH."
+        variant="blade"
         artigo="Arts. 1, 3 e 20"
         regraTitulo="Abrangência institucional"
         regraDescricao="A estrutura de órgãos organiza a abrangência administrativa do SECP e sustenta cadastros funcionais, unidades organizacionais e sincronizações externas."
       />
 
-      <DataTableShell
-        title="Órgãos cadastrados"
-        description="Use a pesquisa geral ou filtre por sigla, nome, código SARH e status."
-        total={resultado.total}
-        pagina={resultado.pagina}
-        totalPaginas={resultado.totalPaginas}
-        itensPorPagina={resultado.itensPorPagina}
-        montarHrefPagina={montarHrefPagina}
-        toolbar={
-          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-            <div>
-              {escopoOrgao.global && (
-                <Link
-                  href="/orgaos/novo"
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-blue-900 px-4 text-sm font-semibold text-white transition hover:bg-blue-950"
-                >
-                  <Plus className="size-4" aria-hidden="true" />
-                  Novo órgão
-                </Link>
-              )}
-            </div>
+      <section className="overflow-hidden border border-[var(--border)] bg-[var(--card)] text-[var(--card-foreground)]">
+        <div className="border-b border-[var(--border)] px-3 pt-1">
+          <div className="inline-flex h-10 items-center border-b-2 border-[var(--secp-theme-accent)] px-2 text-sm font-semibold">
+            Órgãos
+            <span className="ml-2 text-xs font-normal text-[var(--muted-foreground)]">
+              {resultado.total}
+            </span>
+          </div>
+        </div>
 
-            <OrgaosListagemControles
-              exportCsvHref={`/api/orgaos/export?${exportParams.toString()}`}
-              exportPdfHref={`/api/orgaos/export/pdf?${exportParams.toString()}`}
-              fusosHorarios={fusosHorarios}
+        <OrgaosListagemControles
+          permitirNovo={escopoOrgao.global}
+          exportCsvHref={`/api/orgaos/export?${exportParams.toString()}`}
+          exportPdfHref={`/api/orgaos/export/pdf?${exportParams.toString()}`}
+          fusosHorarios={fusosHorarios}
+        />
+
+        <div className="flex flex-col justify-between gap-2 border-b border-[var(--border)] px-3 py-2 lg:flex-row lg:items-center">
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="text-xs text-[var(--muted-foreground)]">
+              {resultado.total} registro(s)
+            </span>
+            <DataTablePageSize value={resultado.itensPorPagina} compact />
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs text-[var(--muted-foreground)]">
+              Página {resultado.pagina} de {resultado.totalPaginas}
+            </span>
+            <DataTablePagination
+              pagina={resultado.pagina}
+              totalPaginas={resultado.totalPaginas}
+              montarHrefPagina={montarHrefPagina}
             />
           </div>
-        }
-      >
+        </div>
+
         <OrgaosDataTable
           dados={resultado.orgaos}
           ordenarPor={ordenarPor}
           direcao={direcao}
         />
-      </DataTableShell>
+      </section>
     </div>
   );
 }

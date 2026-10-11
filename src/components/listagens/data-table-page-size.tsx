@@ -9,11 +9,13 @@ import {
 type DataTablePageSizeProps = {
   value: number;
   options?: number[];
+  compact?: boolean;
 };
 
 export function DataTablePageSize({
   value,
   options = [10, 20, 50, 100],
+  compact = false,
 }: DataTablePageSizeProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -30,14 +32,16 @@ export function DataTablePageSize({
 
   return (
     <label className="flex items-center gap-2">
-      <span className="text-sm text-[var(--muted-foreground)]">
+      <span className={compact ? "text-xs text-[var(--muted-foreground)]" : "text-sm text-[var(--muted-foreground)]"}>
         Itens por página
       </span>
 
       <select
         value={String(value)}
         onChange={(event) => alterar(event.target.value)}
-        className="h-9 rounded-md border bg-[var(--card)] px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className={compact
+          ? "h-8 rounded-sm border bg-[var(--card)] px-2 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          : "h-9 rounded-md border bg-[var(--card)] px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"}
       >
         {options.map((option) => (
           <option key={option} value={option}>
