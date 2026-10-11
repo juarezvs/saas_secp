@@ -97,8 +97,16 @@ export function ServidoresListagemControles({ orgaos, servidores, lotacoes, cate
     <div className="flex min-h-10 flex-wrap items-center gap-1 border-y border-[var(--border)] px-2 py-1">
       {permitirNovo && <Link href={novoHref} className="secp-theme-primary-action inline-flex h-8 items-center gap-1.5 rounded-sm border px-2 text-xs font-medium"><Plus className="size-4" />{novoLabel}</Link>}
       <button type="button" onClick={() => startTransition(() => router.refresh())} disabled={pending} className={commandClassName}><RefreshCw className={`size-4 ${pending ? "animate-spin" : ""}`} />Atualizar</button>
-      {selecionadoUnico && <Link href={`/servidores/${selecionadoUnico}`} className={commandClassName}><Eye className="size-4" />Visualizar</Link>}
-      {selecionadoUnico && permitirNovo && <Link href={`/servidores/${selecionadoUnico}/editar`} className={commandClassName}><Edit className="size-4" />Editar</Link>}
+      <AcaoSelecao
+        href={selecionadoUnico ? `/servidores/${selecionadoUnico}` : null}
+        label="Visualizar"
+        icon={<Eye className="size-4" />}
+      />
+      <AcaoSelecao
+        href={selecionadoUnico && permitirNovo ? `/servidores/${selecionadoUnico}/editar` : null}
+        label="Editar"
+        icon={<Edit className="size-4" />}
+      />
       {permitirDesativar && <button type="button" onClick={desativarSelecionados} disabled={pending || selecionados.size === 0} className={`${commandClassName} text-red-700 dark:text-red-300`}><UserX className="size-4" />Desativar selecionados</button>}
       <Separador />
       <button type="button" onClick={() => setAberto(true)} className={commandClassName}><SlidersHorizontal className="size-4" />Filtros{filtrosAtivos.length > 0 && <span className="flex size-5 items-center justify-center rounded-full bg-[var(--primary)] text-xs text-[var(--primary-foreground)]">{filtrosAtivos.length}</span>}</button>
@@ -125,6 +133,10 @@ export function ServidoresListagemControles({ orgaos, servidores, lotacoes, cate
 }
 
 function Separador() { return <span className="mx-1 h-5 w-px bg-[var(--border)]" aria-hidden="true" />; }
+function AcaoSelecao({ href, label, icon }: { href: string | null; label: string; icon: ReactNode }) {
+  if (href) return <Link href={href} className={commandClassName}>{icon}{label}</Link>;
+  return <button type="button" disabled className={commandClassName}>{icon}{label}</button>;
+}
 function Campo({ nome, label, valor }: { nome: string; label: string; valor: string | null }) { return <label><span className="text-sm font-medium">{label}</span><input name={nome} defaultValue={valor ?? ""} className={inputClassName} /></label>; }
 function Selecao({ nome, label, valor, opcoes }: { nome: string; label: string; valor: string | null; opcoes: Option[] }) { return <label><span className="text-sm font-medium">{label}</span><select name={nome} defaultValue={valor ?? ""} className={inputClassName}><option value="">Todos</option>{opcoes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>; }
 function rotuloValor(nome: string, valor: string, dados: { orgaos: Props["orgaos"]; servidores: Option[]; lotacoes: Option[]; categorias: Option[] }) {
