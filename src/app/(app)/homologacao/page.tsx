@@ -120,19 +120,24 @@ export default async function HomologacaoPage({
     Awaited<ReturnType<typeof calcularPrazoHomologacaoCompetenciaComCalendario>>
   >();
 
-  for (const fechamento of resultado.fechamentos) {
-    const regulamentacao = await buscarRegulamentacaoPontoOrgao(
-      fechamento.unidade.orgaoId,
-    );
-    prazosPorFechamento.set(
-      fechamento.id,
-      await calcularPrazoHomologacaoCompetenciaComCalendario({
+  const prazos = await Promise.all(
+    resultado.fechamentos.map(async (fechamento) => {
+      const regulamentacao = await buscarRegulamentacaoPontoOrgao(
+        fechamento.unidade.orgaoId,
+      );
+      const prazo = await calcularPrazoHomologacaoCompetenciaComCalendario({
         anoReferencia: fechamento.anoReferencia,
         mesReferencia: fechamento.mesReferencia,
         concluidoEm: fechamento.homologadoEm,
         diaLimiteMesSeguinte: regulamentacao.prazoHomologacaoDiaMesSeguinte,
-      }),
-    );
+      });
+
+      return [fechamento.id, prazo] as const;
+    }),
+  );
+
+  for (const [fechamentoId, prazo] of prazos) {
+    prazosPorFechamento.set(fechamentoId, prazo);
   }
 
   const exportParams = new URLSearchParams();

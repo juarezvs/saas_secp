@@ -4,6 +4,10 @@ vi.mock(
   "../../../calendario-institucional/application/services/classificar-dia-institucional.service",
   () => ({
     classificarDiaInstitucional: vi.fn(),
+    carregarCalendarioInstitucionalPeriodo: vi.fn(async () => ({
+      eventosPorData: new Map(),
+      recessos: [],
+    })),
   }),
 );
 

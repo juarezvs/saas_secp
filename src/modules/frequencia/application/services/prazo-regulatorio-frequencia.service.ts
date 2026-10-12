@@ -76,24 +76,33 @@ function ajustarParaDiaUtilSeguinte(data: Date) {
   return ajustada;
 }
 
-async function ehDiaUtilComCalendario(data: Date) {
-  const { classificarDiaInstitucional } = await import(
-    "../../../calendario-institucional/application/services/classificar-dia-institucional.service"
-  );
-  const classificacao = await classificarDiaInstitucional(data);
-  return classificacao.contaComoDiaUtil;
-}
-
 async function obterDiaUtilDoMesComCalendario(params: {
   ano: number;
   mes: number;
   ordem: number;
 }) {
   let dia = new Date(params.ano, params.mes - 1, 1);
+  const fimExclusivo = new Date(params.ano, params.mes, 1);
+  const { carregarCalendarioInstitucionalPeriodo } = await import(
+    "../../../calendario-institucional/application/services/classificar-dia-institucional.service"
+  );
+  const calendario = await carregarCalendarioInstitucionalPeriodo({
+    inicio: dia,
+    fimExclusivo,
+  });
   let uteisEncontrados = 0;
 
-  while (true) {
-    if (await ehDiaUtilComCalendario(dia)) {
+  while (dia < fimExclusivo) {
+    const { classificarDiaInstitucional } = await import(
+      "../../../calendario-institucional/application/services/classificar-dia-institucional.service"
+    );
+    const classificacao = await classificarDiaInstitucional(
+      dia,
+      calendario,
+      null,
+      null,
+    );
+    if (classificacao.contaComoDiaUtil) {
       uteisEncontrados += 1;
 
       if (uteisEncontrados === params.ordem) {
@@ -103,12 +112,38 @@ async function obterDiaUtilDoMesComCalendario(params: {
 
     dia = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate() + 1);
   }
+
+  return obterDiaUtilDoMes(params);
 }
 
 async function ajustarParaDiaUtilSeguinteComCalendario(data: Date) {
   let ajustada = normalizarData(data);
+  const fimExclusivo = new Date(
+    ajustada.getFullYear(),
+    ajustada.getMonth() + 1,
+    1,
+  );
+  const { carregarCalendarioInstitucionalPeriodo, classificarDiaInstitucional } =
+    await import(
+      "../../../calendario-institucional/application/services/classificar-dia-institucional.service"
+    );
+  const calendario = await carregarCalendarioInstitucionalPeriodo({
+    inicio: ajustada,
+    fimExclusivo,
+  });
 
-  while (!(await ehDiaUtilComCalendario(ajustada))) {
+  while (ajustada < fimExclusivo) {
+    const classificacao = await classificarDiaInstitucional(
+      ajustada,
+      calendario,
+      null,
+      null,
+    );
+
+    if (classificacao.contaComoDiaUtil) {
+      return ajustada;
+    }
+
     ajustada = new Date(
       ajustada.getFullYear(),
       ajustada.getMonth(),
@@ -116,7 +151,7 @@ async function ajustarParaDiaUtilSeguinteComCalendario(data: Date) {
     );
   }
 
-  return ajustada;
+  return ajustarParaDiaUtilSeguinte(ajustada);
 }
 
 function proximoMes(anoReferencia: number, mesReferencia: number) {
