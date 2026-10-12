@@ -7,13 +7,23 @@ import { flexRender, getCoreRowModel, getSortedRowModel, useReactTable, type Col
 import { useState } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, Edit, Eye, MoreHorizontal } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui";
-import { DataTableHeaderCheckbox, DataTableRowCheckbox } from "./data-table-selection";
+import { DataTableHeaderCheckbox, DataTableRowCheckbox, DataTableSelectionProvider, useOptionalDataTableSelection } from "./data-table-selection";
 
 export type StandardDataTableCell = { value: string | number; detail?: string; tone?: "success" | "muted" | "danger" };
 export type StandardDataTableRow = { id: string; label: string; cells: Record<string, StandardDataTableCell>; visualizarHref?: string; editarHref?: string; actionItems?: ReactNode };
 export type StandardDataTableColumn = { key: string; label: string; className?: string };
 
 export function StandardDataTable({ columns, rows, emptyMessage, podeEditar = false, minWidth = 980 }: { columns: StandardDataTableColumn[]; rows: StandardDataTableRow[]; emptyMessage: string; podeEditar?: boolean; minWidth?: number }) {
+  const selection = useOptionalDataTableSelection();
+
+  if (!selection) {
+    return <DataTableSelectionProvider><StandardDataTableContent columns={columns} rows={rows} emptyMessage={emptyMessage} podeEditar={podeEditar} minWidth={minWidth} /></DataTableSelectionProvider>;
+  }
+
+  return <StandardDataTableContent columns={columns} rows={rows} emptyMessage={emptyMessage} podeEditar={podeEditar} minWidth={minWidth} />;
+}
+
+function StandardDataTableContent({ columns, rows, emptyMessage, podeEditar = false, minWidth = 980 }: { columns: StandardDataTableColumn[]; rows: StandardDataTableRow[]; emptyMessage: string; podeEditar?: boolean; minWidth?: number }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const defs = useMemo<ColumnDef<StandardDataTableRow>[]>(() => [
     { id: "selection", enableSorting: false, header: () => <DataTableHeaderCheckbox ids={rows.map((row) => row.id)} />, cell: ({ row }) => <DataTableRowCheckbox id={row.original.id} label={`Selecionar ${row.original.label}`} /> },

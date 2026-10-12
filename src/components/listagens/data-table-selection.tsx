@@ -16,6 +16,7 @@ export function DataTableSelectionProvider({ children }: { children: ReactNode }
 }
 
 export function useDataTableSelection() { const value = useContext(SelectionContext); if (!value) throw new Error("Selecao fora do contexto da tabela"); return value; }
+export function useOptionalDataTableSelection() { return useContext(SelectionContext); }
 export function DataTableRowCheckbox({ id, label }: { id: string; label: string }) { const { selecionados, alternar } = useDataTableSelection(); return <input type="checkbox" checked={selecionados.has(id)} onChange={() => alternar(id)} className="size-4 rounded border-[var(--border)]" aria-label={label} />; }
 export function DataTableHeaderCheckbox({ ids, label = "Selecionar todos os registros desta pagina" }: { ids: string[]; label?: string }) {
   const { selecionados, selecionar } = useDataTableSelection();
