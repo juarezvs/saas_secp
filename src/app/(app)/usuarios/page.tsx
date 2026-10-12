@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { Plus, UserCog, Eye } from "lucide-react";
+import { UserCog, Eye } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
-import { DataTableHeaderCheckbox, DataTableRowCheckbox, DataTableShell } from "@/components/listagens";
+import { DataTableHeaderCheckbox, DataTableRowCheckbox, DataTableShell, StandardDataTable } from "@/components/listagens";
 import {
   aplicarEscopoOrgaoId,
   obterEscopoOrgaoDaSessao,
@@ -145,15 +145,6 @@ export default async function UsuariosPage({
         artigo="Art. 20, inciso I"
         regraTitulo="Gerenciamento de usuários"
         regraDescricao="O gerenciamento técnico dos usuários do sistema é atribuição administrativa essencial para garantir segurança, rastreabilidade e controle de acesso."
-        actions={podeGerenciarUsuarios && (
-          <Link
-            href="/usuarios/novo"
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            Novo usuário
-          </Link>
-        )}
       />
 
       <DataTableShell
@@ -174,7 +165,8 @@ export default async function UsuariosPage({
           />
         }
       >
-        <div className="overflow-x-auto">
+        <StandardDataTable columns={[{ key: "matricula", label: "Matricula/Login" }, { key: "nome", label: "Nome" }, { key: "tipo", label: "Tipo" }, { key: "lotacao", label: "Lotacao" }, { key: "perfis", label: "Perfis" }, { key: "status", label: "Status" }]} rows={resultado.usuarios.map((usuario) => ({ id: usuario.id, label: usuario.nome, visualizarHref: `/usuarios/${usuario.id}`, editarHref: `/usuarios/${usuario.id}/editar`, cells: { matricula: { value: usuario.matricula }, nome: { value: usuario.nome, detail: usuario.email ?? undefined }, tipo: { value: usuario.tipo }, lotacao: { value: usuario.servidor?.lotacoes[0]?.unidade.sigla ?? "-" }, perfis: { value: usuario.perfis.length }, status: { value: usuario.ativo ? "Ativo" : "Inativo", tone: usuario.ativo ? "success" : "muted" } } }))} emptyMessage="Nenhum usuario encontrado para os filtros informados." podeEditar={podeGerenciarUsuarios} />
+        <div className="hidden">
           <table className="w-full min-w-[980px] text-left text-sm">
             <caption className="sr-only">
               Listagem de usuários com matrícula, nome, tipo, lotação, perfis,

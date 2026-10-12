@@ -3,7 +3,7 @@ import { Building2, Filter, Network, UserCheck } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
-import { DataTableHeaderCheckbox, DataTablePageSize, DataTablePagination, DataTableRowCheckbox, DataTableSelectionProvider } from "@/components/listagens";
+import { DataTableHeaderCheckbox, DataTablePageSize, DataTablePagination, DataTableRowCheckbox, DataTableSelectionProvider, StandardDataTable } from "@/components/listagens";
 import { ChefiasListagemControles } from "@/modules/chefias/presentation/components/chefias-listagem-controles";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { perfilAtivoEhChefia } from "@/modules/auth/application/services/perfil-chefia.service";
@@ -230,7 +230,8 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
 
         <div className="border-b border-[var(--border)] px-3 pt-1"><div className="inline-flex h-10 items-center gap-2 border-b-2 border-[var(--secp-theme-accent)] px-2"><h2 className="text-sm font-semibold">Unidades e chefias ativas</h2><span className="text-xs text-[var(--muted-foreground)]">{unidadesFiltradas.length}</span></div></div>
         <div className="flex min-h-10 flex-wrap items-center border-b border-[var(--border)]"><div className="min-w-0 flex-1"><ChefiasListagemControles orgaos={orgaosFiltro} superiores={superioresFiltro} /></div><div className="ml-auto flex items-center gap-1 px-2 py-1"><DataTablePageSize value={itensPorPagina} command /><DataTablePagination pagina={pagina} totalPaginas={totalPaginas} montarHrefPagina={montarHrefPagina} command /></div></div>
-        <div className="overflow-x-auto">
+        <StandardDataTable columns={[{ key: "unidade", label: "Unidade" }, { key: "chefia", label: "Chefia titular" }, { key: "orgao", label: "Orgao" }, { key: "superior", label: "Superior" }, { key: "titulares", label: "Titulares" }, { key: "substitutos", label: "Substitutos" }, { key: "delegados", label: "Delegados" }, { key: "lotados", label: "Lotados" }]} rows={unidadesPagina.map((unidade) => { const chefia = obterChefiaTitular(unidade); return { id: unidade.id, label: unidade.sigla, visualizarHref: `/unidades/${unidade.id}/chefias`, cells: { unidade: { value: unidade.sigla, detail: unidade.nome }, chefia: { value: chefia?.matricula ?? "Nao designado", detail: chefia ? `${chefia.nome}${chefia.herdada ? " (herdada da superior)" : ""}` : undefined }, orgao: { value: unidade.orgao.sigla }, superior: { value: unidade.unidadePai?.sigla ?? "-" }, titulares: { value: contarGestoresPorPapel(unidade.gestores, "GESTOR_TITULAR") }, substitutos: { value: contarGestoresPorPapel(unidade.gestores, "GESTOR_SUBSTITUTO") }, delegados: { value: contarGestoresPorPapel(unidade.gestores, "DELEGADO_CHEFIA") }, lotados: { value: unidade._count.lotacoes } } }; })} emptyMessage="Nenhuma unidade encontrada para os filtros informados." minWidth={1120} />
+        <div className="hidden">
           <table className="w-full min-w-[1120px] text-left text-sm">
             <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
               <tr>

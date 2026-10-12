@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { FormEvent } from "react";
 import { Edit, Trash2 } from "lucide-react";
-import { DataTableHeaderCheckbox, DataTableRowCheckbox, useDataTableSelection } from "@/components/listagens";
+import { DataTableHeaderCheckbox, DataTableRowCheckbox, StandardDataTable, useDataTableSelection } from "@/components/listagens";
 
 import { excluirCalendariosInstitucionaisAction } from "../../application/actions/excluir-calendario-institucional.action";
 
@@ -93,7 +93,8 @@ export function CalendarioInstitucionalListagem({
         </div>
       )}
 
-      <div className="overflow-x-auto">
+      <StandardDataTable columns={[{ key: "data", label: "Data" }, { key: "tipo", label: "Tipo" }, { key: "descricao", label: "Descricao" }, { key: "diaUtil", label: "Dia util" }, { key: "apuracao", label: "Apuracao regular" }, { key: "expediente", label: "Expediente" }, { key: "status", label: "Status" }]} rows={eventos.map((evento) => ({ id: evento.id, label: evento.descricao, editarHref: `/administracao/calendario/${evento.id}/editar`, cells: { data: { value: formatarDataUtc(evento.dataReferencia) }, tipo: { value: rotulosTipo[evento.tipo] ?? evento.tipo }, descricao: { value: evento.descricao, detail: evento.observacao ?? (evento.dataSubstituida && evento.dataOriginal ? `Transferido de ${formatarDataUtc(evento.dataOriginal)}` : undefined) }, diaUtil: { value: evento.contaComoDiaUtil ? "Sim" : "Nao" }, apuracao: { value: evento.geraApuracaoRegular ? "Sim" : "Nao" }, expediente: { value: formatarJanela(evento) }, status: { value: evento.ativo ? "Ativo" : "Inativo", tone: evento.ativo ? "success" : "muted" } } }))} emptyMessage="Nenhum evento institucional encontrado para os filtros informados." podeEditar minWidth={1180} />
+      <div className="hidden">
         <table className="w-full min-w-[1180px] text-left text-sm">
           <caption className="sr-only">
             Listagem de eventos do calendário institucional com data, tipo,

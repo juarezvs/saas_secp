@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { ArrowRight, Plus, RefreshCw, UserRoundCheck } from "lucide-react";
+import { ArrowRight, UserRoundCheck } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
-import { DataTableHeaderCheckbox, DataTableRowCheckbox, DataTableShell } from "@/components/listagens";
+import { DataTableHeaderCheckbox, DataTableRowCheckbox, DataTableShell, StandardDataTable } from "@/components/listagens";
 import type { Prisma } from "@/generated/prisma/client";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
@@ -304,43 +304,6 @@ export default async function SubstituicoesFuncaoPage({
             ? "Consulte titulares e substitutos automaticos ativos, vindos do SARH ou cadastrados no SECP."
             : "Gerencie periodos efetivos de substituicao, atos e registros operacionais separados do cadastro automatico."
         }
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href={
-                modoCadastroAutomatico
-                  ? "/administracao/substituicoes-funcao"
-                  : "/administracao/substituicoes-funcao?tipo=AUTOMATICA"
-              }
-              className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold hover:bg-[var(--muted)]"
-            >
-              <ArrowRight className="size-4" aria-hidden="true" />
-              {modoCadastroAutomatico
-                ? "Ver periodos efetivos"
-                : "Cadastro automatico"}
-            </Link>
-            <Link
-              href="/administracao/integracoes/sarh"
-              className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold hover:bg-[var(--muted)]"
-            >
-              <RefreshCw className="size-4" aria-hidden="true" />
-              Sincronizar SARH
-            </Link>
-            <Link
-              href={
-                modoCadastroAutomatico
-                  ? "/administracao/substituicoes-funcao/novo?tipo=AUTOMATICA"
-                  : "/administracao/substituicoes-funcao/novo"
-              }
-              className="inline-flex items-center gap-2 rounded-md bg-blue-900 px-3 py-2 text-sm font-bold text-white hover:bg-blue-800"
-            >
-              <Plus className="size-4" aria-hidden="true" />
-              {modoCadastroAutomatico
-                ? "Novo cadastro automatico"
-                : "Nova substituicao"}
-            </Link>
-          </div>
-        }
       />
 
       <section className="grid gap-4 lg:grid-cols-3">
@@ -385,6 +348,7 @@ export default async function SubstituicoesFuncaoPage({
         toolbar={
           <SubstituicoesFuncaoListagemControles
             novoHref={modoCadastroAutomatico ? "/administracao/substituicoes-funcao/novo?tipo=AUTOMATICA" : "/administracao/substituicoes-funcao/novo"}
+            acoes={[{ href: modoCadastroAutomatico ? "/administracao/substituicoes-funcao" : "/administracao/substituicoes-funcao?tipo=AUTOMATICA", label: modoCadastroAutomatico ? "Ver periodos efetivos" : "Cadastro automatico" }, { href: "/administracao/integracoes/sarh", label: "Sincronizar SARH" }]}
             orgaos={orgaos.map((orgao) => ({
               id: orgao.id,
               sigla: orgao.sigla,
@@ -425,7 +389,8 @@ export default async function SubstituicoesFuncaoPage({
           />
         }
       >
-        <div className="overflow-x-auto">
+        <StandardDataTable columns={[{ key: "seccional", label: "Seccional" }, { key: "titular", label: "Titular" }, { key: "substituto", label: "Substituto" }, { key: "funcao", label: "Funcao" }, { key: "vigencia", label: "Vigencia" }, { key: "status", label: "Status" }]} rows={substituicoes.map((item) => ({ id: item.id, label: `Substituicao de ${item.titularServidor.matricula}`, editarHref: `/administracao/substituicoes-funcao/${item.id}/editar`, cells: { seccional: { value: item.orgao.sigla, detail: item.unidade?.sigla ?? "Sem unidade" }, titular: { value: nomeServidor(item.titularServidor), detail: item.titularServidor.matricula }, substituto: { value: nomeServidor(item.substitutoServidor), detail: item.substitutoServidor.matricula }, funcao: { value: item.funcaoTitular ? `${item.funcaoTitular.categoria} ${item.funcaoTitular.codigo}` : item.funcaoSubstituto ? `${item.funcaoSubstituto.categoria} ${item.funcaoSubstituto.codigo}` : "-", detail: item.funcaoTitular?.descricao ?? item.funcaoSubstituto?.descricao ?? item.tipo }, vigencia: { value: `${formatarData(item.dataInicio)} a ${formatarData(item.dataFim)}` }, status: { value: item.status, tone: item.status === "ATIVA" ? "success" : "muted" } } }))} emptyMessage="Nenhuma substituicao encontrada para os filtros informados." podeEditar minWidth={1040} />
+        <div className="hidden">
           <table className="w-full min-w-[1040px] text-left text-sm">
             <thead className="border-b bg-[var(--muted)] text-xs uppercase text-[var(--muted-foreground)]">
               <tr>

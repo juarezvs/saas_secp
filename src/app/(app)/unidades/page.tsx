@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { Building2, Plus, Eye } from "lucide-react";
+import { Building2, Eye } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
-import { DataTableHeaderCheckbox, DataTableRowCheckbox, DataTableShell } from "@/components/listagens";
+import { DataTableHeaderCheckbox, DataTableRowCheckbox, DataTableShell, StandardDataTable } from "@/components/listagens";
 import { perfilAtivoEhChefia } from "@/modules/auth/application/services/perfil-chefia.service";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import {
@@ -113,15 +113,6 @@ export default async function UnidadesPage({
         artigo="Arts. 1, 3, 16 e 20"
         regraTitulo="Abrangência institucional e gestão da frequência"
         regraDescricao="A estrutura de unidades permite controlar frequência, homologações, boletins e responsabilidades gerenciais dentro da Seção Judiciária do Amazonas, subseções e unidades vinculadas."
-        actions={
-          <Link
-            href="/unidades/nova"
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            Nova unidade
-          </Link>
-        }
       />
 
       <DataTableShell
@@ -141,7 +132,8 @@ export default async function UnidadesPage({
           />
         }
       >
-        <div className="overflow-x-auto">
+        <StandardDataTable columns={[{ key: "sigla", label: "Sigla" }, { key: "nome", label: "Nome" }, { key: "tipo", label: "Tipo" }, { key: "orgao", label: "Orgao" }, { key: "superior", label: "Superior" }, { key: "fuso", label: "Fuso horario" }, { key: "filhas", label: "Subunidades" }, { key: "lotacoes", label: "Lotacoes" }, { key: "status", label: "Status" }]} rows={resultado.unidades.map((unidade) => ({ id: unidade.id, label: unidade.sigla, visualizarHref: `/unidades/${unidade.id}`, editarHref: `/unidades/${unidade.id}/editar`, cells: { sigla: { value: unidade.sigla }, nome: { value: unidade.nome }, tipo: { value: unidade.tipo }, orgao: { value: unidade.orgao.sigla }, superior: { value: unidade.unidadePai?.sigla ?? "-" }, fuso: { value: resolverFusoHorarioUnidade(unidade), detail: unidade.fusoHorario ? undefined : "Herdado" }, filhas: { value: unidade._count.unidadesFilhas }, lotacoes: { value: unidade._count.lotacoes }, status: { value: unidade.ativo ? "Ativa" : "Inativa", tone: unidade.ativo ? "success" : "muted" } } }))} emptyMessage="Nenhuma unidade encontrada para os filtros informados." podeEditar={!perfilChefiaAtivo} minWidth={1080} />
+        <div className="hidden">
           <table className="w-full min-w-[1080px] text-left text-sm">
             <caption className="sr-only">
               Listagem de unidades com sigla, nome, tipo, órgão, unidade

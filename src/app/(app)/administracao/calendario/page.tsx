@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { CalendarDays, Plus } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
@@ -91,16 +90,6 @@ export default async function CalendarioInstitucionalPage({
         regraTitulo="Prazos e expediente"
         regraDescricao="Feriados, pontos facultativos, suspensoes de expediente e recesso forense precisam refletir corretamente nos prazos de homologacao, boletim e na apuracao do ponto."
       />
-
-      <div className="flex justify-end">
-        <Link
-          href="/administracao/calendario/novo"
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-blue-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-950"
-        >
-          <Plus className="size-4" aria-hidden="true" />
-          Novo evento
-        </Link>
-      </div>
 
       <ReplicarCalendarioInstitucionalForm
         anoAtual={Number(params.ano) || new Date().getFullYear()}

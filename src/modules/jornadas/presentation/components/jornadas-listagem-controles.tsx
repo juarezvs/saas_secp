@@ -61,6 +61,7 @@ export function JornadasListagemControles({
       visualizarHrefBase="/jornadas"
       editarHrefBase="/jornadas"
       podeEditar
+      acoes={[{ href: "/jornadas/atribuicoes", label: "Associar horario em lote" }]}
     />
   );
 }

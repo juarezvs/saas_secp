@@ -7,4 +7,5 @@ export * from "./data-table-toolbar";
 export * from "./filtro-select-imediato";
 export * from "./filtro-texto-debounce";
 export * from "./query-string";
+export * from "./standard-data-table";
 

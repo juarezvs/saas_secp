@@ -17,11 +17,11 @@ export type DataTableFiltroCompetencia = BaseFiltro & { tipo: "competencia" };
 export type DataTableFiltroData = BaseFiltro & { tipo: "data" };
 export type DataTableFiltro = DataTableFiltroTexto | DataTableFiltroSelect | DataTableFiltroSearchableSelect | DataTableFiltroCompetencia | DataTableFiltroData;
 
-type Props = { filtros: DataTableFiltro[]; csvHref?: string; pdfHref?: string; csvAssincrono?: boolean; pdfAssincrono?: boolean; novoHref?: string; novoLabel?: string; visualizarHrefBase?: string; editarHrefBase?: string; podeEditar?: boolean };
+type Props = { filtros: DataTableFiltro[]; csvHref?: string; pdfHref?: string; csvAssincrono?: boolean; pdfAssincrono?: boolean; novoHref?: string; novoLabel?: string; visualizarHrefBase?: string; visualizarHrefSufixo?: string; editarHrefBase?: string; editarHrefSufixo?: string; podeEditar?: boolean; acoes?: Array<{ href: string; label: string }> };
 const commandClass = "inline-flex h-8 items-center gap-1.5 rounded-sm px-2 text-xs font-medium transition hover:bg-[var(--muted)] disabled:opacity-50";
 const inputClass = "mt-2 h-10 w-full rounded-md border border-[var(--input)] bg-[var(--background)] px-3 text-sm outline-none focus:border-[var(--secp-theme-accent)]";
 
-export function DataTableToolbar({ filtros, csvHref, pdfHref, csvAssincrono = false, pdfAssincrono = false, novoHref, novoLabel = "Novo", visualizarHrefBase, editarHrefBase, podeEditar = false }: Props) {
+export function DataTableToolbar({ filtros, csvHref, pdfHref, csvAssincrono = false, pdfAssincrono = false, novoHref, novoLabel = "Novo", visualizarHrefBase, visualizarHrefSufixo = "", editarHrefBase, editarHrefSufixo = "/editar", podeEditar = false, acoes = [] }: Props) {
   const [aberto, setAberto] = useState(false);
   const [pending, startTransition] = useTransition();
   const pathname = usePathname(); const router = useRouter(); const searchParams = useSearchParams();
@@ -36,8 +36,9 @@ export function DataTableToolbar({ filtros, csvHref, pdfHref, csvAssincrono = fa
     <div className="flex min-h-10 flex-wrap items-center gap-1 px-2 py-1">
       {novoHref ? <Link href={novoHref} className="secp-theme-primary-action inline-flex h-8 items-center gap-1.5 rounded-sm border px-2 text-xs font-medium"><Plus className="size-4" />{novoLabel}</Link> : null}
       <button type="button" onClick={() => startTransition(() => router.refresh())} disabled={pending} className={commandClass}><RefreshCw className={`size-4 ${pending ? "animate-spin" : ""}`} />Atualizar</button>
-      {visualizarHrefBase ? unico ? <Link href={`${visualizarHrefBase}/${unico}`} className={commandClass}><Eye className="size-4" />Visualizar</Link> : <button disabled className={commandClass}><Eye className="size-4" />Visualizar</button> : null}
-      {editarHrefBase ? unico && podeEditar ? <Link href={`${editarHrefBase}/${unico}/editar`} className={commandClass}><Edit className="size-4" />Editar</Link> : <button disabled className={commandClass}><Edit className="size-4" />Editar</button> : null}
+      {visualizarHrefBase ? unico ? <Link href={`${visualizarHrefBase}/${unico}${visualizarHrefSufixo}`} className={commandClass}><Eye className="size-4" />Visualizar</Link> : <button disabled className={commandClass}><Eye className="size-4" />Visualizar</button> : null}
+      {editarHrefBase ? unico && podeEditar ? <Link href={`${editarHrefBase}/${unico}${editarHrefSufixo}`} className={commandClass}><Edit className="size-4" />Editar</Link> : <button disabled className={commandClass}><Edit className="size-4" />Editar</button> : null}
+      {acoes.map((acao) => <Link key={`${acao.href}-${acao.label}`} href={acao.href} className={commandClass}>{acao.label}</Link>)}
       {(novoHref || visualizarHrefBase || editarHrefBase) ? <Separador /> : null}
       <button type="button" onClick={() => setAberto(true)} className={commandClass}><SlidersHorizontal className="size-4" />Filtros{ativos.length ? <span className="grid size-5 place-items-center rounded-full bg-[var(--primary)] text-[var(--primary-foreground)]">{ativos.length}</span> : null}</button>
       {csvHref && pdfHref ? <><Separador /><DataTableExportButtons csvHref={csvHref} pdfHref={pdfHref} csvAssincrono={csvAssincrono} pdfAssincrono={pdfAssincrono} variant="command" /></> : null}

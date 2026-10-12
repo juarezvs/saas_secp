@@ -7,5 +7,5 @@ export function ChefiasListagemControles({ orgaos, superiores }: { orgaos: strin
     { tipo: "select", nome: "superior", label: "Superior", options: [{ value: "", label: "Todas" }, ...superiores.map((value) => ({ value, label: value }))] },
     { tipo: "select", nome: "chefia", label: "Chefia titular", options: [{ value: "", label: "Todas" }, { value: "com", label: "Com chefia titular" }, { value: "sem", label: "Sem chefia titular" }] },
   ];
-  return <DataTableToolbar filtros={filtros} novoHref="/chefias/vincular" novoLabel="Vincular chefia" visualizarHrefBase="/unidades" />;
+  return <DataTableToolbar filtros={filtros} novoHref="/chefias/vincular" novoLabel="Vincular chefia" visualizarHrefBase="/unidades" visualizarHrefSufixo="/chefias" />;
 }

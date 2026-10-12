@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { CalendarClock, Plus, Eye } from "lucide-react";
+import { CalendarClock, Eye } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
-import { DataTableHeaderCheckbox, DataTableRowCheckbox, DataTableShell } from "@/components/listagens";
+import { DataTableHeaderCheckbox, DataTableRowCheckbox, DataTableShell, StandardDataTable } from "@/components/listagens";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarJornadasPaginado } from "@/modules/jornadas/infrastructure/repositories/jornada.repository";
@@ -78,21 +78,6 @@ export default async function JornadasPage({
         artigo="Arts. 4, 8 e 18"
         regraTitulo="Horário cadastrado e apuração futura"
         regraDescricao="O sistema deve manter o horário a ser cumprido pela pessoa, permitindo apurar a carga mensal e comparar com o esperado no mês de referência."
-        actions={<div className="flex flex-col gap-2 sm:flex-row">
-          <Link
-            href="/jornadas/atribuicoes"
-            className="inline-flex items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition hover:bg-[var(--muted)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            Associar horário em lote
-          </Link>
-          <Link
-            href="/jornadas/nova"
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            Novo horário
-          </Link>
-        </div>}
       />
 
       <DataTableShell
@@ -110,7 +95,8 @@ export default async function JornadasPage({
           />
         }
       >
-        <div className="overflow-x-auto">
+        <StandardDataTable columns={[{ key: "codigo", label: "Codigo" }, { key: "nome", label: "Descricao" }, { key: "tipo", label: "Tipo" }, { key: "carga", label: "Carga" }, { key: "intervalo", label: "Intervalo" }, { key: "pessoas", label: "Pessoas" }, { key: "status", label: "Status" }]} rows={resultado.jornadas.map((jornada) => ({ id: jornada.id, label: jornada.nome, visualizarHref: `/jornadas/${jornada.id}`, editarHref: `/jornadas/${jornada.id}/editar`, cells: { codigo: { value: jornada.codigo }, nome: { value: jornada.nome, detail: jornada.descricao ?? undefined }, tipo: { value: jornada.tipo }, carga: { value: minutosParaHoras(jornada.cargaDiariaMinutos) }, intervalo: { value: jornada.exigeIntervalo ? `${jornada.intervaloMinimoMinutos ?? "-"} a ${jornada.intervaloMaximoMinutos ?? "-"} min` : "Nao" }, pessoas: { value: jornada._count.servidores }, status: { value: jornada.ativo ? "Ativa" : "Inativa", tone: jornada.ativo ? "success" : "muted" } } }))} emptyMessage="Nenhum horario encontrado para os filtros informados." podeEditar minWidth={920} />
+        <div className="hidden">
           <table className="w-full min-w-[920px] text-left text-sm">
             <caption className="sr-only">
               Listagem de horários de trabalho com código, descrição, tipo,
