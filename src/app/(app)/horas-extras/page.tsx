@@ -1,198 +1,59 @@
-import Link from "next/link";
-import { CalendarClock, Plus } from "lucide-react";
+import { CalendarClock } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
+import { DataTableShell, DataTableToolbar, StandardDataTable } from "@/components/listagens";
+import { Card, CardContent } from "@/components/ui";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { excluirRascunhoHorasExtrasAction } from "@/modules/horas-extras/application/actions/excluir-rascunho-horas-extras.action";
 import { listarConfiguracaoHorasExtras } from "@/modules/horas-extras/infrastructure/repositories/horas-extras-config.repository";
 import { listarSolicitacoesHorasExtras } from "@/modules/horas-extras/infrastructure/repositories/horas-extras-solicitacao.repository";
 import { ExcluirRascunhoHorasExtrasButton } from "@/modules/horas-extras/presentation/components/excluir-rascunho-horas-extras-button";
 
-const rotulosStatus: Record<string, string> = {
-  DRAFT: "Rascunho",
-  SUBMITTED: "Enviada",
-  IN_WORKFLOW: "Em tramitação",
-  RETURNED: "Devolvida",
-  APPROVED: "Aprovada",
-  REJECTED: "Rejeitada",
-  CANCELLED: "Cancelada",
-};
+const rotulosStatus: Record<string, string> = { DRAFT: "Rascunho", SUBMITTED: "Enviada", IN_WORKFLOW: "Em tramitação", RETURNED: "Devolvida", APPROVED: "Aprovada", REJECTED: "Rejeitada", CANCELLED: "Cancelada" };
+const formatarData = (data: Date) => new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(data);
+const formatarMinutos = (minutos: number) => `${String(Math.floor(minutos / 60)).padStart(2, "0")}:${String(minutos % 60).padStart(2, "0")}`;
 
-function formatarData(data: Date) {
-  return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(data);
-}
-
-function formatarMinutos(minutos: number) {
-  const horas = Math.floor(minutos / 60);
-  const resto = minutos % 60;
-  return `${String(horas).padStart(2, "0")}:${String(resto).padStart(2, "0")}`;
-}
-
-export default async function HorasExtrasPage() {
-  const permissao = await exigirUmaDasPermissoesOuRedirecionar([
-    "horas-extras:visualizar:proprio",
-    "horas-extras:solicitar:proprio",
-    "horas-extras:analisar:chefia",
-    "horas-extras:visualizar-execucao:global",
-    "horas-extras:visualizar-folha:global",
+export default async function HorasExtrasPage({ searchParams }: { searchParams?: Promise<{ pagina?: string; itensPorPagina?: string }> }) {
+  const [permissao, params = {}] = await Promise.all([
+    exigirUmaDasPermissoesOuRedirecionar(["horas-extras:visualizar:proprio", "horas-extras:solicitar:proprio", "horas-extras:analisar:chefia", "horas-extras:visualizar-execucao:global", "horas-extras:visualizar-folha:global"]),
+    searchParams,
   ]);
-  let configuracao: Awaited<ReturnType<typeof listarConfiguracaoHorasExtras>> | null =
-    null;
-  let solicitacoes: Awaited<ReturnType<typeof listarSolicitacoesHorasExtras>> =
-    [];
+  let configuracao: Awaited<ReturnType<typeof listarConfiguracaoHorasExtras>> | null = null;
+  let solicitacoes: Awaited<ReturnType<typeof listarSolicitacoesHorasExtras>> = [];
   let erroConfiguracao: string | null = null;
-
   try {
     [configuracao, solicitacoes] = await Promise.all([
-      listarConfiguracaoHorasExtras({
-        orgaoIds: permissao.orgaoIds,
-        escopoGlobal: permissao.perfilAtivoEscopoGlobal,
-      }),
-      listarSolicitacoesHorasExtras({
-        orgaoIds: permissao.orgaoIds,
-        escopoGlobal: permissao.perfilAtivoEscopoGlobal,
-        usuarioId: permissao.usuarioId,
-        limite: 10,
-      }),
+      listarConfiguracaoHorasExtras({ orgaoIds: permissao.orgaoIds, escopoGlobal: permissao.perfilAtivoEscopoGlobal }),
+      listarSolicitacoesHorasExtras({ orgaoIds: permissao.orgaoIds, escopoGlobal: permissao.perfilAtivoEscopoGlobal, usuarioId: permissao.usuarioId, limite: 100 }),
     ]);
   } catch (error) {
-    erroConfiguracao =
-      error instanceof Error
-        ? error.message
-        : "Não foi possível consultar a configuração de horas extras.";
+    erroConfiguracao = error instanceof Error ? error.message : "Não foi possível consultar a configuração de horas extras.";
   }
+  const itensPorPagina = Math.max(1, Number(params.itensPorPagina ?? 10));
+  const totalPaginas = Math.max(1, Math.ceil(solicitacoes.length / itensPorPagina));
+  const pagina = Math.min(Math.max(1, Number(params.pagina ?? 1)), totalPaginas);
+  const paginaSolicitacoes = solicitacoes.slice((pagina - 1) * itensPorPagina, pagina * itensPorPagina);
+  const montarHrefPagina = (novaPagina: number) => `/horas-extras?${new URLSearchParams({ pagina: String(novaPagina), itensPorPagina: String(itensPorPagina) })}`;
+  const politica = configuracao?.policies[0];
+  const versao = politica?.versions[0];
 
-  const politicaAtiva = configuracao?.policies[0];
-  const politicaVersionAtiva = politicaAtiva?.versions[0];
-
-  return (
-    <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Horas extras" }]} />
-
-      <PageHeader
-        icon={CalendarClock}
-        titulo="Horas extras"
-        descricao="Solicitacao, deferimento da chefia e apuracao pelo tempo extraordinario efetivamente trabalhado."
-        actions={
-          <Link
-            href="/horas-extras/nova"
-            className="secp-theme-primary-action inline-flex h-10 items-center justify-center gap-2 rounded-md border px-4 text-sm font-semibold shadow-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            Nova solicitação
-          </Link>
-        }
+  return <div className="space-y-3">
+    <PageHeader icon={CalendarClock} titulo="Horas extras" contexto={<Breadcrumb embedded items={[{ label: "Horas extras" }]} />} variant="blade" />
+    {erroConfiguracao ? <Card className="border-amber-200 bg-amber-50 text-amber-950"><CardContent className="pt-5 text-sm">{erroConfiguracao}</CardContent></Card> : null}
+    {politica && versao ? <div className="border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-xs text-[var(--muted-foreground)]"><strong className="text-[var(--foreground)]">Política ativa: {politica.name}.</strong> {versao.rateRules.length} regras e limite mensal de {formatarMinutos(versao.monthlyLimitMinutes ?? 0)}.</div> : null}
+    <DataTableShell title="Solicitações" total={solicitacoes.length} pagina={pagina} totalPaginas={totalPaginas} itensPorPagina={itensPorPagina} montarHrefPagina={montarHrefPagina} toolbar={<DataTableToolbar filtros={[]} mostrarFiltros={false} novoHref="/horas-extras/nova" novoLabel="Nova solicitação" />}>
+      <StandardDataTable
+        columns={[{ key: "numero", label: "Solicitação" }, { key: "periodo", label: "Período" }, { key: "horas", label: "Horas" }, { key: "status", label: "Status" }]}
+        rows={paginaSolicitacoes.map((solicitacao) => {
+          const total = solicitacao.days.reduce((soma, dia) => soma + dia.requestedMinutes, 0);
+          const rascunho = solicitacao.currentLifecycleStatus === "DRAFT";
+          return { id: solicitacao.id, label: solicitacao.requestNumber, visualizarHref: rascunho ? `/horas-extras/nova?rascunho=${solicitacao.id}` : undefined, cells: {
+            numero: { value: solicitacao.requestNumber }, periodo: { value: `${formatarData(solicitacao.periodStart)} a ${formatarData(solicitacao.periodEnd)}` }, horas: { value: formatarMinutos(total) }, status: { value: rotulosStatus[solicitacao.currentLifecycleStatus] ?? solicitacao.currentLifecycleStatus, tone: solicitacao.currentLifecycleStatus === "APPROVED" ? "success" : solicitacao.currentLifecycleStatus === "REJECTED" || solicitacao.currentLifecycleStatus === "CANCELLED" ? "danger" : "muted" },
+          }, actionItems: rascunho ? <div className="px-1 py-1"><ExcluirRascunhoHorasExtrasButton action={excluirRascunhoHorasExtrasAction.bind(null, solicitacao.id)} requestNumber={solicitacao.requestNumber} /></div> : undefined };
+        })}
+        emptyMessage="Nenhuma solicitação de horas extras registrada para o perfil atual."
       />
-
-      {erroConfiguracao && (
-        <Card className="border-amber-200 bg-amber-50 text-amber-950">
-          <CardContent className="pt-5 text-sm leading-6">
-            Configuração persistente indisponível. Aplique a migration de horas
-            extras e execute o seed para visualizar a politica ativa.
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>Minhas solicitações</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm leading-6">
-            {solicitacoes.length > 0 ? (
-              <div className="space-y-3">
-                {solicitacoes.map((solicitacao) => {
-                  const totalMinutos = solicitacao.days.reduce(
-                    (total, day) => total + day.requestedMinutes,
-                    0,
-                  );
-                  const rascunho =
-                    solicitacao.currentLifecycleStatus === "DRAFT";
-
-                  return (
-                    <div
-                      key={solicitacao.id}
-                      className="rounded-md border border-border p-3"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="font-semibold text-foreground">
-                          {solicitacao.requestNumber}
-                        </p>
-                        <span className="rounded bg-muted px-2 py-1 text-xs font-semibold text-muted-foreground">
-                          {rotulosStatus[solicitacao.currentLifecycleStatus] ??
-                            solicitacao.currentLifecycleStatus}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-muted-foreground">
-                        {formatarData(solicitacao.periodStart)} a{" "}
-                        {formatarData(solicitacao.periodEnd)} -{" "}
-                        {formatarMinutos(totalMinutos)}
-                      </p>
-                      {rascunho && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <Link
-                            href={`/horas-extras/nova?rascunho=${solicitacao.id}`}
-                            className="inline-flex h-9 items-center justify-center rounded-md border border-border px-3 text-xs font-semibold text-foreground transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                          >
-                            Continuar rascunho
-                          </Link>
-                          <ExcluirRascunhoHorasExtrasButton
-                            action={excluirRascunhoHorasExtrasAction.bind(
-                              null,
-                              solicitacao.id,
-                            )}
-                            requestNumber={solicitacao.requestNumber}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-muted-foreground">
-                Nenhuma solicitação de horas extras registrada para o perfil
-                atual.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Regra de apuracao</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm leading-6 text-muted-foreground">
-            A chefia defere ou indefere a solicitacao. Quando deferida, o SECP
-            cruza o periodo autorizado com as marcacoes reais: o menor valor vira
-            hora extra autorizada e o excedente fica como hora extra nao autorizada.
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Política</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm leading-6 text-muted-foreground">
-            {politicaAtiva && politicaVersionAtiva ? (
-              <>
-                <span className="font-semibold text-foreground">
-                  {politicaAtiva.name}
-                </span>
-                <span className="block">
-                  {politicaVersionAtiva.rateRules.length} regras de percentual
-                  ativas, com limite mensal de{" "}
-                  {formatarMinutos(politicaVersionAtiva.monthlyLimitMinutes ?? 0)}.
-                </span>
-              </>
-            ) : (
-              "A política inicial de referência usa 50% para dias úteis/sábados, 100% para domingos/feriados e limite de duas horas em dias úteis."
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
+    </DataTableShell>
+  </div>;
 }

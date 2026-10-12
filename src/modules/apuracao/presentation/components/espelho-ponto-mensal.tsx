@@ -39,6 +39,10 @@ import { AfastamentoTipoIcone } from "@/modules/servidores/presentation/componen
 import { SolicitacaoAjusteDiaDropdown } from "./solicitacao-ajuste-dia-dropdown";
 import { EspelhoPontoTabelaInterativa } from "./espelho-ponto-tabela-interativa";
 import {
+  EspelhoPontoTotaisTabela,
+  type TipoHoraResumo,
+} from "./espelho-ponto-totais-tabela";
+import {
   EspelhoPontoHistoricoAjustesInterativo,
   EspelhoPontoOcorrenciasInterativa,
 } from "./espelho-ponto-ocorrencias-interativa";
@@ -108,17 +112,6 @@ function permiteAcoesAjusteEspelho(
 
   return homologacao.status === "DEVOLVIDO";
 }
-
-type TipoHoraResumo = {
-  id: string;
-  label: string;
-  quantidade: number;
-  minutos: number;
-  percentual: number;
-  color: string;
-  observacao?: string;
-  observacaoTone?: "green" | "amber" | "red" | "neutral";
-};
 
 type OcorrenciaVisualizacao = {
   id: string;
@@ -746,7 +739,6 @@ export function EspelhoPontoMensal({
   apuracoes: ApuracaoMensalItem[];
   marcacoes: MarcacaoItem[];
   solicitacoes?: SolicitacaoEspelho[];
-  controles?: ReactNode;
   destaque?: {
     dataReferencia?: string | null;
     ocorrenciaId?: string | null;
@@ -1065,7 +1057,7 @@ export function EspelhoPontoMensal({
           destaque={destaque}
         />
       ) : (
-        <Card className="overflow-hidden">
+        <div className="overflow-hidden border border-[var(--border)] bg-[var(--card)]">
           <EspelhoPontoTabelaInterativa
             totalRegistros={totalRegistros}
             semanas={semanasSelecionaveis.map((semana) => {
@@ -1124,7 +1116,7 @@ export function EspelhoPontoMensal({
             painelOcorrencias={
               <PainelOcorrencias resumo={visualizacaoOcorrencias} />
             }
-            totaisPorTipo={<TabelaTotaisPorTipo tipos={tiposHora} />}
+            totaisPorTipo={<EspelhoPontoTotaisTabela tipos={tiposHora} />}
             ocorrencias={
               <EspelhoPontoOcorrenciasInterativa
                 ocorrencias={visualizacaoOcorrencias.linhas}
@@ -1592,7 +1584,7 @@ export function EspelhoPontoMensal({
               </table>
             </div>
           </EspelhoPontoTabelaInterativa>
-        </Card>
+        </div>
       )}
       </div>
     </section>
@@ -2832,110 +2824,6 @@ function OcorrênciaTipoCard({
   );
 }
 
-function TabelaTotaisPorTipo({ tipos }: { tipos: TipoHoraResumo[] }) {
-  return (
-    <div className="max-w-full overflow-x-auto">
-      <table className="w-full min-w-[820px] table-fixed border-separate border-spacing-0 text-left text-[11px] xl:min-w-0">
-        <colgroup>
-          <col className="w-[15rem]" />
-          <col className="w-[9rem]" />
-          <col className="w-[8rem]" />
-          <col className="w-[18rem]" />
-          <col className="w-[13rem]" />
-        </colgroup>
-        <thead className="text-[10px] uppercase tracking-wide text-[var(--muted-foreground)] shadow-sm">
-          <tr className="bg-[var(--muted)]">
-            <th className="border-b px-3 py-2 font-bold">Tipo de hora</th>
-            <th className="border-b px-3 py-2 text-center font-bold">
-              Quantidade de registros
-            </th>
-            <th className="border-b px-3 py-2 text-center font-bold">
-              Total de horas
-            </th>
-            <th className="border-b px-3 py-2 font-bold">Participação</th>
-            <th className="border-b px-3 py-2 font-bold">Saldo / observação</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tipos.map((tipo) => (
-            <tr
-              key={tipo.id}
-              data-espelho-row
-              data-search={textoNormalizado(
-                `${tipo.label} ${tipo.observacao ?? ""} ${minutosParaTexto(
-                  tipo.minutos,
-                )}`,
-              )}
-              className="border-b last:border-b-0"
-            >
-              <td className="px-3 py-1.5">
-                <span className="inline-flex items-center gap-2 font-semibold text-slate-700 dark:text-slate-200">
-                  <span className={`size-2.5 rounded-full ${tipo.color}`} />
-                  {tipo.label}
-                </span>
-              </td>
-              <td className="px-3 py-1.5 text-center font-bold text-slate-700 dark:text-slate-200">
-                {tipo.quantidade}
-              </td>
-              <td className="px-3 py-1.5 text-center font-bold text-slate-950 dark:text-slate-50">
-                {minutosParaTexto(tipo.minutos)}
-              </td>
-              <td className="px-3 py-1.5">
-                <div className="flex items-center gap-3">
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                    <span
-                      className={`block h-full rounded-full ${tipo.color}`}
-                      style={{ width: `${Math.min(100, tipo.percentual)}%` }}
-                    />
-                  </div>
-                  <span className="w-12 text-right font-semibold text-slate-500">
-                    {formatarPercentual(tipo.percentual)}
-                  </span>
-                </div>
-              </td>
-              <td className="px-3 py-1.5">
-                <BadgeObservacaoTipo
-                  label={tipo.observacao ?? "-"}
-                  tone={tipo.observacaoTone ?? "neutral"}
-                />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function BadgeObservacaoTipo({
-  label,
-  tone,
-}: {
-  label: string;
-  tone: "green" | "amber" | "red" | "neutral";
-}) {
-  const classe =
-    tone === "green"
-      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-      : tone === "amber"
-        ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-        : tone === "red"
-          ? "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
-          : "text-slate-500";
-
-  if (label === "-") {
-    return <span className="text-slate-400">-</span>;
-  }
-
-  return (
-    <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${classe}`}
-    >
-      {label}
-    </span>
-  );
-}
-
 function formatarPercentual(valor: number) {
   return `${valor.toLocaleString("pt-BR", {
     minimumFractionDigits: 1,
@@ -4005,10 +3893,10 @@ function Resumo({
             };
 
   return (
-    <div className="min-h-[52px] rounded-md border border-slate-200 bg-white px-2 py-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+    <div className="min-h-[52px] rounded-sm border border-[var(--border)] bg-[var(--card)] px-2 py-1.5">
       <div className="flex items-start gap-1.5">
         <span
-          className={`inline-flex size-7 shrink-0 items-center justify-center rounded-md ${estilo.bolha}`}
+          className={`inline-flex size-7 shrink-0 items-center justify-center rounded-sm ${estilo.bolha}`}
         >
           <Icone className="size-3.5" aria-hidden="true" />
         </span>

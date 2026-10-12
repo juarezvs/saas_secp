@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   CalendarDays,
   Check,
   Clock3,
@@ -50,6 +53,57 @@ function textoNormalizado(valor: string | null | undefined) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toUpperCase();
+}
+
+type Ordenacao = { coluna: string; direcao: "asc" | "desc" };
+
+function alternarOrdenacao(
+  atual: Ordenacao,
+  coluna: string,
+): Ordenacao {
+  return {
+    coluna,
+    direcao:
+      atual.coluna === coluna && atual.direcao === "asc" ? "desc" : "asc",
+  };
+}
+
+function CabecalhoOrdenavel({
+  coluna,
+  label,
+  ordenacao,
+  onChange,
+}: {
+  coluna: string;
+  label: string;
+  ordenacao: Ordenacao;
+  onChange: (ordenacao: Ordenacao) => void;
+}) {
+  const ativa = ordenacao.coluna === coluna;
+  const Icon = !ativa
+    ? ArrowUpDown
+    : ordenacao.direcao === "asc"
+      ? ArrowUp
+      : ArrowDown;
+
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(alternarOrdenacao(ordenacao, coluna))}
+      className="inline-flex items-center gap-1 whitespace-nowrap hover:text-[var(--foreground)]"
+    >
+      {label}
+      <Icon className="size-3.5" aria-hidden="true" />
+    </button>
+  );
+}
+
+function compararValores(a: string | number, b: string | number) {
+  if (typeof a === "number" && typeof b === "number") return a - b;
+  return String(a).localeCompare(String(b), "pt-BR", {
+    numeric: true,
+    sensitivity: "base",
+  });
 }
 
 function formatarDataCompletaReferenciaUtc(valor: Date | string) {
@@ -143,13 +197,38 @@ export function EspelhoPontoOcorrenciasInterativa({
   ocorrencias: OcorrenciaVisualizacaoInterativa[];
 }) {
   const [selecionadaId, setSelecionadaId] = useState(ocorrencias[0]?.id ?? "");
+  const [detalhesAbertos, setDetalhesAbertos] = useState(false);
+  const [ordenacao, setOrdenacao] = useState<Ordenacao>({
+    coluna: "data",
+    direcao: "asc",
+  });
+  const ocorrenciasOrdenadas = useMemo(() => {
+    const valor = (item: OcorrenciaVisualizacaoInterativa) => {
+      if (ordenacao.coluna === "data") return new Date(item.dataReferencia).getTime();
+      if (ordenacao.coluna === "dia") return item.dia;
+      if (ordenacao.coluna === "tipo") return item.tipoLabel;
+      if (ordenacao.coluna === "periodo") return item.periodo;
+      if (ordenacao.coluna === "duracao") return item.duracaoMinutos;
+      if (ordenacao.coluna === "situacao") return item.situacao;
+      return item.justificativa;
+    };
+
+    return [...ocorrencias].sort((a, b) => {
+      const resultado = compararValores(valor(a), valor(b));
+      return ordenacao.direcao === "asc" ? resultado : -resultado;
+    });
+  }, [ocorrencias, ordenacao]);
   const selecionada =
     ocorrencias.find((ocorrencia) => ocorrencia.id === selecionadaId) ??
     ocorrencias[0] ??
     null;
 
   return (
-    <div className="grid min-h-[22rem] gap-0 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <div
+      className={`grid min-h-[22rem] gap-0 ${
+        detalhesAbertos ? "lg:grid-cols-[minmax(0,1fr)_18rem]" : "grid-cols-1"
+      }`}
+    >
       <div className="min-w-0 overflow-x-auto">
         <div className="px-3 py-2">
           <h3 className="text-sm font-bold text-slate-950 dark:text-slate-50">
@@ -172,20 +251,26 @@ export function EspelhoPontoOcorrenciasInterativa({
           </colgroup>
           <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-600 dark:bg-slate-900 dark:text-slate-300">
             <tr>
-              <th className="border-b px-3 py-2 font-bold">Data</th>
-              <th className="border-b px-3 py-2 font-bold">Dia</th>
-              <th className="border-b px-3 py-2 font-bold">Tipo</th>
-              <th className="border-b px-3 py-2 font-bold">Período</th>
-              <th className="border-b px-3 py-2 font-bold">Duração</th>
-              <th className="border-b px-3 py-2 font-bold">Situação</th>
+              {[
+                ["data", "Data"],
+                ["dia", "Dia"],
+                ["tipo", "Tipo"],
+                ["periodo", "Período"],
+                ["duracao", "Duração"],
+                ["situacao", "Situação"],
+              ].map(([coluna, label]) => (
+                <th key={coluna} className="border-b px-3 py-2 font-bold">
+                  <CabecalhoOrdenavel coluna={coluna} label={label} ordenacao={ordenacao} onChange={setOrdenacao} />
+                </th>
+              ))}
               <th className="border-b px-3 py-2 font-bold">
-                Justificativa / observação
+                <CabecalhoOrdenavel coluna="justificativa" label="Justificativa / observação" ordenacao={ordenacao} onChange={setOrdenacao} />
               </th>
               <th className="border-b px-3 py-2 text-right font-bold">Ação</th>
             </tr>
           </thead>
           <tbody>
-            {ocorrencias.map((ocorrencia) => {
+            {ocorrenciasOrdenadas.map((ocorrencia) => {
               const selecionadaAtual = ocorrencia.id === selecionada?.id;
 
               return (
@@ -204,7 +289,10 @@ export function EspelhoPontoOcorrenciasInterativa({
                       ocorrencia.justificativa,
                     ].join(" "),
                   )}
-                  onClick={() => setSelecionadaId(ocorrencia.id)}
+                  onClick={() => {
+                    setSelecionadaId(ocorrencia.id);
+                    setDetalhesAbertos(true);
+                  }}
                   className={`cursor-pointer border-b odd:bg-white even:bg-slate-50/50 hover:bg-blue-50/70 dark:odd:bg-slate-950 dark:even:bg-slate-900/40 ${
                     selecionadaAtual ? "bg-blue-50/90 ring-1 ring-inset ring-blue-200" : ""
                   }`}
@@ -241,6 +329,7 @@ export function EspelhoPontoOcorrenciasInterativa({
                       onClick={(event) => {
                         event.stopPropagation();
                         setSelecionadaId(ocorrencia.id);
+                        setDetalhesAbertos(true);
                       }}
                       className="inline-flex size-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
                       aria-label="Ver detalhes da ocorrência"
@@ -265,6 +354,7 @@ export function EspelhoPontoOcorrenciasInterativa({
         </table>
       </div>
 
+      {detalhesAbertos ? (
       <aside className="border-l border-slate-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-950">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h3 className="text-sm font-bold text-slate-950 dark:text-slate-50">
@@ -283,6 +373,7 @@ export function EspelhoPontoOcorrenciasInterativa({
             ) : null}
             <button
               type="button"
+              onClick={() => setDetalhesAbertos(false)}
               className="inline-flex size-6 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               aria-label="Fechar detalhes da ocorrência"
             >
@@ -388,6 +479,7 @@ export function EspelhoPontoOcorrenciasInterativa({
           </p>
         )}
       </aside>
+      ) : null}
     </div>
   );
 }
@@ -509,6 +601,11 @@ export function EspelhoPontoHistoricoAjustesInterativo({
   solicitacoes: SolicitacaoHistoricoEspelho[];
 }) {
   const [selecionadaId, setSelecionadaId] = useState(solicitacoes[0]?.id ?? "");
+  const [detalhesAbertos, setDetalhesAbertos] = useState(false);
+  const [ordenacao, setOrdenacao] = useState<Ordenacao>({
+    coluna: "solicitacao",
+    direcao: "desc",
+  });
   const selecionada =
     solicitacoes.find((solicitacao) => solicitacao.id === selecionadaId) ??
     solicitacoes[0] ??
@@ -519,6 +616,23 @@ export function EspelhoPontoHistoricoAjustesInterativo({
   ).length;
   const reprovadas = solicitacoes.filter((item) => item.status === "INDEFERIDA").length;
   const canceladas = solicitacoes.filter((item) => item.status === "CANCELADA").length;
+  const solicitacoesOrdenadas = useMemo(() => {
+    const valor = (item: SolicitacaoHistoricoEspelho) => {
+      if (ordenacao.coluna === "solicitacao") return new Date(item.criadoEm).getTime();
+      if (ordenacao.coluna === "periodo") {
+        return item.dataInicio && item.dataFim ? "Intervalo" : "Dia inteiro";
+      }
+      if (ordenacao.coluna === "tipo") return rotuloTipoSolicitacao(item.tipo);
+      if (ordenacao.coluna === "data") return new Date(dataAfetada(item)).getTime();
+      if (ordenacao.coluna === "status") return statusHistorico(item.status);
+      return item.analisadaPor?.nome ?? "";
+    };
+
+    return [...solicitacoes].sort((a, b) => {
+      const resultado = compararValores(valor(a), valor(b));
+      return ordenacao.direcao === "asc" ? resultado : -resultado;
+    });
+  }, [ordenacao, solicitacoes]);
 
   return (
     <div>
@@ -530,7 +644,11 @@ export function EspelhoPontoHistoricoAjustesInterativo({
         <ResumoHistorico label="Cancelado" value={canceladas} tone="slate" />
       </div>
 
-      <div className="grid min-h-[24rem] lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <div
+        className={`grid min-h-[24rem] ${
+          detalhesAbertos ? "lg:grid-cols-[minmax(0,1fr)_18rem]" : "grid-cols-1"
+        }`}
+      >
         <div className="min-w-0 overflow-x-auto">
           <table className="w-full min-w-[840px] table-fixed border-separate border-spacing-0 text-left text-[11px]">
             <colgroup>
@@ -544,17 +662,23 @@ export function EspelhoPontoHistoricoAjustesInterativo({
             </colgroup>
             <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-600 dark:bg-slate-900 dark:text-slate-300">
               <tr>
-                <th className="border-b px-3 py-2 font-bold">Data solicitação</th>
-                <th className="border-b px-3 py-2 font-bold">Período</th>
-                <th className="border-b px-3 py-2 font-bold">Tipo de ajuste</th>
-                <th className="border-b px-3 py-2 font-bold">Data afetada</th>
-                <th className="border-b px-3 py-2 font-bold">Status</th>
-                <th className="border-b px-3 py-2 font-bold">Aprovado por</th>
+                {[
+                  ["solicitacao", "Data solicitação"],
+                  ["periodo", "Período"],
+                  ["tipo", "Tipo de ajuste"],
+                  ["data", "Data afetada"],
+                  ["status", "Status"],
+                  ["aprovador", "Aprovado por"],
+                ].map(([coluna, label]) => (
+                  <th key={coluna} className="border-b px-3 py-2 font-bold">
+                    <CabecalhoOrdenavel coluna={coluna} label={label} ordenacao={ordenacao} onChange={setOrdenacao} />
+                  </th>
+                ))}
                 <th className="border-b px-3 py-2 text-right font-bold">Ação</th>
               </tr>
             </thead>
             <tbody>
-              {solicitacoes.map((solicitacao) => {
+              {solicitacoesOrdenadas.map((solicitacao) => {
                 const selecionadaAtual = solicitacao.id === selecionada?.id;
                 const textoBusca = textoNormalizado(
                   [
@@ -573,7 +697,10 @@ export function EspelhoPontoHistoricoAjustesInterativo({
                     key={solicitacao.id}
                     data-espelho-row
                     data-search={textoBusca}
-                    onClick={() => setSelecionadaId(solicitacao.id)}
+                    onClick={() => {
+                      setSelecionadaId(solicitacao.id);
+                      setDetalhesAbertos(true);
+                    }}
                     className={`cursor-pointer odd:bg-white even:bg-slate-50/50 hover:bg-blue-50/70 dark:odd:bg-slate-950 dark:even:bg-slate-900/40 ${
                       selecionadaAtual ? "bg-blue-50/90 ring-1 ring-inset ring-blue-200" : ""
                     }`}
@@ -602,6 +729,7 @@ export function EspelhoPontoHistoricoAjustesInterativo({
                         onClick={(event) => {
                           event.stopPropagation();
                           setSelecionadaId(solicitacao.id);
+                          setDetalhesAbertos(true);
                         }}
                         className="inline-flex size-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
                         aria-label="Ver detalhes do ajuste"
@@ -623,6 +751,7 @@ export function EspelhoPontoHistoricoAjustesInterativo({
           </table>
         </div>
 
+        {detalhesAbertos ? (
         <aside className="border-l border-slate-100 bg-white p-3 dark:border-slate-800 dark:bg-slate-950">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h3 className="text-sm font-bold text-slate-950 dark:text-slate-50">
@@ -630,6 +759,7 @@ export function EspelhoPontoHistoricoAjustesInterativo({
             </h3>
             <button
               type="button"
+              onClick={() => setDetalhesAbertos(false)}
               className="inline-flex size-6 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               aria-label="Fechar detalhes do ajuste"
             >
@@ -722,6 +852,7 @@ export function EspelhoPontoHistoricoAjustesInterativo({
             </p>
           )}
         </aside>
+        ) : null}
       </div>
     </div>
   );

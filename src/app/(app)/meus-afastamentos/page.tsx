@@ -99,18 +99,20 @@ export default async function MeusAfastamentosPage({
       : "Licenças, afastamentos diversos e demais registros importados do SARH.";
 
   return (
-    <div className="space-y-6">
-      <Breadcrumb
-        items={[
-          { label: "Início", href: "/dashboard" },
-          { label: "Meus afastamentos" },
-        ]}
-      />
-
+    <div className="space-y-3">
       <PageHeader
         icon={CalendarX}
         titulo="Meus afastamentos"
-        descricao="Consulte licenças, férias e demais afastamentos importados do SARH que impactam o seu espelho de ponto."
+        contexto={
+          <Breadcrumb
+            embedded
+            items={[
+              { label: "Início", href: "/dashboard" },
+              { label: "Meus afastamentos" },
+            ]}
+          />
+        }
+        variant="blade"
       />
 
       <nav

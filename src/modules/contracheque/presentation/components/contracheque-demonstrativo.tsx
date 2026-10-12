@@ -1,4 +1,5 @@
 import { Badge, Card } from "@/components/ui";
+import { StandardDataTable } from "@/components/listagens";
 import type {
   ContrachequeDados,
   ContrachequeRubrica,
@@ -30,13 +31,6 @@ function Campo({ label, valor }: { label: string; valor?: string | null }) {
 
 function rubricaEhTotalizador(rubrica: ContrachequeRubrica) {
   return rubrica.tipo === "E";
-}
-
-function classeTipo(tipo: string) {
-  if (tipo === "R") return "bg-emerald-50 text-emerald-800 ring-emerald-200";
-  if (tipo === "D") return "bg-rose-50 text-rose-800 ring-rose-200";
-
-  return "bg-slate-50 text-slate-700 ring-slate-200";
 }
 
 export function ContrachequeDemonstrativo({
@@ -122,55 +116,31 @@ export function ContrachequeDemonstrativo({
           />
         </div>
 
-        <div className="overflow-x-auto rounded-md border">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase text-muted-foreground dark:bg-slate-950/50">
-              <tr>
-                <th className="px-3 py-2">Rubrica</th>
-                <th className="px-3 py-2">Descrição</th>
-                <th className="px-3 py-2 text-center">Sequência</th>
-                <th className="px-3 py-2 text-center">Tipo</th>
-                <th className="px-3 py-2 text-center">Prazo</th>
-                <th className="px-3 py-2 text-right">Valor</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {rubricas.map((rubrica) => (
-                <tr key={`${rubrica.codigo}-${rubrica.tipo}-${rubrica.sequencial}`}>
-                  <td className="whitespace-nowrap px-3 py-2 font-semibold">
-                    {rubrica.codigo}
-                  </td>
-                  <td className="min-w-64 px-3 py-2">{rubrica.descricao}</td>
-                  <td className="px-3 py-2 text-center">{rubrica.sequencial}</td>
-                  <td className="px-3 py-2 text-center">
-                    <span
-                      className={`inline-flex min-w-8 justify-center rounded-full px-2 py-1 text-xs font-bold ring-1 ${classeTipo(
-                        rubrica.tipo,
-                      )}`}
-                    >
-                      {rubrica.tipo || "-"}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-center">
-                    {rubrica.prazo ?? "-"}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2 text-right font-semibold">
-                    {formatarMoedaContracheque(rubrica.valor)}
-                  </td>
-                </tr>
-              ))}
-              {rubricas.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-8 text-center text-muted-foreground"
-                  >
-                    Nenhuma rubrica encontrada para a competência.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="overflow-x-auto border">
+          <StandardDataTable
+            columns={[
+              { key: "rubrica", label: "Rubrica" },
+              { key: "descricao", label: "Descrição" },
+              { key: "sequencia", label: "Sequência" },
+              { key: "tipo", label: "Tipo" },
+              { key: "prazo", label: "Prazo" },
+              { key: "valor", label: "Valor" },
+            ]}
+            rows={rubricas.map((rubrica) => ({
+              id: `${rubrica.codigo}-${rubrica.tipo}-${rubrica.sequencial}`,
+              label: rubrica.descricao,
+              cells: {
+                rubrica: { value: rubrica.codigo },
+                descricao: { value: rubrica.descricao },
+                sequencia: { value: rubrica.sequencial },
+                tipo: { value: rubrica.tipo || "-" },
+                prazo: { value: rubrica.prazo ?? "-" },
+                valor: { value: formatarMoedaContracheque(rubrica.valor) },
+              },
+            }))}
+            emptyMessage="Nenhuma rubrica encontrada para a competência."
+            minWidth={760}
+          />
         </div>
 
         <div className="grid gap-3 md:grid-cols-3">

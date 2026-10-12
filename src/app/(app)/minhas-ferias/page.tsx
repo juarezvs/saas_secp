@@ -9,6 +9,7 @@ import {
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
+import { StandardDataTable } from "@/components/listagens";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { buscarServidorPorUsuarioId } from "@/modules/marcacoes/infrastructure/repositories/marcacao.repository";
 import {
@@ -147,22 +148,6 @@ function AbasMinhasFerias({
   );
 }
 
-function classeStatus(status: string) {
-  if (status === "EM_GOZO") {
-    return "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300";
-  }
-
-  if (status === "PROGRAMADA") {
-    return "bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-200";
-  }
-
-  if (status === "INATIVA") {
-    return "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300";
-  }
-
-  return "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300";
-}
-
 function rotuloStatus(status: string) {
   if (status === "EM_GOZO") return "Em gozo";
   if (status === "PROGRAMADA") return "Programada";
@@ -256,61 +241,27 @@ function TabelaFeriasExercicio({
         </span>
       </div>
 
-      {ferias.length === 0 ? (
-        <div className="p-8 text-center text-sm text-[var(--muted-foreground)]">
-          Nenhuma programação de férias encontrada para o exercício selecionado.
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-sm">
-            <thead className="border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
-              <tr>
-                <th className="px-5 py-3">Período</th>
-                <th className="px-5 py-3">Ocorrência</th>
-                <th className="px-5 py-3">Dias</th>
-                <th className="px-5 py-3">Motivo/observação</th>
-                <th className="px-5 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ferias.map((item) => {
-                const status = statusFerias(item);
-
-                return (
-                  <tr key={item.id} className="border-b last:border-b-0">
-                    <td className="px-5 py-4 font-medium">
-                      {formatarData(item.dataInicio)} até{" "}
-                      {formatarData(item.dataFim)}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="rounded-full border bg-[var(--muted)] px-2 py-1 text-xs font-semibold uppercase">
-                        {ocorrenciaFerias(item)}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 font-mono text-xs">
-                      {calcularDiasFerias(item) ?? "-"}
-                    </td>
-                    <td className="px-5 py-4">
-                      <p className="max-w-xl whitespace-normal text-sm text-[var(--muted-foreground)]">
-                        {item.observacao || "-"}
-                      </p>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs font-semibold ${classeStatus(
-                          status,
-                        )}`}
-                      >
-                        {rotuloStatus(status)}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <StandardDataTable
+        columns={[
+          { key: "periodo", label: "Período" },
+          { key: "ocorrencia", label: "Ocorrência" },
+          { key: "dias", label: "Dias" },
+          { key: "observacao", label: "Motivo/observação" },
+          { key: "status", label: "Status" },
+        ]}
+        rows={ferias.map((item) => {
+          const status = statusFerias(item);
+          return { id: item.id, label: ocorrenciaFerias(item), cells: {
+            periodo: { value: `${formatarData(item.dataInicio)} até ${formatarData(item.dataFim)}` },
+            ocorrencia: { value: ocorrenciaFerias(item) },
+            dias: { value: calcularDiasFerias(item) ?? "-" },
+            observacao: { value: item.observacao || "-" },
+            status: { value: rotuloStatus(status), tone: status === "EM_GOZO" || status === "PROGRAMADA" ? "success" : status === "INATIVA" ? "danger" : "muted" },
+          } };
+        })}
+        emptyMessage="Nenhuma programação de férias encontrada para o exercício selecionado."
+        minWidth={760}
+      />
     </section>
   );
 }
@@ -357,18 +308,12 @@ export default async function MinhasFeriasPage({
   ]);
 
   return (
-    <div className="space-y-6">
-      <Breadcrumb
-        items={[
-          { label: "Início", href: "/dashboard" },
-          { label: "Minhas férias" },
-        ]}
-      />
-
+    <div className="space-y-3">
       <PageHeader
         icon={TreePalm}
         titulo="Minhas férias"
-        descricao="Consulte suas férias marcadas ou registre uma nova programação para análise da chefia."
+        contexto={<Breadcrumb embedded items={[{ label: "Início", href: "/dashboard" }, { label: "Minhas férias" }]} />}
+        variant="blade"
       />
 
       <MensagemFerias ok={query?.ok} erro={query?.erro} />

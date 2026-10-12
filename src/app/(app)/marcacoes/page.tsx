@@ -4,25 +4,19 @@ import {
   BarChart3,
   CalendarDays,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   Circle,
   Clock3,
   Coffee,
-  Download,
   Info,
   LogIn,
   LogOut,
-  Monitor,
-  MoreVertical,
-  Plus,
-  Search,
-  Smartphone,
   TimerReset,
   type LucideIcon,
 } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { PageHeader } from "@/components/layout/page-header";
+import { DataTableShell, DataTableToolbar, StandardDataTable } from "@/components/listagens";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { PERMISSOES_ACESSO_REGISTRO_PONTO_SECP } from "@/modules/auth/domain/constants/perfis-sistema";
 import { minutosParaTexto } from "@/modules/apuracao/application/services/calcular-tempo.service";
@@ -46,6 +40,8 @@ type MarcacoesPageProps = {
     tipo?: string;
     status?: string;
     origem?: string;
+    pagina?: string;
+    itensPorPagina?: string;
   }>;
 };
 
@@ -114,16 +110,6 @@ function meioDiaDataReferencia(data: Date) {
   return new Date(
     Date.UTC(data.getUTCFullYear(), data.getUTCMonth(), data.getUTCDate(), 12),
   );
-}
-
-function formatarData(data: Date, fusoHorario: string) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-    timeZone: fusoHorario,
-  }).format(meioDiaDataReferencia(data));
 }
 
 function formatarHora(data: Date, fusoHorario?: string | null) {
@@ -264,23 +250,6 @@ function obterOrigemRotulo(origem: string | null | undefined) {
   return origemRotulos[origem ?? ""] ?? origem ?? "Nao informada";
 }
 
-function origemIcone(origem: string | null | undefined): LucideIcon {
-  if (origem === "MOBILE") return Smartphone;
-  return Monitor;
-}
-
-function configurarStatus(status: string) {
-  if (status === "VALIDA") {
-    return { label: "Valida", className: "bg-emerald-50 text-emerald-700", dot: "bg-emerald-500" };
-  }
-  if (status === "PENDENTE") {
-    return { label: "Pendente", className: "bg-amber-50 text-amber-700", dot: "bg-amber-500" };
-  }
-  if (status === "AJUSTADA") {
-    return { label: "Ajustada", className: "bg-violet-50 text-violet-700", dot: "bg-violet-500" };
-  }
-  return { label: statusRotulos[status] ?? status, className: "bg-slate-100 text-slate-600", dot: "bg-slate-400" };
-}
 
 function classificarMarcacaoVisual(params: {
   marcacao: MarcacaoDoDia;
@@ -317,12 +286,6 @@ function classificarMarcacaoVisual(params: {
   return { label: obterRotuloTipoMarcacao(marcacao.tipo), subtitle: marcacao.observacao ?? "-", icon: Circle, color: "blue" };
 }
 
-function corMarcacao(color: string) {
-  if (color === "emerald") return "bg-emerald-50 text-emerald-700";
-  if (color === "rose") return "bg-rose-50 text-rose-600";
-  if (color === "blue") return "bg-blue-50 text-blue-700";
-  return "bg-slate-100 text-slate-600";
-}
 
 function filtrarMarcacoes(params: {
   marcacoes: MarcacaoDoDia[];
@@ -351,6 +314,18 @@ function filtrarMarcacoes(params: {
 
 function opcoesUnicas(marcacoes: MarcacaoDoDia[], chave: "tipo" | "status" | "fonte") {
   return Array.from(new Set(marcacoes.map((item) => item[chave]).filter(Boolean))).sort();
+}
+
+function hrefExportacaoCsv(marcacoes: MarcacaoDoDia[]) {
+  const csv = [
+    "hora,tipo,status,origem,observacao",
+    ...marcacoes.map((item) =>
+      [item.dataHora.toISOString(), obterRotuloTipoMarcacao(item.tipo), statusRotulos[item.status] ?? item.status, obterOrigemRotulo(item.fonte), item.observacao ?? ""]
+        .map((valor) => `"${String(valor).replaceAll('"', '""')}"`)
+        .join(","),
+    ),
+  ].join("\n");
+  return `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
 }
 
 function StatCard({
@@ -435,34 +410,6 @@ function TimelineJornada({
         <span>{previsao.saida ?? "--:--"}</span>
       </div>
     </section>
-  );
-}
-
-function CsvDownloadLink({ marcacoes, data }: { marcacoes: MarcacaoDoDia[]; data: string }) {
-  const csv = [
-    "hora,tipo,status,origem,observacao",
-    ...marcacoes.map((item) =>
-      [
-        item.dataHora.toISOString(),
-        obterRotuloTipoMarcacao(item.tipo),
-        statusRotulos[item.status] ?? item.status,
-        obterOrigemRotulo(item.fonte),
-        item.observacao ?? "",
-      ]
-        .map((valor) => `"${String(valor).replaceAll('"', '""')}"`)
-        .join(","),
-    ),
-  ].join("\n");
-
-  return (
-    <a
-      href={`data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`}
-      download={`marcacoes-${data}.csv`}
-      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-blue-100 bg-white px-4 text-sm font-bold text-blue-700 shadow-sm hover:bg-blue-50"
-    >
-      <Download className="size-4" aria-hidden="true" />
-      Exportar
-    </a>
   );
 }
 
@@ -580,6 +527,10 @@ export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps
     status: params?.status,
     origem: params?.origem,
   });
+  const itensPorPagina = Math.max(1, Number(params?.itensPorPagina ?? 10));
+  const totalPaginas = Math.max(1, Math.ceil(marcacoesFiltradas.length / itensPorPagina));
+  const pagina = Math.min(Math.max(1, Number(params?.pagina ?? 1)), totalPaginas);
+  const marcacoesPagina = marcacoesFiltradas.slice((pagina - 1) * itensPorPagina, pagina * itensPorPagina);
   const saidaPrevista =
     previsao.saidaEstimada ??
     previsao.saida ??
@@ -594,45 +545,17 @@ export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps
     }
     return query.toString();
   };
+  const montarHrefPagina = (novaPagina: number) => {
+    const query = new URLSearchParams(montarQueryData(dataReferencia));
+    query.set("pagina", String(novaPagina));
+    query.set("itensPorPagina", String(itensPorPagina));
+    return `/marcacoes?${query.toString()}`;
+  };
 
   return (
     <main className="space-y-3 text-slate-700">
-      <Breadcrumb items={[{ label: "Marcações" }]} />
-      <section className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
-        <div className="flex flex-col gap-4 border-t-4 border-blue-700 p-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 items-center gap-4">
-            <span className="grid size-14 shrink-0 place-items-center rounded-xl bg-blue-100 text-blue-700 shadow-sm">
-              <Clock3 className="size-7" aria-hidden="true" />
-            </span>
-            <div className="min-w-0">
-              <h1 className="text-2xl font-black tracking-normal text-blue-950 md:text-3xl">Marcações do dia</h1>
-              <p className="mt-1 text-sm font-medium text-slate-500">Consulte os registros de hoje e acompanhe sua jornada de trabalho.</p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex h-11 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-              <span className="grid w-12 place-items-center border-r bg-slate-50 text-blue-700">
-                <CalendarDays className="size-4" aria-hidden="true" />
-              </span>
-              <span className="grid min-w-64 place-items-center px-4 text-sm font-black text-blue-950">{formatarData(dataReferencia, fusoHorario)}</span>
-              <Link href={`/marcacoes?${montarQueryData(adicionarDias(dataReferencia, -1))}`} className="grid w-11 place-items-center border-l text-blue-700 hover:bg-blue-50" aria-label="Dia anterior">
-                <ChevronLeft className="size-4" aria-hidden="true" />
-              </Link>
-              <Link href={`/marcacoes?${montarQueryData(adicionarDias(dataReferencia, 1))}`} className="grid w-11 place-items-center border-l text-blue-700 hover:bg-blue-50" aria-label="Proximo dia">
-                <ChevronRight className="size-4" aria-hidden="true" />
-              </Link>
-            </div>
-
-            {podeRegistrarPonto ? (
-              <Link href="/marcacoes/registrar" className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 text-sm font-black text-white shadow-sm hover:bg-blue-800">
-                <Plus className="size-4" aria-hidden="true" />
-                Nova marcação
-              </Link>
-            ) : null}
-          </div>
-        </div>
-
+      <PageHeader icon={Clock3} titulo="Marcações do dia" contexto={<Breadcrumb embedded items={[{ label: "Marcações" }]} />} variant="blade" />
+      <section className="overflow-hidden border border-[var(--border)] bg-[var(--card)]">
         <div className="grid gap-3 border-t bg-slate-50/60 p-4 md:grid-cols-2 xl:grid-cols-6">
           <StatCard icon={Clock3} label="Entrada prevista" value={previsao.entrada ?? "--:--"} />
           <StatCard icon={Clock3} label="Saida prevista" value={previsao.saida ?? "--:--"} />
@@ -646,81 +569,15 @@ export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps
       <TimelineJornada previsao={previsao} trabalhado={trabalhado} />
 
       <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_21rem]">
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-col gap-3 border-b p-4">
-            <h2 className="inline-flex items-center gap-2 text-base font-black text-blue-950">
-              <CalendarDays className="size-4 text-blue-700" aria-hidden="true" />
-              Registros do dia ({marcacoes.length} marcações)
-            </h2>
-            <form className="grid gap-2 lg:grid-cols-[minmax(12rem,1fr)_11rem_11rem_11rem_auto_auto]">
-              <input type="hidden" name="data" value={inputData} />
-              <label className="relative block">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <input name="q" defaultValue={params?.q ?? ""} placeholder="Pesquisar marcações..." className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none focus:border-blue-500" />
-              </label>
-              <select name="tipo" defaultValue={params?.tipo ?? ""} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-blue-950">
-                <option value="">Todos os tipos</option>
-                {opcoesUnicas(marcacoes, "tipo").map((tipo) => <option key={tipo} value={tipo}>{obterRotuloTipoMarcacao(tipo)}</option>)}
-              </select>
-              <select name="status" defaultValue={params?.status ?? ""} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-blue-950">
-                <option value="">Todos os status</option>
-                {opcoesUnicas(marcacoes, "status").map((status) => <option key={status} value={status}>{statusRotulos[status] ?? status}</option>)}
-              </select>
-              <select name="origem" defaultValue={params?.origem ?? ""} className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-blue-950">
-                <option value="">Todas as origens</option>
-                {opcoesUnicas(marcacoes, "fonte").map((origem) => <option key={origem} value={origem}>{obterOrigemRotulo(origem)}</option>)}
-              </select>
-              <button className="h-10 rounded-lg bg-blue-700 px-4 text-sm font-black text-white hover:bg-blue-800">Filtrar</button>
-              <CsvDownloadLink marcacoes={marcacoesFiltradas} data={inputData} />
-            </form>
-          </div>
-
-          <div className="overflow-x-auto">
-            <div className="min-w-[58rem] divide-y divide-slate-100 p-4">
-              {marcacoesFiltradas.map((marcacao, indice) => {
-                const visual = classificarMarcacaoVisual({ marcacao, indice, total: marcacoes.length, previsao, fusoHorario });
-                const Icon = visual.icon;
-                const OrigemIcon = origemIcone(marcacao.fonte);
-                const status = configurarStatus(marcacao.status);
-
-                return (
-                  <div key={marcacao.id} className="grid grid-cols-[2rem_4.5rem_minmax(11rem,1fr)_10rem_8rem_minmax(10rem,1fr)_2rem] items-center gap-3 py-2.5 text-sm">
-                    <span className="grid size-7 place-items-center rounded-full bg-blue-50 text-xs font-black text-blue-700">{indice + 1}</span>
-                    <span className="font-mono text-base font-black text-blue-950">{formatarHora(marcacao.dataHora, fusoHorario)}</span>
-                    <span className="flex min-w-0 items-center gap-3">
-                      <span className={`grid size-10 shrink-0 place-items-center rounded-full ${corMarcacao(visual.color)}`}><Icon className="size-5" aria-hidden="true" /></span>
-                      <span className="min-w-0">
-                        <span className="block truncate font-black text-blue-950">{visual.label}</span>
-                        <span className="block truncate text-xs font-medium text-slate-500">{visual.subtitle}</span>
-                      </span>
-                    </span>
-                    <span className="inline-flex items-center gap-2 text-sm font-medium text-slate-500"><OrigemIcon className="size-4 text-blue-600" aria-hidden="true" />{obterOrigemRotulo(marcacao.fonte)}</span>
-                    <span className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs font-black ${status.className}`}><span className={`size-2 rounded-full ${status.dot}`} />{status.label}</span>
-                    <span className="truncate text-xs font-medium text-slate-500">{marcacao.observacao || "-"}</span>
-                    <button className="grid size-8 place-items-center rounded-lg text-blue-700 hover:bg-blue-50" aria-label="Opções da marcação"><MoreVertical className="size-4" aria-hidden="true" /></button>
-                  </div>
-                );
-              })}
-
-              {dataEhHoje && !marcacoes.some((item) => item.tipo === "SAIDA") ? (
-                <div className="grid grid-cols-[2rem_4.5rem_minmax(11rem,1fr)_10rem_8rem_minmax(10rem,1fr)_2rem] items-center gap-3 py-2.5 text-sm opacity-85">
-                  <span className="grid size-7 place-items-center rounded-full bg-blue-50 text-xs font-black text-blue-700">{marcacoesFiltradas.length + 1}</span>
-                  <span className="font-mono text-base font-black text-blue-950">{saidaPrevista}</span>
-                  <span className="flex min-w-0 items-center gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500"><Clock3 className="size-5" aria-hidden="true" /></span><span><span className="block font-black text-blue-950">Saida (prevista)</span><span className="block text-xs font-medium text-slate-500">Fim da jornada</span></span></span>
-                  <span className="text-slate-400">-</span>
-                  <span className="inline-flex w-fit items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-600"><span className="size-2 rounded-full bg-blue-400" />Aguardando</span>
-                  <span className="truncate text-xs font-medium text-slate-500">Proxima marcação esperada.</span>
-                  <span />
-                </div>
-              ) : null}
-
-              {marcacoesFiltradas.length === 0 &&
-              !(dataEhHoje && !marcacoes.some((item) => item.tipo === "SAIDA")) ? (
-                <div className="py-10 text-center text-sm font-medium text-slate-500">Nenhuma marcação encontrada para os filtros selecionados.</div>
-              ) : null}
-            </div>
-          </div>
-        </div>
+        <DataTableShell title="Registros do dia" total={marcacoesFiltradas.length} pagina={pagina} totalPaginas={totalPaginas} itensPorPagina={itensPorPagina} montarHrefPagina={montarHrefPagina} toolbar={<DataTableToolbar novoHref={podeRegistrarPonto ? "/marcacoes/registrar" : undefined} novoLabel="Nova marcacao" filtros={[
+          { nome: "data", label: "Data", tipo: "data", defaultValue: inputData },
+          { nome: "q", label: "Pesquisa", tipo: "texto", placeholder: "Tipo, origem ou observacao" },
+          { nome: "tipo", label: "Tipo", tipo: "select", options: [{ value: "", label: "Todos" }, ...opcoesUnicas(marcacoes, "tipo").map((tipo) => ({ value: tipo, label: obterRotuloTipoMarcacao(tipo) }))] },
+          { nome: "status", label: "Status", tipo: "select", options: [{ value: "", label: "Todos" }, ...opcoesUnicas(marcacoes, "status").map((status) => ({ value: status, label: statusRotulos[status] ?? status }))] },
+          { nome: "origem", label: "Origem", tipo: "select", options: [{ value: "", label: "Todas" }, ...opcoesUnicas(marcacoes, "fonte").map((origem) => ({ value: origem, label: obterOrigemRotulo(origem) }))] },
+        ]} acoes={[{ href: `/marcacoes?${montarQueryData(adicionarDias(dataReferencia, -1))}`, label: "Dia anterior" }, { href: `/marcacoes?${montarQueryData(adicionarDias(dataReferencia, 1))}`, label: "Próximo dia" }, { href: hrefExportacaoCsv(marcacoesFiltradas), label: "Exportar lista" }]} />}>
+          <StandardDataTable columns={[{ key: "hora", label: "Hora" }, { key: "tipo", label: "Tipo" }, { key: "origem", label: "Origem" }, { key: "status", label: "Status" }, { key: "observacao", label: "Observacao" }]} rows={marcacoesPagina.map((marcacao, indice) => { const visual = classificarMarcacaoVisual({ marcacao, indice, total: marcacoes.length, previsao, fusoHorario }); return { id: marcacao.id, label: visual.label, cells: { hora: { value: formatarHora(marcacao.dataHora, fusoHorario) }, tipo: { value: visual.label, detail: visual.subtitle }, origem: { value: obterOrigemRotulo(marcacao.fonte) }, status: { value: statusRotulos[marcacao.status] ?? marcacao.status, tone: marcacao.status === "VALIDA" ? "success" : marcacao.status === "CANCELADA" ? "danger" : "muted" }, observacao: { value: marcacao.observacao || "-" } } }; })} emptyMessage="Nenhuma marcacao encontrada para os filtros selecionados." minWidth={820} />
+        </DataTableShell>
 
         <aside className="space-y-3">
           <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">

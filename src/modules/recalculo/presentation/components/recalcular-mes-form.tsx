@@ -173,7 +173,7 @@ export function RecalcularMesForm({
     <div
       className={
         compacto
-          ? "flex min-w-0 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs shadow-sm dark:border-slate-800 dark:bg-slate-950"
+          ? "flex min-w-0 items-center gap-2 text-xs"
           : "flex flex-col gap-3 border-y py-3 sm:flex-row sm:items-center sm:justify-between"
       }
     >
@@ -210,7 +210,7 @@ export function RecalcularMesForm({
           title="Recalcular mês e banco de horas"
           className={
             compacto
-              ? "inline-flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-md bg-blue-900 px-2 text-xs font-semibold text-white hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-60"
+              ? "secp-theme-primary-action inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-sm border px-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60"
               : "inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-blue-900 px-3 text-sm font-semibold text-white hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-60"
           }
         >

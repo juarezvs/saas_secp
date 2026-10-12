@@ -72,12 +72,12 @@ export default async function MeuContrachequePage({
 
   if (!servidor) {
     return (
-      <div className="space-y-6">
-        <Breadcrumb items={[{ label: "Meu contracheque" }]} />
+      <div className="space-y-3">
         <PageHeader
           icon={FileText}
           titulo="Meu contracheque"
-          descricao="Consulte o próprio demonstrativo de pagamento diretamente no SARH."
+          contexto={<Breadcrumb embedded items={[{ label: "Meu contracheque" }]} />}
+          variant="blade"
         />
         <Card className="p-8 text-center text-sm text-muted-foreground">
           Nenhum servidor ativo vinculado ao usuário atual foi encontrado.
@@ -119,25 +119,26 @@ export default async function MeuContrachequePage({
   }
 
   return (
-    <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Meu contracheque" }]} />
-
+    <div className="space-y-3">
       <PageHeader
         icon={FileText}
         titulo="Meu contracheque"
-        actions={
-          contracheque ? (
+        contexto={<Breadcrumb embedded items={[{ label: "Meu contracheque" }]} />}
+        variant="blade"
+      />
+
+      {contracheque ? (
+        <div className="flex min-h-10 items-center border-y border-[var(--border)] px-2 py-1">
             <RelatorioExportacaoButton
               href={montarHrefExportacao(
                 competencia,
                 contracheque.documento.id,
               )}
               modo="auto"
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-blue-900 px-4 text-sm font-semibold text-white hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex h-8 items-center justify-center gap-2 rounded-sm px-2 text-xs font-medium hover:bg-[var(--muted)] disabled:opacity-70"
             />
-          ) : null
-        }
-      />
+        </div>
+      ) : null}
 
       <Card className="p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">

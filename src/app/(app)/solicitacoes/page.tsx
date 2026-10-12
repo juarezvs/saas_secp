@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { ClipboardList, Plus } from "lucide-react";
+import { ClipboardList } from "lucide-react";
 
 import { auth } from "@/auth";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
@@ -140,25 +139,15 @@ export default async function SolicitacoesPage({
   }
 
   return (
-    <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Solicitações" }]} />
-
+    <div className="space-y-3">
       <PageHeader
         icon={ClipboardList}
         titulo="Solicitações"
-        descricao="Solicite ajustes, compensações, justificativas, abonos, atividades externas, capacitações e viagens a serviço."
+        contexto={<Breadcrumb embedded items={[{ label: "Solicitações" }]} />}
+        variant="blade"
         artigo="Arts. 8, 9, 10, 13, 14 e 18"
         regraTitulo="Comunicação, autorização e correção de frequência"
         regraDescricao="As solicitações registram comunicações e pedidos que impactam a jornada, como ajuste de ponto, compensação, abono, atividade externa, capacitação e autorização prévia de horas."
-        actions={
-          <Link
-            href="/solicitacoes/nova"
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-950"
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            Nova solicitação
-          </Link>
-        }
       />
 
       <SolicitacoesTable

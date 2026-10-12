@@ -19,6 +19,7 @@ type EspelhoPontoFiltrosAutoProps = {
   podeSelecionarServidor?: boolean;
   pessoasSearchUrl?: string;
   mostrarServidor?: boolean;
+  mostrarCompetencia?: boolean;
   className?: string;
   compacto?: boolean;
   labelInline?: boolean;
@@ -35,6 +36,7 @@ export function EspelhoPontoFiltrosAuto({
   podeSelecionarServidor = false,
   pessoasSearchUrl,
   mostrarServidor = false,
+  mostrarCompetencia = true,
   className = "grid gap-4 md:grid-cols-[220px_minmax(0,1fr)] md:items-end",
   compacto = false,
   labelInline = false,
@@ -98,6 +100,7 @@ export function EspelhoPontoFiltrosAuto({
   return (
     <div className={compacto ? "relative" : "relative min-h-[4.625rem]"}>
       <div className={className} aria-busy={navegando}>
+        {mostrarCompetencia ? (
         <CompetenciaInput
           key={competencia}
           defaultValue={competencia}
@@ -114,6 +117,7 @@ export function EspelhoPontoFiltrosAuto({
           label={compacto ? null : undefined}
           onValueChange={aoTrocarCompetencia}
         />
+        ) : null}
 
         {mostrarServidor && (
           <div>

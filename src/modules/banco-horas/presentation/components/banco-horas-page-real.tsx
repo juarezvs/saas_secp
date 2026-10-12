@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
+import { PageHeader } from "@/components/layout/page-header";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import {
   BancoHorasCompetenciaAutoForm,
@@ -236,30 +237,6 @@ function KPI({
         {sub ? <p className="mt-0.5 text-xs font-bold text-emerald-700">{sub}</p> : null}
       </div>
     </article>
-  );
-}
-
-function BancoHorasHeader({
-  titulo,
-  descricao,
-}: {
-  titulo: string;
-  descricao: string;
-}) {
-  return (
-    <section className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
-      <div className="grid min-w-0 grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-x-2.5">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100">
-          <Hourglass className="size-5" aria-hidden="true" />
-        </div>
-        <h1 className="min-w-0 text-xl font-black leading-none tracking-normal text-slate-950 dark:text-slate-50">
-          {titulo}
-        </h1>
-        <p className="col-start-2 mt-0.5 max-w-4xl text-[11px] leading-4 text-slate-500">
-          {descricao}
-        </p>
-      </div>
-    </section>
   );
 }
 
@@ -783,15 +760,9 @@ export function BancoHorasPageReal({
   const perfilServidorAtivo = perfilAtivoCodigo?.toUpperCase() === "SERVIDOR";
 
   return (
-    <main className="-mt-4 space-y-1.5 text-slate-700">
-      <div className="flex min-h-9 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <Breadcrumb
-          items={[
-            { label: "Ponto" },
-            { label: "Banco de horas" },
-            { label: perfilServidorAtivo ? "Meu banco de horas" : "Banco de horas" },
-          ]}
-        />
+    <main className="space-y-3 text-slate-700">
+      <PageHeader icon={Hourglass} titulo={perfilServidorAtivo ? "Meu banco de horas" : "Banco de horas"} contexto={<Breadcrumb embedded items={[{ label: "Ponto" }, { label: "Banco de horas" }]} />} variant="blade" />
+      <div className="flex min-h-10 flex-col gap-2 border-y border-[var(--border)] px-2 py-1 sm:flex-row sm:items-center sm:justify-end">
         <div className="flex flex-wrap items-end gap-2 sm:justify-end">
           <Link
             href={hrefCompetencia({ ...anterior, servidorId: servidorSelecionado?.id })}
@@ -813,11 +784,6 @@ export function BancoHorasPageReal({
           </Link>
         </div>
       </div>
-
-      <BancoHorasHeader
-        titulo={perfilServidorAtivo ? "Meu banco de horas" : "Banco de horas"}
-        descricao="Acompanhe seu saldo, créditos, débitos, compensações e prazos regulamentares."
-      />
 
       {!servidorSelecionado ? (
         <section className="rounded-xl border bg-white p-10 text-center text-sm text-slate-500">

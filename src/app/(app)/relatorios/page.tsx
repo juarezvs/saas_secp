@@ -139,13 +139,12 @@ export default async function RelatoriosPage({
   const boletins = await listarBoletinsParaRelatorio({ orgaoIdsPermitidos });
 
   return (
-    <div className="space-y-6">
-      <Breadcrumb items={[{ label: "Relatórios" }]} />
-
+    <div className="space-y-3">
       <PageHeader
         icon={BarChart3}
         titulo="Relatórios do SECP"
-        descricao="Exporte espelho de ponto, banco de horas e boletins de frequência em PDF."
+        contexto={<Breadcrumb embedded items={[{ label: "Relatórios" }]} />}
+        variant="blade"
         artigo="Arts. 8, 16, 17 e 19"
         regraTitulo="Espelho, frequência mensal e boletim"
         regraDescricao="Os relatórios consolidam frequência diária, saldo de horas, apuração mensal e Boletim de Frequência, servindo de base para conferência, homologação e juntada no SEI."

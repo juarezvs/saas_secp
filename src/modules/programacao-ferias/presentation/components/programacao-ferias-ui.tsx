@@ -11,6 +11,7 @@ import {
   UnlockKeyhole,
   XCircle,
 } from "lucide-react";
+import { StandardDataTable } from "@/components/listagens";
 
 import {
   atualizarProgramacaoFeriasAction,
@@ -268,56 +269,36 @@ export function ProgramacoesFeriasTable({
           Acompanhe o fluxo desde o envio para chefia até a confirmação no SARH.
         </p>
       </div>
-      {programacoes.length === 0 ? (
-        <div className="p-8 text-center text-sm text-[var(--muted-foreground)]">
-          Nenhuma programação registrada no SECP.
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] text-left text-sm">
-            <thead className="border-b bg-[var(--muted)] text-xs uppercase text-[var(--muted-foreground)]">
-              <tr>
-                {mostrarServidor && <th className="px-5 py-3">Servidor</th>}
-                <th className="px-5 py-3">Período</th>
-                <th className="px-5 py-3">Exercício</th>
-                <th className="px-5 py-3">Dias</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Ação</th>
-              </tr>
-            </thead>
-            <tbody>
-              {programacoes.map((item) => (
-                <tr key={item.id} className="border-b last:border-b-0">
-                  {mostrarServidor && (
-                    <td className="px-5 py-4">
-                      <p className="font-semibold">{item.servidor?.usuario?.nome ?? item.servidor?.matricula}</p>
-                      <p className="text-xs text-[var(--muted-foreground)]">
-                        {item.unidade?.sigla ?? "-"} · {item.orgao?.sigla ?? "-"}
-                      </p>
-                    </td>
-                  )}
-                  <td className="px-5 py-4 font-medium">
-                    {formatarDataFerias(item.dataInicio)} até {formatarDataFerias(item.dataFim)}
-                  </td>
-                  <td className="px-5 py-4 font-mono text-xs">{item.exercicio}</td>
-                  <td className="px-5 py-4 font-mono text-xs">{item.dias}</td>
-                  <td className="px-5 py-4">
-                    <StatusProgramacaoFeriasBadge status={item.status} />
-                  </td>
-                  <td className="px-5 py-4">
-                    <Link
-                      href={`${baseHref}/${item.id}`}
-                      className="inline-flex h-9 items-center justify-center rounded-md border px-3 text-xs font-bold transition hover:bg-[var(--muted)]"
-                    >
-                      Abrir
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <StandardDataTable
+        columns={[
+          ...(mostrarServidor ? [{ key: "servidor", label: "Servidor" }] : []),
+          { key: "periodo", label: "Período" },
+          { key: "exercicio", label: "Exercício" },
+          { key: "dias", label: "Dias" },
+          { key: "status", label: "Status" },
+        ]}
+        rows={programacoes.map((item) => ({
+          id: item.id,
+          label: `Férias ${item.exercicio}`,
+          actionItems: (
+            <Link
+              href={`${baseHref}/${item.id}`}
+              className="block rounded-sm px-2 py-1.5 text-xs hover:bg-[var(--muted)]"
+            >
+              Visualizar
+            </Link>
+          ),
+          cells: {
+            ...(mostrarServidor ? { servidor: { value: item.servidor?.usuario?.nome ?? item.servidor?.matricula ?? "-", detail: `${item.unidade?.sigla ?? "-"} - ${item.orgao?.sigla ?? "-"}` } } : {}),
+            periodo: { value: `${formatarDataFerias(item.dataInicio)} até ${formatarDataFerias(item.dataFim)}` },
+            exercicio: { value: item.exercicio },
+            dias: { value: item.dias },
+            status: { value: rotuloStatusProgramacaoFerias(item.status), tone: item.status === "CONFIRMADA_SARH" || item.status === "APROVADA_CHEFIA" ? "success" : item.status === "REPROVADA_CHEFIA" ? "danger" : "muted" },
+          },
+        }))}
+        emptyMessage="Nenhuma programação registrada no SECP."
+        minWidth={860}
+      />
     </section>
   );
 }

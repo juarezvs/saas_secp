@@ -5,17 +5,33 @@ import {
   CalendarRange,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Filter,
   History,
   Search,
   SlidersHorizontal,
   Workflow,
+  X,
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Button, Modal } from "@/components/ui";
 
 const opcoesPorPagina = [10, 20, 30, 50];
+const paginationButtonClass =
+  "grid size-8 place-items-center rounded-sm border border-transparent text-xs font-medium transition hover:bg-[var(--muted)] disabled:pointer-events-none disabled:opacity-40";
+
+function placeholderBusca(
+  aba: "dias" | "semana" | "totais" | "ocorrencias" | "historico",
+) {
+  if (aba === "totais") return "Buscar tipo de hora...";
+  if (aba === "semana") return "Buscar dia da semana...";
+  if (aba === "ocorrencias") return "Buscar ocorrência...";
+  if (aba === "historico") return "Buscar ajuste...";
+  return "Buscar dia ou ocorrência...";
+}
 
 function normalizarBusca(valor: string) {
   return valor
@@ -79,22 +95,28 @@ export function EspelhoPontoTabelaInterativa({
     "dias" | "semana" | "totais" | "ocorrencias" | "historico"
   >(abaUrl);
   const [busca, setBusca] = useState("");
+  const [buscaRascunho, setBuscaRascunho] = useState("");
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [itensPorPagina, setItensPorPagina] = useState(10);
   const [pagina, setPagina] = useState(1);
   const [totalFiltrado, setTotalFiltrado] = useState(totalRegistros);
   const [semanaAtiva, setSemanaAtiva] = useState(semanaInicial);
   const [painelLateral, setPainelLateral] = useState<HTMLElement | null>(null);
   const buscaNormalizada = useMemo(() => normalizarBusca(busca), [busca]);
+  const exibindoDias = abaAtiva === "dias";
   const exibindoSemana = abaAtiva === "semana";
   const semanaAtual = semanas?.[semanaAtiva];
   const exibindoTotais = abaAtiva === "totais";
   const exibindoOcorrencias = abaAtiva === "ocorrencias";
   const exibindoHistorico = abaAtiva === "historico";
-  const totalPaginas = Math.max(1, Math.ceil(totalFiltrado / itensPorPagina));
+  const itensEfetivos = exibindoDias
+    ? Math.max(totalRegistros, totalFiltrado, 1)
+    : itensPorPagina;
+  const totalPaginas = Math.max(1, Math.ceil(totalFiltrado / itensEfetivos));
   const paginaSegura = Math.min(pagina, totalPaginas);
   const inicio =
-    totalFiltrado === 0 ? 0 : (paginaSegura - 1) * itensPorPagina + 1;
-  const fim = Math.min(paginaSegura * itensPorPagina, totalFiltrado);
+    totalFiltrado === 0 ? 0 : (paginaSegura - 1) * itensEfetivos + 1;
+  const fim = Math.min(paginaSegura * itensEfetivos, totalFiltrado);
 
   const conteudoPainelLateral = exibindoSemana
     ? (semanaAtual?.painel ?? painelSemana)
@@ -140,10 +162,10 @@ export function EspelhoPontoTabelaInterativa({
     });
     const paginaAtual = Math.min(
       Math.max(1, pagina),
-      Math.max(1, Math.ceil(linhasFiltradas.length / itensPorPagina)),
+      Math.max(1, Math.ceil(linhasFiltradas.length / itensEfetivos)),
     );
-    const indiceInicial = (paginaAtual - 1) * itensPorPagina;
-    const indiceFinal = indiceInicial + itensPorPagina;
+    const indiceInicial = (paginaAtual - 1) * itensEfetivos;
+    const indiceFinal = indiceInicial + itensEfetivos;
 
     linhas.forEach((linha) => {
       linha.hidden = true;
@@ -168,11 +190,12 @@ export function EspelhoPontoTabelaInterativa({
     );
   }, [
     exibindoHistorico,
+    exibindoDias,
     buscaNormalizada,
     exibindoOcorrencias,
     exibindoSemana,
     exibindoTotais,
-    itensPorPagina,
+    itensEfetivos,
     pagina,
     totalRegistros,
     totalRegistrosHistorico,
@@ -202,6 +225,7 @@ export function EspelhoPontoTabelaInterativa({
 
     setAbaAtiva(aba);
     setBusca("");
+    setBuscaRascunho("");
     setPagina(1);
     router.replace(destino, { scroll: false });
   }
@@ -248,7 +272,7 @@ export function EspelhoPontoTabelaInterativa({
         ? createPortal(conteudoPainelLateral, painelLateral)
         : null}
 
-      <div className="flex flex-col gap-2 border-b border-slate-100 px-3 py-2 lg:flex-row lg:items-center lg:justify-between dark:border-slate-800">
+      <div className="flex gap-1 overflow-x-auto border-b border-[var(--border)] px-2 pt-1">
         <div className="flex gap-1 overflow-x-auto">
           {abas.map((aba) => {
             const Icon = aba.icon;
@@ -269,10 +293,10 @@ export function EspelhoPontoTabelaInterativa({
                     trocarAba(aba.id);
                   }
                 }}
-                className={`inline-flex h-9 shrink-0 items-center gap-2 border-b-4 px-3 text-xs ${
+                className={`inline-flex h-10 shrink-0 items-center gap-2 border-b-2 px-3 text-xs transition ${
                   abaAtiva === aba.id
-                    ? "border-blue-600 font-black text-blue-700 dark:text-blue-300"
-                    : "border-transparent font-semibold text-slate-600 dark:text-slate-300 disabled:cursor-default"
+                    ? "border-[var(--secp-theme-accent)] font-semibold text-[var(--secp-theme-accent)]"
+                    : "border-transparent font-medium text-[var(--muted-foreground)] hover:bg-[var(--muted)]/60 hover:text-[var(--foreground)] disabled:cursor-default"
                 } disabled:opacity-70`}
               >
                 <Icon className="size-4" aria-hidden="true" />
@@ -281,9 +305,11 @@ export function EspelhoPontoTabelaInterativa({
             );
           })}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+      </div>
+
+      <div className="flex min-h-10 flex-wrap items-center gap-1 border-b border-[var(--border)] px-2 py-1">
           {exibindoSemana && semanas && semanas.length > 0 ? (
-            <div className="flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-white px-1 text-xs font-bold text-blue-950 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-blue-100">
+            <div className="mr-1 flex h-8 items-center gap-1 border-r border-[var(--border)] pr-2 text-xs font-medium">
               <button
                 type="button"
                 disabled={semanaAtiva <= 0}
@@ -291,12 +317,12 @@ export function EspelhoPontoTabelaInterativa({
                   setSemanaAtiva((valor) => Math.max(0, valor - 1));
                   setPagina(1);
                 }}
-                className="grid size-6 place-items-center rounded text-blue-700 disabled:text-slate-300"
+                className="grid size-7 place-items-center rounded-sm text-[var(--secp-theme-accent)] hover:bg-[var(--muted)] disabled:text-[var(--muted-foreground)]"
                 aria-label="Semana anterior"
               >
                 <ChevronLeft className="size-4" aria-hidden="true" />
               </button>
-              <span className="min-w-48 text-center">
+              <span className="min-w-48 text-center text-[var(--foreground)]">
                 Semana {semanaAtiva + 1}: {semanaAtual?.label}
               </span>
               <button
@@ -308,45 +334,102 @@ export function EspelhoPontoTabelaInterativa({
                   );
                   setPagina(1);
                 }}
-                className="grid size-6 place-items-center rounded text-blue-700 disabled:text-slate-300"
+                className="grid size-7 place-items-center rounded-sm text-[var(--secp-theme-accent)] hover:bg-[var(--muted)] disabled:text-[var(--muted-foreground)]"
                 aria-label="Próxima semana"
               >
                 <ChevronRight className="size-4" aria-hidden="true" />
               </button>
             </div>
           ) : null}
-          <label className="flex h-8 min-w-[230px] items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-500 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-            <Search className="size-4 text-slate-400" aria-hidden="true" />
-            <input
-              type="search"
-              value={busca}
-              onChange={(event) => {
-                setBusca(event.target.value);
-                setPagina(1);
-              }}
-              placeholder={
-                exibindoTotais
-                  ? "Buscar tipo de hora..."
-                  : exibindoSemana
-                    ? "Buscar dia da semana..."
-                    : exibindoOcorrencias
-                      ? "Buscar ocorrência..."
-                      : exibindoHistorico
-                        ? "Buscar ajuste..."
-                        : "Buscar dia ou ocorrência..."
-              }
-              className="h-full min-w-0 flex-1 bg-transparent text-slate-700 outline-none placeholder:text-slate-400 dark:text-slate-200"
-            />
-          </label>
           <button
             type="button"
-            className="inline-flex h-8 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+            onClick={() => {
+              setBuscaRascunho(busca);
+              setFiltrosAbertos(true);
+            }}
+            className="inline-flex h-8 items-center gap-1.5 rounded-sm px-2 text-xs font-medium transition hover:bg-[var(--muted)]"
           >
-            <Filter className="size-4" aria-hidden="true" />
+            <SlidersHorizontal className="size-4" aria-hidden="true" />
             Filtros
+            {busca ? (
+              <span className="grid size-5 place-items-center rounded-full bg-[var(--primary)] text-[var(--primary-foreground)]">
+                1
+              </span>
+            ) : null}
+          </button>
+
+          <span className="ml-1 text-xs text-[var(--muted-foreground)]">
+            {totalFiltrado > 0
+              ? `${inicio}-${fim} de ${totalFiltrado}`
+              : "0 registros"}
+          </span>
+
+          {!exibindoDias ? (
+          <div className="ml-auto flex items-center gap-0.5">
+            <select
+              value={itensPorPagina}
+              onChange={(event) => {
+                setItensPorPagina(Number(event.target.value));
+                setPagina(1);
+              }}
+              className="mr-1 h-8 rounded-sm border border-transparent bg-transparent px-2 text-xs font-medium outline-none hover:bg-[var(--muted)] focus:border-[var(--secp-theme-accent)]"
+              aria-label="Itens por página"
+            >
+              {opcoesPorPagina.map((opcao) => (
+                <option key={opcao} value={opcao}>
+                  {opcao} por página
+                </option>
+              ))}
+            </select>
+            <button type="button" disabled={paginaSegura <= 1} onClick={() => irParaPagina(1)} className={paginationButtonClass} aria-label="Primeira página" title="Primeira página">
+              <ChevronsLeft className="size-4" />
+            </button>
+            <button type="button" disabled={paginaSegura <= 1} onClick={() => irParaPagina(paginaSegura - 1)} className={paginationButtonClass} aria-label="Página anterior">
+              <ChevronLeft className="size-4" />
+            </button>
+            {paginas.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => irParaPagina(item)}
+                className={`${paginationButtonClass} ${
+                  item === paginaSegura
+                    ? "border-[var(--border)] bg-[var(--muted)] text-[var(--foreground)]"
+                    : ""
+                }`}
+                aria-current={item === paginaSegura ? "page" : undefined}
+              >
+                {item}
+              </button>
+            ))}
+            <button type="button" disabled={paginaSegura >= totalPaginas} onClick={() => irParaPagina(paginaSegura + 1)} className={paginationButtonClass} aria-label="Próxima página">
+              <ChevronRight className="size-4" />
+            </button>
+            <button type="button" disabled={paginaSegura >= totalPaginas} onClick={() => irParaPagina(totalPaginas)} className={paginationButtonClass} aria-label="Última página" title="Última página">
+              <ChevronsRight className="size-4" />
+            </button>
+          </div>
+          ) : null}
+        </div>
+
+      {busca ? (
+        <div className="flex items-center gap-1.5 border-b border-[var(--border)] px-3 py-2">
+          <Filter className="size-3.5 text-[var(--muted-foreground)]" aria-hidden="true" />
+          <button
+            type="button"
+            onClick={() => {
+              setBusca("");
+              setBuscaRascunho("");
+              setPagina(1);
+            }}
+            className="inline-flex h-7 items-center gap-1 rounded-sm border border-[var(--border)] bg-[var(--muted)]/50 px-2 text-xs hover:bg-[var(--muted)]"
+          >
+            <b>Pesquisa:</b>
+            <span className="max-w-64 truncate">{busca}</span>
+            <X className="size-3" aria-hidden="true" />
           </button>
         </div>
-      </div>
+      ) : null}
 
       <div ref={containerRef}>
         {exibindoSemana
@@ -360,60 +443,53 @@ export function EspelhoPontoTabelaInterativa({
                 : children}
       </div>
 
-      <div className="flex flex-col gap-2 border-t border-slate-100 px-4 py-2 text-xs text-slate-500 md:flex-row md:items-center md:justify-between dark:border-slate-800">
-        <span>
-          {totalFiltrado > 0
-            ? `Mostrando ${inicio} a ${fim} de ${totalFiltrado} registros`
-            : "Mostrando 0 registros"}
-        </span>
-        <div className="flex items-center gap-2">
-          <select
-            value={itensPorPagina}
-            onChange={(event) => {
-              setItensPorPagina(Number(event.target.value));
-              setPagina(1);
-            }}
-            className="h-9 rounded-md border border-slate-200 bg-white px-3 font-semibold text-slate-700 shadow-sm outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
-            aria-label="Itens por página"
-          >
-            {opcoesPorPagina.map((opcao) => (
-              <option key={opcao} value={opcao}>
-                {opcao} por página
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            disabled={paginaSegura <= 1}
-            onClick={() => irParaPagina(paginaSegura - 1)}
-            className="rounded-md border border-slate-200 px-3 py-2 font-semibold text-slate-700 disabled:pointer-events-none disabled:text-slate-400 dark:border-slate-800 dark:text-slate-200"
-          >
-            &lt;
-          </button>
-          {paginas.map((item) => (
-            <button
-              key={item}
+      <Modal
+        open={filtrosAbertos}
+        onOpenChange={setFiltrosAbertos}
+        title="Filtros do espelho"
+        description="Localize registros na visualização ativa."
+        className="w-[min(94vw,34rem)]"
+      >
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            setBusca(buscaRascunho.trim());
+            setPagina(1);
+            setFiltrosAbertos(false);
+          }}
+        >
+          <label className="text-sm font-medium text-[var(--foreground)]">
+            Pesquisa
+            <span className="mt-2 flex h-10 items-center gap-2 rounded-md border border-[var(--input)] bg-[var(--background)] px-3 focus-within:border-[var(--secp-theme-accent)]">
+              <Search className="size-4 text-[var(--muted-foreground)]" aria-hidden="true" />
+              <input
+                autoFocus
+                type="search"
+                value={buscaRascunho}
+                onChange={(event) => setBuscaRascunho(event.target.value)}
+                placeholder={placeholderBusca(abaAtiva)}
+                className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none"
+              />
+            </span>
+          </label>
+          <div className="mt-6 flex justify-between border-t border-[var(--border)] pt-4">
+            <Button
               type="button"
-              onClick={() => irParaPagina(item)}
-              className={
-                item === paginaSegura
-                  ? "rounded-md bg-blue-600 px-3 py-2 font-bold text-white shadow-sm"
-                  : "rounded-md border border-slate-200 px-3 py-2 font-semibold text-slate-700 dark:border-slate-800 dark:text-slate-200"
-              }
+              variant="ghost"
+              onClick={() => {
+                setBusca("");
+                setBuscaRascunho("");
+                setPagina(1);
+                setFiltrosAbertos(false);
+              }}
+              disabled={!busca && !buscaRascunho}
             >
-              {item}
-            </button>
-          ))}
-          <button
-            type="button"
-            disabled={paginaSegura >= totalPaginas}
-            onClick={() => irParaPagina(paginaSegura + 1)}
-            className="rounded-md border border-slate-200 px-3 py-2 font-semibold text-slate-700 disabled:pointer-events-none disabled:text-slate-400 dark:border-slate-800 dark:text-slate-200"
-          >
-            &gt;
-          </button>
-        </div>
-      </div>
+              Limpar filtro
+            </Button>
+            <Button type="submit">Aplicar filtro</Button>
+          </div>
+        </form>
+      </Modal>
     </>
   );
 }
