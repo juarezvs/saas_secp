@@ -23,7 +23,7 @@ export async function PUT(request: Request) {
   }
   try {
     await atualizarPerfilPessoalSarh({ matricula: session.user.matricula, usuarioId: session.user.id, dados: parsed.data });
-    return NextResponse.json({ sucesso: true, mensagem: "Dados atualizados no SARH." });
+    return NextResponse.json({ sucesso: true, confirmado: true, mensagem: "Dados atualizados no SARH." });
   } catch (error) {
     return NextResponse.json({ mensagem: error instanceof Error ? error.message : "Falha ao atualizar o SARH." }, { status: 500 });
   }

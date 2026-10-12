@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import { toast } from "@/components/ui/toast";
 
 type Opcao = { codigo: string; nome: string };
 type Dominios = Record<"RACA" | "COR_CABELO" | "COR_OLHOS" | "TIPO_SANGUINEO" | "IDENTIDADE_GENERO", Opcao[]>;
@@ -111,6 +112,12 @@ export function PerfilPessoalDrawer({ nome, matricula, funcaoOuCargo, fotoUrl }:
   async function salvar(event: React.FormEvent) {
     event.preventDefault();
     if (!perfil) return;
+    const toastId = toast.show({
+      title: "Atualizando dados",
+      description: "Enviando suas informações básicas para o SARH.",
+      variant: "info",
+      duration: 100000,
+    });
     setSalvando(true);
     setErro(null);
     setMensagem(null);
@@ -122,9 +129,23 @@ export function PerfilPessoalDrawer({ nome, matricula, funcaoOuCargo, fotoUrl }:
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.mensagem ?? "Falha ao atualizar o SARH.");
+      if (payload.sucesso !== true || payload.confirmado !== true) {
+        throw new Error("O SARH não confirmou a atualização dos dados.");
+      }
       setMensagem(payload.mensagem);
+      toast.update(toastId, {
+        title: "Dados atualizados",
+        description: payload.mensagem ?? "Suas informações básicas foram atualizadas no SARH.",
+        variant: "success",
+      });
     } catch (error) {
-      setErro(error instanceof Error ? error.message : "Falha ao atualizar o SARH.");
+      const mensagemErro = error instanceof Error ? error.message : "Falha ao atualizar o SARH.";
+      setErro(mensagemErro);
+      toast.update(toastId, {
+        title: "Não foi possível atualizar",
+        description: mensagemErro,
+        variant: "error",
+      });
     } finally {
       setSalvando(false);
     }
