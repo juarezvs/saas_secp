@@ -12,6 +12,7 @@ import { toast } from "@/components/ui";
 
 let toastCarregamentoId: string | null = null;
 let chaveUrlAtual = "";
+let navegacaoEspelhoEmAndamento = false;
 
 type Props = {
   estadoSarh: "AGUARDANDO" | "SINCRONIZANDO" | null;
@@ -33,6 +34,7 @@ function mostrarEtapa(title: string, description: string) {
 }
 
 export function notificarCarregamentoEspelho() {
+  navegacaoEspelhoEmAndamento = true;
   mostrarEtapa(
     "Atualizando espelho",
     "Carregando as informações da competência selecionada.",
@@ -55,7 +57,9 @@ export function EspelhoPontoCarregamentoToast({
 
   useEffect(() => {
     if (!sarhEmAndamento && !recalculoEmAndamento) return;
-    const interval = window.setInterval(() => router.refresh(), 2000);
+    const interval = window.setInterval(() => {
+      if (!navegacaoEspelhoEmAndamento) router.refresh();
+    }, 15000);
     return () => window.clearInterval(interval);
   }, [recalculoEmAndamento, router, sarhEmAndamento]);
 
@@ -133,6 +137,7 @@ export function EspelhoPontoCarregamentoToast({
 
   useEffect(() => {
     if (chaveUrlAtual && chave !== chaveUrlAtual && toastCarregamentoId) {
+      navegacaoEspelhoEmAndamento = false;
       if (sarhEmAndamento || recalculoEmAndamento) {
         acompanhouProcessamento.current = true;
       } else {
