@@ -36,6 +36,7 @@ async function getRelatorioEspelhoPdf(request: Request, context: RouteContext) {
   const podeExportarGlobal =
     !perfilChefiaAtivo &&
     (permissoes.includes("relatorios:exportar:global") ||
+      permissoes.includes("apuracao:consultar:seccional") ||
       permissoes.includes("apuracao:consultar:global"));
   const podeExportarChefia =
     perfilChefiaAtivo ||
@@ -102,7 +103,8 @@ async function getRelatorioEspelhoPdf(request: Request, context: RouteContext) {
         servidor,
         podeExportarGlobal,
         podeExportarChefia,
-        podeExportarProprio: podeExportarProprio || podeVisualizarEspelhoProprio,
+        podeExportarProprio:
+          podeExportarProprio || podeVisualizarEspelhoProprio,
       }))
     ) {
       return new Response("Acesso negado ao servidor informado.", {

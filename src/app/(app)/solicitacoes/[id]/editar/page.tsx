@@ -62,6 +62,7 @@ function montarValoresIniciais(
     dataFim: formatarDateTimeInput(solicitacao.dataFim),
     tipoMarcacao: String(dados.tipoMarcacao ?? ""),
     horaAjuste: String(dados.horaAjuste ?? ""),
+    marcacaoId: String(dados.marcacaoId ?? ""),
     tipoCompensacao: String(dados.tipoCompensacao ?? "") as
       "UTILIZAR_CREDITO" | "COMPENSAR_DEBITO" | "",
     horasSolicitadas:
@@ -121,7 +122,12 @@ export default async function EditarSolicitacaoPage({ params }: PageProps) {
         tipoInicial={solicitacao.tipo}
         valoresIniciais={valoresIniciais}
         action={atualizarSolicitacaoAction}
-        hiddenFields={{ solicitacaoId: solicitacao.id }}
+        hiddenFields={{
+          solicitacaoId: solicitacao.id,
+          ...(valoresIniciais?.marcacaoId
+            ? { marcacaoId: valoresIniciais.marcacaoId }
+            : {}),
+        }}
         submitLabel="Salvar alterações"
       />
     </div>

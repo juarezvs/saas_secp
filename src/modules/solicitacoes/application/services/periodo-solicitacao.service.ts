@@ -13,8 +13,10 @@ export const TIPOS_SOLICITACAO_COM_EFEITO_APURACAO = [
 
 export const TIPOS_SOLICITACAO_COM_RECALCULO_APOS_DEFERIMENTO = [
   "AJUSTE_PONTO",
+  "EXCLUSAO_MARCACAO",
   "COMPENSACAO",
   ...TIPOS_SOLICITACAO_COM_EFEITO_APURACAO,
+  "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
 ] as const;
 
 export const TIPOS_SOLICITACAO_PERIODO_DIA_INTEIRO = [
@@ -119,7 +121,9 @@ export function listarDatasImpactadasSolicitacao(
     return [];
   }
 
-  const inicio = new Date(`${chaveDataLocal(inicioBase, fusoHorario)}T00:00:00.000Z`);
+  const inicio = new Date(
+    `${chaveDataLocal(inicioBase, fusoHorario)}T00:00:00.000Z`,
+  );
   const fim = new Date(`${chaveDataLocal(fimBase, fusoHorario)}T00:00:00.000Z`);
   const datas: Date[] = [];
   const cursor = new Date(inicio);

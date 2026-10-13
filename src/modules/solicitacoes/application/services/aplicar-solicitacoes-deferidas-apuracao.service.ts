@@ -56,7 +56,9 @@ const TIPOS_INCONSISTENTES = [
 
 const TIPOS_OCORRENCIA_SALDO = ["CREDITO", "DEBITO", "FALTA"] as const;
 
-function recomputarStatus(ocorrencias: ResultadoCalculoApuracaoDiaria["ocorrencias"]) {
+function recomputarStatus(
+  ocorrencias: ResultadoCalculoApuracaoDiaria["ocorrencias"],
+) {
   return ocorrencias.some((ocorrencia) =>
     TIPOS_INCONSISTENTES.includes(
       ocorrencia.tipo as (typeof TIPOS_INCONSISTENTES)[number],
@@ -149,11 +151,9 @@ export function aplicarSolicitacoesDeferidasApuracao(params: {
   let capacitacaoParcialExigeComplementacao = false;
   let capacitacaoInternaSemRegistroBiometrico = false;
   let frequenciaManualRegistrada:
-    | ResultadoCalculoApuracaoDiaria["frequenciaManual"]
-    | null = null;
-  let trabalhoRemoto:
-    | ResultadoCalculoApuracaoDiaria["trabalhoRemoto"]
-    | null = null;
+    ResultadoCalculoApuracaoDiaria["frequenciaManual"] | null = null;
+  let trabalhoRemoto: ResultadoCalculoApuracaoDiaria["trabalhoRemoto"] | null =
+    null;
   const solicitacoesAplicadas: SolicitacaoAplicada[] = [];
 
   for (const solicitacao of solicitacoes) {
@@ -181,11 +181,7 @@ export function aplicarSolicitacoesDeferidasApuracao(params: {
       }
 
       solicitacoesAplicadas.push(
-        buildSolicitacaoAplicada(
-          solicitacao,
-          jornada.cargaDiariaMinutos,
-          true,
-        ),
+        buildSolicitacaoAplicada(solicitacao, jornada.cargaDiariaMinutos, true),
       );
       continue;
     }
@@ -366,17 +362,25 @@ export function aplicarSolicitacoesDeferidasApuracao(params: {
     };
   }
 
-  if (["INCOMPLETA", "SEM_JORNADA", "SEM_EXPEDIENTE"].includes(calculo.resultado)) {
+  if (
+    ["INCOMPLETA", "SEM_JORNADA", "SEM_EXPEDIENTE"].includes(calculo.resultado)
+  ) {
     return {
       calculo,
       solicitacoesAplicadas,
     };
   }
 
-  let minutosTrabalhados = Math.max(calculo.minutosTrabalhados, coberturaMinima);
+  let minutosTrabalhados = Math.max(
+    calculo.minutosTrabalhados,
+    coberturaMinima,
+  );
 
   if (bloquearCredito) {
-    minutosTrabalhados = Math.min(minutosTrabalhados, jornada.cargaDiariaMinutos);
+    minutosTrabalhados = Math.min(
+      minutosTrabalhados,
+      jornada.cargaDiariaMinutos,
+    );
   }
 
   const saldo = minutosTrabalhados - jornada.cargaDiariaMinutos;

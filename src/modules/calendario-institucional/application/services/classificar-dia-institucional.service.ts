@@ -483,6 +483,17 @@ function eventoAplicavelAoServidor(
   return false;
 }
 
+function eventoVigenteNaData(
+  evento: EventoCalendarioInstitucionalPeriodo,
+  dataReferencia: Date,
+) {
+  const data = normalizarDataReferencia(dataReferencia);
+  const inicio = normalizarDataReferencia(evento.dataReferencia);
+  const fim = normalizarDataReferencia(evento.dataFim ?? evento.dataReferencia);
+
+  return inicio <= data && fim >= data;
+}
+
 const prioridadeAbrangencia: Record<string, number> = {
   NACIONAL: 1,
   ESTADUAL: 2,
@@ -554,7 +565,9 @@ async function carregarEventoDoDia(
       eventos = eventoNacional ? [eventoNacional] : [];
     }
   }
-  const ativos = eventos.filter((evento) => evento.ativo);
+  const ativos = eventos.filter(
+    (evento) => evento.ativo && eventoVigenteNaData(evento, dataReferencia),
+  );
 
   if (ativos.length === 0) {
     return null;

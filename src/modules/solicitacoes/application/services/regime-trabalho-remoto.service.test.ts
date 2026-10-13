@@ -41,9 +41,11 @@ describe("regime-trabalho-remoto.service", () => {
     };
 
     expect(diaSemanaDaDataReferencia(segunda)).toBe("SEGUNDA");
-    expect(regimeTrabalhoRemotoCobreData({ regime, dataReferencia: segunda }))
-      .toBe(true);
-    expect(regimeTrabalhoRemotoCobreData({ regime, dataReferencia: terca }))
-      .toBe(false);
+    expect(
+      regimeTrabalhoRemotoCobreData({ regime, dataReferencia: segunda }),
+    ).toBe(true);
+    expect(
+      regimeTrabalhoRemotoCobreData({ regime, dataReferencia: terca }),
+    ).toBe(false);
   });
 });

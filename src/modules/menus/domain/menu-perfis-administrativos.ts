@@ -52,6 +52,7 @@ const pessoasMaster: ItemMenuPerfilPadrao[] = pessoasAdministrador
   });
 
 const frequencia: ItemMenuPerfilPadrao[] = [
+  { itemCatalogo: "/espelho-ponto", label: "Espelhos de ponto da seccional" },
   { itemCatalogo: "/marcacoes-brutas", label: "Marcações recebidas" },
   { itemCatalogo: "/manutencao/marcacoes", label: "Manutenção de marcações" },
   { itemCatalogo: "/afd", label: "Arquivos AFD" },
@@ -104,6 +105,10 @@ const bancoHorasExtras: ItemMenuPerfilPadrao[] = [
 ];
 
 const cadastrosAuxiliares: ItemMenuPerfilPadrao[] = [
+  {
+    itemCatalogo: "/cadastros-auxiliares/mct",
+    label: "Rubricas, políticas e regras MCT",
+  },
   {
     itemCatalogo: "/cadastros-auxiliares/tipos-feriados-suspensoes",
     label: "Tipos de feriados e suspensões",
@@ -349,10 +354,6 @@ export const MENUS_PERFIS_ADMINISTRATIVOS: Record<
             label: "Liberação de rotinas",
           },
           { itemCatalogo: "/administracao/suporte", label: "Suporte do login" },
-          {
-            itemCatalogo: "/administracao/personalizar-menu",
-            label: "Personalizar menus",
-          },
         ],
       },
     ],
@@ -372,10 +373,6 @@ export const MENUS_PERFIS_ADMINISTRATIVOS: Record<
             label: "Configurações globais",
           },
           { itemCatalogo: "/perfis", label: "Perfis e permissões globais" },
-          {
-            itemCatalogo: "/administracao/personalizar-menu",
-            label: "Personalizar menus",
-          },
           {
             itemCatalogo: "/administracao/liberacao-rotinas",
             label: "Liberação de rotinas",

@@ -33,12 +33,17 @@ async function getEspelhoPontoPessoas(request: NextRequest) {
     permissoes.permissoes,
     "apuracao:consultar:global",
   );
+  const podeConsultarSeccional = usuarioPossuiPermissaoNoPerfil(
+    permissoes.perfilAtivoCodigo,
+    permissoes.permissoes,
+    "apuracao:consultar:seccional",
+  );
   const perfilChefiaAtivo = perfilAtivoEhChefia({
     perfilAtivoCodigo: permissoes.perfilAtivoCodigo,
     permissoes: permissoes.permissoes,
   });
   const podeConsultarTodosServidores =
-    podeConsultarGlobal && !perfilChefiaAtivo;
+    (podeConsultarGlobal || podeConsultarSeccional) && !perfilChefiaAtivo;
 
   if (!podeConsultarTodosServidores && !perfilChefiaAtivo) {
     return NextResponse.json({ options: [] }, { status: 403 });

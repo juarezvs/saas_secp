@@ -5,6 +5,7 @@ import { AlertTriangle, PenLine } from "lucide-react";
 
 import { Button, Modal } from "@/components/ui";
 import { enviarEspelhoHomologacaoAction } from "../../application/actions/enviar-espelho-homologacao.action";
+import type { PreValidacaoCompetenciaMct } from "@/modules/mct/application/services/pre-validar-competencia-mct.service";
 
 type AssinaturaInfo = {
   orgao?: string | null;
@@ -16,6 +17,7 @@ type EnviarEspelhoHomologacaoModalProps = {
   anoReferencia: number;
   mesReferencia: number;
   assinatura?: AssinaturaInfo;
+  diagnosticoMct?: PreValidacaoCompetenciaMct;
 };
 
 function BotaoAssinarEnviar({ pending }: { pending: boolean }) {
@@ -42,6 +44,7 @@ export function EnviarEspelhoHomologacaoModal({
   anoReferencia,
   mesReferencia,
   assinatura,
+  diagnosticoMct,
 }: EnviarEspelhoHomologacaoModalProps) {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(
@@ -115,6 +118,41 @@ export function EnviarEspelhoHomologacaoModal({
             ) : null}
           </div>
         </form>
+
+        {diagnosticoMct ? (
+          <section className="mt-4 border border-[var(--border)] p-4 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="font-semibold">Pré-validação MCT</h3>
+                <p className="text-xs text-[var(--muted-foreground)]">
+                  Diagnóstico SHADOW sem efeito no envio ou na homologação.
+                </p>
+              </div>
+              <span className="font-mono text-xs">
+                {diagnosticoMct.diasAnalisados}/{diagnosticoMct.diasApurados} dias
+              </span>
+            </div>
+            {diagnosticoMct.pendencias.length ? (
+              <ul className="mt-3 divide-y divide-[var(--border)] border-t border-[var(--border)]">
+                {diagnosticoMct.pendencias.map((pendencia) => (
+                  <li key={pendencia.tipo} className="flex gap-3 py-2">
+                    <AlertTriangle className={`mt-0.5 size-4 shrink-0 ${pendencia.severidade === "CRITICA" ? "text-red-600" : pendencia.severidade === "ATENCAO" ? "text-amber-600" : "text-[var(--muted-foreground)]"}`} aria-hidden="true" />
+                    <div className="min-w-0">
+                      <p className="font-medium">{pendencia.descricao}</p>
+                      <p className="text-xs text-[var(--muted-foreground)]">
+                        {pendencia.quantidade} dia(s): {pendencia.datas.join(", ")}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-emerald-700 dark:text-emerald-300">
+                Nenhuma pendência diagnóstica identificada nas execuções disponíveis.
+              </p>
+            )}
+          </section>
+        ) : null}
 
         <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-950 dark:border-red-900 dark:bg-red-950 dark:text-red-100">
           <div className="flex gap-3">

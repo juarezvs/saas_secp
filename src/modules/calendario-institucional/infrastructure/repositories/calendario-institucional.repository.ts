@@ -125,7 +125,10 @@ export async function listarEventosCalendarioInstitucionalNoPeriodo(
       ativo: true,
       dataReferencia: { lt: normalizarDataReferencia(fimExclusivo) },
       OR: [
-        { dataFim: null },
+        {
+          dataFim: null,
+          dataReferencia: { gte: normalizarDataReferencia(inicio) },
+        },
         { dataFim: { gte: normalizarDataReferencia(inicio) } },
       ],
     },
@@ -146,7 +149,10 @@ export async function buscarEventoCalendarioInstitucionalPorData(
     where: {
       dataReferencia: { lte: normalizarDataReferencia(dataReferencia) },
       OR: [
-        { dataFim: null },
+        {
+          dataFim: null,
+          dataReferencia: { gte: normalizarDataReferencia(dataReferencia) },
+        },
         { dataFim: { gte: normalizarDataReferencia(dataReferencia) } },
       ],
       abrangencia: "NACIONAL",
@@ -174,7 +180,12 @@ export async function buscarConflitoEventoCalendarioInstitucional(params: {
         lte: normalizarDataReferencia(params.dataFim ?? params.dataReferencia),
       },
       OR: [
-        { dataFim: null },
+        {
+          dataFim: null,
+          dataReferencia: {
+            gte: normalizarDataReferencia(params.dataReferencia),
+          },
+        },
         { dataFim: { gte: normalizarDataReferencia(params.dataReferencia) } },
       ],
       abrangencia: params.abrangencia as never,

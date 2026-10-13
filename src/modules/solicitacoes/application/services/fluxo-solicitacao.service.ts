@@ -1,6 +1,7 @@
 export function rotuloTipoSolicitacao(tipo: string) {
   const rotulos: Record<string, string> = {
     AJUSTE_PONTO: "Ajuste de ponto",
+    EXCLUSAO_MARCACAO: "ExclusÃ£o de marcaÃ§Ã£o",
     COMPENSACAO: "Compensação",
     ABONO_JUSTIFICATIVA: "Abono/justificativa",
     ATIVIDADE_EXTERNA: "Atividade externa",
@@ -9,6 +10,8 @@ export function rotuloTipoSolicitacao(tipo: string) {
     DISPENSA_PONTO: "Dispensa de ponto",
     HORA_CREDITO_PREVIA: "Autorização prévia de hora-crédito",
     FOLGA_BANCO_HORAS: "Folga com banco de horas",
+    CONVERSAO_DIA_ESPECIAL_BANCO_HORAS:
+      "Conversão de trabalho em dia especial",
   };
 
   return rotulos[tipo] ?? tipo;

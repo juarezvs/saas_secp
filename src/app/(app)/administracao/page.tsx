@@ -1,5 +1,4 @@
-﻿
-import {
+﻿import {
   Building2,
   CalendarClock,
   CalendarDays,
@@ -13,7 +12,6 @@ import {
   LifeBuoy,
   MessageSquare,
   Network,
-  Palette,
   Settings,
   ServerCog,
   ShieldAlert,
@@ -75,31 +73,33 @@ export default async function AdministracaoPage() {
   const cards: CardAdministracao[] = [
     {
       titulo: "Configurações globais",
-      descricao: "Defina domínios de e-mail e parâmetros compartilhados por todas as seccionais.",
+      descricao:
+        "Defina domínios de e-mail e parâmetros compartilhados por todas as seccionais.",
       href: "/administracao/configuracoes-globais",
       icon: Globe2,
       permissoes: ["configuracoes:gerenciar:global"],
     },
     {
       titulo: "Liberação de rotinas",
-      descricao: "Controle a disponibilidade operacional das rotinas liberadas aos perfis.",
+      descricao:
+        "Controle a disponibilidade operacional das rotinas liberadas aos perfis.",
       href: "/administracao/liberacao-rotinas",
       icon: ToggleLeft,
-      permissoes: ["configuracoes:gerenciar:seccional", "configuracoes:gerenciar:global"],
+      permissoes: [
+        "configuracoes:gerenciar:seccional",
+        "configuracoes:gerenciar:global",
+      ],
     },
     {
       titulo: "Suporte do login",
-      descricao: "Cadastre a URL da ferramenta aberta pelo botão Solicitar Suporte.",
+      descricao:
+        "Cadastre a URL da ferramenta aberta pelo botão Solicitar Suporte.",
       href: "/administracao/suporte",
       icon: LifeBuoy,
-      permissoes: ["configuracoes:gerenciar:seccional", "configuracoes:gerenciar:global"],
-    },
-    {
-      titulo: "Personalizar menu",
-      descricao: "Ajuste grupos, nomes, ícones e ordem do menu lateral por perfil.",
-      href: "/administracao/personalizar-menu",
-      icon: Palette,
-      permissoes: ["menus:personalizar:seccional", "menus:personalizar:global"],
+      permissoes: [
+        "configuracoes:gerenciar:seccional",
+        "configuracoes:gerenciar:global",
+      ],
     },
     {
       titulo: "Perfis e permissões",
@@ -113,7 +113,12 @@ export default async function AdministracaoPage() {
       descricao: "Administre contas, vínculos de perfil e escopo de atuação.",
       href: hrefComOrgao("/usuarios"),
       icon: UsersRound,
-      permissoes: ["usuarios:consultar:seccional", "usuarios:gerenciar:seccional", "usuarios:consultar:global", "usuarios:gerenciar:global"],
+      permissoes: [
+        "usuarios:consultar:seccional",
+        "usuarios:gerenciar:seccional",
+        "usuarios:consultar:global",
+        "usuarios:gerenciar:global",
+      ],
     },
     {
       titulo: "Órgãos",
@@ -124,21 +129,29 @@ export default async function AdministracaoPage() {
     },
     {
       titulo: "Unidades",
-      descricao: "Mantenha a estrutura organizacional e as vinculações administrativas.",
+      descricao:
+        "Mantenha a estrutura organizacional e as vinculações administrativas.",
       href: hrefComOrgao("/unidades"),
       icon: Building2,
       permissoes: ["unidades:gerenciar:seccional", "unidades:gerenciar:global"],
     },
     {
       titulo: "Servidores",
-      descricao: "Gerencie servidores, vínculos funcionais, usuários e lotações.",
+      descricao:
+        "Gerencie servidores, vínculos funcionais, usuários e lotações.",
       href: hrefComOrgao("/servidores"),
       icon: Users,
-      permissoes: ["servidores:consultar:seccional", "servidores:gerenciar:seccional", "servidores:consultar:global", "servidores:gerenciar:global"],
+      permissoes: [
+        "servidores:consultar:seccional",
+        "servidores:gerenciar:seccional",
+        "servidores:consultar:global",
+        "servidores:gerenciar:global",
+      ],
     },
     {
       titulo: "Chefias",
-      descricao: "Gerencie gestores, substitutos, delegações e responsáveis por unidades.",
+      descricao:
+        "Gerencie gestores, substitutos, delegações e responsáveis por unidades.",
       href: hrefComOrgao("/chefias"),
       icon: Network,
       permissoes: ["chefias:gerenciar:seccional", "chefias:gerenciar:global"],
@@ -148,84 +161,134 @@ export default async function AdministracaoPage() {
       descricao: "Consulte titulares e substitutos automaticos por unidade.",
       href: "/administracao/substituicoes-funcao?tipo=AUTOMATICA",
       icon: UserRoundCheck,
-      permissoes: ["substituicoes-funcao:consultar:seccional", "substituicoes-funcao:gerenciar:seccional", "substituicoes-funcao:consultar:global", "substituicoes-funcao:gerenciar:global"],
+      permissoes: [
+        "substituicoes-funcao:consultar:seccional",
+        "substituicoes-funcao:gerenciar:seccional",
+        "substituicoes-funcao:consultar:global",
+        "substituicoes-funcao:gerenciar:global",
+      ],
     },
     {
       titulo: "Substituicoes de funcao",
       descricao: "Cadastre atos e periodos efetivos de substituicao.",
       href: "/administracao/substituicoes-funcao",
       icon: UserRoundCheck,
-      permissoes: ["substituicoes-funcao:consultar:seccional", "substituicoes-funcao:gerenciar:seccional", "substituicoes-funcao:consultar:global", "substituicoes-funcao:gerenciar:global"],
+      permissoes: [
+        "substituicoes-funcao:consultar:seccional",
+        "substituicoes-funcao:gerenciar:seccional",
+        "substituicoes-funcao:consultar:global",
+        "substituicoes-funcao:gerenciar:global",
+      ],
     },
     {
       titulo: "Relatório de substituições",
-      descricao: "Consulte substituições ocorridas com base nas ausências do titular.",
+      descricao:
+        "Consulte substituições ocorridas com base nas ausências do titular.",
       href: "/substituicoes-funcao/relatorio",
       icon: FileText,
-      permissoes: ["substituicoes-funcao:relatorio:proprio", "substituicoes-funcao:relatorio:subordinados", "substituicoes-funcao:relatorio:seccional", "substituicoes-funcao:relatorio:global"],
+      permissoes: [
+        "substituicoes-funcao:relatorio:proprio",
+        "substituicoes-funcao:relatorio:subordinados",
+        "substituicoes-funcao:relatorio:seccional",
+        "substituicoes-funcao:relatorio:global",
+      ],
     },
     {
       titulo: "Horário de Trabalho",
-      descricao: "Cadastre horários, escalas e atribuições aplicáveis às pessoas.",
+      descricao:
+        "Cadastre horários, escalas e atribuições aplicáveis às pessoas.",
       href: hrefComOrgao("/jornadas"),
       icon: CalendarClock,
       permissoes: ["jornadas:gerenciar:seccional", "jornadas:gerenciar:global"],
     },
     {
       titulo: "AFD",
-      descricao: "Importe arquivos AFD e acompanhe o processamento das marcações.",
+      descricao:
+        "Importe arquivos AFD e acompanhe o processamento das marcações.",
       href: "/afd",
       icon: Upload,
       permissoes: ["afd:importar:seccional", "afd:importar:global"],
     },
     {
       titulo: "Apuração",
-      descricao: "Consulte e recalcule apurações diárias e mensais de frequência.",
+      descricao:
+        "Consulte e recalcule apurações diárias e mensais de frequência.",
       href: hrefComOrgao("/apuracao"),
       icon: FileCheck2,
-      permissoes: ["apuracao:consultar:seccional", "apuracao:recalcular:seccional", "apuracao:consultar:global", "apuracao:recalcular:global"],
+      permissoes: [
+        "apuracao:consultar:seccional",
+        "apuracao:recalcular:seccional",
+        "apuracao:consultar:global",
+        "apuracao:recalcular:global",
+      ],
     },
     {
       titulo: "Regulamentação do ponto",
-      descricao: "Configure limites, prazos, tolerâncias e regras por seccional.",
+      descricao:
+        "Configure limites, prazos, tolerâncias e regras por seccional.",
       href: hrefComOrgao("/administracao/regulamentacao-ponto"),
       icon: SlidersHorizontal,
-      permissoes: ["regulamentacao-ponto:gerenciar:seccional", "regulamentacao-ponto:gerenciar:global"],
+      permissoes: [
+        "regulamentacao-ponto:gerenciar:seccional",
+        "regulamentacao-ponto:gerenciar:global",
+      ],
     },
     {
       titulo: "Procedimentos de frequência",
-      descricao: "Parametrize e execute procedimentos administrativos por seccional.",
+      descricao:
+        "Parametrize e execute procedimentos administrativos por seccional.",
       href: "/administracao/procedimentos-frequencia",
       icon: FileText,
-      permissoes: ["procedimentos-frequencia:consultar:seccional", "procedimentos-frequencia:gerenciar:seccional", "procedimentos-frequencia:consultar:global", "procedimentos-frequencia:gerenciar:global"],
+      permissoes: [
+        "procedimentos-frequencia:consultar:seccional",
+        "procedimentos-frequencia:gerenciar:seccional",
+        "procedimentos-frequencia:consultar:global",
+        "procedimentos-frequencia:gerenciar:global",
+      ],
     },
     {
       titulo: "Nada Consta de frequência",
       descricao: "Emita e registre o Nada Consta no motor de procedimentos.",
       href: "/administracao/procedimentos-frequencia/nada-consta",
       icon: FileCheck2,
-      permissoes: ["procedimentos-frequencia:emitir-nada-consta:seccional", "procedimentos-frequencia:emitir-nada-consta:global"],
+      permissoes: [
+        "procedimentos-frequencia:emitir-nada-consta:seccional",
+        "procedimentos-frequencia:emitir-nada-consta:global",
+      ],
     },
     {
       titulo: "Banco de horas",
       descricao: "Defina saldos, implantação e transferências excepcionais.",
       href: hrefComOrgao("/administracao/banco-horas"),
       icon: Clock3,
-      permissoes: ["banco-horas:gerenciar:seccional", "banco-horas:gerenciar:global"],
+      permissoes: [
+        "banco-horas:gerenciar:seccional",
+        "banco-horas:gerenciar:global",
+      ],
     },
     {
       titulo: "Horas extras",
       descricao: "Configure políticas, responsáveis e fluxos de aprovação.",
       href: "/administracao/horas-extras",
       icon: SlidersHorizontal,
-      permissoes: ["horas-extras:configurar-politica:seccional", "horas-extras:configurar-workflow:seccional", "horas-extras:configurar-responsaveis:seccional", "horas-extras:configurar-politica:global", "horas-extras:configurar-workflow:global", "horas-extras:configurar-responsaveis:global"],
+      permissoes: [
+        "horas-extras:configurar-politica:seccional",
+        "horas-extras:configurar-workflow:seccional",
+        "horas-extras:configurar-responsaveis:seccional",
+        "horas-extras:configurar-politica:global",
+        "horas-extras:configurar-workflow:global",
+        "horas-extras:configurar-responsaveis:global",
+      ],
     },
     {
       titulo: "Calendário institucional",
       descricao: "Cadastre feriados, pontos facultativos e suspensões.",
       href: "/administracao/calendario",
       icon: CalendarDays,
-      permissoes: ["configuracoes:gerenciar:seccional", "configuracoes:gerenciar:global"],
+      permissoes: [
+        "configuracoes:gerenciar:seccional",
+        "configuracoes:gerenciar:global",
+      ],
     },
     {
       titulo: "Fusos horários",
@@ -236,7 +299,8 @@ export default async function AdministracaoPage() {
     },
     {
       titulo: "Férias SARH",
-      descricao: "Envie programações aprovadas pela chefia ao SARH e confirme o retorno sincronizado.",
+      descricao:
+        "Envie programações aprovadas pela chefia ao SARH e confirme o retorno sincronizado.",
       href: "/administracao/ferias/integracao-sarh",
       icon: DatabaseZap,
       permissoes: [
@@ -249,35 +313,59 @@ export default async function AdministracaoPage() {
       descricao: "Configure SARH, Active Directory e relógios por seccional.",
       href: hrefComOrgao("/administracao/integracoes"),
       icon: KeyRound,
-      permissoes: ["integracoes:consultar:seccional", "integracoes:gerenciar:seccional", "integracoes:consultar:global", "integracoes:gerenciar:global"],
+      permissoes: [
+        "integracoes:consultar:seccional",
+        "integracoes:gerenciar:seccional",
+        "integracoes:consultar:global",
+        "integracoes:gerenciar:global",
+      ],
     },
     {
       titulo: "Microsoft Teams",
-      descricao: "Configure bot, abas, notificações e manifesto do aplicativo Teams.",
+      descricao:
+        "Configure bot, abas, notificações e manifesto do aplicativo Teams.",
       href: "/administracao/integracoes/teams",
       icon: MessageSquare,
-      permissoes: ["integracoes-teams:visualizar:global", "integracoes-teams:configurar:global"],
+      permissoes: [
+        "integracoes-teams:visualizar:global",
+        "integracoes-teams:configurar:global",
+      ],
     },
     {
       titulo: "Saúde dos workers",
       descricao: "Monitore filas, workers automáticos e eventos de execução.",
       href: "/administracao/workers",
       icon: ServerCog,
-      permissoes: ["configuracoes:gerenciar:seccional", "integracoes:gerenciar:seccional", "configuracoes:gerenciar:global", "integracoes:gerenciar:global"],
+      permissoes: [
+        "configuracoes:gerenciar:seccional",
+        "integracoes:gerenciar:seccional",
+        "configuracoes:gerenciar:global",
+        "integracoes:gerenciar:global",
+      ],
     },
     {
       titulo: "Equipamentos biométricos",
       descricao: "Cadastre relógios, REP, totens e dispositivos de marcação.",
       href: hrefComOrgao("/equipamentos"),
       icon: Cpu,
-      permissoes: ["integracoes:consultar:seccional", "integracoes:gerenciar:seccional", "integracoes:consultar:global", "integracoes:gerenciar:global"],
+      permissoes: [
+        "integracoes:consultar:seccional",
+        "integracoes:gerenciar:seccional",
+        "integracoes:consultar:global",
+        "integracoes:gerenciar:global",
+      ],
     },
     {
       titulo: "Auditoria",
       descricao: "Consulte trilhas, alterações sensíveis e dados antes/depois.",
       href: "/auditoria",
       icon: ShieldAlert,
-      permissoes: ["auditoria:consultar:seccional", "auditoria:detalhar:seccional", "auditoria:consultar:global", "auditoria:detalhar:global"],
+      permissoes: [
+        "auditoria:consultar:seccional",
+        "auditoria:detalhar:seccional",
+        "auditoria:consultar:global",
+        "auditoria:detalhar:global",
+      ],
     },
   ];
 

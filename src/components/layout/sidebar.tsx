@@ -10,6 +10,7 @@ import {
   BarChart3,
   Ban,
   Bookmark,
+  Braces,
   Building2,
   CalendarDays,
   CalendarClock,
@@ -84,6 +85,7 @@ import {
   PERMISSOES_REGISTRO_PONTO_FACIAL,
 } from "@/modules/auth/domain/constants/perfis-sistema";
 import { PERMISSOES_TOTEM_REGISTRO } from "@/modules/totem/application/totem-permissoes";
+import { MENU_CATALOGO } from "@/modules/menus/domain/menu-catalogo";
 import {
   PERMISSAO_PAINEL_EXECUTIVO,
   PERMISSAO_PAINEL_EXECUTIVO_EQUIPAMENTOS,
@@ -95,7 +97,6 @@ import type {
   TemaVisualAcessibilidade,
 } from "@/modules/auth/application/services/preferencias-acessibilidade.service";
 import { useFavoritosPerfil } from "@/modules/favoritos/presentation/favoritos-provider";
-import { MENU_CATALOGO } from "@/modules/menus/domain/menu-catalogo";
 
 export type PerfilNavegacao = {
   id?: string;
@@ -189,6 +190,12 @@ const SUBITENS_SOLICITACOES_PONTO: MenuItem[] = [
     permissoes: ["solicitacoes:criar:proprio"],
   },
   {
+    label: "Converter trabalho em dia especial",
+    href: "/solicitacoes/nova?tipo=CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+    icon: CalendarClock,
+    permissoes: ["solicitacoes:criar:proprio"],
+  },
+  {
     label: "Folga banco de horas",
     href: "/solicitacoes/nova?tipo=FOLGA_BANCO_HORAS",
     icon: CalendarMinus,
@@ -241,6 +248,7 @@ export const MENU_ITEMS: MenuItem[] = [
     ocultarQuandoAdministrativo: true,
     permissoes: [
       "espelho-ponto:visualizar:proprio",
+      "apuracao:consultar:seccional",
       "apuracao:consultar:global",
     ],
   },
@@ -583,6 +591,7 @@ export const MENU_ITEMS: MenuItem[] = [
         icon: CalendarDays,
         permissoes: [
           "espelho-ponto:visualizar:proprio",
+          "apuracao:consultar:seccional",
           "apuracao:consultar:global",
         ],
       },
@@ -775,8 +784,33 @@ export const MENU_ITEMS: MenuItem[] = [
       "localidade:cadastrar:master",
       "configuracoes:gerenciar:seccional",
       "configuracoes:gerenciar:global",
+      "mct-rubricas:consultar:seccional",
+      "mct-rubricas:consultar:global",
+      "mct-politicas:consultar:seccional",
+      "mct-politicas:consultar:global",
+      "mct-regras:consultar:seccional",
+      "mct-regras:consultar:global",
     ],
     children: [
+      {
+        label: "Rubricas, políticas e regras MCT",
+        href: "/cadastros-auxiliares/mct",
+        icon: Braces,
+        permissoes: [
+          "mct-rubricas:consultar:seccional",
+          "mct-rubricas:consultar:global",
+          "mct-rubricas:gerenciar:seccional",
+          "mct-rubricas:gerenciar:global",
+          "mct-politicas:consultar:seccional",
+          "mct-politicas:consultar:global",
+          "mct-politicas:gerenciar:seccional",
+          "mct-politicas:gerenciar:global",
+          "mct-regras:consultar:seccional",
+          "mct-regras:consultar:global",
+          "mct-regras:gerenciar:seccional",
+          "mct-regras:gerenciar:global",
+        ],
+      },
       {
         label: "Tipos de Feriados/Suspensões",
         href: "/cadastros-auxiliares/tipos-feriados-suspensoes",
@@ -893,15 +927,6 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
-        label: "Personalizar Menu",
-        href: "/administracao/personalizar-menu",
-        icon: Palette,
-        permissoes: [
-          "menus:personalizar:seccional",
-          "menus:personalizar:global",
-        ],
-      },
-      {
         label: "Perfis e permissões",
         href: "/perfis",
         icon: ShieldCheck,
@@ -941,6 +966,21 @@ export const MENU_ITEMS: MenuItem[] = [
         href: "/chefias",
         icon: Network,
         permissoes: ["chefias:gerenciar:seccional", "chefias:gerenciar:global"],
+      },
+      {
+        label: "Substituições automáticas",
+        href: "/administracao/substituicoes-funcao?tipo=AUTOMATICA",
+        icon: UsersRound,
+      },
+      {
+        label: "Substituições de função",
+        href: "/administracao/substituicoes-funcao",
+        icon: UserCog,
+      },
+      {
+        label: "Relatório de substituições",
+        href: "/substituicoes-funcao/relatorio",
+        icon: FileSpreadsheet,
       },
       {
         label: "Horário de Trabalho",
@@ -1049,6 +1089,26 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
+        label: "Integração SARH",
+        href: "/administracao/integracoes/sarh",
+        icon: DatabaseZap,
+      },
+      {
+        label: "Active Directory",
+        href: "/administracao/integracoes/ldap",
+        icon: Network,
+      },
+      {
+        label: "Microsoft Teams",
+        href: "/administracao/integracoes/teams",
+        icon: Users,
+      },
+      {
+        label: "Fusos horários",
+        href: "/administracao/fusos-horarios",
+        icon: Clock,
+      },
+      {
         label: "Saúde dos Workers",
         href: "/administracao/workers",
         icon: ServerCog,
@@ -1084,6 +1144,29 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
   },
 ];
+
+const permissoesCatalogoPorHref = new Map(
+  MENU_CATALOGO.map((item) => [item.href, item.permissoes ?? []]),
+);
+
+export function aplicarPermissoesCatalogoMenu(itens: MenuItem[]): MenuItem[] {
+  return itens.map((item) => {
+    const permissoesCatalogo = permissoesCatalogoPorHref.get(item.href) ?? [];
+
+    return {
+      ...item,
+      permissoes: Array.from(
+        new Set([...(item.permissoes ?? []), ...permissoesCatalogo]),
+      ),
+      children: item.children
+        ? aplicarPermissoesCatalogoMenu(item.children)
+        : undefined,
+    };
+  });
+}
+
+export const MENU_ITEMS_COM_PERMISSOES_CATALOGO =
+  aplicarPermissoesCatalogoMenu(MENU_ITEMS);
 
 type SidebarProps = {
   recolhida: boolean;
@@ -1341,12 +1424,20 @@ function montarItensPersonalizados(params: {
   menusPersonalizados?: MenusPersonalizadosPorPerfil;
 }): MenuItem[] {
   const { itensPadraoVisiveis, perfilAtivo, menusPersonalizados } = params;
-  const menuPerfil = perfilAtivo.id
-    ? menusPersonalizados?.[perfilAtivo.id]
-    : undefined;
+  // O catÃ¡logo filtrado por permissÃµes Ã© a fonte Ãºnica do menu. Assim, uma
+  // permissÃ£o atribuÃ­da a qualquer perfil aparece imediatamente no grupo certo.
+  void perfilAtivo;
+  void menusPersonalizados;
+  return itensPadraoVisiveis;
+
+  /* istanbul ignore next -- compatibilidade temporÃ¡ria com dados legados */
+  const menuPerfil = (perfilAtivo.id
+    ? menusPersonalizados?.[perfilAtivo.id!]
+    : undefined)!;
+
+  if (!menuPerfil) return itensPadraoVisiveis;
 
   if (
-    !menuPerfil ||
     (menuPerfil.grupos.length === 0 && menuPerfil.itensRaiz.length === 0)
   ) {
     return itensPadraoVisiveis;
@@ -1568,7 +1659,11 @@ function MenuPrincipal({
   const [favoritoPendente, setFavoritoPendente] = useState<string | null>(null);
   const [buscaMenu, setBuscaMenu] = useState("");
   const itensPadraoComIcones = useMemo(
-    () => aplicarIconesItensCatalogo(MENU_ITEMS, iconesItensCatalogo),
+    () =>
+      aplicarIconesItensCatalogo(
+        MENU_ITEMS_COM_PERMISSOES_CATALOGO,
+        iconesItensCatalogo,
+      ),
     [iconesItensCatalogo],
   );
   const itensPadraoVisiveis = useMemo(

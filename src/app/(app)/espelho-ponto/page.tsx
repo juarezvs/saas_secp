@@ -1,8 +1,4 @@
-import {
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui";
@@ -51,6 +47,8 @@ import {
   buscarRegulamentacaoPontoOrgao,
 } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 import { logger } from "@/lib/observability/logger";
+import { listarAnalisesJornadaMctNoMes } from "@/modules/mct/infrastructure/repositories/mct-analise-jornada.repository";
+import { preValidarCompetenciaMct } from "@/modules/mct/application/services/pre-validar-competencia-mct.service";
 
 type EspelhoPontoPageProps = {
   searchParams: Promise<{
@@ -243,6 +241,7 @@ export default async function EspelhoPontoPage({
   const permissao = await medidor.medir("autenticacao_permissoes", () =>
     exigirUmaDasPermissoesOuRedirecionar([
       "espelho-ponto:visualizar:proprio",
+      "apuracao:consultar:seccional",
       "apuracao:consultar:global",
     ]),
   );
@@ -255,12 +254,17 @@ export default async function EspelhoPontoPage({
     permissao.permissoes,
     "apuracao:consultar:global",
   );
+  const podeConsultarSeccional = usuarioPossuiPermissaoNoPerfil(
+    permissao.perfilAtivoCodigo,
+    permissao.permissoes,
+    "apuracao:consultar:seccional",
+  );
   const perfilChefiaAtivo = perfilAtivoEhChefia({
     perfilAtivoCodigo: permissao.perfilAtivoCodigo,
     permissoes: permissao.permissoes,
   });
   const podeConsultarTodosServidores =
-    podeConsultarGlobal && !perfilChefiaAtivo;
+    (podeConsultarGlobal || podeConsultarSeccional) && !perfilChefiaAtivo;
   const podeRecalcularGlobal = usuarioPossuiPermissaoNoPerfil(
     permissao.perfilAtivoCodigo,
     permissao.permissoes,
@@ -473,6 +477,22 @@ export default async function EspelhoPontoPage({
         ? buscarEnvioEspelhoServidor(homologacaoServidor.id)
         : Promise.resolve(null),
   );
+  const analisesMct = await medidor.medir("analises_mct_shadow", () =>
+    servidorSelecionado?.orgaoId
+      ? listarAnalisesJornadaMctNoMes({
+          orgaoId: servidorSelecionado.orgaoId,
+          servidorId: servidorSelecionado.id,
+          ano: anoReferencia,
+          mes: mesReferencia,
+        })
+      : Promise.resolve({}),
+  );
+  const diagnosticoMct = preValidarCompetenciaMct({
+    datasApuradas: apuracoes.map((apuracao) =>
+      new Date(apuracao.dataReferencia).toISOString().slice(0, 10),
+    ),
+    analises: analisesMct,
+  });
   const espelhoEnviado = Boolean(
     envioHomologacao ||
     (homologacaoServidor &&
@@ -602,45 +622,45 @@ export default async function EspelhoPontoPage({
             </>
           ) : null}
           <div className="ml-auto flex flex-wrap items-center gap-1">
-          <EspelhoPontoNavLink
-            href={hrefCompetenciaAnterior}
-            className="inline-flex size-8 items-center justify-center rounded-sm text-[var(--muted-foreground)] transition hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-            aria-label="Competencia anterior"
-          >
-            <ChevronLeft className="size-4" aria-hidden="true" />
-          </EspelhoPontoNavLink>
-          <EspelhoPontoFiltrosAuto
-            competencia={competenciaInput}
-            className="flex w-64 items-center gap-2"
-            compacto
-            labelInline
-          />
-          <EspelhoPontoNavLink
-            href={hrefCompetenciaProxima}
-            className="inline-flex size-8 items-center justify-center rounded-sm text-[var(--muted-foreground)] transition hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-            aria-label="Proxima competencia"
-          >
-            <ChevronRight className="size-4" aria-hidden="true" />
-          </EspelhoPontoNavLink>
+            <EspelhoPontoNavLink
+              href={hrefCompetenciaAnterior}
+              className="inline-flex size-8 items-center justify-center rounded-sm text-[var(--muted-foreground)] transition hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+              aria-label="Competencia anterior"
+            >
+              <ChevronLeft className="size-4" aria-hidden="true" />
+            </EspelhoPontoNavLink>
+            <EspelhoPontoFiltrosAuto
+              competencia={competenciaInput}
+              className="flex w-64 items-center gap-2"
+              compacto
+              labelInline
+            />
+            <EspelhoPontoNavLink
+              href={hrefCompetenciaProxima}
+              className="inline-flex size-8 items-center justify-center rounded-sm text-[var(--muted-foreground)] transition hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+              aria-label="Proxima competencia"
+            >
+              <ChevronRight className="size-4" aria-hidden="true" />
+            </EspelhoPontoNavLink>
           </div>
         </div>
 
-      {!perfilProprioAtivo && (
-        <div className="p-3">
-          <div className="max-w-2xl">
-            <EspelhoPontoFiltrosAuto
-              competencia={competenciaInput}
-              servidorId={servidorSelecionado?.id ?? ""}
-              servidores={servidorOpcoes}
-              podeSelecionarServidor={podeSelecionarServidor}
-              pessoasSearchUrl={`/api/espelho-ponto/pessoas?${queryBuscaPessoa.toString()}`}
-              mostrarServidor
-              mostrarCompetencia={false}
-              className="min-w-0"
-            />
+        {!perfilProprioAtivo && (
+          <div className="p-3">
+            <div className="max-w-2xl">
+              <EspelhoPontoFiltrosAuto
+                competencia={competenciaInput}
+                servidorId={servidorSelecionado?.id ?? ""}
+                servidores={servidorOpcoes}
+                podeSelecionarServidor={podeSelecionarServidor}
+                pessoasSearchUrl={`/api/espelho-ponto/pessoas?${queryBuscaPessoa.toString()}`}
+                mostrarServidor
+                mostrarCompetencia={false}
+                className="min-w-0"
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </section>
 
       {servidorSelecionado ? (
@@ -649,6 +669,8 @@ export default async function EspelhoPontoPage({
           apuracoes={apuracoes}
           marcacoes={marcacoes}
           solicitacoes={solicitacoes}
+          analisesMct={analisesMct}
+          servidorId={servidorSelecionado.id}
           destaque={{
             dataReferencia: params.destaqueData,
             ocorrenciaId: params.destaqueOcorrencia,
@@ -673,7 +695,8 @@ export default async function EspelhoPontoPage({
                   enviadoEm: envioHomologacao?.criadoEm ?? null,
                   enviadoPor: envioHomologacao?.usuario?.nome ?? null,
                   homologadoEm: homologacaoServidor.homologadoEm,
-                  homologadoPor: homologacaoServidor.homologadoPor?.nome ?? null,
+                  homologadoPor:
+                    homologacaoServidor.homologadoPor?.nome ?? null,
                   unidadeSigla: homologacaoServidor.fechamento.unidade.sigla,
                   chefiaResponsavel:
                     nomeServidor(
@@ -696,6 +719,7 @@ export default async function EspelhoPontoPage({
                   cargoFuncoes:
                     montarOpcoesCargoFuncaoAssinatura(servidorSelecionado),
                 }}
+                diagnosticoMct={diagnosticoMct}
               />
             ) : undefined
           }

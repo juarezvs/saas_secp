@@ -16,6 +16,7 @@ export type OcorrenciaEspelho = {
 export type ItemEspelhoMensalClassificacao = {
   resultado: string;
   minutosDebito: number;
+  minutosHoraExtraNaoAutorizada?: number | null;
   metadados?: unknown;
   ocorrencias?: OcorrenciaEspelho[];
 };
@@ -55,6 +56,15 @@ export function conferenciaEspelho(
       descricao:
         "Dispensa de ponto aplicada na data; não há pendência de conferência por ausência de marcação eletrônica.",
       tom: "ok",
+    };
+  }
+
+  if ((item?.minutosHoraExtraNaoAutorizada ?? 0) > 0) {
+    return {
+      rotulo: "Excedente pendente",
+      descricao:
+        "A carga foi cumprida, mas existe excedente que ainda depende de classificação, autorização ou reconhecimento.",
+      tom: "alerta",
     };
   }
 
@@ -250,6 +260,8 @@ export function rotuloSolicitacaoEspelho(tipo: string) {
     HORA_CREDITO_PREVIA: "Hora-credito previa",
     COMPENSACAO: "Compensacao deferida",
     FOLGA_BANCO_HORAS: "Folga por banco de horas",
+    CONVERSAO_DIA_ESPECIAL_BANCO_HORAS:
+      "Conversão de trabalho em dia especial",
   };
 
   return rotulos[tipo] ?? tipo;

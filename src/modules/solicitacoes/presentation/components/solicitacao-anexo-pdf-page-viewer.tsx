@@ -56,7 +56,9 @@ export function SolicitacaoAnexoPdfPageViewer({
 
         const contentType = resposta.headers.get("content-type") ?? "";
 
-        if (!contentType.toLocaleLowerCase("pt-BR").includes("application/pdf")) {
+        if (
+          !contentType.toLocaleLowerCase("pt-BR").includes("application/pdf")
+        ) {
           throw new Error(
             "O servidor retornou uma resposta que nao foi reconhecida como PDF.",
           );
@@ -100,7 +102,9 @@ export function SolicitacaoAnexoPdfPageViewer({
               Anexo da solicitacao
             </p>
             <h1 className="truncate text-base font-bold">
-              {estado.tipo === "pronto" ? estado.nomeArquivo : "Visualizador PDF"}
+              {estado.tipo === "pronto"
+                ? estado.nomeArquivo
+                : "Visualizador PDF"}
             </h1>
           </div>
 
@@ -148,7 +152,9 @@ export function SolicitacaoAnexoPdfPageViewer({
           <div className="flex h-[calc(100dvh-8rem)] items-center justify-center rounded-lg border bg-white p-6 text-center text-sm text-red-700">
             <div>
               <AlertCircle className="mx-auto mb-3 size-8" aria-hidden="true" />
-              <p className="font-semibold">Não foi possível visualizar o PDF.</p>
+              <p className="font-semibold">
+                Não foi possível visualizar o PDF.
+              </p>
               <p className="mt-1 text-red-600">{estado.mensagem}</p>
             </div>
           </div>

@@ -33,7 +33,6 @@ import {
   LayoutDashboard,
   MapPin,
   Network,
-  Palette,
   Plane,
   RadioTower,
   ReceiptText,
@@ -102,7 +101,6 @@ const ICONES_MENU_ROTAS: IconeMenuRota[] = [
   { href: "/biometria", icon: ScanFace },
   { href: "/manutencao/marcacoes", icon: Fingerprint },
   { href: "/administracao/liberacao-rotinas", icon: ToggleLeft },
-  { href: "/administracao/personalizar-menu", icon: Palette },
   { href: "/administracao/regulamentacao-ponto", icon: SlidersHorizontal },
   { href: "/administracao/procedimentos-frequencia", icon: ClipboardList },
   {

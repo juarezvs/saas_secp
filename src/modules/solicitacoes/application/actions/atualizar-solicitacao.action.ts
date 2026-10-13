@@ -120,6 +120,7 @@ function extrairDados(formData: FormData): Partial<CriarSolicitacaoInput> {
     dataFim: String(formData.get("dataFim") ?? ""),
     tipoMarcacao: String(formData.get("tipoMarcacao") ?? ""),
     horaAjuste: String(formData.get("horaAjuste") ?? ""),
+    marcacaoId: String(formData.get("marcacaoId") ?? ""),
     tipoCompensacao: String(formData.get("tipoCompensacao") ?? "") as
       CriarSolicitacaoInput["tipoCompensacao"] | "",
     horasSolicitadas: normalizarHorasSolicitadas(
@@ -224,8 +225,22 @@ export async function atualizarSolicitacaoAction(
 
   const fusoHorario = resolverFusoHorarioServidor(solicitacao.servidor);
   const dataReferencia = valorOpcionalData(parsed.data.dataReferencia);
-  const dataInicio = valorOpcionalDateTime(parsed.data.dataInicio, fusoHorario);
-  const dataFim = valorOpcionalFimPeriodo(parsed.data.dataFim, fusoHorario);
+  const dataInicioInformada = valorOpcionalDateTime(
+    parsed.data.dataInicio,
+    fusoHorario,
+  );
+  const dataFimInformada = valorOpcionalFimPeriodo(
+    parsed.data.dataFim,
+    fusoHorario,
+  );
+  const dataInicio =
+    parsed.data.tipo === "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS"
+      ? dataReferencia
+      : dataInicioInformada;
+  const dataFim =
+    parsed.data.tipo === "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS"
+      ? dataReferencia
+      : dataFimInformada;
   const lotacaoAtual = solicitacao.servidor.lotacoes[0];
   const unidadeReferenciaId = lotacaoAtual?.unidadeId ?? solicitacao.unidadeId;
   const eventoDevolucao = await prisma.solicitacaoEvento.findFirst({
@@ -303,6 +318,7 @@ export async function atualizarSolicitacaoAction(
         dadosSolicitados: {
           tipoMarcacao: parsed.data.tipoMarcacao || null,
           horaAjuste: parsed.data.horaAjuste || null,
+          marcacaoId: parsed.data.marcacaoId || null,
           tipoCompensacao: parsed.data.tipoCompensacao || null,
           horasSolicitadas: parsed.data.horasSolicitadas ?? null,
           minutosSolicitados: parsed.data.horasSolicitadas

@@ -79,9 +79,11 @@ function extrairDadosCalendario(
       formData.get("exigeRegistroPonto") === "on" ||
       formData.get("exigeRegistroPonto") === "true",
     geraDebito:
-      formData.get("geraDebito") === "on" || formData.get("geraDebito") === "true",
+      formData.get("geraDebito") === "on" ||
+      formData.get("geraDebito") === "true",
     geraCredito:
-      formData.get("geraCredito") === "on" || formData.get("geraCredito") === "true",
+      formData.get("geraCredito") === "on" ||
+      formData.get("geraCredito") === "true",
     janelaInicio: valorOpcionalString(formData.get("janelaInicio")),
     janelaFim: valorOpcionalString(formData.get("janelaFim")),
     dataOriginal: valorOpcionalString(formData.get("dataOriginal")),
@@ -194,7 +196,8 @@ export async function atualizarCalendarioInstitucionalAction(
   ) {
     return {
       sucesso: false,
-      mensagem: "A localidade selecionada não possui UF e município cadastrados.",
+      mensagem:
+        "A localidade selecionada não possui UF e município cadastrados.",
       erros: {
         unidadeId: ["Selecione uma localidade com UF e município cadastrados."],
       },
@@ -237,7 +240,7 @@ export async function atualizarCalendarioInstitucionalAction(
         dataReferencia,
         dataFim: dadosValidados.dataFim
           ? dataIsoParaUtc(dadosValidados.dataFim)
-          : null,
+          : dataReferencia,
         descricao: dadosValidados.descricao,
         tipo: dadosValidados.tipo,
         abrangencia: dadosValidados.abrangencia,

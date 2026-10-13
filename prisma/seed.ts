@@ -303,6 +303,18 @@ type PermissaoSeed = {
 };
 
 const CODIGOS_PERMISSOES_USUARIO_COM_USO_PRATICO = [
+  "mct-rubricas:consultar:seccional",
+  "mct-rubricas:consultar:global",
+  "mct-rubricas:gerenciar:seccional",
+  "mct-rubricas:gerenciar:global",
+  "mct-politicas:consultar:seccional",
+  "mct-politicas:consultar:global",
+  "mct-politicas:gerenciar:seccional",
+  "mct-politicas:gerenciar:global",
+  "mct-regras:consultar:seccional",
+  "mct-regras:consultar:global",
+  "mct-regras:gerenciar:seccional",
+  "mct-regras:gerenciar:global",
   "afastamentos:consultar:global",
   "afastamentos:consultar:proprio",
   "acompanhamento-estagio:consultar:proprio",
@@ -638,6 +650,22 @@ const codigosPermissoesHorasExtrasGestao = [
 ];
 
 const permissoesIniciais = [
+  ...["rubricas", "politicas", "regras"].flatMap((cadastro) =>
+    ["seccional", "global"].flatMap((escopo) => [
+      {
+        recurso: `mct-${cadastro}`,
+        acao: "consultar",
+        escopo,
+        descricao: `Consultar ${cadastro} do MCT no escopo ${escopo}.`,
+      },
+      {
+        recurso: `mct-${cadastro}`,
+        acao: "gerenciar",
+        escopo,
+        descricao: `Gerenciar ${cadastro} do MCT no escopo ${escopo}.`,
+      },
+    ]),
+  ),
   {
     recurso: "tipoferiado",
     acao: "cadastrar",
@@ -1723,6 +1751,12 @@ const codigosPermissoesChefia = [
 ];
 
 const codigosPermissoesAdministrador = [
+  "mct-rubricas:consultar:global",
+  "mct-rubricas:gerenciar:global",
+  "mct-politicas:consultar:global",
+  "mct-politicas:gerenciar:global",
+  "mct-regras:consultar:global",
+  "mct-regras:gerenciar:global",
   "dashboard:visualizar:proprio",
   "painel-executivo:consultar:global",
   ...codigosPermissoesSubmenusPainelExecutivo,

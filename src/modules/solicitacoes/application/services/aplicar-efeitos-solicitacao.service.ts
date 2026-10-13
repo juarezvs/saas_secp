@@ -144,29 +144,149 @@ async function calcularMinutosFolgaBancoHoras(params: {
   return total;
 }
 
+const TIPOS_DIA_ELEGIVEIS_CONVERSAO = new Set([
+  "SABADO",
+  "DOMINGO",
+  "FERIADO",
+  "PONTO_FACULTATIVO",
+  "SUSPENSAO_EXPEDIENTE",
+  "RECESSO_FORENSE",
+]);
+
+async function calcularTrabalhoDiaEspecial(params: {
+  tx: Tx;
+  servidorId: string;
+  dataReferencia: Date;
+}) {
+  const dataReferencia = normalizarDataReferencia(params.dataReferencia);
+  const classificacao = await classificarDiaInstitucional(
+    dataReferencia,
+    undefined,
+    params.servidorId,
+  );
+
+  if (!TIPOS_DIA_ELEGIVEIS_CONVERSAO.has(classificacao.tipo)) {
+    return {
+      minutos: 0,
+      erro:
+        "A data informada não é feriado, ponto facultativo, suspensão, recesso ou outro dia não útil elegível.",
+    };
+  }
+
+  const apuracao = await params.tx.apuracaoDiaria.findUnique({
+    where: {
+      servidorId_dataReferencia: {
+        servidorId: params.servidorId,
+        dataReferencia,
+      },
+    },
+    select: {
+      minutosTrabalhados: true,
+    },
+  });
+
+  if (!apuracao || apuracao.minutosTrabalhados <= 0) {
+    return {
+      minutos: 0,
+      erro: "Não há tempo trabalhado apurado nessa data para conversão.",
+    };
+  }
+
+  return {
+    minutos: apuracao.minutosTrabalhados,
+    erro: null,
+    classificacao: classificacao.tipo,
+  };
+}
+
 export async function aplicarEfeitosSolicitacaoDeferida(params: {
   tx: Tx;
   solicitacao: SolicitacaoParaEfeito;
   usuarioAnaliseId: string;
   justificativaAnalise: string;
 }) {
-  const {
-    tx,
-    solicitacao,
-    usuarioAnaliseId,
-    justificativaAnalise,
-  } = params;
+  const { tx, solicitacao, usuarioAnaliseId, justificativaAnalise } = params;
+
+  if (solicitacao.tipo === "EXCLUSAO_MARCACAO") {
+    const dados = solicitacao.dadosSolicitados as Record<
+      string,
+      unknown
+    > | null;
+    const marcacaoId = String(dados?.marcacaoId ?? "");
+    const marcacao = await tx.marcacao.findFirst({
+      where: {
+        id: marcacaoId,
+        servidorId: solicitacao.servidorId,
+        status: { in: ["VALIDA", "AJUSTADA", "PENDENTE"] },
+      },
+    });
+    if (!marcacao) {
+      return {
+        efeitosAplicados: false,
+        mensagem: "MarcaÃ§Ã£o nÃ£o encontrada ou jÃ¡ cancelada.",
+      };
+    }
+    const metadados =
+      marcacao.metadados &&
+      typeof marcacao.metadados === "object" &&
+      !Array.isArray(marcacao.metadados)
+        ? marcacao.metadados
+        : {};
+    const atualizada = await tx.marcacao.update({
+      where: { id: marcacao.id },
+      data: {
+        status: "CANCELADA",
+        observacao: `MarcaÃ§Ã£o cancelada pelo deferimento da solicitaÃ§Ã£o ${solicitacao.id}.`,
+        metadados: {
+          ...metadados,
+          solicitacaoExclusaoId: solicitacao.id,
+          canceladaPorUsuarioId: usuarioAnaliseId,
+          canceladaEm: new Date().toISOString(),
+          justificativa: justificativaAnalise,
+        },
+      },
+    });
+    await tx.auditoriaEvento.create({
+      data: {
+        usuarioId: usuarioAnaliseId,
+        entidade: "Marcacao",
+        entidadeId: marcacao.id,
+        acao: "MARCACAO_CANCELADA_POR_SOLICITACAO",
+        dadosAntes: {
+          status: marcacao.status,
+          dataHora: marcacao.dataHora,
+          tipo: marcacao.tipo,
+        },
+        dadosDepois: {
+          status: atualizada.status,
+          solicitacaoId: solicitacao.id,
+        },
+      },
+    });
+    return {
+      efeitosAplicados: true,
+      mensagem: "MarcaÃ§Ã£o cancelada e encaminhada para recÃ¡lculo.",
+      dadosResultado: { marcacaoId: atualizada.id, status: atualizada.status },
+    };
+  }
 
   if (
-    ["HORA_CREDITO_PREVIA", "COMPENSACAO", "FOLGA_BANCO_HORAS"].includes(
-      solicitacao.tipo,
-    )
+    [
+      "HORA_CREDITO_PREVIA",
+      "COMPENSACAO",
+      "FOLGA_BANCO_HORAS",
+      "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+    ].includes(solicitacao.tipo)
   ) {
     const dadosAutorizacao = extrairDadosAutorizacao(
       solicitacao.dadosSolicitados,
     );
 
-    if (!solicitacao.dataInicio || !solicitacao.dataFim || !dadosAutorizacao) {
+    const dataInicio =
+      solicitacao.dataInicio ?? solicitacao.dataReferencia ?? null;
+    const dataFim = solicitacao.dataFim ?? solicitacao.dataReferencia ?? null;
+
+    if (!dataInicio || !dataFim || !dadosAutorizacao) {
       return {
         efeitosAplicados: false,
         mensagem:
@@ -175,38 +295,51 @@ export async function aplicarEfeitosSolicitacaoDeferida(params: {
     }
 
     const tipo =
-      solicitacao.tipo === "HORA_CREDITO_PREVIA"
+      [
+        "HORA_CREDITO_PREVIA",
+        "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+      ].includes(solicitacao.tipo)
         ? "CREDITO"
         : solicitacao.tipo === "FOLGA_BANCO_HORAS"
           ? "COMPENSACAO_CREDITO"
           : dadosAutorizacao.tipoCompensacao === "COMPENSAR_DEBITO"
-          ? "COMPENSACAO_DEBITO"
-          : "COMPENSACAO_CREDITO";
+            ? "COMPENSACAO_DEBITO"
+            : "COMPENSACAO_CREDITO";
+    const trabalhoDiaEspecial =
+      solicitacao.tipo === "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS"
+        ? await calcularTrabalhoDiaEspecial({
+            tx,
+            servidorId: solicitacao.servidorId,
+            dataReferencia: dataInicio,
+          })
+        : null;
     const minutosAutorizados =
       dadosAutorizacao.minutosSolicitados ??
-      (solicitacao.tipo === "FOLGA_BANCO_HORAS"
+      (trabalhoDiaEspecial
+        ? trabalhoDiaEspecial.minutos
+        : solicitacao.tipo === "FOLGA_BANCO_HORAS"
         ? await calcularMinutosFolgaBancoHoras({
             tx,
             servidorId: solicitacao.servidorId,
-            dataInicio: solicitacao.dataInicio,
-            dataFim: solicitacao.dataFim,
+            dataInicio,
+            dataFim,
           })
         : solicitacao.tipo === "COMPENSACAO"
           ? await calcularMinutosPendentesCompensacao({
               tx,
               servidorId: solicitacao.servidorId,
-              dataInicio: solicitacao.dataInicio,
-              dataFim: solicitacao.dataFim,
+              dataInicio,
+              dataFim,
             })
           : 0);
 
     if (minutosAutorizados <= 0) {
       return {
         efeitosAplicados: false,
-        mensagem:
-          solicitacao.tipo === "FOLGA_BANCO_HORAS"
+        mensagem: trabalhoDiaEspecial?.erro ??
+          (solicitacao.tipo === "FOLGA_BANCO_HORAS"
             ? "Não foram encontrados dias úteis com jornada vigente para autorizar a folga."
-            : "Não foram encontrados minutos pendentes no período informado.",
+            : "Não foram encontrados minutos pendentes no período informado."),
       };
     }
 
@@ -217,8 +350,8 @@ export async function aplicarEfeitosSolicitacaoDeferida(params: {
       update: {
         tipo,
         status: "AUTORIZADA",
-        dataInicio: solicitacao.dataInicio,
-        dataFim: solicitacao.dataFim,
+        dataInicio,
+        dataFim,
         minutosAutorizados,
         autorizadoPorUsuarioId: usuarioAnaliseId,
         justificativa: justificativaAnalise,
@@ -230,8 +363,8 @@ export async function aplicarEfeitosSolicitacaoDeferida(params: {
         autorizadoPorUsuarioId: usuarioAnaliseId,
         tipo,
         status: "AUTORIZADA",
-        dataInicio: solicitacao.dataInicio,
-        dataFim: solicitacao.dataFim,
+        dataInicio,
+        dataFim,
         minutosAutorizados,
         justificativa: justificativaAnalise,
       },
@@ -261,6 +394,8 @@ export async function aplicarEfeitosSolicitacaoDeferida(params: {
       mensagem:
         solicitacao.tipo === "HORA_CREDITO_PREVIA"
           ? "Crédito previamente autorizado pela chefia."
+          : solicitacao.tipo === "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS"
+            ? "Conversão do trabalho em dia especial autorizada pela chefia e encaminhada ao banco de horas."
           : solicitacao.tipo === "FOLGA_BANCO_HORAS"
             ? "Folga com banco de horas autorizada pela chefia."
             : "Compensação previamente autorizada pela chefia.",
@@ -308,10 +443,7 @@ export async function aplicarEfeitosSolicitacaoDeferida(params: {
       dataInicio: {
         lte: solicitacao.dataReferencia,
       },
-      OR: [
-        { dataFim: null },
-        { dataFim: { gte: solicitacao.dataReferencia } },
-      ],
+      OR: [{ dataFim: null }, { dataFim: { gte: solicitacao.dataReferencia } }],
     },
     include: {
       unidade: {

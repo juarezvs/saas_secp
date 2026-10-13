@@ -105,9 +105,33 @@ describe("criarSolicitacaoSchema", () => {
       ...dadosBase,
       tipo: "VIAGEM_SERVICO",
       titulo: "Viagem a servico",
-      descricao: "Deslocamento autorizado para cumprimento de atividade externa.",
+      descricao:
+        "Deslocamento autorizado para cumprimento de atividade externa.",
       dataInicio: "2026-06-15",
       dataFim: "2026-06-17",
+    });
+
+    expect(resultado.success).toBe(true);
+  });
+
+  it("exige a data do trabalho para conversao de dia especial", () => {
+    const resultado = criarSolicitacaoSchema.safeParse({
+      ...dadosBase,
+      tipo: "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+      dataReferencia: "",
+    });
+
+    expect(resultado.success).toBe(false);
+    if (!resultado.success) {
+      expect(resultado.error.flatten().fieldErrors.dataReferencia).toBeDefined();
+    }
+  });
+
+  it("aceita conversao de dia especial sem quantidade informada pelo usuario", () => {
+    const resultado = criarSolicitacaoSchema.safeParse({
+      ...dadosBase,
+      tipo: "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+      dataReferencia: "2026-10-12",
     });
 
     expect(resultado.success).toBe(true);

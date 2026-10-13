@@ -102,6 +102,7 @@ type SolicitacaoFormProps = {
   ) => Promise<CriarSolicitacaoFormState>;
   submitLabel?: string;
   hiddenFields?: Record<string, string>;
+  marcacaoSelecionada?: string;
 };
 
 function erro(estado: CriarSolicitacaoFormState, campo: string) {
@@ -136,11 +137,7 @@ function isTipoPeriodo(tipo: string) {
 }
 
 function usaPeriodoPorData(tipo: string) {
-  return [
-    "COMPENSACAO",
-    "VIAGEM_SERVICO",
-    "FOLGA_BANCO_HORAS",
-  ].includes(tipo);
+  return ["COMPENSACAO", "VIAGEM_SERVICO", "FOLGA_BANCO_HORAS"].includes(tipo);
 }
 
 function obterConfiguracaoTipo(tipo: string) {
@@ -158,6 +155,12 @@ function obterConfiguracaoTipo(tipo: string) {
       periodo: "DATA_REFERENCIA",
       detalhes: "AJUSTE",
     },
+    EXCLUSAO_MARCACAO: {
+      resumo:
+        "Use para pedir à chefia o cancelamento de uma marcação registrada indevidamente.",
+      periodo: "DATA_REFERENCIA",
+      detalhes: "SIMPLES",
+    },
     COMPENSACAO: {
       resumo:
         "Use para solicitar autorização de compensação vinculada ao banco de horas.",
@@ -174,6 +177,12 @@ function obterConfiguracaoTipo(tipo: string) {
       resumo:
         "Use para solicitar folga futura com base no saldo de banco de horas.",
       periodo: "INTERVALO",
+      detalhes: "BANCO_HORAS",
+    },
+    CONVERSAO_DIA_ESPECIAL_BANCO_HORAS: {
+      resumo:
+        "Use para solicitar à chefia a conversão do tempo efetivamente trabalhado em feriado, ponto facultativo, suspensão, recesso ou outro dia não útil elegível.",
+      periodo: "DATA_REFERENCIA",
       detalhes: "BANCO_HORAS",
     },
     DISPENSA_PONTO: {
@@ -209,7 +218,14 @@ function validarEtapaFormulario(etapa: number, formData: FormData) {
   }
 
   if (etapa === 1) {
-    if (tipo === "AJUSTE_PONTO" && !formData.get("dataReferencia")) {
+    if (
+      [
+        "AJUSTE_PONTO",
+        "EXCLUSAO_MARCACAO",
+        "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+      ].includes(tipo) &&
+      !formData.get("dataReferencia")
+    ) {
       falhas.push("Informe a data do ajuste.");
     }
 
@@ -387,7 +403,13 @@ function rotuloModalidadeCapacitacao(modalidade: string) {
 }
 
 function montarPeriodoPreview(formData: FormData, tipo: string) {
-  if (tipo === "AJUSTE_PONTO") {
+  if (
+    [
+      "AJUSTE_PONTO",
+      "EXCLUSAO_MARCACAO",
+      "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+    ].includes(tipo)
+  ) {
     return `Data de referência: ${formatarDataPreview(
       formData.get("dataReferencia"),
     )}`;
@@ -413,6 +435,10 @@ function montarDetalhePreview(formData: FormData, tipo: string) {
     return `${formatarHorasSolicitadasPreview(
       formData.get("horasSolicitadas"),
     )} solicitada(s)`;
+  }
+
+  if (tipo === "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS") {
+    return "O saldo elegível será calculado pelo SECP a partir da apuração do dia e das regras vigentes.";
   }
 
   if (tipo === "DISPENSA_PONTO") {
@@ -634,6 +660,7 @@ export function SolicitacaoForm({
   action = criarSolicitacaoAction,
   submitLabel = "Enviar solicitação",
   hiddenFields,
+  marcacaoSelecionada,
 }: SolicitacaoFormProps = {}) {
   const formRef = useRef<HTMLFormElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -935,30 +962,47 @@ export function SolicitacaoForm({
 
             <div className="mt-5 grid gap-5 md:grid-cols-2">
               {configuracaoTipo.periodo === "DATA_REFERENCIA" ? (
-                <div className="space-y-2">
-                  <label
-                    htmlFor="dataReferencia"
-                    className="text-sm font-semibold"
-                  >
-                    Data de referência
-                  </label>
-                  <CampoAjuda>
-                    Dia em que a marcação deverá ser corrigida na frequência.
-                  </CampoAjuda>
-                  <input
-                    id="dataReferencia"
-                    name="dataReferencia"
-                    type="date"
-                    defaultValue={campos?.dataReferencia ?? ""}
-                    className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
-                    aria-required
-                  />
-                  {erro(estado, "dataReferencia") && (
-                    <p className="text-sm text-red-600">
-                      {erro(estado, "dataReferencia")}
-                    </p>
-                  )}
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="dataReferencia"
+                      className="text-sm font-semibold"
+                    >
+                      Data de referência
+                    </label>
+                    <CampoAjuda>
+                      Dia em que a marcação deverá ser corrigida na frequência.
+                    </CampoAjuda>
+                    <input
+                      id="dataReferencia"
+                      name="dataReferencia"
+                      type="date"
+                      defaultValue={campos?.dataReferencia ?? ""}
+                      className="h-11 w-full rounded-md border bg-[var(--card)] px-3 text-sm"
+                      aria-required
+                    />
+                    {erro(estado, "dataReferencia") && (
+                      <p className="text-sm text-red-600">
+                        {erro(estado, "dataReferencia")}
+                      </p>
+                    )}
+                  </div>
+                  {tipoSelecionado === "EXCLUSAO_MARCACAO" &&
+                  marcacaoSelecionada ? (
+                    <div className="space-y-2">
+                      <span className="text-sm font-semibold">
+                        Marcação selecionada
+                      </span>
+                      <CampoAjuda>
+                        Esta é a marcação que será cancelada caso a chefia
+                        defira a solicitação.
+                      </CampoAjuda>
+                      <div className="flex h-11 items-center border border-[var(--border)] bg-[var(--muted)] px-3 font-mono text-sm font-semibold text-[var(--foreground)]">
+                        {marcacaoSelecionada}
+                      </div>
+                    </div>
+                  ) : null}
+                </>
               ) : (
                 <>
                   <div className="space-y-2">

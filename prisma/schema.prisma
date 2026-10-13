@@ -268,6 +268,7 @@ enum StatusAutorizacaoBancoHoras {
 
 enum TipoSolicitacao {
   AJUSTE_PONTO
+  EXCLUSAO_MARCACAO
   COMPENSACAO
   ABONO_JUSTIFICATIVA
   ATIVIDADE_EXTERNA
@@ -276,6 +277,7 @@ enum TipoSolicitacao {
   DISPENSA_PONTO
   HORA_CREDITO_PREVIA
   FOLGA_BANCO_HORAS
+  CONVERSAO_DIA_ESPECIAL_BANCO_HORAS
 }
 
 enum StatusSolicitacao {
@@ -1089,6 +1091,7 @@ model Orgao {
   perfis                           Perfil[]
   programacoesFerias               ProgramacaoFerias[]
   excecoesSecapFerias              ExcecaoSecapFeriasServidor[]
+  mctNaturezasRubricas             MctNaturezaRubrica[]
 
   @@index([uf])
   @@index([municipioIbge])
@@ -3478,10 +3481,10 @@ model Cidade {
 }
 
 model ConfiguracaoGlobal {
-  id                           String   @id @default("global") @db.VarChar(30)
-  dominiosEmailInstitucionais  String[] @default(["trf1.jus.br"]) @map("dominios_email_institucionais")
-  criadoEm                     DateTime @default(now()) @map("criado_em")
-  atualizadoEm                 DateTime @updatedAt @map("atualizado_em")
+  id                          String   @id @default("global") @db.VarChar(30)
+  dominiosEmailInstitucionais String[] @default(["trf1.jus.br"]) @map("dominios_email_institucionais")
+  criadoEm                    DateTime @default(now()) @map("criado_em")
+  atualizadoEm                DateTime @updatedAt @map("atualizado_em")
 
   @@map("configuracoes_globais")
 }
@@ -4460,4 +4463,297 @@ model HoraExtraEvento {
   @@index([acao])
   @@index([criadoEm])
   @@map("horas_extras_eventos")
+}
+
+enum MctModoOperacao {
+  LEGACY
+  SHADOW
+  MCT
+}
+
+enum MctEstadoPublicacao {
+  RASCUNHO
+  PUBLICADA
+  INATIVA
+}
+
+enum MctStatusExecucao {
+  INICIADA
+  CONCLUIDA
+  CONCLUIDA_COM_PENDENCIAS
+  ERRO
+}
+
+enum MctDimensaoRubrica {
+  TEMPORAL
+  JURIDICA_ADMINISTRATIVA
+  DESTINACAO
+  INCIDENCIA
+}
+
+model MctPoliticaVersao {
+  id      String @id @default(uuid()) @db.Uuid
+  orgaoId String @map("orgao_id") @db.Uuid
+
+  codigo    String              @db.VarChar(80)
+  nome      String              @db.VarChar(160)
+  descricao String?             @db.Text
+  versao    Int
+  estado    MctEstadoPublicacao @default(RASCUNHO)
+
+  vigenciaInicio      DateTime  @map("vigencia_inicio") @db.Date
+  vigenciaFim         DateTime? @map("vigencia_fim") @db.Date
+  configuracao        Json
+  regras              Json
+  fundamentoNormativo String?   @map("fundamento_normativo") @db.Text
+  hashConteudo        String    @map("hash_conteudo") @db.VarChar(64)
+  origem              String    @default("SECP") @db.VarChar(20)
+
+  criadaPorUsuarioId    String?   @map("criada_por_usuario_id") @db.Uuid
+  publicadaPorUsuarioId String?   @map("publicada_por_usuario_id") @db.Uuid
+  publicadaEm           DateTime? @map("publicada_em")
+  criadoEm              DateTime  @default(now()) @map("criado_em")
+
+  execucoes      MctExecucao[]
+  regrasCatalogo MctRegraVersao[]
+
+  @@unique([orgaoId, codigo, versao])
+  @@index([orgaoId, estado])
+  @@index([vigenciaInicio, vigenciaFim])
+  @@map("mct_politicas_versoes")
+}
+
+model MctRubricaVersao {
+  id      String  @id @default(uuid()) @db.Uuid
+  orgaoId String? @map("orgao_id") @db.Uuid
+
+  codigo    String              @db.VarChar(80)
+  nome      String              @db.VarChar(160)
+  descricao String              @db.Text
+  dimensao  MctDimensaoRubrica
+  natureza  String              @db.VarChar(80)
+  unidade   String              @db.VarChar(40)
+  versao    Int
+  estado    MctEstadoPublicacao @default(RASCUNHO)
+
+  vigenciaInicio      DateTime  @map("vigencia_inicio") @db.Date
+  vigenciaFim         DateTime? @map("vigencia_fim") @db.Date
+  definicao           Json
+  fundamentoNormativo String?   @map("fundamento_normativo") @db.Text
+  hashConteudo        String    @map("hash_conteudo") @db.VarChar(64)
+  origem              String    @default("SECP") @db.VarChar(20)
+
+  criadaPorUsuarioId    String?   @map("criada_por_usuario_id") @db.Uuid
+  publicadaPorUsuarioId String?   @map("publicada_por_usuario_id") @db.Uuid
+  publicadaEm           DateTime? @map("publicada_em")
+  criadoEm              DateTime  @default(now()) @map("criado_em")
+
+  aplicacoes MctRubricaAplicada[]
+  efeitos    MctRegraEfeito[]
+
+  @@unique([orgaoId, codigo, versao])
+  @@index([orgaoId, estado])
+  @@index([dimensao])
+  @@index([vigenciaInicio, vigenciaFim])
+  @@map("mct_rubricas_versoes")
+}
+
+model MctNaturezaRubrica {
+  id           String   @id @default(uuid()) @db.Uuid
+  orgaoId      String   @map("orgao_id") @db.Uuid
+  codigo       String   @db.VarChar(80)
+  nome         String   @db.VarChar(160)
+  descricao    String?  @db.Text
+  ativo        Boolean  @default(true)
+  origem       String   @default("SECP") @db.VarChar(20)
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  orgao Orgao @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+
+  @@unique([orgaoId, codigo])
+  @@index([orgaoId, ativo])
+  @@map("mct_naturezas_rubricas")
+}
+
+model MctRegraVersao {
+  id               String @id @default(uuid()) @db.Uuid
+  orgaoId          String @map("orgao_id") @db.Uuid
+  politicaVersaoId String @map("politica_versao_id") @db.Uuid
+
+  codigo     String              @db.VarChar(80)
+  nome       String              @db.VarChar(160)
+  descricao  String?             @db.Text
+  versao     Int
+  prioridade Int                 @default(100)
+  estado     MctEstadoPublicacao @default(RASCUNHO)
+  condicao   Json
+  origem     String              @default("SECP") @db.VarChar(20)
+
+  vigenciaInicio      DateTime  @map("vigencia_inicio") @db.Date
+  vigenciaFim         DateTime? @map("vigencia_fim") @db.Date
+  fundamentoNormativo String?   @map("fundamento_normativo") @db.Text
+  hashConteudo        String    @map("hash_conteudo") @db.VarChar(64)
+
+  criadaPorUsuarioId    String?   @map("criada_por_usuario_id") @db.Uuid
+  publicadaPorUsuarioId String?   @map("publicada_por_usuario_id") @db.Uuid
+  publicadaEm           DateTime? @map("publicada_em")
+  criadoEm              DateTime  @default(now()) @map("criado_em")
+
+  politica MctPoliticaVersao @relation(fields: [politicaVersaoId], references: [id], onDelete: Restrict)
+  efeitos  MctRegraEfeito[]
+
+  @@unique([orgaoId, codigo, versao])
+  @@index([orgaoId, estado])
+  @@index([politicaVersaoId])
+  @@index([vigenciaInicio, vigenciaFim])
+  @@map("mct_regras_versoes")
+}
+
+model MctRegraEfeito {
+  id                String  @id @default(uuid()) @db.Uuid
+  regraVersaoId     String  @map("regra_versao_id") @db.Uuid
+  rubricaVersaoId   String  @map("rubrica_versao_id") @db.Uuid
+  escopoTemporal    String  @map("escopo_temporal") @db.VarChar(80)
+  estrategia        String  @db.VarChar(20)
+  quantidadeMinutos Int?    @map("quantidade_minutos")
+  campoQuantidade   String? @map("campo_quantidade") @db.VarChar(80)
+
+  regra   MctRegraVersao   @relation(fields: [regraVersaoId], references: [id], onDelete: Cascade)
+  rubrica MctRubricaVersao @relation(fields: [rubricaVersaoId], references: [id], onDelete: Restrict)
+
+  @@unique([regraVersaoId, rubricaVersaoId, escopoTemporal])
+  @@index([rubricaVersaoId])
+  @@map("mct_regras_efeitos")
+}
+
+model MctExecucao {
+  id         String @id @default(uuid()) @db.Uuid
+  orgaoId    String @map("orgao_id") @db.Uuid
+  servidorId String @map("servidor_id") @db.Uuid
+
+  dataReferencia   DateTime          @map("data_referencia") @db.Date
+  competencia      String            @db.VarChar(7)
+  modo             MctModoOperacao   @default(SHADOW)
+  status           MctStatusExecucao @default(INICIADA)
+  politicaVersaoId String            @map("politica_versao_id") @db.Uuid
+  versaoMotor      String            @map("versao_motor") @db.VarChar(40)
+  hashEntrada      String            @map("hash_entrada") @db.VarChar(64)
+
+  entradaSnapshot       Json    @map("entrada_snapshot")
+  resultadoJornada      Json?   @map("resultado_jornada")
+  resultadoConformidade Json?   @map("resultado_conformidade")
+  memoriaCalculo        Json?   @map("memoria_calculo")
+  mensagemErro          String? @map("mensagem_erro") @db.Text
+
+  iniciadaEm   DateTime  @default(now()) @map("iniciada_em")
+  finalizadaEm DateTime? @map("finalizada_em")
+  duracaoMs    Int?      @map("duracao_ms")
+
+  politica         MctPoliticaVersao     @relation(fields: [politicaVersaoId], references: [id], onDelete: Restrict)
+  eventos          MctEventoEntrada[]
+  segmentos        MctSegmento[]
+  fatos            MctFatoConformidade[]
+  rubricas         MctRubricaAplicada[]
+  comparacaoLegado MctComparacaoLegado?
+
+  @@unique([orgaoId, servidorId, dataReferencia, politicaVersaoId, hashEntrada, modo])
+  @@index([orgaoId, dataReferencia])
+  @@index([servidorId, dataReferencia])
+  @@index([competencia, status])
+  @@index([politicaVersaoId])
+  @@map("mct_execucoes")
+}
+
+model MctComparacaoLegado {
+  id         String @id @default(uuid()) @db.Uuid
+  execucaoId String @unique @map("execucao_id") @db.Uuid
+
+  legadoSnapshot           Json     @map("legado_snapshot")
+  divergencias             Json
+  totalDivergencias        Int      @map("total_divergencias")
+  possuiDivergenciaCritica Boolean  @default(false) @map("possui_divergencia_critica")
+  comparadoEm              DateTime @default(now()) @map("comparado_em")
+
+  execucao MctExecucao @relation(fields: [execucaoId], references: [id], onDelete: Cascade)
+
+  @@index([possuiDivergenciaCritica])
+  @@index([comparadoEm])
+  @@map("mct_comparacoes_legado")
+}
+
+model MctEventoEntrada {
+  id         String @id @default(uuid()) @db.Uuid
+  execucaoId String @map("execucao_id") @db.Uuid
+
+  eventoIdOrigem String?  @map("evento_id_origem") @db.VarChar(120)
+  tipo           String   @db.VarChar(40)
+  fonte          String   @db.VarChar(80)
+  ocorridoEm     DateTime @map("ocorrido_em")
+  duplicadoDe    String?  @map("duplicado_de") @db.VarChar(120)
+  payload        Json?
+
+  execucao MctExecucao @relation(fields: [execucaoId], references: [id], onDelete: Cascade)
+
+  @@index([execucaoId, ocorridoEm])
+  @@index([eventoIdOrigem])
+  @@map("mct_eventos_entrada")
+}
+
+model MctSegmento {
+  id         String @id @default(uuid()) @db.Uuid
+  execucaoId String @map("execucao_id") @db.Uuid
+
+  indice     Int
+  inicio     DateTime
+  fim        DateTime
+  minutos    Int
+  marcadores Json
+  metadados  Json?
+
+  execucao MctExecucao          @relation(fields: [execucaoId], references: [id], onDelete: Cascade)
+  rubricas MctRubricaAplicada[]
+
+  @@unique([execucaoId, indice])
+  @@index([execucaoId, inicio])
+  @@map("mct_segmentos")
+}
+
+model MctFatoConformidade {
+  id         String @id @default(uuid()) @db.Uuid
+  execucaoId String @map("execucao_id") @db.Uuid
+
+  codigo    String @db.VarChar(100)
+  categoria String @db.VarChar(40)
+  minutos   Int?
+  descricao String @db.Text
+  metadados Json?
+
+  execucao MctExecucao @relation(fields: [execucaoId], references: [id], onDelete: Cascade)
+
+  @@index([execucaoId, categoria])
+  @@index([codigo])
+  @@map("mct_fatos_conformidade")
+}
+
+model MctRubricaAplicada {
+  id              String  @id @default(uuid()) @db.Uuid
+  execucaoId      String  @map("execucao_id") @db.Uuid
+  rubricaVersaoId String  @map("rubrica_versao_id") @db.Uuid
+  segmentoId      String? @map("segmento_id") @db.Uuid
+
+  quantidade     Int
+  status         String  @db.VarChar(40)
+  destinacao     String? @db.VarChar(80)
+  baseIncidencia Json?   @map("base_incidencia")
+  explicacao     String? @db.Text
+
+  execucao MctExecucao      @relation(fields: [execucaoId], references: [id], onDelete: Cascade)
+  rubrica  MctRubricaVersao @relation(fields: [rubricaVersaoId], references: [id], onDelete: Restrict)
+  segmento MctSegmento?     @relation(fields: [segmentoId], references: [id], onDelete: SetNull)
+
+  @@index([execucaoId])
+  @@index([rubricaVersaoId])
+  @@index([segmentoId])
+  @@map("mct_rubricas_aplicadas")
 }

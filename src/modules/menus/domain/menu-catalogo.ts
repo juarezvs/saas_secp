@@ -548,6 +548,25 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
     ],
   },
   {
+    id: "/cadastros-auxiliares/mct",
+    label: "Rubricas, políticas e regras MCT",
+    href: "/cadastros-auxiliares/mct",
+    permissoes: [
+      "mct-rubricas:consultar:seccional",
+      "mct-rubricas:consultar:global",
+      "mct-rubricas:gerenciar:seccional",
+      "mct-rubricas:gerenciar:global",
+      "mct-politicas:consultar:seccional",
+      "mct-politicas:consultar:global",
+      "mct-politicas:gerenciar:seccional",
+      "mct-politicas:gerenciar:global",
+      "mct-regras:consultar:seccional",
+      "mct-regras:consultar:global",
+      "mct-regras:gerenciar:seccional",
+      "mct-regras:gerenciar:global",
+    ],
+  },
+  {
     id: "/cadastros-auxiliares/estados-cidades",
     label: "Estados/Cidades",
     href: "/cadastros-auxiliares/estados-cidades",
@@ -664,12 +683,6 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
       "auditoria:consultar:global",
       "auditoria:detalhar:global",
     ],
-  },
-  {
-    id: "/administracao/personalizar-menu",
-    label: "Personalizar menu",
-    href: "/administracao/personalizar-menu",
-    permissoes: ["menus:personalizar:seccional", "menus:personalizar:global"],
   },
 ];
 

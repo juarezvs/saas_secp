@@ -40,7 +40,11 @@ type PdfCanvasPagesProps = {
   zoom: number;
 };
 
-export function PdfCanvasPages({ dados, nomeArquivo, zoom }: PdfCanvasPagesProps) {
+export function PdfCanvasPages({
+  dados,
+  nomeArquivo,
+  zoom,
+}: PdfCanvasPagesProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [renderizando, setRenderizando] = useState(true);
   const [paginas, setPaginas] = useState(0);
@@ -176,7 +180,9 @@ export function PdfDrawerPreview({
   src,
   viewerHref,
 }: PdfDrawerPreviewProps) {
-  const downloadSrc = src.includes("?") ? `${src}&download=1` : `${src}?download=1`;
+  const downloadSrc = src.includes("?")
+    ? `${src}&download=1`
+    : `${src}?download=1`;
   const [zoom, setZoom] = useState(1.15);
   const [aberto, setAberto] = useState(false);
   const [estado, setEstado] = useState<EstadoRenderizacao>({
@@ -208,7 +214,9 @@ export function PdfDrawerPreview({
 
         const contentType = resposta.headers.get("content-type") ?? "";
 
-        if (!contentType.toLocaleLowerCase("pt-BR").includes("application/pdf")) {
+        if (
+          !contentType.toLocaleLowerCase("pt-BR").includes("application/pdf")
+        ) {
           throw new Error(
             "O servidor retornou uma resposta que nao foi reconhecida como PDF.",
           );
@@ -304,7 +312,10 @@ export function PdfDrawerPreview({
         <div className="relative min-h-0 flex-1 overflow-auto bg-slate-100 p-3 dark:bg-slate-900">
           {estado.tipo === "carregando" ? (
             <div className="flex h-[calc(100dvh-8rem)] items-center justify-center rounded-lg border bg-white text-sm font-semibold text-slate-600">
-              <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />
+              <Loader2
+                className="mr-2 size-4 animate-spin"
+                aria-hidden="true"
+              />
               Carregando PDF...
             </div>
           ) : null}
@@ -316,7 +327,9 @@ export function PdfDrawerPreview({
                   className="mx-auto mb-3 size-8"
                   aria-hidden="true"
                 />
-                <p className="font-semibold">Não foi possível visualizar o PDF.</p>
+                <p className="font-semibold">
+                  Não foi possível visualizar o PDF.
+                </p>
                 <p className="mt-1 text-red-600">{estado.mensagem}</p>
               </div>
             </div>

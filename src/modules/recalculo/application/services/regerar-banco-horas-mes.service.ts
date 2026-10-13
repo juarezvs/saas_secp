@@ -509,7 +509,17 @@ export async function regerarBancoHorasMesService({
       );
 
       if (minutosCreditoPendentes > 0) {
-        if (!regulamentacao.exigeAutorizacaoPreviaCredito) {
+        const possuiAutorizacaoCreditoAplicavel = autorizacoesDisponiveis.some(
+          (autorizacao) =>
+            ["COMPENSACAO_DEBITO", "CREDITO"].includes(autorizacao.tipo) &&
+            autorizacaoAbrangeData(autorizacao, apuracao.dataReferencia) &&
+            minutosDisponiveis(autorizacao) > 0,
+        );
+
+        if (
+          !regulamentacao.exigeAutorizacaoPreviaCredito &&
+          !possuiAutorizacaoCreditoAplicavel
+        ) {
           const classificacaoBancoHoras = classificarHorasCreditoBancoHoras({
             apuracao: {
               ...apuracao,

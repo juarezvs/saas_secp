@@ -175,7 +175,9 @@ function resolverSiglaLocalidadeSarh(siglaOrgao?: string | null) {
   const sigla = siglaOrgao?.trim().toUpperCase();
 
   if (!sigla) {
-    return process.env.SARH_SIGLA_LOCALIDADE ?? process.env.SIGLA_LOCALIDADE ?? "AM";
+    return (
+      process.env.SARH_SIGLA_LOCALIDADE ?? process.env.SIGLA_LOCALIDADE ?? "AM"
+    );
   }
 
   if (sigla.length >= 4 && sigla.startsWith("SJ")) {
@@ -285,10 +287,11 @@ export class SarhPrismaRepository {
     const status = params.cancelada
       ? "CANCELADA"
       : params.erro
-      ? "FALHOU"
-      : params.contadores.totalErros > 0 || params.contadores.totalConflitos > 0
-        ? "CONCLUIDA_COM_ERROS"
-        : "CONCLUIDA";
+        ? "FALHOU"
+        : params.contadores.totalErros > 0 ||
+            params.contadores.totalConflitos > 0
+          ? "CONCLUIDA_COM_ERROS"
+          : "CONCLUIDA";
 
     return this.prisma.integracaoSarhExecucao.update({
       where: { id: params.execucaoId },
@@ -300,7 +303,7 @@ export class SarhPrismaRepository {
           : params.contadores.totalErros,
         mensagemErro: params.cancelada
           ? "Sincronizacao cancelada pelo usuario."
-          : params.erro ?? null,
+          : (params.erro ?? null),
         finalizadoEm,
         duracaoMs,
       },
@@ -528,10 +531,7 @@ export class SarhPrismaRepository {
     const servidorIdCache = params.cache?.servidorId;
     const filtrosServidor =
       servidorIdCache === undefined
-        ? [
-            ...(matricula ? [{ matricula }] : []),
-            ...(cpf ? [{ cpf }] : []),
-          ]
+        ? [...(matricula ? [{ matricula }] : []), ...(cpf ? [{ cpf }] : [])]
         : [];
     const servidor =
       servidorIdCache !== undefined
@@ -700,20 +700,21 @@ export class SarhPrismaRepository {
         },
       },
     });
-    const existente =
-      mapeamento?.entidadeInternaId
-        ? await this.prisma.calendarioInstitucional.findUnique({
-            where: { id: mapeamento.entidadeInternaId },
-          })
-        : await this.prisma.calendarioInstitucional.findFirst({
-            where: {
-              dataReferencia,
-              descricao: limparTexto(params.payload.descricao) ?? "Calendário SARH",
-              observacao: { contains: observacaoOrigem },
-            },
-          });
+    const existente = mapeamento?.entidadeInternaId
+      ? await this.prisma.calendarioInstitucional.findUnique({
+          where: { id: mapeamento.entidadeInternaId },
+        })
+      : await this.prisma.calendarioInstitucional.findFirst({
+          where: {
+            dataReferencia,
+            descricao:
+              limparTexto(params.payload.descricao) ?? "Calendário SARH",
+            observacao: { contains: observacaoOrigem },
+          },
+        });
     const data = {
       dataReferencia,
+      dataFim: dataReferencia,
       descricao: limparTexto(params.payload.descricao) ?? "Calendário SARH",
       tipo: params.payload.tipo,
       abrangencia: params.payload.abrangencia,
@@ -836,10 +837,7 @@ export class SarhPrismaRepository {
             ? [{ codigoExternoSarh: codigoLotacaoSarh }]
             : []),
           ...(siglas.length
-            ? [
-                { sigla: { in: siglas } },
-                { codigo: { in: siglas } },
-              ]
+            ? [{ sigla: { in: siglas } }, { codigo: { in: siglas } }]
             : []),
         ],
       },
@@ -1090,14 +1088,16 @@ export class SarhPrismaRepository {
       });
     }
 
-    const gestorExistenteDoServidor = await this.prisma.gestorUnidade.findFirst({
-      where: {
-        unidadeId: unidade.id,
-        servidorId: servidor.id,
-        papel: "GESTOR_TITULAR",
+    const gestorExistenteDoServidor = await this.prisma.gestorUnidade.findFirst(
+      {
+        where: {
+          unidadeId: unidade.id,
+          servidorId: servidor.id,
+          papel: "GESTOR_TITULAR",
+        },
+        orderBy: { criadoEm: "desc" },
       },
-      orderBy: { criadoEm: "desc" },
-    });
+    );
     const gestor = gestorExistenteDoServidor
       ? await this.prisma.gestorUnidade.update({
           where: { id: gestorExistenteDoServidor.id },
@@ -1190,8 +1190,7 @@ export class SarhPrismaRepository {
       categoria,
       codigo,
       descricao:
-        limparTexto(params.descricao) ??
-        `${categoria} ${codigo}`.trim(),
+        limparTexto(params.descricao) ?? `${categoria} ${codigo}`.trim(),
       codigoFuncaoLotacaoSarh: params.funcaoId,
       origem: "SARH" as const,
       codigoExternoSarh,
@@ -1228,7 +1227,12 @@ export class SarhPrismaRepository {
       : null;
     const matriculaBase = titularMatricula ?? substitutoMatricula;
 
-    if (!chaveExterna || !titularMatricula || !substitutoMatricula || !matriculaBase) {
+    if (
+      !chaveExterna ||
+      !titularMatricula ||
+      !substitutoMatricula ||
+      !matriculaBase
+    ) {
       await this.registrarItem(
         params.execucaoId,
         endpoint,
@@ -1942,10 +1946,10 @@ export class SarhPrismaRepository {
             usuarioPorCpf: usuarioComMesmoCpf,
           },
           dadosDepois: params.payload,
-        metadados: {
-          motivo: "CPF_VINCULADO_A_OUTRA_MATRICULA",
-          cpf,
-          matriculaSarh: matricula,
+          metadados: {
+            motivo: "CPF_VINCULADO_A_OUTRA_MATRICULA",
+            cpf,
+            matriculaSarh: matricula,
             matriculaUsuarioCpf: usuarioComMesmoCpf.matricula,
           },
         },
@@ -1960,7 +1964,9 @@ export class SarhPrismaRepository {
         OR: [
           { matricula },
           { matricula: { equals: matricula, mode: "insensitive" } },
-          ...(usuarioParaPersistir?.id ? [{ usuarioId: usuarioParaPersistir.id }] : []),
+          ...(usuarioParaPersistir?.id
+            ? [{ usuarioId: usuarioParaPersistir.id }]
+            : []),
         ],
       },
     });

@@ -7,6 +7,16 @@ import {
 } from "./classificar-espelho-mensal.service";
 
 describe("classificar espelho mensal", () => {
+  it("não apresenta excedente pendente como situação regular", () => {
+    expect(
+      conferenciaEspelho("CALCULADA", {
+        resultado: "CREDITO",
+        minutosDebito: 0,
+        minutosHoraExtraNaoAutorizada: 45,
+      }),
+    ).toMatchObject({ rotulo: "Excedente pendente", tom: "alerta" });
+  });
+
   it("traduz o status tecnico para conferencia amigavel", () => {
     expect(conferenciaEspelho("CALCULADA")).toEqual(
       expect.objectContaining({
@@ -52,9 +62,7 @@ describe("classificar espelho mensal", () => {
     expect(conferencia.descricao).toContain(
       "Solicitacao deferida nao cobre totalmente",
     );
-    expect(conferencia.descricao).toContain(
-      "Debito ou falta nao justificados",
-    );
+    expect(conferencia.descricao).toContain("Debito ou falta nao justificados");
   });
 
   it("nao exige analise quando ha dispensa de ponto aplicada", () => {

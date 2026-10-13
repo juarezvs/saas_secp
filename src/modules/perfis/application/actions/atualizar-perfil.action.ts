@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
+import { invalidarCacheUsuarioAuthPorMatricula } from "@/modules/auth/infrastructure/repositories/usuario-auth.repository";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
 import {
@@ -15,7 +16,9 @@ import { calcularExcecoesPermissoesSeccionais } from "../services/permissoes-per
 
 function extrairDadosPerfil(formData: FormData) {
   return {
-    codigo: String(formData.get("codigo") ?? "").trim().toUpperCase(),
+    codigo: String(formData.get("codigo") ?? "")
+      .trim()
+      .toUpperCase(),
     nome: String(formData.get("nome") ?? "").trim(),
     descricao: String(formData.get("descricao") ?? "").trim(),
     ativo: formData.get("ativo") === "on" || formData.get("ativo") === "true",
@@ -31,9 +34,7 @@ function extrairDadosPerfil(formData: FormData) {
     ),
     orgaoId: String(formData.get("orgaoId") ?? ""),
     permissoes: formData.getAll("permissoes").map(String),
-    orgaoEscopoPermissoes: String(
-      formData.get("orgaoEscopoPermissoes") ?? "",
-    ),
+    orgaoEscopoPermissoes: String(formData.get("orgaoEscopoPermissoes") ?? ""),
   };
 }
 
@@ -55,7 +56,9 @@ async function resolverOrgaoPerfil(params: {
   }
 
   if (!params.escopoGlobal && !params.orgaoIdsPermitidos.includes(orgaoId)) {
-    throw new Error("A seccional informada não pertence ao escopo do perfil ativo.");
+    throw new Error(
+      "A seccional informada não pertence ao escopo do perfil ativo.",
+    );
   }
 
   return prisma.orgao.findUnique({
@@ -71,6 +74,19 @@ function aplicarPrefixoSeccional(codigo: string, sigla?: string) {
   return codigoNormalizado.startsWith(prefixo)
     ? codigoNormalizado
     : `${prefixo}${codigoNormalizado}`;
+}
+
+async function invalidarCacheUsuariosDoPerfil(perfilId: string) {
+  const vinculos = await prisma.usuarioPerfil.findMany({
+    where: { perfilId, ativo: true },
+    select: { usuario: { select: { matricula: true } } },
+  });
+
+  await Promise.all(
+    vinculos.map(({ usuario }) =>
+      invalidarCacheUsuarioAuthPorMatricula(usuario.matricula),
+    ),
+  );
 }
 
 export async function atualizarPerfilAction(
@@ -169,6 +185,7 @@ export async function atualizarPerfilAction(
       });
     });
 
+    await invalidarCacheUsuariosDoPerfil(perfilId);
     revalidatePath("/perfis");
     revalidatePath(`/perfis/${perfilId}`);
     redirect(`/perfis/${perfilId}`);
@@ -186,7 +203,9 @@ export async function atualizarPerfilAction(
           return { erro: error.message } as const;
         }
 
-        return { erro: "Não foi possível validar a seccional do perfil." } as const;
+        return {
+          erro: "Não foi possível validar a seccional do perfil.",
+        } as const;
       });
 
   if (orgao && "erro" in orgao) {
@@ -290,6 +309,7 @@ export async function atualizarPerfilAction(
     });
   });
 
+  await invalidarCacheUsuariosDoPerfil(perfilId);
   revalidatePath("/perfis");
   revalidatePath(`/perfis/${perfilId}`);
 

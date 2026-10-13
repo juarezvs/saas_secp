@@ -509,7 +509,12 @@ export async function listarSolicitacoesBancoHorasServidor(params: {
     where: {
       servidorId: params.servidorId,
       tipo: {
-        in: ["COMPENSACAO", "HORA_CREDITO_PREVIA", "FOLGA_BANCO_HORAS"],
+        in: [
+          "COMPENSACAO",
+          "HORA_CREDITO_PREVIA",
+          "FOLGA_BANCO_HORAS",
+          "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+        ],
       },
     },
     select: {
@@ -679,7 +684,12 @@ export async function listarPainelChefiaBancoHoras(params: {
             in: servidorIds,
           },
           tipo: {
-            in: ["COMPENSACAO", "HORA_CREDITO_PREVIA", "FOLGA_BANCO_HORAS"],
+            in: [
+              "COMPENSACAO",
+              "HORA_CREDITO_PREVIA",
+              "FOLGA_BANCO_HORAS",
+              "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+            ],
           },
           status: {
             in: ["ENVIADA", "EM_ANALISE"],

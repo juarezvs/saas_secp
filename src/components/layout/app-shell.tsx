@@ -9,10 +9,6 @@ import {
   contarNotificacoesPerfilChefiaUsuario,
   contarNotificacoesUsuario,
 } from "@/modules/notificacoes/application/notificacoes.service";
-import {
-  buscarIconesItensCatalogoMenu,
-  buscarMenusPersonalizadosPorPerfil,
-} from "@/modules/menus/infrastructure/repositories/menu-personalizado.repository";
 import { listarFavoritosUsuarioPerfil } from "@/modules/favoritos/application/favoritos-usuario-perfil.service";
 import {
   PERMISSOES_ACOMPANHAMENTO_ESTAGIO,
@@ -143,8 +139,9 @@ export async function AppShell({ children }: AppShellProps) {
     buscarServidorPorUsuarioId(session.user.id, session.user.matricula),
   ]);
   const lotacaoAtual = servidor?.lotacoes[0];
-  const perfisNavegacao =
-    usuarioAtualizado?.perfis.length ? usuarioAtualizado.perfis : session.user.perfis;
+  const perfisNavegacao = usuarioAtualizado?.perfis.length
+    ? usuarioAtualizado.perfis
+    : session.user.perfis;
   const perfilPreferido =
     perfisNavegacao.find(
       (perfil) => perfil.codigo === session.user.perfilAtivo?.codigo,
@@ -176,7 +173,12 @@ export async function AppShell({ children }: AppShellProps) {
       perfilAtivo.permissoes.includes(permissao),
     );
 
-  const [totalNotificacoes, favoritosPerfil, alertaChefia, supervisionaEstagio] = await Promise.all([
+  const [
+    totalNotificacoes,
+    favoritosPerfil,
+    alertaChefia,
+    supervisionaEstagio,
+  ] = await Promise.all([
     contarNotificacoesUsuario(session.user.id, {
       perfilAtivo,
     }),
@@ -208,18 +210,13 @@ export async function AppShell({ children }: AppShellProps) {
     : perfilAtivo.permissoes;
 
   const fotoCpf = servidor?.cpf;
-  const [fotoUrl, menusPersonalizados, iconesItensCatalogo] = await Promise.all([
-    buscarFotoServidorDataUrl(fotoCpf),
-    buscarMenusPersonalizadosPorPerfil(perfisNavegacao.map((perfil) => perfil.id)),
-    buscarIconesItensCatalogoMenu(),
-  ]);
+  const fotoUrl = await buscarFotoServidorDataUrl(fotoCpf);
   const orgaoInstitucional =
     lotacaoAtual?.unidade.orgao ?? perfilAtivo.orgaos?.[0] ?? null;
   const orgaoIdInstitucional =
     servidor?.orgaoId ?? perfilAtivo.orgaos?.[0]?.id ?? null;
-  const regulamentacaoSeccional = await buscarRegulamentacaoPontoOrgao(
-    orgaoIdInstitucional,
-  );
+  const regulamentacaoSeccional =
+    await buscarRegulamentacaoPontoOrgao(orgaoIdInstitucional);
   const siglaLotacao = montarSiglaLotacao({
     orgaoSigla: orgaoInstitucional?.sigla,
     unidadeSigla: lotacaoAtual?.unidade.sigla,
@@ -282,8 +279,6 @@ export async function AppShell({ children }: AppShellProps) {
     <AppShellClient
       key={chavePerfilAtivo}
       usuario={usuario}
-      menusPersonalizados={menusPersonalizados}
-      iconesItensCatalogo={iconesItensCatalogo}
       favoritosPerfil={favoritosPerfil}
       totalNotificacoes={totalNotificacoes}
       onLogout={logoutAction}

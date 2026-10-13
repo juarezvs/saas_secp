@@ -36,7 +36,7 @@ import {
   marcacaoPossuiAjuste,
 } from "../../application/services/espelho-marcacao-origem.service";
 import { AfastamentoTipoIcone } from "@/modules/servidores/presentation/components/afastamento-tipo-icone";
-import { SolicitacaoAjusteDiaDropdown } from "./solicitacao-ajuste-dia-dropdown";
+import { SolicitacaoAjusteDiaContextMenu } from "./solicitacao-ajuste-dia-context-menu";
 import { EspelhoPontoTabelaInterativa } from "./espelho-ponto-tabela-interativa";
 import {
   EspelhoPontoTotaisTabela,
@@ -47,6 +47,8 @@ import {
   EspelhoPontoOcorrenciasInterativa,
 } from "./espelho-ponto-ocorrencias-interativa";
 import { EspelhoPontoSemanaChart } from "./espelho-ponto-semana-chart";
+import type { AnaliseJornadaMctDto } from "@/modules/mct/application/dtos/analise-jornada.dto";
+import { AnaliseJornadaMenuButton } from "@/modules/mct/presentation/components/analise-jornada-drawer";
 
 type ApuracaoMensalItem = {
   id: string;
@@ -735,6 +737,8 @@ export function EspelhoPontoMensal({
   homologacaoCompetencia,
   modoCompactoPessoaExterna = false,
   periodoLabel,
+  analisesMct = {},
+  servidorId,
 }: {
   apuracoes: ApuracaoMensalItem[];
   marcacoes: MarcacaoItem[];
@@ -754,15 +758,10 @@ export function EspelhoPontoMensal({
   acaoHomologacao?: ReactNode;
   homologacaoCompetencia?: HomologacaoCompetenciaEspelho | null;
   periodoLabel?: string;
+  analisesMct?: Record<string, AnaliseJornadaMctDto>;
+  servidorId: string;
 }) {
   const marcacoesPorDia = agruparMarcacoesPorDia(marcacoes);
-  const quantidadeColunasMarcações = calcularQuantidadeColunasMarcações(
-    apuracoes,
-    marcacoesPorDia,
-  );
-  const rotulosColunasMarcações = rotulosColunasTempo(
-    quantidadeColunasMarcações,
-  );
 
   const totais = apuracoes.reduce(
     (acc, item) => {
@@ -798,6 +797,8 @@ export function EspelhoPontoMensal({
       ? Math.min(100, Math.round((totais.trabalhado / totais.previsto) * 100))
       : 0;
   const diferencaJornada = totais.trabalhado - totais.previsto;
+  const excedenteBruto = Math.max(0, diferencaJornada);
+  const jornadaCumprida = Math.min(totais.trabalhado, totais.previsto);
   const minutosFaltantes = Math.max(0, totais.previsto - totais.trabalhado);
   const totalRegistros = apuracoes.length;
   const detalheJornadaPrevista = montarDetalheJornadaPrevista(apuracoes);
@@ -852,40 +853,38 @@ export function EspelhoPontoMensal({
 
       <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3 xl:col-span-4 xl:grid-cols-6">
         <Resumo
-          label="Previsto"
+          label="Jornada prevista"
           value={minutosParaTexto(totais.previsto)}
           detalhe={detalheJornadaPrevista}
         />
         <Resumo
-          label="Trabalhado"
+          label="Tempo trabalhado"
           value={minutosParaTexto(totais.trabalhado)}
           detalhe={`${percentualJornada}% da jornada`}
           destaque="credito"
         />
         <Resumo
-          label="Crédito"
+          label="Créditos reconhecidos"
           value={minutosParaTexto(totais.credito)}
           detalhe="Saldo positivo apurado"
           destaque="credito"
         />
         <Resumo
-          label="Débito"
+          label="Débitos reconhecidos"
           value={minutosParaTexto(totais.debito)}
           detalhe="Horas em atraso"
           destaque="debito"
         />
         <Resumo
-          label="Horas extras"
-          value={minutosParaTexto(
-            totais.horaExtraAutorizada + totais.horaExtraNaoAutorizada,
-          )}
-          detalhe={`${minutosParaTexto(totais.horaExtraAutorizada)} autorizadas · ${minutosParaTexto(
+          label="Excedente / Horas extras"
+          value={minutosParaTexto(excedenteBruto)}
+          detalhe={`${minutosParaTexto(totais.horaExtraAutorizada)} reconhecidas · ${minutosParaTexto(
             totais.horaExtraNaoAutorizada,
-          )} nao autorizadas`}
+          )} pendentes`}
           destaque="credito"
         />
         <Resumo
-          label="Banco de horas"
+          label="Saldo disponível"
           value={formatarSaldoBancoHoras(totais.bancoHoras)}
           destaque={
             totais.bancoHoras > 0
@@ -904,688 +903,604 @@ export function EspelhoPontoMensal({
           periodoLabel={periodoLabel}
         />
 
-        <div
-          id="espelho-painel-lateral-abas"
-          hidden
-          className="grid gap-1.5"
-        />
+        <div id="espelho-painel-lateral-abas" hidden className="grid gap-1.5" />
 
         <div id="espelho-painel-dias" className="grid gap-1.5">
-        <Card className="p-2.5">
-          <div className="mb-1.5">
-            <h3 className="text-sm font-bold text-slate-950 dark:text-slate-50">
-              Distribuição da jornada
-            </h3>
-            <p className="text-xs text-slate-500">
-              Visualização rápida do saldo da competência.
-              <span className="ml-3 inline-flex flex-wrap items-center gap-2 align-middle">
-                <LegendaCompacta color="bg-blue-700" label="Trabalhadas" />
-                <LegendaCompacta color="bg-amber-400" label="Horas extras" />
-                <LegendaCompacta color="bg-slate-300" label="Faltantes" />
-              </span>
-            </p>
-          </div>
-          <StackedBar
-            items={[
-              {
-                label: "Trabalhadas",
-                minutes: totais.trabalhado,
-                className: "bg-blue-700",
-              },
-              {
-                label: "Horas extras",
-                minutes:
-                  totais.horaExtraAutorizada + totais.horaExtraNaoAutorizada,
-                className: "bg-amber-400",
-              },
-              {
-                label: "Faltantes",
-                minutes: minutosFaltantes,
-                className: "bg-slate-200 dark:bg-slate-700",
-              },
-            ]}
-            total={Math.max(totais.previsto, totais.trabalhado)}
-            mostrarLegenda={false}
-          />
-          <div className="mt-1.5 grid grid-cols-2 gap-1.5 border-t border-slate-100 pt-1.5 text-xs md:grid-cols-4 dark:border-slate-800">
-            <ResumoInline
-              label="Total previsto"
-              value={minutosParaTexto(totais.previsto)}
-              tone="blue"
+          <Card className="p-2.5">
+            <div className="mb-1.5">
+              <h3 className="text-sm font-bold text-slate-950 dark:text-slate-50">
+                Distribuição da jornada
+              </h3>
+              <p className="text-xs text-slate-500">
+                Visualização rápida do saldo da competência.
+                <span className="ml-3 inline-flex flex-wrap items-center gap-2 align-middle">
+                  <LegendaCompacta
+                    color="bg-blue-700"
+                    label="Jornada cumprida"
+                  />
+                  <LegendaCompacta
+                    color="bg-amber-400"
+                    label="Excedente bruto"
+                  />
+                  <LegendaCompacta color="bg-slate-300" label="Faltantes" />
+                </span>
+              </p>
+            </div>
+            <StackedBar
+              items={[
+                {
+                  label: "Jornada cumprida",
+                  minutes: jornadaCumprida,
+                  className: "bg-blue-700",
+                },
+                {
+                  label: "Excedente bruto",
+                  minutes: excedenteBruto,
+                  className: "bg-amber-400",
+                },
+                {
+                  label: "Faltantes",
+                  minutes: minutosFaltantes,
+                  className: "bg-slate-200 dark:bg-slate-700",
+                },
+              ]}
+              total={Math.max(totais.previsto, totais.trabalhado)}
+              mostrarLegenda={false}
             />
-            <ResumoInline
-              label="Total trabalhado"
-              value={minutosParaTexto(totais.trabalhado)}
-              tone="blue"
-            />
-            <ResumoInline
-              label="Horas extras"
-              value={minutosParaTexto(
-                totais.horaExtraAutorizada + totais.horaExtraNaoAutorizada,
-              )}
-              tone="amber"
-            />
-            <ResumoInline
-              label="Diferença"
-              value={formatarSaldoBancoHoras(diferencaJornada)}
-              tone={diferencaJornada < 0 ? "red" : "green"}
-            />
-          </div>
-        </Card>
-
-        <Card className="p-2.5">
-          <div className="mb-1">
-            <h3 className="text-sm font-bold text-slate-950 dark:text-slate-50">
-              Radar da competência
-            </h3>
-            <p className="text-xs text-slate-500">
-              Principais indicadores do mês.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <RadialScore value={percentualJornada} />
-            <div className="grid flex-1 gap-1 text-xs">
-              <LegendLine
-                color="bg-emerald-500"
-                label="Trabalhado"
+            <div className="mt-1.5 grid grid-cols-2 gap-1.5 border-t border-slate-100 pt-1.5 text-xs md:grid-cols-4 dark:border-slate-800">
+              <ResumoInline
+                label="Total previsto"
+                value={minutosParaTexto(totais.previsto)}
+                tone="blue"
+              />
+              <ResumoInline
+                label="Total trabalhado"
                 value={minutosParaTexto(totais.trabalhado)}
+                tone="blue"
               />
-              <LegendLine
-                color="bg-amber-400"
-                label="Horas extras"
-                value={minutosParaTexto(
-                  totais.horaExtraAutorizada + totais.horaExtraNaoAutorizada,
-                )}
+              <ResumoInline
+                label="Excedente bruto"
+                value={minutosParaTexto(excedenteBruto)}
+                tone="amber"
               />
-              <LegendLine
-                color="bg-slate-300"
-                label="Faltantes"
-                value={minutosParaTexto(minutosFaltantes)}
+              <ResumoInline
+                label="Diferença"
+                value={formatarSaldoBancoHoras(diferencaJornada)}
+                tone={diferencaJornada < 0 ? "red" : "green"}
               />
             </div>
-          </div>
-        </Card>
+          </Card>
 
-        <Card
-          hidden
-          className="border-emerald-100 bg-emerald-50/70 p-2.5 dark:border-emerald-900 dark:bg-emerald-950/20"
-        >
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,0.95fr)_minmax(0,1fr)]">
-            <div className="flex gap-2">
-              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
-                <CheckCircle2 className="size-5" aria-hidden="true" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-emerald-950 dark:text-emerald-100">
-                  Situação da competência
-                </p>
-                <h3 className="text-lg font-bold leading-tight text-emerald-700 dark:text-emerald-300">
-                  Em andamento
-                </h3>
-                {periodoLabel ? (
-                  <p className="text-xs font-medium text-emerald-800 dark:text-emerald-200">
-                    Período: {periodoLabel}
-                  </p>
-                ) : null}
-                <div className="mt-1.5">
-                  {acaoHomologacao ?? (
-                    <button
-                      type="button"
-                      className="inline-flex h-8 w-full items-center justify-center gap-2 rounded-md bg-blue-700 px-3 text-[11px] font-bold text-white shadow-sm"
-                    >
-                      <Send className="size-3.5" aria-hidden="true" />
-                      Enviar para homologação
-                    </button>
-                  )}
-                </div>
+          <Card className="p-2.5">
+            <div className="mb-1">
+              <h3 className="text-sm font-bold text-slate-950 dark:text-slate-50">
+                Cumprimento da jornada
+              </h3>
+              <p className="text-xs text-slate-500">
+                Percentual quantitativo da carga exigível, não de conformidade.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadialScore value={percentualJornada} />
+              <div className="grid flex-1 gap-1 text-xs">
+                <LegendLine
+                  color="bg-emerald-500"
+                  label="Tempo trabalhado"
+                  value={minutosParaTexto(totais.trabalhado)}
+                />
+                <LegendLine
+                  color="bg-amber-400"
+                  label="Excedente bruto"
+                  value={minutosParaTexto(excedenteBruto)}
+                />
+                <LegendLine
+                  color="bg-slate-300"
+                  label="Faltantes"
+                  value={minutosParaTexto(minutosFaltantes)}
+                />
               </div>
             </div>
-            <p className="rounded-md bg-white/60 p-2 text-xs leading-4 text-emerald-950/80 dark:bg-emerald-950/20 dark:text-emerald-100/80">
-              Revise o espelho antes de enviar para homologação. Após o envio,
-              ajustes que alterem a competência podem ficar restritos.
-            </p>
-          </div>
-        </Card>
+          </Card>
+
+          <Card
+            hidden
+            className="border-emerald-100 bg-emerald-50/70 p-2.5 dark:border-emerald-900 dark:bg-emerald-950/20"
+          >
+            <div className="grid gap-2 sm:grid-cols-[minmax(0,0.95fr)_minmax(0,1fr)]">
+              <div className="flex gap-2">
+                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                  <CheckCircle2 className="size-5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-emerald-950 dark:text-emerald-100">
+                    Situação da competência
+                  </p>
+                  <h3 className="text-lg font-bold leading-tight text-emerald-700 dark:text-emerald-300">
+                    Em andamento
+                  </h3>
+                  {periodoLabel ? (
+                    <p className="text-xs font-medium text-emerald-800 dark:text-emerald-200">
+                      Período: {periodoLabel}
+                    </p>
+                  ) : null}
+                  <div className="mt-1.5">
+                    {acaoHomologacao ?? (
+                      <button
+                        type="button"
+                        className="inline-flex h-8 w-full items-center justify-center gap-2 rounded-md bg-blue-700 px-3 text-[11px] font-bold text-white shadow-sm"
+                      >
+                        <Send className="size-3.5" aria-hidden="true" />
+                        Enviar para homologação
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <p className="rounded-md bg-white/60 p-2 text-xs leading-4 text-emerald-950/80 dark:bg-emerald-950/20 dark:text-emerald-100/80">
+                Revise o espelho antes de enviar para homologação. Após o envio,
+                ajustes que alterem a competência podem ficar restritos.
+              </p>
+            </div>
+          </Card>
         </div>
       </aside>
 
       <div className="order-1 min-w-0 xl:col-span-3 xl:col-start-1 xl:row-start-3">
-      {modoCompactoPessoaExterna ? (
-        <EspelhoPontoMensalCompacto
-          apuracoes={apuracoes}
-          marcacoes={marcacoes}
-          destaque={destaque}
-        />
-      ) : (
-        <div className="overflow-hidden border border-[var(--border)] bg-[var(--card)]">
-          <EspelhoPontoTabelaInterativa
-            totalRegistros={totalRegistros}
-            semanas={semanasSelecionaveis.map((semana) => {
-              const totaisDaSemana = somarTotaisApuracao(semana);
-              const percentualDaSemana =
-                totaisDaSemana.previsto > 0
-                  ? Math.min(
-                      100,
-                      Math.round(
-                        (totaisDaSemana.trabalhado / totaisDaSemana.previsto) *
-                          100,
-                      ),
-                    )
-                  : 0;
+        {modoCompactoPessoaExterna ? (
+          <EspelhoPontoMensalCompacto
+            apuracoes={apuracoes}
+            marcacoes={marcacoes}
+            destaque={destaque}
+          />
+        ) : (
+          <div className="overflow-hidden border border-[var(--border)] bg-[var(--card)]">
+            <EspelhoPontoTabelaInterativa
+              totalRegistros={totalRegistros}
+              semanas={semanasSelecionaveis.map((semana) => {
+                const totaisDaSemana = somarTotaisApuracao(semana);
+                const percentualDaSemana =
+                  totaisDaSemana.previsto > 0
+                    ? Math.min(
+                        100,
+                        Math.round(
+                          (totaisDaSemana.trabalhado /
+                            totaisDaSemana.previsto) *
+                            100,
+                        ),
+                      )
+                    : 0;
 
-              return {
-                label: labelPeriodoSemana(semana),
-                totalRegistros: semana.length,
-                painel: (
-                  <PainelSemana
-                    apuracoes={semana}
-                    totais={totaisDaSemana}
-                    percentualJornada={percentualDaSemana}
-                  />
-                ),
-                conteudo: (
-                  <TabelaSemana
-                    apuracoes={semana}
-                    marcacoesPorDia={marcacoesPorDia}
-                    quantidadeColunasMarcações={quantidadeColunasMarcações}
-                    rotulosColunasMarcações={rotulosColunasMarcações}
-                    destaque={destaque}
-                    podeSolicitarAjuste={podeSolicitarAjuste}
-                  />
-                ),
-              };
-            })}
-            semanaInicial={indiceSemanaInicial}
-            painelSemana={
-              <PainelSemana
-                apuracoes={semanaSelecionada}
-                totais={totaisSemana}
-                percentualJornada={percentualJornadaSemana}
-              />
-            }
-            painelTotais={
-              <PainelTotaisPorTipo
-                tipos={tiposHora}
-                totalPrevisto={totais.previsto}
-                ajustes={quantidadeAjustes}
-                justificativas={0}
-                ausencias={quantidadeAusências}
-                compensacoes={quantidadeCompensacoes}
-              />
-            }
-            painelOcorrencias={
-              <PainelOcorrencias resumo={visualizacaoOcorrencias} />
-            }
-            totaisPorTipo={<EspelhoPontoTotaisTabela tipos={tiposHora} />}
-            ocorrencias={
-              <EspelhoPontoOcorrenciasInterativa
-                ocorrencias={visualizacaoOcorrencias.linhas}
-              />
-            }
-            historicoAjustes={
-              <EspelhoPontoHistoricoAjustesInterativo
-                solicitacoes={solicitacoes ?? []}
-              />
-            }
-            semana={
-              <TabelaSemana
-                apuracoes={semanaSelecionada}
-                marcacoesPorDia={marcacoesPorDia}
-                quantidadeColunasMarcações={quantidadeColunasMarcações}
-                rotulosColunasMarcações={rotulosColunasMarcações}
-                destaque={destaque}
-                podeSolicitarAjuste={podeSolicitarAjuste}
-              />
-            }
-            totalRegistrosSemana={semanaSelecionada.length}
-            totalRegistrosTotais={totalRegistrosTipos}
-            totalRegistrosOcorrencias={visualizacaoOcorrencias.linhas.length}
-            totalRegistrosHistorico={(solicitacoes ?? []).length}
-          >
-            <div className="max-w-full overflow-x-auto">
-              <table className="w-full min-w-[1120px] table-fixed border-separate border-spacing-0 text-left text-[11px] xl:min-w-0 xl:text-[11px]">
-                <colgroup>
-                  <col className="w-8" />
-                  <col className="w-[5.25rem]" />
-                  <col className="w-[4.75rem]" />
-                  {rotulosColunasMarcações.map((rotulo) => (
-                    <col key={`col-${rotulo}`} className="w-[4.25rem]" />
-                  ))}
-                  <col className="w-[4.25rem]" />
-                  <col className="w-[5rem]" />
-                  <col className="w-[4rem]" />
-                  <col className="w-[4rem]" />
-                  <col className="w-[4rem]" />
-                  <col className="w-[4rem]" />
-                  <col className="w-[4.25rem]" />
-                  <col className="w-[13rem]" />
-                  <col className="w-8" />
-                </colgroup>
-                <thead className="text-[10px] uppercase tracking-wide text-[var(--muted-foreground)] shadow-sm">
-                  <tr className="bg-[var(--card)]">
-                    <th
-                      className="rounded-tl-xl border-b border-r px-1.5 py-2 text-center align-middle font-bold"
-                      rowSpan={2}
-                    >
-                      Sit.
-                    </th>
-                    <th
-                      className="whitespace-nowrap border-b border-r px-1.5 py-2 align-middle font-bold"
-                      rowSpan={2}
-                    >
-                      DATA
-                    </th>
-                    <th
-                      className="whitespace-nowrap border-b border-r px-1.5 py-2 align-middle font-bold"
-                      rowSpan={2}
-                    >
-                      DIA DA SEMANA
-                    </th>
-                    <th
-                      className="border-b border-l px-2 py-2 text-center"
-                      colSpan={quantidadeColunasMarcações}
-                    >
-                      <span className="inline-flex rounded-full border bg-[var(--muted)] px-3 py-1 text-[10px] font-black tracking-wide text-foreground shadow-sm">
-                        Marcações
-                      </span>
-                    </th>
-                    <th
-                      className="border-b border-l px-2 py-2 text-center"
-                      colSpan={2}
-                    >
-                      <span className="inline-flex rounded-full border bg-[var(--muted)] px-3 py-1 text-[10px] font-black tracking-wide text-foreground shadow-sm">
-                        Jornada
-                      </span>
-                    </th>
-                    <th
-                      className="border-b border-l px-2 py-2 text-center"
-                      colSpan={3}
-                    >
-                      <span className="inline-flex rounded-full border bg-emerald-50 px-3 py-1 text-[10px] font-black tracking-wide text-emerald-800 shadow-sm dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
-                        Banco de Horas
-                      </span>
-                    </th>
-                    <th
-                      className="border-b border-l px-2 py-2 text-center"
-                      colSpan={2}
-                    >
-                      <span className="inline-flex rounded-full border bg-amber-50 px-3 py-1 text-[10px] font-black tracking-wide text-amber-800 shadow-sm dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
-                        Horas Extras
-                      </span>
-                    </th>
-                    {false ? (
+                return {
+                  label: labelPeriodoSemana(semana),
+                  totalRegistros: semana.length,
+                  painel: (
+                    <PainelSemana
+                      apuracoes={semana}
+                      totais={totaisDaSemana}
+                      percentualJornada={percentualDaSemana}
+                    />
+                  ),
+                  conteudo: (
+                    <TabelaSemana
+                      servidorId={servidorId}
+                      apuracoes={semana}
+                      marcacoesPorDia={marcacoesPorDia}
+                      destaque={destaque}
+                      podeSolicitarAjuste={podeSolicitarAjuste}
+                      analisesMct={analisesMct}
+                    />
+                  ),
+                };
+              })}
+              semanaInicial={indiceSemanaInicial}
+              painelSemana={
+                <PainelSemana
+                  apuracoes={semanaSelecionada}
+                  totais={totaisSemana}
+                  percentualJornada={percentualJornadaSemana}
+                />
+              }
+              painelTotais={
+                <PainelTotaisPorTipo
+                  tipos={tiposHora}
+                  totalPrevisto={totais.previsto}
+                  ajustes={quantidadeAjustes}
+                  justificativas={0}
+                  ausencias={quantidadeAusências}
+                  compensacoes={quantidadeCompensacoes}
+                />
+              }
+              painelOcorrencias={
+                <PainelOcorrencias resumo={visualizacaoOcorrencias} />
+              }
+              totaisPorTipo={<EspelhoPontoTotaisTabela tipos={tiposHora} />}
+              ocorrencias={
+                <EspelhoPontoOcorrenciasInterativa
+                  ocorrencias={visualizacaoOcorrencias.linhas}
+                />
+              }
+              historicoAjustes={
+                <EspelhoPontoHistoricoAjustesInterativo
+                  solicitacoes={solicitacoes ?? []}
+                />
+              }
+              semana={
+                <TabelaSemana
+                  servidorId={servidorId}
+                  apuracoes={semanaSelecionada}
+                  marcacoesPorDia={marcacoesPorDia}
+                  destaque={destaque}
+                  podeSolicitarAjuste={podeSolicitarAjuste}
+                  analisesMct={analisesMct}
+                />
+              }
+              totalRegistrosSemana={semanaSelecionada.length}
+              totalRegistrosTotais={totalRegistrosTipos}
+              totalRegistrosOcorrencias={visualizacaoOcorrencias.linhas.length}
+              totalRegistrosHistorico={(solicitacoes ?? []).length}
+            >
+              <div className="max-w-full overflow-x-auto">
+                <table className="w-full min-w-[1408px] table-fixed border-separate border-spacing-0 text-left text-[11px]">
+                  <colgroup>
+                    <col className="w-10" />
+                    <col className="w-[5rem]" />
+                    <col className="w-[20rem]" />
+                    <col className="w-[4.25rem]" />
+                    <col className="w-[4.25rem]" />
+                    <col className="w-[5rem]" />
+                    <col className="w-[4.25rem]" />
+                    <col className="w-[4.25rem]" />
+                    <col className="w-[4rem]" />
+                    <col className="w-[5rem]" />
+                    <col className="w-[4.5rem]" />
+                    <col />
+                    <col className="w-10" />
+                  </colgroup>
+                  <thead className="text-[10px] uppercase tracking-wide text-[var(--muted-foreground)] shadow-sm">
+                    <tr className="bg-[var(--card)]">
                       <th
-                        className="rounded-tr-xl border-b border-l px-1.5 py-2 align-middle font-bold"
+                        className="rounded-tl-xl border-b border-r px-1.5 py-2 text-center align-middle font-bold"
                         rowSpan={2}
                       >
-                        Ação
+                        SIT.
                       </th>
-                    ) : null}
-                    <th
-                      className="border-b border-l px-1.5 py-2 align-middle font-bold"
-                      rowSpan={2}
-                    >
-                      Ocorrências
-                    </th>
-                    <th
-                      className="rounded-tr-xl border-b border-l px-1.5 py-2 align-middle font-bold"
-                      rowSpan={2}
-                    >
-                      <span className="sr-only">Acoes</span>
-                    </th>
-                  </tr>
-                  <tr className="border-b bg-[var(--muted)]">
-                    {rotulosColunasMarcações.map((rotulo) => (
                       <th
-                        key={rotulo}
-                        className="border-b px-1.5 py-2 font-bold text-foreground"
+                        className="whitespace-nowrap border-b border-r py-2 pl-1.5 pr-0.5 align-middle font-bold"
+                        rowSpan={2}
                       >
-                        {rotulo}
+                        DATA
                       </th>
-                    ))}
-                    <th className="whitespace-nowrap border-b border-l px-1.5 py-2 font-bold text-foreground">
-                      Intervalo
-                    </th>
-                    <th className="whitespace-nowrap border-b px-1.5 py-2 font-bold text-foreground">
-                      Trabalhado
-                    </th>
-                    <th className="whitespace-nowrap border-b border-l px-1.5 py-2 font-bold text-emerald-700 dark:text-emerald-300">
-                      Crédito
-                    </th>
-                    <th className="whitespace-nowrap border-b px-1.5 py-2 font-bold text-red-700 dark:text-red-300">
-                      Débito
-                    </th>
-                    <th className="whitespace-nowrap border-b px-1.5 py-2 font-bold text-foreground">
-                      Saldo
-                    </th>
-                    <th className="whitespace-nowrap border-b border-l px-1.5 py-2 font-bold text-foreground">
-                      Autorizadas
-                    </th>
-                    <th className="whitespace-nowrap border-b px-1.5 py-2 font-bold text-foreground">
-                      Não autorizadas
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {apuracoes.map((item) => {
-                    const chaveReferencia = chaveDataReferenciaUtc(
-                      item.dataReferencia,
-                    );
-                    const marcaçõesDoDia =
-                      marcacoesPorDia.get(chaveReferencia) ?? [];
-                    const exigeIntervalo = extrairExigeIntervalo(
-                      item.metadados,
-                    );
-                    const previsaoJornada = extrairPrevisaoJornadaDia(
-                      item.metadados,
-                    );
-                    const horarios = distribuirMarcaçõesNasColunas(
-                      marcaçõesDoDia,
-                      exigeIntervalo,
-                      quantidadeColunasMarcações,
-                    );
-                    const classificacao = classificarDiaEspelho(item);
-                    const diaInstitucional = extrairDiaInstitucional(
-                      item.metadados,
-                    );
-                    const solicitacoesAplicadas =
-                      classificacao.solicitacoesAplicadas;
-                    const justificativaAusênciaMesclada =
-                      encontrarJustificativaAusênciaMesclada(
-                        solicitacoesAplicadas,
-                      );
-                    const conferencia = conferenciaEspelho(item.status, item);
-                    const possuiMarcacaoAjustada =
-                      marcaçõesDoDia.some(marcacaoPossuiAjuste);
-                    const afastamentoPrincipal = encontrarAfastamentoPrincipal(
-                      item.ocorrencias,
-                    );
-                    const resumoAfastamento =
-                      afastamentoPrincipal && marcaçõesDoDia.length === 0
-                        ? resumirAfastamentoEspelho(
-                            afastamentoPrincipal,
-                            item.dataReferencia,
-                          )
-                        : null;
-                    const textoResumoHorario = textoResumoHorarioPrevisto(
-                      previsaoJornada,
-                      marcaçõesDoDia.length,
-                    );
-                    const resumoMarcaçõesMescladas =
-                      !resumoAfastamento &&
-                      !textoResumoHorario &&
-                      marcaçõesDoDia.length === 0
-                        ? resumirMarcaçõesMescladas({
-                            diaInstitucional,
-                            previsaoJornada,
-                            solicitacao: justificativaAusênciaMesclada,
-                          })
-                        : null;
-                    const dicaSemaforo = montarDicaSemaforo({
-                      item,
-                      conferencia,
-                      possuiMarcacaoAjustada,
-                      solicitacoesAplicadas,
-                    });
-                    const diaDestacado = itemEhDestaque(item, destaque);
-                    const idDia = `espelho-dia-${chaveReferencia}`;
-                    const textoBuscaLinha = textoNormalizado(
-                      [
-                        formatarDataCompletaReferenciaUtc(item.dataReferencia),
-                        formatarNomeDiaSemanaReferenciaUtc(item.dataReferencia),
-                        ...horarios.map((horario) => horario?.valor ?? ""),
-                        minutosParaTexto(item.minutosTrabalhados),
-                        minutosParaTexto(item.minutosCredito),
-                        minutosParaTexto(item.minutosDebito),
-                        ...(item.ocorrencias ?? []).map(
-                          (ocorrencia) =>
-                            `${ocorrencia.tipo} ${ocorrencia.descricao}`,
-                        ),
-                        ...solicitacoesAplicadas.map(
-                          (solicitacao) =>
-                            `${solicitacao.tipo} ${solicitacao.titulo}`,
-                        ),
-                        diaInstitucional?.descricao ?? "",
-                      ].join(" "),
-                    );
-
-                    return (
-                      <tr
-                        key={item.id}
-                        id={idDia}
-                        data-espelho-row
-                        data-search={textoBuscaLinha}
-                        className={classeLinhaEspelho(diaDestacado)}
+                      <th
+                        className="whitespace-nowrap border-b border-l px-2 py-2 text-left"
+                        rowSpan={2}
                       >
-                        <td className="px-1.5 py-0 text-center">
-                          <IconeSemaforo
-                            tom={conferencia.tom}
-                            title={dicaSemaforo}
-                            aria-label={dicaSemaforo}
-                          />
-                        </td>
+                        Marcações do dia
+                      </th>
+                      <th
+                        className="border-b border-l px-1 py-2 text-center"
+                        colSpan={3}
+                      >
+                        <span className="inline-flex rounded-full border bg-[var(--muted)] px-2.5 py-1 text-[10px] font-black tracking-wide text-foreground shadow-sm">
+                          Relógio de jornada
+                        </span>
+                      </th>
+                      <th
+                        className="border-b border-l px-1 py-2 text-center"
+                        colSpan={3}
+                      >
+                        <span className="inline-flex rounded-full border bg-emerald-50 px-2.5 py-1 text-[10px] font-black tracking-wide text-emerald-800 shadow-sm dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
+                          Resultados reconhecidos
+                        </span>
+                      </th>
+                      <th
+                        className="border-b border-l px-1 py-2 text-center"
+                        colSpan={2}
+                      >
+                        <span className="inline-flex rounded-full border bg-amber-50 px-2.5 py-1 text-[10px] font-black tracking-wide text-amber-800 shadow-sm dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+                          Excedentes
+                        </span>
+                      </th>
+                      {false ? (
+                        <th
+                          className="rounded-tr-xl border-b border-l px-1.5 py-2 align-middle font-bold"
+                          rowSpan={2}
+                        >
+                          Ação
+                        </th>
+                      ) : null}
+                      <th
+                        className="border-b border-l px-1.5 py-2 align-middle font-bold"
+                        rowSpan={2}
+                      >
+                        Ocorrências
+                      </th>
+                      <th
+                        className="sticky right-0 z-20 rounded-tr-xl border-b border-l bg-[var(--card)] px-1.5 py-2 align-middle font-bold shadow-[-4px_0_6px_-6px_rgb(15_23_42/0.45)]"
+                        rowSpan={2}
+                      >
+                        <span className="sr-only">Acoes</span>
+                      </th>
+                    </tr>
+                    <tr className="border-b bg-[var(--muted)]">
+                      <th className="whitespace-nowrap border-b border-l px-1 py-2 text-center font-bold text-foreground">
+                        Exigível
+                      </th>
+                      <th className="whitespace-nowrap border-b px-1 py-2 text-center font-bold text-foreground">
+                        Intervalo
+                      </th>
+                      <th className="whitespace-nowrap border-b px-1 py-2 text-center font-bold text-foreground">
+                        Computável
+                      </th>
+                      <th className="whitespace-nowrap border-b border-l px-1 py-2 text-center font-bold text-emerald-700 dark:text-emerald-300">
+                        Crédito
+                      </th>
+                      <th className="whitespace-nowrap border-b px-1 py-2 text-center font-bold text-red-700 dark:text-red-300">
+                        Débito
+                      </th>
+                      <th className="whitespace-nowrap border-b px-1 py-2 text-center font-bold text-foreground">
+                        Saldo
+                      </th>
+                      <th className="whitespace-nowrap border-b border-l px-1 py-2 text-center font-bold text-foreground">
+                        Autorizado
+                      </th>
+                      <th className="whitespace-nowrap border-b px-1 py-2 text-center font-bold text-foreground">
+                        Pendente
+                      </th>
+                    </tr>
+                  </thead>
 
-                        <td className="whitespace-nowrap border-r px-1.5 py-0 font-medium">
-                          {formatarDataCompletaReferenciaUtc(
+                  <tbody>
+                    {apuracoes.map((item) => {
+                      const chaveReferencia = chaveDataReferenciaUtc(
+                        item.dataReferencia,
+                      );
+                      const marcaçõesDoDia =
+                        marcacoesPorDia.get(chaveReferencia) ?? [];
+                      const previsaoJornada = extrairPrevisaoJornadaDia(
+                        item.metadados,
+                      );
+                      const horarios = ordenarMarcaçõesDoDia(marcaçõesDoDia);
+                      const classificacao = classificarDiaEspelho(item);
+                      const diaInstitucional = extrairDiaInstitucional(
+                        item.metadados,
+                      );
+                      const solicitacoesAplicadas =
+                        classificacao.solicitacoesAplicadas;
+                      const justificativaAusênciaMesclada =
+                        encontrarJustificativaAusênciaMesclada(
+                          solicitacoesAplicadas,
+                        );
+                      const conferencia = conferenciaEspelho(item.status, item);
+                      const possuiMarcacaoAjustada =
+                        marcaçõesDoDia.some(marcacaoPossuiAjuste);
+                      const afastamentoPrincipal =
+                        encontrarAfastamentoPrincipal(item.ocorrencias);
+                      const resumoAfastamento =
+                        afastamentoPrincipal && marcaçõesDoDia.length === 0
+                          ? resumirAfastamentoEspelho(
+                              afastamentoPrincipal,
+                              item.dataReferencia,
+                            )
+                          : null;
+                      const resumoMarcaçõesMescladas =
+                        !resumoAfastamento && marcaçõesDoDia.length === 0
+                          ? resumirMarcaçõesMescladas({
+                              diaInstitucional,
+                              previsaoJornada,
+                              solicitacao: justificativaAusênciaMesclada,
+                            })
+                          : null;
+                      const dicaSemaforo = montarDicaSemaforo({
+                        item,
+                        conferencia,
+                        possuiMarcacaoAjustada,
+                        solicitacoesAplicadas,
+                      });
+                      const diaDestacado = itemEhDestaque(item, destaque);
+                      const idDia = `espelho-dia-${chaveReferencia}`;
+                      const textoBuscaLinha = textoNormalizado(
+                        [
+                          formatarDataCompletaReferenciaUtc(
                             item.dataReferencia,
-                          )}
-                        </td>
-
-                        <td className="whitespace-nowrap border-r px-1.5 py-0 font-medium">
-                          {formatarNomeDiaSemanaReferenciaUtc(
+                          ),
+                          formatarNomeDiaSemanaReferenciaUtc(
                             item.dataReferencia,
-                          )}
-                        </td>
+                          ),
+                          ...horarios.map((horario) => horario?.valor ?? ""),
+                          minutosParaTexto(item.minutosTrabalhados),
+                          minutosParaTexto(item.minutosCredito),
+                          minutosParaTexto(item.minutosDebito),
+                          ...(item.ocorrencias ?? []).map(
+                            (ocorrencia) =>
+                              `${ocorrencia.tipo} ${ocorrencia.descricao}`,
+                          ),
+                          ...solicitacoesAplicadas.map(
+                            (solicitacao) =>
+                              `${solicitacao.tipo} ${solicitacao.titulo}`,
+                          ),
+                          diaInstitucional?.descricao ?? "",
+                        ].join(" "),
+                      );
 
-                        {resumoAfastamento ? (
-                          <td
-                            colSpan={quantidadeColunasMarcações}
-                            className="px-1.5 py-0 text-center text-[var(--muted-foreground)]"
-                          >
-                            -
+                      return (
+                        <tr
+                          key={item.id}
+                          id={idDia}
+                          data-espelho-row
+                          data-search={textoBuscaLinha}
+                          className={classeLinhaEspelho(diaDestacado)}
+                        >
+                          <td className="px-1.5 py-0 text-center">
+                            <IconeSemaforo
+                              tom={conferencia.tom}
+                              title={dicaSemaforo}
+                              aria-label={dicaSemaforo}
+                            />
                           </td>
-                        ) : textoResumoHorario ? (
-                          Array.from({
-                            length: quantidadeColunasMarcações,
-                          }).map((_, indice) => (
-                            <td
-                              key={`${item.id}-resumo-horario-${indice}`}
-                              className="overflow-hidden px-1.5 py-0 text-center text-[var(--muted-foreground)]"
-                            >
-                              -
-                            </td>
-                          ))
-                        ) : resumoMarcaçõesMescladas ? (
-                          <td
-                            colSpan={quantidadeColunasMarcações}
-                            className="px-1.5 py-0 text-center text-[var(--muted-foreground)]"
-                          >
-                            -
+
+                          <td className="whitespace-nowrap border-r py-0 pl-1.5 pr-0.5 font-medium">
+                            {formatarDataDiaAbreviadoUtc(item.dataReferencia)}
                           </td>
-                        ) : (
-                          horarios.map((horario, indice) => (
-                            <td
-                              key={`${item.id}-horario-${indice}`}
-                              className="whitespace-nowrap px-1.5 py-0 text-center font-mono"
-                            >
-                              {podeSolicitarAjuste ? (
-                                <SolicitacaoAjusteDiaDropdown
-                                  dataReferencia={chaveReferencia}
-                                  className="px-0 font-mono hover:bg-transparent focus-visible:bg-transparent"
-                                >
-                                  {horario ? (
-                                    <span
-                                      className={`text-[10px] font-bold ${
-                                        horario.ajustada
-                                          ? "text-amber-800 dark:text-amber-300"
-                                          : "text-blue-950 dark:text-slate-200"
-                                      }`}
-                                      title={horario.title}
-                                    >
-                                      {horario.valor}
-                                      {horario.ajustada ? "*" : ""}
-                                    </span>
-                                  ) : (
-                                    <span className="text-[var(--muted-foreground)]">
-                                      -
-                                    </span>
-                                  )}
-                                </SolicitacaoAjusteDiaDropdown>
-                              ) : horario ? (
-                                <span
-                                  className={`text-[10px] font-bold ${
-                                    horario.ajustada
-                                      ? "text-amber-800 dark:text-amber-300"
-                                      : "text-blue-950 dark:text-slate-200"
-                                  }`}
-                                  title={horario.title}
-                                >
-                                  {horario.valor}
-                                  {horario.ajustada ? "*" : ""}
-                                </span>
-                              ) : (
-                                <span className="text-[var(--muted-foreground)]">
-                                  -
-                                </span>
-                              )}
-                            </td>
-                          ))
-                        )}
 
-                        <td className="whitespace-nowrap px-1.5 py-0 text-center">
-                          {minutosParaTexto(item.minutosIntervalo ?? 0)}
-                        </td>
+                          <td className="px-2 py-1 text-left">
+                            <MarcacoesDiaCell
+                              servidorId={servidorId}
+                              dataReferencia={chaveReferencia}
+                              marcacoes={horarios}
+                              podeSolicitarAjuste={podeSolicitarAjuste}
+                            />
+                          </td>
 
-                        <td className="whitespace-nowrap px-1.5 py-0 text-center">
-                          {minutosParaTexto(item.minutosTrabalhados)}
-                        </td>
+                          <td className="whitespace-nowrap px-1 py-0 text-center">
+                            {minutosParaTexto(item.cargaPrevistaMinutos)}
+                          </td>
 
-                        <td className="whitespace-nowrap px-1.5 py-0 text-center">
-                          <ValorTempo
-                            tipo="credito"
-                            minutos={minutosCreditoExibivel(item)}
-                            estado={
-                              (item.minutosHoraExtraNaoAutorizada ?? 0) > 0
-                                ? "pendente"
-                                : (item.minutosBancoHoras ?? 0) > 0
-                                  ? "validado"
-                                  : undefined
-                            }
-                            detalhe={
-                              (item.minutosHoraExtraNaoAutorizada ?? 0) > 0
-                                ? `Excedente apurado: ${minutosParaTexto(
-                                    item.minutosCredito,
-                                  )}. Hora extra não autorizada: ${minutosParaTexto(
-                                    item.minutosHoraExtraNaoAutorizada ?? 0,
-                                  )}.`
-                                : (item.minutosBancoHoras ?? 0) > 0
-                                  ? "Crédito computado no banco de horas."
-                                  : undefined
-                            }
-                          />
-                        </td>
+                          <td className="whitespace-nowrap px-1 py-0 text-center">
+                            {minutosParaTexto(item.minutosIntervalo ?? 0)}
+                          </td>
 
-                        <td className="whitespace-nowrap px-1.5 py-0 text-center">
-                          <ValorTempo
-                            tipo="debito"
-                            minutos={item.minutosDebito}
-                            detalhe={
-                              item.minutosDebitoCompensado &&
-                              item.minutosDebitoCompensado > 0
-                                ? `Apurado: ${minutosParaTexto(
-                                    item.minutosDebitoApurado ??
-                                      item.minutosDebito,
-                                  )}. Compensado: ${minutosParaTexto(
-                                    item.minutosDebitoCompensado,
-                                  )}.`
-                                : undefined
-                            }
-                          />
-                        </td>
+                          <td className="whitespace-nowrap px-1 py-0 text-center">
+                            {minutosParaTexto(item.minutosTrabalhados)}
+                          </td>
 
-                        <td className="whitespace-nowrap px-1.5 py-0 text-center">
-                          <ValorSaldoBancoHoras
-                            minutos={item.minutosBancoHoras ?? 0}
-                          />
-                        </td>
-
-                        <td className="whitespace-nowrap px-1.5 py-0 text-center">
-                          <ValorTempo
-                            tipo="credito"
-                            minutos={item.minutosHoraExtraAutorizada ?? 0}
-                          />
-                        </td>
-
-                        <td className="whitespace-nowrap px-1.5 py-0 text-center">
-                          <ValorTempo
-                            tipo="debito"
-                            minutos={item.minutosHoraExtraNaoAutorizada ?? 0}
-                            detalhe={
-                              (item.minutosHoraExtraNaoAutorizada ?? 0) > 0
-                                ? "Horas excedentes sem autorização prévia. Não entram no banco de horas até autorização da chefia."
-                                : undefined
-                            }
-                          />
-                        </td>
-
-                        <td className="overflow-hidden whitespace-nowrap px-2 py-0">
-                          <OcorrênciaTabela
-                            diaInstitucional={diaInstitucional}
-                            ocorrencias={item.ocorrencias}
-                            solicitacoes={solicitacoesAplicadas}
-                            resumoAfastamento={resumoAfastamento}
-                            resumoMarcações={resumoMarcaçõesMescladas}
-                          />
-                        </td>
-
-                        <td className="px-1.5 py-0 text-right">
-                          {acoesBancoHoras?.habilitadas &&
-                          acoesBancoHoras.bancoHorasAtivo !== false &&
-                          (item.minutosHoraExtraNaoAutorizada ?? 0) > 0 ? (
-                            <AcoesBancoHorasDia
-                              servidorId={acoesBancoHoras.servidorId}
-                              anoReferencia={acoesBancoHoras.anoReferencia}
-                              mesReferencia={acoesBancoHoras.mesReferencia}
-                              dataReferencia={item.dataReferencia}
-                              minutosNaoAutorizados={
-                                item.minutosHoraExtraNaoAutorizada ?? 0
+                          <td className="whitespace-nowrap px-1 py-0 text-center">
+                            <ValorTempo
+                              tipo="credito"
+                              minutos={minutosCreditoExibivel(item)}
+                              estado={
+                                (item.minutosHoraExtraNaoAutorizada ?? 0) > 0
+                                  ? "pendente"
+                                  : (item.minutosBancoHoras ?? 0) > 0
+                                    ? "validado"
+                                    : undefined
+                              }
+                              detalhe={
+                                (item.minutosHoraExtraNaoAutorizada ?? 0) > 0
+                                  ? `Excedente apurado: ${minutosParaTexto(
+                                      item.minutosCredito,
+                                    )}. Hora extra não autorizada: ${minutosParaTexto(
+                                      item.minutosHoraExtraNaoAutorizada ?? 0,
+                                    )} pendente de classificação.`
+                                  : (item.minutosBancoHoras ?? 0) > 0
+                                    ? "Crédito computado no banco de horas."
+                                    : undefined
                               }
                             />
-                          ) : podeSolicitarAjuste ? (
-                            <SolicitacaoAjusteDiaDropdown
-                              dataReferencia={chaveReferencia}
-                              className="ml-auto size-8 px-0"
-                            >
-                              <MoreVertical
-                                className="size-4"
-                                aria-hidden="true"
+                          </td>
+
+                          <td className="whitespace-nowrap px-1 py-0 text-center">
+                            <ValorTempo
+                              tipo="debito"
+                              minutos={item.minutosDebito}
+                              detalhe={
+                                item.minutosDebitoCompensado &&
+                                item.minutosDebitoCompensado > 0
+                                  ? `Apurado: ${minutosParaTexto(
+                                      item.minutosDebitoApurado ??
+                                        item.minutosDebito,
+                                    )}. Compensado: ${minutosParaTexto(
+                                      item.minutosDebitoCompensado,
+                                    )}.`
+                                  : undefined
+                              }
+                            />
+                          </td>
+
+                          <td className="whitespace-nowrap px-1 py-0 text-center">
+                            <ValorSaldoBancoHoras
+                              minutos={item.minutosBancoHoras ?? 0}
+                            />
+                          </td>
+
+                          <td className="whitespace-nowrap px-1 py-0 text-center">
+                            <ValorTempo
+                              tipo="credito"
+                              minutos={item.minutosHoraExtraAutorizada ?? 0}
+                            />
+                          </td>
+
+                          <td className="whitespace-nowrap px-1 py-0 text-center">
+                            <ValorTempo
+                              tipo="debito"
+                              minutos={item.minutosHoraExtraNaoAutorizada ?? 0}
+                              detalhe={
+                                (item.minutosHoraExtraNaoAutorizada ?? 0) > 0
+                                  ? "Excedente identificado, ainda sem natureza jurídica ou destinação reconhecida."
+                                  : undefined
+                              }
+                            />
+                          </td>
+
+                          <td className="overflow-hidden whitespace-nowrap px-2 py-0">
+                            <OcorrênciaTabela
+                              diaInstitucional={diaInstitucional}
+                              ocorrencias={item.ocorrencias}
+                              solicitacoes={solicitacoesAplicadas}
+                              resumoAfastamento={resumoAfastamento}
+                              resumoMarcações={resumoMarcaçõesMescladas}
+                            />
+                          </td>
+
+                          <td className="sticky right-0 z-10 bg-inherit px-1.5 py-0 text-right shadow-[-4px_0_6px_-6px_rgb(15_23_42/0.45)]">
+                            {acoesBancoHoras?.habilitadas &&
+                            acoesBancoHoras.bancoHorasAtivo !== false &&
+                            (item.minutosHoraExtraNaoAutorizada ?? 0) > 0 ? (
+                              <div className="flex items-center justify-end gap-1">
+                                <AcoesBancoHorasDia
+                                  servidorId={acoesBancoHoras.servidorId}
+                                  anoReferencia={acoesBancoHoras.anoReferencia}
+                                  mesReferencia={acoesBancoHoras.mesReferencia}
+                                  dataReferencia={item.dataReferencia}
+                                  minutosNaoAutorizados={
+                                    item.minutosHoraExtraNaoAutorizada ?? 0
+                                  }
+                                />
+                                <AnaliseJornadaMenuButton
+                                  servidorId={servidorId}
+                                  dataReferencia={chaveReferencia}
+                                  analise={analisesMct[chaveReferencia]}
+                                />
+                              </div>
+                            ) : podeSolicitarAjuste ? (
+                              <SolicitacaoAjusteDiaContextMenu
+                                servidorId={servidorId}
+                                dataReferencia={chaveReferencia}
+                                analiseMct={analisesMct[chaveReferencia]}
+                                className="ml-auto size-8 px-0"
+                              >
+                                <MoreVertical
+                                  className="size-4"
+                                  aria-hidden="true"
+                                />
+                              </SolicitacaoAjusteDiaContextMenu>
+                            ) : (
+                              <AnaliseJornadaMenuButton
+                                servidorId={servidorId}
+                                dataReferencia={chaveReferencia}
+                                analise={analisesMct[chaveReferencia]}
                               />
-                            </SolicitacaoAjusteDiaDropdown>
-                          ) : (
-                            <span className="block size-8" aria-hidden="true" />
-                          )}
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {apuracoes.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={13}
+                          className="px-5 py-8 text-center text-[var(--muted-foreground)]"
+                        >
+                          Nenhuma apuração calculada para o mês.
                         </td>
                       </tr>
-                    );
-                  })}
-
-                  {apuracoes.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={quantidadeColunasMarcações + 11}
-                        className="px-5 py-8 text-center text-[var(--muted-foreground)]"
-                      >
-                        Nenhuma apuração calculada para o mês.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </EspelhoPontoTabelaInterativa>
-        </div>
-      )}
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </EspelhoPontoTabelaInterativa>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -1821,7 +1736,9 @@ function CardSituacaoCompetencia({
               {homologacao.chefiaResponsavel ? (
                 <div className="flex justify-between gap-3">
                   <dt className="font-semibold">Chefia</dt>
-                  <dd className="text-right">{homologacao.chefiaResponsavel}</dd>
+                  <dd className="text-right">
+                    {homologacao.chefiaResponsavel}
+                  </dd>
                 </div>
               ) : null}
             </dl>
@@ -2086,51 +2003,125 @@ function MiniIndicador({
   );
 }
 
-function TabelaSemana({
-  apuracoes,
-  marcacoesPorDia,
-  quantidadeColunasMarcações,
-  rotulosColunasMarcações,
-  destaque,
+function MarcacoesDiaCell({
+  servidorId,
+  dataReferencia,
+  marcacoes,
   podeSolicitarAjuste,
 }: {
+  servidorId: string;
+  dataReferencia: string;
+  marcacoes: ReturnType<typeof formatarMarcacaoTabela>[];
+  podeSolicitarAjuste: boolean;
+}) {
+  const marcacoesVisiveis = marcacoes.slice(0, 8);
+  const excedentes = Math.max(0, marcacoes.length - marcacoesVisiveis.length);
+
+  if (marcacoesVisiveis.length === 0) {
+    return podeSolicitarAjuste ? (
+      <SolicitacaoAjusteDiaContextMenu
+        servidorId={servidorId}
+        dataReferencia={dataReferencia}
+        className="h-7 min-w-12 justify-start px-1 font-mono"
+      >
+        <span className="text-[var(--muted-foreground)]">-</span>
+      </SolicitacaoAjusteDiaContextMenu>
+    ) : (
+      <span className="text-[var(--muted-foreground)]">-</span>
+    );
+  }
+
+  return (
+    <div className="flex min-h-7 flex-nowrap items-center justify-start gap-x-1 whitespace-nowrap font-mono">
+      {marcacoesVisiveis.map((marcacao, indice) => {
+        const horario = (
+          <span
+            className={`rounded px-1 py-0.5 text-[10px] font-bold transition-colors hover:bg-[var(--accent)] ${
+              marcacao.ajustada
+                ? "text-amber-800 dark:text-amber-300"
+                : "text-blue-950 dark:text-slate-200"
+            }`}
+            title={marcacao.title}
+          >
+            {marcacao.valor}
+            {marcacao.ajustada ? "*" : ""}
+          </span>
+        );
+
+        return (
+          <span key={marcacao.id} className="inline-flex items-center">
+            {indice > 0 ? (
+              <span className="text-[var(--muted-foreground)]">-</span>
+            ) : null}
+            {podeSolicitarAjuste ? (
+              <SolicitacaoAjusteDiaContextMenu
+                servidorId={servidorId}
+                dataReferencia={dataReferencia}
+                marcacaoId={marcacao.id}
+                marcacaoDescricao={`${marcacao.tipo} às ${marcacao.valor}`}
+                className="h-auto min-w-0 px-0 font-mono"
+              >
+                {horario}
+              </SolicitacaoAjusteDiaContextMenu>
+            ) : (
+              horario
+            )}
+          </span>
+        );
+      })}
+      {excedentes > 0 ? (
+        <span
+          className="rounded bg-[var(--muted)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--muted-foreground)]"
+          title={`${excedentes} marcação(ões) adicional(is)`}
+        >
+          +{excedentes}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function TabelaSemana({
+  servidorId,
+  apuracoes,
+  marcacoesPorDia,
+  destaque,
+  podeSolicitarAjuste,
+  analisesMct,
+}: {
+  servidorId: string;
   apuracoes: ApuracaoMensalItem[];
   marcacoesPorDia: Map<string, MarcacaoItem[]>;
-  quantidadeColunasMarcações: number;
-  rotulosColunasMarcações: string[];
   destaque?: {
     dataReferencia?: string | null;
     ocorrenciaId?: string | null;
   };
   podeSolicitarAjuste: boolean;
+  analisesMct: Record<string, AnaliseJornadaMctDto>;
 }) {
   return (
     <div className="max-w-full overflow-x-auto">
-      <table className="w-full min-w-[1120px] table-fixed border-separate border-spacing-0 text-left text-[11px] xl:min-w-0">
+      <table className="w-full min-w-[1320px] table-fixed border-separate border-spacing-0 text-left text-[11px]">
         <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-600">
           <tr>
-            <th className="w-10 border-b px-2 py-2 text-center">Dia</th>
-            <th className="w-28 border-b px-2 py-2">Data</th>
-            {rotulosColunasMarcações.map((rotulo) => (
-              <th key={rotulo} className="w-20 border-b px-2 py-2 text-center">
-                {rotulo}
-              </th>
-            ))}
-            <th className="w-20 border-b px-2 py-2 text-center">Prevista</th>
-            <th className="w-24 border-b px-2 py-2 text-center">Trabalhada</th>
+            <th className="w-10 border-b px-1 py-2 text-center">SIT.</th>
+            <th className="w-20 border-b py-2 pl-2 pr-0.5">Data</th>
+            <th className="w-80 whitespace-nowrap border-b px-2 py-2 text-left">
+              Marcações do dia
+            </th>
+            <th className="w-20 border-b px-2 py-2 text-center">Exigível</th>
+            <th className="w-24 border-b px-2 py-2 text-center">Computável</th>
             <th className="w-20 border-b px-2 py-2 text-center text-emerald-700">
               Crédito
             </th>
             <th className="w-20 border-b px-2 py-2 text-center text-red-700">
               Débito
             </th>
-            <th className="w-24 border-b px-2 py-2 text-center">Extras aut.</th>
-            <th className="w-28 border-b px-2 py-2 text-center">
-              Extras não aut.
-            </th>
-            <th className="w-24 border-b px-2 py-2 text-center">Saldo</th>
-            <th className="w-44 border-b px-2 py-2">Ocorrências</th>
-            <th className="w-9 border-b px-2 py-2">
+            <th className="w-24 border-b px-2 py-2 text-center">Autorizado</th>
+            <th className="w-20 border-b px-2 py-2 text-center">Pendente</th>
+            <th className="w-[4.5rem] border-b px-2 py-2 text-center">Saldo</th>
+            <th className="border-b px-2 py-2">Ocorrências</th>
+            <th className="sticky right-0 z-20 w-9 border-b bg-slate-50 px-2 py-2 shadow-[-4px_0_6px_-6px_rgb(15_23_42/0.45)] dark:bg-slate-900">
               <span className="sr-only">Ações</span>
             </th>
           </tr>
@@ -2139,12 +2130,7 @@ function TabelaSemana({
           {apuracoes.map((item) => {
             const chaveReferencia = chaveDataReferenciaUtc(item.dataReferencia);
             const marcaçõesDoDia = marcacoesPorDia.get(chaveReferencia) ?? [];
-            const exigeIntervalo = extrairExigeIntervalo(item.metadados);
-            const horarios = distribuirMarcaçõesNasColunas(
-              marcaçõesDoDia,
-              exigeIntervalo,
-              quantidadeColunasMarcações,
-            );
+            const horarios = ordenarMarcaçõesDoDia(marcaçõesDoDia);
             const classificacao = classificarDiaEspelho(item);
             const diaInstitucional = extrairDiaInstitucional(item.metadados);
             const conferencia = conferenciaEspelho(item.status, item);
@@ -2171,35 +2157,26 @@ function TabelaSemana({
                 data-search={textoBuscaLinha}
                 className={classeLinhaEspelho(diaDestacado)}
               >
-                <td className="border-b px-2 py-1 text-center">
+                <td className="border-b px-2 py-1 text-left">
                   <IconeSemaforo
                     tom={conferencia.tom}
                     title={conferencia.descricao}
                     aria-label={conferencia.rotulo}
                   />
                 </td>
-                <td className="border-b px-2 py-1">
+                <td className="whitespace-nowrap border-b py-1 pl-2 pr-0.5">
                   <p className="font-bold">
-                    {formatarNomeDiaSemanaReferenciaUtc(item.dataReferencia)}
-                  </p>
-                  <p className="text-slate-500">
-                    {formatarDataCompletaReferenciaUtc(item.dataReferencia)}
+                    {formatarDataDiaAbreviadoUtc(item.dataReferencia)}
                   </p>
                 </td>
-                {horarios.map((horario, indice) => (
-                  <td
-                    key={`${item.id}-semana-horario-${indice}`}
-                    className="border-b px-2 py-1 text-center font-mono"
-                  >
-                    {horario ? (
-                      <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-blue-950 dark:bg-slate-800 dark:text-slate-200">
-                        {horario.valor}
-                      </span>
-                    ) : (
-                      <span className="text-slate-400">-</span>
-                    )}
-                  </td>
-                ))}
+                <td className="border-b px-2 py-1 text-center">
+                  <MarcacoesDiaCell
+                    servidorId={servidorId}
+                    dataReferencia={chaveReferencia}
+                    marcacoes={horarios}
+                    podeSolicitarAjuste={podeSolicitarAjuste}
+                  />
+                </td>
                 <td className="border-b px-2 py-1 text-center">
                   {minutosParaTexto(item.cargaPrevistaMinutos)}
                 </td>
@@ -2237,16 +2214,22 @@ function TabelaSemana({
                     solicitacoes={classificacao.solicitacoesAplicadas}
                   />
                 </td>
-                <td className="border-b px-2 py-1 text-right">
+                <td className="sticky right-0 z-10 border-b bg-inherit px-2 py-1 text-right shadow-[-4px_0_6px_-6px_rgb(15_23_42/0.45)]">
                   {podeSolicitarAjuste ? (
-                    <SolicitacaoAjusteDiaDropdown
+                    <SolicitacaoAjusteDiaContextMenu
+                      servidorId={servidorId}
                       dataReferencia={chaveReferencia}
+                      analiseMct={analisesMct[chaveReferencia]}
                       className="ml-auto size-8 px-0"
                     >
                       <MoreVertical className="size-4" aria-hidden="true" />
-                    </SolicitacaoAjusteDiaDropdown>
+                    </SolicitacaoAjusteDiaContextMenu>
                   ) : (
-                    <span className="block size-8" aria-hidden="true" />
+                    <AnaliseJornadaMenuButton
+                      servidorId={servidorId}
+                      dataReferencia={chaveReferencia}
+                      analise={analisesMct[chaveReferencia]}
+                    />
                   )}
                 </td>
               </tr>
@@ -3024,8 +3007,7 @@ function EspelhoPontoMensalCompacto({
     <div className="max-w-full overflow-x-auto xl:overflow-x-clip">
       <table className="w-full min-w-[560px] table-fixed text-left text-[11px] xl:min-w-0 xl:text-xs">
         <colgroup>
-          <col className="w-[5.75rem]" />
-          <col className="w-[7rem]" />
+          <col className="w-[5rem]" />
           <col className="w-[3.15rem]" />
           <col className="w-[3.15rem]" />
           <col className="w-[3.15rem]" />
@@ -3036,8 +3018,7 @@ function EspelhoPontoMensalCompacto({
         </colgroup>
         <thead className="sticky top-[calc(4.5rem+51.5rem)] z-20 border-b bg-[var(--muted)] text-xs uppercase tracking-wide text-[var(--muted-foreground)] shadow-sm md:top-[calc(4.5rem+18.5rem)] xl:top-[calc(4.5rem+9.35rem)]">
           <tr>
-            <th className="border-r px-1.5 py-2">DATA</th>
-            <th className="border-r px-1.5 py-2">DIA DA SEMANA</th>
+            <th className="border-r py-2 pl-1.5 pr-0.5">DATA</th>
             <th className="px-1.5 py-2">1ª ENT.</th>
             <th className="px-1.5 py-2">1ª SAI.</th>
             <th className="px-1.5 py-2">2ª ENT.</th>
@@ -3066,12 +3047,8 @@ function EspelhoPontoMensalCompacto({
                 id={idDia}
                 className={classeLinhaEspelho(diaDestacado)}
               >
-                <td className="whitespace-nowrap border-r px-1.5 py-3 font-medium">
-                  {formatarDataCompletaReferenciaUtc(item.dataReferencia)}
-                </td>
-
-                <td className="whitespace-nowrap border-r px-1.5 py-3 font-medium">
-                  {formatarNomeDiaSemanaReferenciaUtc(item.dataReferencia)}
+                <td className="whitespace-nowrap border-r py-3 pl-1.5 pr-0.5 font-medium">
+                  {formatarDataDiaAbreviadoUtc(item.dataReferencia)}
                 </td>
 
                 {horarios.map((horario, indice) => (
@@ -4066,6 +4043,8 @@ function distribuirMarcaçõesNasColunas(
   quantidadeColunas = 4,
 ) {
   const horarios: Array<{
+    id: string;
+    tipo: string;
     valor: string;
     ajustada: boolean;
     title: string;
@@ -4109,19 +4088,6 @@ function distribuirMarcaçõesNasColunas(
   return horarios;
 }
 
-function rotulosColunasTempo(quantidadeColunas: number) {
-  const rotulos = [
-    "1ª Ent.",
-    "1ª Sai.",
-    "2ª Ent.",
-    "2ª Sai.",
-    "3ª Ent.",
-    "3ª Sai.",
-  ];
-
-  return rotulos.slice(0, Math.max(2, Math.min(6, quantidadeColunas)));
-}
-
 function extrairPrevisaoJornadaDia(metadados: unknown) {
   const previsao = metadadosComoObjeto(metadados).previsaoJornadaDia;
 
@@ -4142,46 +4108,22 @@ function extrairPrevisaoJornadaDia(metadados: unknown) {
   };
 }
 
-function textoResumoHorarioPrevisto(
-  previsao: ReturnType<typeof extrairPrevisaoJornadaDia>,
-  quantidadeMarcações: number,
-) {
-  if (!previsao || quantidadeMarcações > 0) return null;
-
-  return null;
-}
-
-function quantidadeColunasPrevistas(item: ApuracaoMensalItem) {
-  const previsao = extrairPrevisaoJornadaDia(item.metadados);
-  const quantidadeFaixas = previsao?.faixas.length ?? 0;
-
-  if (quantidadeFaixas <= 0) return 4;
-
-  return Math.max(2, Math.min(6, quantidadeFaixas * 2));
-}
-
-function calcularQuantidadeColunasMarcações(
-  apuracoes: ApuracaoMensalItem[],
-  marcacoesPorDia: Map<string, MarcacaoItem[]>,
-) {
-  const maiorPrevisao = apuracoes.reduce(
-    (maior, item) => Math.max(maior, quantidadeColunasPrevistas(item)),
-    4,
-  );
-  const maiorMarcações = Array.from(marcacoesPorDia.values()).reduce(
-    (maior, marcaçõesDia) => Math.max(maior, marcaçõesDia.length),
-    0,
-  );
-
-  return Math.min(6, Math.max(4, maiorPrevisao, maiorMarcações));
-}
-
 function formatarMarcacaoTabela(marcacao: MarcacaoItem) {
   return {
+    id: marcacao.id,
+    tipo: marcacao.tipo,
     valor: formatarHoraLocal(marcacao.dataHora, marcacao.fusoHorario),
     ajustada: marcacaoPossuiAjuste(marcacao),
     title: descricaoMarcacao(marcacao),
   };
+}
+
+function ordenarMarcaçõesDoDia(marcacoes: MarcacaoItem[]) {
+  return [...marcacoes]
+    .sort(
+      (a, b) => new Date(a.dataHora).getTime() - new Date(b.dataHora).getTime(),
+    )
+    .map(formatarMarcacaoTabela);
 }
 
 function chaveDataReferenciaUtc(valor: Date | string) {
@@ -4249,6 +4191,26 @@ function formatarNomeDiaSemanaReferenciaUtc(valor: Date | string) {
   }).format(data);
 
   return diaSemana.charAt(0).toLocaleUpperCase("pt-BR") + diaSemana.slice(1);
+}
+
+function formatarDiaSemanaAbreviadoUtc(valor: Date | string) {
+  const data = valor instanceof Date ? valor : new Date(valor);
+
+  if (Number.isNaN(data.getTime())) {
+    return "-";
+  }
+
+  return ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"][data.getUTCDay()];
+}
+
+function formatarDataDiaAbreviadoUtc(valor: Date | string) {
+  const dataCompleta = formatarDataCompletaReferenciaUtc(valor);
+
+  if (dataCompleta === "-") {
+    return "-";
+  }
+
+  return `${dataCompleta.slice(0, 5)} - ${formatarDiaSemanaAbreviadoUtc(valor)}`;
 }
 
 function formatarHoraLocal(valor: Date | string, fusoHorario?: string | null) {

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const tiposSolicitacao = [
   "AJUSTE_PONTO",
+  "EXCLUSAO_MARCACAO",
   "COMPENSACAO",
   "ABONO_JUSTIFICATIVA",
   "ATIVIDADE_EXTERNA",
@@ -10,6 +11,7 @@ export const tiposSolicitacao = [
   "DISPENSA_PONTO",
   "HORA_CREDITO_PREVIA",
   "FOLGA_BANCO_HORAS",
+  "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
 ] as const;
 
 export const tiposMarcacaoAjuste = [
@@ -62,6 +64,11 @@ export const criarSolicitacaoSchema = z
 
     tipoMarcacao: z.string().optional().or(z.literal("")),
     horaAjuste: z.string().optional().or(z.literal("")),
+    marcacaoId: z
+      .string()
+      .uuid("MarcaÃ§Ã£o invÃ¡lida.")
+      .optional()
+      .or(z.literal("")),
     tipoCompensacao: z
       .enum(tiposCompensacaoBancoHoras)
       .optional()
@@ -105,6 +112,34 @@ export const criarSolicitacaoSchema = z
           message: "Informe o horário solicitado.",
         });
       }
+    }
+
+    if (data.tipo === "EXCLUSAO_MARCACAO") {
+      if (!data.dataReferencia) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["dataReferencia"],
+          message: "Informe a data da marcaÃ§Ã£o.",
+        });
+      }
+      if (!data.marcacaoId) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["marcacaoId"],
+          message: "Selecione a marcaÃ§Ã£o que deve ser excluÃ­da.",
+        });
+      }
+    }
+
+    if (
+      data.tipo === "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS" &&
+      !data.dataReferencia
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["dataReferencia"],
+        message: "Informe a data especial em que houve trabalho.",
+      });
     }
 
     if (

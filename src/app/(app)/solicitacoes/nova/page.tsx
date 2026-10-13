@@ -16,6 +16,8 @@ type NovaSolicitacaoPageProps = {
     tipoMarcacao?: string;
     horaAjuste?: string;
     passo?: string;
+    marcacaoId?: string;
+    marcacaoDescricao?: string;
   }>;
 };
 
@@ -138,6 +140,16 @@ export default async function NovaSolicitacaoPage({
         tipoInicial={tipoInicial}
         valoresIniciais={valoresIniciais}
         etapaInicial={passoInicial}
+        hiddenFields={
+          tipoInicial === "EXCLUSAO_MARCACAO" && params.marcacaoId
+            ? { marcacaoId: params.marcacaoId }
+            : undefined
+        }
+        marcacaoSelecionada={
+          tipoInicial === "EXCLUSAO_MARCACAO"
+            ? params.marcacaoDescricao
+            : undefined
+        }
       />
     </div>
   );

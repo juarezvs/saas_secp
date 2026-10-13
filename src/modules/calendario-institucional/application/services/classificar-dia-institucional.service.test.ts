@@ -122,6 +122,26 @@ describe("classificarDiaInstitucional", () => {
     });
   });
 
+  it("ignora evento antigo sem data final ao classificar uma data isolada", async () => {
+    vi.mocked(listarEventosCalendarioInstitucionalNoPeriodo).mockResolvedValue([
+      eventoCalendario({
+        dataReferencia: new Date("2001-01-02T00:00:00.000Z"),
+        tipo: "SUSPENSAO_EXPEDIENTE",
+      }),
+    ]);
+
+    const classificacao = await classificarDiaInstitucional(
+      new Date("2026-10-13T00:00:00.000Z"),
+    );
+
+    expect(classificacao).toMatchObject({
+      tipo: "UTIL",
+      fonte: "PADRAO",
+      contaComoDiaUtil: true,
+      geraApuracaoRegular: true,
+    });
+  });
+
   it("ignora evento inativo recebido em calendario precarregado", async () => {
     const dataReferencia = new Date("2026-06-08T00:00:00.000Z");
     const calendario: CalendarioInstitucionalPrecarregado = {
@@ -159,9 +179,7 @@ describe("classificarDiaInstitucional", () => {
       fimExclusivo: new Date("2026-07-01T00:00:00.000Z"),
     });
 
-    expect(calendario.eventosPorData.get("2026-06-08")).toEqual([
-      eventoAtivo,
-    ]);
+    expect(calendario.eventosPorData.get("2026-06-08")).toEqual([eventoAtivo]);
     expect(listarEventosCalendarioInstitucionalNoPeriodo).toHaveBeenCalledWith(
       new Date("2026-06-01T00:00:00.000Z"),
       new Date("2026-07-01T00:00:00.000Z"),

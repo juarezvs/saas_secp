@@ -139,6 +139,11 @@ export async function replicarCalendarioInstitucionalAction(
       datasDestinoExistentes.add(chaveDestino);
       eventosParaCriar.push({
         dataReferencia: dataDestino,
+        dataFim:
+          replicarDataOpcional(
+            evento.dataFim ?? evento.dataReferencia,
+            parsed.data.anoDestino,
+          ) ?? dataDestino,
         descricao: evento.descricao,
         tipo: evento.tipo,
         contaComoDiaUtil: evento.contaComoDiaUtil,

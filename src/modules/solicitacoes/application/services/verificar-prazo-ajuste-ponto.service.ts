@@ -50,16 +50,15 @@ export async function verificarPrazoAjustePontoComCalendario(params: {
   const regulamentacao = params.orgaoId
     ? await buscarRegulamentacaoPontoOrgao(params.orgaoId)
     : null;
-  const prazo = await calcularPrazoEncaminhamentoBoletimCompetenciaComCalendario(
-    {
+  const prazo =
+    await calcularPrazoEncaminhamentoBoletimCompetenciaComCalendario({
       anoReferencia: params.dataReferencia.getFullYear(),
       mesReferencia: params.dataReferencia.getMonth() + 1,
       hoje: params.hoje,
       diaLimiteMesSeguinte:
         params.diaLimiteMesSeguinte ??
         regulamentacao?.prazoAjustePontoDiaMesSeguinte,
-    },
-  );
+    });
 
   if (prazo.situacao === "VENCIDO") {
     throw new PrazoAjustePontoExpiradoError(

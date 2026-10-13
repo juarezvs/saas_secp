@@ -90,7 +90,13 @@ function possuiDadosAutorizacaoBancoHoras(solicitacao: {
   }
 
   const dados = solicitacao.dadosSolicitados as Record<string, unknown>;
-  if (["COMPENSACAO", "FOLGA_BANCO_HORAS"].includes(solicitacao.tipo)) {
+  if (
+    [
+      "COMPENSACAO",
+      "FOLGA_BANCO_HORAS",
+      "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+    ].includes(solicitacao.tipo)
+  ) {
     return true;
   }
 
@@ -118,10 +124,13 @@ function categoriaProcedimentoSolicitacao(tipo: string) {
     | "TRABALHO_REMOTO"
   > = {
     AJUSTE_PONTO: "AJUSTE_BANCO_ABERTO",
+    EXCLUSAO_MARCACAO: "AJUSTE_BANCO_ABERTO",
     ABONO_JUSTIFICATIVA: "AJUSTE_BANCO_ABERTO",
     COMPENSACAO: "COMPENSACAO_SALDO",
     FOLGA_BANCO_HORAS: "COMPENSACAO_SALDO",
     HORA_CREDITO_PREVIA: "CONVERSAO_HORAS_NAO_AUTORIZADAS",
+    CONVERSAO_DIA_ESPECIAL_BANCO_HORAS:
+      "CONVERSAO_HORAS_NAO_AUTORIZADAS",
     ATIVIDADE_EXTERNA: "AFASTAMENTO_INFORMATIVO",
     VIAGEM_SERVICO: "AFASTAMENTO_INFORMATIVO",
     CAPACITACAO: "AFASTAMENTO_INFORMATIVO",
@@ -296,15 +305,18 @@ export async function analisarSolicitacaoAction(
 
   if (
     novoStatus === "DEFERIDA" &&
-    ["HORA_CREDITO_PREVIA", "COMPENSACAO", "FOLGA_BANCO_HORAS"].includes(
-      solicitacaoAtual.tipo,
-    ) &&
+    [
+      "HORA_CREDITO_PREVIA",
+      "COMPENSACAO",
+      "FOLGA_BANCO_HORAS",
+      "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+    ].includes(solicitacaoAtual.tipo) &&
     !possuiDadosAutorizacaoBancoHoras(solicitacaoAtual)
   ) {
     return {
       sucesso: false,
       mensagem:
-        "A solicitação não possui período e quantidade válidos para registrar a autorização prévia.",
+        "A solicitação não possui período válido para registrar a autorização no banco de horas.",
       campos: parsed.data,
     };
   }
@@ -324,11 +336,10 @@ export async function analisarSolicitacaoAction(
 
   try {
     await prisma.$transaction(async (tx) => {
-    let dadosResultado: JsonInputValue | undefined;
+      let dadosResultado: JsonInputValue | undefined;
 
-    if (novoStatus === "DEFERIDA") {
-      const procedimento =
-        await validarERegistrarProcedimentoFrequencia({
+      if (novoStatus === "DEFERIDA") {
+        const procedimento = await validarERegistrarProcedimentoFrequencia({
           tx,
           categoria: categoriaProcedimentoSolicitacao(solicitacaoAtual.tipo),
           servidorId: solicitacaoAtual.servidorId,
@@ -357,101 +368,101 @@ export async function analisarSolicitacaoAction(
             dataFim: solicitacaoAtual.dataFim,
           },
         });
-      const efeito = await aplicarEfeitosSolicitacaoDeferida({
-        tx,
-        usuarioAnaliseId: session.user.id,
-        solicitacao: {
-          id: solicitacaoAtual.id,
-          servidorId: solicitacaoAtual.servidorId,
-          usuarioSolicitanteId: solicitacaoAtual.usuarioSolicitanteId,
-          tipo: solicitacaoAtual.tipo,
-          dataReferencia: solicitacaoAtual.dataReferencia,
-          dataInicio: solicitacaoAtual.dataInicio,
-          dataFim: solicitacaoAtual.dataFim,
-          dadosSolicitados: solicitacaoAtual.dadosSolicitados,
-        },
-        justificativaAnalise: parsed.data.justificativaAnalise,
-      });
+        const efeito = await aplicarEfeitosSolicitacaoDeferida({
+          tx,
+          usuarioAnaliseId: session.user.id,
+          solicitacao: {
+            id: solicitacaoAtual.id,
+            servidorId: solicitacaoAtual.servidorId,
+            usuarioSolicitanteId: solicitacaoAtual.usuarioSolicitanteId,
+            tipo: solicitacaoAtual.tipo,
+            dataReferencia: solicitacaoAtual.dataReferencia,
+            dataInicio: solicitacaoAtual.dataInicio,
+            dataFim: solicitacaoAtual.dataFim,
+            dadosSolicitados: solicitacaoAtual.dadosSolicitados,
+          },
+          justificativaAnalise: parsed.data.justificativaAnalise,
+        });
 
-      dadosResultado = converterParaJsonInput(efeito);
-      dadosResultado = converterParaJsonInput({
-        ...(dadosResultado &&
-        typeof dadosResultado === "object" &&
-        !Array.isArray(dadosResultado)
-          ? dadosResultado
-          : { efeito: dadosResultado ?? null }),
-        procedimentoFrequenciaId: procedimento.procedimento.id,
-        procedimentoFrequenciaExecucaoId: procedimento.execucao?.id ?? null,
-        procedimentoFrequenciaCodigo: procedimento.procedimento.codigo,
+        dadosResultado = converterParaJsonInput(efeito);
+        dadosResultado = converterParaJsonInput({
+          ...(dadosResultado &&
+          typeof dadosResultado === "object" &&
+          !Array.isArray(dadosResultado)
+            ? dadosResultado
+            : { efeito: dadosResultado ?? null }),
+          procedimentoFrequenciaId: procedimento.procedimento.id,
+          procedimentoFrequenciaExecucaoId: procedimento.execucao?.id ?? null,
+          procedimentoFrequenciaCodigo: procedimento.procedimento.codigo,
+        });
+
+        await tx.solicitacaoEvento.create({
+          data: {
+            solicitacaoId,
+            usuarioId: session.user.id,
+            tipo: "EFEITO_APLICADO",
+            descricao: efeito.mensagem,
+            metadados: dadosResultado ?? {},
+          },
+        });
+      }
+
+      await tx.solicitacao.update({
+        where: {
+          id: solicitacaoId,
+        },
+        data: {
+          status: novoStatus,
+          analisadaPorUsuarioId: devolvendoParaAjustes ? null : session.user.id,
+          analisadaEm: devolvendoParaAjustes ? null : new Date(),
+          justificativaAnalise: parsed.data.justificativaAnalise,
+          dadosResultado,
+        },
       });
 
       await tx.solicitacaoEvento.create({
         data: {
           solicitacaoId,
           usuarioId: session.user.id,
-          tipo: "EFEITO_APLICADO",
-          descricao: efeito.mensagem,
-          metadados: dadosResultado ?? {},
+          tipo:
+            novoStatus === "DEFERIDA"
+              ? "DEFERIDA"
+              : novoStatus === "INDEFERIDA"
+                ? "INDEFERIDA"
+                : "COMENTARIO",
+          descricao:
+            novoStatus === "DEFERIDA"
+              ? "Solicitacao deferida pela chefia."
+              : novoStatus === "INDEFERIDA"
+                ? "Solicitacao indeferida pela chefia."
+                : "Solicitacao devolvida para ajustes pela chefia.",
+          metadados: {
+            justificativaAnalise: parsed.data.justificativaAnalise,
+          },
         },
       });
-    }
 
-    await tx.solicitacao.update({
-      where: {
-        id: solicitacaoId,
-      },
-      data: {
-        status: novoStatus,
-        analisadaPorUsuarioId: devolvendoParaAjustes ? null : session.user.id,
-        analisadaEm: devolvendoParaAjustes ? null : new Date(),
-        justificativaAnalise: parsed.data.justificativaAnalise,
-        dadosResultado,
-      },
-    });
-
-    await tx.solicitacaoEvento.create({
-      data: {
-        solicitacaoId,
-        usuarioId: session.user.id,
-        tipo:
-          novoStatus === "DEFERIDA"
-            ? "DEFERIDA"
-            : novoStatus === "INDEFERIDA"
-              ? "INDEFERIDA"
-              : "COMENTARIO",
-        descricao:
-          novoStatus === "DEFERIDA"
-            ? "Solicitacao deferida pela chefia."
-            : novoStatus === "INDEFERIDA"
-              ? "Solicitacao indeferida pela chefia."
-              : "Solicitacao devolvida para ajustes pela chefia.",
-        metadados: {
-          justificativaAnalise: parsed.data.justificativaAnalise,
+      await tx.auditoriaEvento.create({
+        data: {
+          usuarioId: session.user.id,
+          entidade: "Solicitacao",
+          entidadeId: solicitacaoId,
+          acao:
+            novoStatus === "DEFERIDA"
+              ? "SOLICITACAO_DEFERIDA"
+              : novoStatus === "INDEFERIDA"
+                ? "SOLICITACAO_INDEFERIDA"
+                : "SOLICITACAO_DEVOLVIDA_AJUSTES",
+          dadosAntes: {
+            status: solicitacaoAtual.status,
+          },
+          dadosDepois: {
+            status: novoStatus,
+            justificativaAnalise: parsed.data.justificativaAnalise,
+            dadosResultado: dadosResultado ?? null,
+          },
         },
-      },
-    });
-
-    await tx.auditoriaEvento.create({
-      data: {
-        usuarioId: session.user.id,
-        entidade: "Solicitacao",
-        entidadeId: solicitacaoId,
-        acao:
-          novoStatus === "DEFERIDA"
-            ? "SOLICITACAO_DEFERIDA"
-            : novoStatus === "INDEFERIDA"
-              ? "SOLICITACAO_INDEFERIDA"
-              : "SOLICITACAO_DEVOLVIDA_AJUSTES",
-        dadosAntes: {
-          status: solicitacaoAtual.status,
-        },
-        dadosDepois: {
-          status: novoStatus,
-          justificativaAnalise: parsed.data.justificativaAnalise,
-          dadosResultado: dadosResultado ?? null,
-        },
-      },
-    });
+      });
     });
   } catch (error) {
     if (error instanceof ProcedimentoFrequenciaError) {

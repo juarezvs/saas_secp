@@ -145,6 +145,10 @@ function montarDetalhePreview(solicitacao: {
     }`;
   }
 
+  if (solicitacao.tipo === "EXCLUSAO_MARCACAO") {
+    return `Cancelamento da marcação ${String(dados.marcacaoId ?? "").slice(0, 8) || "não informada"}`;
+  }
+
   if (solicitacao.tipo === "COMPENSACAO") {
     return rotuloCompensacao(String(dados.tipoCompensacao ?? ""));
   }

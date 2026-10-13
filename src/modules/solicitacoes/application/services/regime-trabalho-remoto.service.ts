@@ -8,8 +8,7 @@ export const diasSemanaTrabalhoRemoto = [
   "SABADO",
 ] as const;
 
-export type DiaSemanaTrabalhoRemoto =
-  (typeof diasSemanaTrabalhoRemoto)[number];
+export type DiaSemanaTrabalhoRemoto = (typeof diasSemanaTrabalhoRemoto)[number];
 
 export type RegimeTrabalhoRemoto = {
   tipo: "TOTAL" | "HIBRIDO";
@@ -121,7 +120,9 @@ export function ehDispensaTeletrabalho(params: {
     return true;
   }
 
-  const texto = normalizarTexto(`${params.titulo ?? ""} ${params.descricao ?? ""}`);
+  const texto = normalizarTexto(
+    `${params.titulo ?? ""} ${params.descricao ?? ""}`,
+  );
 
   return texto.includes("TELETRABALHO") || texto.includes("TRABALHO REMOTO");
 }
