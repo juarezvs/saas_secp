@@ -7,6 +7,10 @@ export type AnaliseJornadaMctDto = {
   iniciadaEm: string;
   finalizadaEm: string | null;
   duracaoMs: number | null;
+  referencia?: {
+    entrada: string;
+    saida: string;
+  } | null;
   politica: {
     codigo: string;
     nome: string;

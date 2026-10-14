@@ -56,6 +56,14 @@ function horario(valor: string) {
   }).format(new Date(valor));
 }
 
+function horarioReferencia(valor: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+  }).format(new Date(valor));
+}
+
 function dataLonga(valor: string) {
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "full",
@@ -227,6 +235,32 @@ function VisaoGeralAnalise({
           destaque="excedente"
         />
       </dl>
+
+      <section className="flex flex-wrap items-center gap-x-8 gap-y-3 border border-[var(--border)] bg-[var(--card)] px-4 py-3">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <Clock3 className="size-4 text-[var(--primary)]" aria-hidden="true" />
+          Horário previsto de referência
+        </div>
+        {analise.referencia ? (
+          <dl className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
+            <div>
+              <dt className="text-xs text-[var(--muted-foreground)]">Entrada prevista</dt>
+              <dd className="font-mono font-semibold">{horarioReferencia(analise.referencia.entrada)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-[var(--muted-foreground)]">Saída prevista</dt>
+              <dd className="font-mono font-semibold">{horarioReferencia(analise.referencia.saida)}</dd>
+            </div>
+          </dl>
+        ) : (
+          <p className="text-xs text-[var(--muted-foreground)]">
+            Esta jornada não possui janela fixa de entrada e saída para o dia.
+          </p>
+        )}
+        <p className="ml-auto text-xs text-[var(--muted-foreground)]">
+          Referência usada pelo MCT; não representa marcações realizadas.
+        </p>
+      </section>
 
       <section className="border border-[var(--border)] bg-[var(--card)] p-4">
         <div className="flex flex-wrap items-end justify-between gap-2">

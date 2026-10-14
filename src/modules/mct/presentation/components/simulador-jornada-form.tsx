@@ -9,6 +9,7 @@ type Resultado = {
   simulacao: true; efeitoOficial: false;
   configuracao: { id: string; modeloCodigo: string; status: string };
   politica: { codigo: string; nome: string; versao: number };
+  referencia: { entrada: string; saida: string } | null;
   resultado: {
     resultadoJornada: Record<string, number | string | null>;
     resultadoConformidade: { possuiPendencias: boolean; fatos: { codigo: string; descricao: string }[] };
@@ -18,6 +19,7 @@ type Resultado = {
 };
 
 function duracao(valor: unknown) { const minutos = Number(valor ?? 0); return `${Math.floor(minutos / 60)}h${String(minutos % 60).padStart(2, "0")}`; }
+function hora(valor: string) { return /^\d{2}:\d{2}$/.test(valor) ? valor : new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(new Date(valor)); }
 const campo = "mt-1 h-10 w-full rounded border bg-background px-3 focus:border-primary focus:outline-none";
 
 export function SimuladorJornadaForm({ jornadas }: { jornadas: Jornada[] }) {
@@ -45,6 +47,10 @@ export function SimuladorJornadaForm({ jornadas }: { jornadas: Jornada[] }) {
     <section className="rounded border bg-card p-4"><h2 className="text-base font-semibold">Resultado da simulação</h2>
       {!resultado ? <p className="mt-8 text-center text-sm text-muted-foreground">Preencha o cenário para visualizar os relógios, rubricas e memória de cálculo.</p> : <>
         <div className="mt-3 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100"><strong>Simulação sem efeito oficial.</strong> Política {resultado.politica.nome} v{resultado.politica.versao}.</div>
+        <div className="mt-3 flex flex-wrap items-center gap-x-8 gap-y-2 rounded border p-3 text-sm">
+          <strong>Horário previsto de referência</strong>
+          {resultado.referencia ? <><span>Entrada prevista <b className="font-mono">{hora(resultado.referencia.entrada)}</b></span><span>Saída prevista <b className="font-mono">{hora(resultado.referencia.saida)}</b></span></> : <span className="text-muted-foreground">Sem janela fixa para o dia selecionado.</span>}
+        </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <article className="rounded border p-4"><div className="flex items-center gap-2 font-semibold"><Timer className="size-4 text-primary" />Relógio de Jornada</div><dl className="mt-3 grid grid-cols-2 gap-2 text-sm">{[["Exigível", "jornadaExigivelMinutos"], ["Computável", "tempoComputavelMinutos"], ["Faltante", "tempoFaltanteMinutos"], ["Excedente bruto", "excedenteBrutoMinutos"], ["Crédito reconhecido", "creditoReconhecidoMinutos"], ["Débito reconhecido", "debitoReconhecidoMinutos"]].map(([rotulo, chave]) => <div className="contents" key={chave}><dt>{rotulo}</dt><dd className="text-right font-semibold">{duracao(resultado.resultado.resultadoJornada[chave])}</dd></div>)}</dl></article>
           <article className="rounded border p-4"><div className="flex items-center gap-2 font-semibold"><ShieldCheck className="size-4 text-primary" />Relógio de Conformidade</div><p className="mt-3 text-sm font-semibold">{resultado.resultado.resultadoConformidade.possuiPendencias ? "Com pendências" : "Sem pendências"}</p>{resultado.resultado.resultadoConformidade.fatos.map((fato) => <p key={fato.codigo} className="mt-2 text-xs text-muted-foreground">{fato.descricao}</p>)}</article>

@@ -17,7 +17,7 @@ export default async function ConfiguracaoApuracaoPage() {
   const acesso = await exigirUmaDasPermissoesOuRedirecionar(CONSULTAR);
   const escopo = acesso.perfilAtivoEscopoGlobal ? {} : { orgaoId: { in: acesso.orgaoIds?.length ? acesso.orgaoIds : ["00000000-0000-0000-0000-000000000000"] } };
   const [jornadas, politicas, configuracoes] = await Promise.all([
-    prisma.jornada.findMany({ where: { ativo: true, ...escopo }, select: { id: true, codigo: true, nome: true, tipo: true, cargaDiariaMinutos: true, escalas: { where: { ativo: true }, select: { id: true, nome: true } } }, orderBy: { nome: "asc" } }),
+    prisma.jornada.findMany({ where: { ativo: true, ...escopo }, select: { id: true, codigo: true, nome: true, tipo: true, cargaDiariaMinutos: true, horarioEntradaPadrao: true, horarioSaidaPadrao: true, escalas: { where: { ativo: true }, select: { id: true, nome: true } } }, orderBy: { nome: "asc" } }),
     prisma.mctPoliticaVersao.findMany({ where: { estado: "PUBLICADA", ...escopo }, select: { id: true, nome: true, versao: true, orgaoId: true }, orderBy: [{ nome: "asc" }, { versao: "desc" }] }),
     prisma.mctConfiguracaoApuracao.findMany({ where: escopo, include: { jornada: true, escala: true, politica: true }, orderBy: { criadoEm: "desc" } }),
   ]);

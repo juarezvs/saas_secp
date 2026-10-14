@@ -1,6 +1,18 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import type { AnaliseJornadaMctDto } from "../../application/dtos/analise-jornada.dto";
 
+function extrairReferencia(entradaSnapshot: unknown) {
+  if (!entradaSnapshot || typeof entradaSnapshot !== "object") return null;
+  const politica = (entradaSnapshot as Record<string, unknown>).politica;
+  if (!politica || typeof politica !== "object") return null;
+  const referencia = (politica as Record<string, unknown>).referencia;
+  if (!referencia || typeof referencia !== "object") return null;
+  const { inicio, fim } = referencia as Record<string, unknown>;
+  return typeof inicio === "string" && typeof fim === "string"
+    ? { entrada: inicio, saida: fim }
+    : null;
+}
+
 export async function listarAnalisesJornadaMctNoMes(params: {
   orgaoId: string;
   servidorId: string;
@@ -53,6 +65,7 @@ export async function listarAnalisesJornadaMctNoMes(params: {
         iniciadaEm: execucao.iniciadaEm.toISOString(),
         finalizadaEm: execucao.finalizadaEm?.toISOString() ?? null,
         duracaoMs: execucao.duracaoMs,
+        referencia: extrairReferencia(execucao.entradaSnapshot),
         politica: execucao.politica,
         resultadoJornada: execucao.resultadoJornada,
         resultadoConformidade: execucao.resultadoConformidade,

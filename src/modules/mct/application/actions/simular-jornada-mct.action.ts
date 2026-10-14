@@ -75,6 +75,10 @@ export async function simularJornadaMct(input: EntradaSimulacaoMct) {
     efeitoOficial: false,
     configuracao: { id: associacao.id, modeloCodigo: associacao.modeloCodigo, status: associacao.status },
     politica: { id: politica.id, codigo: politica.codigo, nome: politica.nome, versao: politica.versao },
+    referencia: previsao.janela ? {
+      entrada: previsao.janela.inicio,
+      saida: previsao.janela.fim,
+    } : null,
     resultado: retorno.resultado,
   }));
 }
