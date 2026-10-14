@@ -686,6 +686,7 @@ async function carregarAfastamentosSarhPeriodo(params: {
   return prisma.afastamentoSarh.findMany({
     where: {
       servidorId: params.servidorId,
+      ativo: true,
       dataInicio: { lt: params.fim },
       OR: [{ dataFim: null }, { dataFim: { gte: params.inicio } }],
     },
@@ -746,6 +747,16 @@ function afastamentoEhFeriasGozadas(afastamento: AfastamentoSarhEspelho) {
     afastamentoEhFerias(afastamento) &&
     textoNormalizado(afastamento.tipoDescricao) === "GOZADA"
   );
+}
+
+export function afastamentoDeveImpactarEspelho(
+  afastamento: AfastamentoSarhEspelho,
+) {
+  if (!afastamento.ativo) {
+    return false;
+  }
+
+  return !afastamentoEhFerias(afastamento) || afastamentoEhFeriasGozadas(afastamento);
 }
 
 function possuiDispensaAdministrativaAtiva(metadados: unknown) {
@@ -886,8 +897,10 @@ export async function montarEspelhoMensalCompleto(params: {
       const chave = chaveData(dia.dataReferencia);
       const apuracao = apuracoesPorData.get(chave);
       const contabilizarSaldos = dia.dataReferencia <= limiteSaldos;
-      const afastamento = afastamentos.find((item) =>
-        afastamentoAbrangeData(item, dia.dataReferencia),
+      const afastamento = afastamentos.find(
+        (item) =>
+          afastamentoDeveImpactarEspelho(item) &&
+          afastamentoAbrangeData(item, dia.dataReferencia),
       );
 
       if (apuracao) {

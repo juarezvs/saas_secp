@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { CalendarioInstitucionalPrecarregado } from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
 
 import {
+  afastamentoDeveImpactarEspelho,
   deveAplicarAfastamentoSarhSobreDispensa,
   montarEspelhoMensalCompleto,
 } from "./montar-espelho-mensal-completo.service";
@@ -119,6 +120,39 @@ describe("montarEspelhoMensalCompleto", () => {
         },
       ),
     ).toBe(true);
+  });
+
+  it("nao retira jornada prevista por ferias adiadas", () => {
+    expect(
+      afastamentoDeveImpactarEspelho({
+        ...afastamentoBase,
+        categoria: "FERIAS",
+        tipoCodigo: "4",
+        tipoDescricao: "ADIADA",
+        origemTabela: "RH_FERIAS/RH_PERIODO_FERIAS",
+      }),
+    ).toBe(false);
+  });
+
+  it("retira jornada prevista somente por ferias gozadas ativas", () => {
+    expect(
+      afastamentoDeveImpactarEspelho({
+        ...afastamentoBase,
+        categoria: "FERIAS",
+        tipoCodigo: "2",
+        tipoDescricao: "GOZADA",
+        origemTabela: "RH_FERIAS/RH_PERIODO_FERIAS",
+      }),
+    ).toBe(true);
+  });
+
+  it("ignora afastamentos inativos", () => {
+    expect(
+      afastamentoDeveImpactarEspelho({
+        ...afastamentoBase,
+        ativo: false,
+      }),
+    ).toBe(false);
   });
 
   it("monta todos os dias do mes e calcula previsto mensal considerando feriados", async () => {
