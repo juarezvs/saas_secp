@@ -112,7 +112,13 @@ function abrirContextoNoClique(event: MouseEvent<HTMLButtonElement>) {
   }, 0);
 }
 
-function SubmenuSolicitacoes({ dataReferencia }: { dataReferencia: string }) {
+function SubmenuSolicitacoes({
+  dataReferencia,
+  servidorId,
+}: {
+  dataReferencia: string;
+  servidorId?: string;
+}) {
   return (
     <ContextMenu.Sub>
       <ContextMenu.SubTrigger className={menuItemClassName}>
@@ -142,6 +148,7 @@ function SubmenuSolicitacoes({ dataReferencia }: { dataReferencia: string }) {
                         dataReferencia,
                         passo: "3",
                       });
+                      if (servidorId) params.set("servidorId", servidorId);
                       return (
                         <ContextMenu.Item key={tipo} asChild>
                           <Link
@@ -198,6 +205,9 @@ export function SolicitacaoAjusteDiaContextMenu({
         passo: "3",
       })
     : null;
+  if (exclusaoParams && servidorId) {
+    exclusaoParams.set("servidorId", servidorId);
+  }
 
   return (
     <>
@@ -257,7 +267,10 @@ export function SolicitacaoAjusteDiaContextMenu({
               </ContextMenu.Item>
             )}
             <ContextMenu.Separator className="my-1 h-px bg-[var(--border)]" />
-            <SubmenuSolicitacoes dataReferencia={dataReferencia} />
+            <SubmenuSolicitacoes
+              dataReferencia={dataReferencia}
+              servidorId={servidorId}
+            />
           </ContextMenu.Content>
         </ContextMenu.Portal>
       </ContextMenu.Root>

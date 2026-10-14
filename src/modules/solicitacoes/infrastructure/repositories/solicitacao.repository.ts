@@ -288,52 +288,42 @@ async function listarSolicitacoesPaginadas(
   };
 }
 
-export async function buscarServidorSolicitantePorUsuarioId(usuarioId: string) {
-  return prisma.servidor.findFirst({
-    where: {
-      usuarioId,
-      ativo: true,
-    },
+const includeServidorSolicitacao = {
+  usuario: true,
+  lotacoes: {
+    where: { status: "ATIVO" as const },
     include: {
-      usuario: true,
-      lotacoes: {
-        where: {
-          status: "ATIVO",
-        },
+      unidade: {
         include: {
-          unidade: {
+          orgao: { select: { fusoHorario: true } },
+          unidadePai: {
             include: {
-              orgao: {
-                select: {
-                  fusoHorario: true,
-                },
-              },
+              orgao: { select: { fusoHorario: true } },
               unidadePai: {
                 include: {
-                  orgao: {
-                    select: {
-                      fusoHorario: true,
-                    },
-                  },
-                  unidadePai: {
-                    include: {
-                      orgao: {
-                        select: {
-                          fusoHorario: true,
-                        },
-                      },
-                    },
-                  },
+                  orgao: { select: { fusoHorario: true } },
                 },
               },
             },
           },
         },
-        orderBy: {
-          dataInicio: "desc",
-        },
       },
     },
+    orderBy: { dataInicio: "desc" as const },
+  },
+} satisfies Prisma.ServidorInclude;
+
+export async function buscarServidorSolicitantePorUsuarioId(usuarioId: string) {
+  return prisma.servidor.findFirst({
+    where: { usuarioId, ativo: true },
+    include: includeServidorSolicitacao,
+  });
+}
+
+export async function buscarServidorSolicitacaoPorId(servidorId: string) {
+  return prisma.servidor.findFirst({
+    where: { id: servidorId, ativo: true },
+    include: includeServidorSolicitacao,
   });
 }
 
