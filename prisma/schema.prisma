@@ -224,6 +224,7 @@ enum TipoOcorrenciaFrequencia {
   SEM_JORNADA
   MARCACAO_DUPLICADA
   HORA_NAO_AUTORIZADA
+  DISPENSA_PONTO
 }
 
 enum TipoMovimentoBancoHoras {

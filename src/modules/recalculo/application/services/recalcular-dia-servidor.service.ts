@@ -4,6 +4,7 @@ import { normalizarDataReferencia } from "@/modules/apuracao/application/service
 import { resolverExpedienteUnidade } from "@/modules/apuracao/application/services/expediente.service";
 import { resolverDispensaPontoEletronico } from "@/modules/apuracao/application/services/dispensa-ponto-eletronico.service";
 import { verificarPeriodoHomologado } from "@/modules/boletim-frequencia/application/services/bloquear-periodo-homologado.service";
+import { descricaoOcorrenciaDispensaPonto } from "./ocorrencia-dispensa-ponto.service";
 import {
   classificarDiaInstitucional,
   type CalendarioInstitucionalPrecarregado,
@@ -447,6 +448,16 @@ export async function recalcularDiaServidorService(
   });
   const apuracaoProvisoriaDiaNaoEncerrado =
     calculo !== calculoComSolicitacoes;
+  const ocorrenciasPersistidas = dispensaAdministrativa
+    ? [
+        ...calculo.ocorrencias,
+        {
+          tipo: "DISPENSA_PONTO" as const,
+          descricao: descricaoOcorrenciaDispensaPonto(dispensaAdministrativa),
+          minutos: calculo.cargaPrevistaMinutos,
+        },
+      ]
+    : calculo.ocorrencias;
 
   const apuracao = await prisma.$transaction(async (tx) => {
     const apuracaoAtualizada = await tx.apuracaoDiaria.upsert({
@@ -576,9 +587,9 @@ export async function recalcularDiaServidorService(
       },
     });
 
-    if (calculo.ocorrencias.length > 0) {
+    if (ocorrenciasPersistidas.length > 0) {
       await tx.ocorrenciaFrequencia.createMany({
-        data: calculo.ocorrencias.map((ocorrencia) => ({
+        data: ocorrenciasPersistidas.map((ocorrencia) => ({
           apuracaoDiariaId: apuracaoAtualizada.id,
           servidorId,
           tipo: ocorrencia.tipo,
