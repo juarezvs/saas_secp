@@ -185,6 +185,12 @@ function obterConfiguracaoTipo(tipo: string) {
       periodo: "DATA_REFERENCIA",
       detalhes: "BANCO_HORAS",
     },
+    CONVERSAO_EXCEDENTE_BANCO_HORAS: {
+      resumo:
+        "Use para solicitar à chefia a conversão total ou parcial das horas excedentes de um dia em crédito no banco de horas.",
+      periodo: "DATA_REFERENCIA",
+      detalhes: "BANCO_HORAS",
+    },
     DISPENSA_PONTO: {
       resumo:
         "Use para registrar dispensa de ponto, teletrabalho integral ou regime híbrido.",
@@ -223,6 +229,7 @@ function validarEtapaFormulario(etapa: number, formData: FormData) {
         "AJUSTE_PONTO",
         "EXCLUSAO_MARCACAO",
         "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+        "CONVERSAO_EXCEDENTE_BANCO_HORAS",
       ].includes(tipo) &&
       !formData.get("dataReferencia")
     ) {
@@ -251,7 +258,9 @@ function validarEtapaFormulario(etapa: number, formData: FormData) {
       }
     }
 
-    if (tipo === "HORA_CREDITO_PREVIA") {
+    if (
+      ["HORA_CREDITO_PREVIA", "CONVERSAO_EXCEDENTE_BANCO_HORAS"].includes(tipo)
+    ) {
       if (!formData.get("horasSolicitadas")) {
         falhas.push("Informe a quantidade de horas.");
       }
@@ -408,6 +417,7 @@ function montarPeriodoPreview(formData: FormData, tipo: string) {
       "AJUSTE_PONTO",
       "EXCLUSAO_MARCACAO",
       "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+      "CONVERSAO_EXCEDENTE_BANCO_HORAS",
     ].includes(tipo)
   ) {
     return `Data de referência: ${formatarDataPreview(
@@ -439,6 +449,12 @@ function montarDetalhePreview(formData: FormData, tipo: string) {
 
   if (tipo === "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS") {
     return "O saldo elegível será calculado pelo SECP a partir da apuração do dia e das regras vigentes.";
+  }
+
+  if (tipo === "CONVERSAO_EXCEDENTE_BANCO_HORAS") {
+    return `${formatarHorasSolicitadasPreview(
+      formData.get("horasSolicitadas"),
+    )} de excedente para conversão em crédito`;
   }
 
   if (tipo === "DISPENSA_PONTO") {
@@ -1193,7 +1209,10 @@ export function SolicitacaoForm({
                     </div>
                   )}
 
-                  {tipoSelecionado === "HORA_CREDITO_PREVIA" ? (
+                  {[
+                    "HORA_CREDITO_PREVIA",
+                    "CONVERSAO_EXCEDENTE_BANCO_HORAS",
+                  ].includes(tipoSelecionado) ? (
                     <div className="space-y-2">
                       <label
                         htmlFor="horasSolicitadas"
@@ -1202,7 +1221,9 @@ export function SolicitacaoForm({
                         Quantidade de horas
                       </label>
                       <CampoAjuda>
-                        Total de horas que dependem de autorização prévia.
+                        {tipoSelecionado === "CONVERSAO_EXCEDENTE_BANCO_HORAS"
+                          ? "Parcela do excedente apurado que será submetida à chefia para conversão em crédito."
+                          : "Total de horas que dependem de autorização prévia."}
                       </CampoAjuda>
                       <input
                         id="horasSolicitadas"

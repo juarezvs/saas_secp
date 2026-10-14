@@ -54,6 +54,7 @@ const tipos = [
   "HORA_CREDITO_PREVIA",
   "FOLGA_BANCO_HORAS",
   "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+  "CONVERSAO_EXCEDENTE_BANCO_HORAS",
 ];
 function formatarData(data: Date | null, fuso = "UTC") {
   return data

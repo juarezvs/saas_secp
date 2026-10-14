@@ -12,6 +12,7 @@ export const tiposSolicitacao = [
   "HORA_CREDITO_PREVIA",
   "FOLGA_BANCO_HORAS",
   "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+  "CONVERSAO_EXCEDENTE_BANCO_HORAS",
 ] as const;
 
 export const tiposMarcacaoAjuste = [
@@ -132,13 +133,19 @@ export const criarSolicitacaoSchema = z
     }
 
     if (
-      data.tipo === "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS" &&
+      [
+        "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+        "CONVERSAO_EXCEDENTE_BANCO_HORAS",
+      ].includes(data.tipo) &&
       !data.dataReferencia
     ) {
       ctx.addIssue({
         code: "custom",
         path: ["dataReferencia"],
-        message: "Informe a data especial em que houve trabalho.",
+        message:
+          data.tipo === "CONVERSAO_EXCEDENTE_BANCO_HORAS"
+            ? "Informe a data em que houve excedente."
+            : "Informe a data especial em que houve trabalho.",
       });
     }
 
@@ -186,7 +193,11 @@ export const criarSolicitacaoSchema = z
       }
     }
 
-    if (data.tipo === "HORA_CREDITO_PREVIA") {
+    if (
+      ["HORA_CREDITO_PREVIA", "CONVERSAO_EXCEDENTE_BANCO_HORAS"].includes(
+        data.tipo,
+      )
+    ) {
       if (!data.horasSolicitadas) {
         ctx.addIssue({
           code: "custom",

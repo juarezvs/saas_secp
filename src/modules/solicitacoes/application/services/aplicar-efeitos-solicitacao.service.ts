@@ -168,8 +168,7 @@ async function calcularTrabalhoDiaEspecial(params: {
   if (!TIPOS_DIA_ELEGIVEIS_CONVERSAO.has(classificacao.tipo)) {
     return {
       minutos: 0,
-      erro:
-        "A data informada não é feriado, ponto facultativo, suspensão, recesso ou outro dia não útil elegível.",
+      erro: "A data informada não é feriado, ponto facultativo, suspensão, recesso ou outro dia não útil elegível.",
     };
   }
 
@@ -197,6 +196,32 @@ async function calcularTrabalhoDiaEspecial(params: {
     erro: null,
     classificacao: classificacao.tipo,
   };
+}
+
+async function calcularExcedenteDia(params: {
+  tx: Tx;
+  servidorId: string;
+  dataReferencia: Date;
+}) {
+  const dataReferencia = normalizarDataReferencia(params.dataReferencia);
+  const apuracao = await params.tx.apuracaoDiaria.findUnique({
+    where: {
+      servidorId_dataReferencia: {
+        servidorId: params.servidorId,
+        dataReferencia,
+      },
+    },
+    select: { minutosCredito: true },
+  });
+
+  if (!apuracao || apuracao.minutosCredito <= 0) {
+    return {
+      minutos: 0,
+      erro: "Não há horas excedentes apuradas nessa data para conversão.",
+    };
+  }
+
+  return { minutos: apuracao.minutosCredito, erro: null };
 }
 
 export async function aplicarEfeitosSolicitacaoDeferida(params: {
@@ -276,6 +301,7 @@ export async function aplicarEfeitosSolicitacaoDeferida(params: {
       "COMPENSACAO",
       "FOLGA_BANCO_HORAS",
       "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+      "CONVERSAO_EXCEDENTE_BANCO_HORAS",
     ].includes(solicitacao.tipo)
   ) {
     const dadosAutorizacao = extrairDadosAutorizacao(
@@ -294,17 +320,17 @@ export async function aplicarEfeitosSolicitacaoDeferida(params: {
       };
     }
 
-    const tipo =
-      [
-        "HORA_CREDITO_PREVIA",
-        "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
-      ].includes(solicitacao.tipo)
-        ? "CREDITO"
-        : solicitacao.tipo === "FOLGA_BANCO_HORAS"
-          ? "COMPENSACAO_CREDITO"
-          : dadosAutorizacao.tipoCompensacao === "COMPENSAR_DEBITO"
-            ? "COMPENSACAO_DEBITO"
-            : "COMPENSACAO_CREDITO";
+    const tipo = [
+      "HORA_CREDITO_PREVIA",
+      "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+      "CONVERSAO_EXCEDENTE_BANCO_HORAS",
+    ].includes(solicitacao.tipo)
+      ? "CREDITO"
+      : solicitacao.tipo === "FOLGA_BANCO_HORAS"
+        ? "COMPENSACAO_CREDITO"
+        : dadosAutorizacao.tipoCompensacao === "COMPENSAR_DEBITO"
+          ? "COMPENSACAO_DEBITO"
+          : "COMPENSACAO_CREDITO";
     const trabalhoDiaEspecial =
       solicitacao.tipo === "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS"
         ? await calcularTrabalhoDiaEspecial({
@@ -313,30 +339,54 @@ export async function aplicarEfeitosSolicitacaoDeferida(params: {
             dataReferencia: dataInicio,
           })
         : null;
+    const excedenteDia =
+      solicitacao.tipo === "CONVERSAO_EXCEDENTE_BANCO_HORAS"
+        ? await calcularExcedenteDia({
+            tx,
+            servidorId: solicitacao.servidorId,
+            dataReferencia: dataInicio,
+          })
+        : null;
+    if (excedenteDia?.erro) {
+      return { efeitosAplicados: false, mensagem: excedenteDia.erro };
+    }
+    if (
+      excedenteDia &&
+      dadosAutorizacao.minutosSolicitados &&
+      dadosAutorizacao.minutosSolicitados > excedenteDia.minutos
+    ) {
+      return {
+        efeitosAplicados: false,
+        mensagem: `A quantidade solicitada excede os ${excedenteDia.minutos} minutos disponíveis no dia.`,
+      };
+    }
     const minutosAutorizados =
       dadosAutorizacao.minutosSolicitados ??
       (trabalhoDiaEspecial
         ? trabalhoDiaEspecial.minutos
-        : solicitacao.tipo === "FOLGA_BANCO_HORAS"
-        ? await calcularMinutosFolgaBancoHoras({
-            tx,
-            servidorId: solicitacao.servidorId,
-            dataInicio,
-            dataFim,
-          })
-        : solicitacao.tipo === "COMPENSACAO"
-          ? await calcularMinutosPendentesCompensacao({
-              tx,
-              servidorId: solicitacao.servidorId,
-              dataInicio,
-              dataFim,
-            })
-          : 0);
+        : excedenteDia
+          ? excedenteDia.minutos
+          : solicitacao.tipo === "FOLGA_BANCO_HORAS"
+            ? await calcularMinutosFolgaBancoHoras({
+                tx,
+                servidorId: solicitacao.servidorId,
+                dataInicio,
+                dataFim,
+              })
+            : solicitacao.tipo === "COMPENSACAO"
+              ? await calcularMinutosPendentesCompensacao({
+                  tx,
+                  servidorId: solicitacao.servidorId,
+                  dataInicio,
+                  dataFim,
+                })
+              : 0);
 
     if (minutosAutorizados <= 0) {
       return {
         efeitosAplicados: false,
-        mensagem: trabalhoDiaEspecial?.erro ??
+        mensagem:
+          trabalhoDiaEspecial?.erro ??
           (solicitacao.tipo === "FOLGA_BANCO_HORAS"
             ? "Não foram encontrados dias úteis com jornada vigente para autorizar a folga."
             : "Não foram encontrados minutos pendentes no período informado."),
@@ -396,9 +446,11 @@ export async function aplicarEfeitosSolicitacaoDeferida(params: {
           ? "Crédito previamente autorizado pela chefia."
           : solicitacao.tipo === "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS"
             ? "Conversão do trabalho em dia especial autorizada pela chefia e encaminhada ao banco de horas."
-          : solicitacao.tipo === "FOLGA_BANCO_HORAS"
-            ? "Folga com banco de horas autorizada pela chefia."
-            : "Compensação previamente autorizada pela chefia.",
+            : solicitacao.tipo === "CONVERSAO_EXCEDENTE_BANCO_HORAS"
+              ? "Conversão do excedente em crédito autorizada pela chefia e encaminhada ao banco de horas."
+              : solicitacao.tipo === "FOLGA_BANCO_HORAS"
+                ? "Folga com banco de horas autorizada pela chefia."
+                : "Compensação previamente autorizada pela chefia.",
       dadosResultado: {
         autorizacaoBancoHorasId: autorizacao.id,
         tipo: autorizacao.tipo,

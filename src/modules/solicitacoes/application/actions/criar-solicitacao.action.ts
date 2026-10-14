@@ -236,14 +236,18 @@ export async function criarSolicitacaoAction(
     parsed.data.dataFim,
     fusoHorario,
   );
-  const dataInicio =
-    parsed.data.tipo === "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS"
-      ? dataReferencia
-      : dataInicioInformada;
-  const dataFim =
-    parsed.data.tipo === "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS"
-      ? dataReferencia
-      : dataFimInformada;
+  const dataInicio = [
+    "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+    "CONVERSAO_EXCEDENTE_BANCO_HORAS",
+  ].includes(parsed.data.tipo)
+    ? dataReferencia
+    : dataInicioInformada;
+  const dataFim = [
+    "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+    "CONVERSAO_EXCEDENTE_BANCO_HORAS",
+  ].includes(parsed.data.tipo)
+    ? dataReferencia
+    : dataFimInformada;
 
   if (
     ["AJUSTE_PONTO", "EXCLUSAO_MARCACAO"].includes(parsed.data.tipo) &&

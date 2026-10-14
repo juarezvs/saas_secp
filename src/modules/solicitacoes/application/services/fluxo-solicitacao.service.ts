@@ -10,8 +10,8 @@ export function rotuloTipoSolicitacao(tipo: string) {
     DISPENSA_PONTO: "Dispensa de ponto",
     HORA_CREDITO_PREVIA: "Autorização prévia de hora-crédito",
     FOLGA_BANCO_HORAS: "Folga com banco de horas",
-    CONVERSAO_DIA_ESPECIAL_BANCO_HORAS:
-      "Conversão de trabalho em dia especial",
+    CONVERSAO_DIA_ESPECIAL_BANCO_HORAS: "Conversão de trabalho em dia especial",
+    CONVERSAO_EXCEDENTE_BANCO_HORAS: "Conversão de excedente em crédito",
   };
 
   return rotulos[tipo] ?? tipo;

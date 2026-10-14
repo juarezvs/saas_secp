@@ -39,6 +39,7 @@ function rotuloSolicitacao(tipo: string) {
     COMPENSACAO: "Compensar débito",
     CONVERSAO_DIA_ESPECIAL_BANCO_HORAS:
       "Converter trabalho em dia especial",
+    CONVERSAO_EXCEDENTE_BANCO_HORAS: "Converter excedente em crédito",
   };
 
   return rotulos[tipo] ?? tipo;
