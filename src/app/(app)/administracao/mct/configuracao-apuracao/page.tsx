@@ -31,6 +31,7 @@ export default async function ConfiguracaoApuracaoPage() {
       podeGerenciar={possuiAlgumaPermissaoNaLista(acesso.permissoes, GERENCIAR)}
       configuracoes={configuracoes.map((item) => ({
         id: item.id,
+        versao: item.versao,
         jornada: item.jornada.nome,
         escala: item.escala?.nome ?? null,
         modelo: MODELOS_CONFIGURACAO_APURACAO.find((modelo) => modelo.codigo === item.modeloCodigo)?.nome ?? item.modeloCodigo,

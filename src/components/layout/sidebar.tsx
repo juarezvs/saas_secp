@@ -35,6 +35,7 @@ import {
   Fingerprint,
   GraduationCap,
   Gauge,
+  GitCompareArrows,
   History,
   Hourglass,
   KeyRound,
@@ -803,6 +804,17 @@ export const MENU_ITEMS: MenuItem[] = [
         href: "/administracao/mct/simulador",
         icon: FlaskConical,
         permissoes: ["mct-simulador:usar:seccional", "mct-simulador:usar:global"],
+      },
+      {
+        label: "Validação e Comparação",
+        href: "/administracao/mct/validacao",
+        icon: GitCompareArrows,
+        permissoes: [
+          "mct-configuracao:consultar:seccional",
+          "mct-configuracao:consultar:global",
+          "mct-configuracao:gerenciar:seccional",
+          "mct-configuracao:gerenciar:global",
+        ],
       },
       {
         label: "Configurações Avançadas",

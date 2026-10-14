@@ -128,6 +128,7 @@ const controle: ItemMenuPerfilPadrao[] = [
 const mct: ItemMenuPerfilPadrao[] = [
   { itemCatalogo: "/administracao/mct/configuracao-apuracao", label: "Configuração da Apuração" },
   { itemCatalogo: "/administracao/mct/simulador", label: "Simulador de Jornada" },
+  { itemCatalogo: "/administracao/mct/validacao", label: "Validação e Comparação" },
   { itemCatalogo: "/cadastros-auxiliares/mct", label: "Configurações Avançadas" },
 ];
 

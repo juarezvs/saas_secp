@@ -58,6 +58,7 @@ export async function executarComparacaoShadow(params: {
   const comparacao = compararMctComLegado({
     legado: params.legado,
     mct: shadow.resultado.resultadoJornada,
+    conformidade: shadow.resultado.resultadoConformidade,
   });
   await params.repositorioComparacao.salvarComparacao({
     execucaoId: shadow.persistencia.id,

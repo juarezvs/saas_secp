@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { ArrowLeft, ArrowRight, Check, Power, Save } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Power, PowerOff, Save, ShieldCheck } from "lucide-react";
 import { Button, Input, Select, toast } from "@/components/ui";
-import { ativarConfiguracaoApuracao, salvarConfiguracaoApuracao } from "../../application/actions/configuracao-apuracao.actions";
+import { ativarConfiguracaoApuracao, inativarConfiguracaoApuracao, salvarConfiguracaoApuracao, validarConfiguracaoApuracao } from "../../application/actions/configuracao-apuracao.actions";
 
 type Jornada = { id: string; codigo: string; nome: string; tipo: string; cargaDiariaMinutos: number; escalas: { id: string; nome: string }[] };
 type Politica = { id: string; nome: string; versao: number; orgaoId: string };
 type Modelo = { codigo: string; nome: string; descricao: string; tiposJornada: string[]; camposComplementares: string[] };
-type Configuracao = { id: string; jornada: string; escala: string | null; modelo: string; politica: string | null; status: string; vigencia: string };
+type Configuracao = { id: string; versao: number; jornada: string; escala: string | null; modelo: string; politica: string | null; status: string; vigencia: string };
 
 const etapas = ["Jornada", "Modelo", "Marcações", "Diferenças", "Vigência", "Revisão", "Publicação"];
 
@@ -41,6 +41,15 @@ export function ConfiguracaoApuracaoAssistente({ jornadas, politicas, modelos, c
     });
   }
 
+  function executarAcao(id: string, acao: "validar" | "inativar") {
+    iniciar(async () => {
+      try {
+        const resultado = acao === "validar" ? await validarConfiguracaoApuracao(id) : await inativarConfiguracaoApuracao(id);
+        toast.success(resultado.mensagem, acao === "validar" ? "Validação concluída" : "Configuração inativada");
+      } catch (error) { toast.error(error instanceof Error ? error.message : "Não foi possível concluir."); }
+    });
+  }
+
   return <div className="grid gap-4 xl:grid-cols-[minmax(380px,0.44fr)_minmax(0,0.56fr)]">
     <form className="rounded-md border bg-card" onChange={(event) => {
       const campo = event.target as unknown as HTMLInputElement | HTMLSelectElement;
@@ -60,6 +69,6 @@ export function ConfiguracaoApuracaoAssistente({ jornadas, politicas, modelos, c
       </div>
       <div className="flex justify-between border-t p-3"><Button variant="outline" size="sm" disabled={etapa === 0 || pendente} onClick={() => setEtapa((v) => v - 1)} leftIcon={<ArrowLeft className="size-4" />}>Voltar</Button>{etapa < etapas.length - 1 && <Button size="sm" disabled={(etapa === 0 && !jornadaId) || (etapa === 1 && !modeloCodigo)} onClick={() => setEtapa((v) => v + 1)} rightIcon={<ArrowRight className="size-4" />}>Continuar</Button>}</div>
     </form>
-    <section className="rounded-md border bg-card"><div className="border-b p-4"><h2 className="font-semibold">Configurações cadastradas</h2><p className="mt-1 text-xs text-muted-foreground">Ativar habilita o uso nas análises; não substitui o cálculo oficial LEGACY.</p></div><div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b text-left text-xs uppercase text-muted-foreground"><th className="p-3">Jornada</th><th className="p-3">Modelo</th><th className="p-3">Política</th><th className="p-3">Vigência</th><th className="p-3">Status</th><th className="p-3"><span className="sr-only">Ações</span></th></tr></thead><tbody>{configuracoes.map((item) => <tr key={item.id} className="border-b"><td className="p-3 font-medium">{item.jornada}<span className="block text-xs font-normal text-muted-foreground">{item.escala ?? "Escala do servidor"}</span></td><td className="p-3">{item.modelo}</td><td className="p-3">{item.politica ?? "Pendente"}</td><td className="whitespace-nowrap p-3">{item.vigencia}</td><td className="p-3">{item.status.replaceAll("_", " ")}</td><td className="p-3"><Button variant="outline" size="sm" disabled={!podeGerenciar || item.status !== "PRONTA_SIMULACAO" || pendente} onClick={() => ativar(item.id)} leftIcon={<Power className="size-4" />}>Ativar</Button></td></tr>)}{!configuracoes.length && <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Nenhuma configuração criada.</td></tr>}</tbody></table></div></section>
+    <section className="rounded-md border bg-card"><div className="border-b p-4"><h2 className="font-semibold">Configurações cadastradas</h2><p className="mt-1 text-xs text-muted-foreground">Validar executa um cenário técnico real. Ativar não substitui o cálculo oficial LEGACY.</p></div><div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b text-left text-xs uppercase text-muted-foreground"><th className="p-3">Jornada</th><th className="p-3">Versão</th><th className="p-3">Modelo</th><th className="p-3">Política</th><th className="p-3">Vigência</th><th className="p-3">Status</th><th className="p-3"><span className="sr-only">Ações</span></th></tr></thead><tbody>{configuracoes.map((item) => <tr key={item.id} className="border-b"><td className="p-3 font-medium">{item.jornada}<span className="block text-xs font-normal text-muted-foreground">{item.escala ?? "Escala do servidor"}</span></td><td className="p-3">v{item.versao}</td><td className="p-3">{item.modelo}</td><td className="p-3">{item.politica ?? "Pendente"}</td><td className="whitespace-nowrap p-3">{item.vigencia}</td><td className="p-3">{item.status.replaceAll("_", " ")}</td><td className="p-3"><div className="flex gap-2">{["PRONTA_SIMULACAO", "EM_VALIDACAO"].includes(item.status) && <Button variant="outline" size="sm" disabled={!podeGerenciar || pendente} onClick={() => executarAcao(item.id, "validar")} leftIcon={<ShieldCheck className="size-4" />}>Validar</Button>}{item.status === "EM_VALIDACAO" && <Button variant="outline" size="sm" disabled={!podeGerenciar || pendente} onClick={() => ativar(item.id)} leftIcon={<Power className="size-4" />}>Ativar</Button>}{item.status === "ATIVA" && <Button variant="outline" size="sm" disabled={!podeGerenciar || pendente} onClick={() => executarAcao(item.id, "inativar")} leftIcon={<PowerOff className="size-4" />}>Inativar</Button>}</div></td></tr>)}{!configuracoes.length && <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Nenhuma configuração criada.</td></tr>}</tbody></table></div></section>
   </div>;
 }

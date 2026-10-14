@@ -4495,6 +4495,7 @@ enum MctStatusConfiguracaoApuracao {
   PRONTA_SIMULACAO
   EM_VALIDACAO
   ATIVA
+  INATIVA
   INCONSISTENTE
 }
 
@@ -4545,6 +4546,8 @@ model MctConfiguracaoApuracao {
   escalaId                 String?                       @map("escala_id") @db.Uuid
   politicaVersaoId         String?                       @map("politica_versao_id") @db.Uuid
   modeloCodigo             String                        @map("modelo_codigo") @db.VarChar(60)
+  versao                   Int                           @default(1)
+  configuracaoAnteriorId   String?                       @map("configuracao_anterior_id") @db.Uuid
   status                   MctStatusConfiguracaoApuracao @default(RASCUNHO)
   configuracaoComplementar Json                          @default("{}") @map("configuracao_complementar")
   vigenciaInicio           DateTime                      @map("vigencia_inicio") @db.Date
@@ -4558,10 +4561,14 @@ model MctConfiguracaoApuracao {
   jornada  Jornada            @relation(fields: [jornadaId], references: [id], onDelete: Restrict)
   escala   Escala?            @relation(fields: [escalaId], references: [id], onDelete: Restrict)
   politica MctPoliticaVersao? @relation(fields: [politicaVersaoId], references: [id], onDelete: Restrict)
+  configuracaoAnterior MctConfiguracaoApuracao? @relation("MctConfiguracaoVersoes", fields: [configuracaoAnteriorId], references: [id], onDelete: SetNull)
+  versoesPosteriores MctConfiguracaoApuracao[] @relation("MctConfiguracaoVersoes")
 
   @@index([orgaoId, status])
   @@index([jornadaId, vigenciaInicio, vigenciaFim])
   @@index([politicaVersaoId])
+  @@index([configuracaoAnteriorId])
+  @@index([jornadaId, escalaId, versao])
   @@map("mct_configuracoes_apuracao")
 }
 

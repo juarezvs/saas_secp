@@ -1,4 +1,4 @@
-import type { ResultadoRelogioJornada } from "./mct.types";
+import type { ResultadoRelogioConformidade, ResultadoRelogioJornada } from "./mct.types";
 
 export type ResultadoLegadoComparavel = {
   cargaPrevistaMinutos: number;
@@ -10,7 +10,7 @@ export type ResultadoLegadoComparavel = {
 };
 
 export type DivergenciaMctLegado = {
-  campo: "JORNADA_PREVISTA" | "TEMPO_TRABALHADO" | "CREDITO" | "DEBITO";
+  campo: "JORNADA_PREVISTA" | "TEMPO_TRABALHADO" | "CREDITO" | "DEBITO" | "OCORRENCIA";
   legadoMinutos: number;
   mctMinutos: number;
   diferencaMinutos: number;
@@ -21,6 +21,7 @@ export type DivergenciaMctLegado = {
 export function compararMctComLegado(params: {
   legado: ResultadoLegadoComparavel;
   mct: ResultadoRelogioJornada;
+  conformidade?: ResultadoRelogioConformidade;
 }) {
   const campos: Array<{
     campo: DivergenciaMctLegado["campo"];
@@ -64,6 +65,11 @@ export function compararMctComLegado(params: {
       severidade: severidade(item.campo, item.legado, item.mct),
       descricao: item.descricao,
     }));
+  const legadoComPendencia = !["REGULAR", "OK", "CONCLUIDA", "HOMOLOGADA"].includes(params.legado.resultado.toUpperCase());
+  const mctComPendencia = params.conformidade?.possuiPendencias ?? false;
+  if (params.conformidade && legadoComPendencia !== mctComPendencia) {
+    divergencias.push({ campo: "OCORRENCIA", legadoMinutos: legadoComPendencia ? 1 : 0, mctMinutos: mctComPendencia ? 1 : 0, diferencaMinutos: (mctComPendencia ? 1 : 0) - (legadoComPendencia ? 1 : 0), severidade: "ATENCAO", descricao: "Diferença entre a ocorrência legada e o Relógio de Conformidade." });
+  }
 
   return {
     divergencias,

@@ -18,9 +18,16 @@ describe("resolverModoOperacaoMct", () => {
       resolverModoOperacaoMct({
         solicitado: "MCT",
         permitirModoOficial: true,
+        escopoExplicitamenteHabilitado: true,
         competenciaHomologada: true,
       }),
     ).toThrow("competencia homologada");
+  });
+
+  it("exige escopo explicito e escritor oficial unico", () => {
+    expect(() => resolverModoOperacaoMct({ solicitado: "MCT", permitirModoOficial: true })).toThrow("escopo sem habilitacao");
+    expect(() => resolverModoOperacaoMct({ solicitado: "MCT", permitirModoOficial: true, escopoExplicitamenteHabilitado: true, outroEscritorOficialAtivo: true })).toThrow("outro escritor oficial");
+    expect(resolverModoOperacaoMct({ solicitado: "MCT", permitirModoOficial: true, escopoExplicitamenteHabilitado: true })).toBe("MCT");
   });
 });
 

@@ -584,6 +584,17 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
     permissoes: ["mct-simulador:usar:seccional", "mct-simulador:usar:global"],
   },
   {
+    id: "/administracao/mct/validacao",
+    label: "Validação e comparação",
+    href: "/administracao/mct/validacao",
+    permissoes: [
+      "mct-configuracao:consultar:seccional",
+      "mct-configuracao:consultar:global",
+      "mct-configuracao:gerenciar:seccional",
+      "mct-configuracao:gerenciar:global",
+    ],
+  },
+  {
     id: "/cadastros-auxiliares/estados-cidades",
     label: "Estados/Cidades",
     href: "/cadastros-auxiliares/estados-cidades",
