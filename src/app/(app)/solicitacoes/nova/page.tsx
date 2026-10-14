@@ -18,6 +18,7 @@ type NovaSolicitacaoPageProps = {
     passo?: string;
     marcacaoId?: string;
     marcacaoDescricao?: string;
+    servidorId?: string;
   }>;
 };
 
@@ -140,11 +141,12 @@ export default async function NovaSolicitacaoPage({
         tipoInicial={tipoInicial}
         valoresIniciais={valoresIniciais}
         etapaInicial={passoInicial}
-        hiddenFields={
-          tipoInicial === "EXCLUSAO_MARCACAO" && params.marcacaoId
+        hiddenFields={{
+          ...(params.servidorId ? { servidorId: params.servidorId } : {}),
+          ...(tipoInicial === "EXCLUSAO_MARCACAO" && params.marcacaoId
             ? { marcacaoId: params.marcacaoId }
-            : undefined
-        }
+            : {}),
+        }}
         marcacaoSelecionada={
           tipoInicial === "EXCLUSAO_MARCACAO"
             ? params.marcacaoDescricao

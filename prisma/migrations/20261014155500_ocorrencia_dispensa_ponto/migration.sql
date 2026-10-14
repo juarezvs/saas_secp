@@ -1,0 +1,1 @@
+ALTER TYPE "TipoOcorrenciaFrequencia" ADD VALUE IF NOT EXISTS 'DISPENSA_PONTO';

@@ -39,6 +39,7 @@ const iconesPorTipoSolicitacao: Record<TipoSolicitacao, LucideIcon> = {
   DISPENSA_PONTO: CalendarOff,
   FOLGA_BANCO_HORAS: ShieldCheck,
   CONVERSAO_DIA_ESPECIAL_BANCO_HORAS: CalendarCheck2,
+  CONVERSAO_EXCEDENTE_BANCO_HORAS: Gauge,
 };
 
 const descricoesPorTipoSolicitacao: Record<TipoSolicitacao, string> = {
@@ -54,6 +55,8 @@ const descricoesPorTipoSolicitacao: Record<TipoSolicitacao, string> = {
   FOLGA_BANCO_HORAS: "Solicite folga utilizando o banco de horas.",
   CONVERSAO_DIA_ESPECIAL_BANCO_HORAS:
     "Solicite a conversão do trabalho realizado em dia especial para o banco de horas.",
+  CONVERSAO_EXCEDENTE_BANCO_HORAS:
+    "Solicite a conversão das horas excedentes deste dia em crédito no banco de horas.",
 };
 
 const grupos: Array<{
@@ -81,6 +84,7 @@ const grupos: Array<{
     icon: Clock3,
     tipos: [
       "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+      "CONVERSAO_EXCEDENTE_BANCO_HORAS",
       "HORA_CREDITO_PREVIA",
       "FOLGA_BANCO_HORAS",
     ],
@@ -108,7 +112,13 @@ function abrirContextoNoClique(event: MouseEvent<HTMLButtonElement>) {
   }, 0);
 }
 
-function SubmenuSolicitacoes({ dataReferencia }: { dataReferencia: string }) {
+function SubmenuSolicitacoes({
+  dataReferencia,
+  servidorId,
+}: {
+  dataReferencia: string;
+  servidorId?: string;
+}) {
   return (
     <ContextMenu.Sub>
       <ContextMenu.SubTrigger className={menuItemClassName}>
@@ -138,6 +148,7 @@ function SubmenuSolicitacoes({ dataReferencia }: { dataReferencia: string }) {
                         dataReferencia,
                         passo: "3",
                       });
+                      if (servidorId) params.set("servidorId", servidorId);
                       return (
                         <ContextMenu.Item key={tipo} asChild>
                           <Link
@@ -194,6 +205,9 @@ export function SolicitacaoAjusteDiaContextMenu({
         passo: "3",
       })
     : null;
+  if (exclusaoParams && servidorId) {
+    exclusaoParams.set("servidorId", servidorId);
+  }
 
   return (
     <>
@@ -253,7 +267,10 @@ export function SolicitacaoAjusteDiaContextMenu({
               </ContextMenu.Item>
             )}
             <ContextMenu.Separator className="my-1 h-px bg-[var(--border)]" />
-            <SubmenuSolicitacoes dataReferencia={dataReferencia} />
+            <SubmenuSolicitacoes
+              dataReferencia={dataReferencia}
+              servidorId={servidorId}
+            />
           </ContextMenu.Content>
         </ContextMenu.Portal>
       </ContextMenu.Root>

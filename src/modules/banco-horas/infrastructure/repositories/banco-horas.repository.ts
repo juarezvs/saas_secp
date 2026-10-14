@@ -514,6 +514,7 @@ export async function listarSolicitacoesBancoHorasServidor(params: {
           "HORA_CREDITO_PREVIA",
           "FOLGA_BANCO_HORAS",
           "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+          "CONVERSAO_EXCEDENTE_BANCO_HORAS",
         ],
       },
     },
@@ -689,6 +690,7 @@ export async function listarPainelChefiaBancoHoras(params: {
               "HORA_CREDITO_PREVIA",
               "FOLGA_BANCO_HORAS",
               "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+              "CONVERSAO_EXCEDENTE_BANCO_HORAS",
             ],
           },
           status: {

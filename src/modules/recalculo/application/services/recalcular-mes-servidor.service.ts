@@ -360,6 +360,7 @@ export async function recalcularMesServidorService({
     prisma.dispensaPontoServidor.findMany({
       where: {
         servidorId,
+        status: "ATIVO",
         dataInicio: {
           lt: fim,
         },

@@ -11,6 +11,31 @@ import { aplicarEfeitosSolicitacaoDeferida } from "./aplicar-efeitos-solicitacao
 import { classificarDiaInstitucional } from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
 
 describe("aplicarEfeitosSolicitacaoDeferida", () => {
+  it("encaminha a dispensa de ponto deferida para o recalculo do espelho", async () => {
+    const resultado = await aplicarEfeitosSolicitacaoDeferida({
+      tx: {} as never,
+      usuarioAnaliseId: "usuario-chefia",
+      justificativaAnalise: "Dispensa autorizada pela chefia.",
+      solicitacao: {
+        id: "solicitacao-dispensa",
+        servidorId: "servidor-1",
+        usuarioSolicitanteId: "usuario-servidor",
+        tipo: "DISPENSA_PONTO",
+        dataReferencia: new Date("2026-09-30T00:00:00Z"),
+        dataInicio: null,
+        dataFim: null,
+        dadosSolicitados: null,
+      },
+    });
+
+    expect(resultado).toEqual({
+      efeitosAplicados: true,
+      mensagem:
+        "Dispensa de ponto deferida. O periodo sera aplicado e o espelho de ponto recalculado.",
+      dadosResultado: { datasImpactadas: ["2026-09-30"] },
+    });
+  });
+
   it("cancela logicamente e audita a marcação cuja exclusão foi deferida", async () => {
     const marcacao = {
       findFirst: vi.fn().mockResolvedValue({
@@ -187,5 +212,78 @@ describe("aplicarEfeitosSolicitacaoDeferida", () => {
         }),
       }),
     );
+  });
+
+  it("autoriza parcialmente a conversao do excedente de um dia comum", async () => {
+    const apuracaoDiaria = {
+      findUnique: vi.fn().mockResolvedValue({ minutosCredito: 146 }),
+    };
+    const autorizacaoBancoHoras = {
+      upsert: vi.fn().mockResolvedValue({
+        id: "autorizacao-excedente",
+        tipo: "CREDITO",
+        status: "AUTORIZADA",
+        dataInicio: new Date("2026-09-03T00:00:00Z"),
+        dataFim: new Date("2026-09-03T00:00:00Z"),
+        minutosAutorizados: 120,
+        autorizadoPorUsuarioId: "usuario-chefia",
+        autorizadoEm: new Date("2026-09-04T12:00:00Z"),
+      }),
+    };
+    const auditoriaEvento = {
+      create: vi.fn().mockResolvedValue({ id: "auditoria-excedente" }),
+    };
+
+    const resultado = await aplicarEfeitosSolicitacaoDeferida({
+      tx: { apuracaoDiaria, autorizacaoBancoHoras, auditoriaEvento } as never,
+      usuarioAnaliseId: "usuario-chefia",
+      justificativaAnalise: "Conversao de parte do excedente.",
+      solicitacao: {
+        id: "solicitacao-excedente",
+        servidorId: "servidor-1",
+        usuarioSolicitanteId: "usuario-servidor",
+        tipo: "CONVERSAO_EXCEDENTE_BANCO_HORAS",
+        dataReferencia: new Date("2026-09-03T00:00:00Z"),
+        dataInicio: new Date("2026-09-03T00:00:00Z"),
+        dataFim: new Date("2026-09-03T00:00:00Z"),
+        dadosSolicitados: { minutosSolicitados: 120 },
+      },
+    });
+
+    expect(resultado.efeitosAplicados).toBe(true);
+    expect(autorizacaoBancoHoras.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          tipo: "CREDITO",
+          minutosAutorizados: 120,
+        }),
+      }),
+    );
+  });
+
+  it("recusa conversao acima do excedente apurado", async () => {
+    const apuracaoDiaria = {
+      findUnique: vi.fn().mockResolvedValue({ minutosCredito: 146 }),
+    };
+    const autorizacaoBancoHoras = { upsert: vi.fn() };
+
+    const resultado = await aplicarEfeitosSolicitacaoDeferida({
+      tx: { apuracaoDiaria, autorizacaoBancoHoras } as never,
+      usuarioAnaliseId: "usuario-chefia",
+      justificativaAnalise: "Valor superior ao disponivel.",
+      solicitacao: {
+        id: "solicitacao-excedente",
+        servidorId: "servidor-1",
+        usuarioSolicitanteId: "usuario-servidor",
+        tipo: "CONVERSAO_EXCEDENTE_BANCO_HORAS",
+        dataReferencia: new Date("2026-09-03T00:00:00Z"),
+        dataInicio: new Date("2026-09-03T00:00:00Z"),
+        dataFim: new Date("2026-09-03T00:00:00Z"),
+        dadosSolicitados: { minutosSolicitados: 180 },
+      },
+    });
+
+    expect(resultado.efeitosAplicados).toBe(false);
+    expect(autorizacaoBancoHoras.upsert).not.toHaveBeenCalled();
   });
 });

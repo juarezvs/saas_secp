@@ -95,6 +95,7 @@ function possuiDadosAutorizacaoBancoHoras(solicitacao: {
       "COMPENSACAO",
       "FOLGA_BANCO_HORAS",
       "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+      "CONVERSAO_EXCEDENTE_BANCO_HORAS",
     ].includes(solicitacao.tipo)
   ) {
     return true;
@@ -103,6 +104,8 @@ function possuiDadosAutorizacaoBancoHoras(solicitacao: {
   const minutosSolicitados = Number(dados.minutosSolicitados);
   return Number.isInteger(minutosSolicitados) && minutosSolicitados > 0;
 }
+
+class EfeitoSolicitacaoError extends Error {}
 
 function deveRecalcularPosDeferimento(tipo: string) {
   return TIPOS_SOLICITACAO_COM_RECALCULO_APOS_DEFERIMENTO.includes(
@@ -129,8 +132,8 @@ function categoriaProcedimentoSolicitacao(tipo: string) {
     COMPENSACAO: "COMPENSACAO_SALDO",
     FOLGA_BANCO_HORAS: "COMPENSACAO_SALDO",
     HORA_CREDITO_PREVIA: "CONVERSAO_HORAS_NAO_AUTORIZADAS",
-    CONVERSAO_DIA_ESPECIAL_BANCO_HORAS:
-      "CONVERSAO_HORAS_NAO_AUTORIZADAS",
+    CONVERSAO_DIA_ESPECIAL_BANCO_HORAS: "CONVERSAO_HORAS_NAO_AUTORIZADAS",
+    CONVERSAO_EXCEDENTE_BANCO_HORAS: "CONVERSAO_HORAS_NAO_AUTORIZADAS",
     ATIVIDADE_EXTERNA: "AFASTAMENTO_INFORMATIVO",
     VIAGEM_SERVICO: "AFASTAMENTO_INFORMATIVO",
     CAPACITACAO: "AFASTAMENTO_INFORMATIVO",
@@ -310,6 +313,7 @@ export async function analisarSolicitacaoAction(
       "COMPENSACAO",
       "FOLGA_BANCO_HORAS",
       "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+      "CONVERSAO_EXCEDENTE_BANCO_HORAS",
     ].includes(solicitacaoAtual.tipo) &&
     !possuiDadosAutorizacaoBancoHoras(solicitacaoAtual)
   ) {
@@ -383,6 +387,10 @@ export async function analisarSolicitacaoAction(
           },
           justificativaAnalise: parsed.data.justificativaAnalise,
         });
+
+        if (!efeito.efeitosAplicados) {
+          throw new EfeitoSolicitacaoError(efeito.mensagem);
+        }
 
         dadosResultado = converterParaJsonInput(efeito);
         dadosResultado = converterParaJsonInput({
@@ -465,7 +473,10 @@ export async function analisarSolicitacaoAction(
       });
     });
   } catch (error) {
-    if (error instanceof ProcedimentoFrequenciaError) {
+    if (
+      error instanceof ProcedimentoFrequenciaError ||
+      error instanceof EfeitoSolicitacaoError
+    ) {
       return {
         sucesso: false,
         mensagem: error.message,

@@ -10,7 +10,7 @@ import { ModalidadeBancoHorasField } from "@/modules/banco-horas/presentation/co
 import { buscarServidorBancoHorasPorUsuarioId, listarSolicitacoesBancoHorasServidor } from "@/modules/banco-horas/infrastructure/repositories/banco-horas.repository";
 
 type Props = { searchParams: Promise<{ erro?: string; pagina?: string; itensPorPagina?: string }> };
-const rotuloTipo = (tipo: string) => ({ HORA_CREDITO_PREVIA: "Gerar credito", FOLGA_BANCO_HORAS: "Utilizar saldo", COMPENSACAO: "Compensar debito", CONVERSAO_DIA_ESPECIAL_BANCO_HORAS: "Converter trabalho em dia especial" })[tipo] ?? tipo;
+const rotuloTipo = (tipo: string) => ({ HORA_CREDITO_PREVIA: "Gerar credito", FOLGA_BANCO_HORAS: "Utilizar saldo", COMPENSACAO: "Compensar debito", CONVERSAO_DIA_ESPECIAL_BANCO_HORAS: "Converter trabalho em dia especial", CONVERSAO_EXCEDENTE_BANCO_HORAS: "Converter excedente em credito" })[tipo] ?? tipo;
 const rotuloStatus = (status: string) => ({ RASCUNHO: "Rascunho", ENVIADA: "Enviada", EM_ANALISE: "Em analise", DEFERIDA: "Deferida", INDEFERIDA: "Indeferida", CANCELADA: "Cancelada" })[status] ?? status;
 function extrairMinutos(dados: unknown) { if (!dados || typeof dados !== "object") return null; const valor = (dados as { minutosSolicitados?: unknown }).minutosSolicitados; return typeof valor === "number" ? valor : null; }
 const formatarData = (data: Date | null) => data ? new Intl.DateTimeFormat("pt-BR").format(data) : "-";

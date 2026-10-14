@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
+import { perfilAtivoEhChefia } from "@/modules/auth/application/services/perfil-chefia.service";
+import { listarServidoresParaEspelhoPonto } from "@/modules/apuracao/infrastructure/repositories/apuracao.repository";
 import {
   PeriodoHomologadoError,
   verificarPeriodoHomologado,
@@ -17,7 +20,10 @@ import { dataHoraLocalParaUtc } from "@/modules/marcacoes/application/services/d
 import { resolverFusoHorarioServidor } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 
-import { buscarServidorSolicitantePorUsuarioId } from "../../infrastructure/repositories/solicitacao.repository";
+import {
+  buscarServidorSolicitacaoPorId,
+  buscarServidorSolicitantePorUsuarioId,
+} from "../../infrastructure/repositories/solicitacao.repository";
 import {
   criarSolicitacaoSchema,
   tiposSolicitacao,
@@ -152,6 +158,41 @@ function extrairDados(formData: FormData): Partial<CriarSolicitacaoInput> {
   };
 }
 
+async function podeCriarSolicitacaoParaServidor(params: {
+  usuarioId: string;
+  servidorProprioId: string;
+  servidorAlvoId: string;
+  orgaoAlvoId: string;
+  perfilAtivoCodigo?: string | null;
+  permissoes: string[];
+}) {
+  if (params.servidorAlvoId === params.servidorProprioId) return true;
+
+  const podeConsultarAdministrativamente =
+    params.permissoes.includes("apuracao:consultar:global") ||
+    params.permissoes.includes("apuracao:consultar:seccional");
+
+  if (podeConsultarAdministrativamente) {
+    const escopo = await obterEscopoOrgaoDaSessao();
+    return escopo.global || escopo.orgaoIds.includes(params.orgaoAlvoId);
+  }
+
+  if (
+    perfilAtivoEhChefia({
+      perfilAtivoCodigo: params.perfilAtivoCodigo,
+      permissoes: params.permissoes,
+    })
+  ) {
+    const servidoresChefia = await listarServidoresParaEspelhoPonto({
+      usuarioId: params.usuarioId,
+      escopo: "chefia",
+    });
+    return servidoresChefia.some((item) => item.id === params.servidorAlvoId);
+  }
+
+  return false;
+}
+
 export async function criarSolicitacaoAction(
   _estadoAnterior: CriarSolicitacaoFormState,
   formData: FormData,
@@ -200,13 +241,46 @@ export async function criarSolicitacaoAction(
     };
   }
 
-  const servidor = await buscarServidorSolicitantePorUsuarioId(session.user.id);
+  const servidorProprio = await buscarServidorSolicitantePorUsuarioId(
+    session.user.id,
+  );
 
-  if (!servidor) {
+  if (!servidorProprio) {
     return {
       sucesso: false,
       mensagem:
         "Nenhum servidor ativo foi encontrado para o usuário autenticado.",
+      campos: dados,
+    };
+  }
+
+  const servidorIdInformado = String(formData.get("servidorId") ?? "").trim();
+  const servidor = servidorIdInformado
+    ? await buscarServidorSolicitacaoPorId(servidorIdInformado)
+    : servidorProprio;
+
+  if (!servidor) {
+    return {
+      sucesso: false,
+      mensagem: "O servidor do espelho de ponto nao foi encontrado.",
+      campos: dados,
+    };
+  }
+
+  const podeCriarParaServidor = await podeCriarSolicitacaoParaServidor({
+    usuarioId: session.user.id,
+    servidorProprioId: servidorProprio.id,
+    servidorAlvoId: servidor.id,
+    orgaoAlvoId: servidor.orgaoId,
+    perfilAtivoCodigo: session.user.perfilAtivo?.codigo,
+    permissoes,
+  });
+
+  if (!podeCriarParaServidor) {
+    return {
+      sucesso: false,
+      mensagem:
+        "Voce nao possui permissao para criar solicitacao para o servidor deste espelho.",
       campos: dados,
     };
   }
@@ -236,14 +310,18 @@ export async function criarSolicitacaoAction(
     parsed.data.dataFim,
     fusoHorario,
   );
-  const dataInicio =
-    parsed.data.tipo === "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS"
-      ? dataReferencia
-      : dataInicioInformada;
-  const dataFim =
-    parsed.data.tipo === "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS"
-      ? dataReferencia
-      : dataFimInformada;
+  const dataInicio = [
+    "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+    "CONVERSAO_EXCEDENTE_BANCO_HORAS",
+  ].includes(parsed.data.tipo)
+    ? dataReferencia
+    : dataInicioInformada;
+  const dataFim = [
+    "CONVERSAO_DIA_ESPECIAL_BANCO_HORAS",
+    "CONVERSAO_EXCEDENTE_BANCO_HORAS",
+  ].includes(parsed.data.tipo)
+    ? dataReferencia
+    : dataFimInformada;
 
   if (
     ["AJUSTE_PONTO", "EXCLUSAO_MARCACAO"].includes(parsed.data.tipo) &&
@@ -370,7 +448,7 @@ export async function criarSolicitacaoAction(
     const novaSolicitacao = await tx.solicitacao.create({
       data: {
         servidorId: servidor.id,
-        usuarioSolicitanteId: session.user.id,
+        usuarioSolicitanteId: servidor.usuarioId,
         unidadeId: lotacaoAtual.unidadeId,
         chefiaResponsavelId: chefiaResolvida?.gestorUnidadeId ?? null,
         tipo: parsed.data.tipo,
@@ -409,6 +487,13 @@ export async function criarSolicitacaoAction(
             unidadeSigla: lotacaoAtual.unidade.sigla,
           },
           chefiaResolvida: chefiaResolvida ?? null,
+          criadaPorTerceiro:
+            servidor.usuarioId !== session.user.id
+              ? {
+                  usuarioExecutorId: session.user.id,
+                  servidorDonoEspelhoId: servidor.id,
+                }
+              : null,
         },
       },
     });
@@ -438,6 +523,8 @@ export async function criarSolicitacaoAction(
         metadados: {
           status: "ENVIADA",
           anexos: anexosSalvos.length,
+          usuarioSolicitanteId: servidor.usuarioId,
+          usuarioExecutorId: session.user.id,
         },
       },
     });
@@ -453,6 +540,8 @@ export async function criarSolicitacaoAction(
           tipo: novaSolicitacao.tipo,
           status: novaSolicitacao.status,
           servidorId: novaSolicitacao.servidorId,
+          usuarioSolicitanteId: novaSolicitacao.usuarioSolicitanteId,
+          usuarioExecutorId: session.user.id,
           unidadeId: novaSolicitacao.unidadeId,
           chefiaResponsavelId: novaSolicitacao.chefiaResponsavelId,
         },

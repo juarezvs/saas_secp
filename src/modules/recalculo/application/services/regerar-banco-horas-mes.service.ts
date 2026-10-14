@@ -772,6 +772,39 @@ export async function regerarBancoHorasMesService({
             }
           }
 
+          if (classificacaoBancoHoras.minutosNaoComputaveis > 0) {
+            await tx.movimentoBancoHoras.create({
+              data: {
+                servidorId,
+                apuracaoDiariaId: apuracao.id,
+                autorizacaoBancoHorasId:
+                  alocacao.autorizacao.autorizacaoBancoHorasId ?? null,
+                tipo: "HORAS_NAO_AUTORIZADAS",
+                origem: "APURACAO_DIARIA",
+                status: "DESCONSIDERADO",
+                dataReferencia: apuracao.dataReferencia,
+                mesReferencia,
+                anoReferencia,
+                minutos: classificacaoBancoHoras.minutosNaoComputaveis,
+                autorizadoPorUsuarioId:
+                  alocacao.autorizacao.autorizadoPorUsuarioId,
+                autorizadoEm: alocacao.autorizacao.autorizadoEm,
+                descricao:
+                  "Parcela do excedente não reconhecida como crédito pelas regras vigentes. Pendente de classificação.",
+                metadados: metadadosClassificacaoBancoHoras({
+                  origem,
+                  apuracao,
+                  classificacaoDia,
+                  classificacaoBancoHoras,
+                  regulamentacao,
+                  autorizacao: alocacao.autorizacao,
+                }),
+              },
+            });
+
+            movimentosCriados++;
+          }
+
           if (limite.minutosAcimaLimite > 0) {
             await tx.movimentoBancoHoras.create({
               data: {

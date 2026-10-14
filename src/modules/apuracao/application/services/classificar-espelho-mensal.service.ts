@@ -262,6 +262,7 @@ export function rotuloSolicitacaoEspelho(tipo: string) {
     FOLGA_BANCO_HORAS: "Folga por banco de horas",
     CONVERSAO_DIA_ESPECIAL_BANCO_HORAS:
       "Conversão de trabalho em dia especial",
+    CONVERSAO_EXCEDENTE_BANCO_HORAS: "Conversão de excedente em crédito",
   };
 
   return rotulos[tipo] ?? tipo;

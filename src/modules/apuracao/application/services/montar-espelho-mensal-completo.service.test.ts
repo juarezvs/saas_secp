@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import type { CalendarioInstitucionalPrecarregado } from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
 
-import { montarEspelhoMensalCompleto } from "./montar-espelho-mensal-completo.service";
+import {
+  afastamentoDeveImpactarEspelho,
+  deveAplicarAfastamentoSarhSobreDispensa,
+  montarEspelhoMensalCompleto,
+} from "./montar-espelho-mensal-completo.service";
 
 function calendarioComFeriado(
   data: string,
@@ -81,6 +85,76 @@ const jornadaHibridaHomeOffice = {
 };
 
 describe("montarEspelhoMensalCompleto", () => {
+  const afastamentoBase = {
+    id: "afastamento",
+    categoria: "LICENCA",
+    tipoCodigo: "1",
+    tipoDescricao: "LICENCA MEDICA",
+    dataInicio: new Date("2026-09-24T00:00:00.000Z"),
+    dataFim: new Date("2026-09-28T00:00:00.000Z"),
+    processo: null,
+    observacao: null,
+    origemTabela: "RH_LICENCAS",
+    ativo: true,
+    payloadSarh: null,
+  };
+
+  it("preserva dispensa administrativa diante de afastamento que nao seja ferias gozadas", () => {
+    expect(
+      deveAplicarAfastamentoSarhSobreDispensa(
+        { dispensaPontoAdministrativa: { id: "dispensa-ativa" } },
+        afastamentoBase,
+      ),
+    ).toBe(false);
+  });
+
+  it("mantem ferias gozadas com prioridade sobre a dispensa administrativa", () => {
+    expect(
+      deveAplicarAfastamentoSarhSobreDispensa(
+        { dispensaPontoAdministrativa: { id: "dispensa-ativa" } },
+        {
+          ...afastamentoBase,
+          categoria: "FERIAS",
+          tipoDescricao: "GOZADA",
+          origemTabela: "RH_FERIAS/RH_PERIODO_FERIAS",
+        },
+      ),
+    ).toBe(true);
+  });
+
+  it("nao retira jornada prevista por ferias adiadas", () => {
+    expect(
+      afastamentoDeveImpactarEspelho({
+        ...afastamentoBase,
+        categoria: "FERIAS",
+        tipoCodigo: "4",
+        tipoDescricao: "ADIADA",
+        origemTabela: "RH_FERIAS/RH_PERIODO_FERIAS",
+      }),
+    ).toBe(false);
+  });
+
+  it("retira jornada prevista somente por ferias gozadas ativas", () => {
+    expect(
+      afastamentoDeveImpactarEspelho({
+        ...afastamentoBase,
+        categoria: "FERIAS",
+        tipoCodigo: "2",
+        tipoDescricao: "GOZADA",
+        origemTabela: "RH_FERIAS/RH_PERIODO_FERIAS",
+      }),
+    ).toBe(true);
+  });
+
+  it("ignora afastamentos inativos", () => {
+    expect(
+      afastamentoDeveImpactarEspelho({
+        ...afastamentoBase,
+        ativo: false,
+      }),
+    ).toBe(false);
+  });
+
   it("monta todos os dias do mes e calcula previsto mensal considerando feriados", async () => {
     const espelho = await montarEspelhoMensalCompleto({
       anoReferencia: 2026,

@@ -253,11 +253,15 @@ function hrefNovaSolicitacao(params: {
   tipo: string;
   dataReferencia: Date | string;
   duracaoMinutos?: number;
+  servidorId?: string;
 }) {
   const query = new URLSearchParams({
     tipo: params.tipo,
     dataReferencia: chaveDataReferenciaUtc(params.dataReferencia),
   });
+  if (params.servidorId) {
+    query.set("servidorId", params.servidorId);
+  }
   const horasSolicitadas =
     params.duracaoMinutos && params.duracaoMinutos > 0
       ? minutosParaTexto(params.duracaoMinutos)
@@ -362,6 +366,7 @@ function minutosSolicitacao(solicitacao: SolicitacaoEspelho) {
 function montarVisualizacaoOcorrencias(
   apuracoes: ApuracaoMensalItem[],
   solicitacoes: SolicitacaoEspelho[],
+  servidorId: string,
 ): OcorrenciasVisualizacaoResumo {
   const linhas: OcorrenciaVisualizacao[] = [];
   const diasComOcorrência = new Set<string>();
@@ -470,6 +475,7 @@ function montarVisualizacaoOcorrencias(
               tipo: "HORA_CREDITO_PREVIA",
               dataReferencia: item.dataReferencia,
               duracaoMinutos: item.minutosHoraExtraNaoAutorizada ?? 0,
+              servidorId,
             }),
         podeExcluir: solicitacaoRelacionada?.status === "ENVIADA",
       });
@@ -536,6 +542,7 @@ function montarVisualizacaoOcorrencias(
               tipo: falta ? "ABONO_JUSTIFICATIVA" : "AJUSTE_PONTO",
               dataReferencia: item.dataReferencia,
               duracaoMinutos: item.minutosDebito,
+              servidorId,
             }),
         podeExcluir: solicitacaoRelacionada?.status === "ENVIADA",
       });
@@ -818,6 +825,7 @@ export function EspelhoPontoMensal({
   const visualizacaoOcorrencias = montarVisualizacaoOcorrencias(
     apuracoesContabilizadas,
     solicitacoes ?? [],
+    servidorId,
   );
   const semanasSelecionaveis = montarSemanasSelecionaveis(
     apuracoesContabilizadas,
@@ -1122,6 +1130,7 @@ export function EspelhoPontoMensal({
               historicoAjustes={
                 <EspelhoPontoHistoricoAjustesInterativo
                   solicitacoes={solicitacoes ?? []}
+                  servidorId={servidorId}
                 />
               }
               semana={
@@ -2949,7 +2958,10 @@ function OcorrênciaTabela({
   }
 
   return (
-    <span className="inline-flex max-w-full truncate rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+    <span
+      className="inline-flex max-w-full truncate rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+      title={label}
+    >
       {label}
     </span>
   );
