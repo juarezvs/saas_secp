@@ -464,6 +464,28 @@ export async function aplicarEfeitosSolicitacaoDeferida(params: {
     };
   }
 
+  if (solicitacao.tipo === "DISPENSA_PONTO") {
+    const datasImpactadas = listarDatasImpactadasSolicitacao(solicitacao);
+
+    if (datasImpactadas.length === 0) {
+      return {
+        efeitosAplicados: false,
+        mensagem: "Solicitacao de dispensa de ponto sem periodo valido.",
+      };
+    }
+
+    return {
+      efeitosAplicados: true,
+      mensagem:
+        "Dispensa de ponto deferida. O periodo sera aplicado e o espelho de ponto recalculado.",
+      dadosResultado: {
+        datasImpactadas: datasImpactadas.map((data) =>
+          data.toISOString().slice(0, 10),
+        ),
+      },
+    };
+  }
+
   if (solicitacao.tipo !== "AJUSTE_PONTO") {
     return {
       efeitosAplicados: false,

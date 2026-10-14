@@ -11,6 +11,31 @@ import { aplicarEfeitosSolicitacaoDeferida } from "./aplicar-efeitos-solicitacao
 import { classificarDiaInstitucional } from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
 
 describe("aplicarEfeitosSolicitacaoDeferida", () => {
+  it("encaminha a dispensa de ponto deferida para o recalculo do espelho", async () => {
+    const resultado = await aplicarEfeitosSolicitacaoDeferida({
+      tx: {} as never,
+      usuarioAnaliseId: "usuario-chefia",
+      justificativaAnalise: "Dispensa autorizada pela chefia.",
+      solicitacao: {
+        id: "solicitacao-dispensa",
+        servidorId: "servidor-1",
+        usuarioSolicitanteId: "usuario-servidor",
+        tipo: "DISPENSA_PONTO",
+        dataReferencia: new Date("2026-09-30T00:00:00Z"),
+        dataInicio: null,
+        dataFim: null,
+        dadosSolicitados: null,
+      },
+    });
+
+    expect(resultado).toEqual({
+      efeitosAplicados: true,
+      mensagem:
+        "Dispensa de ponto deferida. O periodo sera aplicado e o espelho de ponto recalculado.",
+      dadosResultado: { datasImpactadas: ["2026-09-30"] },
+    });
+  });
+
   it("cancela logicamente e audita a marcação cuja exclusão foi deferida", async () => {
     const marcacao = {
       findFirst: vi.fn().mockResolvedValue({
