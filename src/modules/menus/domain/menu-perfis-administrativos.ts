@@ -106,10 +106,6 @@ const bancoHorasExtras: ItemMenuPerfilPadrao[] = [
 
 const cadastrosAuxiliares: ItemMenuPerfilPadrao[] = [
   {
-    itemCatalogo: "/cadastros-auxiliares/mct",
-    label: "Rubricas, políticas e regras MCT",
-  },
-  {
     itemCatalogo: "/cadastros-auxiliares/tipos-feriados-suspensoes",
     label: "Tipos de feriados e suspensões",
   },
