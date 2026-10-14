@@ -728,20 +728,40 @@ function descricaoAfastamento(afastamento: AfastamentoSarhEspelho) {
   return `Afastamento SARH: ${tipo}.${processo}`;
 }
 
+function textoNormalizado(valor: string | null | undefined) {
+  return (valor ?? "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toUpperCase();
+}
+
 function afastamentoEhFerias(afastamento: AfastamentoSarhEspelho) {
-  return [
-    afastamento.categoria,
-    afastamento.tipoDescricao,
-    afastamento.origemTabela,
-  ]
+  return [afastamento.categoria, afastamento.origemTabela]
     .filter((valor): valor is string => Boolean(valor))
-    .some((valor) =>
-      valor
-        .normalize("NFD")
-        .replace(/\p{Diacritic}/gu, "")
-        .toUpperCase()
-        .includes("FERIAS"),
-    );
+    .some((valor) => textoNormalizado(valor).includes("FERIAS"));
+}
+
+function afastamentoEhFeriasGozadas(afastamento: AfastamentoSarhEspelho) {
+  return (
+    afastamentoEhFerias(afastamento) &&
+    textoNormalizado(afastamento.tipoDescricao) === "GOZADA"
+  );
+}
+
+function possuiDispensaAdministrativaAtiva(metadados: unknown) {
+  const dispensa = metadadosComoObjeto(metadados).dispensaPontoAdministrativa;
+
+  return Boolean(dispensa && typeof dispensa === "object");
+}
+
+export function deveAplicarAfastamentoSarhSobreDispensa(
+  metadados: unknown,
+  afastamento: AfastamentoSarhEspelho,
+) {
+  return (
+    !possuiDispensaAdministrativaAtiva(metadados) ||
+    afastamentoEhFeriasGozadas(afastamento)
+  );
 }
 
 function detalhesAfastamento(
@@ -891,7 +911,11 @@ export async function montarEspelhoMensalCompleto(params: {
               : item;
 
         return ajustarDiaNaoEncerrado(
-          afastamento
+          afastamento &&
+            deveAplicarAfastamentoSarhSobreDispensa(
+              itemAjustado.metadados,
+              afastamento,
+            )
             ? aplicarAfastamentoSarh(itemAjustado, afastamento)
             : itemAjustado,
           {
@@ -943,7 +967,11 @@ export async function montarEspelhoMensalCompleto(params: {
         : item;
 
       return ajustarDiaNaoEncerrado(
-        afastamento
+        afastamento &&
+          deveAplicarAfastamentoSarhSobreDispensa(
+            itemComPrevisao.metadados,
+            afastamento,
+          )
           ? aplicarAfastamentoSarh(itemComPrevisao, afastamento)
           : itemComPrevisao,
         {
