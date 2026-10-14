@@ -1092,6 +1092,7 @@ model Orgao {
   programacoesFerias               ProgramacaoFerias[]
   excecoesSecapFerias              ExcecaoSecapFeriasServidor[]
   mctNaturezasRubricas             MctNaturezaRubrica[]
+  mctConfiguracoesApuracao         MctConfiguracaoApuracao[]
 
   @@index([uf])
   @@index([municipioIbge])
@@ -2072,11 +2073,12 @@ model Jornada {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  orgao      Orgao?                @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
-  dias       JornadaDia[]
-  faixas     JornadaFaixaHorario[]
-  escalas    Escala[]
-  servidores JornadaServidor[]
+  orgao                 Orgao?                    @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+  dias                  JornadaDia[]
+  faixas                JornadaFaixaHorario[]
+  escalas               Escala[]
+  servidores            JornadaServidor[]
+  configuracoesApuracao MctConfiguracaoApuracao[]
 
   @@index([orgaoId])
   @@index([tipo])
@@ -2144,9 +2146,10 @@ model Escala {
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
 
-  jornada    Jornada           @relation(fields: [jornadaId], references: [id], onDelete: Restrict)
-  dias       EscalaDia[]
-  servidores JornadaServidor[]
+  jornada               Jornada                   @relation(fields: [jornadaId], references: [id], onDelete: Restrict)
+  dias                  EscalaDia[]
+  servidores            JornadaServidor[]
+  configuracoesApuracao MctConfiguracaoApuracao[]
 
   @@index([jornadaId])
   @@map("escalas")
@@ -4484,6 +4487,15 @@ enum MctStatusExecucao {
   ERRO
 }
 
+enum MctStatusConfiguracaoApuracao {
+  RASCUNHO
+  INCOMPLETA
+  PRONTA_SIMULACAO
+  EM_VALIDACAO
+  ATIVA
+  INCONSISTENTE
+}
+
 enum MctDimensaoRubrica {
   TEMPORAL
   JURIDICA_ADMINISTRATIVA
@@ -4514,13 +4526,41 @@ model MctPoliticaVersao {
   publicadaEm           DateTime? @map("publicada_em")
   criadoEm              DateTime  @default(now()) @map("criado_em")
 
-  execucoes      MctExecucao[]
-  regrasCatalogo MctRegraVersao[]
+  execucoes             MctExecucao[]
+  regrasCatalogo        MctRegraVersao[]
+  configuracoesApuracao MctConfiguracaoApuracao[]
 
   @@unique([orgaoId, codigo, versao])
   @@index([orgaoId, estado])
   @@index([vigenciaInicio, vigenciaFim])
   @@map("mct_politicas_versoes")
+}
+
+model MctConfiguracaoApuracao {
+  id                       String                        @id @default(uuid()) @db.Uuid
+  orgaoId                  String                        @map("orgao_id") @db.Uuid
+  jornadaId                String                        @map("jornada_id") @db.Uuid
+  escalaId                 String?                       @map("escala_id") @db.Uuid
+  politicaVersaoId         String?                       @map("politica_versao_id") @db.Uuid
+  modeloCodigo             String                        @map("modelo_codigo") @db.VarChar(60)
+  status                   MctStatusConfiguracaoApuracao @default(RASCUNHO)
+  configuracaoComplementar Json                          @default("{}") @map("configuracao_complementar")
+  vigenciaInicio           DateTime                      @map("vigencia_inicio") @db.Date
+  vigenciaFim              DateTime?                     @map("vigencia_fim") @db.Date
+  ativadaEm                DateTime?                     @map("ativada_em")
+  ativadaPorUsuarioId      String?                       @map("ativada_por_usuario_id") @db.Uuid
+  criadoEm                 DateTime                      @default(now()) @map("criado_em")
+  atualizadoEm             DateTime                      @updatedAt @map("atualizado_em")
+
+  orgao    Orgao              @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+  jornada  Jornada            @relation(fields: [jornadaId], references: [id], onDelete: Restrict)
+  escala   Escala?            @relation(fields: [escalaId], references: [id], onDelete: Restrict)
+  politica MctPoliticaVersao? @relation(fields: [politicaVersaoId], references: [id], onDelete: Restrict)
+
+  @@index([orgaoId, status])
+  @@index([jornadaId, vigenciaInicio, vigenciaFim])
+  @@index([politicaVersaoId])
+  @@map("mct_configuracoes_apuracao")
 }
 
 model MctRubricaVersao {

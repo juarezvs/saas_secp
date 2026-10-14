@@ -129,6 +129,12 @@ const controle: ItemMenuPerfilPadrao[] = [
   { itemCatalogo: "/auditoria", label: "Auditoria" },
 ];
 
+const mct: ItemMenuPerfilPadrao[] = [
+  { itemCatalogo: "/administracao/mct/configuracao-apuracao", label: "Configuração da Apuração" },
+  { itemCatalogo: "/administracao/mct/simulador", label: "Simulador de Jornada" },
+  { itemCatalogo: "/cadastros-auxiliares/mct", label: "Configurações Avançadas" },
+];
+
 const menuServidor: MenuPerfilPadrao = {
   itensRaiz: [{ itemCatalogo: "/dashboard", label: "Minha página inicial" }],
   grupos: [
@@ -317,6 +323,13 @@ export const MENUS_PERFIS_ADMINISTRATIVOS: Record<
         itens: cadastrosAuxiliares,
       },
       {
+        chave: "mct",
+        label: "MCT",
+        icone: "Gauge",
+        ordem: 65,
+        itens: mct,
+      },
+      {
         chave: "integracoes",
         label: "Integrações e Equipamentos",
         icone: "PlugZap",
@@ -414,6 +427,13 @@ export const MENUS_PERFIS_ADMINISTRATIVOS: Record<
         icone: "ListChecks",
         ordem: 70,
         itens: cadastrosAuxiliares,
+      },
+      {
+        chave: "mct",
+        label: "MCT",
+        icone: "Gauge",
+        ordem: 75,
+        itens: mct,
       },
       {
         chave: "integracoes",

@@ -567,6 +567,23 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
     ],
   },
   {
+    id: "/administracao/mct/configuracao-apuracao",
+    label: "Configuração da Apuração",
+    href: "/administracao/mct/configuracao-apuracao",
+    permissoes: [
+      "mct-configuracao:consultar:seccional",
+      "mct-configuracao:consultar:global",
+      "mct-configuracao:gerenciar:seccional",
+      "mct-configuracao:gerenciar:global",
+    ],
+  },
+  {
+    id: "/administracao/mct/simulador",
+    label: "Simulador de Jornada",
+    href: "/administracao/mct/simulador",
+    permissoes: ["mct-simulador:usar:seccional", "mct-simulador:usar:global"],
+  },
+  {
     id: "/cadastros-auxiliares/estados-cidades",
     label: "Estados/Cidades",
     href: "/cadastros-auxiliares/estados-cidades",

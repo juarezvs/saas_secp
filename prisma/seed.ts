@@ -303,6 +303,12 @@ type PermissaoSeed = {
 };
 
 const CODIGOS_PERMISSOES_USUARIO_COM_USO_PRATICO = [
+  "mct-configuracao:consultar:seccional",
+  "mct-configuracao:consultar:global",
+  "mct-configuracao:gerenciar:seccional",
+  "mct-configuracao:gerenciar:global",
+  "mct-simulador:usar:seccional",
+  "mct-simulador:usar:global",
   "mct-rubricas:consultar:seccional",
   "mct-rubricas:consultar:global",
   "mct-rubricas:gerenciar:seccional",
@@ -650,6 +656,11 @@ const codigosPermissoesHorasExtrasGestao = [
 ];
 
 const permissoesIniciais = [
+  ...["seccional", "global"].flatMap((escopo) => [
+    { recurso: "mct-configuracao", acao: "consultar", escopo, descricao: `Consultar configurações de apuração MCT no escopo ${escopo}.` },
+    { recurso: "mct-configuracao", acao: "gerenciar", escopo, descricao: `Gerenciar configurações de apuração MCT no escopo ${escopo}.` },
+    { recurso: "mct-simulador", acao: "usar", escopo, descricao: `Simular jornadas no MCT no escopo ${escopo}.` },
+  ]),
   ...["rubricas", "politicas", "regras"].flatMap((cadastro) =>
     ["seccional", "global"].flatMap((escopo) => [
       {
@@ -1751,6 +1762,9 @@ const codigosPermissoesChefia = [
 ];
 
 const codigosPermissoesAdministrador = [
+  "mct-configuracao:consultar:global",
+  "mct-configuracao:gerenciar:global",
+  "mct-simulador:usar:global",
   "mct-rubricas:consultar:global",
   "mct-rubricas:gerenciar:global",
   "mct-politicas:consultar:global",

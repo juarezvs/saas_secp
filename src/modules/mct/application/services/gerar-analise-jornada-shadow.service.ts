@@ -1,12 +1,10 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
-import type {
-  EventoTemporal,
-  TipoEventoTemporal,
-} from "../../domain/mct.types";
+import type { EventoTemporal, TipoEventoTemporal } from "../../domain/mct.types";
 import { mctComparacaoPrismaRepository } from "../../infrastructure/repositories/mct-comparacao-prisma.repository";
 import { mctExecucaoPrismaRepository } from "../../infrastructure/repositories/mct-execucao-prisma.repository";
 import { carregarClassificacaoMct } from "./carregar-classificacao-mct.service";
 import { executarComparacaoShadow } from "./executar-comparacao-shadow.service";
+import { adaptarJornadaServidorParaMct } from "./mct-schedule-adapter.service";
 
 function tipoTemporal(tipo: string, indice: number): TipoEventoTemporal {
   if (tipo === "ENTRADA") return "ENTRADA";
@@ -20,19 +18,15 @@ export async function gerarAnaliseJornadaShadow(params: {
 }) {
   const fimDia = new Date(params.dataReferencia);
   fimDia.setUTCDate(fimDia.getUTCDate() + 1);
-
   const servidor = await prisma.servidor.findUnique({
     where: { id: params.servidorId },
     select: { id: true, orgaoId: true },
   });
   if (!servidor?.orgaoId) throw new Error("Servidor ou órgão não encontrado.");
 
-  const [apuracao, marcacoes, politica] = await Promise.all([
+  const [apuracao, marcacoes, agenda] = await Promise.all([
     prisma.apuracaoDiaria.findFirst({
-      where: {
-        servidorId: servidor.id,
-        dataReferencia: { gte: params.dataReferencia, lt: fimDia },
-      },
+      where: { servidorId: servidor.id, dataReferencia: { gte: params.dataReferencia, lt: fimDia } },
     }),
     prisma.marcacao.findMany({
       where: {
@@ -42,23 +36,32 @@ export async function gerarAnaliseJornadaShadow(params: {
       },
       orderBy: { dataHora: "asc" },
     }),
-    prisma.mctPoliticaVersao.findFirst({
-      where: {
-        orgaoId: servidor.orgaoId,
-        estado: "PUBLICADA",
-        vigenciaInicio: { lte: params.dataReferencia },
-        OR: [
-          { vigenciaFim: null },
-          { vigenciaFim: { gte: params.dataReferencia } },
-        ],
-      },
-      orderBy: { versao: "desc" },
-    }),
+    adaptarJornadaServidorParaMct({ servidorId: servidor.id, dataReferencia: params.dataReferencia }),
   ]);
-
   if (!apuracao) throw new Error("Não há apuração do espelho para este dia.");
-  if (!politica)
-    throw new Error("Não há política MCT publicada e vigente para este dia.");
+
+  const associacao = await prisma.mctConfiguracaoApuracao.findFirst({
+    where: {
+      orgaoId: servidor.orgaoId,
+      jornadaId: agenda.jornadaId,
+      status: "ATIVA",
+      vigenciaInicio: { lte: params.dataReferencia },
+      OR: [{ vigenciaFim: null }, { vigenciaFim: { gte: params.dataReferencia } }],
+      AND: [{ OR: [{ escalaId: agenda.escalaId }, { escalaId: null }] }],
+    },
+    include: { politica: true },
+    orderBy: [{ escalaId: "desc" }, { vigenciaInicio: "desc" }],
+  });
+  const politica = associacao?.politica ?? await prisma.mctPoliticaVersao.findFirst({
+    where: {
+      orgaoId: servidor.orgaoId,
+      estado: "PUBLICADA",
+      vigenciaInicio: { lte: params.dataReferencia },
+      OR: [{ vigenciaFim: null }, { vigenciaFim: { gte: params.dataReferencia } }],
+    },
+    orderBy: { versao: "desc" },
+  });
+  if (!politica) throw new Error("Não há política MCT publicada e vigente para este dia.");
 
   const configuracao = politica.configuracao as Record<string, unknown>;
   const eventos: EventoTemporal[] = marcacoes.map((item, indice) => ({
@@ -84,29 +87,15 @@ export async function gerarAnaliseJornadaShadow(params: {
       orgaoId: politica.orgaoId,
       vigenciaInicio: politica.vigenciaInicio,
       vigenciaFim: politica.vigenciaFim,
-      cargaExigivelMinutos: Number(configuracao.cargaExigivelMinutos ?? 0),
-      intervaloMinimoMinutos:
-        Number(configuracao.intervaloMinimoMinutos ?? 0) || null,
-      intervaloMaximoMinutos:
-        Number(configuracao.intervaloMaximoMinutos ?? 0) || null,
-      flexibilidadeEntradaMinutos: Number(
-        configuracao.flexibilidadeEntradaMinutos ?? 0,
-      ),
-      flexibilidadeSaidaMinutos: Number(
-        configuracao.flexibilidadeSaidaMinutos ?? 0,
-      ),
-      permiteCompensacaoNoDia: Boolean(configuracao.permiteCompensacaoNoDia),
+      cargaExigivelMinutos: agenda.plano.jornadaExigivelMinutos,
+      referencia: agenda.referencia,
+      intervaloMinimoMinutos: agenda.intervaloMinimoMinutos,
+      intervaloMaximoMinutos: agenda.intervaloMaximoMinutos,
+      flexibilidadeEntradaMinutos: Number(configuracao.flexibilidadeEntradaMinutos ?? 0),
+      flexibilidadeSaidaMinutos: Number(configuracao.flexibilidadeSaidaMinutos ?? 0),
+      permiteCompensacaoNoDia: agenda.permiteCompensacaoNoDia,
     },
-    plano: {
-      dataReferencia: apuracao.dataReferencia,
-      trabalha: apuracao.cargaPrevistaMinutos > 0,
-      jornadaPrevistaMinutos: apuracao.cargaPrevistaMinutos,
-      jornadaExigivelMinutos: apuracao.cargaPrevistaMinutos,
-      minutosReconhecidosComoExercicio: 0,
-      posicaoCiclo: null,
-      codigoDiaCiclo: null,
-      ocorrenciasAplicadas: [],
-    },
+    plano: agenda.plano,
     eventos,
     classificacao,
     legado: {
