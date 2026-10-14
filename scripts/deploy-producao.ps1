@@ -326,7 +326,7 @@ log "Deploy concluido"
 $localRemoteScript = Join-Path $env:TEMP "secp-prod-deploy-$AppVersion.sh"
 [System.IO.File]::WriteAllText(
   $localRemoteScript,
-  $remoteDeployScript,
+  $remoteDeployScript.Replace("`r`n", "`n"),
   [System.Text.UTF8Encoding]::new($false)
 )
 
