@@ -26,7 +26,7 @@ export function executarRelogioConformidade(params: {
     });
   }
 
-  if (referencia && primeiraEntrada) {
+  if (referencia && primeiraEntrada && !params.politica.permiteFlexibilidade) {
     const atraso = Math.floor(
       (primeiraEntrada.getTime() - referencia.inicio.getTime()) / 60_000,
     );
@@ -37,24 +37,31 @@ export function executarRelogioConformidade(params: {
         params.politica.permiteCompensacaoNoDia === true &&
         params.resultadoJornada?.tempoFaltanteMinutos === 0;
       fatos.push({
-        codigo: atraso <= tolerado
-          ? "ENTRADA_FLEXIVEL"
-          : compensadoNoDia
-            ? "ENTRADA_TARDIA_COMPENSADA"
-            : "ENTRADA_APOS_REFERENCIA",
-        categoria: atraso <= tolerado || compensadoNoDia ? "REGULAR" : "PENDENTE",
+        codigo:
+          atraso <= tolerado
+            ? "ENTRADA_FLEXIVEL"
+            : compensadoNoDia
+              ? "ENTRADA_TARDIA_COMPENSADA"
+              : "ENTRADA_APOS_REFERENCIA",
+        categoria:
+          atraso <= tolerado || compensadoNoDia ? "REGULAR" : "PENDENTE",
         minutos: atraso,
         descricao:
           atraso <= tolerado
             ? "Entrada dentro da janela flexivel configurada."
             : compensadoNoDia
               ? "Entrada tardia compensada no mesmo dia conforme a politica vigente."
-            : "Entrada posterior ao horario de referencia; requer classificacao administrativa.",
+              : "Entrada posterior ao horario de referencia; requer classificacao administrativa.",
       });
     }
   }
 
-  if (referencia && ultimaSaida && ultimaSaida > referencia.fim) {
+  if (
+    referencia &&
+    ultimaSaida &&
+    !params.politica.permiteFlexibilidade &&
+    ultimaSaida > referencia.fim
+  ) {
     fatos.push({
       codigo: "SAIDA_APOS_REFERENCIA",
       categoria: "INFORMATIVO",
@@ -67,7 +74,11 @@ export function executarRelogioConformidade(params: {
   }
 
   if (params.intervalosTrabalhados.length > 1) {
-    for (let indice = 1; indice < params.intervalosTrabalhados.length; indice++) {
+    for (
+      let indice = 1;
+      indice < params.intervalosTrabalhados.length;
+      indice++
+    ) {
       const intervalo = {
         inicio: params.intervalosTrabalhados[indice - 1].fim,
         fim: params.intervalosTrabalhados[indice].inicio,
@@ -99,4 +110,3 @@ export function executarRelogioConformidade(params: {
     possuiPendencias: fatos.some((fato) => fato.categoria === "PENDENTE"),
   };
 }
-

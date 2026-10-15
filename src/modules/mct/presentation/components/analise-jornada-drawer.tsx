@@ -48,19 +48,20 @@ function tempo(minutos: number | undefined) {
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
-function horario(valor: string) {
+function horario(valor: string, fusoHorario = "America/Manaus") {
   return new Intl.DateTimeFormat("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
+    timeZone: fusoHorario,
   }).format(new Date(valor));
 }
 
-function horarioReferencia(valor: string) {
+function horarioReferencia(valor: string, fusoHorario = "America/Manaus") {
   return new Intl.DateTimeFormat("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "UTC",
+    timeZone: fusoHorario,
   }).format(new Date(valor));
 }
 
@@ -244,12 +245,26 @@ function VisaoGeralAnalise({
         {analise.referencia ? (
           <dl className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
             <div>
-              <dt className="text-xs text-[var(--muted-foreground)]">Entrada prevista</dt>
-              <dd className="font-mono font-semibold">{horarioReferencia(analise.referencia.entrada)}</dd>
+              <dt className="text-xs text-[var(--muted-foreground)]">
+                Entrada prevista
+              </dt>
+              <dd className="font-mono font-semibold">
+                {horarioReferencia(
+                  analise.referencia.entrada,
+                  analise.fusoHorario,
+                )}
+              </dd>
             </div>
             <div>
-              <dt className="text-xs text-[var(--muted-foreground)]">Saída prevista</dt>
-              <dd className="font-mono font-semibold">{horarioReferencia(analise.referencia.saida)}</dd>
+              <dt className="text-xs text-[var(--muted-foreground)]">
+                Saída prevista
+              </dt>
+              <dd className="font-mono font-semibold">
+                {horarioReferencia(
+                  analise.referencia.saida,
+                  analise.fusoHorario,
+                )}
+              </dd>
             </div>
           </dl>
         ) : (
@@ -260,6 +275,37 @@ function VisaoGeralAnalise({
         <p className="ml-auto text-xs text-[var(--muted-foreground)]">
           Referência usada pelo MCT; não representa marcações realizadas.
         </p>
+      </section>
+
+      <section className="border border-[var(--border)] bg-[var(--card)] px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold">Eventos utilizados</h3>
+          <span className="text-xs text-[var(--muted-foreground)]">
+            Marcações consideradas nesta análise
+          </span>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {analise.eventos.map((evento) => (
+            <span
+              key={evento.id}
+              className="inline-flex items-center gap-2 border border-[var(--border)] bg-[var(--muted)]/40 px-3 py-2 text-xs"
+              title={`Fonte: ${evento.fonte}`}
+            >
+              <strong>{evento.tipo}</strong>
+              <span className="font-mono font-semibold">
+                {horario(evento.ocorridoEm, analise.fusoHorario)}
+              </span>
+              {evento.duplicadoDe ? (
+                <Badge variant="pendente">Duplicado</Badge>
+              ) : null}
+            </span>
+          ))}
+          {!analise.eventos.length ? (
+            <span className="text-sm text-[var(--muted-foreground)]">
+              Nenhum evento utilizado.
+            </span>
+          ) : null}
+        </div>
       </section>
 
       <section className="border border-[var(--border)] bg-[var(--card)] p-4">
@@ -582,34 +628,6 @@ export function AnaliseJornadaDrawer({
                   Detalhes técnicos da apuração
                 </summary>
                 <div className="space-y-5 border-t border-[var(--border)] p-4">
-                  <section>
-                    <h3 className="mb-2 text-sm font-semibold">
-                      Eventos utilizados
-                    </h3>
-                    <div className="flex flex-wrap gap-2 border border-[var(--border)] p-3">
-                      {analiseAtual.eventos.map((evento) => (
-                        <span
-                          key={evento.id}
-                          className="inline-flex items-center gap-2 border border-[var(--border)] px-2 py-1 text-xs"
-                          title={`Fonte: ${evento.fonte}`}
-                        >
-                          <strong>{evento.tipo}</strong>
-                          <span className="font-mono">
-                            {horario(evento.ocorridoEm)}
-                          </span>
-                          {evento.duplicadoDe ? (
-                            <Badge variant="pendente">Duplicado</Badge>
-                          ) : null}
-                        </span>
-                      ))}
-                      {!analiseAtual.eventos.length ? (
-                        <span className="text-sm text-[var(--muted-foreground)]">
-                          Nenhum evento utilizado.
-                        </span>
-                      ) : null}
-                    </div>
-                  </section>
-
                   <section>
                     <h3 className="mb-2 text-sm font-semibold">
                       Rubricas aplicadas

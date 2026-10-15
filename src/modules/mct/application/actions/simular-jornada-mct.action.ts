@@ -2,6 +2,10 @@
 
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { resolverPrevisaoJornadaDia } from "@/modules/jornadas/application/services/resolver-previsao-jornada-dia.service";
+import {
+  dataHoraLocalParaUtc,
+  normalizarFusoHorario,
+} from "@/modules/marcacoes/application/services/data-marcacao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import type { EventoTemporal } from "../../domain/mct.types";
 import { carregarClassificacaoMct } from "../services/carregar-classificacao-mct.service";
@@ -89,6 +93,13 @@ async function executarSimulacaoJornadaMct(input: EntradaSimulacaoMct) {
       "Não foi possível determinar a seccional da simulação. Crie uma configuração MCT para este horário de trabalho.",
     );
   validarEscopo(orgaoId, acesso);
+  const orgao = await prisma.orgao.findUnique({
+    where: { id: orgaoId },
+    select: { fusoHorario: true },
+  });
+  const fusoHorario = normalizarFusoHorario(
+    escala?.timezone ?? orgao?.fusoHorario,
+  );
   const politicaAssociada =
     associacao?.politica?.estado === "PUBLICADA" ? associacao.politica : null;
   const politicaPadrao = politicaAssociada
@@ -120,18 +131,13 @@ async function executarSimulacaoJornadaMct(input: EntradaSimulacaoMct) {
   const eventos: EventoTemporal[] = horarios.map((hora, indice) => {
     if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora))
       throw new Error(`Marcação inválida: ${hora}.`);
-    const [h, m] = hora.split(":").map(Number);
     return {
       id: `simulacao-${indice}`,
-      ocorridoEm: new Date(
-        Date.UTC(
-          dataReferencia.getUTCFullYear(),
-          dataReferencia.getUTCMonth(),
-          dataReferencia.getUTCDate(),
-          h,
-          m,
-        ),
-      ),
+      ocorridoEm: dataHoraLocalParaUtc({
+        dataReferencia,
+        hora,
+        fusoHorario,
+      }),
       tipo: indice % 2 === 0 ? "ENTRADA" : "SAIDA",
       fonte: "SIMULADOR",
     };
@@ -163,6 +169,22 @@ async function executarSimulacaoJornadaMct(input: EntradaSimulacaoMct) {
       vigenciaInicio: politica.vigenciaInicio,
       vigenciaFim: politica.vigenciaFim,
       cargaExigivelMinutos: previsao.cargaPrevistaMinutos,
+      referencia: previsao.janela
+        ? {
+            inicio: dataHoraLocalParaUtc({
+              dataReferencia,
+              hora: previsao.janela.inicio,
+              fusoHorario,
+            }),
+            fim: dataHoraLocalParaUtc({
+              dataReferencia: previsao.janela.cruzaMeiaNoite
+                ? new Date(dataReferencia.getTime() + 86_400_000)
+                : dataReferencia,
+              hora: previsao.janela.fim,
+              fusoHorario,
+            }),
+          }
+        : null,
       intervaloMinimoMinutos: jornada.exigeIntervalo
         ? jornada.intervaloMinimoMinutos
         : null,
@@ -175,7 +197,10 @@ async function executarSimulacaoJornadaMct(input: EntradaSimulacaoMct) {
       flexibilidadeSaidaMinutos: Number(
         parametros.flexibilidadeSaidaMinutos ?? 0,
       ),
+      permiteFlexibilidade:
+        jornada.permiteFlexibilidade || jornada.tipo === "CARGA_HORARIA_LIVRE",
       permiteCompensacaoNoDia: jornada.permiteCompensacaoNoDia,
+      fusoHorario,
     },
     plano: {
       dataReferencia,

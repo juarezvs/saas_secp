@@ -11,6 +11,7 @@ export type AnaliseJornadaMctDto = {
     entrada: string;
     saida: string;
   } | null;
+  fusoHorario?: string;
   politica: {
     codigo: string;
     nome: string;

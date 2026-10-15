@@ -1,5 +1,7 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { resolverPrevisaoJornadaDia } from "@/modules/jornadas/application/services/resolver-previsao-jornada-dia.service";
+import { dataHoraLocalParaUtc } from "@/modules/marcacoes/application/services/data-marcacao.service";
+import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import type { PlanoTemporalDia } from "../../domain/planejador-temporal";
 import type { IntervaloTemporal } from "../../domain/tempo";
 
@@ -16,6 +18,8 @@ export type ResultadoMctScheduleAdapter = {
   intervaloMinimoMinutos: number | null;
   intervaloMaximoMinutos: number | null;
   permiteCompensacaoNoDia: boolean;
+  permiteFlexibilidade: boolean;
+  fusoHorario: string;
   diagnosticos: string[];
 };
 
@@ -48,15 +52,25 @@ export async function adaptarJornadaServidorParaMct(params: {
     params.dataReferencia,
   );
   if (!vinculacao) {
-    throw new Error("Não há jornada vigente para o servidor na data informada.");
+    throw new Error(
+      "Não há jornada vigente para o servidor na data informada.",
+    );
   }
 
-  return adaptarJornadaCarregadaParaMct(vinculacao, params.dataReferencia);
+  const fusoHorario =
+    vinculacao.escala?.timezone ??
+    (await resolverFusoHorarioServidorNoBanco(params));
+  return adaptarJornadaCarregadaParaMct(
+    vinculacao,
+    params.dataReferencia,
+    fusoHorario,
+  );
 }
 
 export function adaptarJornadaCarregadaParaMct(
   vinculacao: JornadaComCalendario,
   dataReferencia: Date,
+  fusoHorario = "America/Manaus",
 ): ResultadoMctScheduleAdapter {
   const previsao = resolverPrevisaoJornadaDia({
     jornada: vinculacao.jornada,
@@ -68,8 +82,14 @@ export function adaptarJornadaCarregadaParaMct(
   if (previsao.trabalha && previsao.cargaPrevistaMinutos <= 0) {
     diagnosticos.push("Dia de trabalho sem carga prevista configurada.");
   }
-  if (vinculacao.jornada.controlaHorario && previsao.trabalha && !previsao.janela) {
-    diagnosticos.push("Jornada com controle de horário sem janela de referência.");
+  if (
+    vinculacao.jornada.controlaHorario &&
+    previsao.trabalha &&
+    !previsao.janela
+  ) {
+    diagnosticos.push(
+      "Jornada com controle de horário sem janela de referência.",
+    );
   }
 
   return {
@@ -91,11 +111,17 @@ export function adaptarJornadaCarregadaParaMct(
     },
     referencia: previsao.janela
       ? {
-          inicio: combinarDataHora(dataReferencia, previsao.janela.inicio),
+          inicio: combinarDataHora(
+            dataReferencia,
+            previsao.janela.inicio,
+            false,
+            fusoHorario,
+          ),
           fim: combinarDataHora(
             dataReferencia,
             previsao.janela.fim,
             previsao.janela.cruzaMeiaNoite,
+            fusoHorario,
           ),
         }
       : null,
@@ -106,15 +132,21 @@ export function adaptarJornadaCarregadaParaMct(
       ? vinculacao.jornada.intervaloMaximoMinutos
       : null,
     permiteCompensacaoNoDia: vinculacao.jornada.permiteCompensacaoNoDia,
+    permiteFlexibilidade:
+      vinculacao.jornada.permiteFlexibilidade ||
+      vinculacao.jornada.tipo === "CARGA_HORARIA_LIVRE",
+    fusoHorario,
     diagnosticos,
   };
 }
 
-function combinarDataHora(data: Date, hora: string, diaSeguinte = false) {
-  const [horas, minutos] = hora.split(":").map(Number);
-  const instante = new Date(
-    Date.UTC(data.getUTCFullYear(), data.getUTCMonth(), data.getUTCDate(), horas, minutos),
-  );
-  if (diaSeguinte) instante.setUTCDate(instante.getUTCDate() + 1);
-  return instante;
+function combinarDataHora(
+  data: Date,
+  hora: string,
+  diaSeguinte = false,
+  fusoHorario = "America/Manaus",
+) {
+  const dataReferencia = new Date(data);
+  if (diaSeguinte) dataReferencia.setUTCDate(dataReferencia.getUTCDate() + 1);
+  return dataHoraLocalParaUtc({ dataReferencia, hora, fusoHorario });
 }

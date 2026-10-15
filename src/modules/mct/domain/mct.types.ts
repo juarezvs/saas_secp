@@ -3,10 +3,7 @@ import type { IntervaloTemporal } from "./tempo";
 export type ModoOperacaoMct = "LEGACY" | "SHADOW" | "MCT";
 
 export type TipoEventoTemporal =
-  | "ENTRADA"
-  | "SAIDA"
-  | "INICIO_INTERVALO"
-  | "FIM_INTERVALO";
+  "ENTRADA" | "SAIDA" | "INICIO_INTERVALO" | "FIM_INTERVALO";
 
 export type EventoTemporal = {
   id: string;
@@ -50,7 +47,9 @@ export type PoliticaJornadaMct = {
   intervaloMaximoMinutos?: number | null;
   flexibilidadeEntradaMinutos?: number;
   flexibilidadeSaidaMinutos?: number;
+  permiteFlexibilidade?: boolean;
   permiteCompensacaoNoDia?: boolean;
+  fusoHorario?: string;
 };
 
 export type ResultadoRelogioJornada = {
@@ -79,4 +78,3 @@ export type ResultadoRelogioConformidade = {
   fatos: FatoConformidade[];
   possuiPendencias: boolean;
 };
-

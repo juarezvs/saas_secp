@@ -1,5 +1,8 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
-import type { EventoTemporal, TipoEventoTemporal } from "../../domain/mct.types";
+import type {
+  EventoTemporal,
+  TipoEventoTemporal,
+} from "../../domain/mct.types";
 import { mctComparacaoPrismaRepository } from "../../infrastructure/repositories/mct-comparacao-prisma.repository";
 import { mctExecucaoPrismaRepository } from "../../infrastructure/repositories/mct-execucao-prisma.repository";
 import { carregarClassificacaoMct } from "./carregar-classificacao-mct.service";
@@ -26,7 +29,10 @@ export async function gerarAnaliseJornadaShadow(params: {
 
   const [apuracao, marcacoes, agenda] = await Promise.all([
     prisma.apuracaoDiaria.findFirst({
-      where: { servidorId: servidor.id, dataReferencia: { gte: params.dataReferencia, lt: fimDia } },
+      where: {
+        servidorId: servidor.id,
+        dataReferencia: { gte: params.dataReferencia, lt: fimDia },
+      },
     }),
     prisma.marcacao.findMany({
       where: {
@@ -36,7 +42,10 @@ export async function gerarAnaliseJornadaShadow(params: {
       },
       orderBy: { dataHora: "asc" },
     }),
-    adaptarJornadaServidorParaMct({ servidorId: servidor.id, dataReferencia: params.dataReferencia }),
+    adaptarJornadaServidorParaMct({
+      servidorId: servidor.id,
+      dataReferencia: params.dataReferencia,
+    }),
   ]);
   if (!apuracao) throw new Error("Não há apuração do espelho para este dia.");
 
@@ -46,22 +55,31 @@ export async function gerarAnaliseJornadaShadow(params: {
       jornadaId: agenda.jornadaId,
       status: "ATIVA",
       vigenciaInicio: { lte: params.dataReferencia },
-      OR: [{ vigenciaFim: null }, { vigenciaFim: { gte: params.dataReferencia } }],
+      OR: [
+        { vigenciaFim: null },
+        { vigenciaFim: { gte: params.dataReferencia } },
+      ],
       AND: [{ OR: [{ escalaId: agenda.escalaId }, { escalaId: null }] }],
     },
     include: { politica: true },
     orderBy: [{ escalaId: "desc" }, { vigenciaInicio: "desc" }],
   });
-  const politica = associacao?.politica ?? await prisma.mctPoliticaVersao.findFirst({
-    where: {
-      orgaoId: servidor.orgaoId,
-      estado: "PUBLICADA",
-      vigenciaInicio: { lte: params.dataReferencia },
-      OR: [{ vigenciaFim: null }, { vigenciaFim: { gte: params.dataReferencia } }],
-    },
-    orderBy: { versao: "desc" },
-  });
-  if (!politica) throw new Error("Não há política MCT publicada e vigente para este dia.");
+  const politica =
+    associacao?.politica ??
+    (await prisma.mctPoliticaVersao.findFirst({
+      where: {
+        orgaoId: servidor.orgaoId,
+        estado: "PUBLICADA",
+        vigenciaInicio: { lte: params.dataReferencia },
+        OR: [
+          { vigenciaFim: null },
+          { vigenciaFim: { gte: params.dataReferencia } },
+        ],
+      },
+      orderBy: { versao: "desc" },
+    }));
+  if (!politica)
+    throw new Error("Não há política MCT publicada e vigente para este dia.");
 
   const configuracao = politica.configuracao as Record<string, unknown>;
   const eventos: EventoTemporal[] = marcacoes.map((item, indice) => ({
@@ -91,9 +109,15 @@ export async function gerarAnaliseJornadaShadow(params: {
       referencia: agenda.referencia,
       intervaloMinimoMinutos: agenda.intervaloMinimoMinutos,
       intervaloMaximoMinutos: agenda.intervaloMaximoMinutos,
-      flexibilidadeEntradaMinutos: Number(configuracao.flexibilidadeEntradaMinutos ?? 0),
-      flexibilidadeSaidaMinutos: Number(configuracao.flexibilidadeSaidaMinutos ?? 0),
+      flexibilidadeEntradaMinutos: Number(
+        configuracao.flexibilidadeEntradaMinutos ?? 0,
+      ),
+      flexibilidadeSaidaMinutos: Number(
+        configuracao.flexibilidadeSaidaMinutos ?? 0,
+      ),
+      permiteFlexibilidade: agenda.permiteFlexibilidade,
       permiteCompensacaoNoDia: agenda.permiteCompensacaoNoDia,
+      fusoHorario: agenda.fusoHorario,
     },
     plano: agenda.plano,
     eventos,

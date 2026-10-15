@@ -13,6 +13,15 @@ function extrairReferencia(entradaSnapshot: unknown) {
     : null;
 }
 
+function extrairFusoHorario(entradaSnapshot: unknown) {
+  if (!entradaSnapshot || typeof entradaSnapshot !== "object")
+    return "America/Manaus";
+  const politica = (entradaSnapshot as Record<string, unknown>).politica;
+  if (!politica || typeof politica !== "object") return "America/Manaus";
+  const fusoHorario = (politica as Record<string, unknown>).fusoHorario;
+  return typeof fusoHorario === "string" ? fusoHorario : "America/Manaus";
+}
+
 export async function listarAnalisesJornadaMctNoMes(params: {
   orgaoId: string;
   servidorId: string;
@@ -66,6 +75,7 @@ export async function listarAnalisesJornadaMctNoMes(params: {
         finalizadaEm: execucao.finalizadaEm?.toISOString() ?? null,
         duracaoMs: execucao.duracaoMs,
         referencia: extrairReferencia(execucao.entradaSnapshot),
+        fusoHorario: extrairFusoHorario(execucao.entradaSnapshot),
         politica: execucao.politica,
         resultadoJornada: execucao.resultadoJornada,
         resultadoConformidade: execucao.resultadoConformidade,
