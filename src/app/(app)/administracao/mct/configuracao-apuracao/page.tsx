@@ -87,7 +87,7 @@ export default async function ConfiguracaoApuracaoPage() {
       <PageHeader
         icon={Settings2}
         titulo="Configuração da Apuração"
-        descricao="Associe jornadas existentes às políticas do MCT, valide e ative com segurança."
+        descricao="Associe horários de trabalho existentes às políticas do MCT, valide e ative com segurança."
       />
       <ConfiguracaoApuracaoAssistente
         jornadas={jornadas.map((item) => ({

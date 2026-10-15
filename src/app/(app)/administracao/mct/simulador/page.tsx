@@ -39,12 +39,12 @@ export default async function SimuladorMctPage() {
   return (
     <div className="space-y-3">
       <Breadcrumb
-        items={[{ label: "MCT" }, { label: "Simulador de Jornada" }]}
+        items={[{ label: "MCT" }, { label: "Simulador de Apuração" }]}
       />
       <PageHeader
         icon={FlaskConical}
-        titulo="Simulador de Jornada"
-        descricao="Teste cenários com o motor real do MCT, sem produzir efeitos oficiais."
+        titulo="Simulador de Apuração"
+        descricao="Teste horários de trabalho cadastrados com o motor real do MCT, sem produzir efeitos oficiais."
       />
       <SimuladorJornadaForm jornadas={jornadas} />
     </div>

@@ -34,15 +34,15 @@ export function SimuladorJornadaForm({ jornadas }: { jornadas: Jornada[] }) {
     }}>
       <h2 className="text-base font-semibold">Cenário</h2><p className="mt-1 text-xs text-muted-foreground">Usa o núcleo real do MCT e nunca altera apuração, saldo ou homologação.</p>
       <div className="mt-4 space-y-4">
-        <label className="block text-sm font-medium">Jornada<select name="jornadaId" required value={jornadaId} onChange={(event) => setJornadaId(event.target.value)} className={campo}><option value="">Selecione</option>{jornadas.map((item) => <option key={item.id} value={item.id}>{item.codigo} - {item.nome}</option>)}</select></label>
-        <label className="block text-sm font-medium">Escala<select name="escalaId" className={campo}><option value="">Resolver pela jornada</option>{jornadas.find((item) => item.id === jornadaId)?.escalas.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></label>
+        <label className="block text-sm font-medium">Horário de trabalho<select name="jornadaId" required value={jornadaId} onChange={(event) => setJornadaId(event.target.value)} className={campo}><option value="">Selecione um horário cadastrado</option>{jornadas.map((item) => <option key={item.id} value={item.id}>{item.codigo} - {item.nome}</option>)}</select><span className="mt-1 block text-xs text-muted-foreground">Carregado diretamente do cadastro Horário de Trabalho.</span></label>
+        <label className="block text-sm font-medium">Escala<select name="escalaId" className={campo}><option value="">Resolver pelo horário de trabalho</option>{jornadas.find((item) => item.id === jornadaId)?.escalas.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></label>
         <label className="block text-sm font-medium">Data<input name="data" type="date" required className={campo} /></label>
         <label className="block text-sm font-medium">Marcações<input name="marcacoes" placeholder="08:00 12:00 13:00 17:00" required className={campo} /><span className="mt-1 block text-xs text-muted-foreground">Horários em sequência, separados por espaço.</span></label>
         <label className="block text-sm font-medium">Ocorrências simuladas<input name="ocorrencias" placeholder="FERIADO, AFASTAMENTO" className={campo} /><span className="mt-1 block text-xs text-muted-foreground">Códigos separados por vírgula.</span></label>
         <label className="block text-sm font-medium">Autorizações simuladas<input name="autorizacoes" placeholder="HORA_EXTRA_AUTORIZADA" className={campo} /><span className="mt-1 block text-xs text-muted-foreground">Não cria autorização oficial.</span></label>
       </div>
       {erro && <p className="mt-3 text-sm text-destructive">{erro}</p>}
-      <button disabled={pendente} className="mt-5 inline-flex h-9 items-center gap-2 rounded bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50"><Play className="size-4" />{pendente ? "Simulando..." : "Simular jornada"}</button>
+      <button disabled={pendente} className="mt-5 inline-flex h-9 items-center gap-2 rounded bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50"><Play className="size-4" />{pendente ? "Simulando..." : "Simular apuração"}</button>
     </form>
     <section className="rounded border bg-card p-4"><h2 className="text-base font-semibold">Resultado da simulação</h2>
       {!resultado ? <p className="mt-8 text-center text-sm text-muted-foreground">Preencha o cenário para visualizar os relógios, rubricas e memória de cálculo.</p> : <>
