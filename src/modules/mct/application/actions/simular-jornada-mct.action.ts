@@ -31,14 +31,14 @@ function validarEscopo(
     throw new Error("A jornada não pertence ao escopo do perfil ativo.");
 }
 
-export async function simularJornadaMct(input: EntradaSimulacaoMct) {
+async function executarSimulacaoJornadaMct(input: EntradaSimulacaoMct) {
   const acesso = await exigirUmaDasPermissoesOuRedirecionar([
     "mct-simulador:usar:seccional",
     "mct-simulador:usar:global",
   ]);
   const dataReferencia = new Date(`${input.data}T00:00:00.000Z`);
   if (!input.jornadaId || !Number.isFinite(dataReferencia.getTime()))
-    throw new Error("Informe jornada e data válidas.");
+    throw new Error("Informe o horário de trabalho e uma data válida.");
   const jornada = await prisma.jornada.findUnique({
     where: { id: input.jornadaId },
     include: {
@@ -50,7 +50,7 @@ export async function simularJornadaMct(input: EntradaSimulacaoMct) {
       },
     },
   });
-  if (!jornada) throw new Error("Jornada não encontrada.");
+  if (!jornada) throw new Error("Horário de trabalho não encontrado.");
   const escala = jornada.escalas[0] ?? null;
   const associacoes = await prisma.mctConfiguracaoApuracao.findMany({
     where: {
@@ -78,11 +78,35 @@ export async function simularJornadaMct(input: EntradaSimulacaoMct) {
     : (associacoes.find((item) => item.status === "ATIVA") ??
       associacoes.find((item) => item.status === "EM_VALIDACAO") ??
       associacoes[0]);
-  if (!associacao?.politica || associacao.politica.estado !== "PUBLICADA")
+  const orgaoId =
+    associacao?.orgaoId ??
+    jornada.orgaoId ??
+    (!acesso.perfilAtivoEscopoGlobal && acesso.orgaoIds?.length === 1
+      ? acesso.orgaoIds[0]
+      : null);
+  if (!orgaoId)
     throw new Error(
-      "A jornada ainda não possui configuração MCT simulável com política publicada para esta seccional.",
+      "Não foi possível determinar a seccional da simulação. Crie uma configuração MCT para este horário de trabalho.",
     );
-  validarEscopo(associacao.orgaoId, acesso);
+  validarEscopo(orgaoId, acesso);
+  const politicaAssociada =
+    associacao?.politica?.estado === "PUBLICADA" ? associacao.politica : null;
+  const politicaPadrao = politicaAssociada
+    ? null
+    : await prisma.mctPoliticaVersao.findFirst({
+        where: {
+          orgaoId,
+          estado: "PUBLICADA",
+          vigenciaInicio: { lte: dataReferencia },
+          OR: [{ vigenciaFim: null }, { vigenciaFim: { gte: dataReferencia } }],
+        },
+        orderBy: [{ codigo: "asc" }, { versao: "desc" }],
+      });
+  const politica = politicaAssociada ?? politicaPadrao;
+  if (!politica)
+    throw new Error(
+      "Não existe política MCT publicada e vigente para esta seccional e data.",
+    );
   const previsao = resolverPrevisaoJornadaDia({
     jornada,
     escala,
@@ -112,7 +136,6 @@ export async function simularJornadaMct(input: EntradaSimulacaoMct) {
       fonte: "SIMULADOR",
     };
   });
-  const politica = associacao.politica;
   const parametros = politica.configuracao as Record<string, unknown>;
   const autorizacoes =
     input.autorizacoes
@@ -125,12 +148,12 @@ export async function simularJornadaMct(input: EntradaSimulacaoMct) {
       .map((item) => item.trim())
       .filter(Boolean) ?? [];
   const classificacaoBase = await carregarClassificacaoMct({
-    orgaoId: associacao.orgaoId,
+    orgaoId,
     politicaVersaoId: politica.id,
     dataReferencia,
   });
   const retorno = await executarMctShadow({
-    orgaoId: associacao.orgaoId,
+    orgaoId,
     servidorId: "00000000-0000-0000-0000-000000000000",
     dataReferencia,
     politica: {
@@ -181,9 +204,10 @@ export async function simularJornadaMct(input: EntradaSimulacaoMct) {
       simulacao: true,
       efeitoOficial: false,
       configuracao: {
-        id: associacao.id,
-        modeloCodigo: associacao.modeloCodigo,
-        status: associacao.status,
+        id: associacao?.id ?? null,
+        modeloCodigo: associacao?.modeloCodigo ?? "SIMULACAO_PADRAO",
+        status: associacao?.status ?? "TEMPORARIA",
+        provisoria: !associacao,
       },
       politica: {
         id: politica.id,
@@ -200,4 +224,29 @@ export async function simularJornadaMct(input: EntradaSimulacaoMct) {
       resultado: retorno.resultado,
     }),
   );
+}
+
+export async function simularJornadaMct(input: EntradaSimulacaoMct) {
+  try {
+    return {
+      sucesso: true as const,
+      dados: await executarSimulacaoJornadaMct(input),
+    };
+  } catch (error) {
+    const mensagem = error instanceof Error ? error.message : "";
+    const erroEsperado = [
+      "Informe ",
+      "Horário de trabalho ",
+      "A jornada ",
+      "Marcação inválida:",
+      "Não foi possível determinar ",
+      "Não existe política ",
+    ].some((inicio) => mensagem.startsWith(inicio));
+    return {
+      sucesso: false as const,
+      mensagem: erroEsperado
+        ? mensagem
+        : "Não foi possível concluir a simulação. Tente novamente.",
+    };
+  }
 }
