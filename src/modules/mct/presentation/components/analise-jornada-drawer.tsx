@@ -276,6 +276,14 @@ function VisaoGeralAnalise({
     blocosLinha.reduce((total, bloco) => total + bloco.minutos, 0),
     1,
   );
+  const blocosPosicionados = blocosLinha.map((bloco, indice) => {
+    const minutosAnteriores = blocosLinha
+      .slice(0, indice)
+      .reduce((total, item) => total + item.minutos, 0);
+    const inicioPercentual = percentual(minutosAnteriores, totalLinha);
+
+    return { bloco, indice, inicioPercentual };
+  });
   const cumprimento = percentual(regular, prevista);
   const conformidades = analise.fatos.filter(
     (fato) => fato.categoria === "REGULAR",
@@ -391,8 +399,39 @@ function VisaoGeralAnalise({
             </span>
           ) : null}
         </div>
+        <div className="relative mt-4 h-8" aria-hidden="true">
+          {blocosPosicionados
+            .filter(({ indice }) => indice % 2 === 1)
+            .map(({ bloco, indice, inicioPercentual }) => (
+              <span
+                key={`memoria-superior-${bloco.chave}`}
+                className="absolute bottom-0 min-w-0 border-l border-[var(--border)] pb-1 pl-1 text-[10px] leading-3 text-[var(--muted-foreground)]"
+                style={{
+                  left: `${inicioPercentual}%`,
+                  maxWidth: `calc(100% - ${inicioPercentual}%)`,
+                }}
+                title={`${rotuloBloco(bloco.tipo)}: ${memoriaBloco(bloco, analise.fusoHorario, prevista, computavel)}`}
+              >
+                <span className="block truncate">
+                  {rotuloBloco(bloco.tipo)}
+                  {blocosLinha.filter((item) => item.tipo === bloco.tipo)
+                    .length > 1
+                    ? ` ${blocosLinha.slice(0, indice + 1).filter((item) => item.tipo === bloco.tipo).length}`
+                    : ""}
+                </span>
+                <strong className="block truncate whitespace-nowrap font-mono font-medium text-[var(--foreground)]">
+                  {memoriaBloco(
+                    bloco,
+                    analise.fusoHorario,
+                    prevista,
+                    computavel,
+                  )}
+                </strong>
+              </span>
+            ))}
+        </div>
         <div
-          className="mt-4 flex h-11 w-full overflow-hidden rounded-sm bg-[var(--muted)]"
+          className="flex h-11 w-full overflow-hidden rounded-sm bg-[var(--muted)]"
           role="img"
           aria-label={`Atraso na entrada ${tempo(atrasoEntrada)}, trabalho regular ${tempo(regular)}, intervalos ${tempo(intervalo)}, excedente ${tempo(excedente)} e falta cumprir ${tempo(faltante)}`}
         >
@@ -420,35 +459,30 @@ function VisaoGeralAnalise({
             </div>
           ))}
         </div>
-        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 border-b border-[var(--border)] pb-3 text-[11px] text-[var(--muted-foreground)]">
-          {blocosLinha.map((bloco, indice) => (
+        <div
+          className="relative h-8 border-b border-[var(--border)]"
+          aria-hidden="true"
+        >
+          {blocosPosicionados
+            .filter(({ indice }) => indice % 2 === 0)
+            .map(({ bloco, indice, inicioPercentual }) => (
             <span
-              key={`memoria-${bloco.chave}`}
-              className="inline-flex min-w-0 items-baseline gap-1"
+              key={`memoria-inferior-${bloco.chave}`}
+              className="absolute top-0 min-w-0 border-l border-[var(--border)] pl-1 pt-1 text-[10px] leading-3 text-[var(--muted-foreground)]"
+              style={{
+                left: `${inicioPercentual}%`,
+                maxWidth: `calc(100% - ${inicioPercentual}%)`,
+              }}
+              title={`${rotuloBloco(bloco.tipo)}: ${memoriaBloco(bloco, analise.fusoHorario, prevista, computavel)}`}
             >
-              <span
-                className={
-                  {
-                    atraso: "size-1.5 shrink-0 bg-rose-600",
-                    regular: "size-1.5 shrink-0 bg-blue-600",
-                    intervalo:
-                      "size-1.5 shrink-0 bg-slate-400 dark:bg-slate-600",
-                    excedente: "size-1.5 shrink-0 bg-amber-600",
-                    faltante:
-                      "size-1.5 shrink-0 border border-dashed border-red-500 bg-red-50 dark:bg-red-950/60",
-                  }[bloco.tipo]
-                }
-                aria-hidden="true"
-              />
-              <span>
+              <span className="block truncate">
                 {rotuloBloco(bloco.tipo)}
                 {blocosLinha.filter((item) => item.tipo === bloco.tipo).length >
                 1
                   ? ` ${blocosLinha.slice(0, indice + 1).filter((item) => item.tipo === bloco.tipo).length}`
                   : ""}
-                :
               </span>
-              <strong className="whitespace-nowrap font-mono font-medium text-[var(--foreground)]">
+              <strong className="block truncate whitespace-nowrap font-mono font-medium text-[var(--foreground)]">
                 {memoriaBloco(
                   bloco,
                   analise.fusoHorario,
@@ -457,7 +491,7 @@ function VisaoGeralAnalise({
                 )}
               </strong>
             </span>
-          ))}
+            ))}
         </div>
         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs">
           {atrasoEntrada > 0 ? (
