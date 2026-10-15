@@ -110,7 +110,28 @@ type BlocoLinhaTemporal = {
   chave: string;
   tipo: "atraso" | "regular" | "intervalo" | "excedente" | "faltante";
   minutos: number;
+  inicio?: Date;
+  fim?: Date;
 };
+
+function adicionarBlocoLinhaTemporal(
+  blocos: BlocoLinhaTemporal[],
+  bloco: BlocoLinhaTemporal,
+) {
+  const anterior = blocos.at(-1);
+  const contiguo =
+    anterior?.fim &&
+    bloco.inicio &&
+    anterior.fim.getTime() === bloco.inicio.getTime();
+
+  if (anterior && anterior.tipo === bloco.tipo && contiguo) {
+    anterior.minutos += bloco.minutos;
+    anterior.fim = bloco.fim;
+    return;
+  }
+
+  blocos.push(bloco);
+}
 
 function minutosAtrasoEntrada(analise: AnaliseJornadaMctDto) {
   const fato = analise.fatos.find((item) =>
@@ -133,10 +154,18 @@ function montarLinhaTemporal(
   const atrasoEntrada = minutosAtrasoEntrada(analise);
 
   if (atrasoEntrada > 0) {
+    const inicioReferencia = analise.referencia
+      ? new Date(analise.referencia.entrada)
+      : undefined;
+    const primeiraEntrada = analise.segmentos[0]
+      ? new Date(analise.segmentos[0].inicio)
+      : undefined;
     blocos.push({
       chave: "atraso-entrada",
       tipo: "atraso",
       minutos: atrasoEntrada,
+      inicio: inicioReferencia,
+      fim: primeiraEntrada,
     });
   }
 
@@ -149,10 +178,12 @@ function montarLinhaTemporal(
         (inicio.getTime() - fimAnterior.getTime()) / 60000,
       );
       if (minutos > 0) {
-        blocos.push({
+        adicionarBlocoLinhaTemporal(blocos, {
           chave: `intervalo-${segmento.id}`,
           tipo: "intervalo",
           minutos,
+          inicio: fimAnterior,
+          fim: inicio,
         });
       }
     }
@@ -162,19 +193,26 @@ function montarLinhaTemporal(
       minutosRegularesRestantes,
     );
     if (minutosRegulares > 0) {
-      blocos.push({
+      adicionarBlocoLinhaTemporal(blocos, {
         chave: `regular-${segmento.id}`,
         tipo: "regular",
         minutos: minutosRegulares,
+        inicio,
+        fim: new Date(inicio.getTime() + minutosRegulares * 60_000),
       });
       minutosRegularesRestantes -= minutosRegulares;
     }
     const minutosExcedentes = segmento.minutos - minutosRegulares;
     if (minutosExcedentes > 0) {
-      blocos.push({
+      const inicioExcedente = new Date(
+        inicio.getTime() + minutosRegulares * 60_000,
+      );
+      adicionarBlocoLinhaTemporal(blocos, {
         chave: `excedente-${segmento.id}`,
         tipo: "excedente",
         minutos: minutosExcedentes,
+        inicio: inicioExcedente,
+        fim: new Date(segmento.fim),
       });
     }
     fimAnterior = new Date(segmento.fim);
@@ -191,6 +229,33 @@ function montarLinhaTemporal(
   return blocos;
 }
 
+function rotuloBloco(tipo: BlocoLinhaTemporal["tipo"]) {
+  return {
+    atraso: "Atraso",
+    regular: "Trabalho regular",
+    intervalo: "Intervalo",
+    excedente: "Excedente",
+    faltante: "Falta cumprir",
+  }[tipo];
+}
+
+function memoriaBloco(
+  bloco: BlocoLinhaTemporal,
+  fusoHorario: string | undefined,
+  jornadaPrevista: number,
+  tempoTrabalhado: number,
+) {
+  if (bloco.inicio && bloco.fim) {
+    return `${horarioReferencia(bloco.fim.toISOString(), fusoHorario)} - ${horarioReferencia(bloco.inicio.toISOString(), fusoHorario)} = ${tempo(bloco.minutos)}`;
+  }
+
+  if (bloco.tipo === "faltante") {
+    return `${tempo(jornadaPrevista)} - ${tempo(tempoTrabalhado)} = ${tempo(bloco.minutos)}`;
+  }
+
+  return tempo(bloco.minutos);
+}
+
 function VisaoGeralAnalise({
   analise,
   jornada,
@@ -200,6 +265,7 @@ function VisaoGeralAnalise({
 }) {
   const prevista = jornada.jornadaExigivelMinutos ?? 0;
   const trabalhada = jornada.tempoEfetivamenteTrabalhadoMinutos ?? 0;
+  const computavel = jornada.tempoComputavelMinutos ?? trabalhada;
   const intervalo = jornada.intervalosNaoComputaveisMinutos ?? 0;
   const excedente = jornada.excedenteBrutoMinutos ?? 0;
   const faltante = jornada.tempoFaltanteMinutos ?? 0;
@@ -352,6 +418,45 @@ function VisaoGeralAnalise({
             >
               {bloco.minutos >= 30 ? tempo(bloco.minutos) : null}
             </div>
+          ))}
+        </div>
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 border-b border-[var(--border)] pb-3 text-[11px] text-[var(--muted-foreground)]">
+          {blocosLinha.map((bloco, indice) => (
+            <span
+              key={`memoria-${bloco.chave}`}
+              className="inline-flex min-w-0 items-baseline gap-1"
+            >
+              <span
+                className={
+                  {
+                    atraso: "size-1.5 shrink-0 bg-rose-600",
+                    regular: "size-1.5 shrink-0 bg-blue-600",
+                    intervalo:
+                      "size-1.5 shrink-0 bg-slate-400 dark:bg-slate-600",
+                    excedente: "size-1.5 shrink-0 bg-amber-600",
+                    faltante:
+                      "size-1.5 shrink-0 border border-dashed border-red-500 bg-red-50 dark:bg-red-950/60",
+                  }[bloco.tipo]
+                }
+                aria-hidden="true"
+              />
+              <span>
+                {rotuloBloco(bloco.tipo)}
+                {blocosLinha.filter((item) => item.tipo === bloco.tipo).length >
+                1
+                  ? ` ${blocosLinha.slice(0, indice + 1).filter((item) => item.tipo === bloco.tipo).length}`
+                  : ""}
+                :
+              </span>
+              <strong className="whitespace-nowrap font-mono font-medium text-[var(--foreground)]">
+                {memoriaBloco(
+                  bloco,
+                  analise.fusoHorario,
+                  prevista,
+                  computavel,
+                )}
+              </strong>
+            </span>
           ))}
         </div>
         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs">
