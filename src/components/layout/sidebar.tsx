@@ -776,7 +776,7 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
-    label: "MCT",
+    label: "MCT - Motor Classificação Temporal",
     href: "/administracao/mct/configuracao-apuracao",
     icon: Gauge,
     permissoes: [
