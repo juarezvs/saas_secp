@@ -49,6 +49,10 @@ import {
 import { EspelhoPontoSemanaChart } from "./espelho-ponto-semana-chart";
 import type { AnaliseJornadaMctDto } from "@/modules/mct/application/dtos/analise-jornada.dto";
 import { AnaliseJornadaMenuButton } from "@/modules/mct/presentation/components/analise-jornada-drawer";
+import {
+  pertenceACompetencia,
+  solicitacaoAfetaCompetencia,
+} from "./espelho-ponto-competencia";
 
 type ApuracaoMensalItem = {
   id: string;
@@ -735,17 +739,19 @@ function contarSolicitacoesPorTipo(
 }
 
 export function EspelhoPontoMensal({
-  apuracoes,
-  marcacoes,
-  solicitacoes,
+  apuracoes: apuracoesRecebidas,
+  marcacoes: marcacoesRecebidas,
+  solicitacoes: solicitacoesRecebidas,
   acoesBancoHoras,
   acaoHomologacao,
   destaque,
   homologacaoCompetencia,
   modoCompactoPessoaExterna = false,
   periodoLabel,
-  analisesMct = {},
+  analisesMct: analisesMctRecebidas = {},
   servidorId,
+  anoReferencia,
+  mesReferencia,
 }: {
   apuracoes: ApuracaoMensalItem[];
   marcacoes: MarcacaoItem[];
@@ -767,7 +773,24 @@ export function EspelhoPontoMensal({
   periodoLabel?: string;
   analisesMct?: Record<string, AnaliseJornadaMctDto>;
   servidorId: string;
+  anoReferencia: number;
+  mesReferencia: number;
 }) {
+  const apuracoes = apuracoesRecebidas.filter((item) =>
+    pertenceACompetencia(item.dataReferencia, anoReferencia, mesReferencia),
+  );
+  const marcacoes = marcacoesRecebidas.filter((item) =>
+    pertenceACompetencia(item.dataReferencia, anoReferencia, mesReferencia),
+  );
+  const solicitacoes = (solicitacoesRecebidas ?? []).filter((item) =>
+    solicitacaoAfetaCompetencia(item, anoReferencia, mesReferencia),
+  );
+  const prefixoCompetencia = `${anoReferencia}-${String(mesReferencia).padStart(2, "0")}-`;
+  const analisesMct = Object.fromEntries(
+    Object.entries(analisesMctRecebidas).filter(([dataReferencia]) =>
+      dataReferencia.startsWith(prefixoCompetencia),
+    ),
+  );
   const marcacoesPorDia = agruparMarcacoesPorDia(marcacoes);
 
   const totais = apuracoes.reduce(

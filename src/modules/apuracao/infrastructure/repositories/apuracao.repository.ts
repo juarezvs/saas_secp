@@ -228,12 +228,6 @@ export async function listarSolicitacoesDoServidorNoMes(params: {
           },
           OR: [{ dataFim: null }, { dataFim: { gte: inicio } }],
         },
-        {
-          criadoEm: {
-            gte: inicio,
-            lt: fim,
-          },
-        },
       ],
     },
     include: {

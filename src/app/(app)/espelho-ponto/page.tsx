@@ -671,6 +671,8 @@ export default async function EspelhoPontoPage({
           solicitacoes={solicitacoes}
           analisesMct={analisesMct}
           servidorId={servidorSelecionado.id}
+          anoReferencia={anoReferencia}
+          mesReferencia={mesReferencia}
           destaque={{
             dataReferencia: params.destaqueData,
             ocorrenciaId: params.destaqueOcorrencia,
