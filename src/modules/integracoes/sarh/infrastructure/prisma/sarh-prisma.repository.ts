@@ -161,16 +161,6 @@ function normalizarBooleanoSarh(valor: string | boolean | null | undefined) {
   return null;
 }
 
-function fimAfastamentoParaConsulta(dataFim: Date | null) {
-  if (!dataFim) {
-    return null;
-  }
-
-  const fim = new Date(dataFim);
-  fim.setUTCDate(fim.getUTCDate() + 1);
-  return fim;
-}
-
 function resolverSiglaLocalidadeSarh(siglaOrgao?: string | null) {
   const sigla = siglaOrgao?.trim().toUpperCase();
 
@@ -566,7 +556,6 @@ export class SarhPrismaRepository {
             where: { codigoExternoSarh: chaveExterna },
           });
     const dataFim = normalizarDataSarh(params.payload.dataFim);
-    const fimConsulta = fimAfastamentoParaConsulta(dataFim);
     const data = {
       codigoExternoSarh: chaveExterna,
       servidorId: servidor?.id ?? null,
@@ -584,7 +573,9 @@ export class SarhPrismaRepository {
       processo: limparTexto(params.payload.processo),
       observacao: limparTexto(params.payload.observacao),
       origemTabela: limparTexto(params.payload.origemTabela) ?? "SARH",
-      ativo: fimConsulta === null || fimConsulta >= new Date(),
+      // O término da vigência não invalida o registro histórico. O espelho
+      // seleciona os dias abrangidos por dataInicio/dataFim, inclusive no passado.
+      ativo: true,
       origemSarh: true,
       payloadSarh: toJsonInput(params.payload),
       ultimaSincronizacaoSarh: new Date(),
