@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 const rotasPublicas = ["/login"];
 const apisPublicasComToken = [
   "/api/integracoes/equipamentos-biometricos/webhook",
+  "/api/integracoes/control-id/monitor",
   "/api/suporte-login",
 ];
 const cookiesSessao = ["__Secure-authjs.session-token", "authjs.session-token"];
@@ -67,6 +68,6 @@ export const config = {
      * - favicon
      * - assets públicos com extensão (png, css, js, etc.)
      */
-    "/((?!api/auth|api/metrics|api/health|api/ready|api/suporte-login|api/integracoes/equipamentos-biometricos/webhook|_next/static|_next/image|favicon.ico|.*\\..*).*)",
+    "/((?!api/auth|api/metrics|api/health|api/ready|api/suporte-login|api/integracoes/equipamentos-biometricos/webhook|api/integracoes/control-id/monitor|_next/static|_next/image|favicon.ico|.*\\..*).*)",
   ],
 };

@@ -10,6 +10,8 @@ import type {
 } from "@/modules/integracoes/domain/relogio-ponto.types";
 import { criarRelogioPontoProvider } from "./relogio-ponto-provider.service";
 import { executarComLockDistribuidoEquipamento } from "./relogio-ponto-distributed-lock";
+import { randomBytes } from "node:crypto";
+import { ControlIdFaceIdClient, type ControlIdAccessLog } from "./control-id-face-id.client";
 
 type ConfiguracaoEquipamento = {
   usuario?: unknown;
@@ -410,6 +412,7 @@ type ColetarMarcacoesRelogioPontoParams = {
   quantidade?: number | null;
   usuarioIdAuditoria?: string | null;
   atualizarCursor?: boolean;
+  notificacaoControlIdMonitor?: ControlIdAccessLog[];
   filtroMarcacao?: (marcacao: MarcacaoRelogioPonto) => boolean;
 };
 
@@ -443,7 +446,12 @@ async function coletarMarcacoesRelogioPontoSemLock(
     valorNumero(configuracao.ultimoNsrColetado) ??
     1;
   const provider = criarRelogioPontoProvider(conexao);
-  const resultado = await provider.coletarMarcacoesDesdeNsr({
+  if (params.notificacaoControlIdMonitor && !(provider instanceof ControlIdFaceIdClient)) {
+    throw new Error("Notificacao Monitor exige equipamento Control iD Access API.");
+  }
+  const resultado = params.notificacaoControlIdMonitor && provider instanceof ControlIdFaceIdClient
+    ? await provider.converterNotificacaoMonitor(params.notificacaoControlIdMonitor)
+    : await provider.coletarMarcacoesDesdeNsr({
     nsrInicial,
     quantidade: params.quantidade ?? undefined,
   });
@@ -481,7 +489,7 @@ async function coletarMarcacoesRelogioPontoSemLock(
         matriculaNormalizada,
           fonte:
             conexao.fabricante === "CONTROL_ID"
-              ? "CONTROL_ID_ACCESS_LOGS"
+              ? params.notificacaoControlIdMonitor ? "CONTROL_ID_MONITOR" : "CONTROL_ID_ACCESS_LOGS"
               : conexao.fabricante === "DIMEP"
                 ? "DIMEP"
                 : conexao.fabricante === "INTELBRAS"
@@ -506,9 +514,7 @@ async function coletarMarcacoesRelogioPontoSemLock(
 
   const proximoNsr = resultado.proximoNsr ?? null;
   const ultimaSincronizacaoEm = new Date();
-  const configuracaoAtualizada: Record<string, unknown> = {
-    ...((equipamento.configuracao as object | null) ?? {}),
-  };
+  const configuracaoAtualizada: Record<string, unknown> = {};
 
   if (params.atualizarCursor !== false && proximoNsr) {
     configuracaoAtualizada.proximoNsrColeta = proximoNsr;
@@ -531,9 +537,12 @@ async function coletarMarcacoesRelogioPontoSemLock(
       data: {
         ultimoHeartbeatEm: ultimaSincronizacaoEm,
         ultimaSincronizacaoEm,
-        configuracao: configuracaoAtualizada as never,
       },
     });
+
+    if (Object.keys(configuracaoAtualizada).length > 0) {
+      await tx.$executeRaw`UPDATE equipamentos_biometricos SET configuracao = COALESCE(configuracao, '{}'::jsonb) || ${JSON.stringify(configuracaoAtualizada)}::jsonb WHERE id = ${equipamento.id}::uuid`;
+    }
 
     await tx.logIntegracao.create({
       data: {
@@ -545,7 +554,7 @@ async function coletarMarcacoesRelogioPontoSemLock(
         entidadeId: equipamento.id,
         mensagem: `${criadas} marcacao(oes) bruta(s) criada(s), ${processadas} processada(s).`,
         payloadEntrada: {
-          comando: "RR",
+          comando: params.notificacaoControlIdMonitor ? "CONTROL_ID_MONITOR" : "RR",
           nsrInicial,
           quantidade: params.quantidade,
           filtroAplicado: Boolean(params.filtroMarcacao),
@@ -818,7 +827,7 @@ export async function capturarTodasMarcacoesRelogioPontoService(
   );
 }
 
-export async function configurarEventosOnlineRelogioPontoService(params: {
+async function configurarEventosOnlineRelogioPontoSemLock(params: {
   equipamentoId: string;
   habilitado: boolean;
   ipServidor?: string | null;
@@ -831,25 +840,38 @@ export async function configurarEventosOnlineRelogioPontoService(params: {
   const equipamento = await prisma.equipamentoBiometrico.findUniqueOrThrow({
     where: { id: params.equipamentoId },
   });
+  if (conexao.fabricante === "CONTROL_ID" && params.habilitado) {
+    const config = (equipamento.configuracao ?? {}) as Record<string, unknown>;
+    if (typeof config.controlIdMonitorToken !== "string" || !/^[a-zA-Z0-9_-]{32,128}$/.test(config.controlIdMonitorToken)) {
+      const token = randomBytes(24).toString("hex");
+      // Atualiza apenas a chave do Monitor, preservando o cursor concorrente.
+      await prisma.$executeRaw`UPDATE equipamentos_biometricos SET configuracao = jsonb_set(COALESCE(configuracao, '{}'::jsonb), '{controlIdMonitorToken}', ${JSON.stringify(token)}::jsonb) WHERE id = ${equipamento.id}::uuid`;
+      conexao.configuracao = { ...config, controlIdMonitorToken: token };
+    }
+  }
   const provider = criarRelogioPontoProvider(conexao);
   const resultado = await provider.configurarEventosOnline(params);
 
-  await prisma.equipamentoBiometrico.update({
-    where: { id: params.equipamentoId },
-    data: {
-      configuracao: {
-        ...((equipamento.configuracao as object | null) ?? {}),
-        eventosOnline: {
+  if (resultado.sucesso) {
+    const eventosOnline = {
           habilitado: params.habilitado,
           ipServidor: params.ipServidor ?? null,
           portaServidor: params.portaServidor ?? null,
           atualizadoEm: new Date().toISOString(),
-        },
-      } as never,
-    },
-  });
+        };
+    await prisma.$executeRaw`UPDATE equipamentos_biometricos SET configuracao = jsonb_set(COALESCE(configuracao, '{}'::jsonb), '{eventosOnline}', ${JSON.stringify(eventosOnline)}::jsonb) WHERE id = ${equipamento.id}::uuid`;
+    if (conexao.fabricante === "CONTROL_ID" && !params.habilitado) {
+      await prisma.$executeRaw`UPDATE equipamentos_biometricos SET configuracao = jsonb_set(COALESCE(configuracao, '{}'::jsonb), '{controlIdMonitorToken}', 'null'::jsonb) WHERE id = ${equipamento.id}::uuid`;
+    }
+  }
 
   return resultado;
+}
+
+export async function configurarEventosOnlineRelogioPontoService(
+  params: Parameters<typeof configurarEventosOnlineRelogioPontoSemLock>[0],
+) {
+  return executarComLockEquipamento(params.equipamentoId, () => configurarEventosOnlineRelogioPontoSemLock(params));
 }
 
 export async function enviarBiometriaRelogioPontoService(params: {

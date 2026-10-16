@@ -20,6 +20,15 @@ vi.mock("@/shared/infrastructure/database/prisma", () => ({
 import { criarMarcacaoBrutaService } from "./criar-marcacao-bruta.service";
 
 describe("criarMarcacaoBrutaService", () => {
+  it("deduplica acesso ja processado quando Monitor e coleta trazem identificacoes diferentes", async () => {
+    const existente = { id: "bruta-processada", processada: true, marcacaoId: "marcacao-1", cpf: "52998224725", dataHora: new Date("2026-10-16T14:00:00Z") };
+    prismaMock.marcacaoBruta.findUnique.mockResolvedValue(null);
+    prismaMock.marcacaoBruta.findFirst.mockResolvedValue(existente);
+    expect(await criarMarcacaoBrutaService({ equipamentoId: "equipamento-1", equipamentoCodigo: "CONTROLID-1", origem: "EQUIPAMENTO_BIOMETRICO", nsr: "519", codigoExterno: "519", matricula: "123", dataHora: existente.dataHora }))
+      .toMatchObject({ criada: false, corrigida: false, marcacaoBruta: existente });
+    expect(prismaMock.marcacaoBruta.create).not.toHaveBeenCalled();
+    expect(prismaMock.marcacaoBruta.update).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
   });

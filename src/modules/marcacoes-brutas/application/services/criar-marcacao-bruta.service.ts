@@ -117,7 +117,6 @@ export async function criarMarcacaoBrutaService(params: {
         origem: params.origem,
         nsr: params.nsr ?? null,
         dataHora: params.dataHora,
-        marcacaoId: null,
         OR: [
           ...(params.equipamentoId
             ? [{ equipamentoId: params.equipamentoId }]
@@ -136,6 +135,11 @@ export async function criarMarcacaoBrutaService(params: {
     });
 
     if (mesmaMarcacaoFisica) {
+      // Monitor e coleta podem trazer identificacoes diferentes do mesmo acesso.
+      // Um evento ja processado nunca deve gerar outra marcacao ou ser reatribuido.
+      if (mesmaMarcacaoFisica.processada && mesmaMarcacaoFisica.marcacaoId) {
+        return { criada: false, corrigida: false, marcacaoBruta: mesmaMarcacaoFisica };
+      }
       const cpfAtual = somenteDigitos(mesmaMarcacaoFisica.cpf);
       const pisAtual = somenteDigitos(mesmaMarcacaoFisica.pis);
       const cpfNovo = somenteDigitos(params.cpf);

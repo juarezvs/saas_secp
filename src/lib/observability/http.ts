@@ -72,7 +72,7 @@ export function withHttpMetrics<
       span.setAttributes({
         "http.request.method": method,
         "http.route": route,
-        "url.path": new URL(request.url).pathname,
+        "url.path": new URL(request.url).pathname.replace(/(\/api\/integracoes\/control-id\/monitor\/[^/]+\/)[^/]+/, "$1[redacted]"),
         "secp.request_id": requestId,
       });
 

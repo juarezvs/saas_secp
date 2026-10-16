@@ -168,10 +168,11 @@ function statusOperacional(
   }
 
   const ultimaComunicacao = getUltimaComunicacao(equipamento);
+  const controlId = equipamento.fabricante?.toUpperCase() === "CONTROL_ID";
   if (!ultimaComunicacao) {
     return {
       label: "Sem comunicação",
-      detalhe: listenerOnlineAtivo
+      detalhe: controlId ? "Aguardando Monitor ou coleta Access API" : listenerOnlineAtivo
         ? "SECP escutando; aguardando relógio"
         : "Listener online não iniciado",
       classe: "bg-slate-100 text-slate-700",
@@ -183,7 +184,7 @@ function statusOperacional(
   if (minutos <= 5) {
     return {
       label: "Online",
-      detalhe: listenerOnlineAtivo
+      detalhe: controlId ? (getConfiguracao(equipamento.configuracao).eventosOnline?.habilitado ? "Access API; Monitor configurado" : "Coleta Access API") : listenerOnlineAtivo
         ? "Comunica e SECP escuta eventos"
         : "Comunica; listener online parado",
       classe: "bg-green-50 text-green-700",
@@ -1286,7 +1287,7 @@ function OnlineRelogioCard({
               name="habilitado"
               defaultChecked={Boolean(configuracao.eventosOnline?.habilitado)}
             />
-            Evento online em tempo real
+            {equipamento.fabricante?.toUpperCase() === "CONTROL_ID" ? "Monitor Control iD em tempo real" : "Evento online em tempo real"}
           </label>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <input
@@ -1297,12 +1298,15 @@ function OnlineRelogioCard({
             />
             <input
               name="portaServidor"
-              placeholder="Porta"
+              placeholder={equipamento.fabricante?.toUpperCase() === "CONTROL_ID" ? "Porta HTTP (ex.: 3000)" : "Porta TCP (ex.: 3001)"}
               type="number"
               defaultValue={String(configuracao.eventosOnline?.portaServidor ?? "")}
               className="h-9 rounded-md border bg-[var(--card)] px-2 text-sm"
             />
           </div>
+          {equipamento.fabricante?.toUpperCase() === "CONTROL_ID" && (
+            <p className="mt-2 text-xs text-[var(--muted-foreground)]">O Monitor envia notificações por HTTP. Use a porta HTTP do SECP acessível ao equipamento.</p>
+          )}
           <BotaoOperacao
             disabled={pendenteOnline || !equipamento.ativo}
             icon={RadioTower}

@@ -517,20 +517,24 @@ export class HenryLumenBalcaoClient implements RelogioPontoProvider {
 
       const onData = (chunk: Buffer) => {
         recebido = Buffer.concat([recebido, chunk]);
-        if (!pacoteCompleto(recebido)) {
-          return;
-        }
-
-        cleanup();
         try {
-          const resposta = parsePacoteLumen(recebido);
-
-          if (!statusLumenOk(resposta.status)) {
-            throw new Error(mensagemStatusLumen(resposta.status));
+          while (pacoteCompleto(recebido)) {
+            const tamanho = recebido.readUInt16LE(1) + 5;
+            const resposta = parsePacoteLumen(recebido.subarray(0, tamanho));
+            recebido = recebido.subarray(tamanho);
+            // Eventos online podem chegar no mesmo fluxo TCP da consulta.
+            if (resposta.comando !== comando || resposta.indice !== indice) {
+              continue;
+            }
+            if (!statusLumenOk(resposta.status)) {
+              throw new Error(mensagemStatusLumen(resposta.status));
+            }
+            cleanup();
+            resolve(resposta);
+            return;
           }
-
-          resolve(resposta);
         } catch (error) {
+          cleanup();
           reject(error);
         }
       };
@@ -543,6 +547,9 @@ export class HenryLumenBalcaoClient implements RelogioPontoProvider {
 
   async testarConexao(): Promise<ResultadoSaudeRelogioPonto> {
     try {
+      // Uma resposta efetiva e obrigatoria; contadores opcionais nao provam saude.
+      const respostaHora = await this.enviarComando("RH");
+      const dataHora = respostaHora.dados || null;
       const usuarios = await this.enviarComando("RQ", "U")
         .then((resposta) => parseNumeroLumen(resposta.dados))
         .catch(() => null);
@@ -554,9 +561,6 @@ export class HenryLumenBalcaoClient implements RelogioPontoProvider {
         .catch(() => null);
       const naoColetados = await this.enviarComando("RQ", "RNC")
         .then((resposta) => parseNumeroLumen(resposta.dados))
-        .catch(() => null);
-      const dataHora = await this.enviarComando("RH")
-        .then((resposta) => resposta.dados || null)
         .catch(() => null);
 
       return {
@@ -600,13 +604,21 @@ export class HenryLumenBalcaoClient implements RelogioPontoProvider {
     quantidade?: number;
   }): Promise<ResultadoColetaRelogioPonto> {
     try {
-      const quantidade = Math.min(Math.max(Number(params.quantidade ?? 50), 1), 500);
+      // Henry 8X antigos podem truncar respostas maiores que um segmento TCP.
+      // Dez eventos mantem o pacote abaixo do tamanho observado nessa rede.
+      const quantidade = Math.min(Math.max(Number(params.quantidade ?? 10), 1), 10);
       const resposta = await this.enviarComando(
         "RR",
-        `T]${params.nsrInicial}]${quantidade}`,
+        `T]${quantidade}]${params.nsrInicial}`,
         Math.min(Math.max(this.timeoutMs, quantidade * 300), 90000),
       );
       const resultado = parseMarcacoesLumen(resposta.dados);
+      if (
+        resultado.proximoNsr !== null &&
+        Number(resultado.proximoNsr) <= Number(params.nsrInicial)
+      ) {
+        throw new Error("Henry retornou registros anteriores ao indice solicitado; cursor de coleta preservado.");
+      }
 
       return {
         marcacoes: resultado.marcacoes,

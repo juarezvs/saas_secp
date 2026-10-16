@@ -22,6 +22,7 @@ type ControlIdConfig = {
   transporteLegado?: unknown;
   eventoAcessoConcedido?: unknown;
   incluirEventosNegados?: unknown;
+  controlIdMonitorToken?: unknown;
 };
 
 type ControlIdLoadParams = {
@@ -44,7 +45,7 @@ const CAMPOS_USUARIO_CONTROL_ID_COMPLETOS = [
   "pis",
 ];
 
-type ControlIdAccessLog = {
+export type ControlIdAccessLog = {
   id?: unknown;
   time?: unknown;
   event?: unknown;
@@ -838,11 +839,6 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
       };
     }
 
-    const eventoAcessoConcedido =
-      valorNumero(this.config.eventoAcessoConcedido) ?? 7;
-    const incluirEventosNegados = valorBooleano(
-      this.config.incluirEventosNegados,
-    );
     const logs = await this.carregarAccessLogs(
       {
         limit: quantidade,
@@ -859,6 +855,17 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
       },
       session,
     );
+    return this.converterAccessLogs(logs, session, nsrInicial);
+  }
+
+  async converterNotificacaoMonitor(logs: ControlIdAccessLog[]) {
+    const session = await this.login();
+    return this.converterAccessLogs(logs, session, 1);
+  }
+
+  private async converterAccessLogs(logs: ControlIdAccessLog[], session: string, nsrInicial: number) {
+    const eventoAcessoConcedido = valorNumero(this.config.eventoAcessoConcedido) ?? 7;
+    const incluirEventosNegados = valorBooleano(this.config.incluirEventosNegados);
     const idsUsuarios = new Set(
       logs
         .map((log) => valorNumero(log.user_id))
@@ -1123,12 +1130,34 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
     };
   }
 
-  async configurarEventosOnline() {
+  async configurarEventosOnline(params: { habilitado: boolean; ipServidor?: string | null; portaServidor?: number | null }) {
+    if (this.protocolo === "CONTROL_ID_IDCLASS_BIO") {
+      return { sucesso: false, mensagem: "Monitor disponivel para a linha Control iD Access API.", payload: { protocolo: this.protocolo } };
+    }
+    const token = valorTexto(this.config.controlIdMonitorToken);
+    if (params.habilitado && (!params.ipServidor || !params.portaServidor || !token || !/^[a-zA-Z0-9_-]{32,128}$/.test(token))) {
+      throw new Error("Informe servidor, porta e token do Monitor Control iD.");
+    }
+    const monitor = {
+      hostname: params.habilitado ? params.ipServidor! : "",
+      port: params.habilitado ? String(params.portaServidor) : "0",
+      path: params.habilitado ? `api/integracoes/control-id/monitor/${this.conexao.equipamentoId}/${token}` : "api/notifications",
+      request_timeout: "5000",
+    };
+    const session = await this.login();
+    await this.post("/set_configuration.fcgi", { monitor }, session);
+    const leitura = await this.post<{ monitor: typeof monitor }>("/get_configuration.fcgi", { monitor: ["hostname", "port", "path"] }, session);
+    if (leitura.monitor?.hostname !== monitor.hostname || leitura.monitor?.port !== monitor.port || leitura.monitor?.path !== monitor.path) {
+      throw new Error("Configuracao do Monitor diverge da leitura de confirmacao no equipamento.");
+    }
     return {
-      sucesso: false,
-      mensagem: `Eventos online do ${this.rotulo} nao foram ativados por esta integracao. Use a coleta progressiva via Access API.`,
+      sucesso: true,
+      mensagem: `Monitor Control iD ${params.habilitado ? "ativado" : "desativado"}; coleta Access API preservada.`,
       payload: {
         protocolo: this.protocolo,
+        servidor: monitor.hostname,
+        porta: monitor.port,
+        habilitado: params.habilitado,
       },
     };
   }
