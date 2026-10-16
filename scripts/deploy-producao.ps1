@@ -7,8 +7,10 @@ O script:
   - empacota o codigo local sem .env, node_modules, .next, .tmp, backups e artefatos tar.gz;
   - envia o pacote para o Ubuntu de producao;
   - cria backup da release atual;
+  - cria backup do PostgreSQL antes das migrations;
   - preserva .env.production e segredos operacionais da release atual;
   - executa build, migrations e seed sem resetar o banco;
+  - carrega os cadastros iniciais idempotentes do MCT;
   - publica somente o container secp-web;
   - valida /api/ready e a confiabilidade da CA interna do TRF1 no container;
   - mantem apenas os 2 backups/deploys mais recentes por padrao.
@@ -199,6 +201,45 @@ if [[ ! -f "${REMOTE_ROOT}/certs/host-ca-certificates.crt" ]]; then
   exit 2
 fi
 
+if [[ ! -f "${CURRENT_LINK}/.env.production" ]]; then
+  echo ".env.production da release atual nao encontrado para o backup do banco." >&2
+  exit 2
+fi
+
+if command -v pg_dump >/dev/null 2>&1; then
+  PG_DUMP_MODE="host"
+elif docker image inspect postgres:18-alpine >/dev/null 2>&1; then
+  PG_DUMP_MODE="docker"
+else
+  echo "pg_dump nao encontrado no host nem na imagem postgres:18-alpine." >&2
+  exit 2
+fi
+
+log "Gerando backup do PostgreSQL antes das migrations"
+DATABASE_URL="$(grep -m1 '^DATABASE_URL=' "${CURRENT_LINK}/.env.production" \
+  | sed -e 's/^DATABASE_URL=//' -e 's/\r$//' -e 's/^"//' -e 's/"$//')"
+if [[ -z "$DATABASE_URL" ]]; then
+  echo "DATABASE_URL nao encontrado para o backup do banco." >&2
+  exit 2
+fi
+DB_BACKUP_TMP="${BACKUP_DIR}/secp-prod-before-${APP_VERSION}.dump.tmp"
+DB_BACKUP_FILE="${BACKUP_DIR}/secp-prod-before-${APP_VERSION}.dump"
+if [[ -s "$DB_BACKUP_FILE" ]]; then
+  log "Backup desta versao ja existe; reutilizando arquivo validado"
+else
+  rm -f "$DB_BACKUP_TMP"
+  if [[ "$PG_DUMP_MODE" == "host" ]]; then
+    pg_dump "${DATABASE_URL%%\?*}" --format=custom --file="$DB_BACKUP_TMP"
+  else
+    docker run --rm --network host -v "${BACKUP_DIR}:/backup" postgres:18-alpine \
+      pg_dump "${DATABASE_URL%%\?*}" --format=custom \
+      --file="/backup/$(basename "$DB_BACKUP_TMP")"
+  fi
+  test -s "$DB_BACKUP_TMP"
+  mv "$DB_BACKUP_TMP" "$DB_BACKUP_FILE"
+fi
+ls -lh "$DB_BACKUP_FILE"
+
 if [[ -e "$CURRENT_LINK" ]]; then
   CURRENT_RELEASE="$(readlink -f "$CURRENT_LINK" || true)"
   if [[ -n "$CURRENT_RELEASE" && -d "$CURRENT_RELEASE" ]]; then
@@ -263,6 +304,9 @@ docker compose --env-file .env.production -f compose.prod.yaml run --rm migrate
 if [[ "$RUN_SEED" == "1" ]]; then
   log "Executando seed"
   docker compose --env-file .env.production -f compose.prod.yaml run --rm seed
+  log "Carregando cadastros iniciais do MCT"
+  docker compose --env-file .env.production -f compose.prod.yaml run --rm seed \
+    npx tsx scripts/mct/carregar-cadastros-iniciais.ts --confirmar-producao
 else
   log "Seed ignorado por parametro"
 fi
@@ -302,11 +346,13 @@ docker exec secp-web test -s /etc/secp/certs/host-ca-certificates.crt
 
 log "Aplicando retencao de backups: ultimos ${RETAIN_BACKUPS}"
 keep_latest "${BACKUP_DIR}/secp-app-before-*.tar.gz" "$RETAIN_BACKUPS"
+keep_latest "${BACKUP_DIR}/*.dump" "$RETAIN_BACKUPS"
 keep_latest "${DEPLOY_DIR}/secp-deploy-*.tar.gz" "$RETAIN_BACKUPS"
 keep_latest "${REMOTE_ROOT}/secp-*.tar.gz" "$RETAIN_BACKUPS"
 
 log "Backups restantes"
 ls -1t "${BACKUP_DIR}"/secp-app-before-*.tar.gz 2>/dev/null || true
+ls -1t "${BACKUP_DIR}"/*.dump 2>/dev/null || true
 ls -1t "${DEPLOY_DIR}"/secp-deploy-*.tar.gz 2>/dev/null || true
 ls -1t "${REMOTE_ROOT}"/secp-*.tar.gz 2>/dev/null || true
 
