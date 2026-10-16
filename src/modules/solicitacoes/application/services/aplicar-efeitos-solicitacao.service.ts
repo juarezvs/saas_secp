@@ -1,12 +1,14 @@
 import type { PrismaClient } from "@/generated/prisma/client";
 import { normalizarDataReferencia } from "@/modules/apuracao/application/services/calcular-tempo.service";
 import { calcularCargaPrevistaComJanela } from "@/modules/apuracao/application/services/expediente.service";
+import { calcularExcedenteElegivelBancoHoras } from "@/modules/banco-horas/application/services/classificar-horas-banco-horas.service";
 import { classificarDiaInstitucional } from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
 import {
   dataHoraLocalParaUtc,
   obterDataReferencia,
 } from "@/modules/marcacoes/application/services/data-marcacao.service";
 import { resolverFusoHorarioUnidade } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
+import { buscarRegulamentacaoPontoServidor } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 
 import { listarDatasImpactadasSolicitacao } from "./periodo-solicitacao.service";
 
@@ -211,17 +213,42 @@ async function calcularExcedenteDia(params: {
         dataReferencia,
       },
     },
-    select: { minutosCredito: true },
+    select: {
+      cargaPrevistaMinutos: true,
+      minutosTrabalhados: true,
+      minutosIntervalo: true,
+      minutosCredito: true,
+      primeiraEntrada: true,
+      ultimaSaida: true,
+    },
   });
 
-  if (!apuracao || apuracao.minutosCredito <= 0) {
+  if (!apuracao) {
     return {
       minutos: 0,
       erro: "Não há horas excedentes apuradas nessa data para conversão.",
     };
   }
 
-  return { minutos: apuracao.minutosCredito, erro: null };
+  const [classificacaoDia, regulamentacao] = await Promise.all([
+    classificarDiaInstitucional(dataReferencia, undefined, params.servidorId),
+    buscarRegulamentacaoPontoServidor(params.servidorId, params.tx),
+  ]);
+  const minutos = calcularExcedenteElegivelBancoHoras({
+    apuracao,
+    classificacaoDia,
+    regulamentacao,
+  });
+
+  if (minutos <= 0) {
+    return {
+      minutos: 0,
+      erro:
+        "Não há excedente elegível para conversão nessa data, considerando a jornada e a regulamentação vigentes.",
+    };
+  }
+
+  return { minutos, erro: null };
 }
 
 export async function aplicarEfeitosSolicitacaoDeferida(params: {

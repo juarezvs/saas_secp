@@ -35,7 +35,7 @@ export async function listarAnalisesJornadaMctNoMes(params: {
       orgaoId: params.orgaoId,
       servidorId: params.servidorId,
       dataReferencia: { gte: inicio, lt: fim },
-      modo: "SHADOW",
+      modo: { in: ["SHADOW", "MCT"] },
       status: { in: ["CONCLUIDA", "CONCLUIDA_COM_PENDENCIAS"] },
     },
     orderBy: [{ dataReferencia: "asc" }, { iniciadaEm: "desc" }],

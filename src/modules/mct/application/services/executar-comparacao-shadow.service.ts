@@ -41,6 +41,7 @@ export async function executarComparacaoShadow(params: {
   legado: ResultadoLegadoComparavel;
   repositorioExecucao: RepositorioExecucaoMct;
   repositorioComparacao: RepositorioComparacaoMct;
+  modo?: "SHADOW" | "MCT";
 }) {
   const shadow = await executarMctShadow({
     orgaoId: params.orgaoId,
@@ -51,6 +52,7 @@ export async function executarComparacaoShadow(params: {
     plano: params.plano,
     classificacao: params.classificacao,
     repositorio: params.repositorioExecucao,
+    modo: params.modo,
   });
   if (!shadow.persistencia) {
     throw new Error("Execucao SHADOW nao foi persistida para comparacao.");

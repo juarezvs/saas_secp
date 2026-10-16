@@ -17,7 +17,7 @@ export const mctExecucaoPrismaRepository: RepositorioExecucaoMct = {
       dataReferencia: resultado.dataReferencia,
       politicaVersaoId: resultado.politicaVersaoId,
       hashEntrada: resultado.hashEntrada,
-      modo: "SHADOW" as const,
+      modo: resultado.modo,
     };
     const existente = await prisma.mctExecucao.findFirst({ where: chave });
     if (existente) return { id: existente.id, criada: false };

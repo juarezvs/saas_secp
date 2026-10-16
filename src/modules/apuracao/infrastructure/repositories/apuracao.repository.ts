@@ -336,7 +336,7 @@ export async function listarMarcacoesDoServidorNoMes(params: {
 
   const fim = new Date(Date.UTC(params.ano, params.mes, 1));
 
-  return prisma.marcacao.findMany({
+  const marcacoes = await prisma.marcacao.findMany({
     where: {
       servidorId: params.servidorId,
 
@@ -353,6 +353,68 @@ export async function listarMarcacoesDoServidorNoMes(params: {
     orderBy: {
       dataHora: "asc",
     },
+    include: {
+      marcacoesBrutas: {
+        select: {
+          equipamentoId: true,
+          equipamentoCodigo: true,
+          arquivoAfd: { select: { equipamentoCodigo: true } },
+        },
+        orderBy: { criadoEm: "asc" },
+      },
+      eventosEquipamentoBiometrico: {
+        select: { equipamentoId: true },
+        orderBy: { recebidoEm: "asc" },
+      },
+    },
+  });
+
+  const metadadosDasMarcacoes = marcacoes.map((marcacao) => {
+    return marcacao.metadados && typeof marcacao.metadados === "object" && !Array.isArray(marcacao.metadados)
+      ? marcacao.metadados as Record<string, unknown> : {};
+  });
+  // Registros antigos podem guardar o vínculo apenas nos metadados.
+  const idsBrutasLegadas = [...new Set(metadadosDasMarcacoes.flatMap((metadados) => {
+    const id = metadados.marcacaoBrutaId;
+    return typeof id === "string" && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id) ? [id] : [];
+  }))];
+  const brutasLegadas = idsBrutasLegadas.length
+    ? await prisma.marcacaoBruta.findMany({
+        where: { id: { in: idsBrutasLegadas }, servidorId: params.servidorId },
+        select: { id: true, equipamentoId: true, equipamentoCodigo: true, arquivoAfd: { select: { equipamentoCodigo: true } } },
+      }) : [];
+  const brutasPorId = new Map(brutasLegadas.map((bruta) => [bruta.id, bruta]));
+  const referencias = marcacoes.map((marcacao, indice) => {
+    const metadados = metadadosDasMarcacoes[indice];
+    const brutaLegada = typeof metadados.marcacaoBrutaId === "string" ? brutasPorId.get(metadados.marcacaoBrutaId) : undefined;
+    return {
+      id: marcacao.marcacoesBrutas.find((bruta) => bruta.equipamentoId)?.equipamentoId
+        ?? marcacao.eventosEquipamentoBiometrico[0]?.equipamentoId
+        ?? brutaLegada?.equipamentoId,
+      codigo: marcacao.marcacoesBrutas.find((bruta) => bruta.equipamentoCodigo)?.equipamentoCodigo
+        ?? (typeof metadados.equipamentoCodigo === "string" ? metadados.equipamentoCodigo : undefined)
+        ?? brutaLegada?.equipamentoCodigo
+        ?? marcacao.marcacoesBrutas.find((bruta) => bruta.arquivoAfd?.equipamentoCodigo)?.arquivoAfd?.equipamentoCodigo
+        ?? brutaLegada?.arquivoAfd?.equipamentoCodigo,
+    };
+  });
+  const ids = [...new Set(referencias.flatMap((ref) => ref.id ? [ref.id] : []))];
+  const codigos = [...new Set(referencias.flatMap((ref) => ref.codigo ? [ref.codigo] : []))];
+  const equipamentos = ids.length || codigos.length
+    ? await prisma.equipamentoBiometrico.findMany({
+        where: { OR: [{ id: { in: ids } }, { codigo: { in: codigos } }] },
+        // Nunca enviar a configuração do equipamento, que contém credenciais, ao navegador.
+        select: { id: true, nome: true, codigo: true, ip: true, porta: true, localizacao: true, fabricante: true, modelo: true, numeroSerie: true },
+      }) : [];
+  const porId = new Map(equipamentos.map((equipamento) => [equipamento.id, equipamento]));
+  const porCodigo = new Map(equipamentos.map((equipamento) => [equipamento.codigo, equipamento]));
+  return marcacoes.map(({ marcacoesBrutas: _brutas, eventosEquipamentoBiometrico: _eventos, ...marcacao }, indice) => {
+    void _brutas;
+    void _eventos;
+    const ref = referencias[indice];
+    const equipamento = (ref.id ? porId.get(ref.id) : undefined)
+      ?? (ref.codigo ? porCodigo.get(ref.codigo) : undefined);
+    return { ...marcacao, equipamentoOrigem: equipamento ?? null };
   });
 }
 

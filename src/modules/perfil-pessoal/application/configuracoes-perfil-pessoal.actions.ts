@@ -54,3 +54,21 @@ export async function salvarDominiosEmailAction(formData: FormData) {
   revalidatePath("/administracao/configuracoes-globais");
 }
 
+export async function salvarModoOficialMctAction(formData: FormData) {
+  await exigirUmaDasPermissoesOuRedirecionar(["configuracoes:gerenciar:global"]);
+  const ativo = formData.get("mctModoOficialAtivo") === "on";
+
+  await prisma.configuracaoGlobal.upsert({
+    where: { id: "global" },
+    create: {
+      id: "global",
+      dominiosEmailInstitucionais: ["trf1.jus.br"],
+      mctModoOficialAtivo: ativo,
+    },
+    update: { mctModoOficialAtivo: ativo },
+  });
+
+  revalidatePath("/administracao/configuracoes-globais");
+  revalidatePath("/espelho-ponto");
+}
+

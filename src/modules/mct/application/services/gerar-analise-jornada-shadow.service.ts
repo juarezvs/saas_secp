@@ -1,4 +1,6 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { verificarEspelhoEnviadoParaHomologacao } from "@/modules/homologacao/application/services/bloquear-espelho-enviado.service";
+import { regerarBancoHorasMesService } from "@/modules/recalculo/application/services/regerar-banco-horas-mes.service";
 import type {
   EventoTemporal,
   TipoEventoTemporal,
@@ -27,7 +29,7 @@ export async function gerarAnaliseJornadaShadow(params: {
   });
   if (!servidor?.orgaoId) throw new Error("Servidor ou órgão não encontrado.");
 
-  const [apuracao, marcacoes, agenda] = await Promise.all([
+  const [apuracao, marcacoes, agenda, configuracaoGlobal] = await Promise.all([
     prisma.apuracaoDiaria.findFirst({
       where: {
         servidorId: servidor.id,
@@ -46,6 +48,7 @@ export async function gerarAnaliseJornadaShadow(params: {
       servidorId: servidor.id,
       dataReferencia: params.dataReferencia,
     }),
+    prisma.configuracaoGlobal.findUnique({ where: { id: "global" } }),
   ]);
   if (!apuracao) throw new Error("Não há apuração do espelho para este dia.");
 
@@ -95,7 +98,15 @@ export async function gerarAnaliseJornadaShadow(params: {
     dataReferencia: params.dataReferencia,
   });
 
-  return executarComparacaoShadow({
+  const modo = configuracaoGlobal?.mctModoOficialAtivo ? "MCT" : "SHADOW";
+  if (modo === "MCT") {
+    await verificarEspelhoEnviadoParaHomologacao({
+      servidorId: servidor.id,
+      dataReferencia: apuracao.dataReferencia,
+    });
+  }
+
+  const execucao = await executarComparacaoShadow({
     orgaoId: servidor.orgaoId,
     servidorId: servidor.id,
     dataReferencia: apuracao.dataReferencia,
@@ -132,5 +143,40 @@ export async function gerarAnaliseJornadaShadow(params: {
     },
     repositorioExecucao: mctExecucaoPrismaRepository,
     repositorioComparacao: mctComparacaoPrismaRepository,
+    modo,
   });
+
+  if (modo === "MCT") {
+    const jornada = execucao.resultado.resultadoJornada;
+    const minutosCredito = Math.max(0, jornada.creditoReconhecidoMinutos);
+    const minutosDebito = Math.max(0, jornada.tempoFaltanteMinutos);
+    await prisma.apuracaoDiaria.update({
+      where: { id: apuracao.id },
+      data: {
+        minutosTrabalhados: jornada.tempoEfetivamenteTrabalhadoMinutos,
+        minutosCredito,
+        minutosDebito,
+        resultado:
+          minutosDebito > 0 ? "DEBITO" : minutosCredito > 0 ? "CREDITO" : "REGULAR",
+        status: execucao.resultado.possuiPendencias ? "INCONSISTENTE" : "CALCULADA",
+        calculadaEm: new Date(),
+        metadados: {
+          ...((apuracao.metadados as Record<string, unknown> | null) ?? {}),
+          mctOficial: {
+            execucaoId: execucao.persistencia?.id ?? null,
+            versaoMotor: execucao.resultado.versaoMotor,
+            aplicadoEm: new Date().toISOString(),
+          },
+        },
+      },
+    });
+    await regerarBancoHorasMesService({
+      servidorId: servidor.id,
+      anoReferencia: apuracao.dataReferencia.getUTCFullYear(),
+      mesReferencia: apuracao.dataReferencia.getUTCMonth() + 1,
+      origem: "MCT_OFICIAL",
+    });
+  }
+
+  return execucao;
 }

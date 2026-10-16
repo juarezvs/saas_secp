@@ -61,19 +61,29 @@ export function PerfilPessoalDrawer({ nome, matricula, funcaoOuCargo, fotoUrl }:
   const [mensagem, setMensagem] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const ultimoCepConsultado = useRef("");
+  const sequenciaConsulta = useRef(0);
 
   const carregar = useCallback(async () => {
+    const consultaAtual = ++sequenciaConsulta.current;
     setCarregando(true);
+    setPerfil(null);
     setErro(null);
+    setMensagem(null);
+    ultimoCepConsultado.current = "";
     try {
-      const response = await fetch("/api/perfil-pessoal", { cache: "no-store" });
+      const response = await fetch("/api/perfil-pessoal", {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.mensagem ?? "Falha ao carregar os dados.");
-      setPerfil(payload);
+      if (consultaAtual === sequenciaConsulta.current) setPerfil(payload);
     } catch (error) {
-      setErro(error instanceof Error ? error.message : "Falha ao carregar os dados.");
+      if (consultaAtual === sequenciaConsulta.current) {
+        setErro(error instanceof Error ? error.message : "Falha ao carregar os dados.");
+      }
     } finally {
-      setCarregando(false);
+      if (consultaAtual === sequenciaConsulta.current) setCarregando(false);
     }
   }, []);
 
@@ -152,7 +162,18 @@ export function PerfilPessoalDrawer({ nome, matricula, funcaoOuCargo, fotoUrl }:
   }
 
   return (
-    <Drawer open={aberto} onOpenChange={(valor) => { setAberto(valor); if (valor && !perfil && !carregando) void carregar(); }}>
+    <Drawer
+      open={aberto}
+      onOpenChange={(valor) => {
+        setAberto(valor);
+        if (valor) {
+          void carregar();
+        } else {
+          sequenciaConsulta.current += 1;
+          setCarregando(false);
+        }
+      }}
+    >
       <DrawerTrigger asChild>
         <button type="button" className="group hidden min-w-0 items-center gap-3 rounded-md border border-white/15 bg-white/10 px-3 py-2 text-left shadow-sm backdrop-blur transition hover:border-white/35 hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:flex" aria-label="Abrir meus dados pessoais">
           {fotoUrl ? <Image src={fotoUrl} alt="" width={40} height={40} unoptimized className="size-10 rounded-full border-2 border-white bg-white object-cover shadow-sm ring-2 ring-white/25" /> : <span className="flex size-10 items-center justify-center rounded-full border-2 border-white bg-white text-secp-blue-900 shadow-sm ring-2 ring-white/25"><UserRound className="size-4" aria-hidden="true" /></span>}

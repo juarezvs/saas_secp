@@ -216,7 +216,25 @@ describe("aplicarEfeitosSolicitacaoDeferida", () => {
 
   it("autoriza parcialmente a conversao do excedente de um dia comum", async () => {
     const apuracaoDiaria = {
-      findUnique: vi.fn().mockResolvedValue({ minutosCredito: 146 }),
+      findUnique: vi.fn().mockResolvedValue({
+        cargaPrevistaMinutos: 420,
+        minutosTrabalhados: 566,
+        minutosIntervalo: 60,
+        minutosCredito: 146,
+        primeiraEntrada: null,
+        ultimaSaida: null,
+      }),
+    };
+    const servidor = {
+      findUnique: vi.fn().mockResolvedValue({
+        orgaoId: null,
+        horasForaExpedienteInconsistente: null,
+      }),
+    };
+    const regulamentacaoPontoOrgao = {
+      findUnique: vi.fn().mockResolvedValue({
+        jornada7hCreditoMinimoMinutos: 480,
+      }),
     };
     const autorizacaoBancoHoras = {
       upsert: vi.fn().mockResolvedValue({
@@ -235,7 +253,13 @@ describe("aplicarEfeitosSolicitacaoDeferida", () => {
     };
 
     const resultado = await aplicarEfeitosSolicitacaoDeferida({
-      tx: { apuracaoDiaria, autorizacaoBancoHoras, auditoriaEvento } as never,
+      tx: {
+        apuracaoDiaria,
+        autorizacaoBancoHoras,
+        auditoriaEvento,
+        servidor,
+        regulamentacaoPontoOrgao,
+      } as never,
       usuarioAnaliseId: "usuario-chefia",
       justificativaAnalise: "Conversao de parte do excedente.",
       solicitacao: {
@@ -263,12 +287,35 @@ describe("aplicarEfeitosSolicitacaoDeferida", () => {
 
   it("recusa conversao acima do excedente apurado", async () => {
     const apuracaoDiaria = {
-      findUnique: vi.fn().mockResolvedValue({ minutosCredito: 146 }),
+      findUnique: vi.fn().mockResolvedValue({
+        cargaPrevistaMinutos: 420,
+        minutosTrabalhados: 566,
+        minutosIntervalo: 60,
+        minutosCredito: 146,
+        primeiraEntrada: null,
+        ultimaSaida: null,
+      }),
+    };
+    const servidor = {
+      findUnique: vi.fn().mockResolvedValue({
+        orgaoId: null,
+        horasForaExpedienteInconsistente: null,
+      }),
+    };
+    const regulamentacaoPontoOrgao = {
+      findUnique: vi.fn().mockResolvedValue({
+        jornada7hCreditoMinimoMinutos: 480,
+      }),
     };
     const autorizacaoBancoHoras = { upsert: vi.fn() };
 
     const resultado = await aplicarEfeitosSolicitacaoDeferida({
-      tx: { apuracaoDiaria, autorizacaoBancoHoras } as never,
+      tx: {
+        apuracaoDiaria,
+        autorizacaoBancoHoras,
+        servidor,
+        regulamentacaoPontoOrgao,
+      } as never,
       usuarioAnaliseId: "usuario-chefia",
       justificativaAnalise: "Valor superior ao disponivel.",
       solicitacao: {

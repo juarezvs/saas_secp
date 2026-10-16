@@ -41,6 +41,45 @@ export type ClassificacaoHorasBancoHoras = {
   exigeReferendoDiref: boolean;
 };
 
+export function calcularExcedenteElegivelBancoHoras(params: {
+  apuracao: ApuracaoBancoHoras;
+  classificacaoDia: ClassificacaoDiaInstitucional;
+  regulamentacao: RegulamentacaoBancoHoras;
+}) {
+  const excedenteReal = Math.max(
+    0,
+    params.apuracao.minutosTrabalhados - params.apuracao.cargaPrevistaMinutos,
+  );
+  const excedenteApurado = Math.min(
+    Math.max(0, params.apuracao.minutosCredito),
+    excedenteReal,
+  );
+
+  if (
+    params.classificacaoDia.tipo !== "UTIL" ||
+    params.apuracao.cargaPrevistaMinutos !== 7 * 60
+  ) {
+    return excedenteApurado;
+  }
+
+  if (
+    params.regulamentacao.jornada7hCreditoExigeIntervalo &&
+    params.apuracao.minutosIntervalo <
+      params.regulamentacao.jornada7hIntervaloMinimoMinutos
+  ) {
+    return 0;
+  }
+
+  return Math.min(
+    excedenteApurado,
+    Math.max(
+      0,
+      params.apuracao.minutosTrabalhados -
+        params.regulamentacao.jornada7hCreditoMinimoMinutos,
+    ),
+  );
+}
+
 function minutosDoDia(data?: Date | null) {
   if (!data) {
     return null;
@@ -119,10 +158,11 @@ export function classificarHorasCreditoBancoHoras(params: {
   permiteConversaoEspecial?: boolean;
 }): ClassificacaoHorasBancoHoras {
   const { apuracao, classificacaoDia, regulamentacao } = params;
-  const minutosApurados = Math.min(
-    Math.max(0, apuracao.minutosCredito),
-    minutosExcedentesReais(apuracao),
-  );
+  const minutosApurados = calcularExcedenteElegivelBancoHoras({
+    apuracao,
+    classificacaoDia,
+    regulamentacao,
+  });
   const alertas: string[] = [];
   const exigeJustificativaEspecifica = horaForaPeriodoOrdinario(
     apuracao,

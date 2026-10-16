@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { perfilAtivoEhChefia } from "@/modules/auth/application/services/perfil-chefia.service";
+import { verificarEspelhoEnviadoParaHomologacao } from "@/modules/homologacao/application/services/bloquear-espelho-enviado.service";
 import {
   buscarServidorComUsuarioPorUsuarioId,
   listarServidoresParaEspelhoPonto,
@@ -33,7 +34,9 @@ async function usuarioPodeRecalcularServidor(params: {
   perfilAtivoCodigo?: string | null;
   servidorId: string;
   permissoes: string[];
+  servidorProprioId?: string | null;
 }) {
+  if (params.servidorProprioId === params.servidorId) return true;
   if (
     params.permissoes.includes("apuracao:recalcular:global") ||
     params.permissoes.includes("apuracao:recalcular:seccional") ||
@@ -94,8 +97,12 @@ export async function recalcularMesServidorAction(formData: FormData) {
   }
 
   const permissoes = session.user.perfilAtivo?.permissoes ?? [];
+  const servidorProprio = await buscarServidorComUsuarioPorUsuarioId(
+    session.user.id,
+  );
+  const recalculoProprio = servidorProprio?.id === lerParametros(formData).servidorId;
 
-  if (!podeSolicitarRecalculo(permissoes)) {
+  if (!podeSolicitarRecalculo(permissoes) && !recalculoProprio) {
     return {
       sucesso: false,
       mensagem: "Voce nao tem permissao para recalcular este mes.",
@@ -112,6 +119,7 @@ export async function recalcularMesServidorAction(formData: FormData) {
     perfilAtivoCodigo: session.user.perfilAtivo?.codigo,
     servidorId: params.servidorId,
     permissoes,
+    servidorProprioId: servidorProprio?.id,
   });
 
   if (!permitido) {
@@ -129,6 +137,12 @@ export async function recalcularMesServidorAction(formData: FormData) {
   }
 
   try {
+    await verificarEspelhoEnviadoParaHomologacao({
+      servidorId: params.servidorId,
+      dataReferencia: new Date(
+        Date.UTC(params.anoReferencia, params.mesReferencia - 1, 1),
+      ),
+    });
     await enfileirarRecalculoEspelhoPonto({
       ...params,
       motivo: "RECALCULO_MANUAL_MES",

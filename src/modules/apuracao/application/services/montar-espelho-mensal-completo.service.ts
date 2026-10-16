@@ -11,6 +11,7 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 import { resolverPrevisaoJornadaDia } from "@/modules/jornadas/application/services/resolver-previsao-jornada-dia.service";
 
 import { normalizarDataReferencia } from "./calcular-tempo.service";
+import { afastamentoSarhDeveImpactarApuracao } from "./afastamento-sarh-efeito.service";
 
 const CARGA_TRABALHO_REMOTO_MINUTOS = 7 * 60;
 
@@ -393,6 +394,11 @@ function ajustarApuracaoPorCompensacao(
   const resumoBancoHoras = resumirMovimentosBancoHoras(
     apuracao.movimentoBancoHoras,
   );
+  const minutosExcedentePendente = Math.max(
+    resumoBancoHoras.minutosHoraExtraNaoAutorizada,
+    apuracao.minutosCredito - resumoBancoHoras.minutosHoraExtraAutorizada,
+    0,
+  );
   const minutosDebitoCompensado = Math.min(
     apuracao.minutosDebito,
     compensacoes.reduce((total, movimento) => total + movimento.minutos, 0),
@@ -454,6 +460,7 @@ function ajustarApuracaoPorCompensacao(
     minutosDebitoApurado: apuracao.minutosDebito,
     minutosDebitoCompensado,
     ...resumoBancoHoras,
+    minutosHoraExtraNaoAutorizada: minutosExcedentePendente,
   };
 }
 
@@ -752,11 +759,7 @@ function afastamentoEhFeriasGozadas(afastamento: AfastamentoSarhEspelho) {
 export function afastamentoDeveImpactarEspelho(
   afastamento: AfastamentoSarhEspelho,
 ) {
-  if (!afastamento.ativo) {
-    return false;
-  }
-
-  return !afastamentoEhFerias(afastamento) || afastamentoEhFeriasGozadas(afastamento);
+  return afastamentoSarhDeveImpactarApuracao(afastamento);
 }
 
 function possuiDispensaAdministrativaAtiva(metadados: unknown) {

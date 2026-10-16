@@ -75,8 +75,49 @@ describe("classificarHorasCreditoBancoHoras", () => {
     });
 
     expect(resultado.minutosComputaveis).toBe(30);
-    expect(resultado.minutosNaoComputaveis).toBe(60);
+    expect(resultado.minutosNaoComputaveis).toBe(0);
     expect(resultado.codigoFundamento).toBe("JORNADA_7H_APOS_OITAVA_HORA");
+  });
+
+  it("não expõe como pendente a diferença anterior ao piso da oitava hora", () => {
+    const resultado = classificarHorasCreditoBancoHoras({
+      apuracao: {
+        cargaPrevistaMinutos: 420,
+        minutosTrabalhados: 428,
+        minutosIntervalo: 0,
+        minutosCredito: 8,
+      },
+      classificacaoDia: classificacao("UTIL"),
+      regulamentacao: {
+        ...regulamentacao,
+        jornada7hCreditoExigeIntervalo: false,
+      },
+      temAutorizacaoPrevia: false,
+    });
+
+    expect(resultado.minutosComputaveis).toBe(0);
+    expect(resultado.minutosNaoComputaveis).toBe(0);
+  });
+
+  it("expõe somente o período posterior à oitava hora como pendente", () => {
+    const resultado = classificarHorasCreditoBancoHoras({
+      apuracao: {
+        cargaPrevistaMinutos: 420,
+        minutosTrabalhados: 488,
+        minutosIntervalo: 0,
+        minutosCredito: 68,
+      },
+      classificacaoDia: classificacao("UTIL"),
+      regulamentacao: {
+        ...regulamentacao,
+        jornada7hCreditoExigeIntervalo: false,
+      },
+      temAutorizacaoPrevia: false,
+    });
+
+    expect(resultado.minutosComputaveis).toBe(0);
+    expect(resultado.minutosNaoComputaveis).toBe(8);
+    expect(resultado.codigoFundamento).toBe("SEM_AUTORIZACAO_PREVIA");
   });
 
   it("não computa jornada de 7h sem intervalo mínimo", () => {

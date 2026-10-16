@@ -20,9 +20,6 @@ import {
 
 import { Card } from "@/components/ui";
 import { minutosParaTexto } from "../../application/services/calcular-tempo.service";
-import { autorizarHoraExtraBancoHorasAction } from "../../application/actions/autorizar-hora-extra-banco-horas.action";
-import { ConfirmarAutorizacaoHoraExtraButton } from "./confirmar-autorizacao-hora-extra-button";
-import { TempoAutorizadoInput } from "./tempo-autorizado-input";
 import {
   classificarDiaEspelho,
   conferenciaEspelho,
@@ -33,11 +30,18 @@ import {
 } from "../../application/services/classificar-espelho-mensal.service";
 import {
   descricaoMarcacao,
+  detalhesOrigemMarcacao,
+  type EquipamentoOrigemEspelho,
   marcacaoPossuiAjuste,
 } from "../../application/services/espelho-marcacao-origem.service";
 import { AfastamentoTipoIcone } from "@/modules/servidores/presentation/components/afastamento-tipo-icone";
-import { SolicitacaoAjusteDiaContextMenu } from "./solicitacao-ajuste-dia-context-menu";
+import {
+  SolicitacaoAjusteDiaContextMenu,
+  type TipoSolicitacaoEspelho,
+} from "./solicitacao-ajuste-dia-context-menu";
 import { EspelhoPontoTabelaInterativa } from "./espelho-ponto-tabela-interativa";
+import { MarcacaoOrigemHoverCard } from "./marcacao-origem-hover-card";
+import { ExibirOrigemMarcacoesSwitch } from "./exibir-origem-marcacoes";
 import {
   EspelhoPontoTotaisTabela,
   type TipoHoraResumo,
@@ -90,6 +94,7 @@ type MarcacaoItem = {
   fonte?: string | null;
   status: string;
   metadados?: unknown;
+  equipamentoOrigem?: EquipamentoOrigemEspelho | null;
 };
 
 type DiaInstitucionalEspelho = {
@@ -178,10 +183,47 @@ type OcorrenciasVisualizacaoResumo = {
 };
 
 function minutosCreditoExibivel(item: ApuracaoMensalItem) {
-  return Math.max(
-    0,
-    item.minutosCredito - (item.minutosHoraExtraNaoAutorizada ?? 0),
-  );
+  return Math.max(0, item.minutosHoraExtraAutorizada ?? 0);
+}
+
+const TIPOS_DIA_ESPECIAL_CONVERSAO = new Set([
+  "SABADO",
+  "DOMINGO",
+  "FERIADO",
+  "PONTO_FACULTATIVO",
+  "SUSPENSAO_EXPEDIENTE",
+  "RECESSO_FORENSE",
+]);
+
+function tiposSolicitacaoPermitidosNoDia(
+  item: ApuracaoMensalItem,
+  diaInstitucional?: DiaInstitucionalEspelho | null,
+): TipoSolicitacaoEspelho[] {
+  const tipos: TipoSolicitacaoEspelho[] = [
+    "AJUSTE_PONTO",
+    "ATIVIDADE_EXTERNA",
+    "VIAGEM_SERVICO",
+    "CAPACITACAO",
+    "DISPENSA_PONTO",
+  ];
+
+  if (item.minutosDebito > 0) {
+    tipos.push("COMPENSACAO", "ABONO_JUSTIFICATIVA");
+  }
+
+  if (
+    item.minutosTrabalhados > 0 &&
+    diaInstitucional &&
+    TIPOS_DIA_ESPECIAL_CONVERSAO.has(diaInstitucional.tipo)
+  ) {
+    tipos.push("CONVERSAO_DIA_ESPECIAL_BANCO_HORAS");
+  }
+
+  if ((item.minutosHoraExtraNaoAutorizada ?? 0) > 0) {
+    tipos.push("CONVERSAO_EXCEDENTE_BANCO_HORAS");
+  }
+
+  return tipos;
 }
 
 function montarDetalheJornadaPrevista(apuracoes: ApuracaoMensalItem[]) {
@@ -742,7 +784,6 @@ export function EspelhoPontoMensal({
   apuracoes: apuracoesRecebidas,
   marcacoes: marcacoesRecebidas,
   solicitacoes: solicitacoesRecebidas,
-  acoesBancoHoras,
   acaoHomologacao,
   destaque,
   homologacaoCompetencia,
@@ -827,7 +868,9 @@ export function EspelhoPontoMensal({
       ? Math.min(100, Math.round((totais.trabalhado / totais.previsto) * 100))
       : 0;
   const diferencaJornada = totais.trabalhado - totais.previsto;
-  const excedenteBruto = Math.max(0, diferencaJornada);
+  const excedenteElegivel =
+    totais.horaExtraAutorizada + totais.horaExtraNaoAutorizada;
+  const excedenteBruto = excedenteElegivel;
   const jornadaCumprida = Math.min(totais.trabalhado, totais.previsto);
   const minutosFaltantes = Math.max(0, totais.previsto - totais.trabalhado);
   const totalRegistros = apuracoes.length;
@@ -907,9 +950,9 @@ export function EspelhoPontoMensal({
           destaque="debito"
         />
         <Resumo
-          label="Excedente / Horas extras"
-          value={minutosParaTexto(excedenteBruto)}
-          detalhe={`${minutosParaTexto(totais.horaExtraAutorizada)} reconhecidas · ${minutosParaTexto(
+          label="Excedente elegível"
+          value={minutosParaTexto(excedenteElegivel)}
+          detalhe={`${minutosParaTexto(totais.horaExtraAutorizada)} reconhecido · ${minutosParaTexto(
             totais.horaExtraNaoAutorizada,
           )} pendentes`}
           destaque="credito"
@@ -1206,7 +1249,10 @@ export function EspelhoPontoMensal({
                         className="whitespace-nowrap border-b border-l px-2 py-2 text-left"
                         rowSpan={2}
                       >
-                        Marcações do dia
+                        <div className="flex items-center justify-between gap-2">
+                          <span>Marcações do dia</span>
+                          <ExibirOrigemMarcacoesSwitch />
+                        </div>
                       </th>
                       <th
                         className="border-b border-l px-1 py-2 text-center"
@@ -1380,6 +1426,10 @@ export function EspelhoPontoMensal({
                               dataReferencia={chaveReferencia}
                               marcacoes={horarios}
                               podeSolicitarAjuste={podeSolicitarAjuste}
+                              tiposSolicitacaoPermitidos={tiposSolicitacaoPermitidosNoDia(
+                                item,
+                                diaInstitucional,
+                              )}
                             />
                           </td>
 
@@ -1474,30 +1524,15 @@ export function EspelhoPontoMensal({
                           </td>
 
                           <td className="sticky right-0 z-10 bg-inherit px-1.5 py-0 text-right shadow-[-4px_0_6px_-6px_rgb(15_23_42/0.45)]">
-                            {acoesBancoHoras?.habilitadas &&
-                            acoesBancoHoras.bancoHorasAtivo !== false &&
-                            (item.minutosHoraExtraNaoAutorizada ?? 0) > 0 ? (
-                              <div className="flex items-center justify-end gap-1">
-                                <AcoesBancoHorasDia
-                                  servidorId={acoesBancoHoras.servidorId}
-                                  anoReferencia={acoesBancoHoras.anoReferencia}
-                                  mesReferencia={acoesBancoHoras.mesReferencia}
-                                  dataReferencia={item.dataReferencia}
-                                  minutosNaoAutorizados={
-                                    item.minutosHoraExtraNaoAutorizada ?? 0
-                                  }
-                                />
-                                <AnaliseJornadaMenuButton
-                                  servidorId={servidorId}
-                                  dataReferencia={chaveReferencia}
-                                  analise={analisesMct[chaveReferencia]}
-                                />
-                              </div>
-                            ) : podeSolicitarAjuste ? (
+                            {podeSolicitarAjuste ? (
                               <SolicitacaoAjusteDiaContextMenu
                                 servidorId={servidorId}
                                 dataReferencia={chaveReferencia}
                                 analiseMct={analisesMct[chaveReferencia]}
+                                tiposSolicitacaoPermitidos={tiposSolicitacaoPermitidosNoDia(
+                                  item,
+                                  diaInstitucional,
+                                )}
                                 className="ml-auto size-8 px-0"
                               >
                                 <MoreVertical
@@ -2040,11 +2075,13 @@ function MarcacoesDiaCell({
   dataReferencia,
   marcacoes,
   podeSolicitarAjuste,
+  tiposSolicitacaoPermitidos,
 }: {
   servidorId: string;
   dataReferencia: string;
   marcacoes: ReturnType<typeof formatarMarcacaoTabela>[];
   podeSolicitarAjuste: boolean;
+  tiposSolicitacaoPermitidos?: TipoSolicitacaoEspelho[];
 }) {
   const marcacoesVisiveis = marcacoes.slice(0, 8);
   const excedentes = Math.max(0, marcacoes.length - marcacoesVisiveis.length);
@@ -2054,6 +2091,7 @@ function MarcacoesDiaCell({
       <SolicitacaoAjusteDiaContextMenu
         servidorId={servidorId}
         dataReferencia={dataReferencia}
+        tiposSolicitacaoPermitidos={tiposSolicitacaoPermitidos}
         className="h-7 min-w-12 justify-start px-1 font-mono"
       >
         <span className="text-[var(--muted-foreground)]">-</span>
@@ -2073,7 +2111,6 @@ function MarcacoesDiaCell({
                 ? "text-amber-800 dark:text-amber-300"
                 : "text-blue-950 dark:text-slate-200"
             }`}
-            title={marcacao.title}
           >
             {marcacao.valor}
             {marcacao.ajustada ? "*" : ""}
@@ -2085,19 +2122,22 @@ function MarcacoesDiaCell({
             {indice > 0 ? (
               <span className="text-[var(--muted-foreground)]">-</span>
             ) : null}
-            {podeSolicitarAjuste ? (
-              <SolicitacaoAjusteDiaContextMenu
-                servidorId={servidorId}
-                dataReferencia={dataReferencia}
-                marcacaoId={marcacao.id}
-                marcacaoDescricao={`${marcacao.tipo} às ${marcacao.valor}`}
-                className="h-auto min-w-0 px-0 font-mono"
-              >
-                {horario}
-              </SolicitacaoAjusteDiaContextMenu>
-            ) : (
-              horario
-            )}
+            <MarcacaoOrigemHoverCard detalhes={marcacao.origem} horario={marcacao.valor}>
+              {podeSolicitarAjuste ? (
+                <SolicitacaoAjusteDiaContextMenu
+                  servidorId={servidorId}
+                  dataReferencia={dataReferencia}
+                  marcacaoId={marcacao.id}
+                  marcacaoDescricao={`${marcacao.tipo} às ${marcacao.valor}`}
+                  tiposSolicitacaoPermitidos={tiposSolicitacaoPermitidos}
+                  className="h-auto min-w-0 px-0 font-mono"
+                >
+                  {horario}
+                </SolicitacaoAjusteDiaContextMenu>
+              ) : (
+                horario
+              )}
+            </MarcacaoOrigemHoverCard>
           </span>
         );
       })}
@@ -3092,17 +3132,18 @@ function EspelhoPontoMensalCompacto({
                     className="whitespace-nowrap px-1.5 py-3 font-mono"
                   >
                     {horario ? (
+                      <MarcacaoOrigemHoverCard detalhes={horario.origem} horario={horario.valor}>
                       <span
                         className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${
                           horario.ajustada
                             ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
                             : "bg-slate-100 text-blue-950 dark:bg-slate-800 dark:text-slate-200"
                         }`}
-                        title={horario.title}
                       >
                         {horario.valor}
                         {horario.ajustada ? "*" : ""}
                       </span>
+                      </MarcacaoOrigemHoverCard>
                     ) : (
                       <span className="text-[var(--muted-foreground)]">-</span>
                     )}
@@ -3998,59 +4039,6 @@ function ValorSaldoBancoHoras({ minutos }: { minutos: number }) {
   );
 }
 
-function AcoesBancoHorasDia({
-  servidorId,
-  anoReferencia,
-  mesReferencia,
-  dataReferencia,
-  minutosNaoAutorizados,
-}: {
-  servidorId: string;
-  anoReferencia: number;
-  mesReferencia: number;
-  dataReferencia: Date | string;
-  minutosNaoAutorizados: number;
-}) {
-  if (minutosNaoAutorizados <= 0) {
-    return <span className="text-xs text-[var(--muted-foreground)]">-</span>;
-  }
-
-  return (
-    <form
-      action={autorizarHoraExtraBancoHorasAction}
-      className="flex items-center gap-2"
-    >
-      <input type="hidden" name="servidorId" value={servidorId} />
-      <input type="hidden" name="anoReferencia" value={anoReferencia} />
-      <input type="hidden" name="mesReferencia" value={mesReferencia} />
-      <input
-        type="hidden"
-        name="dataReferencia"
-        value={chaveDataReferenciaUtc(dataReferencia)}
-      />
-      <input
-        type="hidden"
-        name="minutosMaximos"
-        value={minutosNaoAutorizados}
-      />
-      <TempoAutorizadoInput
-        key={`${servidorId}-${chaveDataReferenciaUtc(
-          dataReferencia,
-        )}-${minutosNaoAutorizados}`}
-        name="tempoAutorizado"
-        minutos={minutosNaoAutorizados}
-        minutosMaximos={minutosNaoAutorizados}
-        className="h-8 w-20 rounded-md border bg-[var(--background)] px-2 text-xs font-semibold tabular-nums"
-        ariaLabel="Tempo a autorizar no formato horas e minutos"
-        title={`Informe o tempo no formato HH:MM, até ${minutosParaTexto(
-          minutosNaoAutorizados,
-        )}.`}
-      />
-      <ConfirmarAutorizacaoHoraExtraButton />
-    </form>
-  );
-}
-
 function formatarSaldoBancoHoras(minutos: number) {
   if (minutos === 0) {
     return minutosParaTexto(0);
@@ -4077,13 +4065,7 @@ function distribuirMarcaçõesNasColunas(
   exigeIntervalo = true,
   quantidadeColunas = 4,
 ) {
-  const horarios: Array<{
-    id: string;
-    tipo: string;
-    valor: string;
-    ajustada: boolean;
-    title: string;
-  } | null> = Array.from({ length: quantidadeColunas }, () => null);
+  const horarios: Array<ReturnType<typeof formatarMarcacaoTabela> | null> = Array.from({ length: quantidadeColunas }, () => null);
   const indicePorTipo: Record<string, number> = exigeIntervalo
     ? {
         ENTRADA: 0,
@@ -4150,6 +4132,7 @@ function formatarMarcacaoTabela(marcacao: MarcacaoItem) {
     valor: formatarHoraLocal(marcacao.dataHora, marcacao.fusoHorario),
     ajustada: marcacaoPossuiAjuste(marcacao),
     title: descricaoMarcacao(marcacao),
+    origem: detalhesOrigemMarcacao(marcacao),
   };
 }
 

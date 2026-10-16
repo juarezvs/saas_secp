@@ -18,6 +18,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Button, Modal } from "@/components/ui";
+import { ExibirOrigemMarcacoesContext } from "./exibir-origem-marcacoes";
 
 const opcoesPorPagina = [10, 20, 30, 50];
 const paginationButtonClass =
@@ -95,6 +96,7 @@ export function EspelhoPontoTabelaInterativa({
     "dias" | "semana" | "totais" | "ocorrencias" | "historico"
   >(abaUrl);
   const [busca, setBusca] = useState("");
+  const [exibirOrigem, setExibirOrigem] = useState(false);
   const [buscaRascunho, setBuscaRascunho] = useState("");
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [itensPorPagina, setItensPorPagina] = useState(10);
@@ -440,7 +442,11 @@ export function EspelhoPontoTabelaInterativa({
               ? ocorrencias
               : exibindoHistorico
                 ? historicoAjustes
-                : children}
+                : (
+                  <ExibirOrigemMarcacoesContext.Provider value={{ exibirOrigem, setExibirOrigem }}>
+                    {children}
+                  </ExibirOrigemMarcacoesContext.Provider>
+                )}
       </div>
 
       <Modal

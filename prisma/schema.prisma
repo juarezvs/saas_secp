@@ -3488,6 +3488,7 @@ model Cidade {
 model ConfiguracaoGlobal {
   id                          String   @id @default("global") @db.VarChar(30)
   dominiosEmailInstitucionais String[] @default(["trf1.jus.br"]) @map("dominios_email_institucionais")
+  mctModoOficialAtivo         Boolean  @default(false) @map("mct_modo_oficial_ativo")
   criadoEm                    DateTime @default(now()) @map("criado_em")
   atualizadoEm                DateTime @updatedAt @map("atualizado_em")
 

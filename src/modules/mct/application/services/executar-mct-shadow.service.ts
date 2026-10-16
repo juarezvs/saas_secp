@@ -25,7 +25,7 @@ export type ResultadoExecucaoMctShadow = {
   servidorId: string;
   dataReferencia: Date;
   competencia: string;
-  modo: "SHADOW";
+  modo: "SHADOW" | "MCT";
   politicaVersaoId: string;
   versaoMotor: string;
   hashEntrada: string;
@@ -59,6 +59,7 @@ export async function executarMctShadow(params: {
     autorizacoes?: string[];
   };
   repositorio?: RepositorioExecucaoMct;
+  modo?: "SHADOW" | "MCT";
 }) {
   if (params.politica.orgaoId !== params.orgaoId) {
     throw new Error("Politica MCT nao pertence ao orgao da execucao.");
@@ -132,7 +133,7 @@ export async function executarMctShadow(params: {
     servidorId: params.servidorId,
     dataReferencia,
     competencia: dataReferencia.toISOString().slice(0, 7),
-    modo: "SHADOW",
+    modo: params.modo ?? "SHADOW",
     politicaVersaoId: params.politica.id,
     versaoMotor: MCT_VERSAO_MOTOR,
     hashEntrada,
@@ -167,7 +168,9 @@ export async function executarMctShadow(params: {
           resultadoJornada.excedentePendenteMinutos,
       },
       observacao:
-        "Execucao SHADOW sem efeitos em apuracao, banco de horas, folha ou homologacao.",
+        params.modo === "MCT"
+          ? "Execucao MCT utilizada como fonte da apuracao oficial."
+          : "Execucao SHADOW sem efeitos em apuracao, banco de horas, folha ou homologacao.",
     },
   };
 

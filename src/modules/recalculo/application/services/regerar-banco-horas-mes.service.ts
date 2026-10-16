@@ -3,7 +3,10 @@ import {
   calcularDataExpiracaoCompensacao,
 } from "@/modules/banco-horas/application/services/aplicar-limites-banco-horas.service";
 import { calcularSaldoBancoHoras } from "@/modules/banco-horas/application/services/calcular-banco-horas.service";
-import { classificarHorasCreditoBancoHoras } from "@/modules/banco-horas/application/services/classificar-horas-banco-horas.service";
+import {
+  calcularExcedenteElegivelBancoHoras,
+  classificarHorasCreditoBancoHoras,
+} from "@/modules/banco-horas/application/services/classificar-horas-banco-horas.service";
 import { atualizarRastreamentoFifoBancoHorasTx } from "@/modules/banco-horas/application/services/rastrear-consumo-fifo-banco-horas.service";
 import {
   carregarCalendarioInstitucionalPeriodo,
@@ -17,6 +20,7 @@ import {
 } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { afastamentoSarhDeveImpactarApuracao } from "@/modules/apuracao/application/services/afastamento-sarh-efeito.service";
 
 export type RegerarBancoHorasMesParams = {
   servidorId: string;
@@ -64,19 +68,6 @@ function minutosDisponiveis(autorizacao: AutorizacaoDisponivel) {
   );
 
   return Math.max(0, autorizacao.minutosAutorizados - utilizados);
-}
-
-function minutosCreditoRegulamentarBase(apuracao: {
-  cargaPrevistaMinutos: number;
-  minutosTrabalhados: number;
-  minutosCredito: number;
-}) {
-  const excedenteReal = Math.max(
-    0,
-    apuracao.minutosTrabalhados - apuracao.cargaPrevistaMinutos,
-  );
-
-  return Math.min(Math.max(0, apuracao.minutosCredito), excedenteReal);
 }
 
 function hojeNoFuso(fusoHorario?: string | null) {
@@ -307,12 +298,17 @@ export async function regerarBancoHorasMesService({
   const afastamentosSarh = await prisma.afastamentoSarh.findMany({
     where: {
       servidorId,
+      ativo: true,
       dataInicio: { lt: fim },
       OR: [{ dataFim: null }, { dataFim: { gte: inicio } }],
     },
     select: {
       dataInicio: true,
       dataFim: true,
+      ativo: true,
+      categoria: true,
+      origemTabela: true,
+      tipoDescricao: true,
     },
   });
 
@@ -486,26 +482,30 @@ export async function regerarBancoHorasMesService({
     for (const apuracao of apuracoes) {
       if (
         afastamentosSarh.some((afastamento) =>
+          afastamentoSarhDeveImpactarApuracao(afastamento) &&
           afastamentoAbrangeData(afastamento, apuracao.dataReferencia),
         )
       ) {
         continue;
       }
 
+      const classificacaoDia = await classificarDiaInstitucional(
+        apuracao.dataReferencia,
+        calendario,
+        servidorId,
+      );
       const minutosCreditoPendentes = Math.max(
         0,
-        minutosCreditoRegulamentarBase(apuracao) -
-          (creditosValidadosPorApuracao.get(apuracao.id) ?? 0),
+        calcularExcedenteElegivelBancoHoras({
+          apuracao,
+          classificacaoDia,
+          regulamentacao,
+        }) - (creditosValidadosPorApuracao.get(apuracao.id) ?? 0),
       );
       const minutosDebitoPendentes = Math.max(
         0,
         apuracao.minutosDebito -
           (debitosValidadosPorApuracao.get(apuracao.id) ?? 0),
-      );
-      const classificacaoDia = await classificarDiaInstitucional(
-        apuracao.dataReferencia,
-        calendario,
-        servidorId,
       );
 
       if (minutosCreditoPendentes > 0) {

@@ -629,12 +629,13 @@ export function AnaliseJornadaDrawer({
   const [gerando, iniciarGeracao] = useTransition();
   const aberturaProcessada = useRef(false);
   const jornada = resultadoJornada(analiseAtual?.resultadoJornada);
+  const oficial = analiseAtual?.modo === "MCT";
 
   const gerarAnalise = useCallback(() => {
     if (!servidorId) return;
     const toastId = toast.show({
       title: "Análise da jornada",
-      description: "Gerando análise em modo provisório...",
+      description: "Gerando a análise da jornada...",
       variant: "info",
       duration: 100000,
     });
@@ -678,7 +679,14 @@ export function AnaliseJornadaDrawer({
         swipeDirection="right"
         className="w-[min(94vw,64rem)] max-w-none"
       >
-        <DrawerHeader className="pr-14">
+        <DrawerHeader
+          className={`relative overflow-hidden pr-14 ${oficial ? "border-b-2 border-[var(--primary)] bg-[color-mix(in_srgb,var(--primary)_8%,var(--card))]" : ""}`}
+        >
+          {!oficial ? (
+            <div className="pointer-events-none absolute -right-10 top-6 w-72 rotate-12 whitespace-nowrap bg-red-700 py-1.5 text-center text-[10px] font-bold uppercase tracking-wide text-white shadow-md">
+              Em Teste, Sem Validade Oficial
+            </div>
+          ) : null}
           <p className="text-xs font-medium uppercase text-[var(--muted-foreground)]">
             MCT-SECP / Detalhamento diário
           </p>
@@ -686,11 +694,11 @@ export function AnaliseJornadaDrawer({
             <DrawerTitle className="text-xl font-semibold">
               Análise da Jornada
             </DrawerTitle>
-            <Badge>
-              {analiseAtual?.modo === "SHADOW"
-                ? "Provisório"
-                : (analiseAtual?.modo ?? "Provisório")}
-            </Badge>
+            {!oficial ? (
+              <Badge>Provisório</Badge>
+            ) : (
+              <Badge variant="homologado">Oficial</Badge>
+            )}
             {analiseAtual ? (
               <Badge
                 variant={
@@ -703,9 +711,13 @@ export function AnaliseJornadaDrawer({
               </Badge>
             ) : null}
           </div>
-          <DrawerDescription className="mt-1">
-            {dataLonga(dataReferencia)}. Resultado explicativo, sem efeito na
-            apuração oficial.
+          <DrawerDescription
+            className={`mt-1 ${oficial ? "font-medium text-[var(--foreground)]" : ""}`}
+          >
+            {dataLonga(dataReferencia)}
+            {!oficial
+              ? ". Resultado explicativo, sem efeito na apuração oficial."
+              : ". Apuração oficial processada pelo MCT."}
           </DrawerDescription>
         </DrawerHeader>
 

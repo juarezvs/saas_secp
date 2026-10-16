@@ -256,6 +256,94 @@ describe("montarEspelhoMensalCompleto", () => {
     );
   });
 
+  it("mantem como pendente a parcela do excedente que nao foi autorizada", async () => {
+    const espelho = await montarEspelhoMensalCompleto({
+      anoReferencia: 2026,
+      mesReferencia: 6,
+      calendario: { eventosPorData: new Map(), recessos: [] },
+      jornadas: [jornada],
+      hoje: new Date("2026-06-18T00:00:00.000Z"),
+      apuracoes: [
+        {
+          id: "apuracao-credito-parcial",
+          dataReferencia: new Date("2026-06-17T00:00:00.000Z"),
+          cargaPrevistaMinutos: 420,
+          minutosTrabalhados: 509,
+          minutosIntervalo: 0,
+          minutosCredito: 89,
+          minutosDebito: 0,
+          resultado: "CREDITO",
+          status: "CALCULADA",
+          metadados: {},
+          ocorrencias: [],
+          movimentoBancoHoras: [
+            {
+              tipo: "CREDITO",
+              status: "PENDENTE",
+              minutos: 29,
+              metadados: {},
+              autorizacaoBancoHoras: null,
+            },
+          ],
+        },
+      ],
+    });
+
+    const item = espelho.itens.find(
+      (apuracao) =>
+        apuracao.dataReferencia.toISOString().slice(0, 10) === "2026-06-17",
+    );
+
+    expect(item).toEqual(
+      expect.objectContaining({
+        minutosCredito: 89,
+        minutosHoraExtraAutorizada: 29,
+        minutosHoraExtraNaoAutorizada: 60,
+        minutosBancoHoras: 29,
+      }),
+    );
+  });
+
+  it("classifica como pendente todo excedente ainda sem movimento de banco", async () => {
+    const espelho = await montarEspelhoMensalCompleto({
+      anoReferencia: 2026,
+      mesReferencia: 6,
+      calendario: { eventosPorData: new Map(), recessos: [] },
+      jornadas: [jornada],
+      hoje: new Date("2026-06-18T00:00:00.000Z"),
+      apuracoes: [
+        {
+          id: "apuracao-credito-sem-movimento",
+          dataReferencia: new Date("2026-06-17T00:00:00.000Z"),
+          cargaPrevistaMinutos: 420,
+          minutosTrabalhados: 615,
+          minutosIntervalo: 45,
+          minutosCredito: 195,
+          minutosDebito: 0,
+          resultado: "CREDITO",
+          status: "CALCULADA",
+          metadados: {},
+          ocorrencias: [],
+          movimentoBancoHoras: [],
+        },
+      ],
+    });
+
+    const item = espelho.itens.find(
+      (apuracao) =>
+        apuracao.dataReferencia.toISOString().slice(0, 10) === "2026-06-17",
+    );
+
+    expect(item).toEqual(
+      expect.objectContaining({
+        minutosCredito: 195,
+        minutosHoraExtraAutorizada: 0,
+        minutosHoraExtraNaoAutorizada: 195,
+        minutosBancoHoras: 0,
+      }),
+    );
+  });
+
   it("nao contabiliza debito nem inconsistencia do dia atual mesmo apos o horario previsto", async () => {
     const espelho = await montarEspelhoMensalCompleto({
       anoReferencia: 2026,

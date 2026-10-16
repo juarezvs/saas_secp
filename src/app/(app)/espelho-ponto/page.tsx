@@ -500,6 +500,11 @@ export default async function EspelhoPontoPage({
         homologacaoServidor.status,
       )),
   );
+  const podeRecalcularCompetencia =
+    podeRecalcular ||
+    (perfilServidorAtivo &&
+      servidorSelecionado?.id === servidorProprio?.id &&
+      !espelhoEnviado);
   const competenciaInput = competenciaParaInput(anoReferencia, mesReferencia);
   const servidorOpcoes = servidores.map((servidor) => ({
     value: servidor.id,
@@ -597,7 +602,7 @@ export default async function EspelhoPontoPage({
               servidorId={servidorSelecionado.id}
               anoReferencia={anoReferencia}
               mesReferencia={mesReferencia}
-              podeRecalcular={podeRecalcular}
+              podeRecalcular={podeRecalcularCompetencia}
               workerAtivo={workerEspelhoAtivo}
               compacto
               mostrarCompactoQuandoDisponivel

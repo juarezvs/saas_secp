@@ -1,4 +1,10 @@
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+
+type RegulamentacaoDb = Pick<
+  Prisma.TransactionClient,
+  "servidor" | "regulamentacaoPontoOrgao"
+>;
 
 export type RegulamentacaoPonto = {
   orgaoId: string | null;
@@ -230,20 +236,24 @@ export function normalizarRegulamentacaoPonto(
 
 export async function buscarRegulamentacaoPontoOrgao(
   orgaoId?: string | null,
+  db: Pick<RegulamentacaoDb, "regulamentacaoPontoOrgao"> = prisma,
 ) {
   if (!orgaoId) {
     return REGULAMENTACAO_PONTO_PADRAO;
   }
 
-  const regulamentacao = await prisma.regulamentacaoPontoOrgao.findUnique({
+  const regulamentacao = await db.regulamentacaoPontoOrgao.findUnique({
     where: { orgaoId },
   });
 
   return normalizarRegulamentacaoPonto(regulamentacao);
 }
 
-export async function buscarRegulamentacaoPontoServidor(servidorId: string) {
-  const servidor = await prisma.servidor.findUnique({
+export async function buscarRegulamentacaoPontoServidor(
+  servidorId: string,
+  db: RegulamentacaoDb = prisma,
+) {
+  const servidor = await db.servidor.findUnique({
     where: { id: servidorId },
     select: {
       orgaoId: true,
@@ -253,6 +263,7 @@ export async function buscarRegulamentacaoPontoServidor(servidorId: string) {
 
   const regulamentacao = await buscarRegulamentacaoPontoOrgao(
     servidor?.orgaoId,
+    db,
   );
 
   if (typeof servidor?.horasForaExpedienteInconsistente === "boolean") {

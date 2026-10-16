@@ -25,7 +25,8 @@ import { AnaliseJornadaDrawer } from "@/modules/mct/presentation/components/anal
 import { tiposSolicitacao } from "@/modules/solicitacoes/application/schemas/solicitacao.schema";
 import { rotuloTipoSolicitacao } from "@/modules/solicitacoes/application/services/fluxo-solicitacao.service";
 
-type TipoSolicitacao = (typeof tiposSolicitacao)[number];
+export type TipoSolicitacaoEspelho = (typeof tiposSolicitacao)[number];
+type TipoSolicitacao = TipoSolicitacaoEspelho;
 
 const iconesPorTipoSolicitacao: Record<TipoSolicitacao, LucideIcon> = {
   AJUSTE_PONTO: Pencil,
@@ -115,10 +116,21 @@ function abrirContextoNoClique(event: MouseEvent<HTMLButtonElement>) {
 function SubmenuSolicitacoes({
   dataReferencia,
   servidorId,
+  tiposPermitidos,
 }: {
   dataReferencia: string;
   servidorId?: string;
+  tiposPermitidos: TipoSolicitacao[];
 }) {
+  const gruposDisponiveis = grupos
+    .map((grupo) => ({
+      ...grupo,
+      tipos: grupo.tipos.filter((tipo) => tiposPermitidos.includes(tipo)),
+    }))
+    .filter((grupo) => grupo.tipos.length > 0);
+
+  if (gruposDisponiveis.length === 0) return null;
+
   return (
     <ContextMenu.Sub>
       <ContextMenu.SubTrigger className={menuItemClassName}>
@@ -128,7 +140,7 @@ function SubmenuSolicitacoes({
       </ContextMenu.SubTrigger>
       <ContextMenu.Portal>
         <ContextMenu.SubContent className={`${menuContentClassName} w-56`}>
-          {grupos.map((grupo) => {
+          {gruposDisponiveis.map((grupo) => {
             const GrupoIcon = grupo.icon;
             return (
               <ContextMenu.Sub key={grupo.titulo}>
@@ -186,6 +198,7 @@ export function SolicitacaoAjusteDiaContextMenu({
   className,
   analiseMct,
   servidorId,
+  tiposSolicitacaoPermitidos,
 }: {
   dataReferencia: string;
   marcacaoId?: string;
@@ -194,6 +207,7 @@ export function SolicitacaoAjusteDiaContextMenu({
   className?: string;
   analiseMct?: AnaliseJornadaMctDto;
   servidorId?: string;
+  tiposSolicitacaoPermitidos?: TipoSolicitacao[];
 }) {
   const [analiseAberta, setAnaliseAberta] = useState(false);
   const exclusaoParams = marcacaoId
@@ -270,6 +284,16 @@ export function SolicitacaoAjusteDiaContextMenu({
             <SubmenuSolicitacoes
               dataReferencia={dataReferencia}
               servidorId={servidorId}
+              tiposPermitidos={
+                tiposSolicitacaoPermitidos ?? [
+                  "AJUSTE_PONTO",
+                  "ABONO_JUSTIFICATIVA",
+                  "ATIVIDADE_EXTERNA",
+                  "VIAGEM_SERVICO",
+                  "CAPACITACAO",
+                  "DISPENSA_PONTO",
+                ]
+              }
             />
           </ContextMenu.Content>
         </ContextMenu.Portal>
