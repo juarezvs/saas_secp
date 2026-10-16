@@ -24,6 +24,19 @@ beforeEach(() => {
   mocks.upsert.mockResolvedValue({ id: "evento-1", processado: false });
 });
 describe("Monitor Control iD", () => {
+  it("persiste e vincula o horario corrigido sem alterar a chave externa original", async () => {
+    const configuracao = { controlIdMonitorToken: token, accessLogsUtcOffsetMinutos: -240 };
+    const dataHora = new Date((Number(log.time) + 14400) * 1000);
+    mocks.equipamento.mockResolvedValue({ id: equipamentoId, ativo: true, fabricante: "CONTROL_ID", configuracao });
+    await receberMonitorControlId(request(dao()), params);
+    expect(mocks.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: expect.objectContaining({ dataHora, codigoEventoExterno: "CONTROL_ID_MONITOR:519:1792152000" }) }));
+    mocks.evento.mockResolvedValue({ equipamentoId, processado: false, payload: { fonte: "CONTROL_ID_MONITOR", log }, equipamento: { configuracao } });
+    mocks.coletar.mockResolvedValue({ marcacoes: [{}], criadas: 0, processadas: 1 });
+    mocks.bruta.mockResolvedValue({ marcacaoId: "existente" });
+    await processarEventoMonitorControlId({ equipamentoId, eventoMonitorId: "evento-1" });
+    expect(mocks.bruta).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ dataHora }) }));
+    expect(mocks.atualizar).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ dataHora, marcacaoId: "existente" }) }));
+  });
   it("interpreta payload nativo e descarta propriedades externas aos access_logs", () => {
     expect(extrairLogsMonitorControlId(dao({ ...log, template: "nao armazenar" }))).toEqual([{ id: 519, time: 1792152000, event: 7, user_id: 123, portal_id: 1 }]);
     expect(extrairLogsMonitorControlId({ object_changes: [{ object: "templates", type: "inserted", values: {} }, { object: "access_logs", type: "deleted", values: log }] })).toEqual([]);

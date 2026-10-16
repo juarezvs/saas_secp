@@ -1,5 +1,6 @@
 import http from "node:http";
 import https from "node:https";
+import { dataHoraAccessLogControlId } from "./control-id-access-log-time";
 
 import type {
   BiometriaServidorRelogioPonto,
@@ -23,6 +24,7 @@ type ControlIdConfig = {
   eventoAcessoConcedido?: unknown;
   incluirEventosNegados?: unknown;
   controlIdMonitorToken?: unknown;
+  accessLogsUtcOffsetMinutos?: unknown;
 };
 
 type ControlIdLoadParams = {
@@ -120,14 +122,6 @@ function idComoTexto(valor: unknown) {
   if (numero !== null) return String(Math.trunc(numero));
 
   return valorTexto(valor);
-}
-
-function dataUnixSegundos(valor: unknown) {
-  const segundos = valorNumero(valor);
-  if (segundos === null) return null;
-
-  const data = new Date(segundos * 1000);
-  return Number.isNaN(data.getTime()) ? null : data;
 }
 
 function cpfValido(cpf: string) {
@@ -879,7 +873,7 @@ export class ControlIdFaceIdClient implements RelogioPontoProvider {
       const nsr = idComoTexto(log.id);
       const idUsuario = valorNumero(log.user_id);
       const evento = valorNumero(log.event);
-      const dataHora = dataUnixSegundos(log.time);
+      const dataHora = dataHoraAccessLogControlId(log.time, this.config);
 
       if (nsr) {
         maiorNsr = Math.max(maiorNsr, Number(nsr));

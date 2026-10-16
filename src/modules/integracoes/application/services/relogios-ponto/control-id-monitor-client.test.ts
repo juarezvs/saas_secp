@@ -8,7 +8,7 @@ const logs = [
   { id: 519, time: 1792152000, event: 7, user_id: 123 },
   { id: 520, time: 1792152001, event: 3, user_id: 0 },
 ];
-function equipamento() {
+function equipamento(configuracao: Record<string, unknown> = {}) {
   const escritas: Record<string, unknown>[] = [];
   let monitor: Record<string, unknown> = {};
   vi.stubGlobal("fetch", vi.fn(async (url: URL, init: RequestInit) => {
@@ -21,9 +21,16 @@ function equipamento() {
     if (url.pathname === "/get_configuration.fcgi") response = { monitor };
     return new Response(JSON.stringify(response), { status: 200 });
   }));
-  return { escritas, client: new ControlIdFaceIdClient({ equipamentoId: id, codigo: "teste", fabricante: "CONTROL_ID", ip: "127.0.0.1", porta: 80, configuracao: { controlIdMonitorToken: token } }) };
+  return { escritas, client: new ControlIdFaceIdClient({ equipamentoId: id, codigo: "teste", fabricante: "CONTROL_ID", ip: "127.0.0.1", porta: 80, configuracao: { controlIdMonitorToken: token, ...configuracao } }) };
 }
 describe("Control iD Monitor e Access API", () => {
+  it("aplica o mesmo fuso confirmado na coleta e no Monitor", async () => {
+    const { client } = equipamento({ accessLogsUtcOffsetMinutos: -240 });
+    const coleta = await client.coletarMarcacoesDesdeNsr({ nsrInicial: 519 });
+    const monitor = await client.converterNotificacaoMonitor(logs);
+    expect(monitor.marcacoes).toEqual(coleta.marcacoes);
+    expect(monitor.marcacoes[0].dataHora.getTime()).toBe((logs[0].time + 4 * 3600) * 1000);
+  });
   it("produz a mesma identificacao e chave fisica nos dois canais", async () => {
     const { client } = equipamento();
     const coleta = await client.coletarMarcacoesDesdeNsr({ nsrInicial: 519 });

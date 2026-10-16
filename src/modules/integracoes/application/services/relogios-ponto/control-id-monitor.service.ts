@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/shared/infrastructure/database/prisma";
 import { enfileirarMonitorControlId } from "../../queues/control-id-monitor-queue";
 import { coletarMarcacoesRelogioPontoService } from "./relogio-ponto-operacoes.service";
+import { dataHoraAccessLogControlId } from "./control-id-access-log-time";
 
 const inteiro = z.union([z.number(), z.string().regex(/^\d+$/)])
   .transform(Number).pipe(z.number().int().safe().nonnegative());
@@ -58,7 +59,7 @@ export async function receberMonitorControlId(request: Request, params: { equipa
         where: { equipamentoId_codigoEventoExterno: { equipamentoId: equipamento.id, codigoEventoExterno } },
         create: {
           equipamentoId: equipamento.id, tipoEvento: "MARCACAO", codigoEventoExterno,
-          dataHora: new Date(log.time * 1000), payload: { fonte: "CONTROL_ID_MONITOR", log },
+          dataHora: dataHoraAccessLogControlId(log.time, config), payload: { fonte: "CONTROL_ID_MONITOR", log },
         }, update: {},
       });
       if (!evento.processado) await enfileirarMonitorControlId({
@@ -76,7 +77,10 @@ export async function receberMonitorControlId(request: Request, params: { equipa
 
 export async function processarEventoMonitorControlId(params: { equipamentoId: string; eventoMonitorId?: string }) {
   if (!params.eventoMonitorId) throw new Error("Evento Monitor nao informado.");
-  const evento = await prisma.eventoEquipamentoBiometrico.findUniqueOrThrow({ where: { id: params.eventoMonitorId } });
+  const evento = await prisma.eventoEquipamentoBiometrico.findUniqueOrThrow({
+    where: { id: params.eventoMonitorId },
+    include: { equipamento: { select: { configuracao: true } } },
+  });
   if (evento.equipamentoId !== params.equipamentoId) throw new Error("Evento Monitor pertence a outro equipamento.");
   if (evento.processado) return { duplicado: true };
   const payload = evento.payload as { fonte?: string; log?: unknown } | null;
@@ -88,11 +92,12 @@ export async function processarEventoMonitorControlId(params: { equipamentoId: s
   });
   const ignorado = resultado.marcacoes.length === 0;
   const bruta = ignorado ? null : await prisma.marcacaoBruta.findFirst({
-    where: { equipamentoId: evento.equipamentoId, nsr: String(log.id), dataHora: new Date(log.time * 1000) },
+    where: { equipamentoId: evento.equipamentoId, nsr: String(log.id), dataHora: dataHoraAccessLogControlId(log.time, evento.equipamento?.configuracao) ?? undefined },
     select: { marcacaoId: true },
   });
   await prisma.eventoEquipamentoBiometrico.update({ where: { id: evento.id }, data: {
     processado: ignorado || resultado.processadas > 0,
+    dataHora: dataHoraAccessLogControlId(log.time, evento.equipamento?.configuracao),
     processadoEm: new Date(), marcacaoId: bruta?.marcacaoId ?? null,
     erro: ignorado ? "Evento ignorado pelo filtro de acesso do equipamento." : resultado.processadas ? null : "Marcacao bruta preservada; vinculo do servidor pendente.",
   } });
