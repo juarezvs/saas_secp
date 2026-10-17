@@ -43,6 +43,8 @@ DISCOVERY_GATEWAY_SECRET=<mesmo segredo aleatório do central>
 
 Se Next.js e central estiverem em Docker na mesma máquina, use `compose.secp.yaml` como override, configure `SECP_DOCKER_NETWORK` e use um nome DNS incluído no certificado. Distribua a CA à imagem Node pelo mecanismo `docker/certs` já existente. Não use variáveis `NEXT_PUBLIC_*` para esses valores. Reinicie somente o web após configurar o ambiente. A ausência do serviço afeta apenas a tela de descoberta.
 
+Prefira conexão interna direta do backend ao central. O escopo assinado comporta até 256 órgãos e 4096 unidades inativas/ocultas; seu header é limitado a 240 KB. Caso a API administrativa passe por Nginx, ajuste os buffers de headers nesse servidor privado (por exemplo, `large_client_header_buffers 4 256k;`). Isso evita rejeitar escopos de administradores globais com muitas unidades. Agentes não enviam esse header administrativo.
+
 ### Desenvolvimento
 
 Para teste local isolado, `DISCOVERY_ENVIRONMENT=development` permite HTTP no central e no gateway Next.js. Configure `DISCOVERY_SERVICE_URL=http://secp-discovery-central:8000` na rede Docker compartilhada. Agentes de teste precisam de `allow_insecure_transport: true`. Essas exceções são explícitas e restritas ao desenvolvimento. Nenhuma rede é pré-autorizada; nenhum agente ou equipamento é criado automaticamente.
@@ -156,7 +158,7 @@ SNMP é opcional: configure `snmp_community` no arquivo protegido e autorize o m
 7. Os cadastros são criados **inativos**, pela action e pelas validações atuais do SECP. Abra o cadastro para revisar configuração e ativar. Nenhum equipamento existente é sobrescrito automaticamente.
 8. Reenvios reconhecem a identidade/código persistido. Serial confirmado + fabricante é preferido; IP/MAC coincidentes geram conflito para revisão. Identidades de outro escopo não expõem nomes ou IDs.
 
-**Reidentificar** gera novo job `/32` no agente responsável. Credenciais necessárias devem estar no arquivo privado dele. O drawer mostra as últimas 20 observações e horários de primeira/última descoberta; o histórico de jobs possui paginação e retenção.
+**Reidentificar** gera novo job `/32` no agente responsável. Credenciais necessárias devem estar no arquivo privado dele. Sem filtro de job, a listagem mostra a última observação de cada identidade estável; o drawer preserva as últimas 20 observações e horários de primeira/última descoberta. IP/MAC isolados não consolidam identidades. O histórico de jobs possui paginação e retenção.
 
 ## Segurança, escopos e API
 

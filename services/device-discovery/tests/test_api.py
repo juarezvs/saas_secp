@@ -75,6 +75,39 @@ def test_job_report_idempotency_and_history(enrolled):
         assert len(db.scalars(select(Audit)).all()) >= 3
 
 
+def test_confirmed_identity_is_one_device_with_multiple_historical_observations(enrolled):
+    system = enrolled["system"]
+    for _ in range(2):
+        job = new_job(enrolled)
+        claimed = system.client.post("/agent/v1/claim", json={}, headers=enrolled["headers"]).json()["job"]
+        observation = {
+            "ip": "127.0.0.1",
+            "open_ports": [8080],
+            "manufacturer": "CONTROL_ID",
+            "serial": "TEST-STABLE-001",
+            "confidence": "CONFIRMED",
+            "evidence": [
+                {"method": "CONTROL_ID_API", "field": "serial", "value": "TEST-STABLE-001", "source": "DECLARED"}
+            ],
+        }
+        response = system.client.post(
+            f"/agent/v1/jobs/{job['id']}/report",
+            json={
+                "lease": claimed["lease"],
+                "batch_id": str(uuid4()),
+                "finished": True,
+                "results": [{"ip": "127.0.0.1", "observation": observation}],
+            },
+            headers=enrolled["headers"],
+        )
+        assert response.status_code == 200
+    devices = system.admin("GET", "/api/v1/devices").json()
+    assert devices["total"] == 1
+    detail = system.admin("GET", f"/api/v1/devices/{devices['items'][0]['id']}").json()
+    assert len(detail["history"]) == 2
+    assert system.admin("GET", f"/api/v1/devices?job_id={job['id']}").json()["total"] == 1
+
+
 def test_agent_cannot_report_another_network(enrolled):
     system = enrolled["system"]
     job = new_job(enrolled)

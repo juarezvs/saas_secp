@@ -34,7 +34,7 @@ def authenticate_admin(request: Request, db, settings, body: bytes):
         nonce = request.headers["x-discovery-nonce"]
         claims_text = request.headers["x-discovery-claims"]
         received = request.headers["x-discovery-signature"]
-        if abs(time.time() - int(timestamp)) > 60 or len(nonce) > 64 or len(claims_text) > 64000:
+        if abs(time.time() - int(timestamp)) > 60 or len(nonce) > 64 or len(claims_text) > 240000:
             raise ValueError()
         UUID(nonce)
         path = request.url.path + ("?" + request.url.query if request.url.query else "")
@@ -48,7 +48,7 @@ def authenticate_admin(request: Request, db, settings, body: bytes):
         for orgao in claims["orgao_ids"]:
             UUID(orgao)
         excluded = claims.get("excluded_unit_ids", [])
-        if not isinstance(excluded, list) or len(excluded) > 1000:
+        if not isinstance(excluded, list) or len(excluded) > 4096:
             raise ValueError()
         for unit in excluded:
             UUID(unit)

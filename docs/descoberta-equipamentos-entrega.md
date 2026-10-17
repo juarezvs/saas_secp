@@ -95,8 +95,8 @@ O bootstrap é gerado no SECP, dura 15 minutos e é seguido de aprovação admin
 |---|---|
 | Ruff | Aprovado |
 | ESLint das alterações | Aprovado |
-| Python com SQLite | 34 aprovados; teste exclusivo de concorrência PostgreSQL corretamente ignorado |
-| Python com PostgreSQL isolado | 35 aprovados, incluindo claims/reports simultâneos e limite de fila |
+| Python com SQLite | 35 aprovados; teste exclusivo de concorrência PostgreSQL corretamente ignorado |
+| Python com PostgreSQL isolado | 36 aprovados, incluindo claims/reports simultâneos e limite de fila |
 | Vitest: descoberta, BFF e regressão de menus | 30 aprovados |
 | Next.js 16.2.6, build otimizado e TypeScript | Aprovados no Ubuntu; imagem carregada para validação local |
 | Alembic em SQLite e PostgreSQL novos/isolados | Upgrade e comparação do schema aprovados |

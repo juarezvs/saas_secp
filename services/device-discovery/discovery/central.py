@@ -447,6 +447,20 @@ def create_app(settings=None, *, initialize=False):
         if job_id:
             resource(db, Job, job_id, claims)
             query = query.where(ObservationRow.job_id == str(job_id))
+        else:
+            # A visão geral mostra a última observação de cada identidade estável.
+            # O histórico e o filtro por job continuam preservando cada descoberta.
+            ranked = query.add_columns(
+                func.row_number()
+                .over(
+                    partition_by=ObservationRow.device_id,
+                    order_by=(ObservationRow.created.desc(), ObservationRow.id.desc()),
+                )
+                .label("position")
+            ).subquery()
+            query = select(ObservationRow).where(
+                ObservationRow.id.in_(select(ranked.c.id).where(ranked.c.position == 1))
+            )
         total = db.scalar(select(func.count()).select_from(query.subquery()))
         rows = db.scalars(query.order_by(ObservationRow.created.desc()).offset(offset).limit(limit)).all()
         job_map = {j.id: json_row(j) for j in db.scalars(select(Job).where(Job.id.in_({r.job_id for r in rows})))}
@@ -700,7 +714,7 @@ def main():
         port=8000,
         access_log=False,
         limit_concurrency=64,
-        h11_max_incomplete_event_size=131072,
+        h11_max_incomplete_event_size=524288,
         ssl_keyfile=os.environ.get("DISCOVERY_TLS_KEY"),
         ssl_certfile=os.environ.get("DISCOVERY_TLS_CERT"),
     )
