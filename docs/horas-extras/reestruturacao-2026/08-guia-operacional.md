@@ -36,7 +36,7 @@ Execução financeira na razão é consumo do recurso reservado; não confirma q
 
 ## 3. Apresentar o projeto coletivo
 
-Use **Novo projeto coletivo**. O formulário possui cinco etapas: identificação, justificativa, servidores/horários, conferência e confirmação. Inclua itens por servidor e data, com atividade, modalidade, intervalo e estimativa. A lotação deve ser válida para o serviço proposto.
+Use **Novo projeto coletivo**. O formulário possui cinco etapas: identificação, justificativa, servidores/horários, conferência e confirmação. Selecione o titular responsável entre as chefias vigentes da unidade ou de suas unidades superiores. A preparação por administrador não o transforma no titular. Chefias com permissão de subordinados consultam também suas unidades filhas; consulta própria não recebe esse alcance. Inclua itens por servidor e data, com atividade, modalidade, intervalo e estimativa. A lotação deve ser válida para o serviço proposto.
 
 O cadastro verifica jornada, afastamentos, limites e sobreposição. No envio e na autorização, lotação, afastamentos, jornada e calendário são novamente conferidos. A antecedência insuficiente exige justificativa de urgência para decisão expressa da autoridade. Um rascunho salvo não está autorizado.
 

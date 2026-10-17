@@ -32,3 +32,7 @@ Não se aplica migration ou seed neste incremento. Reversão do código restaura
 - [ ] Ativação gradual por órgão apenas após homologação; features novas não homologadas desativadas por padrão.
 
 Este checklist registra trabalho pendente. Nenhum item é considerado aprovado apenas por constar aqui.
+
+## Atualização técnica posterior — 17/10/2026
+
+O checklist acima é institucional e não representa ausência da implementação atual. Consulte o [guia operacional](08-guia-operacional.md) e o [relatório de validação integral](09-validacao-integral.md) para as funcionalidades, migrations e testes posteriores. Aprovação normativa, confirmação do leiaute externo e homologação pelas áreas competentes continuam exigindo atos institucionais.
