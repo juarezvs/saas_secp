@@ -32,7 +32,8 @@ export function validateOvertimeRequestedDays(input: {
   const seenDates = new Set<string>();
   const start = parseIsoDateOnly(input.periodStart);
   const end = parseIsoDateOnly(input.periodEnd);
-  let totalRequestedMinutes = 0;
+  const minutesByMonth = new Map<string, number>();
+  const minutesByYear = new Map<string, number>();
 
   if (start.getTime() > end.getTime()) {
     issues.push({
@@ -43,7 +44,6 @@ export function validateOvertimeRequestedDays(input: {
   }
 
   for (const day of input.days) {
-    totalRequestedMinutes += day.requestedMinutes;
     let date: Date | null = null;
 
     try {
@@ -80,7 +80,7 @@ export function validateOvertimeRequestedDays(input: {
       });
     }
 
-    if (!Number.isInteger(day.requestedMinutes) || day.requestedMinutes <= 0) {
+    if (!Number.isSafeInteger(day.requestedMinutes) || day.requestedMinutes <= 0) {
       issues.push({
         code: "QUANTIDADE_INVALIDA",
         severity: "error",
@@ -88,6 +88,13 @@ export function validateOvertimeRequestedDays(input: {
         date: day.date,
         requestedMinutes: day.requestedMinutes,
       });
+    }
+
+    if (date && Number.isSafeInteger(day.requestedMinutes) && day.requestedMinutes > 0) {
+      const month = day.date.slice(0, 7);
+      const year = day.date.slice(0, 4);
+      minutesByMonth.set(month, (minutesByMonth.get(month) ?? 0) + day.requestedMinutes);
+      minutesByYear.set(year, (minutesByYear.get(year) ?? 0) + day.requestedMinutes);
     }
 
     if (day.requestedStartTime && day.requestedEndTime) {
@@ -130,18 +137,33 @@ export function validateOvertimeRequestedDays(input: {
     }
   }
 
-  if (
-    input.policy.monthlyLimitMinutes !== undefined &&
-    totalRequestedMinutes > input.policy.monthlyLimitMinutes
-  ) {
-    issues.push({
-      code: "LIMITE_MENSAL_EXCEDIDO",
-      severity: "error",
-      message: "A quantidade total solicitada excede o limite mensal configurado.",
-      allowedMinutes: input.policy.monthlyLimitMinutes,
-      requestedMinutes: totalRequestedMinutes,
-      normativeBasis: input.policy.normativeBasis,
-    });
+  // O caso de uso ainda deve agregar o histórico de outras autorizações.
+  for (const [month, minutes] of minutesByMonth) {
+    if (input.policy.monthlyLimitMinutes !== undefined && minutes > input.policy.monthlyLimitMinutes) {
+      issues.push({
+        code: "LIMITE_MENSAL_EXCEDIDO",
+        severity: "error",
+        message: `A quantidade solicitada em ${month} excede o limite mensal configurado.`,
+        date: `${month}-01`,
+        allowedMinutes: input.policy.monthlyLimitMinutes,
+        requestedMinutes: minutes,
+        normativeBasis: input.policy.normativeBasis,
+      });
+    }
+  }
+
+  for (const [year, minutes] of minutesByYear) {
+    if (input.policy.annualLimitMinutes !== undefined && minutes > input.policy.annualLimitMinutes) {
+      issues.push({
+        code: "LIMITE_ANUAL_EXCEDIDO",
+        severity: "error",
+        message: `A quantidade solicitada em ${year} excede o limite anual configurado.`,
+        date: `${year}-01-01`,
+        allowedMinutes: input.policy.annualLimitMinutes,
+        requestedMinutes: minutes,
+        normativeBasis: input.policy.normativeBasis,
+      });
+    }
   }
 
   return issues;

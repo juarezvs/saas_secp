@@ -8,6 +8,7 @@ import { Button, Card, CardContent, CardHeader, CardTitle } from "@/components/u
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { fecharLoteFolhaHorasExtrasAction } from "@/modules/horas-extras/application/actions/fechar-lote-folha-horas-extras.action";
 import { buscarLoteFolhaHorasExtrasPorId } from "@/modules/horas-extras/infrastructure/repositories/horas-extras-folha.repository";
+import { podeAcessarOrgaoHorasExtras } from "@/modules/horas-extras/application/services/escopo-horas-extras.service";
 
 type PageProps = {
   params: Promise<{
@@ -44,9 +45,10 @@ export default async function FolhaHorasExtrasDetalhePage({ params }: PageProps)
   }
 
   if (
-    !permissao.perfilAtivoEscopoGlobal &&
-    permissao.orgaoIds?.length &&
-    !permissao.orgaoIds.includes(lote.orgaoId)
+    !podeAcessarOrgaoHorasExtras({
+      global: permissao.perfilAtivoEscopoGlobal === true,
+      orgaoIds: permissao.orgaoIds ?? [],
+    }, lote.orgaoId)
   ) {
     notFound();
   }
@@ -114,10 +116,10 @@ export default async function FolhaHorasExtrasDetalhePage({ params }: PageProps)
             )}
             {podeExportar && (
               <Link
-                href={`/api/horas-extras/folha/${lote.id}/export?layout=oficial`}
+                href={`/api/horas-extras/folha/${lote.id}/export?layout=resumo`}
                 className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-white px-4 text-sm font-semibold text-foreground transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
-                Exportar folha
+                Exportar resumo interno
               </Link>
             )}
           </div>

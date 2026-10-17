@@ -7,6 +7,7 @@ import type {
 } from "../integrations/remuneracao-provider";
 import { calcularValorHorasExtras } from "./calcular-valor-horas-extras.service";
 import { rubricaHorasExtrasPorPercentual } from "./horas-extras-folha.service";
+import { podeAcessarOrgaoHorasExtras, type EscopoHorasExtras } from "./escopo-horas-extras.service";
 
 type ClassificacaoReconhecida = {
   id: string;
@@ -16,12 +17,6 @@ type ClassificacaoReconhecida = {
   fim: string;
   minutos: number;
   metadados: unknown;
-};
-
-type ServidorCalculo = {
-  id: string;
-  servidorId: string;
-  classificacoes: ClassificacaoReconhecida[];
 };
 
 function dataIso(data: Date) {
@@ -120,6 +115,7 @@ export async function calcularAutorizacaoHorasExtras(params: {
   usuarioId?: string | null;
   perfilAtivoCodigo?: string | null;
   remuneracaoProvider: RemuneracaoProvider;
+  escopo: EscopoHorasExtras;
 }) {
   const autorizacao = await prisma.autorizacaoHoraExtraAdministrativa.findUnique({
     where: {
@@ -141,6 +137,11 @@ export async function calcularAutorizacaoHorasExtras(params: {
 
   if (!autorizacao) {
     throw new Error("Autorizacao de horas extras nao localizada.");
+  }
+
+  // Validar antes de consultar qualquer contracheque ou efetuar mutações.
+  if (!podeAcessarOrgaoHorasExtras(params.escopo, autorizacao.orgaoId)) {
+    throw new Error("Autorizacao fora do escopo de orgaos do perfil ativo.");
   }
 
   if (autorizacao.status !== "ATESTADA") {

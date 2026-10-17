@@ -45,6 +45,7 @@ Foram examinados o schema Prisma, os serviços, actions, repositories, component
 | R08 | Alta | Sem campanha/razão financeira | Valor de referência informado não constitui crédito disponível. Campanha 2026 nasce em rascunho, sem saldo financeiro. |
 | R09 | Alta | Crédito ordinário e extraordinário compartilham conceitos | Separar regimes sem alterar a rotina ordinária já utilizada; registrar consumo único por intervalo. |
 | R10 | Alta | Art. 52 consolidado versus art. 75/alcance de funções | Análise jurídica explícita do adicional noturno para CJ/FC; não inventar decisão nem confundir corte local das 19h com adicional noturno federal das 22h. |
+| R11 | Alta | `prisma/seed.ts` na configuração padrão e `presentation/components/horas-extras-politica-form.tsx` | Defaults ainda indicam 134h anuais; seed atualiza a versão 1 por upsert. Corrigir em migração versionada: preservar políticas referenciadas, distinguir teto institucional de teto normativo vigente e impedir reescrita por seed global. Não executar esse seed como migração corretiva. |
 
 ## Fontes e pendências
 

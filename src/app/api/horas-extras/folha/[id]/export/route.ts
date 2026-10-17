@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { Decimal } from "@prisma/client/runtime/client";
 
 import { exigirPermissao } from "@/modules/auth/application/services/permissao.service";
 import { buscarLoteFolhaHorasExtrasPorId } from "@/modules/horas-extras/infrastructure/repositories/horas-extras-folha.repository";
+import { podeAcessarOrgaoHorasExtras } from "@/modules/horas-extras/application/services/escopo-horas-extras.service";
 
 type RouteContext = {
   params: Promise<{
@@ -10,7 +12,8 @@ type RouteContext = {
 };
 
 function csvValor(valor: string | number | null | undefined) {
-  const texto = String(valor ?? "");
+  const original = String(valor ?? "");
+  const texto = /^\s*[=+\-@]/.test(original) ? `'${original}` : original;
   return `"${texto.replaceAll('"', '""')}"`;
 }
 
@@ -65,7 +68,7 @@ function gerarCsvDetalhado(lote: NonNullable<Awaited<ReturnType<typeof buscarLot
     .join("\n")}\n`;
 }
 
-function gerarCsvOficial(lote: NonNullable<Awaited<ReturnType<typeof buscarLoteFolhaHorasExtrasPorId>>>) {
+function gerarCsvResumo(lote: NonNullable<Awaited<ReturnType<typeof buscarLoteFolhaHorasExtrasPorId>>>) {
   const grupos = new Map<
     string,
     {
@@ -73,7 +76,7 @@ function gerarCsvOficial(lote: NonNullable<Awaited<ReturnType<typeof buscarLoteF
       nome: string;
       rubrica: string;
       minutos: number;
-      valor: number;
+      valor: Decimal;
     }
   >();
 
@@ -86,11 +89,11 @@ function gerarCsvOficial(lote: NonNullable<Awaited<ReturnType<typeof buscarLoteF
         nome: employee.employeeName ?? "",
         rubrica,
         minutos: 0,
-        valor: 0,
+        valor: new Decimal(0),
       };
 
       grupo.minutos += line.minutes;
-      grupo.valor += Number(line.amount.toString());
+      grupo.valor = grupo.valor.plus(line.amount.toString());
       grupos.set(chave, grupo);
     }
   }
@@ -131,21 +134,31 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   if (
-    !permissao.perfilAtivoEscopoGlobal &&
-    permissao.orgaoIds?.length &&
-    !permissao.orgaoIds.includes(lote.orgaoId)
+    !podeAcessarOrgaoHorasExtras({
+      global: permissao.perfilAtivoEscopoGlobal === true,
+      orgaoIds: permissao.orgaoIds ?? [],
+    }, lote.orgaoId)
   ) {
     return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
   }
 
   const layout = new URL(request.url).searchParams.get("layout");
-  const oficial = layout === "oficial";
-  const csv = oficial ? gerarCsvOficial(lote) : gerarCsvDetalhado(lote);
+  if (layout === "oficial") {
+    return NextResponse.json({
+      error: "Leiaute oficial de folha pendente de homologacao. Utilize o resumo interno para conferencia.",
+      code: "LEIAUTE_FOLHA_NAO_HOMOLOGADO",
+    }, { status: 409 });
+  }
+  if (layout && !["detalhado", "resumo"].includes(layout)) {
+    return NextResponse.json({ error: "Leiaute de exportacao desconhecido." }, { status: 400 });
+  }
+  const resumo = layout === "resumo";
+  const csv = resumo ? gerarCsvResumo(lote) : gerarCsvDetalhado(lote);
 
   return new Response(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="horas-extras-${oficial ? "folha" : "detalhado"}-${lote.competence}.csv"`,
+      "Content-Disposition": `attachment; filename="horas-extras-${resumo ? "resumo-interno" : "detalhado"}-${lote.competence}.csv"`,
     },
   });
 }

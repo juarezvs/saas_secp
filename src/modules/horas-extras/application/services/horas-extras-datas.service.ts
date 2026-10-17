@@ -22,7 +22,7 @@ export function parseIsoDateOnly(value: string) {
 
   const date = new Date(`${value}T00:00:00.000Z`);
 
-  if (Number.isNaN(date.getTime())) {
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
     throw new Error(`Data invalida: ${value}`);
   }
 
