@@ -389,7 +389,7 @@ export const MENU_ITEMS: MenuItem[] = [
       "horas-extras:configurar-politica:seccional", "horas-extras:configurar-politica:global",
       "horas-extras:validar-remuneracao:seccional", "horas-extras:validar-remuneracao:global",
       "horas-extras:validar-rubrica:seccional", "horas-extras:validar-rubrica:global",
-      "horas-extras:solicitar:proprio",
+      "horas-extras:solicitar:proprio", "horas-extras:solicitar:subordinados", "horas-extras:solicitar:chefia",
       "horas-extras:analisar:subordinados",
       "horas-extras:analisar:chefia",
       "horas-extras:responder-orcamento:seccional",
@@ -409,7 +409,7 @@ export const MENU_ITEMS: MenuItem[] = [
         label: "Campanhas e projetos",
         href: "/horas-extras/campanhas",
         icon: CalendarClock,
-        permissoes: ["horas-extras:visualizar:proprio", "horas-extras:solicitar:proprio", "horas-extras:analisar:chefia", "horas-extras:responder-orcamento:seccional", "horas-extras:responder-orcamento:global", "horas-extras:deliberar:seccional", "horas-extras:deliberar:global", "horas-extras:gerar-lote:seccional", "horas-extras:gerar-lote:global", "horas-extras:configurar-politica:global", "horas-extras:configurar-politica:seccional"],
+        permissoes: ["horas-extras:visualizar:proprio", "horas-extras:solicitar:proprio", "horas-extras:solicitar:subordinados", "horas-extras:solicitar:chefia", "horas-extras:analisar:chefia", "horas-extras:responder-orcamento:seccional", "horas-extras:responder-orcamento:global", "horas-extras:deliberar:seccional", "horas-extras:deliberar:global", "horas-extras:gerar-lote:seccional", "horas-extras:gerar-lote:global", "horas-extras:configurar-politica:global", "horas-extras:configurar-politica:seccional"],
       },
       {
         label: "Minhas solicitações",

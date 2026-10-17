@@ -23,7 +23,8 @@ const includeVersion={fundings:true,items:{include:{employee:{include:{usuario:t
 type Version=Prisma.OvertimeProjectVersionGetPayload<{include:typeof includeVersion}>;
 
 export function temAcaoCampanha(ctx:ContextoCampanha,action:string) {
-  return possuiAlgumaPermissaoNaLista(ctx.permissoes,[`horas-extras:${action}:global`,`horas-extras:${action}:seccional`,...(action==="analisar"?["horas-extras:analisar:chefia","horas-extras:analisar:subordinados"]:[]),...(action==="solicitar"?["horas-extras:solicitar:proprio"]:[])]);
+  if(action==="solicitar")return possuiAlgumaPermissaoNaLista(ctx.permissoes,["horas-extras:solicitar:subordinados","horas-extras:solicitar:chefia","horas-extras:solicitar:global","horas-extras:solicitar:seccional","horas-extras:configurar-politica:global","horas-extras:configurar-politica:seccional"]);
+  return possuiAlgumaPermissaoNaLista(ctx.permissoes,[`horas-extras:${action}:global`,`horas-extras:${action}:seccional`,...(action==="analisar"?["horas-extras:analisar:chefia","horas-extras:analisar:subordinados"]:[]),...(action==="solicitar"?["horas-extras:solicitar:proprio","horas-extras:solicitar:subordinados","horas-extras:solicitar:chefia"]:[])]);
 }
 export function exigirAcaoCampanha(ctx:ContextoCampanha,orgaoId:string,action:string) {
  exigirCampanhasHorasExtrasHabilitadas(orgaoId);
@@ -36,10 +37,10 @@ export async function exigirUnidadeAtiva(tx:Tx,unitId:string,orgaoId:string) {
  if(hidden.length)throw new Error("Unidade superior inativa.");
  return unit;
 }
-export async function exigirTitularCampanha(tx:Tx,ctx:ContextoCampanha,unitId:string) {
- if(temAcaoCampanha(ctx,"configurar-politica"))return;
+export async function exigirTitularCampanha(tx:Tx,ctx:ContextoCampanha,unitId:string,allowAdministrator=true) {
+ if(allowAdministrator&&temAcaoCampanha(ctx,"configurar-politica"))return;
  const now=parseIsoDateOnly(hojeCampanha());
- const managers=await tx.$queryRaw<Array<{id:string}>>`WITH RECURSIVE pais AS (SELECT id,unidade_pai_id FROM unidades_organizacionais WHERE id=${unitId}::uuid UNION SELECT u.id,u.unidade_pai_id FROM unidades_organizacionais u JOIN pais p ON p.unidade_pai_id=u.id) SELECT g.id FROM gestores_unidades g JOIN servidores s ON s.id=g.servidor_id WHERE s.usuario_id=${ctx.usuarioId}::uuid AND g.unidade_id IN (SELECT id FROM pais) AND g.ativo AND g.data_inicio<=${now} AND (g.data_fim IS NULL OR g.data_fim>=${now})`;
+ const managers=await tx.$queryRaw<Array<{id:string}>>`WITH RECURSIVE pais AS (SELECT id,unidade_pai_id FROM unidades_organizacionais WHERE id=${unitId}::uuid UNION SELECT u.id,u.unidade_pai_id FROM unidades_organizacionais u JOIN pais p ON p.unidade_pai_id=u.id) SELECT g.id FROM gestores_unidades g JOIN servidores s ON s.id=g.servidor_id WHERE s.usuario_id=${ctx.usuarioId}::uuid AND s.ativo AND s.orgao_id=(SELECT orgao_id FROM unidades_organizacionais WHERE id=${unitId}::uuid) AND g.unidade_id IN (SELECT id FROM pais) AND g.ativo AND g.data_inicio<=${now} AND (g.data_fim IS NULL OR g.data_fim>=${now})`;
  if(!managers.length)throw new Error("Somente a chefia responsável pela unidade pode apresentar este projeto.");
 }
 const exigirTitular=exigirTitularCampanha;
@@ -111,10 +112,13 @@ export async function salvarProjetoCampanha(db:PrismaClient,ctx:ContextoCampanha
   if(campaign.status!=="ACTIVE")throw new Error("Campanha não está ativa.");
   const account=await tx.overtimeCampaignAccount.findFirstOrThrow({where:{id:input.accountId,campaignId:campaign.id}});
   await exigirUnidadeAtiva(tx,account.unitId,campaign.orgaoId); await exigirTitular(tx,ctx,account.unitId);
+  await exigirTitularCampanha(tx,{...ctx,usuarioId:input.responsibleUserId},account.unitId,false);
+  const responsible=await tx.usuario.findUniqueOrThrow({where:{id:input.responsibleUserId},select:{id:true,nome:true,matricula:true}});
   const today=hojeCampanha();
   const old=input.projectId?await tx.overtimeProject.findUniqueOrThrow({where:{id:input.projectId},include:{versions:{orderBy:{version:"desc"},take:1,include:includeVersion}}}):null;
   const previous=old?.versions[0];
-  if(old&&(old.accountId!==account.id||old.campaignId!==campaign.id||old.requesterUserId!==ctx.usuarioId))throw new Error("Projeto fora da unidade ou titular informado.");
+  if(old&&old.requesterUserId!==responsible.id)throw new Error("Retificação preserva a chefia responsável original; mudança de responsável exige novo projeto e decisão documentada.");
+  if(old&&(old.accountId!==account.id||old.campaignId!==campaign.id||(old.requesterUserId!==ctx.usuarioId&&!temAcaoCampanha(ctx,"configurar-politica"))))throw new Error("Projeto fora da unidade ou titular informado.");
   if(previous&&!['DRAFT','RETURNED','AUTHORIZED'].includes(previous.status))throw new Error("Esta etapa não permite retificação.");
   if(previous&&(input.amendmentReason?.trim().length??0)<10)throw new Error("Informe o motivo da nova versão.");
   if(previous?.status==="AUTHORIZED"&&previous.items.some(i=>iso(i.date)<=today))throw new Error("Retificação posterior ao início da execução é vedada; preserve a autorização original.");
@@ -161,11 +165,11 @@ export async function salvarProjetoCampanha(db:PrismaClient,ctx:ContextoCampanha
    await tx.overtimeProjectVersion.update({where:{id:previous.id},data:{status:"SUPERSEDED",isCurrent:false}});
    await event(tx,ctx,previous,"AMEND","SUPERSEDED",input.amendmentReason!,campaign.authorizationDocument,{status:previous.status},{status:"SUPERSEDED"});
   }
-  const project=old??await tx.overtimeProject.create({data:{campaignId:campaign.id,orgaoId:campaign.orgaoId,accountId:account.id,requesterUserId:ctx.usuarioId,title:input.title}});
+  const project=old??await tx.overtimeProject.create({data:{campaignId:campaign.id,orgaoId:campaign.orgaoId,accountId:account.id,requesterUserId:responsible.id,title:input.title}});
   const number=(previous?.version??0)+1;
-  const v=await tx.overtimeProjectVersion.create({data:{projectId:project.id,version:number,seiProcess:input.seiProcess,justification:input.justification,activities:input.activities,expectedResults:input.expectedResults,ordinaryImpossibility:input.ordinaryImpossibility,urgencyReason:input.urgencyReason,amendmentReason:input.amendmentReason,contentHash:createHash("sha256").update(JSON.stringify(input)).digest("hex"),rulesSnapshot:json(campaign.rules),contentSnapshot:json(input),items:{create:items}},include:includeVersion});
+  const v=await tx.overtimeProjectVersion.create({data:{projectId:project.id,version:number,seiProcess:input.seiProcess,justification:input.justification,activities:input.activities,expectedResults:input.expectedResults,ordinaryImpossibility:input.ordinaryImpossibility,urgencyReason:input.urgencyReason,amendmentReason:input.amendmentReason,contentHash:createHash("sha256").update(JSON.stringify(input)).digest("hex"),rulesSnapshot:json(campaign.rules),contentSnapshot:json({...input,responsibleSnapshot:responsible}),items:{create:items}},include:includeVersion});
   await tx.overtimeProject.update({where:{id:project.id},data:{currentVersion:number,title:input.title}});
-  await event(tx,ctx,v,"CREATE","DRAFT",input.amendmentReason||"Projeto apresentado pelo titular",campaign.authorizationDocument,null,{version:number,hash:v.contentHash,itemCount:items.length});
+  await event(tx,ctx,v,"CREATE","DRAFT",input.amendmentReason||(ctx.usuarioId===responsible.id?"Projeto apresentado pelo titular":"Projeto preparado administrativamente para a chefia responsável"),campaign.authorizationDocument,null,{version:number,hash:v.contentHash,itemCount:items.length});
   return v;
  },{maxWait:10000,timeout:60000});
 }

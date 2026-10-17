@@ -17,7 +17,7 @@ export const campanhaOperacionalSchema=z.object({
  if(v.workflow.length!==3||new Set(v.workflow).size!==3||v.workflow[2]!=="AUTHORITY_REVIEW")c.addIssue({code:"custom",message:"As três análises são obrigatórias, com decisão da autoridade ao final.",path:["workflow"]});
 });
 export const projetoCampanhaSchema=z.object({
- campaignId:z.uuid(),accountId:z.uuid(),projectId:z.uuid().optional(),title:z.string().trim().min(5).max(200),seiProcess:z.string().trim().min(5).max(80),
+ campaignId:z.uuid(),accountId:z.uuid(),responsibleUserId:z.uuid(),projectId:z.uuid().optional(),title:z.string().trim().min(5).max(200),seiProcess:z.string().trim().min(5).max(80),
  justification:text,activities:text,expectedResults:text,ordinaryImpossibility:text,urgencyReason:z.string().trim().max(4000).optional(),amendmentReason:z.string().trim().max(4000).optional(),
  activityClass:z.enum(["ESSENCIAL","EVENTO_SEM_REVEZAMENTO","REPARO_INADIAVEL","ESFORCO_CONCENTRADO"]).default("ESFORCO_CONCENTRADO"),
  items:z.array(z.object({employeeId:z.uuid(),date,startTime:z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),endTime:z.string().regex(/^(([01]\d|2[0-3]):[0-5]\d|24:00)$/),breakMinutes:z.coerce.number().int().min(0).max(120).default(0),activity:text,destination:z.enum(["PECUNIA","BANCO_DE_HORAS"]),estimatedAmount:money})).min(1).max(500),

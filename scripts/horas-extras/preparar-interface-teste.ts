@@ -27,6 +27,7 @@ try {
  if(!await db.usuarioPerfil.count({where:{usuarioId:user.id,perfilId:reader.id}}))await db.usuarioPerfil.create({data:{usuarioId:user.id,perfilId:reader.id,orgaoId:org.id}});
  const employee=await db.servidor.upsert({where:{matricula:"HE_UI_0001"},update:{},create:{usuarioId:user.id,orgaoId:org.id,matricula:"HE_UI_0001"}});
  if(!await db.lotacao.count({where:{servidorId:employee.id,unidadeId:unit.id}}))await db.lotacao.create({data:{servidorId:employee.id,unidadeId:unit.id,dataInicio:new Date("2026-01-01Z")}});
+ if(!await db.gestorUnidade.count({where:{servidorId:employee.id,unidadeId:unit.id}}))await db.gestorUnidade.create({data:{servidorId:employee.id,unidadeId:unit.id,papel:"GESTOR_TITULAR",dataInicio:new Date("2026-01-01Z")}});
  const jornada=await db.jornada.upsert({where:{codigo:"HE_UI_8H"},update:{},create:{orgaoId:org.id,codigo:"HE_UI_8H",nome:"Jornada fictícia 8h",tipo:"OITO_HORAS",cargaDiariaMinutos:480,horarioEntradaPadrao:"08:00",horarioSaidaPadrao:"16:00",permiteHoraExtra:true}});
  if(!await db.jornadaServidor.count({where:{servidorId:employee.id,jornadaId:jornada.id}}))await db.jornadaServidor.create({data:{servidorId:employee.id,jornadaId:jornada.id,dataInicio:new Date("2026-01-01Z")}});
  if(!await db.movimentoBancoHoras.count({where:{servidorId:employee.id}}))await db.movimentoBancoHoras.create({data:{servidorId:employee.id,tipo:"CREDITO",status:"VALIDADO",minutos:0,saldoAposMovimento:0,dataReferencia:new Date("2026-09-30Z"),anoReferencia:2026,mesReferencia:9,observacao:"Saldo inteiramente fictício para E2E"}});

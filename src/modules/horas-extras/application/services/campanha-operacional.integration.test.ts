@@ -5,6 +5,7 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { alterarStatusCampanha, cadastrarRemuneracaoCampanha, cadastrarRubricaCampanha, cadastrarRestricaoCampanha, complementarReservaProjeto, criarCampanhaOperacional, decidirProjetoCampanha, salvarProjetoCampanha, type ContextoCampanha } from "./campanha-operacional.service";
 import { executarOperacaoOrcamentoCampanha } from "./orcamento-campanha-horas-extras.service";
 import { fecharLoteFolhaSeguro, gerarLoteFolhaSeguro } from "./gerar-lote-folha-seguro.service";
+import { unidadesChefiaCampanha, escopoProjetosCampanha } from "./campanha-consulta.service";
 import { registrarFruicaoExtraordinaria } from "./credito-extraordinario.service";
 
 const url=process.env.HORAS_EXTRAS_TEST_DATABASE_URL;
@@ -21,6 +22,7 @@ describe.runIf(Boolean(url))("campanha operacional completa em PostgreSQL",()=>{
   const unit=await db.unidadeOrganizacional.create({data:{orgaoId,codigo:randomUUID(),sigla:randomUUID(),nome:"Unidade inteiramente fictícia",tipo:"VARA"}});
   const user=await db.usuario.create({data:{matricula:randomUUID(),nome:"Pessoa fictícia para testes de campanha"}});
   const employee=await db.servidor.create({data:{usuarioId:user.id,orgaoId,matricula:randomUUID(),lotacoes:{create:{unidadeId:unit.id,dataInicio:new Date("2026-01-01Z")}}}});
+  await db.gestorUnidade.create({data:{servidorId:employee.id,unidadeId:unit.id,papel:"GESTOR_TITULAR",dataInicio:new Date("2026-01-01Z")}});
   const jornada=await db.jornada.create({data:{orgaoId,codigo:randomUUID(),nome:"Jornada teste 8h",tipo:"OITO_HORAS",cargaDiariaMinutos:480,horarioEntradaPadrao:"08:00",horarioSaidaPadrao:"16:00",permiteHoraExtra:true}});
   await db.jornadaServidor.create({data:{servidorId:employee.id,jornadaId:jornada.id,dataInicio:new Date("2026-01-01Z")}});
   await db.movimentoBancoHoras.create({data:{servidorId:employee.id,tipo:"CREDITO",status:"VALIDADO",minutos:0,saldoAposMovimento:0,dataReferencia:new Date("2026-09-30Z"),anoReferencia:2026,mesReferencia:9}});
@@ -28,7 +30,7 @@ describe.runIf(Boolean(url))("campanha operacional completa em PostgreSQL",()=>{
   await alterarStatusCampanha(db,ctx,campaign.id,"ACTIVE",reason);
   const account=await db.overtimeCampaignAccount.findFirstOrThrow({where:{campaignId:campaign.id}});
   for(const type of ["ALLOCATE","DECENTRALIZE"])if(amount!=="0.00")await executarOperacaoOrcamentoCampanha(db,ctx,{orgaoId,campaignId:campaign.id,sourceAccountId:account.id,type,amount,idempotencyKey:randomUUID(),correlationId:randomUUID(),reason,seiDocument:"ATO-TESTE",originReference:"TESTE-FICTICIO"});
-  const input={campaignId:campaign.id,accountId:account.id,title:"Projeto coletivo fictício",seiProcess:"TESTE-PROJETO",justification:reason,activities:reason,expectedResults:reason,ordinaryImpossibility:reason,urgencyReason:reason,items:[{employeeId:employee.id,date,startTime:"16:00",endTime:"18:00",breakMinutes:0,activity:reason,destination,estimatedAmount:destination==="PECUNIA"?"200.00":"0.00"}]};
+  const input={campaignId:campaign.id,accountId:account.id,responsibleUserId:user.id,title:"Projeto coletivo fictício",seiProcess:"TESTE-PROJETO",justification:reason,activities:reason,expectedResults:reason,ordinaryImpossibility:reason,urgencyReason:reason,items:[{employeeId:employee.id,date,startTime:"16:00",endTime:"18:00",breakMinutes:0,activity:reason,destination,estimatedAmount:destination==="PECUNIA"?"200.00":"0.00"}]};
   const v=await salvarProjetoCampanha(db,ctx,input,calendar);return {campaign,account,unit,employee,user,jornada,input,v};
  }
  async function decide(versionId:string,action:string,extra={}){return decidirProjetoCampanha(db,ctx,{versionId,action,reason,seiDocument:"DECISAO-TESTE",...extra},calendar);}
@@ -79,5 +81,7 @@ describe.runIf(Boolean(url))("campanha operacional completa em PostgreSQL",()=>{
  it("virada de dia desdobra datas e preserva o custo total",async()=>{const f=await fixture("1000.00","2026-10-23");const v=await salvarProjetoCampanha(db,ctx,{...f.input,projectId:f.v.projectId,amendmentReason:reason,items:[{...f.input.items[0],startTime:"23:00",endTime:"01:00"}]},calendar);expect(v.items.map(i=>i.requestedMinutes)).toEqual([60,60]);expect(v.items.map(i=>i.date.toISOString().slice(0,10))).toEqual(["2026-10-23","2026-10-24"]);expect(v.items.reduce((n,i)=>n+Number(i.estimatedAmount),0)).toBe(200);});
  it("novo afastamento impede autorizar uma proposta anteriormente válida",async()=>{const f=await fixture();await decide(f.v.id,"SUBMIT");await decide(f.v.id,"ADMIN_APPROVE");await decide(f.v.id,"BUDGET_APPROVE");await db.afastamentoSarh.create({data:{codigoExternoSarh:randomUUID(),servidorId:f.employee.id,categoria:"LICENCA",origemTabela:"TESTE_FICTICIO",dataInicio:new Date("2026-10-22Z"),dataFim:new Date("2026-10-22Z")}});await expect(decide(f.v.id,"AUTHORIZE",{items:f.v.items.map(i=>({id:i.id,minutes:120,reason}))})).rejects.toThrow(/afastamento/);});
  it("crédito ordinário posterior não reutiliza horas já homologadas",async()=>{const f=await fixture();await homologate(f);await expect(db.movimentoBancoHoras.create({data:{servidorId:f.employee.id,tipo:"CREDITO",status:"VALIDADO",minutos:120,saldoAposMovimento:120,dataReferencia:new Date("2026-10-22Z"),anoReferencia:2026,mesReferencia:10}})).rejects.toThrow(/extraordinarios/);});
+
+ it("chefia com permissão de subordinados alcança a unidade e suas unidades filhas",async()=>{const f=await fixture();await db.gestorUnidade.create({data:{servidorId:f.employee.id,unidadeId:f.unit.id,papel:"GESTOR_TITULAR",dataInicio:new Date("2026-01-01Z")}});const child=await db.unidadeOrganizacional.create({data:{orgaoId,unidadePaiId:f.unit.id,codigo:randomUUID(),sigla:randomUUID(),nome:"Filha fictícia",tipo:"VARA"}});const chefia={...ctx,usuarioId:f.user.id,perfilAtivoCodigo:"CHEFIA_TEST",permissoes:["horas-extras:solicitar:subordinados"]};expect(await unidadesChefiaCampanha(chefia,db)).toEqual(expect.arrayContaining([f.unit.id,child.id]));const draft=await salvarProjetoCampanha(db,chefia,{...f.input,title:"Projeto da chefia atual"},calendar);expect(draft.project.requesterUserId).toBe(f.user.id);const visible=await db.overtimeProject.count({where:await escopoProjetosCampanha(chefia,db)});expect(visible).toBeGreaterThanOrEqual(1);});
 
 });
