@@ -12,15 +12,16 @@ await mkdir(clock,{recursive:true});await writeFile(path.join(clock,'date.txt'),
 const seed=()=>execFileSync(process.execPath,['node_modules/tsx/dist/cli.mjs','scripts/horas-extras/preparar-interface-teste.ts','--marcacoes'],{stdio:'pipe',env:process.env});
 seed();const fixture=JSON.parse(await readFile('.tmp/campanha-ui-fixture.json','utf8'));
 const browser=await chromium.launch({headless:true});const context=await browser.newContext({acceptDownloads:true,viewport:{width:1440,height:1000}});
-const page=await context.newPage();page.setDefaultTimeout(30000);
+const page=await context.newPage();page.setDefaultTimeout(30000);page.setDefaultNavigationTimeout(30000);
 const errors=[];page.on('pageerror',error=>errors.push(error.message));
 const reason='Teste inteiramente fictício de atividade excepcional: concluir conferência de processos e apresentar relatório de resultados verificáveis.';
 const code=`E2E-${Date.now()}`;let campaignId,projectId,batchId;
 async function login(p,user,password){await p.goto(new URL('/login',base).href);await p.getByPlaceholder(/matr/i).fill(user);await p.locator('input[type="password"]').fill(password);await p.getByRole('button',{name:'Entrar no SECP',exact:true}).click();await p.waitForURL(u=>!u.pathname.includes('/login'));}
 async function select(scope,name,label,search){const native=scope.locator(`select[name="${name}"]`).first();await native.locator('..').getByRole('combobox').click();if(search)await page.getByRole('searchbox',{name:'Pesquisar...',exact:true}).fill(search);await page.getByRole('option',{name:label,exact:typeof label==='string'}).click();}
-async function fill(scope,name,value){await scope.locator(`[name="${name}"]`).fill(value);}
-async function submit(form,label){const response=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().startsWith(base.origin));await form.getByRole('button',{name:label,exact:true}).click();await response;}
+async function fill(scope,name,value){await scope.locator(`input[name="${name}"],textarea[name="${name}"]`).fill(value);}
+async function submit(form,label){form=page.locator('form').filter({has:page.getByRole('button',{name:label,exact:true})});console.log(`Formul?rio: ${label}`);const invalid=await form.locator('input,select,textarea').evaluateAll(elements=>elements.filter(e=>e.willValidate&&!e.validity.valid).map(e=>({name:e.name,value:e.value,message:e.validationMessage})));if(invalid.length)throw new Error(JSON.stringify(invalid));await Promise.all([page.waitForResponse(r=>r.request().method()==='POST'&&r.url().startsWith(base.origin)),form.getByRole('button',{name:label,exact:true}).click()]);}
 async function command(action,next,extras={}) {
+ console.log(`Etapa: ${action}`);
  const form=page.locator('form').filter({has:page.getByRole('heading',{name:'Próxima etapa',exact:true})});
  await select(form,'action',action);await fill(form,'seiDocument','SEI-FICTICIO-E2E');await fill(form,'reason',reason);
  for(const [key,value]of Object.entries(extras))await fill(form,key,value);
