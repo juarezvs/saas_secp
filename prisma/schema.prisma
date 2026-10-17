@@ -786,6 +786,7 @@ model Usuario {
   atestosHoraExtraEmitidos           HoraExtraAtesto[]                              @relation("AtestosHoraExtraEmitidosPor")
   calculosHoraExtraExecutados        HoraExtraCalculo[]                             @relation("CalculosHoraExtraExecutadosPor")
   eventosHoraExtra                   HoraExtraEvento[]                              @relation("EventosHoraExtraPorUsuario")
+  overtimeBudgetOperations           OvertimeBudgetOperation[]
   teamsVinculos                      TeamsUsuarioVinculado[]
   teamsLogs                          TeamsLog[]
   teamsNotificacoes                  TeamsNotificacao[]
@@ -1090,6 +1091,7 @@ model Orgao {
   substituicoesFuncao              SubstituicaoFuncao[]
   pagamentosSubstituicaoFuncao     PagamentoSubstituicaoFuncao[]
   autorizacoesHoraExtra            AutorizacaoHoraExtraAdministrativa[]
+  overtimeCampaigns                OvertimeCampaign[]
   perfis                           Perfil[]
   programacoesFerias               ProgramacaoFerias[]
   excecoesSecapFerias              ExcecaoSecapFeriasServidor[]
@@ -1311,8 +1313,10 @@ model UnidadeOrganizacional {
   pagamentosSubstituicaoFuncao      PagamentoSubstituicaoFuncao[]
   autorizacoesHoraExtra             AutorizacaoHoraExtraAdministrativa[]
   servidoresAutorizadosHoraExtra    AutorizacaoHoraExtraServidor[]
+  overtimeCampaignAccounts          OvertimeCampaignAccount[]
   programacoesFerias                ProgramacaoFerias[]
 
+  @@unique([id, orgaoId])
   @@unique([orgaoId, codigo])
   @@unique([orgaoId, codigoExternoSarh])
   @@index([orgaoId])
@@ -3675,6 +3679,123 @@ model HomologacaoRecesso {
   @@index([status])
   @@index([mesReferencia])
   @@map("recessos_homologacoes")
+}
+
+enum OvertimeCampaignStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  CANCELLED
+}
+
+enum OvertimeBudgetOperationType {
+  ALLOCATE
+  CANCEL_ALLOCATION
+  DECENTRALIZE
+  RETURN_CREDIT
+  RESERVE
+  RELEASE
+  EXECUTE
+  TRANSFER_ALLOCATION
+  TRANSFER_CREDIT
+}
+
+model OvertimeCampaign {
+  id                 String                 @id @default(uuid()) @db.Uuid
+  orgaoId            String                 @map("orgao_id") @db.Uuid
+  code               String                 @db.VarChar(80)
+  name               String                 @db.VarChar(200)
+  fiscalYear         Int                    @map("fiscal_year")
+  seiProcess         String                 @map("sei_process") @db.VarChar(80)
+  authorizationDocument String              @map("authorization_document") @db.VarChar(160)
+  validFrom          DateTime?              @map("valid_from") @db.Date
+  validUntil         DateTime?              @map("valid_until") @db.Date
+  projectDeadline    DateTime               @map("project_deadline") @db.Date
+  proofDeadline      DateTime               @map("proof_deadline") @db.Date
+  status             OvertimeCampaignStatus @default(DRAFT)
+  rules              Json
+  sourceManifest     Json                   @map("source_manifest")
+  createdAt          DateTime               @default(now()) @map("created_at")
+  updatedAt          DateTime               @updatedAt @map("updated_at")
+
+  orgao       Orgao                      @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+  accounts    OvertimeCampaignAccount[]
+  operations  OvertimeBudgetOperation[]
+
+  @@unique([id, orgaoId])
+  @@unique([orgaoId, code])
+  @@index([orgaoId, fiscalYear, status])
+  @@map("overtime_campaigns")
+}
+
+model OvertimeCampaignAccount {
+  id                  String   @id @default(uuid()) @db.Uuid
+  campaignId          String   @map("campaign_id") @db.Uuid
+  orgaoId             String   @map("orgao_id") @db.Uuid
+  unitId              String   @map("unit_id") @db.Uuid
+  referenceAmount     Decimal  @map("reference_amount") @db.Decimal(14, 2)
+  allocatedAmount     Decimal  @default(0) @map("allocated_amount") @db.Decimal(14, 2)
+  decentralizedAmount Decimal  @default(0) @map("decentralized_amount") @db.Decimal(14, 2)
+  reservedAmount      Decimal  @default(0) @map("reserved_amount") @db.Decimal(14, 2)
+  executedAmount      Decimal  @default(0) @map("executed_amount") @db.Decimal(14, 2)
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  campaign  OvertimeCampaign          @relation(fields: [campaignId, orgaoId], references: [id, orgaoId], onDelete: Restrict)
+  unit      UnidadeOrganizacional     @relation(fields: [unitId, orgaoId], references: [id, orgaoId], onDelete: Restrict)
+  movements OvertimeBudgetMovement[]
+
+  @@unique([id, campaignId])
+  @@unique([campaignId, unitId])
+  @@index([orgaoId, unitId])
+  @@map("overtime_campaign_accounts")
+}
+
+model OvertimeBudgetOperation {
+  id                     String                      @id @default(uuid()) @db.Uuid
+  campaignId             String                      @map("campaign_id") @db.Uuid
+  type                   OvertimeBudgetOperationType
+  idempotencyKey         String                      @map("idempotency_key") @db.VarChar(120)
+  payloadHash            String                      @map("payload_hash") @db.Char(64)
+  reservationOperationId String?                     @map("reservation_operation_id") @db.Uuid
+  actorUserId            String                      @map("actor_user_id") @db.Uuid
+  activeProfile          String                      @map("active_profile") @db.VarChar(120)
+  reason                 String                      @db.Text
+  seiDocument            String                      @map("sei_document") @db.VarChar(160)
+  originReference        String                      @map("origin_reference") @db.VarChar(160)
+  correlationId          String                      @map("correlation_id") @db.VarChar(120)
+  createdAt              DateTime                    @default(now()) @map("created_at")
+
+  campaign    OvertimeCampaign           @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  actor       Usuario                    @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  reservation OvertimeBudgetOperation?   @relation("OvertimeReservationConsumption", fields: [reservationOperationId, campaignId], references: [id, campaignId], onDelete: Restrict)
+  consumptions OvertimeBudgetOperation[] @relation("OvertimeReservationConsumption")
+  movements   OvertimeBudgetMovement[]
+
+  @@unique([id, campaignId])
+  @@unique([campaignId, idempotencyKey])
+  @@index([reservationOperationId])
+  @@index([actorUserId])
+  @@map("overtime_budget_operations")
+}
+
+model OvertimeBudgetMovement {
+  id                 String   @id @default(uuid()) @db.Uuid
+  campaignId         String   @map("campaign_id") @db.Uuid
+  operationId        String   @map("operation_id") @db.Uuid
+  accountId          String   @map("account_id") @db.Uuid
+  allocatedDelta     Decimal  @default(0) @map("allocated_delta") @db.Decimal(14, 2)
+  decentralizedDelta Decimal  @default(0) @map("decentralized_delta") @db.Decimal(14, 2)
+  reservedDelta      Decimal  @default(0) @map("reserved_delta") @db.Decimal(14, 2)
+  executedDelta      Decimal  @default(0) @map("executed_delta") @db.Decimal(14, 2)
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  operation OvertimeBudgetOperation @relation(fields: [operationId, campaignId], references: [id, campaignId], onDelete: Restrict)
+  account   OvertimeCampaignAccount @relation(fields: [accountId, campaignId], references: [id, campaignId], onDelete: Restrict)
+
+  @@unique([operationId, accountId])
+  @@index([accountId, createdAt])
+  @@map("overtime_budget_movements")
 }
 
 model OvertimePolicy {
