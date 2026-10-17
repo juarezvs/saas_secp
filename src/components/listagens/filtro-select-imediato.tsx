@@ -1,5 +1,7 @@
 "use client";
 
+import { Select as SelectPesquisavel } from "@/components/ui/form-controls";
+
 import { useId } from "react";
 
 export type FiltroSelectOption = {
@@ -35,7 +37,7 @@ export function FiltroSelectImediato({
         {label}
       </label>
 
-      <select
+      <SelectPesquisavel
         id={id}
         value={value}
         onChange={(event) => onChange(nome, event.target.value)}
@@ -46,7 +48,7 @@ export function FiltroSelectImediato({
             {option.label}
           </option>
         ))}
-      </select>
+      </SelectPesquisavel>
     </div>
   );
 }

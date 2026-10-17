@@ -1,3 +1,5 @@
+import { Select as SelectPesquisavel } from "@/components/ui/form-controls";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
@@ -390,7 +392,7 @@ export default async function AdministracaoIntegracoesPage({
             <label htmlFor="orgaoId" className="text-sm font-semibold">
               Seccional ativa
             </label>
-            <select
+            <SelectPesquisavel
               id="orgaoId"
               name="orgaoId"
               defaultValue={orgaoSelecionado ?? ""}
@@ -401,7 +403,7 @@ export default async function AdministracaoIntegracoesPage({
                   {orgao.sigla} - {orgao.nome}
                 </option>
               ))}
-            </select>
+            </SelectPesquisavel>
           </div>
           <button
             type="submit"

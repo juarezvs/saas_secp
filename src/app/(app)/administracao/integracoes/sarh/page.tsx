@@ -1,3 +1,5 @@
+import { Select as SelectPesquisavel } from "@/components/ui/form-controls";
+
 import Link from "next/link";
 import { CircleAlert } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
@@ -192,7 +194,7 @@ export default async function IntegracaoSarhPage({
             Editar/executar integração de
           </label>
           <div className="mt-2 flex flex-col gap-3 md:flex-row">
-            <select
+            <SelectPesquisavel
               id="orgaoFiltro"
               name="orgaoId"
               defaultValue={orgaoSelecionado ?? ""}
@@ -204,7 +206,7 @@ export default async function IntegracaoSarhPage({
                   {orgao.sigla} - {orgao.nome}
                 </option>
               ))}
-            </select>
+            </SelectPesquisavel>
             <button
               type="submit"
               className="inline-flex h-11 items-center justify-center rounded-md bg-blue-900 px-5 text-sm font-semibold text-white transition hover:bg-blue-950"

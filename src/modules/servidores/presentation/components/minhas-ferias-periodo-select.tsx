@@ -1,5 +1,7 @@
 "use client";
 
+import { Select as SelectPesquisavel } from "@/components/ui/form-controls";
+
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
@@ -79,7 +81,7 @@ export function MinhasFeriasPeriodoSelect({
             Período aquisitivo
           </label>
           <div className="relative">
-            <select
+            <SelectPesquisavel
               id="exercicio"
               name="exercicio"
               value={exercicioSelecionado ? String(exercicioSelecionado) : ""}
@@ -92,7 +94,7 @@ export function MinhasFeriasPeriodoSelect({
                   {periodo.label} - {rotuloStatus(periodo.status)}
                 </option>
               ))}
-            </select>
+            </SelectPesquisavel>
             <div
               aria-hidden="true"
               className={`absolute inset-x-0 -bottom-1 h-0.5 overflow-hidden rounded-full bg-[var(--muted)] transition-opacity ${

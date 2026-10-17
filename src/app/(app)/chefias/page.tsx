@@ -1,3 +1,5 @@
+import { Select as SelectPesquisavel } from "@/components/ui/form-controls";
+
 import Link from "next/link";
 import { Building2, Filter, Network, UserCheck } from "lucide-react";
 
@@ -167,7 +169,7 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
               placeholder="Unidade, chefe ou matrícula"
               className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm lg:col-span-2"
             />
-            <select
+            <SelectPesquisavel
               name="orgao"
               defaultValue={params.orgao ?? ""}
               className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
@@ -178,8 +180,8 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
                   {orgao}
                 </option>
               ))}
-            </select>
-            <select
+            </SelectPesquisavel>
+            <SelectPesquisavel
               name="superior"
               defaultValue={params.superior ?? ""}
               className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
@@ -190,8 +192,8 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
                   {superior}
                 </option>
               ))}
-            </select>
-            <select
+            </SelectPesquisavel>
+            <SelectPesquisavel
               name="chefia"
               defaultValue={params.chefia ?? ""}
               className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
@@ -199,7 +201,7 @@ export default async function ChefiasPage({ searchParams }: ChefiasPageProps) {
               <option value="">Todas</option>
               <option value="com">Com chefia titular</option>
               <option value="sem">Sem chefia titular</option>
-            </select>
+            </SelectPesquisavel>
             <label className="flex min-h-10 items-center gap-2 rounded-md border px-3 text-sm font-semibold">
               <input
                 type="checkbox"

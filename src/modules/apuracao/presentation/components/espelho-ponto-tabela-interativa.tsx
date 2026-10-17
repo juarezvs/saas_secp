@@ -1,5 +1,7 @@
 ﻿"use client";
 
+import { Select as SelectPesquisavel } from "@/components/ui/form-controls";
+
 import {
   CalendarDays,
   CalendarRange,
@@ -368,7 +370,7 @@ export function EspelhoPontoTabelaInterativa({
 
           {!exibindoDias ? (
           <div className="ml-auto flex items-center gap-0.5">
-            <select
+            <SelectPesquisavel
               value={itensPorPagina}
               onChange={(event) => {
                 setItensPorPagina(Number(event.target.value));
@@ -382,7 +384,7 @@ export function EspelhoPontoTabelaInterativa({
                   {opcao} por página
                 </option>
               ))}
-            </select>
+            </SelectPesquisavel>
             <button type="button" disabled={paginaSegura <= 1} onClick={() => irParaPagina(1)} className={paginationButtonClass} aria-label="Primeira página" title="Primeira página">
               <ChevronsLeft className="size-4" />
             </button>

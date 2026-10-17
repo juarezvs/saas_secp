@@ -1,3 +1,5 @@
+import { Select as SelectPesquisavel } from "@/components/ui/form-controls";
+
 type UsuarioFiltro = {
   id: string;
   nome: string;
@@ -35,7 +37,7 @@ export function AuditoriaFiltrosCard({
           className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm lg:col-span-2"
         />
 
-        <select
+        <SelectPesquisavel
           name="entidade"
           defaultValue={valores.entidade ?? ""}
           className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
@@ -46,7 +48,7 @@ export function AuditoriaFiltrosCard({
               {entidade}
             </option>
           ))}
-        </select>
+        </SelectPesquisavel>
 
         <input
           name="acao"
@@ -55,7 +57,7 @@ export function AuditoriaFiltrosCard({
           className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
         />
 
-        <select
+        <SelectPesquisavel
           name="usuarioId"
           defaultValue={valores.usuarioId ?? ""}
           className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
@@ -66,9 +68,9 @@ export function AuditoriaFiltrosCard({
               {usuario.matricula} — {usuario.nome}
             </option>
           ))}
-        </select>
+        </SelectPesquisavel>
 
-        <select
+        <SelectPesquisavel
           name="limite"
           defaultValue={valores.limite ?? "20"}
           className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
@@ -77,7 +79,7 @@ export function AuditoriaFiltrosCard({
           <option value="20">20 por página</option>
           <option value="50">50 por página</option>
           <option value="100">100 por página</option>
-        </select>
+        </SelectPesquisavel>
 
         <input
           type="date"

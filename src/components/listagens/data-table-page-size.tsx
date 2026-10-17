@@ -1,5 +1,7 @@
 "use client";
 
+import { Select as SelectPesquisavel } from "@/components/ui/form-controls";
+
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   criarQueryStringAtualizada,
@@ -44,7 +46,7 @@ export function DataTablePageSize({
         Itens por página
       </span>
 
-      <select
+      <SelectPesquisavel
         value={String(value)}
         onChange={(event) => alterar(event.target.value)}
         className={
@@ -60,7 +62,7 @@ export function DataTablePageSize({
             {option}
           </option>
         ))}
-      </select>
+      </SelectPesquisavel>
     </label>
   );
 }

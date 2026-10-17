@@ -1,5 +1,7 @@
 "use client";
 
+import { Select as SelectPesquisavel } from "@/components/ui/form-controls";
+
 import {
   useActionState,
   useEffect,
@@ -403,9 +405,9 @@ export function RelogioPontoAdminPanel({
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-500">Ordenar por:</span>
-              <select className="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-bold text-blue-900">
+              <SelectPesquisavel className="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-bold text-blue-900">
                 <option>Ultima comunicacao (mais recente)</option>
-              </select>
+              </SelectPesquisavel>
               <button className="inline-flex size-9 items-center justify-center rounded-md bg-blue-900 text-white">
                 <List className="size-4" />
               </button>
@@ -801,13 +803,13 @@ function FiltroOperacoes({
   return (
     <label className="space-y-1">
       <span className="text-[11px] font-black text-blue-950">{label}</span>
-      <select
+      <SelectPesquisavel
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-blue-950 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
       >
         {children}
-      </select>
+      </SelectPesquisavel>
     </label>
   );
 }
@@ -1467,7 +1469,7 @@ function BiometriaRelogioCard({
             className="h-9 rounded-md border bg-[var(--card)] px-2 text-sm"
           />
         </div>
-        <select
+        <SelectPesquisavel
           name="formato"
           defaultValue="SUPREMA"
           className="mt-2 h-9 w-full rounded-md border bg-[var(--card)] px-2 text-sm"
@@ -1478,7 +1480,7 @@ function BiometriaRelogioCard({
           <option value="DIMEP_RAW">Dimep raw</option>
           <option value="ISO_19794_2">ISO 19794-2</option>
           <option value="ANSI_378">ANSI 378</option>
-        </select>
+        </SelectPesquisavel>
         <textarea
           name="template"
           placeholder="Template biometrico"

@@ -1,5 +1,7 @@
 "use client";
 
+import { Select as SelectPesquisavel } from "@/components/ui/form-controls";
+
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
@@ -396,7 +398,7 @@ export function EquipamentosBiometricosTable({
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-slate-500">Ordenar por:</span>
-            <select
+            <SelectPesquisavel
               value={ordenacao}
               onChange={(event) => setOrdenacao(event.target.value)}
               className="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-bold text-blue-900"
@@ -404,7 +406,7 @@ export function EquipamentosBiometricosTable({
               <option value="nome">Nome (A - Z)</option>
               <option value="comunicacao">Ultima comunicacao</option>
               <option value="pendentes">Mais pendentes</option>
-            </select>
+            </SelectPesquisavel>
             <button className="inline-flex size-9 items-center justify-center rounded-md bg-blue-900 text-white">
               <List className="size-4" />
             </button>
@@ -611,13 +613,13 @@ function FiltroSelect({
   return (
     <label className="space-y-1">
       <span className="text-[11px] font-black text-blue-950">{label}</span>
-      <select
+      <SelectPesquisavel
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-blue-950 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
       >
         {children}
-      </select>
+      </SelectPesquisavel>
     </label>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { Select as SelectPesquisavel } from "@/components/ui/form-controls";
+
 import { useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -51,6 +53,6 @@ export function DataTableToolbar({ filtros, csvHref, pdfHref, csvAssincrono = fa
   </>;
 }
 
-function CampoFiltro({ filtro, valor }: { filtro: DataTableFiltro; valor: string }) { const tipo = filtro.tipo === "data" ? "date" : filtro.tipo === "competencia" ? "month" : "text"; return <label className={filtro.className}><span className="text-sm font-medium">{filtro.label}</span>{filtro.tipo === "select" || filtro.tipo === "searchable-select" ? <select name={filtro.nome} defaultValue={valor} className={inputClass}>{filtro.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select> : <input name={filtro.nome} type={tipo} defaultValue={valor} placeholder={filtro.tipo === "texto" ? filtro.placeholder : undefined} className={inputClass} />}</label>; }
+function CampoFiltro({ filtro, valor }: { filtro: DataTableFiltro; valor: string }) { const tipo = filtro.tipo === "data" ? "date" : filtro.tipo === "competencia" ? "month" : "text"; return <label className={filtro.className}><span className="text-sm font-medium">{filtro.label}</span>{filtro.tipo === "select" || filtro.tipo === "searchable-select" ? <SelectPesquisavel name={filtro.nome} defaultValue={valor} className={inputClass}>{filtro.options.map((o) => <option key={o.value} value={o.value} data-search-text={o.searchText}>{o.label}</option>)}</SelectPesquisavel> : <input name={filtro.nome} type={tipo} defaultValue={valor} placeholder={filtro.tipo === "texto" ? filtro.placeholder : undefined} className={inputClass} />}</label>; }
 function rotulo(filtro: DataTableFiltro, valor: string) { return filtro.tipo === "select" || filtro.tipo === "searchable-select" ? filtro.options.find((o) => o.value === valor)?.label ?? valor : valor; }
 function Separador() { return <span className="mx-1 h-5 w-px bg-[var(--border)]" />; }

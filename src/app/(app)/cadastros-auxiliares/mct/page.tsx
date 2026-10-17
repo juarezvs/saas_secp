@@ -1,3 +1,5 @@
+import { Select as SelectPesquisavel } from "@/components/ui/form-controls";
+
 import Link from "next/link";
 import { Braces, Check, Power } from "lucide-react";
 
@@ -118,7 +120,7 @@ export default async function CadastrosMctPage({
           {escopo.global && orgaos.length > 1 ? (
             <form className="ml-auto flex items-center gap-2">
               <input type="hidden" name="aba" value={aba} />
-              <select
+              <SelectPesquisavel
                 name="orgaoId"
                 defaultValue={orgaoId}
                 className={`${campos} w-72`}
@@ -130,7 +132,7 @@ export default async function CadastrosMctPage({
                     {orgao.sigla} - {orgao.nome}
                   </option>
                 ))}
-              </select>
+              </SelectPesquisavel>
               <button className="h-10 border px-3 text-sm">Selecionar</button>
             </form>
           ) : null}
@@ -227,17 +229,17 @@ function FormRubrica({
         <input className={campos} name="nome" required />
       </Campo>
       <Campo label="Dimensão" descricao="Papel da rubrica na classificação">
-        <select className={campos} name="dimensao">
+        <SelectPesquisavel className={campos} name="dimensao">
           <option value="TEMPORAL">Temporal</option>
           <option value="JURIDICA_ADMINISTRATIVA">
             Jurídica/administrativa
           </option>
           <option value="DESTINACAO">Destinação</option>
           <option value="INCIDENCIA">Incidência</option>
-        </select>
+        </SelectPesquisavel>
       </Campo>
       <Campo label="Natureza" descricao="Categoria institucional">
-        <select className={campos} name="natureza" required defaultValue="">
+        <SelectPesquisavel className={campos} name="natureza" required defaultValue="">
           <option value="" disabled>
             Selecione
           </option>
@@ -248,25 +250,25 @@ function FormRubrica({
                 {item.nome}
               </option>
             ))}
-        </select>
+        </SelectPesquisavel>
       </Campo>
       <Campo label="Unidade" descricao="Unidade da quantidade">
-        <select className={campos} name="unidade">
+        <SelectPesquisavel className={campos} name="unidade">
           <option value="MINUTO">Minuto</option>
           <option value="QUANTIDADE">Quantidade</option>
           <option value="BOOLEANO">Booleano</option>
-        </select>
+        </SelectPesquisavel>
       </Campo>
       <Campo
         label="Efeito no banco"
         descricao="Não cria movimento enquanto estiver em SHADOW"
       >
-        <select className={campos} name="efeitoBancoHoras">
+        <SelectPesquisavel className={campos} name="efeitoBancoHoras">
           <option value="NENHUM">Nenhum</option>
           <option value="CREDITO">Crédito</option>
           <option value="DEBITO">Débito</option>
           <option value="COMPENSACAO">Compensação</option>
-        </select>
+        </SelectPesquisavel>
       </Campo>
       <Campo label="Prioridade" descricao="Maior precedência usa menor número">
         <input
@@ -409,13 +411,13 @@ function FormRegra({
         <input className={campos} name="nome" required />
       </Campo>
       <Campo label="Política" descricao="Política à qual pertence">
-        <select className={campos} name="politicaVersaoId" required>
+        <SelectPesquisavel className={campos} name="politicaVersaoId" required>
           {politicas.map((item) => (
             <option key={item.id} value={item.id}>
               {item.codigo} v{item.versao}
             </option>
           ))}
-        </select>
+        </SelectPesquisavel>
       </Campo>
       <Campo label="Prioridade" descricao="Ordem de avaliação">
         <input
@@ -429,14 +431,14 @@ function FormRegra({
         <input className={campos} name="campo" required />
       </Campo>
       <Campo label="Operador" descricao="Comparação declarativa">
-        <select className={campos} name="operador">
+        <SelectPesquisavel className={campos} name="operador">
           <option>GT</option>
           <option>GTE</option>
           <option>EQ</option>
           <option>NE</option>
           <option>LT</option>
           <option>LTE</option>
-        </select>
+        </SelectPesquisavel>
       </Campo>
       <Campo label="Valor" descricao="Valor para comparação">
         <input className={campos} name="valor" required />
@@ -445,13 +447,13 @@ function FormRegra({
         label="Rubrica resultante"
         descricao="Efeito quando a condição for satisfeita"
       >
-        <select className={campos} name="rubricaVersaoId" required>
+        <SelectPesquisavel className={campos} name="rubricaVersaoId" required>
           {rubricas.map((item) => (
             <option key={item.id} value={item.id}>
               {item.codigo} v{item.versao}
             </option>
           ))}
-        </select>
+        </SelectPesquisavel>
       </Campo>
       <Campo label="Escopo temporal" descricao="Ex.: DIA ou SEGMENTO">
         <input
@@ -462,10 +464,10 @@ function FormRegra({
         />
       </Campo>
       <Campo label="Estratégia" descricao="Origem da quantidade">
-        <select className={campos} name="estrategia">
+        <SelectPesquisavel className={campos} name="estrategia">
           <option value="CAMPO">Campo do contexto</option>
           <option value="CONSTANTE">Valor constante</option>
-        </select>
+        </SelectPesquisavel>
       </Campo>
       <Campo label="Quantidade/campo" descricao="Ex.: excedenteBrutoMinutos">
         <input className={campos} name="quantidade" required />

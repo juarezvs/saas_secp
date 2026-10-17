@@ -1,3 +1,5 @@
+import { Select as SelectPesquisavel } from "@/components/ui/form-controls";
+
 import { MapPinned, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
@@ -96,9 +98,9 @@ export default async function EstadosCidadesPage({
           <form action={salvarCidadeAction} className="grid gap-2 sm:grid-cols-[8rem_6rem_minmax(0,1fr)_auto]">
             <strong className="sm:col-span-4 text-sm">Nova cidade</strong>
             <input name="id" type="number" required placeholder="Cód. IBGE" className="h-10 rounded-md border bg-background px-3 text-sm" />
-            <select name="estadoId" required defaultValue={estadoSelecionado?.id} className="h-10 rounded-md border bg-background px-2 text-sm">
+            <SelectPesquisavel name="estadoId" required defaultValue={estadoSelecionado?.id} className="h-10 rounded-md border bg-background px-2 text-sm">
               {estados.map((estado) => <option key={estado.id} value={estado.id}>{estado.sigla}</option>)}
-            </select>
+            </SelectPesquisavel>
             <input name="nome" required placeholder="Nome da cidade" className="h-10 rounded-md border bg-background px-3 text-sm" />
             <button className="h-10 rounded-md border px-4 text-sm font-semibold">Adicionar</button>
           </form>

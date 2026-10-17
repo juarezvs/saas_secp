@@ -1,5 +1,7 @@
 "use client";
 
+import { Select as SelectPesquisavel } from "@/components/ui/form-controls";
+
 import { useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -138,7 +140,7 @@ function AcaoSelecao({ href, label, icon }: { href: string | null; label: string
   return <button type="button" disabled className={commandClassName}>{icon}{label}</button>;
 }
 function Campo({ nome, label, valor }: { nome: string; label: string; valor: string | null }) { return <label><span className="text-sm font-medium">{label}</span><input name={nome} defaultValue={valor ?? ""} className={inputClassName} /></label>; }
-function Selecao({ nome, label, valor, opcoes }: { nome: string; label: string; valor: string | null; opcoes: Option[] }) { return <label><span className="text-sm font-medium">{label}</span><select name={nome} defaultValue={valor ?? ""} className={inputClassName}><option value="">Todos</option>{opcoes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>; }
+function Selecao({ nome, label, valor, opcoes }: { nome: string; label: string; valor: string | null; opcoes: Option[] }) { return <label><span className="text-sm font-medium">{label}</span><SelectPesquisavel name={nome} defaultValue={valor ?? ""} className={inputClassName}><option value="">Todos</option>{opcoes.map((item) => <option key={item.value} value={item.value} data-search-text={item.searchText}>{item.label}</option>)}</SelectPesquisavel></label>; }
 function rotuloValor(nome: string, valor: string, dados: { orgaos: Props["orgaos"]; servidores: Option[]; lotacoes: Option[]; categorias: Option[] }) {
   if (nome === "orgaoId") return dados.orgaos.find((item) => item.id === valor)?.sigla ?? valor;
   const opcoes = nome === "nome" ? dados.servidores : nome === "lotacao" ? dados.lotacoes : nome === "categoriaPessoaId" ? dados.categorias : nome === "tipoUsuario" ? TIPOS : nome === "vinculo" ? VINCULOS : [];

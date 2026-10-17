@@ -1,5 +1,7 @@
 "use client";
 
+import { Select as SelectPesquisavel } from "@/components/ui/form-controls";
+
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 export function UnidadesItensPorPagina({
@@ -24,7 +26,7 @@ export function UnidadesItensPorPagina({
         Itens por página
       </span>
 
-      <select
+      <SelectPesquisavel
         value={String(itensPorPagina)}
         onChange={(event) => alterar(event.target.value)}
         className="h-9 rounded-md border bg-[var(--card)] px-2 text-sm"
@@ -33,7 +35,7 @@ export function UnidadesItensPorPagina({
         <option value="20">20</option>
         <option value="50">50</option>
         <option value="100">100</option>
-      </select>
+      </SelectPesquisavel>
     </div>
   );
 }

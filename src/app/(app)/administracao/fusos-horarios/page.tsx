@@ -1,3 +1,5 @@
+import { Select as SelectPesquisavel } from "@/components/ui/form-controls";
+
 import Link from "next/link";
 import { Clock3, Edit, Plus } from "lucide-react";
 
@@ -124,7 +126,7 @@ export default async function FusosHorariosPage({
               placeholder="Buscar por identificador, rótulo ou descrição"
               className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
             />
-            <select
+            <SelectPesquisavel
               name="status"
               defaultValue={params.status ?? ""}
               className="h-10 rounded-md border bg-[var(--card)] px-3 text-sm"
@@ -132,7 +134,7 @@ export default async function FusosHorariosPage({
               <option value="">Todos</option>
               <option value="ativo">Ativos</option>
               <option value="inativo">Inativos</option>
-            </select>
+            </SelectPesquisavel>
             <button
               type="submit"
               className="rounded-md border px-4 text-sm font-semibold transition hover:bg-[var(--muted)]"

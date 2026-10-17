@@ -1,5 +1,7 @@
 "use client";
 
+import { Select as SelectPesquisavel } from "@/components/ui/form-controls";
+
 import {
   useMemo,
   useState,
@@ -347,7 +349,7 @@ function CampoSelect({
       <span className="text-sm font-medium text-[var(--foreground)]">
         {label}
       </span>
-      <select
+      <SelectPesquisavel
         key={`${nome}-${valor}`}
         name={nome}
         defaultValue={valor}
@@ -358,7 +360,7 @@ function CampoSelect({
             {opcao.label}
           </option>
         ))}
-      </select>
+      </SelectPesquisavel>
     </label>
   );
 }

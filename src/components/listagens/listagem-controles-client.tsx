@@ -1,5 +1,7 @@
 "use client";
 
+import { Select as SelectPesquisavel } from "@/components/ui/form-controls";
+
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
@@ -107,7 +109,7 @@ export function ListagemControlesClient({
           Filtrar coluna
         </label>
 
-        <select
+        <SelectPesquisavel
           id="filtroColuna"
           value={filtroColuna}
           onChange={(event) => {
@@ -127,7 +129,7 @@ export function ListagemControlesClient({
               {filtro.label}
             </option>
           ))}
-        </select>
+        </SelectPesquisavel>
       </div>
 
       <div>
@@ -136,7 +138,7 @@ export function ListagemControlesClient({
         </label>
 
         {filtroSelecionado?.tipo === "select" ? (
-          <select
+          <SelectPesquisavel
             id="filtroValor"
             value={filtroValor}
             onChange={(event) => {
@@ -155,7 +157,7 @@ export function ListagemControlesClient({
                 {opcao.label}
               </option>
             ))}
-          </select>
+          </SelectPesquisavel>
         ) : (
           <input
             id="filtroValor"
@@ -175,7 +177,7 @@ export function ListagemControlesClient({
       </div>
 
       <div className="hidden">
-        <select
+        <SelectPesquisavel
           value={String(itensPorPaginaAtual)}
           onChange={(event) =>
             atualizarUrl({
@@ -194,7 +196,7 @@ export function ItensPorPaginaSelect({ valorAtual }: { valorAtual: number }) {
   const searchParams = useSearchParams();
 
   return (
-    <select
+    <SelectPesquisavel
       value={String(valorAtual)}
       onChange={(event) => {
         const query = new URLSearchParams(searchParams.toString());
@@ -209,6 +211,6 @@ export function ItensPorPaginaSelect({ valorAtual }: { valorAtual: number }) {
       <option value="20">20 por página</option>
       <option value="50">50 por página</option>
       <option value="100">100 por página</option>
-    </select>
+    </SelectPesquisavel>
   );
 }

@@ -1,6 +1,7 @@
 import type { InputHTMLAttributes, LabelHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 
 import { cn } from "./utils";
+import { SearchableNativeSelect } from "./searchable-native-select";
 
 const controlStyles =
   "w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground shadow-sm transition placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-70";
@@ -15,9 +16,9 @@ export function Input({ className, type = "text", ...props }: InputHTMLAttribute
 
 export function Select({ className, children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select className={cn(controlStyles, "h-10 appearance-auto", className)} {...props}>
+    <SearchableNativeSelect className={cn(controlStyles, "h-10", className)} {...props}>
       {children}
-    </select>
+    </SearchableNativeSelect>
   );
 }
 
