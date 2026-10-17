@@ -1,0 +1,48 @@
+name: secp-discovery
+services:
+  migrate:
+    build: .
+    image: secp-device-discovery:local
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      DISCOVERY_DATABASE_URL: ${DISCOVERY_DATABASE_URL:-sqlite:////data/discovery.db}
+    volumes: ["discovery-data:/data"]
+    profiles: ["tools"]
+  central:
+    build: .
+    image: secp-device-discovery:local
+    container_name: secp-discovery-central
+    restart: unless-stopped
+    environment: &environment
+      DISCOVERY_DATABASE_URL: ${DISCOVERY_DATABASE_URL:-sqlite:////data/discovery.db}
+      DISCOVERY_GATEWAY_SECRET: ${DISCOVERY_GATEWAY_SECRET:?Defina o segredo compartilhado com o backend Next.js}
+      DISCOVERY_REDIS_URL: ${DISCOVERY_REDIS_URL:-}
+      DISCOVERY_ENVIRONMENT: ${DISCOVERY_ENVIRONMENT:-production}
+      DISCOVERY_TLS_CERT: ${DISCOVERY_TLS_CERT:-}
+      DISCOVERY_TLS_KEY: ${DISCOVERY_TLS_KEY:-}
+      DISCOVERY_HEALTH_URL: ${DISCOVERY_HEALTH_URL:-}
+      DISCOVERY_CA_FILE: ${DISCOVERY_CA_FILE:-}
+    volumes: ["discovery-data:/data", "./certs:/certs:ro"]
+    ports: ["127.0.0.1:${DISCOVERY_PORT:-8041}:8000"]
+    cpus: 0.5
+    mem_limit: 512m
+  worker:
+    image: secp-device-discovery:local
+    command: ["python", "-m", "discovery.worker"]
+    restart: unless-stopped
+    environment: *environment
+    volumes: ["discovery-data:/data"]
+    healthcheck:
+      test: ["CMD", "python", "-m", "discovery.health", "worker"]
+      interval: 20s
+      timeout: 3s
+      start_period: 15s
+    cpus: 0.25
+    mem_limit: 256m
+volumes:
+  discovery-data:
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${DISCOVERY_DOCKER_SUBNET:-172.31.254.0/28}

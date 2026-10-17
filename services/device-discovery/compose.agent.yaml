@@ -1,0 +1,19 @@
+name: secp-discovery-agent
+services:
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    image: secp-discovery-agent:local
+    restart: unless-stopped
+    # Linux: host permite ARP/multicast da LAN. Em Windows, prefira o serviço Python nativo.
+    network_mode: host
+    environment:
+      DISCOVERY_AGENT_BOOTSTRAP_TOKEN: ${DISCOVERY_AGENT_BOOTSTRAP_TOKEN:-}
+    volumes:
+      - ${DISCOVERY_AGENT_CONFIG:?Informe caminho absoluto do arquivo de configuração}:/config/agent.json:ro
+      - agent-data:/data
+    cpus: 0.25
+    mem_limit: 256m
+volumes:
+  agent-data:

@@ -337,6 +337,7 @@ export const MENUS_PERFIS_ADMINISTRATIVOS: Record<
             label: "Credenciais e integrações",
           },
           { itemCatalogo: "/equipamentos", label: "Equipamentos biométricos" },
+          { itemCatalogo: "/equipamentos/descoberta", label: "Descoberta de equipamentos" },
           { itemCatalogo: "/biometria", label: "Biometria facial" },
           { itemCatalogo: "/totem", label: "Modo Totem" },
           {
@@ -455,6 +456,7 @@ export const MENUS_PERFIS_ADMINISTRATIVOS: Record<
             label: "Microsoft Teams",
           },
           { itemCatalogo: "/equipamentos", label: "Equipamentos biométricos" },
+          { itemCatalogo: "/equipamentos/descoberta", label: "Descoberta de equipamentos" },
           { itemCatalogo: "/biometria", label: "Biometria facial" },
           { itemCatalogo: "/totem", label: "Modo Totem" },
           {

@@ -1,0 +1,12 @@
+# Override opcional para o Next.js/container alcançar o serviço pela rede interna.
+services:
+  central:
+    networks: [default, secp]
+  worker:
+    networks: [default, secp]
+  migrate:
+    networks: [default, secp]
+networks:
+  secp:
+    external: true
+    name: ${SECP_DOCKER_NETWORK:-secp_secp-network}

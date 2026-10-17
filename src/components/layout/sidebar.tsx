@@ -1191,6 +1191,12 @@ export const MENU_ITEMS: MenuItem[] = [
         ],
       },
       {
+        label: "Descoberta de equipamentos",
+        href: "/equipamentos/descoberta",
+        icon: RadioTower,
+        permissoes: ["integracoes:consultar:global", "integracoes:consultar:seccional", "integracoes:gerenciar:seccional", "integracoes:gerenciar:global"],
+      },
+      {
         label: "Auditoria",
         href: "/auditoria",
         icon: ShieldAlert,

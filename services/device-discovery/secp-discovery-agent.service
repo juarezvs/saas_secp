@@ -1,0 +1,26 @@
+[Unit]
+Description=SECP agente de descoberta de equipamentos
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=secp-discovery
+Group=secp-discovery
+WorkingDirectory=/opt/secp-discovery-agent
+EnvironmentFile=-/etc/secp-discovery-agent/bootstrap.env
+ExecStart=/opt/secp-discovery-agent/venv/bin/python -m discovery.agent --config /etc/secp-discovery-agent/agent.json
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/secp-discovery-agent
+RestrictAddressFamilies=AF_INET AF_UNIX AF_NETLINK
+MemoryMax=256M
+CPUQuota=25%
+
+[Install]
+WantedBy=multi-user.target

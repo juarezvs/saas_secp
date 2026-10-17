@@ -702,6 +702,12 @@ export const MENU_CATALOGO: MenuCatalogoItem[] = [
     ],
   },
   {
+    id: "/equipamentos/descoberta",
+    label: "Descoberta de equipamentos",
+    href: "/equipamentos/descoberta",
+    permissoes: ["integracoes:consultar:seccional", "integracoes:gerenciar:seccional", "integracoes:consultar:global", "integracoes:gerenciar:global"],
+  },
+  {
     id: "/auditoria",
     label: "Auditoria",
     href: "/auditoria",
