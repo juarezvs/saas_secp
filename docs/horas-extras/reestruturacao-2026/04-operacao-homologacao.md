@@ -13,7 +13,8 @@ Não se aplica migration ou seed neste incremento. Reversão do código restaura
 
 ## Checklist de homologação das fases seguintes
 
-- [ ] Obter e ler integralmente Despacho 26097342, Circular DIGES 46/2026, SEI 26096685/26097335 e conferir alterações posteriores da Portaria 135/2025.
+- [x] Ler integralmente as cópias fornecidas do Despacho26097342 e Informação26096685, com inspeção das três páginas e identificação de integridade.
+- [ ] Obter íntegra da Circular DIGES46/2026 (SEI25922536), Encaminhamento26097335 e e-mail26096723; conferir alterações posteriores da Portaria135/2025 e autenticidade no SEI.
 - [ ] Gestão de pessoas e autoridade competente validam matriz, jornada 7h/8h, hipóteses de fim de semana, horário especial e alcance do adicional noturno.
 - [ ] Resolver documentalmente os dois prazos de comprovação, sem alteração tácita do art.49.
 - [ ] Rubricas validadas por natureza, fundamento e vigência; histórico remuneratório autorizado com provenance e rastreio de promoções/funções.

@@ -4,6 +4,8 @@
 
 Auditoria do código em `bda8c59`, sem acesso de escrita à produção. A proposta nova prevalece sobre o diagnóstico de 13/08/2026, que priorizava o cadastro SECAP de autorizações externas. Os dois fluxos existentes precisam continuar legíveis durante a transição. Este documento não homologa regras jurídicas nem certifica dados de produção.
 
+Atualização posterior ao diagnóstico inicial: o usuário forneceu a Informação26096685 e o Despacho26097342. Ambos foram lidos integralmente e incorporados no [documento05](05-documentos-sei-e-orcamento.md). A [matriz](01-matriz-normativa.md) passa a distinguir essas leituras dos documentos ainda ausentes; o AS-IS abaixo conserva a fotografia anterior aos incrementos.
+
 Foram examinados o schema Prisma, os serviços, actions, repositories, componentes e rotas do módulo `src/modules/horas-extras`, os pontos de integração com calendário, banco de horas, MCT, frequência, contracheque/SARH, recesso, permissões e auditoria. A suíte inicial do módulo passou: **8 arquivos, 34 testes**, `npx vitest run src/modules/horas-extras --maxWorkers=1`.
 
 ## AS-IS
@@ -53,7 +55,7 @@ Fontes oficiais consultadas em 17/10/2026: [CJF 4 consolidada](https://www.cjf.j
 
 Portaria local lida integralmente no arquivo `SEI_23258652_Portaria_SJAM_Diref_135.pdf` (12 páginas; efeitos desde 01/08/2025). Sua existência no projeto não certifica inexistência de alteração posterior: conferir no SEI na homologação. PDF inspecionado visualmente nos dispositivos de classificação e jornada.
 
-**Não disponíveis para leitura integral:** Despacho SJAM-DIREF 26097342; Circular DIGES 46/2026; SEI 26096685 e 26097335. Valores de R$18.000/R$5.000 e prazos de 21/10 e 19/11/2026 vieram do pedido do usuário: parâmetros propostos, não prova de descentralização nem texto normativo verificado. Solicitação de link/texto integral encaminhada ao usuário. Eventual conflito do prazo local com o art. 49 será exibido para decisão competente, sem prorrogação implícita.
+**Recebidos e lidos posteriormente:** Despacho SJAM-DIREF26097342 e Informação SEPLO26096685. Confirmam referências médias de R$18.000/R$5.000, prazos21/10 e19/11/2026 e ausência de descentralização na data. **Continuam sem leitura integral:** Circular DIGES46/2026 (SEI25922536), Encaminhamento SECAD26097335 e e-mail SECOR26096723. O conflito com o art.49 permanece explícito e não se presume prorrogação.
 
 ## TO-BE e sequência
 
