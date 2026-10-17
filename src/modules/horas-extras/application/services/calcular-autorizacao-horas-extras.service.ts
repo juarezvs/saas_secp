@@ -138,6 +138,8 @@ export async function calcularAutorizacaoHorasExtras(params: {
   if (!autorizacao) {
     throw new Error("Autorizacao de horas extras nao localizada.");
   }
+  if(autorizacao.campaignVersionId)throw new Error("Autorização vinculada a campanha: realize esta etapa no projeto coletivo para preservar as decisões e a cobertura financeira.");
+
 
   // Validar antes de consultar qualquer contracheque ou efetuar mutações.
   if (!podeAcessarOrgaoHorasExtras(params.escopo, autorizacao.orgaoId)) {

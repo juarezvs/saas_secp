@@ -109,6 +109,8 @@ export async function processarExecucaoAutorizacaoHorasExtras(params: {
     if (!autorizacao) {
       throw new Error("Autorizacao de horas extras nao localizada.");
     }
+  if(autorizacao.campaignVersionId)throw new Error("Autorização vinculada a campanha: realize esta etapa no projeto coletivo para preservar as decisões e a cobertura financeira.");
+
 
     if (autorizacao.status === "RASCUNHO") {
       throw new Error("Registre a autorizacao no SECP antes de processar.");

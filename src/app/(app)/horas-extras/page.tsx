@@ -1,4 +1,5 @@
 import { CalendarClock } from "lucide-react";
+import Link from "next/link";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
@@ -40,6 +41,7 @@ export default async function HorasExtrasPage({ searchParams }: { searchParams?:
 
   return <div className="space-y-3">
     <PageHeader icon={CalendarClock} titulo="Horas extras" contexto={<Breadcrumb embedded items={[{ label: "Horas extras" }]} />} variant="blade" />
+    <Link href="/horas-extras/campanhas" className="flex items-center justify-between rounded-lg border bg-card p-4 text-sm"><span><strong>Campanhas e projetos coletivos</strong><span className="mt-1 block text-muted-foreground">Planejamento, orçamento, autorizações, comprovação e preparação da folha.</span></span><span className="font-semibold">Abrir rotina →</span></Link>
     {erroConfiguracao ? <Card className="border-amber-200 bg-amber-50 text-amber-950"><CardContent className="pt-5 text-sm">{erroConfiguracao}</CardContent></Card> : null}
     {politica && versao ? <div className="border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-xs text-[var(--muted-foreground)]"><strong className="text-[var(--foreground)]">Política ativa: {politica.name}.</strong> {versao.rateRules.length} regras e limite mensal de {formatarMinutos(versao.monthlyLimitMinutes ?? 0)}.</div> : null}
     <DataTableShell title="Solicitações" total={solicitacoes.length} pagina={pagina} totalPaginas={totalPaginas} itensPorPagina={itensPorPagina} montarHrefPagina={montarHrefPagina} toolbar={<DataTableToolbar filtros={[]} mostrarFiltros={false} novoHref="/horas-extras/nova" novoLabel="Nova solicitação" />}>

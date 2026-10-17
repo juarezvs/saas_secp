@@ -53,8 +53,12 @@ function snapshotConta(conta: {
 }
 
 /** Contexto deve vir da sessão autenticada; não expor como dados de formulário. */
-export async function executarOperacaoOrcamentoCampanha(
-  db: PrismaClient, contexto: ContextoOrcamentoCampanha, dados: unknown,
+export async function executarOperacaoOrcamentoCampanha(db: PrismaClient, contexto: ContextoOrcamentoCampanha, dados: unknown) {
+  return db.$transaction(tx => executarOperacaoOrcamentoCampanhaEmTransacao(tx, contexto, dados), {maxWait:10000, timeout:20000});
+}
+
+export async function executarOperacaoOrcamentoCampanhaEmTransacao(
+  tx: Prisma.TransactionClient, contexto: ContextoOrcamentoCampanha, dados: unknown,
 ) {
   const input = operacaoOrcamentoCampanhaSchema.parse(dados);
   exigirAcesso(contexto, input.orgaoId);
@@ -63,7 +67,7 @@ export async function executarOperacaoOrcamentoCampanha(
     ...input, amount: valor, actorUserId: contexto.usuarioId, activeProfile: contexto.perfilAtivoCodigo,
   })).digest("hex");
 
-  return db.$transaction(async (tx) => {
+
     // Lock de campanha serializa saldo, remanejamentos e chaves idempotentes.
     const bloqueadas = await tx.$queryRaw<Array<{ id: string }>>`
       SELECT id FROM overtime_campaigns WHERE id = ${input.campaignId}::uuid
@@ -137,7 +141,7 @@ export async function executarOperacaoOrcamentoCampanha(
         originReference: input.originReference, idempotencyKey: input.idempotencyKey, justificativa: input.reason },
     } });
     return { operation, replayed: false };
-  }, { maxWait: 10000, timeout: 20000 });
+
 }
 
 /** Minuta documental, sem ativação, dotação, descentralização ou reserva. */

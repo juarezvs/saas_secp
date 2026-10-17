@@ -349,7 +349,7 @@ function criarPreviewInicial(
     maxDailyWeekdayMinutes: campos?.maxDailyWeekdayMinutes ?? 120,
     maxDailyWeekendHolidayMinutes: campos?.maxDailyWeekendHolidayMinutes ?? 480,
     maxMonthlyMinutes: campos?.maxMonthlyMinutes ?? 2640,
-    maxAnnualMinutes: campos?.maxAnnualMinutes ?? 8040,
+    maxAnnualMinutes: campos?.maxAnnualMinutes ?? 12000,
     divisorMinutes: campos?.divisorMinutes ?? 12000,
     rateDiaUtil: campos?.rateDiaUtil ?? 50,
     rateSabado: campos?.rateSabado ?? 50,

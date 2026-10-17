@@ -30,6 +30,7 @@ try {
   await client.query(oldSql);
   await client.query(await readFile("tests/integration/horas-extras/historico.sql", "utf8"));
   await client.query(await readFile("prisma/migrations/20261017190000_horas_extras_campanhas_orcamento/migration.sql", "utf8"));
+  await client.query(await readFile("prisma/migrations/20261017220000_horas_extras_fluxo_campanha/migration.sql", "utf8"));
   await client.query("COMMIT");
   transaction = false;
   process.stdout.write("Schema anterior, historico ficticio e migration aditiva aplicados em banco descartavel.\n");

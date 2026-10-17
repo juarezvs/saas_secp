@@ -736,15 +736,21 @@ enum StatusIntegracaoProgramacaoFerias {
 }
 
 model Usuario {
-  id                         String      @id @default(uuid()) @db.Uuid
-  matricula                  String      @unique @db.VarChar(50)
-  cpf                        String?     @unique @db.VarChar(11)
-  nome                       String      @db.VarChar(200)
-  email                      String?     @unique @db.VarChar(200)
-  senhaHash                  String?     @map("senha_hash") @db.VarChar(255)
-  tipo                       TipoUsuario @default(SERVIDOR)
-  ativo                      Boolean     @default(true)
-  preferenciasAcessibilidade Json?       @map("preferencias_acessibilidade")
+  overtimeRestrictionValidations OvertimeEmployeeRestriction[]
+  overtimeProjects               OvertimeProject[]
+  overtimeProjectEvents          OvertimeProjectEvent[]
+  overtimeCreditUses             OvertimeExtraordinaryCreditUse[]
+  overtimeSalaryValidations      OvertimeSalaryHistory[]
+  overtimeRubricValidations      OvertimeSalaryRubric[]
+  id                             String                           @id @default(uuid()) @db.Uuid
+  matricula                      String                           @unique @db.VarChar(50)
+  cpf                            String?                          @unique @db.VarChar(11)
+  nome                           String                           @db.VarChar(200)
+  email                          String?                          @unique @db.VarChar(200)
+  senhaHash                      String?                          @map("senha_hash") @db.VarChar(255)
+  tipo                           TipoUsuario                      @default(SERVIDOR)
+  ativo                          Boolean                          @default(true)
+  preferenciasAcessibilidade     Json?                            @map("preferencias_acessibilidade")
 
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
@@ -1054,14 +1060,15 @@ model PerfilPermissaoOrgao {
 }
 
 model Orgao {
-  id            String  @id @default(uuid()) @db.Uuid
-  sigla         String  @unique @db.VarChar(30)
-  nome          String  @db.VarChar(200)
-  ativo         Boolean @default(true)
-  fusoHorario   String? @map("fuso_horario") @db.VarChar(80)
-  uf            String? @db.Char(2)
-  municipio     String? @db.VarChar(120)
-  municipioIbge String? @map("municipio_ibge") @db.VarChar(7)
+  overtimeSalaryRubrics OvertimeSalaryRubric[]
+  id                    String                 @id @default(uuid()) @db.Uuid
+  sigla                 String                 @unique @db.VarChar(30)
+  nome                  String                 @db.VarChar(200)
+  ativo                 Boolean                @default(true)
+  fusoHorario           String?                @map("fuso_horario") @db.VarChar(80)
+  uf                    String?                @db.Char(2)
+  municipio             String?                @db.VarChar(120)
+  municipioIbge         String?                @map("municipio_ibge") @db.VarChar(7)
 
   codigoExternoSarh       Int?      @unique @map("codigo_externo_sarh")
   dataInicioSarh          DateTime? @map("data_inicio_sarh") @db.Date
@@ -1352,10 +1359,14 @@ model Cargo {
 }
 
 model Servidor {
-  id                String  @id @default(uuid()) @db.Uuid
-  usuarioId         String  @unique @map("usuario_id") @db.Uuid
-  orgaoId           String  @map("orgao_id") @db.Uuid
-  categoriaPessoaId String? @map("categoria_pessoa_id") @db.Uuid
+  overtimeRestrictions         OvertimeEmployeeRestriction[]
+  overtimeProjectItems         OvertimeProjectItem[]
+  overtimeExtraordinaryCredits OvertimeExtraordinaryCredit[]
+  overtimeSalaryHistory        OvertimeSalaryHistory[]
+  id                           String                        @id @default(uuid()) @db.Uuid
+  usuarioId                    String                        @unique @map("usuario_id") @db.Uuid
+  orgaoId                      String                        @map("orgao_id") @db.Uuid
+  categoriaPessoaId            String?                       @map("categoria_pessoa_id") @db.Uuid
 
   matricula     String              @unique @db.VarChar(50)
   cpf           String?             @unique @db.VarChar(11)
@@ -2492,7 +2503,8 @@ model AutorizacaoBancoHoras {
 }
 
 model Solicitacao {
-  id String @id @default(uuid()) @db.Uuid
+  overtimeCreditUses OvertimeExtraordinaryCreditUse[]
+  id                 String                           @id @default(uuid()) @db.Uuid
 
   servidorId            String  @map("servidor_id") @db.Uuid
   usuarioSolicitanteId  String  @map("usuario_solicitante_id") @db.Uuid
@@ -3580,10 +3592,11 @@ model ConvocacaoRecesso {
 }
 
 model ConvocadoRecesso {
-  id           String @id @default(uuid()) @db.Uuid
-  recessoId    String @map("recesso_id") @db.Uuid
-  convocacaoId String @map("convocacao_id") @db.Uuid
-  servidorId   String @map("servidor_id") @db.Uuid
+  campaignItems OvertimeProjectItem[]
+  id            String                @id @default(uuid()) @db.Uuid
+  recessoId     String                @map("recesso_id") @db.Uuid
+  convocacaoId  String                @map("convocacao_id") @db.Uuid
+  servidorId    String                @map("servidor_id") @db.Uuid
 
   dataConvocacao DateTime                  @map("data_convocacao") @db.Date
   escolha        EscolhaCompensacaoRecesso @default(PENDENTE)
@@ -3701,26 +3714,27 @@ enum OvertimeBudgetOperationType {
 }
 
 model OvertimeCampaign {
-  id                 String                 @id @default(uuid()) @db.Uuid
-  orgaoId            String                 @map("orgao_id") @db.Uuid
-  code               String                 @db.VarChar(80)
-  name               String                 @db.VarChar(200)
-  fiscalYear         Int                    @map("fiscal_year")
-  seiProcess         String                 @map("sei_process") @db.VarChar(80)
-  authorizationDocument String              @map("authorization_document") @db.VarChar(160)
-  validFrom          DateTime?              @map("valid_from") @db.Date
-  validUntil         DateTime?              @map("valid_until") @db.Date
-  projectDeadline    DateTime               @map("project_deadline") @db.Date
-  proofDeadline      DateTime               @map("proof_deadline") @db.Date
-  status             OvertimeCampaignStatus @default(DRAFT)
-  rules              Json
-  sourceManifest     Json                   @map("source_manifest")
-  createdAt          DateTime               @default(now()) @map("created_at")
-  updatedAt          DateTime               @updatedAt @map("updated_at")
+  id                    String                 @id @default(uuid()) @db.Uuid
+  orgaoId               String                 @map("orgao_id") @db.Uuid
+  code                  String                 @db.VarChar(80)
+  name                  String                 @db.VarChar(200)
+  fiscalYear            Int                    @map("fiscal_year")
+  seiProcess            String                 @map("sei_process") @db.VarChar(80)
+  authorizationDocument String                 @map("authorization_document") @db.VarChar(160)
+  validFrom             DateTime?              @map("valid_from") @db.Date
+  validUntil            DateTime?              @map("valid_until") @db.Date
+  projectDeadline       DateTime               @map("project_deadline") @db.Date
+  proofDeadline         DateTime               @map("proof_deadline") @db.Date
+  status                OvertimeCampaignStatus @default(DRAFT)
+  rules                 Json
+  sourceManifest        Json                   @map("source_manifest")
+  createdAt             DateTime               @default(now()) @map("created_at")
+  updatedAt             DateTime               @updatedAt @map("updated_at")
 
-  orgao       Orgao                      @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
-  accounts    OvertimeCampaignAccount[]
-  operations  OvertimeBudgetOperation[]
+  orgao      Orgao                     @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+  accounts   OvertimeCampaignAccount[]
+  operations OvertimeBudgetOperation[]
+  projects   OvertimeProject[]
 
   @@unique([id, orgaoId])
   @@unique([orgaoId, code])
@@ -3741,9 +3755,10 @@ model OvertimeCampaignAccount {
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
 
-  campaign  OvertimeCampaign          @relation(fields: [campaignId, orgaoId], references: [id, orgaoId], onDelete: Restrict)
-  unit      UnidadeOrganizacional     @relation(fields: [unitId, orgaoId], references: [id, orgaoId], onDelete: Restrict)
+  campaign  OvertimeCampaign         @relation(fields: [campaignId, orgaoId], references: [id, orgaoId], onDelete: Restrict)
+  unit      UnidadeOrganizacional    @relation(fields: [unitId, orgaoId], references: [id, orgaoId], onDelete: Restrict)
   movements OvertimeBudgetMovement[]
+  projects  OvertimeProject[]
 
   @@unique([id, campaignId])
   @@unique([campaignId, unitId])
@@ -3752,6 +3767,8 @@ model OvertimeCampaignAccount {
 }
 
 model OvertimeBudgetOperation {
+  projectVersion         OvertimeProjectVersion?
+  projectFunding         OvertimeProjectFunding?
   id                     String                      @id @default(uuid()) @db.Uuid
   campaignId             String                      @map("campaign_id") @db.Uuid
   type                   OvertimeBudgetOperationType
@@ -3766,11 +3783,11 @@ model OvertimeBudgetOperation {
   correlationId          String                      @map("correlation_id") @db.VarChar(120)
   createdAt              DateTime                    @default(now()) @map("created_at")
 
-  campaign    OvertimeCampaign           @relation(fields: [campaignId], references: [id], onDelete: Restrict)
-  actor       Usuario                    @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
-  reservation OvertimeBudgetOperation?   @relation("OvertimeReservationConsumption", fields: [reservationOperationId, campaignId], references: [id, campaignId], onDelete: Restrict)
+  campaign     OvertimeCampaign          @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  actor        Usuario                   @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  reservation  OvertimeBudgetOperation?  @relation("OvertimeReservationConsumption", fields: [reservationOperationId, campaignId], references: [id, campaignId], onDelete: Restrict)
   consumptions OvertimeBudgetOperation[] @relation("OvertimeReservationConsumption")
-  movements   OvertimeBudgetMovement[]
+  movements    OvertimeBudgetMovement[]
 
   @@unique([id, campaignId])
   @@unique([campaignId, idempotencyKey])
@@ -4291,7 +4308,9 @@ model OvertimePayrollBatchLine {
 }
 
 model AutorizacaoHoraExtraAdministrativa {
-  id String @id @default(uuid()) @db.Uuid
+  id                String                  @id @default(uuid()) @db.Uuid
+  campaignVersionId String?                 @map("campaign_version_id") @db.Uuid
+  campaignVersion   OvertimeProjectVersion? @relation(fields: [campaignVersionId], references: [id], onDelete: Restrict)
 
   orgaoId   String @map("orgao_id") @db.Uuid
   unidadeId String @map("unidade_id") @db.Uuid
@@ -4325,6 +4344,7 @@ model AutorizacaoHoraExtraAdministrativa {
   eventos       HoraExtraEvento[]
 
   @@unique([orgaoId, processoSei, documentoAutorizacao, versao])
+  @@unique([campaignVersionId, mesReferencia])
   @@index([orgaoId])
   @@index([unidadeId])
   @@index([mesReferencia])
@@ -4420,7 +4440,8 @@ model HoraExtraExecucaoIntervalo {
 }
 
 model HoraExtraClassificacaoIntervalo {
-  id String @id @default(uuid()) @db.Uuid
+  campaignItem OvertimeProjectItem?
+  id           String               @id @default(uuid()) @db.Uuid
 
   servidorAutorizadoId String  @map("servidor_autorizado_id") @db.Uuid
   execucaoIntervaloId  String? @map("execucao_intervalo_id") @db.Uuid
@@ -4679,12 +4700,12 @@ model MctConfiguracaoApuracao {
   criadoEm                 DateTime                      @default(now()) @map("criado_em")
   atualizadoEm             DateTime                      @updatedAt @map("atualizado_em")
 
-  orgao    Orgao              @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
-  jornada  Jornada            @relation(fields: [jornadaId], references: [id], onDelete: Restrict)
-  escala   Escala?            @relation(fields: [escalaId], references: [id], onDelete: Restrict)
-  politica MctPoliticaVersao? @relation(fields: [politicaVersaoId], references: [id], onDelete: Restrict)
-  configuracaoAnterior MctConfiguracaoApuracao? @relation("MctConfiguracaoVersoes", fields: [configuracaoAnteriorId], references: [id], onDelete: SetNull)
-  versoesPosteriores MctConfiguracaoApuracao[] @relation("MctConfiguracaoVersoes")
+  orgao                Orgao                     @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+  jornada              Jornada                   @relation(fields: [jornadaId], references: [id], onDelete: Restrict)
+  escala               Escala?                   @relation(fields: [escalaId], references: [id], onDelete: Restrict)
+  politica             MctPoliticaVersao?        @relation(fields: [politicaVersaoId], references: [id], onDelete: Restrict)
+  configuracaoAnterior MctConfiguracaoApuracao?  @relation("MctConfiguracaoVersoes", fields: [configuracaoAnteriorId], references: [id], onDelete: SetNull)
+  versoesPosteriores   MctConfiguracaoApuracao[] @relation("MctConfiguracaoVersoes")
 
   @@index([orgaoId, status])
   @@index([jornadaId, vigenciaInicio, vigenciaFim])
@@ -4927,4 +4948,219 @@ model MctRubricaAplicada {
   @@index([rubricaVersaoId])
   @@index([segmentoId])
   @@map("mct_rubricas_aplicadas")
+}
+
+// Campanhas: propostas coletivas e versões preservam a autorização SECAP como destino institucional.
+model OvertimeEmployeeRestriction {
+  id                String   @id @default(uuid()) @db.Uuid
+  employeeId        String   @map("employee_id") @db.Uuid
+  validFrom         DateTime @map("valid_from") @db.Date
+  validUntil        DateTime @map("valid_until") @db.Date
+  maxDailyMinutes   Int      @map("max_daily_minutes")
+  seiDocument       String   @map("sei_document") @db.VarChar(160)
+  validatedByUserId String   @map("validated_by_user_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at")
+  employee          Servidor @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  validator         Usuario  @relation(fields: [validatedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([employeeId, validFrom, validUntil])
+  @@map("overtime_employee_restrictions")
+}
+
+model OvertimeProject {
+  id              String                   @id @default(uuid()) @db.Uuid
+  campaignId      String                   @map("campaign_id") @db.Uuid
+  orgaoId         String                   @map("orgao_id") @db.Uuid
+  accountId       String                   @map("account_id") @db.Uuid
+  requesterUserId String                   @map("requester_user_id") @db.Uuid
+  title           String                   @db.VarChar(200)
+  currentVersion  Int                      @default(1) @map("current_version")
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  updatedAt       DateTime                 @updatedAt @map("updated_at")
+  campaign        OvertimeCampaign         @relation(fields: [campaignId, orgaoId], references: [id, orgaoId], onDelete: Restrict)
+  account         OvertimeCampaignAccount  @relation(fields: [accountId, campaignId], references: [id, campaignId], onDelete: Restrict)
+  requester       Usuario                  @relation(fields: [requesterUserId], references: [id], onDelete: Restrict)
+  versions        OvertimeProjectVersion[]
+
+  @@index([orgaoId, campaignId])
+  @@index([requesterUserId])
+  @@map("overtime_projects")
+}
+
+model OvertimeProjectVersion {
+  isCurrent              Boolean                              @default(true) @map("is_current")
+  contentSnapshot        Json                                 @map("content_snapshot")
+  id                     String                               @id @default(uuid()) @db.Uuid
+  projectId              String                               @map("project_id") @db.Uuid
+  version                Int
+  status                 String                               @default("DRAFT") @db.VarChar(40)
+  seiProcess             String                               @map("sei_process") @db.VarChar(80)
+  justification          String                               @db.Text
+  activities             String                               @db.Text
+  expectedResults        String                               @map("expected_results") @db.Text
+  ordinaryImpossibility  String                               @map("ordinary_impossibility") @db.Text
+  urgencyReason          String?                              @map("urgency_reason") @db.Text
+  amendmentReason        String?                              @map("amendment_reason") @db.Text
+  contentHash            String                               @map("content_hash") @db.Char(64)
+  rulesSnapshot          Json                                 @map("rules_snapshot")
+  submittedAt            DateTime?                            @map("submitted_at")
+  authorizedAt           DateTime?                            @map("authorized_at")
+  reservationOperationId String?                              @unique @map("reservation_operation_id") @db.Uuid
+  reservation            OvertimeBudgetOperation?             @relation(fields: [reservationOperationId], references: [id], onDelete: Restrict)
+  createdAt              DateTime                             @default(now()) @map("created_at")
+  updatedAt              DateTime                             @updatedAt @map("updated_at")
+  project                OvertimeProject                      @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  items                  OvertimeProjectItem[]
+  events                 OvertimeProjectEvent[]
+  fundings               OvertimeProjectFunding[]
+  authorizations         AutorizacaoHoraExtraAdministrativa[]
+
+  @@unique([projectId, version])
+  @@index([status])
+  @@map("overtime_project_versions")
+}
+
+model OvertimeProjectItem {
+  recessCallId        String?                          @map("recess_call_id") @db.Uuid
+  recessCall          ConvocadoRecesso?                @relation(fields: [recessCallId], references: [id], onDelete: Restrict)
+  id                  String                           @id @default(uuid()) @db.Uuid
+  versionId           String                           @map("version_id") @db.Uuid
+  employeeId          String                           @map("employee_id") @db.Uuid
+  date                DateTime                         @db.Date
+  startTime           String                           @map("start_time") @db.VarChar(5)
+  endTime             String                           @map("end_time") @db.VarChar(5)
+  breakMinutes        Int                              @default(0) @map("break_minutes")
+  requestedMinutes    Int                              @map("requested_minutes")
+  approvedMinutes     Int                              @default(0) @map("approved_minutes")
+  performedMinutes    Int                              @default(0) @map("performed_minutes")
+  provenMinutes       Int                              @default(0) @map("proven_minutes")
+  homologatedMinutes  Int                              @default(0) @map("homologated_minutes")
+  activity            String                           @db.Text
+  destination         String                           @default("PECUNIA") @db.VarChar(30)
+  dayType             OvertimeDayType                  @map("day_type")
+  estimatedAmount     Decimal                          @default(0) @map("estimated_amount") @db.Decimal(14, 2)
+  decisionReason      String?                          @map("decision_reason") @db.Text
+  employeeSnapshot    Json                             @map("employee_snapshot")
+  executionSnapshot   Json?                            @map("execution_snapshot")
+  proofSnapshot       Json?                            @map("proof_snapshot")
+  calculationSnapshot Json?                            @map("calculation_snapshot")
+  financialStatus     String                           @default("PENDING") @map("financial_status") @db.VarChar(40)
+  classificationId    String?                          @unique @map("classification_id") @db.Uuid
+  classification      HoraExtraClassificacaoIntervalo? @relation(fields: [classificationId], references: [id], onDelete: Restrict)
+  version             OvertimeProjectVersion           @relation(fields: [versionId], references: [id], onDelete: Restrict)
+  employee            Servidor                         @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  bankCredit          OvertimeExtraordinaryCredit?
+
+  @@unique([versionId, employeeId, date, startTime])
+  @@index([employeeId, date])
+  @@map("overtime_project_items")
+}
+
+model OvertimeProjectEvent {
+  id            String                 @id @default(uuid()) @db.Uuid
+  versionId     String                 @map("version_id") @db.Uuid
+  actorUserId   String                 @map("actor_user_id") @db.Uuid
+  activeProfile String                 @map("active_profile") @db.VarChar(120)
+  action        String                 @db.VarChar(80)
+  fromStatus    String?                @map("from_status") @db.VarChar(40)
+  toStatus      String                 @map("to_status") @db.VarChar(40)
+  reason        String                 @db.Text
+  seiDocument   String                 @map("sei_document") @db.VarChar(160)
+  correlationId String                 @map("correlation_id") @db.VarChar(120)
+  before        Json?
+  after         Json
+  createdAt     DateTime               @default(now()) @map("created_at")
+  version       OvertimeProjectVersion @relation(fields: [versionId], references: [id], onDelete: Restrict)
+  actor         Usuario                @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([versionId, createdAt])
+  @@map("overtime_project_events")
+}
+
+model OvertimeProjectFunding {
+  id          String                  @id @default(uuid()) @db.Uuid
+  versionId   String                  @map("version_id") @db.Uuid
+  operationId String                  @unique @map("operation_id") @db.Uuid
+  version     OvertimeProjectVersion  @relation(fields: [versionId], references: [id], onDelete: Restrict)
+  operation   OvertimeBudgetOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@index([versionId])
+  @@map("overtime_project_fundings")
+}
+
+model OvertimeExtraordinaryCredit {
+  id              String                           @id @default(uuid()) @db.Uuid
+  itemId          String                           @unique @map("item_id") @db.Uuid
+  employeeId      String                           @map("employee_id") @db.Uuid
+  originalMinutes Int                              @map("original_minutes")
+  creditedMinutes Int                              @map("credited_minutes")
+  usedMinutes     Int                              @default(0) @map("used_minutes")
+  factor          Decimal                          @db.Decimal(4, 2)
+  expiresOn       DateTime                         @map("expires_on") @db.Date
+  seiDocument     String                           @map("sei_document") @db.VarChar(160)
+  createdAt       DateTime                         @default(now()) @map("created_at")
+  item            OvertimeProjectItem              @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  employee        Servidor                         @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  uses            OvertimeExtraordinaryCreditUse[]
+
+  @@index([employeeId, expiresOn])
+  @@map("overtime_extraordinary_credits")
+}
+
+model OvertimeExtraordinaryCreditUse {
+  requestId   String                      @map("request_id") @db.Uuid
+  request     Solicitacao                 @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  id          String                      @id @default(uuid()) @db.Uuid
+  creditId    String                      @map("credit_id") @db.Uuid
+  date        DateTime                    @db.Date
+  minutes     Int
+  actorUserId String                      @map("actor_user_id") @db.Uuid
+  seiDocument String                      @map("sei_document") @db.VarChar(160)
+  reason      String                      @db.Text
+  createdAt   DateTime                    @default(now()) @map("created_at")
+  credit      OvertimeExtraordinaryCredit @relation(fields: [creditId], references: [id], onDelete: Restrict)
+  actor       Usuario                     @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([creditId, date])
+  @@map("overtime_extraordinary_credit_uses")
+}
+
+model OvertimeSalaryHistory {
+  id                String                 @id @default(uuid()) @db.Uuid
+  employeeId        String                 @map("employee_id") @db.Uuid
+  validFrom         DateTime               @map("valid_from") @db.Date
+  validUntil        DateTime               @map("valid_until") @db.Date
+  baseCentavos      Int                    @map("base_centavos")
+  components        Json
+  source            String                 @db.VarChar(30)
+  seiDocument       String                 @map("sei_document") @db.VarChar(160)
+  validatedByUserId String                 @map("validated_by_user_id") @db.Uuid
+  replacesId        String?                @unique @map("replaces_id") @db.Uuid
+  replaces          OvertimeSalaryHistory? @relation("SalaryReplacement", fields: [replacesId], references: [id], onDelete: Restrict)
+  replacement       OvertimeSalaryHistory? @relation("SalaryReplacement")
+  createdAt         DateTime               @default(now()) @map("created_at")
+  employee          Servidor               @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  validator         Usuario                @relation(fields: [validatedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([employeeId, validFrom, validUntil])
+  @@map("overtime_salary_history")
+}
+
+model OvertimeSalaryRubric {
+  id                String    @id @default(uuid()) @db.Uuid
+  orgaoId           String    @map("orgao_id") @db.Uuid
+  code              String    @db.VarChar(80)
+  description       String    @db.VarChar(250)
+  nature            String    @db.VarChar(100)
+  includesInBase    Boolean   @map("includes_in_base")
+  normativeBasis    String    @map("normative_basis") @db.Text
+  validFrom         DateTime  @map("valid_from") @db.Date
+  validUntil        DateTime? @map("valid_until") @db.Date
+  validatedByUserId String    @map("validated_by_user_id") @db.Uuid
+  createdAt         DateTime  @default(now()) @map("created_at")
+  orgao             Orgao     @relation(fields: [orgaoId], references: [id], onDelete: Restrict)
+  validator         Usuario   @relation(fields: [validatedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([orgaoId, code, validFrom])
+  @@map("overtime_salary_rubrics")
 }

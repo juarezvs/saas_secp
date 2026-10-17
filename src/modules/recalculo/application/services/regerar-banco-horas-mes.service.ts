@@ -479,6 +479,15 @@ export async function regerarBancoHorasMesService({
       mesesExpiracaoCompensacao: regulamentacao.mesesExpiracaoCompensacao,
     });
 
+    // Os minutos comprometidos com serviço extraordinário não podem financiar crédito ordinário.
+    // Só projetos novos são consultados; autorizações e movimentos históricos permanecem intactos.
+    const itensExtraordinarios = await tx.overtimeProjectItem.findMany({where:{employeeId:servidorId,date:{gte:inicio,lt:fim},approvedMinutes:{gt:0},version:{status:{notIn:["DRAFT","ADMIN_REVIEW","BUDGET_REVIEW","AUTHORITY_REVIEW","RETURNED","REJECTED","CANCELLED","SUPERSEDED"]}}},select:{date:true,approvedMinutes:true,homologatedMinutes:true,version:{select:{status:true}}}});
+    const extraordinarioPorData = new Map<string,number>();
+    for (const item of itensExtraordinarios) {
+      const key=item.date.toISOString().slice(0,10);
+      const final=["HOMOLOGATED","FINANCIAL_REVIEW","READY_FOR_PAYROLL","CONVERTED","COMPLETED"].includes(item.version.status);
+      extraordinarioPorData.set(key,(extraordinarioPorData.get(key)??0)+(final?item.homologatedMinutes:item.approvedMinutes));
+    }
     for (const apuracao of apuracoes) {
       if (
         afastamentosSarh.some((afastamento) =>
@@ -500,7 +509,8 @@ export async function regerarBancoHorasMesService({
           apuracao,
           classificacaoDia,
           regulamentacao,
-        }) - (creditosValidadosPorApuracao.get(apuracao.id) ?? 0),
+        }) - (creditosValidadosPorApuracao.get(apuracao.id) ?? 0)
+          - (extraordinarioPorData.get(apuracao.dataReferencia.toISOString().slice(0,10)) ?? 0),
       );
       const minutosDebitoPendentes = Math.max(
         0,

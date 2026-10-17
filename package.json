@@ -29,7 +29,8 @@
     "prisma:seed": "prisma db seed",
     "db:seed": "prisma db seed",
     "test": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:horas-extras:e2e": "node tests/e2e/horas-extras-campanha.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -67,6 +68,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.3.0",
     "dotenv": "^17.4.2",
+    "fflate": "0.8.3",
     "html2canvas": "^1.4.1",
     "ioredis": "^5.11.0",
     "jspdf": "^4.2.1",

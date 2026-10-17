@@ -657,6 +657,10 @@ const codigosPermissoesHorasExtrasGestao = [
 
 const permissoesIniciais = [
   ...["seccional", "global"].flatMap((escopo) => [
+    { recurso:"horas-extras", acao:"validar-remuneracao", escopo, descricao:"Validar histórico remuneratório documentado de horas extras." },
+    { recurso:"horas-extras", acao:"validar-rubrica", escopo, descricao:"Validar natureza, incidência e vigência de rubricas de horas extras." },
+  ]),
+  ...["seccional", "global"].flatMap((escopo) => [
     { recurso: "mct-configuracao", acao: "consultar", escopo, descricao: `Consultar configurações de apuração MCT no escopo ${escopo}.` },
     { recurso: "mct-configuracao", acao: "gerenciar", escopo, descricao: `Gerenciar configurações de apuração MCT no escopo ${escopo}.` },
     { recurso: "mct-simulador", acao: "usar", escopo, descricao: `Simular jornadas no MCT no escopo ${escopo}.` },
@@ -2933,15 +2937,7 @@ async function criarConfiguracaoHorasExtrasPadrao(orgaoId: string) {
     },
   });
   const policy = policyExistente
-    ? await prisma.overtimePolicy.update({
-        where: { id: policyExistente.id },
-        data: {
-          name: "Politica de servico extraordinario - referencia JF",
-          description:
-            "Politica inicial editavel para servico extraordinario remunerado.",
-          active: true,
-        },
-      })
+    ? policyExistente
     : await prisma.overtimePolicy.create({
         data: {
           orgaoId,
@@ -2961,43 +2957,24 @@ async function criarConfiguracaoHorasExtrasPadrao(orgaoId: string) {
         version: 1,
       },
     },
-    update: {
-      orgaoId,
-      scopeUnitId: null,
-      normativeBasis:
-        "Configuracao inicial editavel: 50% para dias uteis e sabados, 100% para domingos e feriados, limite de 2h em dias uteis, 44h mensais e 134h anuais.",
-      validFrom: new Date("2026-01-01T00:00:00.000Z"),
-      priorAuthorization: true,
-      budgetReviewRequired: true,
-      minimumBusinessDays: 0,
-      workPlanRequired: true,
-      justificationRequired: true,
-      divisorMinutes: 12000,
-      monthlyLimitMinutes: 2640,
-      annualLimitMinutes: 8040,
-      active: true,
-      snapshot: {
-        paymentDestinationDefault: "PECUNIA",
-        weekdayEligibilityThreshold: "apos_oitava_hora",
-        rounding: "minute",
-      },
-    },
+    // Versões existentes podem estar referenciadas por históricos e nunca são reescritas pelo seed.
+    update: {},
     create: {
       policyId: policy.id,
       orgaoId,
       scopeUnitId: null,
       version: 1,
       normativeBasis:
-        "Configuracao inicial editavel: 50% para dias uteis e sabados, 100% para domingos e feriados, limite de 2h em dias uteis, 44h mensais e 134h anuais.",
+        "Configuracao inicial editavel: 50% para dias uteis e sabados, 100% para domingos e feriados, limite de 2h em dias uteis, 44h mensais e 200h anuais.",
       validFrom: new Date("2026-01-01T00:00:00.000Z"),
       priorAuthorization: true,
       budgetReviewRequired: true,
-      minimumBusinessDays: 0,
+      minimumBusinessDays: 5,
       workPlanRequired: true,
       justificationRequired: true,
       divisorMinutes: 12000,
       monthlyLimitMinutes: 2640,
-      annualLimitMinutes: 8040,
+      annualLimitMinutes: 12000,
       active: true,
       snapshot: {
         paymentDestinationDefault: "PECUNIA",
@@ -3060,12 +3037,7 @@ async function criarConfiguracaoHorasExtrasPadrao(orgaoId: string) {
           dayType: rule.dayType,
         },
       },
-      update: {
-        ratePercent: rule.ratePercent,
-        dailyLimitMinutes: rule.dailyLimitMinutes,
-        eligibilityThresholdMinutes: rule.eligibilityThresholdMinutes,
-        active: true,
-      },
+      update: {},
       create: {
         policyVersionId: policyVersion.id,
         dayType: rule.dayType,
@@ -3092,12 +3064,7 @@ async function criarConfiguracaoHorasExtrasPadrao(orgaoId: string) {
         workflowDefinitionExistente?.id ??
         "00000000-0000-0000-0000-000000000000",
     },
-    update: {
-      name: "Chefia, orçamento e deliberação final",
-      description:
-        "Fluxo inicial editavel para solicitacao, analise, parecer, deliberacao, execucao, fechamento e pagamento de servico extraordinario.",
-      active: true,
-    },
+    update: {},
     create: {
       orgaoId,
       scopeUnitId: null,
@@ -3116,17 +3083,7 @@ async function criarConfiguracaoHorasExtrasPadrao(orgaoId: string) {
         version: 1,
       },
     },
-    update: {
-      orgaoId,
-      scopeUnitId: null,
-      validFrom: new Date("2026-01-01T00:00:00.000Z"),
-      initialStepCode: "SERVIDOR_SOLICITANTE",
-      active: true,
-      snapshot: {
-        version: 1,
-        template: workflowDefinition.code,
-      },
-    },
+    update: {},
     create: {
       definitionId: workflowDefinition.id,
       orgaoId,
@@ -3202,12 +3159,7 @@ async function criarConfiguracaoHorasExtrasPadrao(orgaoId: string) {
           code: step.code,
         },
       },
-      update: {
-        name: step.name,
-        order: step.order,
-        requiredPermission: step.requiredPermission,
-        allowsPartialApproval: step.allowsPartialApproval,
-      },
+      update: {},
       create: {
         workflowVersionId: workflowVersion.id,
         code: step.code,
@@ -3273,10 +3225,7 @@ async function criarConfiguracaoHorasExtrasPadrao(orgaoId: string) {
           actionCode: transition.actionCode,
         },
       },
-      update: {
-        toStepCode: transition.toStepCode,
-        requiredPermission: transition.requiredPermission,
-      },
+      update: {},
       create: {
         workflowVersionId: workflowVersion.id,
         fromStepCode: transition.fromStepCode,
