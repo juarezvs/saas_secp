@@ -7,7 +7,7 @@ import {
 } from "@/modules/auth/application/services/permissao.service";
 import { ConfiguracaoApuracaoAssistente } from "@/modules/mct/presentation/components/configuracao-apuracao-assistente";
 import { MODELOS_CONFIGURACAO_APURACAO } from "@/modules/mct/domain/modelos-configuracao-apuracao";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 const CONSULTAR = [
   "mct-configuracao:consultar:seccional",
@@ -50,7 +50,7 @@ export default async function ConfiguracaoApuracaoPage() {
         ],
       };
   const [jornadas, politicas, configuracoes] = await Promise.all([
-    prisma.jornada.findMany({
+    prismaListagem.jornada.findMany({
       where: { ativo: true, ...escopoJornada },
       select: {
         id: true,
@@ -64,12 +64,12 @@ export default async function ConfiguracaoApuracaoPage() {
       },
       orderBy: { nome: "asc" },
     }),
-    prisma.mctPoliticaVersao.findMany({
+    prismaListagem.mctPoliticaVersao.findMany({
       where: { estado: "PUBLICADA", ...escopo },
       select: { id: true, nome: true, versao: true, orgaoId: true },
       orderBy: [{ nome: "asc" }, { versao: "desc" }],
     }),
-    prisma.mctConfiguracaoApuracao.findMany({
+    prismaListagem.mctConfiguracaoApuracao.findMany({
       where: escopo,
       include: { jornada: true, escala: true, politica: true },
       orderBy: { criadoEm: "desc" },

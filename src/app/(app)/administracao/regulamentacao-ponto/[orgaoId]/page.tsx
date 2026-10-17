@@ -7,7 +7,7 @@ import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/es
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { REGULAMENTACAO_PONTO_PADRAO } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
 import { RegulamentacaoPontoForm } from "@/modules/regulamentacao-ponto/presentation/components/regulamentacao-ponto-form";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 type RegulamentacaoPontoOrgaoPageProps = {
   params: Promise<{
@@ -36,7 +36,7 @@ export default async function RegulamentacaoPontoOrgaoPage({
     notFound();
   }
 
-  const orgao = await prisma.orgao.findUnique({
+  const orgao = await prismaListagem.orgao.findUnique({
     where: { id: orgaoId },
     include: {
       regulamentacaoPonto: true,

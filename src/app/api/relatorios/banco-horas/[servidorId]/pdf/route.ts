@@ -7,7 +7,7 @@ import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/appli
 import { enfileirarRelatorioExportacaoResponse } from "@/modules/relatorios/application/services/relatorio-exportacao-response.service";
 import { buscarDadosBancoHorasPdf } from "@/modules/relatorios/infrastructure/repositories/relatorios.repository";
 import { BancoHorasPdfDocument } from "@/modules/relatorios/presentation/pdf/banco-horas-pdf.document";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export const runtime = "nodejs";
 
@@ -70,7 +70,7 @@ async function getRelatorioBancoHorasPdf(request: Request, context: RouteContext
   }
 
   if (url.searchParams.get("sync") !== "1") {
-    const servidor = await prisma.servidor.findUnique({
+    const servidor = await prismaListagem.servidor.findUnique({
       where: {
         id: servidorId,
       },

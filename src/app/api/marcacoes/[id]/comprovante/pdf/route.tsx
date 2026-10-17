@@ -10,7 +10,7 @@ import {
 } from "@react-pdf/renderer";
 
 import { auth } from "@/auth";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export const runtime = "nodejs";
 
@@ -124,7 +124,7 @@ export async function GET(_request: Request, { params }: Params) {
   }
 
   const { id } = await params;
-  const marcacao = await prisma.marcacao.findUnique({
+  const marcacao = await prismaListagem.marcacao.findUnique({
     where: { id },
     include: {
       servidor: {

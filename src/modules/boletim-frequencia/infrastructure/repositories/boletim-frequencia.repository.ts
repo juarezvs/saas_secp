@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export type ListarBoletinsFrequenciaParams = {
   pagina?: number;
@@ -125,7 +126,7 @@ const includeBoletimListagem = {
 };
 
 export async function listarBoletinsFrequencia() {
-  return prisma.boletimFrequencia.findMany({
+  return prismaListagem.boletimFrequencia.findMany({
     orderBy: [
       {
         anoReferencia: "desc",
@@ -153,8 +154,8 @@ export async function listarBoletinsFrequenciaPaginado(
   const where = montarWhereBoletinsFrequencia(params);
 
   const [total, boletins] = await Promise.all([
-    prisma.boletimFrequencia.count({ where }),
-    prisma.boletimFrequencia.findMany({
+    prismaListagem.boletimFrequencia.count({ where }),
+    prismaListagem.boletimFrequencia.findMany({
       where,
       orderBy: [
         { anoReferencia: "desc" },
@@ -179,7 +180,7 @@ export async function listarBoletinsFrequenciaPaginado(
 export async function listarBoletinsFrequenciaParaExportacao(
   params: ListarBoletinsFrequenciaParams,
 ) {
-  return prisma.boletimFrequencia.findMany({
+  return prismaListagem.boletimFrequencia.findMany({
     where: montarWhereBoletinsFrequencia(params),
     orderBy: [
       { anoReferencia: "desc" },
@@ -244,7 +245,7 @@ export async function buscarBoletimFrequenciaPorId(id: string) {
 }
 
 export async function listarHistoricoBoletimFrequencia(boletimId: string) {
-  return prisma.auditoriaEvento.findMany({
+  return prismaListagem.auditoriaEvento.findMany({
     where: {
       entidade: "BoletimFrequencia",
       entidadeId: boletimId,
@@ -261,7 +262,7 @@ export async function listarHistoricoBoletimFrequencia(boletimId: string) {
 export async function listarFechamentosHomologadosSemBoletim(params?: {
   unidadeIdsPermitidos?: string[];
 }) {
-  return prisma.fechamentoMensalUnidade.findMany({
+  return prismaListagem.fechamentoMensalUnidade.findMany({
     where: {
       status: "HOMOLOGADO",
       boletimFrequencia: null,
@@ -346,7 +347,7 @@ export async function listarUnidadesBoletimFrequencia(params?: {
 }) {
   const unidadeIdsPermitidos = params?.unidadeIdsPermitidos?.filter(Boolean);
 
-  return prisma.unidadeOrganizacional.findMany({
+  return prismaListagem.unidadeOrganizacional.findMany({
     where: {
       ativo: true,
       boletimFrequencias: {
@@ -404,7 +405,7 @@ export async function listarUnidadesBoletimFrequencia(params?: {
 export async function listarBoletinsFrequenciaParaPdfAgrupado(
   params: ListarBoletinsFrequenciaParams,
 ) {
-  return prisma.boletimFrequencia.findMany({
+  return prismaListagem.boletimFrequencia.findMany({
     where: montarWhereBoletinsFrequencia(params),
     orderBy: [
       { anoReferencia: "desc" },

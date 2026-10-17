@@ -3,7 +3,7 @@ import { withHttpMetrics } from "@/lib/observability/http";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { perfilAtivoEhChefia } from "@/modules/auth/application/services/perfil-chefia.service";
 import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export const runtime = "nodejs";
 
@@ -24,7 +24,7 @@ async function getEvidenciaFacialMarcacao(
   }
 
   const { id } = await context.params;
-  const marcacao = await prisma.marcacao.findUnique({
+  const marcacao = await prismaListagem.marcacao.findUnique({
     where: {
       id,
     },

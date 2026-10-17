@@ -10,7 +10,7 @@ import {
   listarUnidadesParaEquipamentos,
 } from "@/modules/integracoes/infrastructure/repositories/integracoes.repository";
 import { EquipamentoBiometricoForm } from "@/modules/integracoes/presentation/components/equipamento-biometrico-form";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 type NovoEquipamentoPageProps = {
   searchParams?: Promise<{
@@ -26,7 +26,7 @@ export default async function NovoEquipamentoPage({
   const params = searchParams ? await searchParams : {};
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
   const orgaos = escopoOrgao.global
-    ? await prisma.orgao.findMany({
+    ? await prismaListagem.orgao.findMany({
         where: { ativo: true },
         select: { id: true, sigla: true, nome: true },
       })

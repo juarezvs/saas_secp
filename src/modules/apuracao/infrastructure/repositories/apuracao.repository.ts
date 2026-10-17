@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { montarEspelhoMensalCompleto } from "../../application/services/montar-espelho-mensal-completo.service";
 
@@ -36,7 +37,7 @@ export async function listarMarcacoesDoDia(params: {
   servidorId: string;
   dataReferencia: Date;
 }) {
-  return prisma.marcacao.findMany({
+  return prismaListagem.marcacao.findMany({
     where: {
       servidorId: params.servidorId,
       dataReferencia: params.dataReferencia,
@@ -113,7 +114,7 @@ export async function listarApuracoesDoServidorNoMes(params: {
   const fim = new Date(Date.UTC(params.ano, params.mes, 1));
 
   const [apuracoes, jornadas, fusoHorario] = await Promise.all([
-    prisma.apuracaoDiaria.findMany({
+    prismaListagem.apuracaoDiaria.findMany({
       where: {
         servidorId: params.servidorId,
         dataReferencia: {
@@ -148,7 +149,7 @@ export async function listarApuracoesDoServidorNoMes(params: {
         dataReferencia: "asc",
       },
     }),
-    prisma.jornadaServidor.findMany({
+    prismaListagem.jornadaServidor.findMany({
       where: {
         servidorId: params.servidorId,
         ativo: true,
@@ -211,7 +212,7 @@ export async function listarSolicitacoesDoServidorNoMes(params: {
   const inicio = new Date(Date.UTC(params.ano, params.mes - 1, 1));
   const fim = new Date(Date.UTC(params.ano, params.mes, 1));
 
-  return prisma.solicitacao.findMany({
+  return prismaListagem.solicitacao.findMany({
     where: {
       servidorId: params.servidorId,
       OR: [
@@ -261,7 +262,7 @@ export async function listarApuracoesCalculadasDoServidorNoMes(params: {
   const inicio = new Date(Date.UTC(params.ano, params.mes - 1, 1));
   const fim = new Date(Date.UTC(params.ano, params.mes, 1));
 
-  return prisma.apuracaoDiaria.findMany({
+  return prismaListagem.apuracaoDiaria.findMany({
     where: {
       servidorId: params.servidorId,
       dataReferencia: {
@@ -279,7 +280,7 @@ export async function listarApuracoesCalculadasDoServidorNoMes(params: {
 }
 
 export async function listarCompetenciasApuracaoDoServidor(servidorId: string) {
-  const apuracoes = await prisma.apuracaoDiaria.findMany({
+  const apuracoes = await prismaListagem.apuracaoDiaria.findMany({
     where: {
       servidorId,
     },
@@ -336,7 +337,7 @@ export async function listarMarcacoesDoServidorNoMes(params: {
 
   const fim = new Date(Date.UTC(params.ano, params.mes, 1));
 
-  const marcacoes = await prisma.marcacao.findMany({
+  const marcacoes = await prismaListagem.marcacao.findMany({
     where: {
       servidorId: params.servidorId,
 
@@ -379,7 +380,7 @@ export async function listarMarcacoesDoServidorNoMes(params: {
     return typeof id === "string" && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id) ? [id] : [];
   }))];
   const brutasLegadas = idsBrutasLegadas.length
-    ? await prisma.marcacaoBruta.findMany({
+    ? await prismaListagem.marcacaoBruta.findMany({
         where: { id: { in: idsBrutasLegadas }, servidorId: params.servidorId },
         select: { id: true, equipamentoId: true, equipamentoCodigo: true, arquivoAfd: { select: { equipamentoCodigo: true } } },
       }) : [];
@@ -401,7 +402,7 @@ export async function listarMarcacoesDoServidorNoMes(params: {
   const ids = [...new Set(referencias.flatMap((ref) => ref.id ? [ref.id] : []))];
   const codigos = [...new Set(referencias.flatMap((ref) => ref.codigo ? [ref.codigo] : []))];
   const equipamentos = ids.length || codigos.length
-    ? await prisma.equipamentoBiometrico.findMany({
+    ? await prismaListagem.equipamentoBiometrico.findMany({
         where: { OR: [{ id: { in: ids } }, { codigo: { in: codigos } }] },
         // Nunca enviar a configuração do equipamento, que contém credenciais, ao navegador.
         select: { id: true, nome: true, codigo: true, ip: true, porta: true, localizacao: true, fabricante: true, modelo: true, numeroSerie: true },
@@ -456,7 +457,7 @@ async function listarIdsUnidadesSubordinadasParaEspelho(params: {
   mesReferencia: number;
 }) {
   const { inicio, fim } = intervaloReferencia(params);
-  const gestores = await prisma.gestorUnidade.findMany({
+  const gestores = await prismaListagem.gestorUnidade.findMany({
     where: {
       ativo: true,
       dataInicio: {
@@ -486,7 +487,7 @@ async function listarIdsUnidadesSubordinadasParaEspelho(params: {
   let fronteira = Array.from(visitadas);
 
   while (fronteira.length > 0) {
-    const filhas = await prisma.unidadeOrganizacional.findMany({
+    const filhas = await prismaListagem.unidadeOrganizacional.findMany({
       where: {
         ativo: true,
         unidadePaiId: {
@@ -570,7 +571,7 @@ export async function listarServidoresParaEspelhoPonto(
       }
     : {};
 
-  return prisma.servidor.findMany({
+  return prismaListagem.servidor.findMany({
     where: {
       ativo: true,
       usuario: {

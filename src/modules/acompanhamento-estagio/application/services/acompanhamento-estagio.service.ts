@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { listarIdsUnidadesSubordinadasNaData } from "@/modules/minha-equipe/infrastructure/repositories/minha-equipe.repository";
 import type { Prisma } from "@/generated/prisma/client";
@@ -305,7 +306,7 @@ export async function carregarAcompanhamentoEstagio(params: {
         dias: true,
       },
     }),
-    prisma.marcacao.findMany({
+    prismaListagem.marcacao.findMany({
       where: {
         servidorId: servidor.id,
         dataReferencia: {
@@ -610,7 +611,7 @@ export async function listarEstagiariosSupervisionadosPorUsuario(params: {
     `${params.ano}-${String(params.mes).padStart(2, "0")}-01`,
   );
   const fimCompetencia = new Date(Date.UTC(params.ano, params.mes, 0));
-  const supervisoes = await prisma.estagioSupervisao.findMany({
+  const supervisoes = await prismaListagem.estagioSupervisao.findMany({
     where: {
       supervisorServidorId: supervisor.id,
     },
@@ -635,7 +636,7 @@ export async function listarEstagiariosSupervisionadosPorUsuario(params: {
   }
 
   const selecionadas = Array.from(porServidor.values());
-  const acompanhamentos = await prisma.acompanhamentoEstagioMensal.findMany({
+  const acompanhamentos = await prismaListagem.acompanhamentoEstagioMensal.findMany({
     where: {
       servidorId: {
         in: selecionadas.map((supervisao) => supervisao.estagiarioServidorId),
@@ -683,7 +684,7 @@ async function listarCompetenciasAnterioresEstagio(params: {
   ano: number;
   mes: number;
 }) {
-  const registros = await prisma.acompanhamentoEstagioMensal.findMany({
+  const registros = await prismaListagem.acompanhamentoEstagioMensal.findMany({
     where: {
       servidorId: params.servidorId,
       NOT: {
@@ -840,7 +841,7 @@ export async function listarAcompanhamentosEstagioConsulta(params: {
     });
   }
 
-  const servidores = await prisma.servidor.findMany({
+  const servidores = await prismaListagem.servidor.findMany({
     where: {
       AND: and,
     },

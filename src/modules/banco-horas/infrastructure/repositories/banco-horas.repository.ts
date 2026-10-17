@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 
 function periodoCompetencia(anoReferencia: number, mesReferencia: number) {
@@ -64,7 +65,7 @@ export async function listarMovimentosBancoHoras(params: {
   servidorId: string;
   limite?: number;
 }) {
-  return prisma.movimentoBancoHoras.findMany({
+  return prismaListagem.movimentoBancoHoras.findMany({
     where: {
       servidorId: params.servidorId,
     },
@@ -88,7 +89,7 @@ export async function listarMovimentosBancoHorasMes(params: {
   anoReferencia: number;
   mesReferencia: number;
 }) {
-  return prisma.movimentoBancoHoras.findMany({
+  return prismaListagem.movimentoBancoHoras.findMany({
     where: {
       servidorId: params.servidorId,
       anoReferencia: params.anoReferencia,
@@ -103,7 +104,7 @@ export async function listarMovimentosBancoHorasMes(params: {
 export async function listarMovimentosComposicaoSaldoBancoHoras(params: {
   servidorId: string;
 }) {
-  return prisma.movimentoBancoHoras.findMany({
+  return prismaListagem.movimentoBancoHoras.findMany({
     where: {
       servidorId: params.servidorId,
       tipo: {
@@ -132,7 +133,7 @@ export async function listarAutorizacoesBancoHorasMes(params: {
   const inicio = new Date(params.anoReferencia, params.mesReferencia - 1, 1);
   const fim = new Date(params.anoReferencia, params.mesReferencia, 1);
 
-  return prisma.autorizacaoBancoHoras.findMany({
+  return prismaListagem.autorizacaoBancoHoras.findMany({
     where: {
       servidorId: params.servidorId,
       dataInicio: {
@@ -179,7 +180,7 @@ export async function listarApuracoesCalculadasSemMovimento(params: {
   const inicio = new Date(params.anoReferencia, params.mesReferencia - 1, 1);
   const fim = new Date(params.anoReferencia, params.mesReferencia, 1);
 
-  return prisma.apuracaoDiaria.findMany({
+  return prismaListagem.apuracaoDiaria.findMany({
     where: {
       servidorId: params.servidorId,
       dataReferencia: {
@@ -216,7 +217,7 @@ export async function somarCreditoValidadoNoMes(params: {
   anoReferencia: number;
   mesReferencia: number;
 }) {
-  const resultado = await prisma.movimentoBancoHoras.aggregate({
+  const resultado = await prismaListagem.movimentoBancoHoras.aggregate({
     where: {
       servidorId: params.servidorId,
       anoReferencia: params.anoReferencia,
@@ -239,7 +240,7 @@ export async function listarServidoresComBancoHoras(params: {
   mesReferencia: number;
   orgaoIdsPermitidos?: string[];
 }) {
-  return prisma.servidor.findMany({
+  return prismaListagem.servidor.findMany({
     where: {
       ativo: true,
       usuario: {
@@ -288,7 +289,7 @@ export async function listarServidoresSubordinadosComBancoHoras(params: {
     return [];
   }
 
-  return prisma.servidor.findMany({
+  return prismaListagem.servidor.findMany({
     where: {
       ativo: true,
       usuario: {
@@ -335,7 +336,7 @@ export async function listarServidoresGestaoBancoHoras(params: {
 }) {
   const busca = params.busca?.trim();
 
-  return prisma.servidor.findMany({
+  return prismaListagem.servidor.findMany({
     where: {
       ativo: true,
       usuario: {
@@ -462,7 +463,7 @@ export async function listarMovimentosTransferiveisBancoHoras(params: {
   servidorId: string;
   limite?: number;
 }) {
-  return prisma.movimentoBancoHoras.findMany({
+  return prismaListagem.movimentoBancoHoras.findMany({
     where: {
       servidorId: params.servidorId,
       tipo: {
@@ -483,7 +484,7 @@ export async function listarMovimentosTransferiveisBancoHoras(params: {
 export async function listarConsolidadoBancoHorasPorCompetencia(params: {
   servidorId: string;
 }) {
-  return prisma.movimentoBancoHoras.groupBy({
+  return prismaListagem.movimentoBancoHoras.groupBy({
     by: ["anoReferencia", "mesReferencia", "tipo", "status"],
     where: {
       servidorId: params.servidorId,
@@ -505,7 +506,7 @@ export async function listarSolicitacoesBancoHorasServidor(params: {
   servidorId: string;
   limite?: number;
 }) {
-  return prisma.solicitacao.findMany({
+  return prismaListagem.solicitacao.findMany({
     where: {
       servidorId: params.servidorId,
       tipo: {
@@ -549,7 +550,7 @@ export async function listarVencimentosBancoHoras(params: {
   const ate = new Date(hoje);
   ate.setDate(ate.getDate() + 30);
 
-  return prisma.movimentoBancoHoras.findMany({
+  return prismaListagem.movimentoBancoHoras.findMany({
     where: {
       tipo: {
         in: ["CREDITO", "DEBITO"],
@@ -648,7 +649,7 @@ export async function listarPainelChefiaBancoHoras(params: {
     },
   };
 
-  const servidores = await prisma.servidor.findMany({
+  const servidores = await prismaListagem.servidor.findMany({
     where: whereSubordinados,
     include: {
       usuario: true,
@@ -679,7 +680,7 @@ export async function listarPainelChefiaBancoHoras(params: {
 
   const [solicitacoesPendentes, vencimentos, movimentosSemAutorizacao] =
     await Promise.all([
-      prisma.solicitacao.findMany({
+      prismaListagem.solicitacao.findMany({
         where: {
           servidorId: {
             in: servidorIds,
@@ -725,7 +726,7 @@ export async function listarPainelChefiaBancoHoras(params: {
         servidorIds,
         limite: 80,
       }),
-      prisma.movimentoBancoHoras.findMany({
+      prismaListagem.movimentoBancoHoras.findMany({
         where: {
           servidorId: {
             in: servidorIds,

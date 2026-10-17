@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 type EscopoServidoresRecesso = {
   servidorIdsPermitidos?: string[];
@@ -21,7 +22,7 @@ export async function listarRecessosForenses(
     orgaoIdsPermitidos?: string[];
   } = {},
 ) {
-  return prisma.recessoForense.findMany({
+  return prismaListagem.recessoForense.findMany({
     where: filtroOrgaosPermitidos(params.orgaoIdsPermitidos),
     orderBy: { ano: "desc" },
     include: {
@@ -138,7 +139,7 @@ export async function listarRecessosForensesNoPeriodo(
     orgaoIdsPermitidos?: string[];
   } = {},
 ) {
-  return prisma.recessoForense.findMany({
+  return prismaListagem.recessoForense.findMany({
     where: {
       ...filtroOrgaosPermitidos(params.orgaoIdsPermitidos),
       status: {
@@ -160,7 +161,7 @@ export async function listarUnidadesParaRecesso(
     orgaoIdsPermitidos?: string[];
   } = {},
 ) {
-  return prisma.unidadeOrganizacional.findMany({
+  return prismaListagem.unidadeOrganizacional.findMany({
     where: {
       ativo: true,
       ...(params.orgaoIdsPermitidos?.length
@@ -174,7 +175,7 @@ export async function listarUnidadesParaRecesso(
 export async function listarServidoresParaRecesso(
   params: EscopoServidoresRecesso = {},
 ) {
-  return prisma.servidor.findMany({
+  return prismaListagem.servidor.findMany({
     where: {
       ativo: true,
       ...(params.servidorIdsPermitidos
@@ -214,7 +215,7 @@ export async function listarRecessosDoServidor(usuarioId: string) {
     return [];
   }
 
-  return prisma.recessoForense.findMany({
+  return prismaListagem.recessoForense.findMany({
     where: {
       OR: [
         {
@@ -252,7 +253,7 @@ export async function listarRecessosPorServidores(
   servidorIds: string[],
   params: { orgaoIdsPermitidos?: string[] } = {},
 ) {
-  return prisma.recessoForense.findMany({
+  return prismaListagem.recessoForense.findMany({
     where: {
       ...filtroOrgaosPermitidos(params.orgaoIdsPermitidos),
       OR: [
@@ -307,7 +308,7 @@ export async function listarEspelhoRecessoPorServidor(
   recessoId: string,
   servidorId: string,
 ) {
-  return prisma.espelhoRecesso.findMany({
+  return prismaListagem.espelhoRecesso.findMany({
     where: {
       recessoId,
       servidorId,
@@ -324,7 +325,7 @@ export async function listarEspelhoRecessoPorServidor(
 }
 
 export async function listarHomologacoesPendentesRecesso() {
-  return prisma.homologacaoRecesso.findMany({
+  return prismaListagem.homologacaoRecesso.findMany({
     where: {
       status: {
         in: ["PENDENTE", "HOMOLOGADO"],

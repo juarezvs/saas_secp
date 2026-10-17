@@ -7,7 +7,7 @@ import { DataTableShell } from "@/components/listagens";
 import { obterEscopoOrgaoDaSessao, whereOrgaoPermitido } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { REGULAMENTACAO_PONTO_PADRAO } from "@/modules/regulamentacao-ponto/application/services/regulamentacao-ponto.service";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 function minutosParaHoraMinuto(minutos: number) {
   const horas = Math.floor(minutos / 60);
@@ -52,7 +52,7 @@ export default async function RegulamentacaoPontoPage() {
   );
 
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
-  const orgaos = await prisma.orgao.findMany({
+  const orgaos = await prismaListagem.orgao.findMany({
     where: {
       ativo: true,
       ...whereOrgaoPermitido(escopoOrgao),

@@ -1,6 +1,7 @@
 import type { Prisma } from "@/generated/prisma/client";
 
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 export const PERMISSOES_MANUTENCAO_MARCACOES = [
@@ -75,7 +76,7 @@ export async function pesquisarPessoasParaManutencaoMarcacoes(params: {
     return [];
   }
 
-  const servidores = await prisma.servidor.findMany({
+  const servidores = await prismaListagem.servidor.findMany({
     take: params.limite ?? 20,
     where: {
       ativo: true,
@@ -222,7 +223,7 @@ export async function montarGradeMarcacoesManutencao(params: {
   const inicio = new Date(Date.UTC(ano, mes - 1, 1));
   const fim = new Date(Date.UTC(ano, mes, 1));
   const diasNoMes = new Date(Date.UTC(ano, mes, 0)).getUTCDate();
-  const marcacoes = await prisma.marcacao.findMany({
+  const marcacoes = await prismaListagem.marcacao.findMany({
     where: {
       servidorId: params.servidorId,
       dataReferencia: {

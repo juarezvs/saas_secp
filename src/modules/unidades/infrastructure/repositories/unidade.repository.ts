@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem, prismaCadastroOrganizacional } from "@/shared/infrastructure/database/prisma-listagem";
 
 export type ListarUnidadesParams = {
   pagina?: number;
@@ -109,6 +110,8 @@ export function montarWhereUnidades(params: ListarUnidadesParams) {
   const unidadeIdsPermitidos = params.unidadeIdsPermitidos?.filter(ehUuid);
 
   return {
+    // O cadastro permite reativar a unidade, mas não lista vínculos de órgão inativo.
+    orgao: { ativo: true },
     ...(unidadeIdsPermitidos?.length ? { id: { in: unidadeIdsPermitidos } } : {}),
 
     ...(params.status === "ativa"
@@ -185,9 +188,9 @@ export async function listarUnidadesOrganizacionaisPaginado(
   const where = montarWhereUnidades(params);
 
   const [total, unidades] = await Promise.all([
-    prisma.unidadeOrganizacional.count({ where }),
+    prismaCadastroOrganizacional.unidadeOrganizacional.count({ where }),
 
-    prisma.unidadeOrganizacional.findMany({
+    prismaCadastroOrganizacional.unidadeOrganizacional.findMany({
       where,
       include: {
         orgao: true,
@@ -217,7 +220,7 @@ export async function listarUnidadesOrganizacionaisPaginado(
 export async function listarUnidadesOrganizacionaisParaExportacao(
   params: ListarUnidadesParams,
 ) {
-  return prisma.unidadeOrganizacional.findMany({
+  return prismaCadastroOrganizacional.unidadeOrganizacional.findMany({
     where: montarWhereUnidades(params),
     include: {
       orgao: true,
@@ -236,7 +239,7 @@ export async function listarUnidadesOrganizacionaisParaExportacao(
 export async function listarOrgaosAtivos(
   params: { orgaoIdsPermitidos?: string[] } = {},
 ): Promise<OrgaoSelecaoItem[]> {
-  const orgaos = await prisma.orgao.findMany({
+  const orgaos = await prismaListagem.orgao.findMany({
     where: {
       ativo: true,
       ...(params.orgaoIdsPermitidos?.length
@@ -267,7 +270,7 @@ export async function listarOrgaosAtivos(
 export async function listarUnidadesParaSelecao(params?: {
   orgaoIdsPermitidos?: string[];
 }) {
-  const unidades = await prisma.unidadeOrganizacional.findMany({
+  const unidades = await prismaListagem.unidadeOrganizacional.findMany({
     where: {
       ativo: true,
       ...(params?.orgaoIdsPermitidos?.length
@@ -315,7 +318,7 @@ export async function listarUnidadesParaSelecao(params?: {
 export async function listarLocalidadesCalendarioParaSelecao(params?: {
   orgaoIdsPermitidos?: string[];
 }) {
-  const unidades = await prisma.unidadeOrganizacional.findMany({
+  const unidades = await prismaListagem.unidadeOrganizacional.findMany({
     where: {
       ativo: true,
       ...(params?.orgaoIdsPermitidos?.length
@@ -388,7 +391,7 @@ export async function buscarUnidadePorId(
     return null;
   }
 
-  return prisma.unidadeOrganizacional.findUnique({
+  return prismaCadastroOrganizacional.unidadeOrganizacional.findUnique({
     where: {
       id,
     },

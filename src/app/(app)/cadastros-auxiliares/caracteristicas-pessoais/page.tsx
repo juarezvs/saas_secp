@@ -4,7 +4,7 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { alternarDominioCaracteristicaAction, salvarDominioCaracteristicaAction } from "@/modules/perfil-pessoal/application/configuracoes-perfil-pessoal.actions";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 const tipos = [
   ["RACA", "Raça"], ["COR_CABELO", "Cor do cabelo"], ["COR_OLHOS", "Cor dos olhos"],
@@ -14,7 +14,7 @@ const tipos = [
 export default async function CaracteristicasPessoaisPage() {
   const acesso = await exigirUmaDasPermissoesOuRedirecionar(["configuracoes:gerenciar:seccional", "configuracoes:gerenciar:global"]);
   const podeEditar = acesso.permissoes.some((item) => item.startsWith("configuracoes:gerenciar:"));
-  const itens = await prisma.dominioCaracteristicaPessoal.findMany({ orderBy: [{ tipo: "asc" }, { ordem: "asc" }, { nome: "asc" }] });
+  const itens = await prismaListagem.dominioCaracteristicaPessoal.findMany({ orderBy: [{ tipo: "asc" }, { ordem: "asc" }, { nome: "asc" }] });
   return <div className="space-y-5">
     <Breadcrumb items={[{ label: "Cadastros Auxiliares" }, { label: "Características pessoais" }]} />
     <PageHeader icon={ContactRound} titulo="Características pessoais" descricao="Domínios do SARH utilizados na atualização do cadastro pessoal." />

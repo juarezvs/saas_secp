@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 function ehUuid(valor?: string | null): valor is string {
   if (!valor) {
@@ -50,7 +51,7 @@ export async function buscarBiometriaAtivaPorServidorId(servidorId: string) {
 }
 
 export async function listarCadastrosBiometricos() {
-  return prisma.biometriaFacialServidor.findMany({
+  return prismaListagem.biometriaFacialServidor.findMany({
     include: {
       servidor: {
         include: {

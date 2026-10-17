@@ -5,7 +5,7 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { DataTableShell } from "@/components/listagens";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export default async function CategoriasPessoasPage() {
   await exigirUmaDasPermissoesOuRedirecionar([
@@ -15,7 +15,7 @@ export default async function CategoriasPessoasPage() {
     "servidores:consultar:seccional",
   ]);
 
-  const categorias = await prisma.categoriaPessoa.findMany({
+  const categorias = await prismaListagem.categoriaPessoa.findMany({
     include: {
       _count: {
         select: {

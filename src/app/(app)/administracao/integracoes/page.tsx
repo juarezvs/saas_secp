@@ -24,7 +24,7 @@ import { testarIntegracaoSeccionalAction } from "@/modules/integracoes/applicati
 import { obterConfiguracaoLdapActiveDirectory } from "@/modules/integracoes/application/services/ldap-active-directory-config.service";
 import { ActiveDirectoryTestFields } from "@/modules/integracoes/presentation/components/active-directory-test-fields";
 import { obterConfiguracaoSarhOracle } from "@/modules/integracoes/sarh/application/services/sarh-oracle-config.service";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 type AdministracaoIntegracoesPageProps = {
   searchParams?: Promise<{
@@ -216,7 +216,7 @@ export default async function AdministracaoIntegracoesPage({
   const params = searchParams ? await searchParams : {};
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
   const orgaos = escopoOrgao.global
-    ? await prisma.orgao.findMany({
+    ? await prismaListagem.orgao.findMany({
         where: { ativo: true },
         select: { id: true, sigla: true, nome: true },
         orderBy: [{ sigla: "asc" }, { nome: "asc" }],
@@ -238,11 +238,11 @@ export default async function AdministracaoIntegracoesPage({
   ] = await Promise.all([
     obterConfiguracaoSarhOracle(orgaoSelecionado),
     obterConfiguracaoLdapActiveDirectory(orgaoSelecionado),
-    prisma.integracaoSistema.findMany({
+    prismaListagem.integracaoSistema.findMany({
       where: { orgaoId: orgaoSelecionado },
       orderBy: [{ tipo: "asc" }, { nome: "asc" }],
     }),
-    prisma.equipamentoBiometrico.findMany({
+    prismaListagem.equipamentoBiometrico.findMany({
       where: {
         ...(orgaoSelecionado
           ? {
@@ -259,7 +259,7 @@ export default async function AdministracaoIntegracoesPage({
         ultimaSincronizacaoEm: true,
       },
     }),
-    prisma.integracaoSarhExecucao.findFirst({
+    prismaListagem.integracaoSarhExecucao.findFirst({
       where: {
         integracao: { orgaoId: orgaoSelecionado },
       },

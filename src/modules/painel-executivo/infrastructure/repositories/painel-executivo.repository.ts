@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import {
   ehDispensaTeletrabalho,
@@ -1157,7 +1158,7 @@ async function listarIdsUnidadesSubordinadasNaData(params: {
   usuarioId: string;
   data: Date;
 }) {
-  const gestores = await prisma.gestorUnidade.findMany({
+  const gestores = await prismaListagem.gestorUnidade.findMany({
     where: {
       ativo: true,
       dataInicio: { lte: params.data },
@@ -1174,7 +1175,7 @@ async function listarIdsUnidadesSubordinadasNaData(params: {
   let fronteira = Array.from(visitadas);
 
   while (fronteira.length > 0) {
-    const filhas = await prisma.unidadeOrganizacional.findMany({
+    const filhas = await prismaListagem.unidadeOrganizacional.findMany({
       where: {
         ativo: true,
         unidadePaiId: { in: fronteira },
@@ -1204,7 +1205,7 @@ async function listarServidorIdsPorUnidades(params: {
     return [];
   }
 
-  const servidores = await prisma.servidor.findMany({
+  const servidores = await prismaListagem.servidor.findMany({
     where: {
       ativo: true,
       usuario: { ativo: true },
@@ -1245,7 +1246,7 @@ async function resolverEscopoPainel(params: {
   }
 
   if (perfisSeccionais.has(perfilCodigo) && orgaoIds.length > 0) {
-    const unidades = await prisma.unidadeOrganizacional.findMany({
+    const unidades = await prismaListagem.unidadeOrganizacional.findMany({
       where: {
         ativo: true,
         orgaoId: { in: orgaoIds },
@@ -1366,7 +1367,7 @@ async function calcularIndicadoresMensais(params: {
         marcacoesPorFonte,
         bancoHorasCritico,
       ] = await Promise.all([
-        prisma.apuracaoDiaria.groupBy({
+        prismaListagem.apuracaoDiaria.groupBy({
           by: ["resultado"],
           where: {
             ...servidorWhere,
@@ -1374,7 +1375,7 @@ async function calcularIndicadoresMensais(params: {
           },
           _count: true,
         }),
-        prisma.homologacaoServidorMes.groupBy({
+        prismaListagem.homologacaoServidorMes.groupBy({
           by: ["status"],
           where: {
             ...servidorWhere,
@@ -1385,14 +1386,14 @@ async function calcularIndicadoresMensais(params: {
           },
           _count: true,
         }),
-        prisma.solicitacao.count({
+        prismaListagem.solicitacao.count({
           where: {
             ...servidorWhere,
             criadoEm: { gte: periodo.inicio, lt: periodo.fim },
             status: { in: ["ENVIADA", "EM_ANALISE"] },
           },
         }),
-        prisma.marcacao.groupBy({
+        prismaListagem.marcacao.groupBy({
           by: ["fonte"],
           where: {
             ...servidorWhere,
@@ -1401,7 +1402,7 @@ async function calcularIndicadoresMensais(params: {
           },
           _count: true,
         }),
-        prisma.bancoHorasSaldo.count({
+        prismaListagem.bancoHorasSaldo.count({
           where: {
             ...(servidorIds ? { servidorId: { in: servidorIds } } : {}),
             OR: [
@@ -1477,7 +1478,7 @@ async function calcularPendenciasPonto(params: {
   const servidoresAfetados = new Set<string>();
 
   const [ocorrencias, solicitacoes, homologacoes] = await Promise.all([
-    prisma.ocorrenciaFrequencia.findMany({
+    prismaListagem.ocorrenciaFrequencia.findMany({
       where: {
         ...servidorWhere,
         resolvida: false,
@@ -1504,7 +1505,7 @@ async function calcularPendenciasPonto(params: {
       },
       orderBy: { criadoEm: "asc" },
     }),
-    prisma.solicitacao.findMany({
+    prismaListagem.solicitacao.findMany({
       where: {
         ...servidorWhere,
         status: { in: ["ENVIADA", "EM_ANALISE"] },
@@ -1534,7 +1535,7 @@ async function calcularPendenciasPonto(params: {
       },
       orderBy: { criadoEm: "asc" },
     }),
-    prisma.homologacaoServidorMes.findMany({
+    prismaListagem.homologacaoServidorMes.findMany({
       where: {
         ...servidorWhere,
         status: { in: ["PENDENTE", "COM_PENDENCIAS", "DEVOLVIDO"] },
@@ -1694,7 +1695,7 @@ async function calcularSerieFrequenciaAssiduidadeMensal(params: {
 
   return Promise.all(
     periodos.map(async (periodo): Promise<FrequenciaAssiduidadeMensal> => {
-      const apuracoes = await prisma.apuracaoDiaria.groupBy({
+      const apuracoes = await prismaListagem.apuracaoDiaria.groupBy({
         by: ["resultado"],
         where: {
           ...servidorWhere,
@@ -1737,7 +1738,7 @@ async function calcularFrequenciaAssiduidade(params: {
       mes: periodo.mes,
       servidorIds,
     }),
-    prisma.apuracaoDiaria.findMany({
+    prismaListagem.apuracaoDiaria.findMany({
       where: {
         ...servidorWhere,
         dataReferencia: { gte: periodo.inicio, lt: periodo.fim },
@@ -1761,7 +1762,7 @@ async function calcularFrequenciaAssiduidade(params: {
         },
       },
     }),
-    prisma.ocorrenciaFrequencia.findMany({
+    prismaListagem.ocorrenciaFrequencia.findMany({
       where: {
         ...servidorWhere,
         resolvida: false,
@@ -1956,14 +1957,14 @@ async function calcularJustificativasAssiduidade(params: {
     periodos.map(async (mes): Promise<JustificativasAssiduidadeMensal> => {
       const [solicitacoes, apuracoes, ocorrenciasSemJustificativa] =
         await Promise.all([
-          prisma.solicitacao.findMany({
+          prismaListagem.solicitacao.findMany({
             where: {
               ...servidorWhere,
               criadoEm: { gte: mes.inicio, lt: mes.fim },
             },
             select: { status: true, tipo: true, criadoEm: true },
           }),
-          prisma.apuracaoDiaria.groupBy({
+          prismaListagem.apuracaoDiaria.groupBy({
             by: ["resultado"],
             where: {
               ...servidorWhere,
@@ -1972,7 +1973,7 @@ async function calcularJustificativasAssiduidade(params: {
             },
             _count: true,
           }),
-          prisma.ocorrenciaFrequencia.count({
+          prismaListagem.ocorrenciaFrequencia.count({
             where: {
               ...servidorWhere,
               resolvida: false,
@@ -2015,7 +2016,7 @@ async function calcularJustificativasAssiduidade(params: {
 
   const [solicitacoesPeriodo, ocorrenciasSemJustificativa, apuracoesPeriodo] =
     await Promise.all([
-      prisma.solicitacao.findMany({
+      prismaListagem.solicitacao.findMany({
         where: {
           ...servidorWhere,
           criadoEm: { gte: periodo.inicio, lt: periodo.fim },
@@ -2040,7 +2041,7 @@ async function calcularJustificativasAssiduidade(params: {
         },
         orderBy: { criadoEm: "asc" },
       }),
-      prisma.ocorrenciaFrequencia.findMany({
+      prismaListagem.ocorrenciaFrequencia.findMany({
         where: {
           ...servidorWhere,
           resolvida: false,
@@ -2067,7 +2068,7 @@ async function calcularJustificativasAssiduidade(params: {
           },
         },
       }),
-      prisma.apuracaoDiaria.groupBy({
+      prismaListagem.apuracaoDiaria.groupBy({
         by: ["resultado"],
         where: {
           ...servidorWhere,
@@ -2212,7 +2213,7 @@ async function calcularHomologacaoMensal(params: {
   const prazoVencido = hoje > prazoFinal;
 
   const [servidoresEsperados, homologacoes] = await Promise.all([
-    prisma.servidor.findMany({
+    prismaListagem.servidor.findMany({
       where: {
         ...servidorIdWhere,
         ativo: true,
@@ -2239,7 +2240,7 @@ async function calcularHomologacaoMensal(params: {
         },
       },
     }),
-    prisma.homologacaoServidorMes.findMany({
+    prismaListagem.homologacaoServidorMes.findMany({
       where: {
         ...servidorWhere,
         fechamento: {
@@ -2401,7 +2402,7 @@ async function calcularJornadaCargaHoraria(params: {
 }): Promise<JornadaCargaHorariaResumo> {
   const { periodo, servidorIds } = params;
   const servidorWhere = servidorIds ? { servidorId: { in: servidorIds } } : {};
-  const apuracoes = await prisma.apuracaoDiaria.findMany({
+  const apuracoes = await prismaListagem.apuracaoDiaria.findMany({
     where: {
       ...servidorWhere,
       dataReferencia: { gte: periodo.inicio, lt: periodo.fim },
@@ -2582,7 +2583,7 @@ async function listarServidoresAtivosComLotacao(params: {
   periodo: ReturnType<typeof criarPeriodo>;
   servidorIds?: string[];
 }) {
-  return prisma.servidor.findMany({
+  return prismaListagem.servidor.findMany({
     where: {
       ...(params.servidorIds ? { id: { in: params.servidorIds } } : {}),
       ativo: true,
@@ -2612,7 +2613,7 @@ async function mapearTeletrabalhoAutorizado(params: {
     ? { servidorId: { in: params.servidorIds } }
     : {};
   const [solicitacoes, dispensas] = await Promise.all([
-    prisma.solicitacao.findMany({
+    prismaListagem.solicitacao.findMany({
       where: {
         ...servidorWhere,
         tipo: "DISPENSA_PONTO",
@@ -2629,7 +2630,7 @@ async function mapearTeletrabalhoAutorizado(params: {
         dataFim: true,
       },
     }),
-    prisma.dispensaPontoServidor.findMany({
+    prismaListagem.dispensaPontoServidor.findMany({
       where: {
         ...servidorWhere,
         status: "ATIVO",
@@ -2713,7 +2714,7 @@ async function calcularSerieTeletrabalhoRegistroWebMensal(params: {
           periodo: periodoMensal,
           servidorIds: params.servidorIds,
         }),
-        prisma.marcacao.groupBy({
+        prismaListagem.marcacao.groupBy({
           by: ["fonte"],
           where: {
             ...(params.servidorIds
@@ -2762,7 +2763,7 @@ async function calcularTeletrabalhoRegistroWeb(params: {
   ] = await Promise.all([
     listarServidoresAtivosComLotacao(params),
     mapearTeletrabalhoAutorizado(params),
-    prisma.marcacao.groupBy({
+    prismaListagem.marcacao.groupBy({
       by: ["servidorId", "fonte"],
       where: {
         ...servidorWhere,
@@ -2771,7 +2772,7 @@ async function calcularTeletrabalhoRegistroWeb(params: {
       },
       _count: true,
     }),
-    prisma.apuracaoDiaria.groupBy({
+    prismaListagem.apuracaoDiaria.groupBy({
       by: ["servidorId", "resultado"],
       where: {
         ...servidorWhere,
@@ -2941,7 +2942,7 @@ async function calcularEquipamentosPonto(params: {
   const referencia = new Date();
   const [equipamentos, eventosErro, ultimaColetaAfd, pendentesPorEquipamento] =
     await Promise.all([
-      prisma.equipamentoBiometrico.findMany({
+      prismaListagem.equipamentoBiometrico.findMany({
         where: params.unidadeIds ? equipamentoWhere : undefined,
         include: {
           unidade: true,
@@ -2952,7 +2953,7 @@ async function calcularEquipamentosPonto(params: {
           },
         },
       }),
-      prisma.eventoEquipamentoBiometrico.groupBy({
+      prismaListagem.eventoEquipamentoBiometrico.groupBy({
         by: ["equipamentoId"],
         where: {
           ...(params.unidadeIds
@@ -2970,7 +2971,7 @@ async function calcularEquipamentosPonto(params: {
         orderBy: [{ finalizadoEm: "desc" }, { criadoEm: "desc" }],
         select: { finalizadoEm: true, criadoEm: true },
       }),
-      prisma.marcacaoBruta.groupBy({
+      prismaListagem.marcacaoBruta.groupBy({
         by: ["equipamentoId"],
         where: {
           equipamentoId: { not: null },
@@ -3136,7 +3137,7 @@ async function calcularAuditoriaConformidade(params: {
     : {};
   const [eventos, alteracoesManuais, ajustesBanco, usuariosSensiveis] =
     await Promise.all([
-      prisma.auditoriaEvento.findMany({
+      prismaListagem.auditoriaEvento.findMany({
         where: auditoriaWhere,
         include: {
           usuario: {
@@ -3152,14 +3153,14 @@ async function calcularAuditoriaConformidade(params: {
         orderBy: { criadoEm: "desc" },
         take: 200,
       }),
-      prisma.marcacao.count({
+      prismaListagem.marcacao.count({
         where: {
           ...servidorWhere,
           fonte: "MANUAL_ADMINISTRATIVO",
           dataReferencia: { gte: params.periodo.inicio, lt: params.periodo.fim },
         },
       }),
-      prisma.movimentoBancoHoras.count({
+      prismaListagem.movimentoBancoHoras.count({
         where: {
           ...servidorWhere,
           tipo: "AJUSTE_MANUAL",
@@ -3167,7 +3168,7 @@ async function calcularAuditoriaConformidade(params: {
           mesReferencia: params.periodo.mes,
         },
       }),
-      prisma.usuarioPerfil.count({
+      prismaListagem.usuarioPerfil.count({
         where: {
           ativo: true,
           ...(params.orgaoIds && params.orgaoIds.length > 0
@@ -3393,7 +3394,7 @@ async function calcularIndicadoresUnidadeChefia(params: {
     marcacoesFonte,
     ajustesBanco,
   ] = await Promise.all([
-    prisma.gestorUnidade.findMany({
+    prismaListagem.gestorUnidade.findMany({
       where: {
         ativo: true,
         unidadeId: { in: params.unidadeIds ?? unidadeIds },
@@ -3405,7 +3406,7 @@ async function calcularIndicadoresUnidadeChefia(params: {
       },
       orderBy: [{ papel: "asc" }, { dataInicio: "desc" }],
     }),
-    prisma.apuracaoDiaria.findMany({
+    prismaListagem.apuracaoDiaria.findMany({
       where: {
         ...servidorWhere,
         dataReferencia: { gte: params.periodo.inicio, lt: params.periodo.fim },
@@ -3413,7 +3414,7 @@ async function calcularIndicadoresUnidadeChefia(params: {
       },
       select: { servidorId: true, resultado: true },
     }),
-    prisma.homologacaoServidorMes.findMany({
+    prismaListagem.homologacaoServidorMes.findMany({
       where: {
         ...servidorWhere,
         fechamento: {
@@ -3423,7 +3424,7 @@ async function calcularIndicadoresUnidadeChefia(params: {
       },
       select: { servidorId: true, status: true },
     }),
-    prisma.ocorrenciaFrequencia.groupBy({
+    prismaListagem.ocorrenciaFrequencia.groupBy({
       by: ["servidorId"],
       where: {
         ...servidorWhere,
@@ -3434,7 +3435,7 @@ async function calcularIndicadoresUnidadeChefia(params: {
       },
       _count: true,
     }),
-    prisma.solicitacao.groupBy({
+    prismaListagem.solicitacao.groupBy({
       by: ["servidorId"],
       where: {
         ...servidorWhere,
@@ -3451,7 +3452,7 @@ async function calcularIndicadoresUnidadeChefia(params: {
       },
       _count: true,
     }),
-    prisma.marcacao.groupBy({
+    prismaListagem.marcacao.groupBy({
       by: ["servidorId", "fonte"],
       where: {
         ...servidorWhere,
@@ -3460,7 +3461,7 @@ async function calcularIndicadoresUnidadeChefia(params: {
       },
       _count: true,
     }),
-    prisma.movimentoBancoHoras.groupBy({
+    prismaListagem.movimentoBancoHoras.groupBy({
       by: ["servidorId"],
       where: {
         ...servidorWhere,
@@ -3948,7 +3949,7 @@ async function calcularBancoHoras(params: {
   const vencimentoLimite = new Date();
   vencimentoLimite.setDate(vencimentoLimite.getDate() + 30);
   const [saldos, movimentosVencendo, movimentosRecentes] = await Promise.all([
-    prisma.bancoHorasSaldo.findMany({
+    prismaListagem.bancoHorasSaldo.findMany({
       where: params.servidorIds
         ? { servidorId: { in: params.servidorIds } }
         : undefined,
@@ -3970,7 +3971,7 @@ async function calcularBancoHoras(params: {
         },
       },
     }),
-    prisma.movimentoBancoHoras.findMany({
+    prismaListagem.movimentoBancoHoras.findMany({
       where: {
         ...servidorWhere,
         status: { in: ["PENDENTE", "VALIDADO"] },
@@ -3978,7 +3979,7 @@ async function calcularBancoHoras(params: {
       },
       select: { servidorId: true, minutos: true, tipo: true, expiraEm: true },
     }),
-    prisma.movimentoBancoHoras.findMany({
+    prismaListagem.movimentoBancoHoras.findMany({
       where: {
         ...servidorWhere,
         anoReferencia: params.periodo.ano,
@@ -4477,7 +4478,7 @@ async function calcularRelatoriosExportaveis(params: {
             ],
           }
         : {};
-  const eventos = await prisma.auditoriaEvento.findMany({
+  const eventos = await prismaListagem.auditoriaEvento.findMany({
     where: {
       ...auditoriaEscopo,
       criadoEm: { gte: params.periodo.inicio, lt: params.periodo.fim },
@@ -4910,14 +4911,14 @@ export async function buscarDadosPainelExecutivo(params: {
     equipamentos,
     eventosEquipamentoRaw,
   ] = await Promise.all([
-    prisma.servidor.count({
+    prismaListagem.servidor.count({
       where: {
         ...servidorIdWhere,
         ativo: true,
         usuario: { ativo: true },
       },
     }),
-    prisma.apuracaoDiaria.groupBy({
+    prismaListagem.apuracaoDiaria.groupBy({
       by: ["resultado"],
       where: {
         ...servidorWhere,
@@ -4925,7 +4926,7 @@ export async function buscarDadosPainelExecutivo(params: {
       },
       _count: true,
     }),
-    prisma.homologacaoServidorMes.groupBy({
+    prismaListagem.homologacaoServidorMes.groupBy({
       by: ["status"],
       where: {
         ...servidorWhere,
@@ -4936,7 +4937,7 @@ export async function buscarDadosPainelExecutivo(params: {
       },
       _count: true,
     }),
-    prisma.ocorrenciaFrequencia.groupBy({
+    prismaListagem.ocorrenciaFrequencia.groupBy({
       by: ["tipo"],
       where: {
         ...servidorWhere,
@@ -4946,7 +4947,7 @@ export async function buscarDadosPainelExecutivo(params: {
       },
       _count: true,
     }),
-    prisma.ocorrenciaFrequencia.count({
+    prismaListagem.ocorrenciaFrequencia.count({
       where: {
         ...servidorWhere,
         resolvida: false,
@@ -4955,7 +4956,7 @@ export async function buscarDadosPainelExecutivo(params: {
         },
       },
     }),
-    prisma.apuracaoDiaria.groupBy({
+    prismaListagem.apuracaoDiaria.groupBy({
       by: ["dataReferencia", "resultado"],
       where: {
         ...servidorWhere,
@@ -4964,7 +4965,7 @@ export async function buscarDadosPainelExecutivo(params: {
       _count: true,
       orderBy: { dataReferencia: "asc" },
     }),
-    prisma.ocorrenciaFrequencia.findMany({
+    prismaListagem.ocorrenciaFrequencia.findMany({
       where: {
         ...servidorWhere,
         apuracaoDiaria: {
@@ -4988,7 +4989,7 @@ export async function buscarDadosPainelExecutivo(params: {
         },
       },
     }),
-    prisma.movimentoBancoHoras.groupBy({
+    prismaListagem.movimentoBancoHoras.groupBy({
       by: ["tipo"],
       where: {
         ...servidorWhere,
@@ -4998,13 +4999,13 @@ export async function buscarDadosPainelExecutivo(params: {
       _sum: { minutos: true },
       _count: true,
     }),
-    prisma.bancoHorasSaldo.aggregate({
+    prismaListagem.bancoHorasSaldo.aggregate({
       where: escopo.servidorIds
         ? { servidorId: { in: escopo.servidorIds } }
         : undefined,
       _sum: { saldoMinutos: true },
     }),
-    prisma.bancoHorasSaldo.findMany({
+    prismaListagem.bancoHorasSaldo.findMany({
       where: escopo.servidorIds
         ? { servidorId: { in: escopo.servidorIds } }
         : undefined,
@@ -5016,7 +5017,7 @@ export async function buscarDadosPainelExecutivo(params: {
         },
       },
     }),
-    prisma.solicitacao.groupBy({
+    prismaListagem.solicitacao.groupBy({
       by: ["status"],
       where: {
         ...servidorWhere,
@@ -5024,7 +5025,7 @@ export async function buscarDadosPainelExecutivo(params: {
       },
       _count: true,
     }),
-    prisma.solicitacao.groupBy({
+    prismaListagem.solicitacao.groupBy({
       by: ["tipo"],
       where: {
         ...servidorWhere,
@@ -5032,7 +5033,7 @@ export async function buscarDadosPainelExecutivo(params: {
       },
       _count: true,
     }),
-    prisma.marcacao.groupBy({
+    prismaListagem.marcacao.groupBy({
       by: ["fonte"],
       where: {
         ...servidorWhere,
@@ -5041,14 +5042,14 @@ export async function buscarDadosPainelExecutivo(params: {
       },
       _count: true,
     }),
-    prisma.equipamentoBiometrico.findMany({
+    prismaListagem.equipamentoBiometrico.findMany({
       where: escopo.unidadeIds ? unidadeWhere : undefined,
       select: {
         ativo: true,
         ultimoHeartbeatEm: true,
       },
     }),
-    prisma.eventoEquipamentoBiometrico.groupBy({
+    prismaListagem.eventoEquipamentoBiometrico.groupBy({
       by: ["tipoEvento"],
       where: {
         ...(escopo.unidadeIds

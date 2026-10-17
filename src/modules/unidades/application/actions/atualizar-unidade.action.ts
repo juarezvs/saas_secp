@@ -172,6 +172,7 @@ export async function atualizarUnidadeAction(
 
   revalidatePath("/unidades");
   revalidatePath(`/unidades/${unidadeId}`);
+  if (unidadeAtual.ativo !== parsed.data.ativo || unidadeAtual.orgaoId !== parsed.data.orgaoId || unidadeAtual.unidadePaiId !== (parsed.data.unidadePaiId || null)) revalidatePath("/", "layout");
 
   redirect(`/unidades/${unidadeId}`);
 }

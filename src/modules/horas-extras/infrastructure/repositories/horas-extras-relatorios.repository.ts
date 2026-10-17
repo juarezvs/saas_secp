@@ -1,4 +1,4 @@
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export async function listarRelatorioAnaliticoHorasExtras(params: {
   orgaoIds?: string[];
@@ -6,7 +6,7 @@ export async function listarRelatorioAnaliticoHorasExtras(params: {
   competencia?: string | null;
   orgaoId?: string | null;
 }) {
-  return prisma.horaExtraCalculoItem.findMany({
+  return prismaListagem.horaExtraCalculoItem.findMany({
     where: {
       calculo: {
         competencia: params.competencia || undefined,

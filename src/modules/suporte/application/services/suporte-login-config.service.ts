@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 const NOME_INTEGRACAO_SUPORTE = "Ferramenta de suporte";
 const URL_SUPORTE_PADRAO = "https://esosti.trf1.jus.br/";
@@ -96,7 +97,7 @@ export async function obterUrlSuporteLogin(params?: {
 
 export async function listarConfiguracoesSuporteLogin() {
   const [orgaos, configuracoes] = await Promise.all([
-    prisma.orgao.findMany({
+    prismaListagem.orgao.findMany({
       where: {
         ativo: true,
       },
@@ -109,7 +110,7 @@ export async function listarConfiguracoesSuporteLogin() {
         nome: true,
       },
     }),
-    prisma.integracaoSistema.findMany({
+    prismaListagem.integracaoSistema.findMany({
       where: {
         tipo: "OUTRO",
         nome: NOME_INTEGRACAO_SUPORTE,

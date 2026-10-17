@@ -3,7 +3,7 @@ import { Select as SelectPesquisavel } from "@/components/ui/form-controls";
 import Link from "next/link";
 import { CircleAlert } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { atualizarSarhOracleAction } from "@/modules/integracoes/sarh/presentation/actions/atualizar-sarh-oracle.action";
@@ -44,7 +44,7 @@ export default async function IntegracaoSarhPage({
   const params = searchParams ? await searchParams : {};
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
   const orgaos = escopoOrgao.global
-    ? await prisma.orgao.findMany({
+    ? await prismaListagem.orgao.findMany({
         where: { ativo: true },
         select: { id: true, sigla: true, nome: true },
         orderBy: [{ sigla: "asc" }, { nome: "asc" }],
@@ -60,12 +60,12 @@ export default async function IntegracaoSarhPage({
         orgaoId: orgaoSelecionado,
       }).toString()}`
     : "/administracao/integracoes";
-  const integracao = await prisma.integracaoSistema.findFirst({
+  const integracao = await prismaListagem.integracaoSistema.findFirst({
     where: { tipo: "SARH", orgaoId: orgaoSelecionado ?? null },
     orderBy: { atualizadoEm: "desc" },
   });
 
-  const execucoes = await prisma.integracaoSarhExecucao.findMany({
+  const execucoes = await prismaListagem.integracaoSarhExecucao.findMany({
     where: {
       integracaoId: integracao?.id ?? ID_UUID_SEM_RESULTADO,
     },
@@ -82,22 +82,22 @@ export default async function IntegracaoSarhPage({
     afastamentosAtivos,
     afastamentosSemServidor,
   ] = await Promise.all([
-    prisma.integracaoSarhConflito.count({
+    prismaListagem.integracaoSarhConflito.count({
       where: {
         status: "PENDENTE",
         execucao: { integracaoId: integracao?.id ?? ID_UUID_SEM_RESULTADO },
       },
     }),
-    prisma.integracaoSarhItem.count({
+    prismaListagem.integracaoSarhItem.count({
       where: {
         status: "ERRO",
         execucao: { integracaoId: integracao?.id ?? ID_UUID_SEM_RESULTADO },
       },
     }),
-    prisma.tipoAfastamentoSarh.count(),
-    prisma.afastamentoSarh.count(),
-    prisma.afastamentoSarh.count({ where: { ativo: true } }),
-    prisma.afastamentoSarh.count({ where: { servidorId: null } }),
+    prismaListagem.tipoAfastamentoSarh.count(),
+    prismaListagem.afastamentoSarh.count(),
+    prismaListagem.afastamentoSarh.count({ where: { ativo: true } }),
+    prismaListagem.afastamentoSarh.count({ where: { servidorId: null } }),
   ]);
 
   return (

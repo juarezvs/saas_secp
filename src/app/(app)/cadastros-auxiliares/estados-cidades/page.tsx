@@ -13,7 +13,7 @@ import {
   salvarEstadoAction,
   sincronizarLocalidadesIbgeAction,
 } from "@/modules/localidades/application/actions/localidades.actions";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 const permissoesConsulta = [
   "localidade:consultar:seccional",
@@ -31,7 +31,7 @@ export default async function EstadosCidadesPage({
   const [acesso, parametros, estados] = await Promise.all([
     exigirUmaDasPermissoesOuRedirecionar(permissoesConsulta),
     searchParams,
-    prisma.estado.findMany({
+    prismaListagem.estado.findMany({
       orderBy: { nome: "asc" },
       include: { _count: { select: { cidades: true } } },
     }),
@@ -46,7 +46,7 @@ export default async function EstadosCidadesPage({
     estados[0] ??
     null;
   const cidades = estadoSelecionado
-    ? await prisma.cidade.findMany({
+    ? await prismaListagem.cidade.findMany({
         where: { estadoId: estadoSelecionado.id },
         orderBy: { nome: "asc" },
       })

@@ -13,7 +13,7 @@ import {
   NadaConstaFrequenciaPdfDocument,
   type NadaConstaFrequenciaPdfDados,
 } from "@/modules/procedimentos-frequencia/presentation/pdf/nada-consta-frequencia-pdf.document";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export const runtime = "nodejs";
 
@@ -46,7 +46,7 @@ async function getNadaConstaPdf(request: Request, context: RouteContext) {
   const escopo = await obterEscopoOrgaoDaSessao();
   const { execucaoId } = await context.params;
   const execucao =
-    await prisma.procedimentoAdministrativoFrequenciaExecucao.findFirst({
+    await prismaListagem.procedimentoAdministrativoFrequenciaExecucao.findFirst({
       where: {
         id: execucaoId,
         procedimento: {

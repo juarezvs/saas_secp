@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 
 export async function buscarServidorSolicitanteHorasExtras(usuarioId: string) {
@@ -41,7 +42,7 @@ export async function buscarConfiguracaoAtivaHorasExtras(params: {
   ];
 
   const [policyVersions, workflowVersions] = await Promise.all([
-    prisma.overtimePolicyVersion.findMany({
+    prismaListagem.overtimePolicyVersion.findMany({
       where: {
         orgaoId: params.orgaoId,
         active: true,
@@ -79,7 +80,7 @@ export async function buscarConfiguracaoAtivaHorasExtras(params: {
         version: "desc",
       },
     }),
-    prisma.overtimeWorkflowVersion.findMany({
+    prismaListagem.overtimeWorkflowVersion.findMany({
       where: {
         orgaoId: params.orgaoId,
         active: true,
@@ -191,7 +192,7 @@ export async function listarSolicitacoesHorasExtras(params: {
   usuarioId?: string;
   limite?: number;
 }) {
-  return prisma.overtimeRequest.findMany({
+  return prismaListagem.overtimeRequest.findMany({
     where: {
       ...(params.escopoGlobal
         ? {}
@@ -267,7 +268,7 @@ export async function listarSolicitacoesHorasExtrasParaChefia(params: {
     return [];
   }
 
-  return prisma.overtimeRequest.findMany({
+  return prismaListagem.overtimeRequest.findMany({
     where: {
       currentWorkflowStepCode: "ANALISE_CHEFIA",
       currentLifecycleStatus: "SUBMITTED",
@@ -380,7 +381,7 @@ export async function listarSolicitacoesHorasExtrasParaOrcamento(params: {
   escopoGlobal?: boolean;
   limite?: number;
 }) {
-  return prisma.overtimeRequest.findMany({
+  return prismaListagem.overtimeRequest.findMany({
     where: {
       currentWorkflowStepCode: "ANALISE_ORCAMENTARIA",
       currentLifecycleStatus: "IN_WORKFLOW",
@@ -421,7 +422,7 @@ export async function listarSolicitacoesHorasExtrasParaDeliberacao(params: {
   escopoGlobal?: boolean;
   limite?: number;
 }) {
-  return prisma.overtimeRequest.findMany({
+  return prismaListagem.overtimeRequest.findMany({
     where: {
       currentWorkflowStepCode: "DELIBERACAO_FINAL",
       currentLifecycleStatus: "IN_WORKFLOW",

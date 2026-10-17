@@ -9,7 +9,7 @@ import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/es
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { SubstituicoesFuncaoListagemControles } from "@/modules/substituicoes-funcao/presentation/components/substituicoes-funcao-listagem-controles";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 const ORGAO_ID_SEM_ACESSO = "00000000-0000-4000-8000-000000000000";
 const ITENS_POR_PAGINA_PADRAO = 20;
@@ -171,7 +171,7 @@ export default async function SubstituicoesFuncaoPage({
     dataFim: params.dataFim,
   });
 
-  const total = await prisma.substituicaoFuncao.count({ where });
+  const total = await prismaListagem.substituicaoFuncao.count({ where });
   const totalPaginas = Math.max(1, Math.ceil(total / itensPorPagina));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const [
@@ -182,9 +182,9 @@ export default async function SubstituicoesFuncaoPage({
     servidores,
     funcoes,
   ] = await Promise.all([
-    prisma.substituicaoFuncao.count({ where: { ...where, status: "ATIVA" } }),
-    prisma.substituicaoFuncao.count({ where: { ...where, origem: "SARH" } }),
-    prisma.substituicaoFuncao.findMany({
+    prismaListagem.substituicaoFuncao.count({ where: { ...where, status: "ATIVA" } }),
+    prismaListagem.substituicaoFuncao.count({ where: { ...where, origem: "SARH" } }),
+    prismaListagem.substituicaoFuncao.findMany({
       where,
       include: {
         orgao: { select: { sigla: true } },
@@ -215,13 +215,13 @@ export default async function SubstituicoesFuncaoPage({
       take: itensPorPagina,
     }),
     escopo.global
-      ? prisma.orgao.findMany({
+      ? prismaListagem.orgao.findMany({
           where: { ativo: true },
           orderBy: [{ sigla: "asc" }],
           select: { id: true, sigla: true, nome: true },
         })
       : Promise.resolve(escopo.orgaos),
-    prisma.servidor.findMany({
+    prismaListagem.servidor.findMany({
       where: {
         ativo: true,
         usuario: { ativo: true, tipo: "SERVIDOR" },
@@ -238,7 +238,7 @@ export default async function SubstituicoesFuncaoPage({
         orgao: { select: { sigla: true } },
       },
     }),
-    prisma.funcaoConfiancaReferencia.findMany({
+    prismaListagem.funcaoConfiancaReferencia.findMany({
       where: {
         ativo: true,
         ...(orgaoIdsParaOpcoes?.length

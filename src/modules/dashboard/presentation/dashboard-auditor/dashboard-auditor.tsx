@@ -1,5 +1,5 @@
 import { Activity, DatabaseZap, Search, ShieldAlert } from "lucide-react";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { DashboardAtalho } from "@/modules/dashboard/presentation/components/dashboard-atalho";
 import { DashboardPerfilShell } from "@/modules/dashboard/presentation/components/dashboard-perfil-shell";
 import { DashboardRoleCard } from "@/modules/dashboard/presentation/components/dashboard-role-card";
@@ -7,12 +7,12 @@ import { DashboardRoleCard } from "@/modules/dashboard/presentation/components/d
 export async function DashboardAuditor() {
   const [eventos, marcacoesBrutas, solicitacoes, integracoesComErro] =
     await Promise.all([
-      prisma.auditoriaEvento.count(),
-      prisma.marcacaoBruta.count(),
-      prisma.solicitacao.count({
+      prismaListagem.auditoriaEvento.count(),
+      prismaListagem.marcacaoBruta.count(),
+      prismaListagem.solicitacao.count({
         where: { status: { in: ["ENVIADA", "EM_ANALISE"] } },
       }),
-      prisma.integracaoSistema.count({ where: { status: "ERRO" } }),
+      prismaListagem.integracaoSistema.count({ where: { status: "ERRO" } }),
     ]);
 
   return (

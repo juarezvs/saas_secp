@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export type ListarPerfisParams = {
   pagina?: number;
@@ -162,8 +163,8 @@ export async function listarPerfisPaginado(params: ListarPerfisParams) {
   const where = montarWherePerfis(params);
 
   const [total, perfis] = await Promise.all([
-    prisma.perfil.count({ where }),
-    prisma.perfil.findMany({
+    prismaListagem.perfil.count({ where }),
+    prismaListagem.perfil.findMany({
       where,
       orderBy: [{ nome: "asc" }, { codigo: "asc" }],
       include: includePerfilListagem(params),
@@ -182,7 +183,7 @@ export async function listarPerfisPaginado(params: ListarPerfisParams) {
 }
 
 export async function listarPerfisParaExportacao(params: ListarPerfisParams) {
-  return prisma.perfil.findMany({
+  return prismaListagem.perfil.findMany({
     where: montarWherePerfis(params),
     orderBy: [{ nome: "asc" }, { codigo: "asc" }],
     include: includePerfilListagem(params),
@@ -192,7 +193,7 @@ export async function listarPerfisParaExportacao(params: ListarPerfisParams) {
 export async function listarPerfisParaFiltro(params: {
   orgaoIdsPermitidos?: string[];
 } = {}) {
-  return prisma.perfil.findMany({
+  return prismaListagem.perfil.findMany({
     where: montarWherePerfis({
       orgaoIdsPermitidos: params.orgaoIdsPermitidos,
       status: "ativo",
@@ -214,7 +215,7 @@ export async function listarPerfisParaFiltro(params: {
 }
 
 export async function listarPermissoesOrdenadas() {
-  return prisma.permissao.findMany({
+  return prismaListagem.permissao.findMany({
     orderBy: [
       {
         recurso: "asc",
@@ -230,7 +231,7 @@ export async function listarPermissoesOrdenadas() {
 }
 
 export async function listarPermissoesParaFiltro() {
-  return prisma.permissao.findMany({
+  return prismaListagem.permissao.findMany({
     select: {
       id: true,
       codigo: true,

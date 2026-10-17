@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, CircleAlert } from "lucide-react";
 import { notFound } from "next/navigation";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 function formatarData(data: Date | null) {
   if (!data) return "-";
@@ -26,7 +26,7 @@ export default async function ResumoErrosExecucaoSarhPage({
   ]);
 
   const { id } = await params;
-  const execucao = await prisma.integracaoSarhExecucao.findUnique({
+  const execucao = await prismaListagem.integracaoSarhExecucao.findUnique({
     where: { id },
     include: {
       itens: {

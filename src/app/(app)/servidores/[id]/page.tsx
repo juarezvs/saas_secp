@@ -49,7 +49,7 @@ import { ServidorLotacoesCard } from "@/modules/servidores/presentation/componen
 import { ServidorBiometriaFacialCard } from "@/modules/servidores/presentation/components/servidor-biometria-facial-card";
 import { registrarSupervisaoEstagioAction } from "@/modules/servidores/application/actions/estagio-supervisao.action";
 import { EstagioSupervisaoForm } from "@/modules/servidores/presentation/components/estagio-supervisao-form";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 type ServidorDetalhePageProps = {
   params: Promise<{
@@ -236,7 +236,7 @@ export default async function ServidorDetalhePage({
     servidor.categoriaPessoa?.codigo?.toUpperCase() === "ESTAGIARIO";
   const [historicoSupervisaoEstagio, supervisoresEstagio] = servidorEhEstagiario
     ? await Promise.all([
-        prisma.estagioSupervisao.findMany({
+        prismaListagem.estagioSupervisao.findMany({
           where: {
             estagiarioServidorId: servidorId,
           },
@@ -268,7 +268,7 @@ export default async function ServidorDetalhePage({
   const [gestoesUnidadeAtivas, substituicoesChefiaAtivas] =
     abaSolicitada === "perfilChefia"
       ? await Promise.all([
-          prisma.gestorUnidade.findMany({
+          prismaListagem.gestorUnidade.findMany({
             where: {
               servidorId,
               ativo: true,
@@ -304,7 +304,7 @@ export default async function ServidorDetalhePage({
             },
             orderBy: [{ papel: "asc" }, { dataInicio: "desc" }],
           }),
-          prisma.substituicaoFuncao.findMany({
+          prismaListagem.substituicaoFuncao.findMany({
             where: {
               substitutoServidorId: servidorId,
               status: "ATIVA",
@@ -396,7 +396,7 @@ export default async function ServidorDetalhePage({
           }),
         ])
       : [[], []];
-  const substituicoesAutomaticas = await prisma.substituicaoFuncao.findMany({
+  const substituicoesAutomaticas = await prismaListagem.substituicaoFuncao.findMany({
     where: {
       substitutoServidorId: servidorId,
       tipo: "AUTOMATICA",

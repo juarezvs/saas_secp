@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { listarIdsUnidadesBasePorSubstituicaoAutomatica } from "@/modules/chefias/application/services/substituicoes-automaticas.service";
 
@@ -89,7 +90,7 @@ export async function listarIdsUnidadesSubordinadasNaData(params: {
   usuarioId: string;
   data: Date;
 }) {
-  const gestores = await prisma.gestorUnidade.findMany({
+  const gestores = await prismaListagem.gestorUnidade.findMany({
     where: {
       ativo: true,
       dataInicio: {
@@ -118,7 +119,7 @@ export async function listarIdsUnidadesSubordinadasNaData(params: {
   let fronteira = Array.from(visitadas);
 
   while (fronteira.length > 0) {
-    const filhas = await prisma.unidadeOrganizacional.findMany({
+    const filhas = await prismaListagem.unidadeOrganizacional.findMany({
       where: {
         ativo: true,
         unidadePaiId: {
@@ -423,7 +424,7 @@ export async function buscarMinhaEquipe(params: {
     };
   }
 
-  const unidadesBase = await prisma.unidadeOrganizacional.findMany({
+  const unidadesBase = await prismaListagem.unidadeOrganizacional.findMany({
     where: params.visualizarTodasEquipes
       ? { ativo: true }
       : {
@@ -458,7 +459,7 @@ export async function buscarMinhaEquipe(params: {
         select: { id: true },
       });
 
-  const servidores = await prisma.servidor.findMany({
+  const servidores = await prismaListagem.servidor.findMany({
     where: {
       ativo: true,
       ...(chefia ? { id: { not: chefia.id } } : {}),
@@ -502,7 +503,7 @@ export async function buscarMinhaEquipe(params: {
   }
 
   const [marcacoes, apuracoes, afastamentos] = await Promise.all([
-    prisma.marcacao.findMany({
+    prismaListagem.marcacao.findMany({
       where: {
         servidorId: { in: servidorIds },
         dataReferencia: params.data,
@@ -514,7 +515,7 @@ export async function buscarMinhaEquipe(params: {
       },
       orderBy: { dataHora: "asc" },
     }),
-    prisma.apuracaoDiaria.findMany({
+    prismaListagem.apuracaoDiaria.findMany({
       where: {
         servidorId: { in: servidorIds },
         dataReferencia: params.data,
@@ -525,7 +526,7 @@ export async function buscarMinhaEquipe(params: {
         minutosTrabalhados: true,
       },
     }),
-    prisma.afastamentoSarh.findMany({
+    prismaListagem.afastamentoSarh.findMany({
       where: {
         servidorId: { in: servidorIds },
         ativo: true,
@@ -666,7 +667,7 @@ export async function buscarCalendarioFeriasEquipe(params: {
     };
   }
 
-  const unidadesConsultadas = await prisma.unidadeOrganizacional.findMany({
+  const unidadesConsultadas = await prismaListagem.unidadeOrganizacional.findMany({
     where: params.visualizarTodasEquipes
       ? {
           ativo: true,
@@ -732,7 +733,7 @@ export async function buscarCalendarioFeriasEquipe(params: {
     OR: [{ dataFim: null }, { dataFim: { gte: inicioAno } }],
   };
 
-  const afastamentos = await prisma.afastamentoSarh.findMany({
+  const afastamentos = await prismaListagem.afastamentoSarh.findMany({
     where: {
       servidorId: { not: null },
       dataInicio: { lt: inicioProximoAno },

@@ -1,4 +1,4 @@
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 function filtroFerias(servidorId: string) {
   return {
@@ -65,7 +65,7 @@ function calcularDiasFerias(
 }
 
 export async function listarPeriodosAquisitivosFerias(servidorId: string) {
-  const registros = await prisma.afastamentoSarh.findMany({
+  const registros = await prismaListagem.afastamentoSarh.findMany({
     where: filtroFerias(servidorId),
     select: {
       exercicio: true,
@@ -155,7 +155,7 @@ export async function listarFeriasPorPeriodoAquisitivo(params: {
     ...(params.exercicio ? { exercicio: params.exercicio } : {}),
   };
 
-  return prisma.afastamentoSarh.findMany({
+  return prismaListagem.afastamentoSarh.findMany({
     where,
     include: {
       tipoAfastamento: true,

@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
 const papeisResponsaveis = [
@@ -76,7 +77,7 @@ function montarChefiaResolvidaListagem(params: {
 export async function listarServidoresAtivosParaGestao(params?: {
   orgaoIdsPermitidos?: string[];
 }) {
-  return prisma.servidor.findMany({
+  return prismaListagem.servidor.findMany({
     where: {
       ativo: true,
       ...(params?.orgaoIdsPermitidos
@@ -109,7 +110,7 @@ export async function listarServidoresAtivosParaGestao(params?: {
 export async function listarUnidadesAtivasParaGestao(params?: {
   orgaoIdsPermitidos?: string[];
 }) {
-  return prisma.unidadeOrganizacional.findMany({
+  return prismaListagem.unidadeOrganizacional.findMany({
     where: {
       ativo: true,
       ...(params?.orgaoIdsPermitidos
@@ -178,7 +179,7 @@ export async function listarUnidadesComGestores(params?: {
   orgaoIdsPermitidos?: string[];
 }) {
   const hoje = new Date();
-  const unidades = await prisma.unidadeOrganizacional.findMany({
+  const unidades = await prismaListagem.unidadeOrganizacional.findMany({
     where: {
       ...(params?.orgaoIdsPermitidos
         ? { orgaoId: { in: params.orgaoIdsPermitidos } }

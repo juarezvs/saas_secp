@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import {
   resolverFusoHorarioServidor,
   resolverFusoHorarioServidorNoBanco,
@@ -112,7 +113,7 @@ export async function listarMarcacoesDoServidorNoDia(params: {
   const dataReferencia =
     params.dataReferencia ?? obterDataReferencia(params.dataHora, fusoHorario);
 
-  return prisma.marcacao.findMany({
+  return prismaListagem.marcacao.findMany({
     where: {
       servidorId: params.servidorId,
       dataReferencia,
@@ -208,7 +209,7 @@ export async function listarHistoricoMarcacoesDoUsuario(params: {
         lt: dataReferenciaHoje,
       };
   const [marcacoes, apuracoes] = await Promise.all([
-    prisma.marcacao.findMany({
+    prismaListagem.marcacao.findMany({
       take: inicioCompetencia ? undefined : (params.limite ?? 100),
       where: {
         servidorId: servidor.id,
@@ -228,7 +229,7 @@ export async function listarHistoricoMarcacoesDoUsuario(params: {
         },
       },
     }),
-    prisma.apuracaoDiaria.findMany({
+    prismaListagem.apuracaoDiaria.findMany({
       where: {
         servidorId: servidor.id,
         dataReferencia: whereDataReferencia,
@@ -252,7 +253,7 @@ export async function listarUltimasMarcacoes(params?: {
   servidorId?: string | null;
   servidorIdsPermitidos?: string[];
 }) {
-  return prisma.marcacao.findMany({
+  return prismaListagem.marcacao.findMany({
     take: params?.limite ?? 50,
     where: {
       ...(params?.servidorId ? { servidorId: params.servidorId } : {}),
@@ -336,7 +337,7 @@ export async function listarUltimasMarcacoes(params?: {
 export async function listarServidoresParaFiltroMarcacoes(params?: {
   servidorIdsPermitidos?: string[];
 }) {
-  return prisma.servidor.findMany({
+  return prismaListagem.servidor.findMany({
     where: {
       ativo: true,
       ...(params?.servidorIdsPermitidos !== undefined

@@ -22,7 +22,7 @@ import {
   usuarioEhNutec,
 } from "@/modules/marcacoes/application/services/permissao-manutencao-marcacao.service";
 import { listarUnidadesParaSelecao } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 type MarcacoesBrutasPageProps = {
   searchParams?: Promise<{
@@ -71,13 +71,13 @@ export default async function MarcacoesBrutasPage({
 
   const [orgaos, equipamentosVisiveis] = await Promise.all([
     escopoOrgao.global
-      ? prisma.orgao.findMany({
+      ? prismaListagem.orgao.findMany({
           where: { ativo: true },
           select: { id: true, sigla: true, nome: true },
           orderBy: { sigla: "asc" },
         })
       : Promise.resolve(escopoOrgao.orgaos),
-    prisma.equipamentoBiometrico.findMany({
+    prismaListagem.equipamentoBiometrico.findMany({
       where: {
         ativo: true,
         ...(escopoMarcacoesBrutas.orgaoIdsPermitidos?.length
@@ -123,7 +123,7 @@ export default async function MarcacoesBrutasPage({
   const [servidorSelecionadoValido, equipamentoSelecionadoValido] =
     await Promise.all([
       servidorIdParam
-        ? prisma.servidor.findFirst({
+        ? prismaListagem.servidor.findFirst({
             where: {
               AND: [
                 { id: servidorIdParam },
@@ -211,7 +211,7 @@ export default async function MarcacoesBrutasPage({
         (equipamento) => equipamento.codigo,
       ),
     }),
-    prisma.servidor.findMany({
+    prismaListagem.servidor.findMany({
       where: {
         ativo: true,
         ...(escopoMarcacoesBrutas.servidorIdsPermitidos !== undefined

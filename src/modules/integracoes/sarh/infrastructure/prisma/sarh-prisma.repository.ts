@@ -20,6 +20,7 @@ import type {
   TipoExecucaoSarh,
   TipoRegistroSarhDb,
 } from "../../domain/sarh.types";
+import { preservarInativacaoOrganizacional } from "../../application/status-organizacional-local";
 import {
   endpointDbFromKey,
   gerarHashRegistro,
@@ -1561,7 +1562,7 @@ export class SarhPrismaRepository {
     const existente = await this.prisma.orgao.findFirst({
       where: { OR: [{ codigoExternoSarh: params.payload.id }, { sigla }] },
     });
-    const data = mapearOrgaoSarh(params.payload);
+    const data = preservarInativacaoOrganizacional(mapearOrgaoSarh(params.payload), existente);
     const operacao: OperacaoRegistroSarhDb = existente ? "ATUALIZAR" : "CRIAR";
 
     if (params.modoSimulacao) {
@@ -1689,7 +1690,7 @@ export class SarhPrismaRepository {
             params.payload.id,
           )
         : dataMapeada.codigo;
-    const data = { ...dataMapeada, codigo };
+    const data = preservarInativacaoOrganizacional({ ...dataMapeada, codigo }, existente);
     const operacao: OperacaoRegistroSarhDb = existente ? "ATUALIZAR" : "CRIAR";
 
     if (params.modoSimulacao) {

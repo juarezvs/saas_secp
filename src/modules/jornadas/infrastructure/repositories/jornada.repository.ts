@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { tiposJornada } from "../../application/schemas/jornada.schema";
 
 export type ListarJornadasParams = {
@@ -90,7 +91,7 @@ const includeJornadaListagemGlobal = {
 };
 
 export async function listarJornadas() {
-  return prisma.jornada.findMany({
+  return prismaListagem.jornada.findMany({
     orderBy: {
       codigo: "asc",
     },
@@ -107,8 +108,8 @@ export async function listarJornadasPaginado(params: ListarJornadasParams) {
   const where = montarWhereJornadas(params);
 
   const [total, jornadas] = await Promise.all([
-    prisma.jornada.count({ where }),
-    prisma.jornada.findMany({
+    prismaListagem.jornada.count({ where }),
+    prismaListagem.jornada.findMany({
       where,
       orderBy: [{ codigo: "asc" }, { nome: "asc" }],
       include: includeJornadaListagem(params),
@@ -129,7 +130,7 @@ export async function listarJornadasPaginado(params: ListarJornadasParams) {
 export async function listarJornadasParaExportacao(
   params: ListarJornadasParams,
 ) {
-  return prisma.jornada.findMany({
+  return prismaListagem.jornada.findMany({
     where: montarWhereJornadas(params),
     orderBy: [{ codigo: "asc" }, { nome: "asc" }],
     include: includeJornadaListagem(params),
@@ -137,7 +138,7 @@ export async function listarJornadasParaExportacao(
 }
 
 export async function listarJornadasAtivas() {
-  return prisma.jornada.findMany({
+  return prismaListagem.jornada.findMany({
     where: {
       ativo: true,
       situacao: "ATIVA",
@@ -197,7 +198,7 @@ export async function codigoJornadaExiste(codigo: string, ignorarId?: string) {
 export async function listarServidoresAtivosParaJornada(params?: {
   orgaoIdsPermitidos?: string[];
 }) {
-  return prisma.servidor.findMany({
+  return prismaListagem.servidor.findMany({
     where: {
       ativo: true,
       ...(params?.orgaoIdsPermitidos
@@ -241,7 +242,7 @@ export async function listarServidoresAtivosParaJornada(params?: {
 }
 
 export async function listarEscalasAtivasPorJornada(jornadaId: string) {
-  return prisma.escala.findMany({
+  return prismaListagem.escala.findMany({
     where: {
       jornadaId,
       ativo: true,

@@ -7,7 +7,7 @@ import {
 import { listarMarcacoesBrutasParaExportacao } from "@/modules/marcacoes-brutas/infrastructure/repositories/marcacao-bruta.repository";
 import { normalizarFusoHorario } from "@/modules/marcacoes/application/services/data-marcacao.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export const runtime = "nodejs";
 
@@ -55,7 +55,7 @@ export async function GET(request: Request) {
     orgaoIdsPermitidos: escopoMarcacoesBrutas.orgaoIdsPermitidos,
   });
   const equipamentosFiltro = orgaoIdsFiltro
-    ? await prisma.equipamentoBiometrico.findMany({
+    ? await prismaListagem.equipamentoBiometrico.findMany({
         where: {
           ativo: true,
           OR: [

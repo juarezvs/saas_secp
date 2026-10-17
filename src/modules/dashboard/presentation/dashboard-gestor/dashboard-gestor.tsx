@@ -11,7 +11,7 @@ import {
   obterPermissoesDaSessao,
   usuarioPossuiPermissaoNoPerfil,
 } from "@/modules/auth/application/services/permissao.service";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { DashboardFeatureCard } from "@/modules/dashboard/presentation/components/dashboard-feature-card";
 import type { DashboardFeatureCardColor } from "@/modules/dashboard/presentation/components/dashboard-feature-card";
 import { DashboardPerfilShell } from "@/modules/dashboard/presentation/components/dashboard-perfil-shell";
@@ -85,13 +85,13 @@ export async function DashboardGestor() {
   const [permissao, fechamentosEmHomologacao, homologacoesPendentes, boletinsGerados] =
     await Promise.all([
       obterPermissoesDaSessao(),
-      prisma.fechamentoMensalUnidade.count({
+      prismaListagem.fechamentoMensalUnidade.count({
         where: { status: "EM_HOMOLOGACAO" },
       }),
-      prisma.homologacaoServidorMes.count({
+      prismaListagem.homologacaoServidorMes.count({
         where: { status: { in: ["PENDENTE", "COM_PENDENCIAS", "DEVOLVIDO"] } },
       }),
-      prisma.boletimFrequencia.count({
+      prismaListagem.boletimFrequencia.count({
         where: { status: { in: ["GERADO", "ENCAMINHADO_SECAP"] } },
       }),
     ]);

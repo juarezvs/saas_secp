@@ -7,7 +7,7 @@ import {
   alternarTipoFeriadoSuspensaoAction,
   salvarTipoFeriadoSuspensaoAction,
 } from "@/modules/calendario-institucional/application/actions/tipo-feriado-suspensao.actions";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 const permissoesConsulta = [
   "tipoferiado:consultar:seccional",
@@ -23,7 +23,7 @@ export default async function TiposFeriadosSuspensoesPage() {
     item.startsWith("tipoferiado:cadastrar:") ||
     item.startsWith("configuracoes:gerenciar:"),
   );
-  const tipos = await prisma.tipoFeriadoSuspensao.findMany({
+  const tipos = await prismaListagem.tipoFeriadoSuspensao.findMany({
     orderBy: { nome: "asc" },
   });
 

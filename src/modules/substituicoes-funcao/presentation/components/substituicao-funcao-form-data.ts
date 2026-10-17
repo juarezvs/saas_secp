@@ -3,11 +3,12 @@ import {
   whereOrgaoPermitido,
 } from "@/modules/auth/application/services/escopo-orgao.service";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 async function materializarFuncoesAtuaisDosServidores(
   whereOrgao: ReturnType<typeof whereOrgaoPermitido>,
 ) {
-  const servidoresComFuncao = await prisma.servidor.findMany({
+  const servidoresComFuncao = await prismaListagem.servidor.findMany({
     where: {
       ativo: true,
       orgao: whereOrgao,
@@ -97,17 +98,17 @@ export async function carregarDadosFormularioSubstituicaoFuncao() {
   const whereOrgao = whereOrgaoPermitido(escopo);
   await materializarFuncoesAtuaisDosServidores(whereOrgao);
   const [orgaos, unidades, servidores, funcoes] = await Promise.all([
-    prisma.orgao.findMany({
+    prismaListagem.orgao.findMany({
       where: { ativo: true, ...whereOrgao },
       orderBy: [{ sigla: "asc" }],
       select: { id: true, sigla: true, nome: true },
     }),
-    prisma.unidadeOrganizacional.findMany({
+    prismaListagem.unidadeOrganizacional.findMany({
       where: { ativo: true, orgao: whereOrgao },
       orderBy: [{ sigla: "asc" }],
       select: { id: true, sigla: true, nome: true, orgao: { select: { sigla: true } } },
     }),
-    prisma.servidor.findMany({
+    prismaListagem.servidor.findMany({
       where: {
         ativo: true,
         orgao: whereOrgao,
@@ -122,7 +123,7 @@ export async function carregarDadosFormularioSubstituicaoFuncao() {
         orgao: { select: { sigla: true } },
       },
     }),
-    prisma.funcaoConfiancaReferencia.findMany({
+    prismaListagem.funcaoConfiancaReferencia.findMany({
       where: { ativo: true, OR: [{ orgao: whereOrgao }, { orgaoId: null }] },
       orderBy: [{ categoria: "asc" }, { codigo: "asc" }],
       select: { id: true, categoria: true, codigo: true, descricao: true },

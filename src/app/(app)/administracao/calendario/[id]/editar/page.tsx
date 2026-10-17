@@ -13,7 +13,7 @@ import {
   listarLocalidadesCalendarioParaSelecao,
   listarOrgaosAtivos,
 } from "@/modules/unidades/infrastructure/repositories/unidade.repository";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { listarEstadosComCidadesAtivas } from "@/modules/localidades/infrastructure/repositories/localidade.repository";
 
 type EditarCalendarioInstitucionalPageProps = {
@@ -42,7 +42,7 @@ export default async function EditarCalendarioInstitucionalPage({
     buscarEventoCalendarioInstitucionalPorId(id),
     listarOrgaosAtivos({ orgaoIdsPermitidos }),
     listarLocalidadesCalendarioParaSelecao({ orgaoIdsPermitidos }),
-    prisma.tipoFeriadoSuspensao.findMany({
+    prismaListagem.tipoFeriadoSuspensao.findMany({
       where: { ativo: true },
       select: { codigo: true, nome: true },
       orderBy: { nome: "asc" },

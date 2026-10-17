@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { normalizarDataReferencia } from "@/modules/apuracao/application/services/calcular-tempo.service";
 
 export type ListarCalendarioInstitucionalParams = {
@@ -98,8 +99,8 @@ export async function listarCalendarioInstitucionalPaginado(
   const where = montarWhereCalendarioInstitucional(params);
 
   const [total, eventos] = await Promise.all([
-    prisma.calendarioInstitucional.count({ where }),
-    prisma.calendarioInstitucional.findMany({
+    prismaListagem.calendarioInstitucional.count({ where }),
+    prismaListagem.calendarioInstitucional.findMany({
       where,
       orderBy: [{ dataReferencia: "desc" }, { descricao: "asc" }],
       skip: (pagina - 1) * itensPorPagina,
@@ -120,7 +121,7 @@ export async function listarEventosCalendarioInstitucionalNoPeriodo(
   inicio: Date,
   fimExclusivo: Date,
 ) {
-  return prisma.calendarioInstitucional.findMany({
+  return prismaListagem.calendarioInstitucional.findMany({
     where: {
       ativo: true,
       dataReferencia: { lt: normalizarDataReferencia(fimExclusivo) },

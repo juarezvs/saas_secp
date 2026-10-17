@@ -1,5 +1,5 @@
 import { Building2, ClipboardCheck, FileCheck2, Scale } from "lucide-react";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { DashboardAtalho } from "@/modules/dashboard/presentation/components/dashboard-atalho";
 import { DashboardPerfilShell } from "@/modules/dashboard/presentation/components/dashboard-perfil-shell";
 import { DashboardRoleCard } from "@/modules/dashboard/presentation/components/dashboard-role-card";
@@ -7,12 +7,12 @@ import { DashboardRoleCard } from "@/modules/dashboard/presentation/components/d
 export async function DashboardDiref() {
   const [unidades, homologados, pendentes, boletinsEncaminhados] =
     await Promise.all([
-      prisma.unidadeOrganizacional.count({ where: { ativo: true } }),
-      prisma.fechamentoMensalUnidade.count({ where: { status: "HOMOLOGADO" } }),
-      prisma.fechamentoMensalUnidade.count({
+      prismaListagem.unidadeOrganizacional.count({ where: { ativo: true } }),
+      prismaListagem.fechamentoMensalUnidade.count({ where: { status: "HOMOLOGADO" } }),
+      prismaListagem.fechamentoMensalUnidade.count({
         where: { status: { in: ["ABERTO", "EM_HOMOLOGACAO", "HOMOLOGADO_PARCIAL"] } },
       }),
-      prisma.boletimFrequencia.count({ where: { status: "ENCAMINHADO_SECAP" } }),
+      prismaListagem.boletimFrequencia.count({ where: { status: "ENCAMINHADO_SECAP" } }),
     ]);
 
   return (

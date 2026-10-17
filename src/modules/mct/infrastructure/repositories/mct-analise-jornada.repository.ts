@@ -1,4 +1,4 @@
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import type { AnaliseJornadaMctDto } from "../../application/dtos/analise-jornada.dto";
 
 function extrairReferencia(entradaSnapshot: unknown) {
@@ -30,7 +30,7 @@ export async function listarAnalisesJornadaMctNoMes(params: {
 }): Promise<Record<string, AnaliseJornadaMctDto>> {
   const inicio = new Date(Date.UTC(params.ano, params.mes - 1, 1));
   const fim = new Date(Date.UTC(params.ano, params.mes, 1));
-  const execucoes = await prisma.mctExecucao.findMany({
+  const execucoes = await prismaListagem.mctExecucao.findMany({
     where: {
       orgaoId: params.orgaoId,
       servidorId: params.servidorId,

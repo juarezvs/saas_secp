@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 const LIMITE_PREVIA_JSON_AUDITORIA = 30000;
 
@@ -116,8 +117,8 @@ export async function listarEventosAuditoria(params: ListarAuditoriaParams) {
   const where = montarWhereAuditoria(params);
 
   const [total, eventos] = await Promise.all([
-    prisma.auditoriaEvento.count({ where }),
-    prisma.auditoriaEvento.findMany({
+    prismaListagem.auditoriaEvento.count({ where }),
+    prismaListagem.auditoriaEvento.findMany({
       where,
       select: {
         id: true,
@@ -157,7 +158,7 @@ export async function listarEventosAuditoria(params: ListarAuditoriaParams) {
 export async function listarEventosAuditoriaParaExportacao(
   params: ListarAuditoriaParams,
 ) {
-  return prisma.auditoriaEvento.findMany({
+  return prismaListagem.auditoriaEvento.findMany({
     where: montarWhereAuditoria(params),
     select: {
       id: true,
@@ -383,7 +384,7 @@ function normalizarEventoAuditoriaDetalhe(
 export async function listarUsuariosParaFiltroAuditoria(params?: {
   orgaoIdsPermitidos?: string[];
 }) {
-  return prisma.usuario.findMany({
+  return prismaListagem.usuario.findMany({
     where: {
       ...(params?.orgaoIdsPermitidos
         ? {
@@ -415,7 +416,7 @@ export async function listarUsuariosParaFiltroAuditoria(params?: {
 export async function listarEntidadesAuditoria(params?: {
   orgaoIdsPermitidos?: string[];
 }) {
-  const entidades = await prisma.auditoriaEvento.findMany({
+  const entidades = await prismaListagem.auditoriaEvento.findMany({
     where:
       params?.orgaoIdsPermitidos === undefined
         ? undefined

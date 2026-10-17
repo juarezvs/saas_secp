@@ -1,4 +1,4 @@
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { listarIdsUnidadesBasePorSubstituicaoAutomatica } from "./substituicoes-automaticas.service";
 
 export async function listarIdsUnidadesSubordinadasPorUsuario(
@@ -6,7 +6,7 @@ export async function listarIdsUnidadesSubordinadasPorUsuario(
 ) {
   const hoje = new Date();
 
-  const gestores = await prisma.gestorUnidade.findMany({
+  const gestores = await prismaListagem.gestorUnidade.findMany({
     where: {
       ativo: true,
       dataInicio: {
@@ -32,7 +32,7 @@ export async function listarIdsUnidadesSubordinadasPorUsuario(
   let fronteira = Array.from(visitadas);
 
   while (fronteira.length > 0) {
-    const filhas = await prisma.unidadeOrganizacional.findMany({
+    const filhas = await prismaListagem.unidadeOrganizacional.findMany({
       where: {
         unidadePaiId: {
           in: fronteira,

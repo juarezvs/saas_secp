@@ -1,4 +1,4 @@
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 import {
   calcularExecucaoHorasExtras,
@@ -26,7 +26,7 @@ function chaveApuracao(servidorId: string, data: Date) {
 export async function listarAutorizacoesHorasExtrasParaExecucao(
   params: ListarAutorizacoesParams,
 ) {
-  const autorizacoes = await prisma.overtimeAuthorization.findMany({
+  const autorizacoes = await prismaListagem.overtimeAuthorization.findMany({
     where: {
       status: "ACTIVE",
       ...(params.escopoGlobal
@@ -65,7 +65,7 @@ export async function listarAutorizacoesHorasExtrasParaExecucao(
   const fim = maiorData(datas);
 
   const [servidores, apuracoes] = await Promise.all([
-    prisma.servidor.findMany({
+    prismaListagem.servidor.findMany({
       where: {
         id: {
           in: servidorIds,
@@ -88,7 +88,7 @@ export async function listarAutorizacoesHorasExtrasParaExecucao(
         },
       },
     }),
-    prisma.apuracaoDiaria.findMany({
+    prismaListagem.apuracaoDiaria.findMany({
       where: {
         servidorId: {
           in: servidorIds,

@@ -7,7 +7,7 @@ import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/es
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { garantirProcedimentosPadraoFrequenciaOrgao } from "@/modules/procedimentos-frequencia/application/services/procedimentos-frequencia.service";
 import { ProcedimentosFrequenciaForm } from "@/modules/procedimentos-frequencia/presentation/components/procedimentos-frequencia-form";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 type ProcedimentosFrequenciaOrgaoPageProps = {
   params: Promise<{
@@ -34,7 +34,7 @@ export default async function ProcedimentosFrequenciaOrgaoPage({
 
   await garantirProcedimentosPadraoFrequenciaOrgao(orgaoId);
 
-  const orgao = await prisma.orgao.findUnique({
+  const orgao = await prismaListagem.orgao.findUnique({
     where: { id: orgaoId },
     include: {
       procedimentosFrequencia: {

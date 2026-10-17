@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export type ListarIntegracoesSistemaParams = {
   pagina?: number;
@@ -67,7 +68,7 @@ const includeIntegracaoListagem = {
 };
 
 export async function listarIntegracoesSistema() {
-  return prisma.integracaoSistema.findMany({
+  return prismaListagem.integracaoSistema.findMany({
     orderBy: {
       nome: "asc",
     },
@@ -86,8 +87,8 @@ export async function listarIntegracoesSistemaPaginado(
   const where = montarWhereIntegracoesSistema(params);
 
   const [total, integracoes] = await Promise.all([
-    prisma.integracaoSistema.count({ where }),
-    prisma.integracaoSistema.findMany({
+    prismaListagem.integracaoSistema.count({ where }),
+    prismaListagem.integracaoSistema.findMany({
       where,
       orderBy: [{ tipo: "asc" }, { nome: "asc" }],
       include: includeIntegracaoListagem,
@@ -108,7 +109,7 @@ export async function listarIntegracoesSistemaPaginado(
 export async function listarIntegracoesSistemaParaExportacao(
   params: ListarIntegracoesSistemaParams,
 ) {
-  return prisma.integracaoSistema.findMany({
+  return prismaListagem.integracaoSistema.findMany({
     where: montarWhereIntegracoesSistema(params),
     orderBy: [{ tipo: "asc" }, { nome: "asc" }],
     include: includeIntegracaoListagem,
@@ -126,7 +127,7 @@ export async function listarEquipamentosBiometricos(params?: {
         ? params.orgaoIdsPermitidos
         : null;
 
-  const equipamentos = await prisma.equipamentoBiometrico.findMany({
+  const equipamentos = await prismaListagem.equipamentoBiometrico.findMany({
     where: orgaoIds
       ? {
           OR: [
@@ -148,7 +149,7 @@ export async function listarEquipamentosBiometricos(params?: {
     },
   });
 
-  const totais = await prisma.marcacaoBruta.groupBy({
+  const totais = await prismaListagem.marcacaoBruta.groupBy({
     by: ["equipamentoId", "processada"],
     where: {
       equipamentoId: {
@@ -192,7 +193,7 @@ export async function listarEquipamentosBiometricos(params?: {
 }
 
 export async function listarLogsIntegracao(params?: { limite?: number }) {
-  return prisma.logIntegracao.findMany({
+  return prismaListagem.logIntegracao.findMany({
     take: params?.limite ?? 50,
     orderBy: {
       iniciadoEm: "desc",
@@ -214,7 +215,7 @@ export async function listarUnidadesParaEquipamentos(params?: {
         ? params.orgaoIdsPermitidos
         : null;
 
-  return prisma.unidadeOrganizacional.findMany({
+  return prismaListagem.unidadeOrganizacional.findMany({
     where: {
       ativo: true,
       ...(orgaoIds ? { orgaoId: { in: orgaoIds } } : {}),
@@ -367,7 +368,7 @@ export async function buscarEquipamentoBiometricoPorId(id: string) {
 export async function listarEquipamentosParaIdentificacaoAfd(params?: {
   orgaoIdsPermitidos?: string[];
 }) {
-  return prisma.equipamentoBiometrico.findMany({
+  return prismaListagem.equipamentoBiometrico.findMany({
     where: {
       ativo: true,
       ...(params?.orgaoIdsPermitidos?.length

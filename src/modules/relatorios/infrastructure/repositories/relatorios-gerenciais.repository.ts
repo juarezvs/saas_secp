@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 
@@ -100,7 +101,7 @@ export async function listarLotacoesComChefiasRegistradas(params: {
     return [];
   }
 
-  const unidades = await prisma.unidadeOrganizacional.findMany({
+  const unidades = await prismaListagem.unidadeOrganizacional.findMany({
     where: {
       ativo: true,
       ...(unidadesPermitidas
@@ -190,7 +191,7 @@ async function resolverIdsServidoresPermitidos(params: EscopoRelatorioParams) {
   const podeProprio = possuiPermissao(params.permissoes, modo, "proprio");
 
   if (podeGlobal) {
-    const servidores = await prisma.servidor.findMany({
+    const servidores = await prismaListagem.servidor.findMany({
       where: {
         ativo: true,
         usuario: {
@@ -217,7 +218,7 @@ async function resolverIdsServidoresPermitidos(params: EscopoRelatorioParams) {
     );
 
     if (unidades.length > 0) {
-      const servidores = await prisma.servidor.findMany({
+      const servidores = await prismaListagem.servidor.findMany({
         where: {
           ativo: true,
           usuario: {
@@ -270,7 +271,7 @@ export async function listarServidoresParaRelatorioGerencial(
     return [];
   }
 
-  return prisma.servidor.findMany({
+  return prismaListagem.servidor.findMany({
     where: {
       id: {
         in: escopo.ids,
@@ -325,7 +326,7 @@ export async function buscarDadosRelatorioGerencial(params: {
   const fim = new Date(Date.UTC(params.ano, params.mes, 1));
 
   const [servidores, apuracoes] = await Promise.all([
-    prisma.servidor.findMany({
+    prismaListagem.servidor.findMany({
       where: {
         id: {
           in: escopo.ids,
@@ -350,7 +351,7 @@ export async function buscarDadosRelatorioGerencial(params: {
         matricula: "asc",
       },
     }),
-    prisma.apuracaoDiaria.findMany({
+    prismaListagem.apuracaoDiaria.findMany({
       where: {
         servidorId: {
           in: escopo.ids,

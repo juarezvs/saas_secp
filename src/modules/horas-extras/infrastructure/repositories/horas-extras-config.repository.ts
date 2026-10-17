@@ -1,4 +1,4 @@
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 type ListarConfiguracaoHorasExtrasParams = {
   orgaoIds?: string[];
@@ -23,7 +23,7 @@ export async function listarConfiguracaoHorasExtras(
   const whereOrgao = filtroOrgao(params);
 
   const [policies, workflows] = await Promise.all([
-    prisma.overtimePolicy.findMany({
+    prismaListagem.overtimePolicy.findMany({
       where: {
         ...whereOrgao,
         active: true,
@@ -54,7 +54,7 @@ export async function listarConfiguracaoHorasExtras(
         name: "asc",
       },
     }),
-    prisma.overtimeWorkflowDefinition.findMany({
+    prismaListagem.overtimeWorkflowDefinition.findMany({
       where: {
         ...whereOrgao,
         active: true,
@@ -98,7 +98,7 @@ export async function listarUnidadesParaConfiguracaoHorasExtras(
 ) {
   const whereOrgao = filtroOrgao(params);
 
-  return prisma.unidadeOrganizacional.findMany({
+  return prismaListagem.unidadeOrganizacional.findMany({
     where: {
       ...whereOrgao,
       ativo: true,

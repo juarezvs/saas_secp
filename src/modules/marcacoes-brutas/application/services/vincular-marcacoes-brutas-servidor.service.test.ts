@@ -12,6 +12,10 @@ vi.mock("@/shared/infrastructure/database/prisma", () => ({
   prisma: prismaMock,
 }));
 
+vi.mock("@/shared/infrastructure/database/prisma-listagem", () => ({
+  prismaListagem: prismaMock,
+}));
+
 vi.mock("./processar-marcacao-bruta.service", () => ({
   processarMarcacaoBrutaService: processarMarcacaoBrutaServiceMock,
 }));

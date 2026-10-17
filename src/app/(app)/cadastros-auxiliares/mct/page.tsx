@@ -20,7 +20,7 @@ import {
   criarVersaoRubricaMctAction,
   exigirConsultaCadastrosMct,
 } from "@/modules/mct/application/actions/cadastros-mct.actions";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 type Aba = "rubricas" | "naturezas" | "politicas" | "regras";
 type RegraComRelacionamentos = Prisma.MctRegraVersaoGetPayload<{
@@ -48,7 +48,7 @@ export default async function CadastrosMctPage({
     ? (params.aba as Aba)
     : "rubricas";
   const orgaos = escopo.global
-    ? await prisma.orgao.findMany({
+    ? await prismaListagem.orgao.findMany({
         where: { ativo: true },
         select: { id: true, sigla: true, nome: true },
         orderBy: { sigla: "asc" },
@@ -62,19 +62,19 @@ export default async function CadastrosMctPage({
   );
   const [rubricas, naturezas, politicas, regras] = orgaoId
     ? await Promise.all([
-        prisma.mctRubricaVersao.findMany({
+        prismaListagem.mctRubricaVersao.findMany({
           where: { OR: [{ orgaoId }, { orgaoId: null }] },
           orderBy: [{ codigo: "asc" }, { versao: "desc" }],
         }),
-        prisma.mctNaturezaRubrica.findMany({
+        prismaListagem.mctNaturezaRubrica.findMany({
           where: { orgaoId },
           orderBy: [{ ativo: "desc" }, { nome: "asc" }],
         }),
-        prisma.mctPoliticaVersao.findMany({
+        prismaListagem.mctPoliticaVersao.findMany({
           where: { orgaoId },
           orderBy: [{ codigo: "asc" }, { versao: "desc" }],
         }),
-        prisma.mctRegraVersao.findMany({
+        prismaListagem.mctRegraVersao.findMany({
           where: { orgaoId },
           include: {
             politica: { select: { codigo: true, versao: true } },

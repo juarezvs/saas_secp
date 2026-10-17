@@ -1,4 +1,4 @@
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export type EstadoComCidadesSelecao = {
   id: number;
@@ -10,7 +10,7 @@ export type EstadoComCidadesSelecao = {
 export async function listarEstadosComCidadesAtivas(): Promise<
   EstadoComCidadesSelecao[]
 > {
-  return prisma.estado.findMany({
+  return prismaListagem.estado.findMany({
     where: { ativo: true },
     orderBy: { nome: "asc" },
     select: {

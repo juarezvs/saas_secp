@@ -9,7 +9,7 @@ import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/servic
 import { atualizarLdapActiveDirectoryAction } from "@/modules/integracoes/application/actions/atualizar-ldap-active-directory.action";
 import { obterConfiguracaoLdapActiveDirectoryFormulario } from "@/modules/integracoes/application/services/ldap-active-directory-config.service";
 import { LdapActiveDirectoryForm } from "@/modules/integracoes/presentation/components/ldap-active-directory-form";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 type IntegracaoLdapActiveDirectoryPageProps = {
   searchParams?: Promise<{
@@ -25,7 +25,7 @@ export default async function IntegracaoLdapActiveDirectoryPage({
   const params = searchParams ? await searchParams : {};
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
   const orgaos = escopoOrgao.global
-    ? await prisma.orgao.findMany({
+    ? await prismaListagem.orgao.findMany({
         where: { ativo: true },
         select: {
           id: true,

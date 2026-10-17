@@ -12,7 +12,7 @@ import { emitirNadaConstaFrequenciaAction } from "@/modules/procedimentos-freque
 import type { NadaConstaFrequenciaResumo } from "@/modules/procedimentos-frequencia/application/actions/emitir-nada-consta-frequencia.action";
 import { NadaConstaFrequenciaForm } from "@/modules/procedimentos-frequencia/presentation/components/nada-consta-frequencia-form";
 import { NadaConstaPdfButton } from "@/modules/procedimentos-frequencia/presentation/components/nada-consta-pdf-button";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 function resumoDaExecucao(execucao: {
   id: string;
@@ -96,7 +96,7 @@ export default async function NadaConstaFrequenciaPage() {
   ]);
 
   const escopo = await obterEscopoOrgaoDaSessao();
-  const servidores = await prisma.servidor.findMany({
+  const servidores = await prismaListagem.servidor.findMany({
     where: {
       ativo: true,
       orgao: whereOrgaoPermitido(escopo),
@@ -137,7 +137,7 @@ export default async function NadaConstaFrequenciaPage() {
   });
 
   const ultimasExecucoes =
-    await prisma.procedimentoAdministrativoFrequenciaExecucao.findMany({
+    await prismaListagem.procedimentoAdministrativoFrequenciaExecucao.findMany({
       where: {
         procedimento: {
           categoria: "NADA_CONSTA",

@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import type { Prisma, TipoSolicitacao } from "@/generated/prisma/client";
 import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
 
@@ -267,8 +268,8 @@ async function listarSolicitacoesPaginadas(
   const whereFinal = aplicarFiltrosSolicitacao(where, filtros);
 
   const [total, solicitacoes] = await Promise.all([
-    prisma.solicitacao.count({ where: whereFinal }),
-    prisma.solicitacao.findMany({
+    prismaListagem.solicitacao.count({ where: whereFinal }),
+    prismaListagem.solicitacao.findMany({
       where: whereFinal,
       include: includeSolicitacaoListagem,
       orderBy: {
@@ -331,7 +332,7 @@ export async function listarSolicitacoesDoUsuario(
   usuarioId: string,
   filtros?: FiltrosSolicitacao,
 ) {
-  return prisma.solicitacao.findMany({
+  return prismaListagem.solicitacao.findMany({
     where: aplicarFiltrosSolicitacao(
       whereSolicitacoesDoUsuario(usuarioId),
       filtros,
@@ -361,7 +362,7 @@ export async function listarSolicitacoesParaChefia(
 ) {
   const whereChefia = await whereSolicitacoesParaChefia(usuarioId);
 
-  return prisma.solicitacao.findMany({
+  return prismaListagem.solicitacao.findMany({
     where: aplicarFiltrosSolicitacao(whereChefia, filtros),
     include: includeSolicitacaoListagem,
     orderBy: {
@@ -381,7 +382,7 @@ export async function listarSolicitacoesParaChefiaPaginado(
 }
 
 export async function listarSolicitacoesGlobais(filtros?: FiltrosSolicitacao) {
-  return prisma.solicitacao.findMany({
+  return prismaListagem.solicitacao.findMany({
     where: aplicarFiltrosSolicitacao({}, filtros),
     include: includeSolicitacaoListagem,
     orderBy: {
@@ -403,7 +404,7 @@ async function listarServidoresParaFiltroSolicitacoes(
   filtros?: Pick<FiltrosSolicitacao, "competencia" | "orgaoIdsPermitidos">,
 ) {
   const whereFinal = aplicarFiltrosSolicitacao(where, filtros);
-  const solicitacoes = await prisma.solicitacao.findMany({
+  const solicitacoes = await prismaListagem.solicitacao.findMany({
     where: whereFinal,
     select: {
       servidor: {

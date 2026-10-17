@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { atualizarCategoriaPessoaAction } from "@/modules/servidores/application/actions/categoria-pessoa.action";
 import { CategoriaPessoaForm } from "@/modules/servidores/presentation/components/categoria-pessoa-form";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 type EditarCategoriaPessoaPageProps = {
   params: Promise<{
@@ -23,7 +23,7 @@ export default async function EditarCategoriaPessoaPage({
   ]);
 
   const { id } = await params;
-  const categoria = await prisma.categoriaPessoa.findUnique({
+  const categoria = await prismaListagem.categoriaPessoa.findUnique({
     where: { id },
   });
 

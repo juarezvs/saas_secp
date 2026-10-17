@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export type ListarFechamentosMensaisParams = {
   pagina?: number;
@@ -123,7 +124,7 @@ const includeFechamentoExportacao = {
 };
 
 export async function listarUnidadesParaHomologacao() {
-  return prisma.unidadeOrganizacional.findMany({
+  return prismaListagem.unidadeOrganizacional.findMany({
     where: {
       ativo: true,
     },
@@ -138,7 +139,7 @@ export async function listarUnidadesParaHomologacao() {
 }
 
 export async function listarFechamentosMensais() {
-  return prisma.fechamentoMensalUnidade.findMany({
+  return prismaListagem.fechamentoMensalUnidade.findMany({
     orderBy: [
       { anoReferencia: "desc" },
       { mesReferencia: "desc" },
@@ -160,8 +161,8 @@ export async function listarFechamentosMensaisPaginado(
   const where = montarWhereFechamentosMensais(params);
 
   const [total, fechamentos] = await Promise.all([
-    prisma.fechamentoMensalUnidade.count({ where }),
-    prisma.fechamentoMensalUnidade.findMany({
+    prismaListagem.fechamentoMensalUnidade.count({ where }),
+    prismaListagem.fechamentoMensalUnidade.findMany({
       where,
       orderBy: [
         { anoReferencia: "desc" },
@@ -186,7 +187,7 @@ export async function listarFechamentosMensaisPaginado(
 export async function listarFechamentosMensaisParaExportacao(
   params: ListarFechamentosMensaisParams,
 ) {
-  return prisma.fechamentoMensalUnidade.findMany({
+  return prismaListagem.fechamentoMensalUnidade.findMany({
     where: montarWhereFechamentosMensais(params),
     orderBy: [
       { anoReferencia: "desc" },
@@ -344,7 +345,7 @@ export async function listarServidoresDaUnidadeNoMes(params: {
   const inicio = new Date(params.anoReferencia, params.mesReferencia - 1, 1);
   const fim = new Date(params.anoReferencia, params.mesReferencia, 1);
 
-  return prisma.servidor.findMany({
+  return prismaListagem.servidor.findMany({
     where: {
       ativo: true,
       lotacoes: {
@@ -397,7 +398,7 @@ export async function listarApuracoesServidorMes(params: {
   const inicio = new Date(params.anoReferencia, params.mesReferencia - 1, 1);
   const fim = new Date(params.anoReferencia, params.mesReferencia, 1);
 
-  return prisma.apuracaoDiaria.findMany({
+  return prismaListagem.apuracaoDiaria.findMany({
     where: {
       servidorId: params.servidorId,
       dataReferencia: {
@@ -424,7 +425,7 @@ export async function listarJornadasServidorMes(params: {
   );
   const fim = new Date(Date.UTC(params.anoReferencia, params.mesReferencia, 1));
 
-  return prisma.jornadaServidor.findMany({
+  return prismaListagem.jornadaServidor.findMany({
     where: {
       servidorId: params.servidorId,
       ativo: true,
@@ -463,7 +464,7 @@ export async function listarSolicitacoesPendentesServidorMes(params: {
   const inicio = new Date(params.anoReferencia, params.mesReferencia - 1, 1);
   const fim = new Date(params.anoReferencia, params.mesReferencia, 1);
 
-  return prisma.solicitacao.findMany({
+  return prismaListagem.solicitacao.findMany({
     where: {
       servidorId: params.servidorId,
       status: {
@@ -495,7 +496,7 @@ export async function listarMovimentosPendentesBancoHorasMes(params: {
   anoReferencia: number;
   mesReferencia: number;
 }) {
-  return prisma.movimentoBancoHoras.findMany({
+  return prismaListagem.movimentoBancoHoras.findMany({
     where: {
       servidorId: params.servidorId,
       anoReferencia: params.anoReferencia,
@@ -513,7 +514,7 @@ export async function listarHorasExtrasNaoAutorizadasMes(params: {
   anoReferencia: number;
   mesReferencia: number;
 }) {
-  return prisma.movimentoBancoHoras.findMany({
+  return prismaListagem.movimentoBancoHoras.findMany({
     where: {
       servidorId: params.servidorId,
       anoReferencia: params.anoReferencia,

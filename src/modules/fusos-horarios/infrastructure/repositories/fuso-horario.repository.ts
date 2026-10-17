@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export type ListarFusosHorariosParams = {
   busca?: string;
@@ -31,14 +32,14 @@ export function montarWhereFusosHorarios(
 export async function listarFusosHorarios(
   params: ListarFusosHorariosParams = {},
 ) {
-  return prisma.fusoHorario.findMany({
+  return prismaListagem.fusoHorario.findMany({
     where: montarWhereFusosHorarios(params),
     orderBy: [{ ativo: "desc" }, { valor: "asc" }],
   });
 }
 
 export async function listarFusosHorariosAtivos() {
-  return prisma.fusoHorario.findMany({
+  return prismaListagem.fusoHorario.findMany({
     where: {
       ativo: true,
     },

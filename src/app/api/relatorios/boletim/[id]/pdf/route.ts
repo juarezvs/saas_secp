@@ -6,7 +6,7 @@ import { withHttpMetrics } from "@/lib/observability/http";
 import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 import { enfileirarRelatorioExportacaoResponse } from "@/modules/relatorios/application/services/relatorio-exportacao-response.service";
 import { BoletimFrequenciaPdfDocument } from "@/modules/relatorios/presentation/pdf/boletim-frequencia-pdf.document";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export const runtime = "nodejs";
 
@@ -49,7 +49,7 @@ async function getRelatorioBoletimPdf(request: Request, context: RouteContext) {
   const { id } = await context.params;
 
   if (new URL(request.url).searchParams.get("sync") !== "1") {
-    const boletimExiste = await prisma.boletimFrequencia.findUnique({
+    const boletimExiste = await prismaListagem.boletimFrequencia.findUnique({
       where: {
         id,
       },
@@ -76,7 +76,7 @@ async function getRelatorioBoletimPdf(request: Request, context: RouteContext) {
     });
   }
 
-  const boletim = await prisma.boletimFrequencia.findUnique({
+  const boletim = await prismaListagem.boletimFrequencia.findUnique({
     where: {
       id,
     },
@@ -98,7 +98,7 @@ async function getRelatorioBoletimPdf(request: Request, context: RouteContext) {
     });
   }
 
-  const itensBoletim = await prisma.boletimFrequenciaServidor.findMany({
+  const itensBoletim = await prismaListagem.boletimFrequenciaServidor.findMany({
     where: {
       boletimId: boletim.id,
     },

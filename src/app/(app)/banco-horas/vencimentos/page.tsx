@@ -25,7 +25,7 @@ import {
   listarVencimentosBancoHoras,
 } from "@/modules/banco-horas/infrastructure/repositories/banco-horas.repository";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 type BancoHorasVencimentosPageProps = {
   searchParams: Promise<{
@@ -163,7 +163,7 @@ export default async function BancoHorasVencimentosPage({
     );
     const servidores =
       unidades.length > 0
-        ? await prisma.servidor.findMany({
+        ? await prismaListagem.servidor.findMany({
             where: {
               ativo: true,
               usuarioId: {

@@ -11,7 +11,7 @@ import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application
 import { atualizarSubstituicaoFuncaoAction } from "@/modules/substituicoes-funcao/presentation/actions/substituicoes-funcao.actions";
 import { carregarDadosFormularioSubstituicaoFuncao } from "@/modules/substituicoes-funcao/presentation/components/substituicao-funcao-form-data";
 import { SubstituicaoFuncaoForm } from "@/modules/substituicoes-funcao/presentation/components/substituicao-funcao-form";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -28,7 +28,7 @@ export default async function EditarSubstituicaoFuncaoPage({ params }: Props) {
   ]);
   const { id } = await params;
   const escopo = await obterEscopoOrgaoDaSessao();
-  const substituicao = await prisma.substituicaoFuncao.findFirst({
+  const substituicao = await prismaListagem.substituicaoFuncao.findFirst({
     where: {
       id,
       orgao: whereOrgaoPermitido(escopo),

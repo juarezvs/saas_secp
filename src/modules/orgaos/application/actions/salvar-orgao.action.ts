@@ -164,6 +164,7 @@ export async function atualizarOrgaoAction(
   });
 
   revalidar();
+  if (atual.ativo !== parsed.data.ativo) revalidatePath("/", "layout");
   return {
     sucesso: true,
     mensagem: "Órgão salvo com sucesso.",

@@ -3,11 +3,11 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { ValidacaoMctPanel } from "@/modules/mct/presentation/components/validacao-mct-panel";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export default async function ValidacaoMctPage() {
   const acesso = await exigirUmaDasPermissoesOuRedirecionar(["mct-configuracao:consultar:seccional", "mct-configuracao:consultar:global", "mct-configuracao:gerenciar:seccional", "mct-configuracao:gerenciar:global"]);
-  const execucoes = await prisma.mctExecucao.findMany({
+  const execucoes = await prismaListagem.mctExecucao.findMany({
     where: { modo: "SHADOW", ...(acesso.perfilAtivoEscopoGlobal ? {} : { orgaoId: { in: acesso.orgaoIds?.length ? acesso.orgaoIds : ["00000000-0000-0000-0000-000000000000"] } }) },
     include: { comparacaoLegado: true, politica: { select: { nome: true, versao: true } } }, orderBy: { iniciadaEm: "desc" }, take: 100,
   });

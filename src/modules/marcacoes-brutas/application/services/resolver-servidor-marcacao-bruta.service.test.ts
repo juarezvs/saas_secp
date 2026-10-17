@@ -16,6 +16,10 @@ vi.mock("@/shared/infrastructure/database/prisma", () => ({
   prisma: prismaMock,
 }));
 
+vi.mock("@/shared/infrastructure/database/prisma-listagem", () => ({
+  prismaListagem: prismaMock,
+}));
+
 import { resolverServidorMarcacaoBrutaService } from "./resolver-servidor-marcacao-bruta.service";
 
 describe("resolverServidorMarcacaoBrutaService", () => {

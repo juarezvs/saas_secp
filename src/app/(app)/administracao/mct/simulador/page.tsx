@@ -2,7 +2,7 @@ import { FlaskConical } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { SimuladorJornadaForm } from "@/modules/mct/presentation/components/simulador-jornada-form";
 
 export default async function SimuladorMctPage() {
@@ -10,7 +10,7 @@ export default async function SimuladorMctPage() {
     "mct-simulador:usar:seccional",
     "mct-simulador:usar:global",
   ]);
-  const jornadas = await prisma.jornada.findMany({
+  const jornadas = await prismaListagem.jornada.findMany({
     where: {
       ativo: true,
       ...(acesso.perfilAtivoEscopoGlobal

@@ -6,7 +6,7 @@ import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/servic
 import { normalizarFusoHorario } from "@/modules/marcacoes/application/services/data-marcacao.service";
 import { resolverFusoHorarioServidor } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 type TipoProblemaAfd = "erros" | "pendentes" | "duplicadas";
 
@@ -56,7 +56,7 @@ export default async function ProblemasImportacaoAfdPage({
 
   const [{ id }, filtros] = await Promise.all([params, searchParams]);
   const tipo = normalizarTipo(filtros.tipo);
-  const importacao = await prisma.importacaoAfd.findUnique({
+  const importacao = await prismaListagem.importacaoAfd.findUnique({
     where: { id },
     include: {
       arquivos: {
@@ -73,7 +73,7 @@ export default async function ProblemasImportacaoAfdPage({
   const arquivoIds = importacao.arquivos.map((arquivo) => arquivo.id);
   const pendencias =
     tipo === "pendentes" && arquivoIds.length > 0
-      ? await prisma.marcacaoBruta.findMany({
+      ? await prismaListagem.marcacaoBruta.findMany({
           where: {
             arquivoAfdId: { in: arquivoIds },
             processada: false,
@@ -96,7 +96,7 @@ export default async function ProblemasImportacaoAfdPage({
     .filter((matricula): matricula is string => Boolean(matricula));
   const servidores =
     cpfs.length > 0 || matriculas.length > 0
-      ? await prisma.servidor.findMany({
+      ? await prismaListagem.servidor.findMany({
           where: {
             ativo: true,
             OR: [

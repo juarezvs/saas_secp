@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { MENU_CATALOGO } from "../../domain/menu-catalogo";
 import { menuPadraoPerfilAdministrativo } from "../../domain/menu-perfis-administrativos";
 import type {
@@ -204,7 +205,7 @@ async function removerGrupoMeuPontoPadraoPerfil(perfilId: string) {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function sincronizarNovosItensCatalogoPerfil(perfilId: string) {
-  const itensExistentes = await prisma.menuItemPerfil.findMany({
+  const itensExistentes = await prismaListagem.menuItemPerfil.findMany({
     where: { perfilId },
     select: { itemCatalogo: true },
   });
@@ -378,7 +379,7 @@ export async function buscarMenuPersonalizadoPerfil(
   perfilId: string,
 ): Promise<MenuPersonalizadoPerfil> {
   const [grupos, itensRaiz] = await Promise.all([
-    prisma.menuGrupoPerfil.findMany({
+    prismaListagem.menuGrupoPerfil.findMany({
       where: { perfilId },
       orderBy: [{ ordem: "asc" }, { label: "asc" }],
       include: {
@@ -387,7 +388,7 @@ export async function buscarMenuPersonalizadoPerfil(
         },
       },
     }),
-    prisma.menuItemPerfil.findMany({
+    prismaListagem.menuItemPerfil.findMany({
       where: { perfilId, grupoId: null },
       orderBy: [{ ordem: "asc" }, { itemCatalogo: "asc" }],
     }),
@@ -400,8 +401,8 @@ export async function inicializarMenuPersonalizadoPerfilSeVazio(
   perfilId: string,
 ) {
   const [totalGrupos, totalItens] = await Promise.all([
-    prisma.menuGrupoPerfil.count({ where: { perfilId } }),
-    prisma.menuItemPerfil.count({ where: { perfilId } }),
+    prismaListagem.menuGrupoPerfil.count({ where: { perfilId } }),
+    prismaListagem.menuItemPerfil.count({ where: { perfilId } }),
   ]);
 
   if (totalGrupos > 0 || totalItens > 0) {
@@ -502,7 +503,7 @@ export async function buscarMenusPersonalizadosPorPerfil(
 }
 
 export async function buscarIconesItensCatalogoMenu(): Promise<IconesItensCatalogoMenu> {
-  const configs = await prisma.menuItemCatalogoConfig.findMany({
+  const configs = await prismaListagem.menuItemCatalogoConfig.findMany({
     select: {
       itemCatalogo: true,
       icone: true,

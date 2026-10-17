@@ -9,7 +9,7 @@ import { DataTableShell } from "@/components/listagens";
 import { obterEscopoOrgaoDaSessao } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
 import { listarFusosHorarios } from "@/modules/fusos-horarios/infrastructure/repositories/fuso-horario.repository";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 type FusosHorariosPageProps = {
   searchParams?: Promise<{
@@ -39,13 +39,13 @@ export default async function FusosHorariosPage({
     }),
     escopoOrgao.global
       ? Promise.resolve([])
-      : prisma.orgao.findMany({
+      : prismaListagem.orgao.findMany({
           where: { id: { in: escopoOrgao.orgaoIds } },
           select: { fusoHorario: true },
         }),
     escopoOrgao.global
       ? Promise.resolve([])
-      : prisma.unidadeOrganizacional.findMany({
+      : prismaListagem.unidadeOrganizacional.findMany({
           where: { orgaoId: { in: escopoOrgao.orgaoIds } },
           select: { fusoHorario: true },
         }),

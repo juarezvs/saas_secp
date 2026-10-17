@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { montarEspelhoMensalCompleto } from "@/modules/apuracao/application/services/montar-espelho-mensal-completo.service";
 import { resolverFusoHorarioServidorNoBanco } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
 
@@ -28,7 +29,7 @@ export async function buscarServidorRelatorioPorUsuarioId(usuarioId: string) {
 export async function listarServidoresParaRelatorio(params?: {
   orgaoIdsPermitidos?: string[];
 }) {
-  return prisma.servidor.findMany({
+  return prismaListagem.servidor.findMany({
     where: {
       ativo: true,
       usuario: {
@@ -65,7 +66,7 @@ export async function listarServidoresParaRelatorio(params?: {
 export async function listarBoletinsParaRelatorio(params?: {
   orgaoIdsPermitidos?: string[];
 }) {
-  return prisma.boletimFrequencia.findMany({
+  return prismaListagem.boletimFrequencia.findMany({
     where: {
       ...(params?.orgaoIdsPermitidos
         ? {
@@ -217,7 +218,7 @@ export async function buscarDadosEspelhoPontoPdf(params: {
   });
 
   const [apuracoesCalculadas, jornadas] = await Promise.all([
-    prisma.apuracaoDiaria.findMany({
+    prismaListagem.apuracaoDiaria.findMany({
       where: {
         servidorId: params.servidorId,
         dataReferencia: {
@@ -252,7 +253,7 @@ export async function buscarDadosEspelhoPontoPdf(params: {
         dataReferencia: "asc",
       },
     }),
-    prisma.jornadaServidor.findMany({
+    prismaListagem.jornadaServidor.findMany({
       where: {
         servidorId: params.servidorId,
         ativo: true,
@@ -303,7 +304,7 @@ export async function buscarDadosEspelhoPontoPdf(params: {
     servidorId: params.servidorId,
   });
 
-  const marcacoes = await prisma.marcacao.findMany({
+  const marcacoes = await prismaListagem.marcacao.findMany({
     where: {
       servidorId: params.servidorId,
       dataReferencia: {
@@ -365,7 +366,7 @@ export async function buscarDadosBancoHorasPdf(params: {
           servidorId: params.servidorId,
         };
 
-  const movimentos = await prisma.movimentoBancoHoras.findMany({
+  const movimentos = await prismaListagem.movimentoBancoHoras.findMany({
     where: whereMovimentos,
     orderBy: [
       {

@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { nomeServidor } from "@/modules/servidores/application/services/nome-servidor.service";
 import { listarIdsUnidadesSubordinadasNaData } from "@/modules/minha-equipe/infrastructure/repositories/minha-equipe.repository";
 import {
@@ -120,7 +121,7 @@ export async function buscarServidorFeriasPorUsuarioId(usuarioId: string) {
 }
 
 export async function listarProgramacoesFeriasServidor(servidorId: string) {
-  return prisma.programacaoFerias.findMany({
+  return prismaListagem.programacaoFerias.findMany({
     where: { servidorId },
     include: {
       eventos: {
@@ -170,7 +171,7 @@ export async function listarCompensacoesFeriasDisponiveisServidor(
   const hoje = new Date();
   hoje.setUTCHours(0, 0, 0, 0);
 
-  return prisma.movimentoBancoHoras.findMany({
+  return prismaListagem.movimentoBancoHoras.findMany({
     where: {
       servidorId,
       tipo: { in: ["CREDITO", "COMPENSACAO_DEBITO"] },
@@ -212,7 +213,7 @@ export async function listarSaldosFeriasServidor(
   anosExtras: number[] = [],
 ): Promise<ProgramacaoFeriasSaldo[]> {
   const [afastamentos, programacoes] = await Promise.all([
-    prisma.afastamentoSarh.findMany({
+    prismaListagem.afastamentoSarh.findMany({
       where: {
         ...filtroFeriasSarhServidor(servidorId),
         ativo: true,
@@ -224,7 +225,7 @@ export async function listarSaldosFeriasServidor(
         dias: true,
       },
     }),
-    prisma.programacaoFerias.findMany({
+    prismaListagem.programacaoFerias.findMany({
       where: {
         servidorId,
         status: { in: [...STATUS_PROGRAMACAO_FERIAS_ATIVAS] },
@@ -282,7 +283,7 @@ export async function buscarSaldoFeriasServidor(params: {
   ignorarProgramacaoId?: string | null;
 }) {
   const [afastamentos, programacoes] = await Promise.all([
-    prisma.afastamentoSarh.findMany({
+    prismaListagem.afastamentoSarh.findMany({
       where: {
         ...filtroFeriasSarhServidor(params.servidorId),
         ativo: true,
@@ -290,7 +291,7 @@ export async function buscarSaldoFeriasServidor(params: {
       },
       select: { dataInicio: true, dataFim: true, dias: true },
     }),
-    prisma.programacaoFerias.findMany({
+    prismaListagem.programacaoFerias.findMany({
       where: {
         servidorId: params.servidorId,
         exercicio: params.exercicio,
@@ -356,7 +357,7 @@ export async function listarPeriodosFeriasAtivosServidor(params: {
   ignorarProgramacaoId?: string | null;
 }): Promise<PeriodoFeriasServidor[]> {
   const [afastamentos, programacoes] = await Promise.all([
-    prisma.afastamentoSarh.findMany({
+    prismaListagem.afastamentoSarh.findMany({
       where: {
         ...filtroFeriasSarhServidor(params.servidorId),
         ativo: true,
@@ -370,7 +371,7 @@ export async function listarPeriodosFeriasAtivosServidor(params: {
         exercicio: true,
       },
     }),
-    prisma.programacaoFerias.findMany({
+    prismaListagem.programacaoFerias.findMany({
       where: {
         servidorId: params.servidorId,
         exercicio: params.exercicio,
@@ -413,7 +414,7 @@ export async function listarPeriodosFeriasAtivosServidor(params: {
 }
 
 export async function somarDiasLicencaPropriaSaudeServidor(servidorId: string) {
-  const afastamentos = await prisma.afastamentoSarh.findMany({
+  const afastamentos = await prismaListagem.afastamentoSarh.findMany({
     where: {
       servidorId,
       ativo: true,
@@ -475,7 +476,7 @@ export async function listarSolicitacoesFeriasChefia(params: {
 
   if (idsUnidades.length === 0) return [];
 
-  return prisma.programacaoFerias.findMany({
+  return prismaListagem.programacaoFerias.findMany({
     where: {
       unidadeId: { in: idsUnidades },
       status: { in: ["ENVIADA", "EM_ANALISE", "DEVOLVIDA"] },
@@ -509,7 +510,7 @@ export async function usuarioPodeAnalisarProgramacaoFerias(params: {
 }
 
 export async function listarProgramacoesPendentesEnvioSarh(orgaoIds?: string[]) {
-  return prisma.programacaoFerias.findMany({
+  return prismaListagem.programacaoFerias.findMany({
     where: {
       status: {
         in: ["APROVADA_CHEFIA", "AGUARDANDO_ENVIO_SARH", "ERRO_ENVIO_SARH"],
@@ -576,7 +577,7 @@ export async function montarMapaFeriasEquipe(params: {
     OR: [{ dataFim: null }, { dataFim: { gte: inicioAno } }],
   };
   const [afastamentos, programacoes, compensacoes, previewServidor] = await Promise.all([
-    prisma.afastamentoSarh.findMany({
+    prismaListagem.afastamentoSarh.findMany({
       where: {
         servidorId: { not: null },
         dataInicio: { lt: inicioProximoAno },
@@ -602,7 +603,7 @@ export async function montarMapaFeriasEquipe(params: {
         },
       },
     }),
-    prisma.programacaoFerias.findMany({
+    prismaListagem.programacaoFerias.findMany({
       where: {
         dataInicio: { lt: inicioProximoAno },
         dataFim: { gte: inicioAno },
@@ -623,7 +624,7 @@ export async function montarMapaFeriasEquipe(params: {
         unidade: true,
       },
     }),
-    prisma.movimentoBancoHoras.findMany({
+    prismaListagem.movimentoBancoHoras.findMany({
       where: {
         dataReferencia: { lt: inicioProximoAno },
         OR: [{ expiraEm: null }, { expiraEm: { gte: inicioAno } }],

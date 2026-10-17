@@ -1,8 +1,9 @@
 import { buscarEquipamentosBiometricosPorIdsOuCodigosEmLotes } from "@/modules/integracoes/infrastructure/repositories/equipamento-biometrico-lotes.repository";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export async function listarImportacoesAfd() {
-  return prisma.importacaoAfd.findMany({
+  return prismaListagem.importacaoAfd.findMany({
     orderBy: {
       criadoEm: "desc",
     },
@@ -35,7 +36,7 @@ export async function buscarImportacaoAfdPorId(id: string) {
 export async function listarMarcacoesBrutasPorImportacaoAfd(
   importacaoId: string,
 ) {
-  const arquivos = await prisma.arquivoAfd.findMany({
+  const arquivos = await prismaListagem.arquivoAfd.findMany({
     where: {
       importacaoId,
     },
@@ -50,7 +51,7 @@ export async function listarMarcacoesBrutasPorImportacaoAfd(
     return [];
   }
 
-  const marcacoes = await prisma.marcacaoBruta.findMany({
+  const marcacoes = await prismaListagem.marcacaoBruta.findMany({
     where: {
       arquivoAfdId: {
         in: arquivoIds,

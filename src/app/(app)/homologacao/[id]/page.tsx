@@ -11,7 +11,7 @@ import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/appli
 import { buscarFechamentoPorId } from "@/modules/homologacao/infrastructure/repositories/homologacao.repository";
 import { FechamentoUnidadeCard } from "@/modules/homologacao/presentation/components/fechamento-unidade-card";
 import { ServidoresHomologacaoTable } from "@/modules/homologacao/presentation/components/servidores-homologacao-table";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 type HomologacaoDetalhePageProps = {
   params: Promise<{
@@ -49,7 +49,7 @@ export default async function HomologacaoDetalhePage({
     ? await listarIdsUnidadesSubordinadasPorUsuario(permissao.usuarioId)
     : [];
   const servidorAssinante = permissao.usuarioId
-    ? await prisma.servidor.findFirst({
+    ? await prismaListagem.servidor.findFirst({
         where: {
           usuarioId: permissao.usuarioId,
           ativo: true,

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/page-header";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 import { DashboardCard } from "./dashboard-card";
 import { DashboardFeatureCard } from "./dashboard-feature-card";
@@ -170,25 +170,25 @@ export async function DashboardAdmin({
     eventosAuditoriaUsuario,
     servidoresSemCpf,
   ] = await Promise.all([
-    prisma.usuario.count({
+    prismaListagem.usuario.count({
       where: whereUsuarioSeccional,
     }),
 
-    prisma.servidor.count({
+    prismaListagem.servidor.count({
       where: {
         ativo: true,
         ...whereServidorSeccional,
       },
     }),
 
-    prisma.marcacaoBruta.count({
+    prismaListagem.marcacaoBruta.count({
       where: {
         processada: false,
         ...whereMarcacaoBrutaSeccional,
       },
     }),
 
-    prisma.importacaoAfd.count({
+    prismaListagem.importacaoAfd.count({
       where: {
         status: {
           in: ["RECEBIDA", "EM_PROCESSAMENTO", "PROCESSADA_COM_ERROS", "ERRO"],
@@ -196,17 +196,17 @@ export async function DashboardAdmin({
       },
     }),
 
-    prisma.auditoriaEvento.count({
+    prismaListagem.auditoriaEvento.count({
       where: whereAuditoriaSeccional,
     }),
 
-    prisma.auditoriaEvento.count({
+    prismaListagem.auditoriaEvento.count({
       where: {
         usuarioId,
       },
     }),
 
-    prisma.servidor.count({
+    prismaListagem.servidor.count({
       where: {
         ativo: true,
         ...whereServidorSeccional,

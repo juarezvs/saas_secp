@@ -1,14 +1,14 @@
 import { FileCheck2, Send, ShieldCheck } from "lucide-react";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { DashboardAtalho } from "@/modules/dashboard/presentation/components/dashboard-atalho";
 import { DashboardPerfilShell } from "@/modules/dashboard/presentation/components/dashboard-perfil-shell";
 import { DashboardRoleCard } from "@/modules/dashboard/presentation/components/dashboard-role-card";
 
 export async function DashboardSecap() {
   const [encaminhados, recebidos, conferidos] = await Promise.all([
-    prisma.boletimFrequencia.count({ where: { status: "ENCAMINHADO_SECAP" } }),
-    prisma.boletimFrequencia.count({ where: { status: "RECEBIDO_SECAP" } }),
-    prisma.boletimFrequencia.count({ where: { status: "CONFERIDO" } }),
+    prismaListagem.boletimFrequencia.count({ where: { status: "ENCAMINHADO_SECAP" } }),
+    prismaListagem.boletimFrequencia.count({ where: { status: "RECEBIDO_SECAP" } }),
+    prismaListagem.boletimFrequencia.count({ where: { status: "CONFERIDO" } }),
   ]);
 
   return (

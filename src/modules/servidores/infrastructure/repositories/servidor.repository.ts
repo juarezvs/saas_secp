@@ -1,5 +1,6 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export const CAMPOS_ORDENACAO_SERVIDORES = [
   "matricula",
@@ -303,8 +304,8 @@ export async function listarServidoresPaginado(params: ListarServidoresParams) {
   const where = montarWhereServidores(params);
 
   const [total, servidores] = await Promise.all([
-    prisma.servidor.count({ where }),
-    prisma.servidor.findMany({
+    prismaListagem.servidor.count({ where }),
+    prismaListagem.servidor.findMany({
       where,
       include: servidorListagemInclude,
       orderBy: montarOrdenacaoServidores(params),
@@ -325,7 +326,7 @@ export async function listarServidoresPaginado(params: ListarServidoresParams) {
 export async function listarServidoresParaExportacao(
   params: ListarServidoresParams,
 ) {
-  return prisma.servidor.findMany({
+  return prismaListagem.servidor.findMany({
     where: montarWhereServidores(params),
     include: servidorExportacaoInclude,
     orderBy: [
@@ -345,7 +346,7 @@ export async function listarServidoresParaFiltro(
     semLimite?: boolean;
   } = {},
 ) {
-  return prisma.servidor.findMany({
+  return prismaListagem.servidor.findMany({
     where: {
       ativo: true,
       usuario: {
@@ -398,7 +399,7 @@ export async function listarLotacoesAtivasParaFiltro(
     tipoUsuario?: string;
   } = {},
 ) {
-  return prisma.unidadeOrganizacional.findMany({
+  return prismaListagem.unidadeOrganizacional.findMany({
     where: {
       ativo: true,
       lotacoes: {
@@ -436,7 +437,7 @@ export async function buscarServidorPorId(id: string) {
     return null;
   }
 
-  return prisma.servidor.findUnique({
+  return prismaListagem.servidor.findUnique({
     where: {
       id,
     },
@@ -502,7 +503,7 @@ export async function listarAfastamentosServidorSarh(servidorId: string) {
     return [];
   }
 
-  return prisma.afastamentoSarh.findMany({
+  return prismaListagem.afastamentoSarh.findMany({
     where: {
       servidorId,
     },
@@ -572,8 +573,8 @@ export async function listarAfastamentosServidorSarhPaginado(
   hoje.setHours(0, 0, 0, 0);
 
   const [total, vigentes, futuros] = await Promise.all([
-    prisma.afastamentoSarh.count({ where }),
-    prisma.afastamentoSarh.count({
+    prismaListagem.afastamentoSarh.count({ where }),
+    prismaListagem.afastamentoSarh.count({
       where: {
         ...where,
         ativo: true,
@@ -592,7 +593,7 @@ export async function listarAfastamentosServidorSarhPaginado(
         ],
       },
     }),
-    prisma.afastamentoSarh.count({
+    prismaListagem.afastamentoSarh.count({
       where: {
         ...where,
         ativo: true,
@@ -604,7 +605,7 @@ export async function listarAfastamentosServidorSarhPaginado(
   ]);
   const totalPaginas = Math.max(Math.ceil(total / itensPorPagina), 1);
   const paginaAtual = Math.min(pagina, totalPaginas);
-  const afastamentos = await prisma.afastamentoSarh.findMany({
+  const afastamentos = await prismaListagem.afastamentoSarh.findMany({
     where,
     include: {
       tipoAfastamento: true,
@@ -656,7 +657,7 @@ export async function contarAfastamentosServidorSarhPorGrupo(
     ],
   };
 
-  return prisma.afastamentoSarh.count({
+  return prismaListagem.afastamentoSarh.count({
     where: {
       servidorId,
       ...(grupo === "ferias" ? filtroFerias : { NOT: filtroFerias }),
@@ -677,12 +678,12 @@ export async function contarAfastamentosServidorSarh(servidorId: string) {
   hoje.setHours(0, 0, 0, 0);
 
   const [total, ativos, futuros] = await Promise.all([
-    prisma.afastamentoSarh.count({
+    prismaListagem.afastamentoSarh.count({
       where: {
         servidorId,
       },
     }),
-    prisma.afastamentoSarh.count({
+    prismaListagem.afastamentoSarh.count({
       where: {
         servidorId,
         ativo: true,
@@ -701,7 +702,7 @@ export async function contarAfastamentosServidorSarh(servidorId: string) {
         ],
       },
     }),
-    prisma.afastamentoSarh.count({
+    prismaListagem.afastamentoSarh.count({
       where: {
         servidorId,
         ativo: true,
@@ -742,7 +743,7 @@ export async function buscarNomeServidorPorUsuarioId(usuarioId: string) {
 export async function listarUnidadesAtivasParaLotacao(params?: {
   orgaoIdsPermitidos?: string[];
 }) {
-  return prisma.unidadeOrganizacional.findMany({
+  return prismaListagem.unidadeOrganizacional.findMany({
     where: {
       ativo: true,
       ...(params?.orgaoIdsPermitidos?.length
@@ -818,7 +819,7 @@ export async function listarUnidadesAtivasParaLotacao(params?: {
 export async function listarOrgaosAtivosParaServidor(params?: {
   orgaoIdsPermitidos?: string[];
 }) {
-  return prisma.orgao.findMany({
+  return prismaListagem.orgao.findMany({
     where: {
       ativo: true,
       ...(params?.orgaoIdsPermitidos?.length
@@ -837,7 +838,7 @@ export async function listarCategoriasPessoasAtivas(params?: {
 }) {
   const orgaoIds = params?.orgaoIdsPermitidos?.filter(ehUuid);
 
-  return prisma.categoriaPessoa.findMany({
+  return prismaListagem.categoriaPessoa.findMany({
     where: {
       ativo: true,
       ...(orgaoIds?.length

@@ -16,7 +16,7 @@ import {
   RelatorioSubstituicoesExport,
   type RelatorioSubstituicaoItem,
 } from "@/modules/substituicoes-funcao/presentation/components/relatorio-substituicoes-export";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 const PERMISSOES_RELATORIO = [
   "substituicoes-funcao:relatorio:proprio",
@@ -117,7 +117,7 @@ export default async function RelatorioSubstituicoesFuncaoPage({
   const podeEscolherServidor =
     podeGlobal || podeSeccional || unidadeIdsSubordinadas.length > 0;
   const servidorAtual = permissao.usuarioId
-    ? await prisma.servidor.findFirst({
+    ? await prismaListagem.servidor.findFirst({
         where: { usuarioId: permissao.usuarioId, ativo: true },
         select: { id: true },
       })
@@ -147,7 +147,7 @@ export default async function RelatorioSubstituicoesFuncaoPage({
   }
 
   const servidores = podeEscolherServidor
-    ? await prisma.servidor.findMany({
+    ? await prismaListagem.servidor.findMany({
         where: {
           ativo: true,
           usuario: { ativo: true, tipo: "SERVIDOR" },
@@ -182,7 +182,7 @@ export default async function RelatorioSubstituicoesFuncaoPage({
       })
     : [];
 
-  const substituicoes = await prisma.substituicaoFuncao.findMany({
+  const substituicoes = await prismaListagem.substituicaoFuncao.findMany({
     where: {
       dataInicio: { lte: dataFim },
       OR: [{ dataFim: null }, { dataFim: { gte: dataInicio } }],
@@ -228,7 +228,7 @@ export default async function RelatorioSubstituicoesFuncaoPage({
     const fimApurado = minData(fimSubstituicao, dataFim);
 
     const [afastamentos, faltas] = await Promise.all([
-      prisma.afastamentoSarh.findMany({
+      prismaListagem.afastamentoSarh.findMany({
         where: {
           servidorId: substituicao.titularServidorId,
           ativo: true,
@@ -243,7 +243,7 @@ export default async function RelatorioSubstituicoesFuncaoPage({
         },
         orderBy: { dataInicio: "asc" },
       }),
-      prisma.apuracaoDiaria.findMany({
+      prismaListagem.apuracaoDiaria.findMany({
         where: {
           servidorId: substituicao.titularServidorId,
           dataReferencia: { gte: inicioApurado, lte: fimApurado },

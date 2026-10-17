@@ -10,7 +10,7 @@ import {
 import { DashboardAtalho } from "@/modules/dashboard/presentation/components/dashboard-atalho";
 import { DashboardPerfilShell } from "@/modules/dashboard/presentation/components/dashboard-perfil-shell";
 import { DashboardRoleCard } from "@/modules/dashboard/presentation/components/dashboard-role-card";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export async function DashboardSuporte() {
   const [
@@ -21,18 +21,18 @@ export async function DashboardSuporte() {
     execucoesSarhProblematicas,
     sessoesFaciaisProblematicas,
   ] = await Promise.all([
-    prisma.integracaoSistema.count({ where: { status: "ERRO" } }),
-    prisma.logIntegracao.count({
+    prismaListagem.integracaoSistema.count({ where: { status: "ERRO" } }),
+    prismaListagem.logIntegracao.count({
       where: { status: { in: ["ERRO", "PENDENTE"] } },
     }),
-    prisma.importacaoAfd.count({
+    prismaListagem.importacaoAfd.count({
       where: { status: { in: ["RECEBIDA", "EM_PROCESSAMENTO", "ERRO"] } },
     }),
-    prisma.marcacaoBruta.count({ where: { processada: false } }),
-    prisma.integracaoSarhExecucao.count({
+    prismaListagem.marcacaoBruta.count({ where: { processada: false } }),
+    prismaListagem.integracaoSarhExecucao.count({
       where: { status: { in: ["CONCLUIDA_COM_ERROS", "FALHOU"] } },
     }),
-    prisma.sessaoCadastroFacial.count({
+    prismaListagem.sessaoCadastroFacial.count({
       where: { status: { in: ["EXPIRADA", "REPROVADA", "CANCELADA"] } },
     }),
   ]);

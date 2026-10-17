@@ -1,5 +1,6 @@
 import type { TransactionClient } from "@/generated/prisma/internal/prismaNamespace";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 import type { RegistrarAutorizacaoHoraExtraSecapInput } from "../../application/schemas/horas-extras-autorizacao-secap.schema";
 
@@ -229,7 +230,7 @@ export async function listarAutorizacoesHoraExtraSecap(params: {
   orgaoIds?: string[];
   escopoGlobal?: boolean;
 }) {
-  return prisma.autorizacaoHoraExtraAdministrativa.findMany({
+  return prismaListagem.autorizacaoHoraExtraAdministrativa.findMany({
     where: params.escopoGlobal
       ? {}
       : {

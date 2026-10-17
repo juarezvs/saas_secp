@@ -8,7 +8,7 @@ import { listarCalendarioInstitucionalPaginado } from "@/modules/calendario-inst
 import { CalendarioInstitucionalListagem } from "@/modules/calendario-institucional/presentation/components/calendario-institucional-listagem";
 import { CalendarioListagemControles } from "@/modules/calendario-institucional/presentation/components/calendario-listagem-controles";
 import { ReplicarCalendarioInstitucionalForm } from "@/modules/calendario-institucional/presentation/components/replicar-calendario-institucional-form";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 type CalendarioInstitucionalPageProps = {
   searchParams?: Promise<{
@@ -41,7 +41,7 @@ export default async function CalendarioInstitucionalPage({
       pagina,
       itensPorPagina,
     }),
-    prisma.tipoFeriadoSuspensao.findMany({
+    prismaListagem.tipoFeriadoSuspensao.findMany({
       where: { ativo: true },
       orderBy: { nome: "asc" },
     }),

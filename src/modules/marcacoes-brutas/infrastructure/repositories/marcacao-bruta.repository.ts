@@ -1,5 +1,5 @@
 import { buscarEquipamentosBiometricosPorIdsOuCodigosEmLotes } from "@/modules/integracoes/infrastructure/repositories/equipamento-biometrico-lotes.repository";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import type { Prisma } from "@/generated/prisma/client";
 
 export type ListarMarcacoesBrutasParams = {
@@ -255,7 +255,7 @@ async function enriquecerBuscaComEquipamentos(
     return params;
   }
 
-  const equipamentos = await prisma.equipamentoBiometrico.findMany({
+  const equipamentos = await prismaListagem.equipamentoBiometrico.findMany({
     where: {
       ...(params?.orgaoIdsPermitidos?.length
         ? { orgaoId: { in: params.orgaoIdsPermitidos } }
@@ -346,7 +346,7 @@ export async function listarMarcacoesBrutasPendentes(params?: {
   cursorId?: string | null;
 }) {
   const limite = params?.limite ?? 100;
-  return prisma.marcacaoBruta.findMany({
+  return prismaListagem.marcacaoBruta.findMany({
     where: {
       processada: false,
       servidorId: { not: null },
@@ -406,7 +406,7 @@ export async function listarMarcacoesBrutasPorServidorPendente(params: {
     return [];
   }
 
-  return prisma.marcacaoBruta.findMany({
+  return prismaListagem.marcacaoBruta.findMany({
     where: {
       processada: false,
       OR: filtros,
@@ -421,7 +421,7 @@ export async function listarMarcacoesBrutas(
   params?: ListarMarcacoesBrutasParams,
 ) {
   const filtros = await enriquecerBuscaComEquipamentos(params);
-  const marcacoes = await prisma.marcacaoBruta.findMany({
+  const marcacoes = await prismaListagem.marcacaoBruta.findMany({
     where: montarWhereMarcacoesBrutas(filtros),
     include: includeMarcacaoBrutaListagem,
     orderBy: {
@@ -445,8 +445,8 @@ export async function listarMarcacoesBrutasPaginado(
   const where = montarWhereMarcacoesBrutas(filtros);
 
   const [total, marcacoesBase] = await Promise.all([
-    prisma.marcacaoBruta.count({ where }),
-    prisma.marcacaoBruta.findMany({
+    prismaListagem.marcacaoBruta.count({ where }),
+    prismaListagem.marcacaoBruta.findMany({
       where,
       include: includeMarcacaoBrutaListagem,
       orderBy: {
@@ -471,7 +471,7 @@ export async function listarMarcacoesBrutasParaExportacao(
   params: ListarMarcacoesBrutasParams,
 ) {
   const filtros = await enriquecerBuscaComEquipamentos(params);
-  const marcacoes = await prisma.marcacaoBruta.findMany({
+  const marcacoes = await prismaListagem.marcacaoBruta.findMany({
     where: montarWhereMarcacoesBrutas(filtros),
     include: includeMarcacaoBrutaListagem,
     orderBy: {

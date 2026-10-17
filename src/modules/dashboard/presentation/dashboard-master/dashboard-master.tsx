@@ -1,6 +1,6 @@
 import { Activity, DatabaseZap, Network, ShieldCheck } from "lucide-react";
 
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import { DashboardFeatureCard } from "@/modules/dashboard/presentation/components/dashboard-feature-card";
 import { DashboardPerfilShell } from "@/modules/dashboard/presentation/components/dashboard-perfil-shell";
 import { DashboardRoleCard } from "@/modules/dashboard/presentation/components/dashboard-role-card";
@@ -8,10 +8,10 @@ import { DashboardRoleCard } from "@/modules/dashboard/presentation/components/d
 export async function DashboardMaster() {
   const [usuarios, integracoes, eventosAuditoria, marcacoesPendentes] =
     await Promise.all([
-      prisma.usuario.count(),
-      prisma.integracaoSistema.count(),
-      prisma.auditoriaEvento.count(),
-      prisma.marcacaoBruta.count({ where: { processada: false } }),
+      prismaListagem.usuario.count(),
+      prismaListagem.integracaoSistema.count(),
+      prismaListagem.auditoriaEvento.count(),
+      prismaListagem.marcacaoBruta.count({ where: { processada: false } }),
     ]);
 
   return (

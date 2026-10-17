@@ -11,7 +11,7 @@ import {
   listarUnidadesParaEquipamentos,
 } from "@/modules/integracoes/infrastructure/repositories/integracoes.repository";
 import { EquipamentoBiometricoForm } from "@/modules/integracoes/presentation/components/equipamento-biometrico-form";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 type EditarEquipamentoPageProps = {
   params: Promise<{
@@ -67,7 +67,7 @@ export default async function EditarEquipamentoPage({
     orgaoIdsPermitidos: escopoOrgao.global ? undefined : escopoOrgao.orgaoIds,
   });
   const orgaos = escopoOrgao.global
-    ? await prisma.orgao.findMany({
+    ? await prismaListagem.orgao.findMany({
         where: { ativo: true },
         select: { id: true, sigla: true, nome: true },
         orderBy: { sigla: "asc" },

@@ -5,7 +5,7 @@ import { withHttpMetrics } from "@/lib/observability/http";
 import { usuarioPossuiAlgumaPermissaoNoPerfil } from "@/modules/auth/application/services/permissao.service";
 import { listarBoletinsFrequenciaParaPdfAgrupado } from "@/modules/boletim-frequencia/infrastructure/repositories/boletim-frequencia.repository";
 import { listarIdsUnidadesSubordinadasPorUsuario } from "@/modules/chefias/application/services/listar-unidades-subordinadas.service";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 import {
   BoletinsFrequenciaPdfDocument,
   type BoletimFrequenciaPdf,
@@ -193,7 +193,7 @@ async function resolverUnidadeCabecalhoExportacao(params: {
   }
 
   if (params.unidadeIdFiltro) {
-    const unidadeFiltro = await prisma.unidadeOrganizacional.findUnique({
+    const unidadeFiltro = await prismaListagem.unidadeOrganizacional.findUnique({
       where: { id: params.unidadeIdFiltro },
       include: { orgao: true },
     });
@@ -211,7 +211,7 @@ async function resolverUnidadeGestoraDoUsuario(
   unidadeIdFiltro: string,
 ) {
   const hoje = new Date();
-  const gestoras = await prisma.gestorUnidade.findMany({
+  const gestoras = await prismaListagem.gestorUnidade.findMany({
     where: {
       ativo: true,
       dataInicio: { lte: hoje },
@@ -247,7 +247,7 @@ async function resolverUnidadeGestoraDoUsuario(
   const gestorasPorId = new Map(
     gestoras.map((gestora) => [gestora.unidadeId, gestora.unidade]),
   );
-  let unidadeAtual = await prisma.unidadeOrganizacional.findUnique({
+  let unidadeAtual = await prismaListagem.unidadeOrganizacional.findUnique({
     where: { id: unidadeIdFiltro },
     select: {
       id: true,
@@ -266,7 +266,7 @@ async function resolverUnidadeGestoraDoUsuario(
       break;
     }
 
-    unidadeAtual = await prisma.unidadeOrganizacional.findUnique({
+    unidadeAtual = await prismaListagem.unidadeOrganizacional.findUnique({
       where: { id: unidadeAtual.unidadePaiId },
       select: {
         id: true,

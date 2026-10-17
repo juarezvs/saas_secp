@@ -1,10 +1,11 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export async function listarOrgaosParaLoteHorasExtras(params: {
   orgaoIds?: string[];
   escopoGlobal?: boolean;
 }) {
-  return prisma.orgao.findMany({
+  return prismaListagem.orgao.findMany({
     where: {
       ativo: true,
       ...(params.escopoGlobal
@@ -26,7 +27,7 @@ export async function listarLotesFolhaHorasExtras(params: {
   escopoGlobal?: boolean;
   limite?: number;
 }) {
-  return prisma.overtimePayrollBatch.findMany({
+  return prismaListagem.overtimePayrollBatch.findMany({
     where: {
       ...(params.escopoGlobal
         ? {}

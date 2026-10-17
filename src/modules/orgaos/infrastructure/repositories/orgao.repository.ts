@@ -1,4 +1,5 @@
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem, prismaCadastroOrganizacional } from "@/shared/infrastructure/database/prisma-listagem";
 
 export const CAMPOS_ORDENACAO_ORGAOS = [
   "sigla",
@@ -138,7 +139,7 @@ const includeOrgaoListagem = {
 };
 
 export async function listarOrgaosAtivos(params: ListarOrgaosParams = {}) {
-  return prisma.orgao.findMany({
+  return prismaListagem.orgao.findMany({
     where: {
       ...montarWhereOrgaos(params),
       ativo: true,
@@ -193,7 +194,7 @@ export async function buscarOrgaoAtivoDoServidorUsuario(usuarioId: string) {
 }
 
 export async function listarOrgaos() {
-  return prisma.orgao.findMany({
+  return prismaListagem.orgao.findMany({
     orderBy: [
       {
         sigla: "asc",
@@ -218,8 +219,8 @@ export async function listarOrgaosPaginado(params: ListarOrgaosParams) {
   const where = montarWhereOrgaos(params);
 
   const [total, orgaos] = await Promise.all([
-    prisma.orgao.count({ where }),
-    prisma.orgao.findMany({
+    prismaCadastroOrganizacional.orgao.count({ where }),
+    prismaCadastroOrganizacional.orgao.findMany({
       where,
       include: includeOrgaoListagem,
       orderBy: montarOrdenacaoOrgaos(params),
@@ -238,7 +239,7 @@ export async function listarOrgaosPaginado(params: ListarOrgaosParams) {
 }
 
 export async function listarOrgaosParaExportacao(params: ListarOrgaosParams) {
-  return prisma.orgao.findMany({
+  return prismaCadastroOrganizacional.orgao.findMany({
     where: montarWhereOrgaos(params),
     include: includeOrgaoListagem,
     orderBy: [{ sigla: "asc" }, { nome: "asc" }],
@@ -246,7 +247,7 @@ export async function listarOrgaosParaExportacao(params: ListarOrgaosParams) {
 }
 
 export async function buscarOrgaoPorId(id: string) {
-  return prisma.orgao.findUnique({
+  return prismaCadastroOrganizacional.orgao.findUnique({
     where: {
       id,
     },

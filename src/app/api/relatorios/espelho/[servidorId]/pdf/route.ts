@@ -10,7 +10,7 @@ import { prepararAutenticacaoEspelhoPonto } from "@/modules/documentos-autentica
 import { enfileirarRelatorioExportacaoResponse } from "@/modules/relatorios/application/services/relatorio-exportacao-response.service";
 import { buscarDadosEspelhoPontoPdf } from "@/modules/relatorios/infrastructure/repositories/relatorios.repository";
 import { EspelhoPontoPdfDocument } from "@/modules/relatorios/presentation/pdf/espelho-ponto-pdf.document";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 export const runtime = "nodejs";
 
@@ -73,7 +73,7 @@ async function getRelatorioEspelhoPdf(request: Request, context: RouteContext) {
   const mes = Number(url.searchParams.get("mes") ?? hoje.getMonth() + 1);
 
   if (url.searchParams.get("sync") !== "1") {
-    const servidor = await prisma.servidor.findUnique({
+    const servidor = await prismaListagem.servidor.findUnique({
       where: {
         id: servidorId,
       },

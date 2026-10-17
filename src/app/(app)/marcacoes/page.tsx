@@ -31,7 +31,7 @@ import {
   listarMarcacoesDoServidorNoDia,
 } from "@/modules/marcacoes/infrastructure/repositories/marcacao.repository";
 import { resolverFusoHorarioServidor } from "@/modules/servidores/application/services/fuso-horario-servidor.service";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 type MarcacoesPageProps = {
   searchParams?: Promise<{
@@ -485,7 +485,7 @@ export default async function MarcacoesPage({ searchParams }: MarcacoesPageProps
       fusoHorario,
       dataReferencia,
     }),
-    prisma.apuracaoDiaria.findUnique({
+    prismaListagem.apuracaoDiaria.findUnique({
       where: {
         servidorId_dataReferencia: {
           servidorId: servidor.id,

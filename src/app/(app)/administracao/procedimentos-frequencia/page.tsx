@@ -9,7 +9,7 @@ import {
   whereOrgaoPermitido,
 } from "@/modules/auth/application/services/escopo-orgao.service";
 import { exigirUmaDasPermissoesOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import { prisma } from "@/shared/infrastructure/database/prisma";
+import { prismaListagem } from "@/shared/infrastructure/database/prisma-listagem";
 
 function montarHrefPagina() {
   return "/administracao/procedimentos-frequencia";
@@ -24,7 +24,7 @@ export default async function ProcedimentosFrequenciaPage() {
   ]);
 
   const escopoOrgao = await obterEscopoOrgaoDaSessao();
-  const orgaos = await prisma.orgao.findMany({
+  const orgaos = await prismaListagem.orgao.findMany({
     where: {
       ativo: true,
       ...whereOrgaoPermitido(escopoOrgao),
