@@ -1,178 +1,54 @@
-import { FileText } from "lucide-react";
 import { redirect } from "next/navigation";
-
 import { Breadcrumb } from "@/components/layout/breadcrumb";
-import { PageHeader } from "@/components/layout/page-header";
-import { Card } from "@/components/ui";
 import { exigirPermissaoOuRedirecionar } from "@/modules/auth/application/services/permissao.service";
-import { buscarServidorComUsuarioPorUsuarioId } from "@/modules/apuracao/infrastructure/repositories/apuracao.repository";
-import {
-  buscarContrachequeSarh,
-  listarDocumentosContrachequeSarh,
-} from "@/modules/contracheque/infrastructure/oracle/contracheque-oracle.repository";
-import {
-  normalizarCompetenciaContracheque,
-  rotuloCompetenciaContracheque,
-} from "@/modules/contracheque/application/services/formatar-contracheque.service";
-import { ContrachequeDemonstrativo } from "@/modules/contracheque/presentation/components/contracheque-demonstrativo";
-import { ContrachequeDocumentoSelect } from "@/modules/contracheque/presentation/components/contracheque-documento-select";
-import { MeuContrachequeFiltrosAuto } from "@/modules/contracheque/presentation/components/meu-contracheque-filtros-auto";
-import { RelatorioExportacaoButton } from "@/modules/relatorios/presentation/components/relatorio-exportacao-button";
-import type {
-  ContrachequeDados,
-  ContrachequeDocumento,
-} from "@/modules/contracheque/domain/contracheque.types";
+import { obterIdentidadeContracheque } from "@/modules/contracheque/application/services/identidade-contracheque.service";
+import { buscarContrachequeSarh, listarCompetenciasContrachequeSarh, listarDocumentosContrachequeSarh, listarHistoricoContrachequeSarh } from "@/modules/contracheque/infrastructure/oracle/contracheque-oracle.repository";
+import { normalizarCompetenciaContracheque, rotuloCompetenciaContracheque } from "@/modules/contracheque/application/services/formatar-contracheque.service";
+import { ContrachequePainel } from "@/modules/contracheque/presentation/components/contracheque-painel";
+import { ContrachequePrevia } from "@/modules/contracheque/presentation/components/contracheque-previa";
+import type { ContrachequeDados, ContrachequeDocumento, ContrachequeHistorico } from "@/modules/contracheque/domain/contracheque.types";
 
-type MeuContrachequePageProps = {
-  searchParams: Promise<{
-    competencia?: string;
-    documento?: string;
-  }>;
-};
+export const dynamic = "force-dynamic";
 
-function perfilServidorAtivo(codigo?: string | null) {
-  return codigo?.toUpperCase() === "SERVIDOR";
-}
-
-function montarHrefExportacao(competencia: string, documentoId?: string | null) {
-  const query = new URLSearchParams({ competencia });
-
-  if (documentoId) {
-    query.set("documento", documentoId);
-  }
-
-  return `/api/contracheque/pdf?${query.toString()}`;
-}
-
-export default async function MeuContrachequePage({
-  searchParams,
-}: MeuContrachequePageProps) {
-  const permissao = await exigirPermissaoOuRedirecionar(
-    "contracheque:consultar:proprio",
-  );
-
-  if (!perfilServidorAtivo(permissao.perfilAtivoCodigo)) {
-    redirect(
-      `/acesso-negado?permissao=${encodeURIComponent(
-        "contracheque:consultar:proprio",
-      )}`,
-    );
-  }
+export default async function MeuContrachequePage({ searchParams }: {
+  searchParams: Promise<{ competencia?: string; documento?: string }>;
+}) {
+  const permissao = await exigirPermissaoOuRedirecionar("contracheque:consultar:proprio");
+  if (permissao.perfilAtivoCodigo?.toUpperCase() !== "SERVIDOR")
+    redirect(`/acesso-negado?permissao=${encodeURIComponent("contracheque:consultar:proprio")}`);
+  const identidade = permissao.usuarioId ? await obterIdentidadeContracheque(permissao.usuarioId) : null;
+  if (!identidade) return <div className="rounded-xl border bg-card p-8"><h1 className="text-xl font-bold">Meu Contracheque</h1><p className="mt-3 text-sm text-muted-foreground">Não foi encontrado um vínculo ativo de servidor, órgão e unidade para esta consulta.</p></div>;
 
   const params = await searchParams;
-  const competencia = normalizarCompetenciaContracheque(params.competencia);
-
-  if (!params.competencia) {
-    redirect(`/meu-contracheque?competencia=${competencia}`);
-  }
-
-  const servidor = permissao.usuarioId
-    ? await buscarServidorComUsuarioPorUsuarioId(permissao.usuarioId)
-    : null;
-
-  if (!servidor) {
-    return (
-      <div className="space-y-3">
-        <PageHeader
-          icon={FileText}
-          titulo="Meu contracheque"
-          contexto={<Breadcrumb embedded items={[{ label: "Meu contracheque" }]} />}
-          variant="blade"
-        />
-        <Card className="p-8 text-center text-sm text-muted-foreground">
-          Nenhum servidor ativo vinculado ao usuário atual foi encontrado.
-        </Card>
-      </div>
-    );
-  }
-
+  const contexto = { matricula: identidade.matricula, orgaoId: identidade.orgaoId };
+  let competencias: string[] = [], erro: string | null = null;
+  try { competencias = (await listarCompetenciasContrachequeSarh(contexto)).map(c => c.competencia); }
+  catch { erro = "Não foi possível atualizar a lista de competências no momento."; }
+  const competencia = params.competencia ? normalizarCompetenciaContracheque(params.competencia) : competencias[0] ?? normalizarCompetenciaContracheque();
+  let historico: ContrachequeHistorico[] = [], documentos: ContrachequeDocumento[] = [], historicoDisponivel = false;
   let contracheque: ContrachequeDados | null = null;
-  let documentos: ContrachequeDocumento[] = [];
-  let documentoSelecionado: ContrachequeDocumento | null = null;
-  let erroConsulta: string | null = null;
-
   try {
-    documentos = await listarDocumentosContrachequeSarh({
-      matricula: servidor.matricula,
-      competencia,
-      orgaoId: servidor.orgaoId,
-    });
-
-    documentoSelecionado =
-      documentos.find((documento) => documento.id === params.documento) ??
-      documentos[0] ??
-      null;
-
-    if (documentoSelecionado) {
-      contracheque = await buscarContrachequeSarh({
-        matricula: servidor.matricula,
-        competencia,
-        documentoId: documentoSelecionado.id,
-        orgaoId: servidor.orgaoId,
-      });
-    }
-  } catch (error) {
-    erroConsulta =
-      error instanceof Error
-        ? error.message
-        : "Não foi possível consultar o SARH.";
+    historico = await listarHistoricoContrachequeSarh({ ...contexto, competencia });
+    historicoDisponivel = true;
+    documentos = historico.filter(d => d.competencia === competencia);
+  } catch {
+    erro = "Não foi possível carregar o histórico do SARH. Você ainda pode tentar consultar a competência selecionada.";
+    try { documentos = await listarDocumentosContrachequeSarh({ ...contexto, competencia }); } catch { /* No invented rows on source failure. */ }
   }
-
-  return (
-    <div className="space-y-3">
-      <PageHeader
-        icon={FileText}
-        titulo="Meu contracheque"
-        contexto={<Breadcrumb embedded items={[{ label: "Meu contracheque" }]} />}
-        variant="blade"
-      />
-
-      {contracheque ? (
-        <div className="flex min-h-10 items-center border-y border-[var(--border)] px-2 py-1">
-            <RelatorioExportacaoButton
-              href={montarHrefExportacao(
-                competencia,
-                contracheque.documento.id,
-              )}
-              modo="auto"
-              className="inline-flex h-8 items-center justify-center gap-2 rounded-sm px-2 text-xs font-medium hover:bg-[var(--muted)] disabled:opacity-70"
-            />
-        </div>
-      ) : null}
-
-      <Card className="p-5">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <MeuContrachequeFiltrosAuto competencia={competencia} />
-
-          {documentos.length > 1 && documentoSelecionado && (
-            <ContrachequeDocumentoSelect
-              competencia={competencia}
-              documentos={documentos}
-              documentoSelecionadoId={documentoSelecionado.id}
-            />
-          )}
-
-          <div className="shrink-0 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-950 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100">
-            <p className="font-semibold">Fonte oficial: SARH</p>
-            <p className="mt-1 leading-5">
-              Dados exibidos sob demanda, sem armazenamento no SECP.
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {erroConsulta ? (
-        <Card className="p-8 text-center text-sm text-muted-foreground">
-          {erroConsulta}
-        </Card>
-      ) : contracheque ? (
-        <ContrachequeDemonstrativo contracheque={contracheque} />
-      ) : (
-        <Card className="p-8 text-center text-sm text-muted-foreground">
-          Nenhum contracheque foi encontrado no SARH para{" "}
-          {rotuloCompetenciaContracheque(competencia)}.
-        </Card>
-      )}
-    </div>
-  );
+  const selecionado = documentos.find(d => d.id === params.documento) ?? documentos[0] ?? null;
+  if (selecionado) {
+    try { contracheque = await buscarContrachequeSarh({ ...contexto, competencia, documentoId: selecionado.id }); }
+    catch { erro = "Não foi possível carregar o demonstrativo selecionado no SARH. Tente novamente em instantes."; }
+  }
+  const temRubricas = Boolean(contracheque?.rubricas.length);
+  return <div className="space-y-3"><Breadcrumb items={[{ label: "Meu contracheque" }]} />
+    <ContrachequePainel competencia={competencia} competencias={competencias} identidade={{ ...identidade,
+      nome: contracheque?.cabecalho.nome || identidade.nome, lotacao: contracheque?.cabecalho.lotacao || identidade.lotacao }}
+      documentos={(historicoDisponivel ? historico : documentos.map(d => ({ ...d, totais: null }))).map(d => ({
+        id: d.id, competencia: d.competencia, descricao: d.descricao, data: d.chaveFolha.toISOString(), totais: d.totais,
+      }))} selecionadoId={selecionado?.id ?? null} totais={temRubricas ? contracheque!.totais : null}
+      margem={contracheque?.margemConsignavel ?? null} historicoDisponivel={historicoDisponivel} erro={erro}>
+      {contracheque && temRubricas ? <ContrachequePrevia contracheque={contracheque} /> : <div className="flex min-h-72 items-center justify-center rounded-xl border border-dashed border-indigo-200 p-8 text-center text-sm text-muted-foreground">{contracheque ? "O documento foi localizado, mas não foram retornadas rubricas para conferência." : `Nenhum demonstrativo disponível para visualização em ${rotuloCompetenciaContracheque(competencia)}. Selecione outra competência ou documento no histórico.`}</div>}
+    </ContrachequePainel>
+  </div>;
 }

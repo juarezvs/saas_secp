@@ -57,3 +57,7 @@ export type ContrachequeDocumento = {
   sequpa: number;
   descricao: string;
 };
+
+export type ContrachequeHistorico = ContrachequeDocumento & {
+  totais: ContrachequeDados["totais"] | null;
+};

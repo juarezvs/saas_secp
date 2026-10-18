@@ -5,6 +5,7 @@ import type {
   ContrachequeDados,
   ContrachequeDocumento,
   ContrachequeRubrica,
+  ContrachequeHistorico,
 } from "../../domain/contracheque.types";
 import {
   competenciaParaDataFolha,
@@ -238,6 +239,7 @@ export async function buscarContrachequeSarh(params: {
   const competencia = normalizarCompetenciaContracheque(params.competencia);
   const chaveFolha = competenciaParaDataFolha(competencia);
   const documento = lerIdDocumentoContracheque(params.documentoId);
+  if (params.documentoId && (!documento || documento.data.slice(0, 7) !== competencia)) return null;
   const { connection } = await conectar(params.orgaoId);
   const filtroDocumentoCabecalho = documento
     ? `and c.chave_folha = to_date(:documentoData, 'YYYY-MM-DD')
@@ -405,4 +407,54 @@ export async function buscarContrachequeSarh(params: {
   } finally {
     await connection.close();
   }
+}
+
+/** Twelve calendar months ending in the selected month. One connection and two
+ * bounded, person-scoped reads; never query one payslip per history row. */
+export async function listarHistoricoContrachequeSarh(params: {
+  matricula: string; competencia: string; orgaoId?: string | null;
+}): Promise<ContrachequeHistorico[]> {
+  const competencia = normalizarCompetenciaContracheque(params.competencia);
+  const { connection } = await conectar(params.orgaoId);
+  const binds = { matricula: params.matricula, competencia };
+  try {
+    const documentos = await executar<OracleRow>(connection, `
+      select c.chave_folha as "chaveFolha", c.sequdepe as "sequdepe",
+             c.sequpa as "sequpa", c.descricao as "descricao"
+      from spddba01.sfpt_contracheque c
+      where upper(c.codiserv) = upper(:matricula)
+        and c.chave_folha >= add_months(to_date(:competencia, 'YYYY-MM'), -11)
+        and c.chave_folha < add_months(to_date(:competencia, 'YYYY-MM'), 1)
+      order by c.chave_folha desc, c.sequdepe desc, c.sequpa desc
+    `, binds);
+    if (!documentos.length) return [];
+    const rows = await executar<OracleRow>(connection, `
+      select r.chave_folha as "chaveFolha", r.sequdepe as "sequdepe", r.sequpa as "sequpa",
+             r.cod_rubrica as "codigo", r.sequencial as "sequencial", r.tip_rubrica as "tipo",
+             r.des_rubrica as "descricao", r.valor_rubrica as "valor"
+      from spddba01.sfpv_rubricas_contracheque r
+      where upper(r.codiserv) = upper(:matricula)
+        and r.chave_folha >= add_months(to_date(:competencia, 'YYYY-MM'), -11)
+        and r.chave_folha < add_months(to_date(:competencia, 'YYYY-MM'), 1)
+        and r.tip_rubrica in ('R', 'D')
+      order by r.chave_folha, r.sequdepe,
+        case when r.sequpa = 0 then 0 else 1 end,
+        r.sequpa, r.ordem, r.tip_rubrica, r.cod_rubrica, r.sequencial
+    `, binds);
+    return documentos.flatMap(row => {
+      const data = toDateOrNull(row.chaveFolha);
+      if (!data) return [];
+      const sequdepe = toNumber(row.sequdepe), sequpa = toNumber(row.sequpa);
+      const dataId = montarIdDocumentoContracheque(data, sequdepe, sequpa).slice(0, 10);
+      const rubricas: ContrachequeRubrica[] = rows.filter(r => {
+        const date = toDateOrNull(r.chaveFolha);
+        return date && montarIdDocumentoContracheque(date, 0, 0).slice(0, 10) === dataId &&
+          toNumber(r.sequdepe) === sequdepe && (sequpa === 0 || toNumber(r.sequpa) === sequpa);
+      }).map(r => ({ codigo: toNumber(r.codigo), sequencial: toNumber(r.sequencial), tipo: toStringOrNull(r.tipo) ?? "",
+        descricao: toStringOrNull(r.descricao) ?? "", valor: toNumber(r.valor), prazo: null, anoReferencia: null, mesReferencia: null }));
+      return [{ id: montarIdDocumentoContracheque(data, sequdepe, sequpa), competencia: dataId.slice(0, 7),
+        chaveFolha: data, sequdepe, sequpa, descricao: toStringOrNull(row.descricao) ?? "Contracheque",
+        totais: rubricas.length ? calcularTotais(rubricas) : null }];
+    });
+  } finally { await connection.close(); }
 }

@@ -36,7 +36,7 @@ export function competenciaAtualNoFuso(fusoHorario = "America/Manaus") {
 }
 
 export function normalizarCompetenciaContracheque(competencia?: string | null) {
-  return /^\d{4}-\d{2}$/.test(competencia ?? "")
+  return /^[12]\d{3}-(0[1-9]|1[0-2])$/.test(competencia ?? "")
     ? String(competencia)
     : competenciaAtualNoFuso();
 }

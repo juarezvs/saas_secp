@@ -3,7 +3,7 @@ import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 
 import { auth } from "@/auth";
 import { withHttpMetrics } from "@/lib/observability/http";
-import { buscarServidorComUsuarioPorUsuarioId } from "@/modules/apuracao/infrastructure/repositories/apuracao.repository";
+import { obterIdentidadeContracheque } from "@/modules/contracheque/application/services/identidade-contracheque.service";
 import {
   buscarContrachequeSarh,
 } from "@/modules/contracheque/infrastructure/oracle/contracheque-oracle.repository";
@@ -37,7 +37,7 @@ async function getContrachequePdf(request: Request) {
     url.searchParams.get("competencia"),
   );
   const documentoId = url.searchParams.get("documento");
-  const servidor = await buscarServidorComUsuarioPorUsuarioId(session.user.id);
+  const servidor = await obterIdentidadeContracheque(session.user.id);
 
   if (!servidor) {
     return new Response("Servidor não encontrado.", { status: 404 });
