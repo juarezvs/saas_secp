@@ -1,7 +1,7 @@
 export function rotuloTipoSolicitacao(tipo: string) {
   const rotulos: Record<string, string> = {
     AJUSTE_PONTO: "Ajuste de ponto",
-    EXCLUSAO_MARCACAO: "ExclusÃ£o de marcaÃ§Ã£o",
+    EXCLUSAO_MARCACAO: "Exclusão de Marcação",
     COMPENSACAO: "Compensação",
     ABONO_JUSTIFICATIVA: "Abono/justificativa",
     ATIVIDADE_EXTERNA: "Atividade externa",

@@ -248,7 +248,7 @@ export async function aplicarEfeitosSolicitacaoDeferida(params: {
     if (!marcacao) {
       return {
         efeitosAplicados: false,
-        mensagem: "MarcaÃ§Ã£o nÃ£o encontrada ou jÃ¡ cancelada.",
+        mensagem: "Marcação não encontrada ou já cancelada.",
       };
     }
     const metadados =
@@ -261,7 +261,7 @@ export async function aplicarEfeitosSolicitacaoDeferida(params: {
       where: { id: marcacao.id },
       data: {
         status: "CANCELADA",
-        observacao: `MarcaÃ§Ã£o cancelada pelo deferimento da solicitaÃ§Ã£o ${solicitacao.id}.`,
+        observacao: `Marcação cancelada pelo deferimento da solicitação ${solicitacao.id}.`,
         metadados: {
           ...metadados,
           solicitacaoExclusaoId: solicitacao.id,
@@ -290,7 +290,7 @@ export async function aplicarEfeitosSolicitacaoDeferida(params: {
     });
     return {
       efeitosAplicados: true,
-      mensagem: "MarcaÃ§Ã£o cancelada e encaminhada para recÃ¡lculo.",
+      mensagem: "Marcação cancelada e encaminhada para recálculo.",
       dadosResultado: { marcacaoId: atualizada.id, status: atualizada.status },
     };
   }
