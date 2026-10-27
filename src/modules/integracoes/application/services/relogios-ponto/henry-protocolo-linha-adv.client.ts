@@ -520,9 +520,12 @@ export class HenryProtocoloLinhaAdvClient implements RelogioPontoProvider {
     payload: string | Buffer,
     descriptografar = false,
     timeoutMs = this.timeoutMs,
+    respostaEsperada?: { indice: string; comando: string },
   ) {
     const socket = await this.conectar();
     const pacote = montarPacote(payload);
+    const [indice, comando] = typeof payload === "string" ? payload.split("+") : [];
+    const esperada = respostaEsperada ?? { indice, comando };
 
     return new Promise<RespostaHenry>((resolve, reject) => {
       let recebido = Buffer.alloc(0);
@@ -550,14 +553,25 @@ export class HenryProtocoloLinhaAdvClient implements RelogioPontoProvider {
 
       const onData = (chunk: Buffer) => {
         recebido = Buffer.concat([recebido, chunk]);
-        if (!bufferRespostaCompleta(recebido)) {
-          return;
-        }
-
-        cleanup();
         try {
-          resolve(parsePacote(recebido, descriptografar ? this.aesKey : null));
+          while (bufferRespostaCompleta(recebido)) {
+            const tamanho = recebido.readUInt16LE(1) + 5;
+            const resposta = parsePacote(
+              recebido.subarray(0, tamanho),
+              descriptografar ? this.aesKey : null,
+            );
+            recebido = recebido.subarray(tamanho);
+            // Eventos online e respostas atrasadas compartilham o fluxo TCP.
+            // Somente a resposta desta consulta pode determinar seu cursor.
+            if (resposta.indice !== esperada.indice || resposta.comando !== esperada.comando) {
+              continue;
+            }
+            cleanup();
+            resolve(resposta);
+            return;
+          }
         } catch (error) {
+          cleanup();
           reject(error);
         }
       };
@@ -592,6 +606,7 @@ export class HenryProtocoloLinhaAdvClient implements RelogioPontoProvider {
             criptografarPayloadHenry(this.aesKey, payload),
             true,
             timeoutMs,
+            { indice, comando },
           )
         : await this.enviarPayload(payload, false, timeoutMs);
 
