@@ -67,7 +67,7 @@ export const criarSolicitacaoSchema = z
     horaAjuste: z.string().optional().or(z.literal("")),
     marcacaoId: z
       .string()
-      .uuid("MarcaÃ§Ã£o invÃ¡lida.")
+      .uuid("Marcação inválida.")
       .optional()
       .or(z.literal("")),
     tipoCompensacao: z
@@ -120,14 +120,14 @@ export const criarSolicitacaoSchema = z
         ctx.addIssue({
           code: "custom",
           path: ["dataReferencia"],
-          message: "Informe a data da marcaÃ§Ã£o.",
+          message: "Informe a data da marcação.",
         });
       }
       if (!data.marcacaoId) {
         ctx.addIssue({
           code: "custom",
           path: ["marcacaoId"],
-          message: "Selecione a marcaÃ§Ã£o que deve ser excluÃ­da.",
+          message: "Selecione a marcação que deve ser excluída.",
         });
       }
     }
