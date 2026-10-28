@@ -11,7 +11,10 @@ import { prisma } from "@/shared/infrastructure/database/prisma";
 import { resolverPrevisaoJornadaDia } from "@/modules/jornadas/application/services/resolver-previsao-jornada-dia.service";
 
 import { normalizarDataReferencia } from "./calcular-tempo.service";
-import { afastamentoSarhDeveImpactarApuracao } from "./afastamento-sarh-efeito.service";
+import {
+  afastamentoSarhContaComoJornada,
+  afastamentoSarhDeveImpactarApuracao,
+} from "./afastamento-sarh-efeito.service";
 
 const CARGA_TRABALHO_REMOTO_MINUTOS = 7 * 60;
 
@@ -801,10 +804,17 @@ function detalhesAfastamento(
 function aplicarAfastamentoSarh(
   item: ItemEspelhoMensalCompleto,
   afastamento: AfastamentoSarhEspelho,
+  cargaPrevistaDia: number,
 ): ItemEspelhoMensalCompleto {
+  const contaComoJornada = afastamentoSarhContaComoJornada(afastamento);
+  const cargaPrevistaMinutos = contaComoJornada ? cargaPrevistaDia : 0;
+  const minutosAbonados = contaComoJornada
+    ? Math.max(0, cargaPrevistaMinutos - item.minutosTrabalhados)
+    : 0;
   return {
     ...item,
-    cargaPrevistaMinutos: 0,
+    cargaPrevistaMinutos,
+    minutosTrabalhados: item.minutosTrabalhados + minutosAbonados,
     minutosCredito: 0,
     minutosDebito: 0,
     resultado: "REGULAR",
@@ -822,6 +832,8 @@ function aplicarAfastamentoSarh(
         observacao: afastamento.observacao,
         origemTabela: afastamento.origemTabela,
         ativo: afastamento.ativo,
+        contaComoJornada,
+        minutosAbonados,
       },
     },
     ocorrencias: [
@@ -831,7 +843,7 @@ function aplicarAfastamentoSarh(
       {
         tipo: "AFASTAMENTO",
         descricao: descricaoAfastamento(afastamento),
-        minutos: item.cargaPrevistaMinutos,
+        minutos: contaComoJornada ? cargaPrevistaMinutos : item.cargaPrevistaMinutos,
         detalhes: detalhesAfastamento(afastamento, item.dataReferencia),
       },
     ],
@@ -932,7 +944,7 @@ export async function montarEspelhoMensalCompleto(params: {
               itemAjustado.metadados,
               afastamento,
             )
-            ? aplicarAfastamentoSarh(itemAjustado, afastamento)
+            ? aplicarAfastamentoSarh(itemAjustado, afastamento, dia.cargaPrevistaMinutos)
             : itemAjustado,
           {
             hoje,
@@ -988,7 +1000,7 @@ export async function montarEspelhoMensalCompleto(params: {
             itemComPrevisao.metadados,
             afastamento,
           )
-          ? aplicarAfastamentoSarh(itemComPrevisao, afastamento)
+          ? aplicarAfastamentoSarh(itemComPrevisao, afastamento, dia.cargaPrevistaMinutos)
           : itemComPrevisao,
         {
           hoje,

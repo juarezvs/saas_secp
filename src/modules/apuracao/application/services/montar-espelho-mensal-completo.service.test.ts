@@ -153,6 +153,88 @@ describe("montarEspelhoMensalCompleto", () => {
     payloadSarh: null,
   };
 
+  it.each([
+    "VIAGEM A SERVICO",
+    "Viagem à serviço",
+    "CONCESSAO COMPENSATORIA (RECESSO FORENSE,PLANTAO JUDICIAL)",
+  ])("computa a jornada de %s na linha e no total mensal", async (tipoDescricao) => {
+    banco.afastamentos.mockResolvedValue([{
+      ...afastamentoBase, tipoDescricao, categoria: "AFASTAMENTO_ESPECIAL",
+      dataInicio: new Date("2026-10-09"), dataFim: new Date("2026-10-09"),
+    }]);
+    const espelho = await montarEspelhoMensalCompleto({
+      servidorId: "servidor", anoReferencia: 2026, mesReferencia: 10,
+      calendario: { eventosPorData: new Map(), recessos: [] }, jornadas: [jornada],
+      hoje: new Date("2026-10-28"), apuracoes: [],
+    });
+    expect(espelho.itens.find(item => item.dataReferencia.toISOString().startsWith("2026-10-09")))
+      .toMatchObject({ cargaPrevistaMinutos: 420, minutosTrabalhados: 420, minutosDebito: 0, minutosCredito: 0 });
+    expect(espelho.cargaPrevistaMensalMinutos).toBe(22 * 420);
+  });
+
+  it.each([0, 180, 420, 480])("restaura jornada zerada pela apuracao e nao duplica %i minutos ja trabalhados", async (minutosTrabalhados) => {
+    banco.afastamentos.mockResolvedValue([{
+      ...afastamentoBase, tipoDescricao: "VIAGEM A SERVICO",
+      dataInicio: new Date("2026-10-09"), dataFim: new Date("2026-10-09"),
+    }]);
+    const espelho = await montarEspelhoMensalCompleto({
+      servidorId: "servidor", anoReferencia: 2026, mesReferencia: 10,
+      calendario: { eventosPorData: new Map(), recessos: [] }, jornadas: [jornada],
+      hoje: new Date("2026-10-28"),
+      apuracoes: [{ id: "dia", dataReferencia: new Date("2026-10-09"), cargaPrevistaMinutos: 0,
+        minutosTrabalhados, minutosIntervalo: 0, minutosCredito: 60, minutosDebito: 120,
+        resultado: "DEBITO", status: "INCONSISTENTE", ocorrencias: [{ tipo: "DEBITO", descricao: "Falta parcial", minutos: 120 }],
+      }],
+    });
+    const item = espelho.itens.find(item => item.id === "dia");
+    expect(item).toMatchObject({ cargaPrevistaMinutos: 420, minutosTrabalhados: Math.max(420, minutosTrabalhados), minutosCredito: 0, minutosDebito: 0 });
+    expect(item?.metadados).toMatchObject({ afastamentoSarh: { contaComoJornada: true, minutosAbonados: Math.max(0, 420 - minutosTrabalhados) } });
+    expect(item?.ocorrencias?.some(ocorrencia => ocorrencia.tipo === "DEBITO")).toBe(false);
+  });
+
+  it.each(["2026-10-10", "2026-10-11"])("nao cria horas de viagem sem jornada prevista em %s", async (data) => {
+    banco.afastamentos.mockResolvedValue([{
+      ...afastamentoBase, tipoDescricao: "VIAGEM A SERVICO", dataInicio: new Date(data), dataFim: new Date(data),
+    }]);
+    const espelho = await montarEspelhoMensalCompleto({
+      servidorId: "servidor", anoReferencia: 2026, mesReferencia: 10,
+      calendario: { eventosPorData: new Map(), recessos: [] }, jornadas: [jornada],
+      hoje: new Date("2026-10-28"), apuracoes: [],
+    });
+    expect(espelho.itens.find(item => item.dataReferencia.toISOString().startsWith(data)))
+      .toMatchObject({ cargaPrevistaMinutos: 0, minutosTrabalhados: 0, minutosCredito: 0 });
+  });
+
+  it.each(["LICENCA MEDICA", "GOZADA"])("mantem a dispensa de jornada para %s", async (tipoDescricao) => {
+    banco.afastamentos.mockResolvedValue([{
+      ...afastamentoBase, tipoDescricao, categoria: tipoDescricao === "GOZADA" ? "FERIAS" : "LICENCA",
+      dataInicio: new Date("2026-10-09"), dataFim: new Date("2026-10-09"),
+    }]);
+    const espelho = await montarEspelhoMensalCompleto({
+      servidorId: "servidor", anoReferencia: 2026, mesReferencia: 10,
+      calendario: { eventosPorData: new Map(), recessos: [] }, jornadas: [jornada],
+      hoje: new Date("2026-10-28"), apuracoes: [],
+    });
+    expect(espelho.itens.find(item => item.dataReferencia.toISOString().startsWith("2026-10-09")))
+      .toMatchObject({ cargaPrevistaMinutos: 0, minutosTrabalhados: 0, minutosDebito: 0 });
+    expect(espelho.cargaPrevistaMensalMinutos).toBe(21 * 420);
+  });
+
+  it.each([false, true])("respeita a jornada de seis horas e o feriado=%s na concessao", async (feriado) => {
+    banco.afastamentos.mockResolvedValue([{
+      ...afastamentoBase, tipoDescricao: "CONCESSAO COMPENSATORIA", categoria: "AUSENCIA_FOLGA",
+      dataInicio: new Date("2026-10-09"), dataFim: new Date("2026-10-09"),
+    }]);
+    const espelho = await montarEspelhoMensalCompleto({
+      servidorId: "servidor", anoReferencia: 2026, mesReferencia: 10,
+      calendario: feriado ? calendarioComFeriado("2026-10-09") : { eventosPorData: new Map(), recessos: [] },
+      jornadas: [{ ...jornada, jornada: { cargaDiariaMinutos: 360 } }],
+      hoje: new Date("2026-10-28"), apuracoes: [],
+    });
+    expect(espelho.itens.find(item => item.dataReferencia.toISOString().startsWith("2026-10-09")))
+      .toMatchObject({ cargaPrevistaMinutos: feriado ? 0 : 360, minutosTrabalhados: feriado ? 0 : 360 });
+  });
+
   it("preserva dispensa administrativa diante de afastamento que nao seja ferias gozadas", () => {
     expect(
       deveAplicarAfastamentoSarhSobreDispensa(
