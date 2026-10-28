@@ -50,6 +50,8 @@ function prismaClientEstaAtualizado(client?: PrismaClient): client is PrismaClie
     "documentoAutenticacao" in client &&
     "usuarioPerfilFavorito" in client &&
     "configuracaoGlobal" in client &&
+    "overtimeProject" in client &&
+    "overtimeEmployeeRestriction" in client &&
     "dominioCaracteristicaPessoal" in client
   );
 }

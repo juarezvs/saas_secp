@@ -1,3 +1,5 @@
+import { parseIsoDateOnly } from "./horas-extras-datas.service";
+
 export type HoraExtraReconhecidaParaRemuneracao = {
   data: string;
   minutos: number;
@@ -44,12 +46,33 @@ export function segmentarHorasExtrasPorVigenciaRemuneratoria(params: {
     compararData(a.inicio, b.inicio),
   );
   const blocos = new Map<string, BlocoRemuneratorioHoraExtra>();
+  const ids = new Set<string>();
+
+  for (const [index, vigencia] of vigenciasOrdenadas.entries()) {
+    parseIsoDateOnly(vigencia.inicio);
+    if (vigencia.fim) parseIsoDateOnly(vigencia.fim);
+    if (!vigencia.id || ids.has(vigencia.id)) {
+      throw new Error("Identificador de vigencia remuneratoria ausente ou duplicado.");
+    }
+    ids.add(vigencia.id);
+    if (vigencia.fim && vigencia.fim < vigencia.inicio) {
+      throw new Error("Fim da vigencia remuneratoria anterior ao inicio.");
+    }
+    if (!Number.isSafeInteger(vigencia.remuneracaoBaseCentavos) || vigencia.remuneracaoBaseCentavos <= 0) {
+      throw new Error("Remuneracao-base deve ser positiva e expressa em centavos inteiros.");
+    }
+    const anterior = vigenciasOrdenadas[index - 1];
+    if (anterior && (!anterior.fim || anterior.fim >= vigencia.inicio)) {
+      throw new Error("Vigencias remuneratorias sobrepostas. Regularize o historico antes de calcular.");
+    }
+  }
 
   for (const hora of [...params.horasReconhecidas].sort((a, b) =>
     compararData(a.data, b.data),
   )) {
-    if (hora.minutos <= 0) {
-      continue;
+    parseIsoDateOnly(hora.data);
+    if (!Number.isSafeInteger(hora.minutos) || hora.minutos <= 0) {
+      throw new Error("Horas reconhecidas devem possuir minutos inteiros positivos.");
     }
 
     const vigencia = vigenciasOrdenadas.find((item) =>

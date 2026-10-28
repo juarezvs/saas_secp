@@ -110,6 +110,7 @@ function grupoPadraoItemMenu(href: string) {
     [
       "/afd",
       "/equipamentos",
+      "/equipamentos/descoberta",
       "/auditoria",
       "/administracao/integracoes",
       "/administracao/workers",
@@ -127,6 +128,7 @@ function grupoPadraoItemMenu(href: string) {
       "/unidades",
       "/afd",
       "/equipamentos",
+      "/equipamentos/descoberta",
     ].includes(href)
   ) {
     return "administracao";

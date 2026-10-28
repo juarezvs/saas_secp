@@ -64,3 +64,14 @@ docker/pgbouncer/userlist.txt
 next-env.d.ts
 
 /src/generated/prisma
+
+# Independent device discovery service runtime and secrets
+services/device-discovery/.venv/
+services/device-discovery/**/__pycache__/
+services/device-discovery/.pytest_cache/
+services/device-discovery/*.egg-info/
+services/device-discovery/certs/
+services/device-discovery/data/
+services/device-discovery/agent.json
+services/device-discovery/credentials.json
+!services/device-discovery/.env.example

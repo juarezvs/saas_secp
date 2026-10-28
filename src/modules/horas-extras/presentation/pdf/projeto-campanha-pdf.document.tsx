@@ -1,0 +1,5 @@
+import { Document, Page, Text, View } from "@react-pdf/renderer";
+import { pdfStyles as s } from "@/modules/relatorios/presentation/pdf/pdf-styles";
+export function ProjetoCampanhaPdfDocument({title,subtitle,justification,rows,hash}:{title:string;subtitle:string;justification:string;rows:Array<Array<string|number>>;hash:string}) {
+ return <Document title={title} author="SECP"><Page size="A4" style={s.page}><Text style={{fontSize:17,marginBottom:8}}>{title}</Text><Text style={{fontSize:9,marginBottom:12}}>{subtitle}</Text><Text style={{fontSize:10,marginBottom:14}}>{justification}</Text>{rows.map((row,i)=><View key={i} wrap={false} style={{paddingVertical:6,borderBottomWidth:0.5,borderBottomColor:"#ddd"}}><Text style={{fontSize:i?8:9}}>{row.join(" | ")}</Text></View>)}<Text style={{fontSize:7,marginTop:16}}>SECP · Comprovante interno · Versão {hash}. Este documento não comprova pagamento nem substitui o ato decisório no SEI.</Text><Text style={{fontSize:8,marginTop:8}} render={({pageNumber,totalPages})=>`${pageNumber}/${totalPages}`} fixed/></Page></Document>;
+}

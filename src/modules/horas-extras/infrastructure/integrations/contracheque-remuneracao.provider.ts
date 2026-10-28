@@ -3,6 +3,7 @@ import {
   listarDocumentosContrachequeSarh,
 } from "@/modules/contracheque/infrastructure/oracle/contracheque-oracle.repository";
 import { prisma } from "@/shared/infrastructure/database/prisma";
+import { selecionarBaseRemuneratoriaContracheque } from "../../application/services/base-remuneratoria-contracheque.service";
 
 import {
   RemuneracaoIndisponivelError,
@@ -22,10 +23,6 @@ function competenciaFim(competencia: string) {
   return fim.toISOString().slice(0, 10);
 }
 
-function valorParaCentavos(valor: number) {
-  return Math.round(valor * 100);
-}
-
 function codigosRubricasBaseConfigurados() {
   return new Set(
     String(process.env.HORAS_EXTRAS_RUBRICAS_BASE_CONTRACHEQUE ?? "")
@@ -40,25 +37,7 @@ function remuneracaoBaseContracheque(
 ) {
   const codigos = codigosRubricasBaseConfigurados();
 
-  if (codigos.size === 0) {
-    return {
-      valor: contracheque.totais.bruto,
-      criterio: "TOTAL_BRUTO_CONTRACHEQUE",
-      rubricasUsadas: contracheque.rubricas.filter(
-        (rubrica) => rubrica.tipo === "R",
-      ),
-    };
-  }
-
-  const rubricasUsadas = contracheque.rubricas.filter(
-    (rubrica) => rubrica.tipo === "R" && codigos.has(String(rubrica.codigo)),
-  );
-
-  return {
-    valor: rubricasUsadas.reduce((total, rubrica) => total + rubrica.valor, 0),
-    criterio: "RUBRICAS_CONFIGURADAS",
-    rubricasUsadas,
-  };
+  return selecionarBaseRemuneratoriaContracheque(contracheque.rubricas, codigos);
 }
 
 function montarPayloadRemuneratorio(
@@ -98,6 +77,7 @@ function montarPayloadRemuneratorio(
       bruto: contracheque.totais.bruto,
     },
     criterioBaseRemuneratoria: base.criterio,
+    criterioVigencia: "COMPETENCIA_MENSAL_NAO_COMPROVA_VIGENCIA_DIARIA",
     rubricasBaseConfiguradas: [...codigosRubricasBaseConfigurados()],
     rubricasRendimento,
   };
@@ -148,7 +128,7 @@ export class ContrachequeSarhRemuneracaoProvider
     }
 
     const base = remuneracaoBaseContracheque(contracheque);
-    const remuneracaoBaseCentavos = valorParaCentavos(base.valor);
+    const remuneracaoBaseCentavos = base.centavos;
 
     if (remuneracaoBaseCentavos <= 0) {
       throw new RemuneracaoIndisponivelError(

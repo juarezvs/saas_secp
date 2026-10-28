@@ -1,0 +1,12 @@
+{
+  "central_url": "https://discovery.example.internal:8000",
+  "state_dir": "/data/agent",
+  "networks": [],
+  "methods": ["tcp", "arp"],
+  "ports": [80, 443, 3000, 3001, 8080, 8443],
+  "rate": 10,
+  "concurrency": 8,
+  "max_hosts": 256,
+  "timeout": 1,
+  "device_verify_tls": true
+}

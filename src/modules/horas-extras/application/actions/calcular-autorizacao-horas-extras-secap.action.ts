@@ -18,9 +18,7 @@ export type CalcularAutorizacaoHorasExtrasSecapFormState = {
 function podeCalcular(permissoes: string[]) {
   return (
     possuiPermissaoNaLista(permissoes, "horas-extras:gerar-lote:global") ||
-    possuiPermissaoNaLista(permissoes, "horas-extras:gerar-lote:seccional") ||
-    possuiPermissaoNaLista(permissoes, "horas-extras:visualizar-folha:global") ||
-    possuiPermissaoNaLista(permissoes, "horas-extras:visualizar-folha:seccional")
+    possuiPermissaoNaLista(permissoes, "horas-extras:gerar-lote:seccional")
   );
 }
 
@@ -73,6 +71,10 @@ export async function calcularAutorizacaoHorasExtrasSecapAction(
       usuarioId: permissao.usuarioId,
       perfilAtivoCodigo: permissao.perfilAtivoCodigo,
       remuneracaoProvider: new ContrachequeSarhRemuneracaoProvider(),
+      escopo: {
+        global: permissao.perfilAtivoEscopoGlobal === true,
+        orgaoIds: permissao.orgaoIds ?? [],
+      },
     });
 
     revalidatePath("/horas-extras/autorizacoes");

@@ -1,4 +1,5 @@
 import { Cpu } from "lucide-react";
+import Link from "next/link";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageHeader } from "@/components/layout/page-header";
@@ -67,6 +68,7 @@ export default async function EquipamentosPage({
       <PageHeader
         icon={Cpu}
         titulo="Equipamentos biométricos"
+        actions={<Link href={`/equipamentos/descoberta${orgaoSelecionado ? `?orgaoId=${orgaoSelecionado}` : ""}`} className="inline-flex h-9 items-center rounded-md border border-border px-3 text-sm font-semibold hover:bg-muted">Descoberta de equipamentos</Link>}
         descricao={
           orgaoAtual
             ? `Relógios vinculados à seccional ${orgaoAtual.sigla}.`

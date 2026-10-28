@@ -1,0 +1,58 @@
+import { chromium } from 'playwright';
+import { execFileSync } from 'node:child_process';
+import { mkdir,readFile,writeFile } from 'node:fs/promises';
+import path from 'node:path';
+
+// Teste completo somente em aplicação isolada, ligada ao banco descartável preparado.
+const base=new URL(process.env.HORAS_EXTRAS_E2E_BASE_URL??'http://localhost:3007');
+const dbUrl=new URL(process.env.HORAS_EXTRAS_TEST_DATABASE_URL??'http://invalid');
+if(!['localhost','127.0.0.1'].includes(base.hostname)||base.port==='3000'||!['localhost','127.0.0.1'].includes(dbUrl.hostname)||!/^\/secp_he_test_[a-z0-9_]+$/.test(dbUrl.pathname))throw new Error('E2E exige aplicação e PostgreSQL locais descartáveis; recusa localhost:3000.');
+const clock=path.resolve('.tmp/campanha-test-clock');
+await mkdir(clock,{recursive:true});await writeFile(path.join(clock,'date.txt'),'2026-10-01T14:00:00.000Z');
+const seed=()=>execFileSync(process.execPath,['node_modules/tsx/dist/cli.mjs','scripts/horas-extras/preparar-interface-teste.ts','--marcacoes'],{stdio:'pipe',env:process.env});
+seed();const fixture=JSON.parse(await readFile('.tmp/campanha-ui-fixture.json','utf8'));
+const browser=await chromium.launch({headless:true});const context=await browser.newContext({acceptDownloads:true,viewport:{width:1440,height:1000}});
+const page=await context.newPage();page.setDefaultTimeout(30000);page.setDefaultNavigationTimeout(30000);
+const errors=[];page.on('pageerror',error=>errors.push(error.message));
+const reason='Teste inteiramente fictício de atividade excepcional: concluir conferência de processos e apresentar relatório de resultados verificáveis.';
+const code=`E2E-${Date.now()}`;let campaignId,projectId,batchId;
+async function login(p,user,password){await p.goto(new URL('/login',base).href);await p.getByPlaceholder(/matr/i).fill(user);await p.locator('input[type="password"]').fill(password);await p.getByRole('button',{name:'Entrar no SECP',exact:true}).click();await p.waitForURL(u=>!u.pathname.includes('/login'));}
+async function select(scope,name,label,search){const native=scope.locator(`select[name="${name}"]`).first();await native.locator('..').getByRole('combobox').click();if(search)await page.getByRole('searchbox',{name:'Pesquisar...',exact:true}).fill(search);await page.getByRole('option',{name:label,exact:typeof label==='string'}).click();}
+async function fill(scope,name,value){await scope.locator(`input[name="${name}"],textarea[name="${name}"]`).fill(value);}
+async function submit(form,label){form=page.locator('form').filter({has:page.getByRole('button',{name:label,exact:true})});console.log(`Formul?rio: ${label}`);const invalid=await form.locator('input,select,textarea').evaluateAll(elements=>elements.filter(e=>e.willValidate&&!e.validity.valid).map(e=>({name:e.name,value:e.value,message:e.validationMessage})));if(invalid.length)throw new Error(JSON.stringify(invalid));await Promise.all([page.waitForResponse(r=>r.request().method()==='POST'&&r.url().startsWith(base.origin)),form.getByRole('button',{name:label,exact:true}).click()]);}
+async function command(action,next,extras={}) {
+ console.log(`Etapa: ${action}`);
+ const form=page.locator('form').filter({has:page.getByRole('heading',{name:'Próxima etapa',exact:true})});
+ await select(form,'action',action);await fill(form,'seiDocument','SEI-FICTICIO-E2E');await fill(form,'reason',reason);
+ for(const [key,value]of Object.entries(extras))await fill(form,key,value);
+ const response=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().startsWith(base.origin));await form.locator('button[type="submit"]').click();await response;
+ if(next)await page.locator(`select[name="action"] option[value="${next}"]`).waitFor({state:'attached'});
+ else await page.getByText(/^Concluída · Versão/).waitFor();
+}
+try {
+ await login(page,'he_ui_admin','e2e-he-local-only');await page.goto(new URL('/horas-extras/campanhas/nova',base).href);
+ await select(page,'orgaoId',/HE_UI_TEST/);for(const [key,value]of Object.entries({fiscalYear:'2026',code,name:`Campanha fictícia ${code}`,seiProcess:'SEI-FICTICIO-E2E',authorizationDocument:'ATO-FICTICIO-E2E',validFrom:'2026-10-01',validUntil:'2026-10-31',projectDeadline:'2026-10-21',proofDeadline:'2026-11-19',description:reason,criteria:reason}))await fill(page,key,value);
+ await select(page,'workflowOrder','Administrativa → Orçamentária → DIREF');await select(page,'unidadeEscolhida','Vara fictícia E2E');await page.getByRole('button',{name:'Incluir unidade',exact:true}).click();await page.getByLabel('Referência 1',{exact:true}).fill('18000.00');await submit(page.locator('form').first(),'Criar campanha em rascunho');await page.waitForURL(/\/horas-extras\/campanhas\/[a-f0-9-]+$/);campaignId=page.url().split('/').at(-1);
+ const status=page.locator('form').filter({has:page.locator('input[name="campaignId"]')});await select(status,'status','Ativar campanha');await fill(status,'reason',reason);await submit(status,'Confirmar alteração');await page.getByRole('heading',{name:'Registrar ato financeiro'}).waitFor();
+ for(const operation of ['Alocar recursos','Registrar crédito descentralizado']) {
+  const form=page.locator('form').filter({has:page.getByRole('heading',{name:'Registrar ato financeiro'})});await select(form,'type',operation);await select(form,'sourceAccountId','Vara fictícia E2E');await fill(form,'amount','1000.00');await fill(form,'seiDocument','ATO-FICTICIO-E2E');await fill(form,'reason',reason);await submit(form,'Registrar movimentação');await page.getByText('Movimentação registrada e auditada.',{exact:true}).waitFor();await page.waitForFunction(()=>[...document.querySelectorAll('button')].find(b=>b.textContent==='Registrar movimentação')?.disabled===false);
+ }
+ await page.getByRole('link',{name:'Novo projeto coletivo',exact:true}).click();await select(page,'accountId','Vara fictícia E2E');if(await page.locator('select[name="responsibleUserId"]').count())await select(page,'responsibleUserId',/Servidor Fictício E2E/);await page.getByLabel('Título do projeto',{exact:true}).fill(`Projeto fictício ${code}`);await page.getByLabel('Processo SEI',{exact:true}).fill('SEI-FICTICIO-E2E');await page.getByRole('button',{name:'Continuar',exact:true}).click();
+ for(const label of ['Situação excepcional e necessidade institucional','Atividades específicas','Resultados esperados','Impossibilidade de execução na jornada ordinária; análise dos dias úteis e sábado'])await page.getByLabel(label,{exact:true}).fill(reason);
+ await page.getByRole('button',{name:'Continuar',exact:true}).click();await select(page,'employeePicker',/HE_UI_0001/,'HE_UI');await page.getByRole('button',{name:'Incluir servidor/data',exact:true}).click();
+ for(const [label,value]of [['Data','2026-10-22'],['Início','16:00'],['Fim','18:00'],['Estimativa (R$)','200.00']])await page.getByLabel(label,{exact:true}).fill(value);
+ await page.getByRole('button',{name:'Continuar',exact:true}).click();await page.getByRole('button',{name:'Continuar',exact:true}).click();await submit(page.locator('form').first(),'Salvar projeto');await page.waitForURL(/\/horas-extras\/projetos\/[a-f0-9-]+$/);projectId=page.url().split('/').at(-1);
+ await command('Enviar para análise','ADMIN_APPROVE');await command('Aprovar análise administrativa','BUDGET_APPROVE');await command('Reservar orçamento e encaminhar','AUTHORIZE');await command('Registrar autorização','PROCESS');
+ await writeFile(path.join(clock,'date.txt'),'2026-10-23T14:00:00.000Z');await page.reload();await command('Apurar marcações','PROVE');await command('Apresentar comprovação','HOMOLOGATE',{results:reason,documents:'EVIDENCIAS-FICTICIAS-E2E'});await command('Homologar prestação','FINANCIAL');
+ await page.goto(new URL('/horas-extras/remuneracao',base).href);const rubric=page.locator('form').filter({has:page.getByRole('heading',{name:'Validar rubrica remuneratória',exact:true})});await select(rubric,'orgaoId','HE_UI_TEST');
+ for(const [key,value]of Object.entries({code:`VB-${code}`,description:'Vencimento básico inteiramente fictício',nature:'REMUNERATORIA',normativeBasis:reason,validFrom:'2026-10-01',validUntil:'2026-10-31'}))await fill(rubric,key,value);await rubric.getByRole('checkbox').check();await submit(rubric,'Registrar rubrica validada');await page.getByText('Rubrica validada e registrada.',{exact:true}).waitFor();
+ const salary=page.locator('form').filter({has:page.getByRole('heading',{name:'Remuneração histórica documentada',exact:true})});await select(salary,'employeeId',/HE_UI_0001/);await fill(salary,'validFrom','2026-10-01');await fill(salary,'validUntil','2026-10-31');await fill(salary,'seiDocument','BASE-FICTICIA-E2E');await select(salary,'component-0',new RegExp(`VB-${code}`));await salary.getByLabel('Valor (R$)',{exact:true}).fill('8000.00');await submit(salary,'Registrar vigência validada');await page.getByText('Remuneração histórica registrada. Cálculos anteriores foram preservados.',{exact:true}).waitFor();
+ await page.goto(new URL(`/horas-extras/projetos/${projectId}`,base).href);await command('Calcular valores','RELEASE_PAYMENT');await command('Liberar para folha','CONFIRM_PAYROLL');
+ await page.goto(new URL('/folha/horas-extras',base).href);await select(page,'orgaoId',/HE_UI_TEST/);await fill(page,'competence','2026-10');await submit(page.locator('form').first(),'Gerar lote de folha');await page.waitForURL(/\/folha\/horas-extras\/[a-f0-9-]+$/);batchId=page.url().split('/').at(-1);await submit(page.locator('form').first(),'Fechar lote');await page.waitForFunction(()=>![...document.querySelectorAll('button')].some(b=>b.textContent==='Fechar lote'));
+ await page.goto(new URL(`/horas-extras/projetos/${projectId}`,base).href);await command('Registrar encaminhamento à folha');
+ const downloads=[];for(const [label,extension]of [['Comprovante PDF','pdf'],['CSV','csv'],['XLSX','xlsx']]){const event=page.waitForEvent('download');await page.getByRole('link',{name:label,exact:true}).click();const download=await event;const file=path.resolve(`.tmp/campanha-e2e.${extension}`);await download.saveAs(file);const body=await readFile(file);if(body.length<100)throw new Error(`Exportação ${extension} vazia`);downloads.push({format:extension,bytes:body.length});}
+ await page.screenshot({path:'.tmp/campanha-e2e-completa.png',fullPage:true});
+ const readerContext=await browser.newContext();const reader=await readerContext.newPage();await login(reader,'HE_UI_0001','e2e-he-read-only');await reader.goto(new URL(`/horas-extras/projetos/${projectId}`,base).href);if(await reader.getByRole('heading',{name:'Demonstrativos financeiros'}).count())throw new Error('Consulta própria expôs demonstrativo financeiro');if(await reader.getByRole('heading',{name:'Próxima etapa'}).count())throw new Error('Consulta própria expôs ações de decisão');const ownCsv=await readerContext.request.get(new URL(`/api/horas-extras/projetos/${projectId}/export?format=csv`,base).href);if(!ownCsv.ok()||(await ownCsv.text()).includes('Valor (R$)'))throw new Error('Exportação própria expôs valores financeiros');await readerContext.close();
+ if(errors.length)throw new Error(`Erros no navegador: ${errors.join('; ')}`);
+ const result={success:true,campaignId,projectId,batchId,orgaoId:fixture.orgaoId,downloads,readOnlyProtected:true,consoleErrors:errors};await writeFile('.tmp/campanha-e2e-result.json',JSON.stringify(result,null,2));console.log(JSON.stringify(result));
+}catch(error){await page.screenshot({path:'.tmp/campanha-e2e-erro.png',fullPage:true}).catch(()=>{});await writeFile('.tmp/campanha-e2e-erro.txt',String(error)+'\n'+await page.locator('body').innerText().catch(()=>''));console.error(String(error));process.exitCode=1;}finally{await browser.close();}

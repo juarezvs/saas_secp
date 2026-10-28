@@ -13,7 +13,7 @@ for (const [, name, body] of models) {
     if (!field || !names.has(field[2])) continue;
     const [, key, target, modifier] = field;
     relations[key] = { model: target, list: modifier === '[]', optional: modifier === '?' };
-    if (line.includes('fields:') && ['Orgao','UnidadeOrganizacional','Servidor','EquipamentoBiometrico'].includes(target)) owned.push(key);
+    if (line.includes('fields:') && ['Orgao','UnidadeOrganizacional','Servidor','EquipamentoBiometrico','OvertimeCampaign','OvertimeCampaignAccount','OvertimeBudgetOperation','OvertimeProject','OvertimeProjectVersion','OvertimeProjectItem','OvertimeExtraordinaryCredit'].includes(target)) owned.push(key);
   }
   if (name === 'Usuario') owned.push('servidor');
   map[name] = { relations, owned };

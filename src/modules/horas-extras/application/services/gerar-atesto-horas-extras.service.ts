@@ -65,6 +65,7 @@ export async function gerarAtestoHorasExtras(params: {
     if (!autorizacao) {
       throw new Error("Autorizacao de horas extras nao localizada.");
     }
+    if(autorizacao.campaignVersionId)throw new Error("Autorização vinculada a campanha: realize o atesto no projeto coletivo.");
 
     if (autorizacao.servidores.length === 0) {
       throw new Error("Autorizacao sem servidores cadastrados.");

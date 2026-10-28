@@ -1,3 +1,5 @@
+import { Decimal } from "@prisma/client/runtime/client";
+
 import {
   segmentarHorasExtrasPorVigenciaRemuneratoria,
   type VigenciaRemuneratoriaHoraExtra,
@@ -32,9 +34,8 @@ export type ResultadoCalculoFinanceiroHoraExtra = {
   totalCentavos: number;
 };
 
-function arredondarCentavos(valor: number) {
-  return Math.round(valor);
-}
+// Instância local: não altera a precisão de outros cálculos do sistema.
+const Dinheiro = Decimal.clone({ precision: 40, rounding: Decimal.ROUND_HALF_UP });
 
 export function calcularValorHorasExtras(params: {
   horasReconhecidas: HoraExtraReconhecidaFinanceira[];
@@ -42,8 +43,17 @@ export function calcularValorHorasExtras(params: {
   regrasFinanceiras: RegraFinanceiraHoraExtra[];
   divisorMinutos: number;
 }): ResultadoCalculoFinanceiroHoraExtra {
-  if (params.divisorMinutos <= 0) {
-    throw new Error("Divisor financeiro deve ser maior que zero.");
+  if (!Number.isSafeInteger(params.divisorMinutos) || params.divisorMinutos <= 0) {
+    throw new Error("Divisor financeiro deve ser inteiro e maior que zero.");
+  }
+
+  const tipos = new Set<string>();
+  for (const regra of params.regrasFinanceiras) {
+    if (tipos.has(regra.tipoDia)) throw new Error(`Regra financeira duplicada para ${regra.tipoDia}.`);
+    tipos.add(regra.tipoDia);
+    if (!Number.isFinite(regra.percentual) || regra.percentual < 0) {
+      throw new Error("Percentual financeiro deve ser finito e nao negativo.");
+    }
   }
 
   const regrasPorTipoDia = new Map(
@@ -64,10 +74,13 @@ export function calcularValorHorasExtras(params: {
         throw new Error(`Regra financeira ausente para ${tipoDia}.`);
       }
 
-      const valor =
-        (bloco.remuneracaoBaseCentavos / params.divisorMinutos) *
-        hora.minutos *
-        (1 + regra.percentual / 100);
+      const valor = new Dinheiro(bloco.remuneracaoBaseCentavos)
+        .mul(hora.minutos)
+        .mul(new Dinheiro(regra.percentual.toString()).div(100).plus(1))
+        .div(params.divisorMinutos)
+        .toDecimalPlaces(0, Decimal.ROUND_HALF_UP)
+        .toNumber();
+      if (!Number.isSafeInteger(valor)) throw new Error("Valor calculado excede a precisao suportada em centavos.");
 
       itens.push({
         data: hora.data,
@@ -78,13 +91,15 @@ export function calcularValorHorasExtras(params: {
         divisorMinutos: params.divisorMinutos,
         percentual: regra.percentual,
         rubrica: regra.rubrica,
-        valorCentavos: arredondarCentavos(valor),
+        valorCentavos: valor,
       });
     }
   }
 
+  const totalCentavos = itens.reduce((total, item) => total + item.valorCentavos, 0);
+  if (!Number.isSafeInteger(totalCentavos)) throw new Error("Total calculado excede a precisao suportada em centavos.");
   return {
     itens,
-    totalCentavos: itens.reduce((total, item) => total + item.valorCentavos, 0),
+    totalCentavos,
   };
 }
