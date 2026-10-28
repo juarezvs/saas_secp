@@ -1,4 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+const banco = vi.hoisted(() => ({ afastamentos: vi.fn() }));
+vi.mock("@/shared/infrastructure/database/prisma", () => ({
+  prisma: {
+    $extends() { return this; },
+    afastamentoSarh: { findMany: banco.afastamentos },
+    servidor: { findUnique: vi.fn(async () => null) },
+    lotacao: { findMany: vi.fn(async () => []), findFirst: vi.fn(async () => null) },
+  },
+}));
 
 import type { CalendarioInstitucionalPrecarregado } from "@/modules/calendario-institucional/application/services/classificar-dia-institucional.service";
 
@@ -85,6 +95,50 @@ const jornadaHibridaHomeOffice = {
 };
 
 describe("montarEspelhoMensalCompleto", () => {
+  it.each([
+    { mes: 5, dias: [31] },
+    { mes: 6, dias: [1, 2, 3, 4, 7, 8, 9, 10, 11, 12, 13] },
+    { mes: 8, dias: Array.from({ length: 11 }, (_, indice) => 19 + indice) },
+    { mes: 10, dias: [5, 6, 7, 8, 21, 22, 23] },
+  ])("exibe viagens especiais na competencia $mes inclusive apos o termino", async ({ mes, dias }) => {
+    banco.afastamentos.mockResolvedValue([
+      ["9", "2026-05-31", "2026-06-04"],
+      ["8", "2026-06-07", "2026-06-13"],
+      ["10", "2026-08-19", "2026-08-22"],
+      ["11", "2026-08-23", "2026-08-29"],
+      ["12", "2026-10-05", "2026-10-08"],
+      ["13", "2026-10-21", "2026-10-23"],
+    ].map(([id, inicio, fim]) => ({
+        id: `AFASTAMENTO_ESPECIAL:AM:200401:${id}`,
+        categoria: "AFASTAMENTO_ESPECIAL",
+        tipoCodigo: null,
+        tipoDescricao: "VIAGEM A SERVICO",
+        dataInicio: new Date(`${inicio}T00:00:00.000Z`),
+        dataFim: new Date(`${fim}T00:00:00.000Z`),
+        processo: null,
+        observacao: null,
+        origemTabela: "RH_FREQUENCIA_ESPECIAL",
+        ativo: true,
+        payloadSarh: null,
+      })));
+    const espelho = await montarEspelhoMensalCompleto({
+      servidorId: "servidor",
+      anoReferencia: 2026,
+      mesReferencia: mes,
+      calendario: { eventosPorData: new Map(), recessos: [] },
+      jornadas: [jornada],
+      hoje: new Date("2026-10-28T16:00:00.000Z"),
+      apuracoes: [],
+    });
+    const viagens = espelho.itens.filter(item =>
+      item.ocorrencias?.some(ocorrencia => ocorrencia.tipo === "AFASTAMENTO"),
+    );
+    expect(viagens.map(item => item.dataReferencia.toISOString().slice(0, 10))).toEqual(
+      dias.map(dia => `2026-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`),
+    );
+    expect(viagens.every(item => item.minutosDebito === 0)).toBe(true);
+  });
+
   const afastamentoBase = {
     id: "afastamento",
     categoria: "LICENCA",

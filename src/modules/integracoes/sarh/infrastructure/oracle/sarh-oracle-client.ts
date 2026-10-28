@@ -714,6 +714,36 @@ export class SarhOracleClient {
         join servidor_base sb
           on sb.sigla = d.afad_func_sigla_funcionario
          and sb.cod_funcionario = d.afad_func_cod_funcionario
+
+        union all
+
+        select
+          'AFASTAMENTO_ESPECIAL:' || e.freq_func_sigla_secao_subsecao || ':' ||
+            e.freq_func_cod_funcionario || ':' || e.freq_cod_frequencia as id,
+          'AFASTAMENTO_ESPECIAL' as categoria,
+          cast(null as varchar2(4000)) as tipo_codigo,
+          'VIAGEM A SERVICO' as tipo_descricao,
+          sb.matricula,
+          sb.cpf,
+          sb.nome,
+          e.freq_dat_inicio as data_inicio_ordem,
+          to_char(e.freq_dat_inicio, 'YYYY-MM-DD') as data_inicio,
+          to_char(e.freq_dat_fim, 'YYYY-MM-DD') as data_fim,
+          case
+            when e.freq_dat_fim is not null then trunc(e.freq_dat_fim) - trunc(e.freq_dat_inicio) + 1
+            else null
+          end as dias,
+          null as exercicio,
+          to_char(e.freq_num_sei) as processo,
+          e.freq_observacao as observacao,
+          'RH_FREQUENCIA_ESPECIAL' as origem_tabela
+        from sarh.rh_frequencia_especial e
+        join servidor_base sb
+          on sb.sigla = e.freq_func_sigla_secao_subsecao
+         and sb.cod_funcionario = e.freq_func_cod_funcionario
+        -- FREQ_TIPO pertence ao cadastro de frequencia especial, nao a RH_TIPO_AFASTAMENTO.
+        -- Tipo 1: viagem a servico; outros tipos incluem regras de teletrabalho.
+        where e.freq_tipo = '1'
       )
       select
         id as "id",
